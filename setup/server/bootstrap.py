@@ -147,6 +147,11 @@ TOOLS = sorted(DRIVERS)
 # siliconcompiler rather than with the EDA stack.
 AS_DISTRIBUTION = {"slang": "pyslang", "graphviz": "graphviz"}
 
+# Python distributions SiliconCompiler's own process on a node needs for a
+# task, which the images carry at SiliconCompiler's range -- both install its
+# `cocotb` extra -- so a cocotb node's `requires.python` resolves.
+FRAMEWORK = ("cocotb",)
+
 # 🔴 What the tools image MUST hold. Everything in the catalogue is probed
 # against every image and declared where it is found; this is the shorter list
 # whose absence refuses the registration outright, because these are what
@@ -743,6 +748,14 @@ def register(version: str, tools_digest: str, runtime_digest: str,
     registry("add-version", "siliconcompiler", version)
 
     contains, runtime_contains = [], []
+
+    # 🔴 A framework distribution -- cocotb -- is named in a cocotb node's
+    # `requires.python` at SiliconCompiler's range, and the image's version
+    # runs. Each image declares it where the probe found it.
+    for name in FRAMEWORK:
+        registry("add-software", name, "-kind", "python")
+        contains += _declare(name, held.get(name), published)
+        runtime_contains += _declare(name, runtime_held.get(name), published)
     for tool in TOOLS:
         add = ["add-software", tool, "-kind", "tool",
                "-driver", DRIVERS[tool]]
@@ -837,14 +850,14 @@ def main() -> int:
     published = published_on(STACK_IMAGE)
 
     say("asking the tools image what it actually holds")
-    held = ask_image(STACK_IMAGE, ["siliconcompiler"], DRIVERS)
+    held = ask_image(STACK_IMAGE, ["siliconcompiler", *FRAMEWORK], DRIVERS)
     say_what_it_holds(held)
 
     # ⚠️ Asked too, and not assumed empty. It carries whatever arrives with
     # siliconcompiler -- `slang` does -- and a tool it holds and does not
     # declare is a node sent to the big image for nothing.
     say("asking the runtime image the same")
-    runtime_held = ask_image(RUNTIME_IMAGE, ["siliconcompiler"], DRIVERS)
+    runtime_held = ask_image(RUNTIME_IMAGE, ["siliconcompiler", *FRAMEWORK], DRIVERS)
     for tool in TOOLS:
         found = (runtime_held.get(tool) or {}).get("version")
         if found:

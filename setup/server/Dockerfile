@@ -133,10 +133,12 @@ ENV VIRTUAL_ENV=/venv
 ENV PATH="/venv/bin:$PATH"
 
 COPY --from=wheel /wheels /tmp/wheels
-# [server] pulls Flask, which the server needs and a default install omits.
-# The glob goes through echo because an extra cannot be appended to a pattern,
-# and stage 1 builds exactly one wheel.
-RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server]" \
+# [server] pulls Flask, which the server needs and a default install omits;
+# [cocotb] puts cocotb in every image at SiliconCompiler's own range, since a
+# cocotb node's SiliconCompiler and simulator load that one copy. The glob goes
+# through echo because an extra cannot be appended to a pattern, and stage 1
+# builds exactly one wheel.
+RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server,cocotb]" \
     && rm -rf /tmp/wheels
 
 # Nothing to set up for slurm here: the base image's install-slurm.sh already

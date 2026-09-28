@@ -259,6 +259,23 @@ def test_a_tool_whose_version_is_a_distribution_is_still_a_tool(bootstrap):
     assert ["add-version", "slang", "11.0.0"] in bootstrap.calls
 
 
+def test_cocotb_is_registered_and_declared_where_it_was_found(bootstrap):
+    """🔴 A cocotb node's `requires.python` names cocotb at SiliconCompiler's
+    range, so an image holding it says so -- and one the probe found without
+    it declares nothing."""
+    bootstrap.register(
+        "0.38.9", "sha256:b", "sha256:a", "20260924",
+        {"cocotb": {"kind": "python", "version": "2.1.3", "present": True}},
+        {"cocotb": {"kind": "python", "version": None, "present": False}})
+
+    added = {call[1]: call for call in commands(bootstrap, "add-software")}
+    assert added["cocotb"][2:4] == ["-kind", "python"]
+    images = {call[1].split("/")[-1].split(":")[0]: call
+              for call in commands(bootstrap, "add-image")}
+    assert "cocotb==2.1.3" in images["sc-tools"]
+    assert "cocotb==2.1.3" not in images["sc-runtime"]
+
+
 def test_each_image_declares_only_what_the_probe_found_in_it(bootstrap):
     """⚠️ Every tool in the catalogue is asked of every image, and most images
     hold a handful. Declaring one that is not there is the claim that gets a

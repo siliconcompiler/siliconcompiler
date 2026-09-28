@@ -1085,6 +1085,23 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         paths.append(IMAGE_SITE)
         return [path for path in paths if os.path.isdir(path)]
 
+    @classmethod
+    def framework_distributions(cls) -> Tuple[str, ...]:
+        """
+        Python distributions SiliconCompiler's own process on the node needs
+        for this task -- cocotb, for a cocotb task, whose simulator and whose
+        SiliconCompiler must load one installation.
+
+        Declared on the class, so a remote run names each in its
+        ``requires.python``, at the range SiliconCompiler declares for it,
+        without running setup on the submitting machine: the node's image then
+        holds it, and an environment file leaves it out.
+
+        Returns:
+            tuple of str: distribution names; none by default.
+        """
+        return ()
+
     def get_python_environment(self) -> Optional["PythonEnvironment"]:
         """
         What this node's tool runs of the user's Python, for a remote run to

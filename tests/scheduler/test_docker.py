@@ -164,6 +164,41 @@ def test_run_passes_uid_and_gid(project):
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
+@pytest.mark.parametrize("has_auth", [True, False])
+def test_the_session_store_is_never_a_task_containers_to_see(project, tmp_path,
+                                                             monkeypatch, has_auth):
+    """🔴 A node is given ~/.sc read-only, and never ~/.sc/auth: the DPoP key
+    and the sessions that act as this user stay on the host. An empty tmpfs
+    covers it -- only where it exists, since a read-only mount cannot take a
+    new mount point."""
+    home = tmp_path / ".sc"
+    home.mkdir()
+    (home / "email.json").write_text("{}")
+    if has_auth:
+        (home / "auth").mkdir(mode=0o700)
+        (home / "auth" / "dpop-key.pem").write_text("secret")
+    monkeypatch.setattr("siliconcompiler.scheduler.docker.default_email_credentials_file",
+                        lambda: str(home / "email.json"))
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    kwargs = client.containers.run.call_args.kwargs
+    assert f"{home}:/sc_home/.sc:ro" in kwargs['volumes']
+    if has_auth:
+        assert set(kwargs['tmpfs']) == {"/sc_home/.sc/auth"}
+    else:
+        assert kwargs['tmpfs'] == {}
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
 def test_run_stops_container_without_grace_period(project):
     """Teardown must not sit through the daemon's SIGTERM grace period.
 

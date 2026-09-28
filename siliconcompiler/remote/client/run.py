@@ -624,15 +624,26 @@ class RemoteRun:
 
             installed = metadata.packages_distributions()
             flow = project.get_flow()
+            framework = {name for env in self._environments.values()
+                         for name in env.framework}
             for step, index in runtime_flow(project).get_nodes():
                 module = (flow.get_graph_node(step, index).get_taskmodule() or "")
                 for distribution in installed.get(module.split("/", 1)[0]
                                                   .split(".", 1)[0], ()):
                     exact(distribution)
+                # Declared on the class, so it is named whether or not the
+                # node's setup can run here.
+                try:
+                    framework.update(flow.get_task_module(step, index)
+                                     .framework_distributions())
+                except Exception:                                # noqa: BLE001
+                    pass
 
-            for name in sorted({name for env in self._environments.values()
-                                for name in env.framework}):
-                pins[_canonical(name)] = [_framework_range(name)]
+            for name in sorted(framework):
+                declared = _framework_range(name)
+                # Any version, where neither SiliconCompiler nor this machine
+                # says which.
+                pins[_canonical(name)] = [declared] if declared else []
 
             for _, distribution in owners.installed_dataroots(project, required):
                 if self._supplied(distribution):

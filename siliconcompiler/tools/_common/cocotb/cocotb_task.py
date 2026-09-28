@@ -1,23 +1,35 @@
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Optional, Tuple, Union, Dict
 import xml.etree.ElementTree as ET
 
-from siliconcompiler import Task
+from siliconcompiler import Task, utils
 from siliconcompiler.tool import PythonEnvironment
 
-try:
-    import cocotb_tools.config
-    import find_libpython
-    _has_cocotb = True
-except ModuleNotFoundError:
-    _has_cocotb = False
+
+def _cocotb():
+    """cocotb's configuration and ``find_libpython``, imported where they are
+    used, or None.
+
+    🔴 **Never at import, and never in setup()**: setup runs on the machine a
+    run is submitted from, which for a remote run need not have cocotb -- the
+    node's image does, at SiliconCompiler's range. What needs it is what runs
+    on the node.
+    """
+    try:
+        import cocotb_tools.config
+        import find_libpython
+    except ModuleNotFoundError:
+        return None
+    return cocotb_tools.config, find_libpython
 
 
 def _require_cocotb(what):
-    if not _has_cocotb:
+    found = _cocotb()
+    if found is None:
         raise NotImplementedError(f"COCOTB must be installed to use {what}")
+    return found
 
 
 def get_cocotb_config(sim="icarus"):
@@ -28,11 +40,11 @@ def get_cocotb_config(sim="icarus"):
         tuple: ``(libs_dir, vpi_lib, share_dir)`` where ``vpi_lib`` is the
         absolute path to the simulator's cocotb VPI library.
     """
-    _require_cocotb("get_cocotb_config")
+    config, _ = _require_cocotb("get_cocotb_config")
 
-    libs_dir = cocotb_tools.config.libs_dir
-    vpi_lib = cocotb_tools.config.lib_name_path("vpi", sim)
-    share_dir = cocotb_tools.config.share_dir
+    libs_dir = config.libs_dir
+    vpi_lib = config.lib_name_path("vpi", sim)
+    share_dir = config.share_dir
 
     return libs_dir, vpi_lib, share_dir
 
@@ -49,9 +61,9 @@ def get_cocotb_lib_entry(sim="icarus", interface="vpi"):
     Returns:
         str: The interface library, optionally suffixed with its entry function.
     """
-    _require_cocotb("get_cocotb_lib_entry")
+    config, _ = _require_cocotb("get_cocotb_lib_entry")
 
-    return cocotb_tools.config.lib_entry(interface, sim)
+    return config.lib_entry(interface, sim)
 
 
 def get_libpython_path():
@@ -64,7 +76,7 @@ def get_libpython_path():
     Raises:
         ValueError: If libpython cannot be found.
     """
-    _require_cocotb("get_libpython_path")
+    _, find_libpython = _require_cocotb("get_libpython_path")
 
     libpython_path = find_libpython.find_libpython()
     if not libpython_path:
@@ -85,12 +97,23 @@ def get_gpi_users():
     Returns:
         str: Semicolon-separated ``GPI_USERS`` value.
     """
-    _require_cocotb("get_gpi_users")
+    config, _ = _require_cocotb("get_gpi_users")
 
-    return ";".join([get_libpython_path(), cocotb_tools.config.pygpi_entry_point()])
+    return ";".join([get_libpython_path(), config.pygpi_entry_point()])
 
 
 class CocotbTask(Task):
+
+    # Test modules whose file collection renamed, linked back under the name
+    # cocotb imports them by, in the node's work directory.
+    _STAGED_MODULES_DIR = "cocotb_modules"
+
+    @classmethod
+    def framework_distributions(cls) -> Tuple[str, ...]:
+        """cocotb: this process sets up the GPI from its own copy, so the
+        node's image holds it at SiliconCompiler's range and the testbench's
+        environment leaves it out."""
+        return ("cocotb",)
 
     def __init__(self):
         super().__init__()
@@ -117,32 +140,50 @@ class CocotbTask(Task):
     def task(self):
         return "exec_cocotb"
 
-    def _get_test_modules(self):
+    def _get_test_module_names(self):
         """
         Get cocotb test module names from Python files in filesets.
 
+        🔴 The name comes from each file as declared, not as resolved:
+        collection renames a file to ``<name>_<hash>.py``, and a module's name
+        is what cocotb imports and what every test is reported under.
+
         Returns:
-            tuple: (module_names, module_dirs) where module_names is a
-                   comma-separated string and module_dirs is a list of
-                   directories containing the modules.
+            str: comma-separated module names.
         """
         module_names = []
+        for lib, fileset in self.project.get_filesets():
+            for pyfile in lib.get("fileset", fileset, "file", "python"):
+                module_names.append(Path(pyfile).stem)
+        return ",".join(module_names)
+
+    def _get_test_modules(self):
+        """
+        Resolve cocotb test modules to the files that will be imported.
+
+        Returns:
+            tuple: (staged, module_dirs) where staged maps a module name to a
+                   resolved file whose own name differs from it, and
+                   module_dirs is a list of directories containing modules
+                   that can be imported where they are.
+        """
+        staged = {}
         module_dirs = []
-        seen_dirs = set()
 
         for lib, fileset in self.project.get_filesets():
-            for pyfile in lib.get_file(fileset=fileset, filetype="python"):
+            declared = lib.get("fileset", fileset, "file", "python")
+            resolved = lib.get_file(fileset=fileset, filetype="python")
+            for name, pyfile in zip(declared, resolved):
                 path = Path(pyfile)
-                # Module name is the filename without .py extension
-                module_name = path.stem
-                module_names.append(module_name)
-                # Track the directory for PYTHONPATH
+                module_name = Path(name).stem
+                if path.stem != module_name:
+                    staged[module_name] = str(path.resolve())
+                    continue
                 dir_path = str(path.parent.resolve())
-                if dir_path not in seen_dirs:
-                    seen_dirs.add(dir_path)
+                if dir_path not in module_dirs:
                     module_dirs.append(dir_path)
 
-        return ",".join(module_names), module_dirs
+        return staged, module_dirs
 
     def get_python_environment(self) -> PythonEnvironment:
         """
@@ -158,7 +199,7 @@ class CocotbTask(Task):
         """
         sources = tuple(str(pyfile) for lib, fileset in self.project.get_filesets()
                         for pyfile in lib.get_file(fileset=fileset, filetype="python"))
-        return PythonEnvironment(sources=sources, framework=("cocotb",))
+        return PythonEnvironment(sources=sources, framework=self.framework_distributions())
 
     def _get_libdirs(self):
         """
@@ -195,12 +236,10 @@ class CocotbTask(Task):
         Set up all required environment variables for cocotb execution.
         """
 
-        test_modules, _ = self._get_test_modules()
+        test_modules = self._get_test_module_names()
 
-        # GPI_USERS: libraries the GPI layer loads to bootstrap Python inside
-        # the simulator (libpython followed by the PyGPI entry point).
-        self.set_environmentalvariable("GPI_USERS", get_gpi_users())
-        self.add_required_key("env", "GPI_USERS")
+        # GPI_USERS is the node's, in get_runtime_environmental_variables():
+        # absolute paths into whichever Python and cocotb run the node.
 
         # COCOTB_TOPLEVEL: the HDL toplevel module name
         self.set_environmentalvariable("COCOTB_TOPLEVEL", self.design_topmodule)
@@ -226,9 +265,6 @@ class CocotbTask(Task):
 
     def setup(self):
         super().setup()
-
-        if not _has_cocotb:
-            raise RuntimeError("Cocotb is not installed; cannot run test.")
 
         # Output: xUnit XML results file
         self.add_output_file(file="results.xml")
@@ -257,8 +293,9 @@ class CocotbTask(Task):
 
         Extends the base environment with the cocotb library directory on
         PATH, the test-module and user library directories on PYTHONPATH,
-        and the Python executable used by the GPI bridge. PATH and PYTHONPATH
-        entries are added idempotently so repeated calls do not duplicate them.
+        and the GPI bootstrap -- ``GPI_USERS`` and ``PYGPI_PYTHON_BIN`` -- for
+        the Python running this node. PATH and PYTHONPATH entries are added
+        idempotently so repeated calls do not duplicate them.
 
         Args:
             include_path (bool): If True, includes the PATH variable.
@@ -268,11 +305,14 @@ class CocotbTask(Task):
         """
         envs = super().get_runtime_environmental_variables(include_path)
 
+        # None only on a machine without cocotb, where no simulation runs.
+        found = _cocotb()
+
         ##########################################
         # PATH: add cocotb libs directory
         ##########################################
-        if include_path:
-            libs_dir = str(cocotb_tools.config.libs_dir)
+        if include_path and found:
+            libs_dir = str(found[0].libs_dir)
             path_parts = envs.get("PATH", "").split(os.pathsep)
             if libs_dir not in path_parts:
                 path_parts.insert(0, libs_dir)
@@ -283,8 +323,10 @@ class CocotbTask(Task):
         ##########################################
         python_path = [p for p in envs.get("PYTHONPATH", "").split(os.pathsep) if p]
 
-        # Get test module directories
-        _, module_dirs = self._get_test_modules()
+        # Get test module directories, the renamed ones linked back first
+        staged, module_dirs = self._get_test_modules()
+        if staged:
+            module_dirs.insert(0, os.path.join(self.nodeworkdir, self._STAGED_MODULES_DIR))
         # Get lib directories
         user_lib_dirs = self._get_libdirs()
 
@@ -296,11 +338,30 @@ class CocotbTask(Task):
         envs["PYTHONPATH"] = os.pathsep.join(python_path)
 
         ##########################################
-        # PYGPI_PYTHON_BIN: set python executable
+        # GPI_USERS / PYGPI_PYTHON_BIN: the Python this node runs on
         ##########################################
+        # Resolved here rather than in setup(): setup() runs on the submitting
+        # machine, and these are absolute paths into whichever Python and
+        # cocotb execute the node. GPI_USERS lists the libraries the GPI layer
+        # loads to bring Python up inside the simulator: libpython, then the
+        # PyGPI entry point.
+        if found:
+            envs["GPI_USERS"] = get_gpi_users()
         envs["PYGPI_PYTHON_BIN"] = sys.executable
 
         return envs
+
+    def pre_process(self):
+        super().pre_process()
+
+        # Test modules whose file collection renamed are linked back under the
+        # name cocotb imports them by.
+        staged, _ = self._get_test_modules()
+        if staged:
+            staged_dir = os.path.join(self.nodeworkdir, self._STAGED_MODULES_DIR)
+            os.makedirs(staged_dir, exist_ok=True)
+            for module_name, path in staged.items():
+                utils.link_symlink_copy(path, os.path.join(staged_dir, f"{module_name}.py"))
 
     def _parse_cocotb_results(self, results_file: Path):
         """

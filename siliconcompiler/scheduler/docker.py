@@ -45,6 +45,25 @@ def get_image(project, step, index) -> str:
         f'ghcr.io/siliconcompiler/sc_runner:v{__version__}')
 
 
+# What is never a task container's to see, relative to the ~/.sc it is given.
+# The session store holds the machine's DPoP key and its sessions: a node runs
+# a tool, and a tool runs whatever its inputs make it, so nothing it runs gets
+# the credentials that act as this user.
+_HIDDEN_FROM_NODE = ("auth",)
+
+
+def _hidden_from_node(email_file):
+    """An empty tmpfs over each of ``_HIDDEN_FROM_NODE`` inside the read-only
+    ``/sc_home/.sc`` a container is given -- where the host has one, since a
+    read-only bind mount cannot take a new mount point."""
+    if not os.path.exists(email_file):
+        return {}
+    home = os.path.dirname(email_file)
+    return {f"/sc_home/.sc/{name}": "size=64k,mode=0700"
+            for name in _HIDDEN_FROM_NODE
+            if os.path.isdir(os.path.join(home, name))}
+
+
 def get_volumes_directories(project, cache_dir, workdir, step, index):
     """
     Identifies and categorizes all host directories that need to be mounted
@@ -301,6 +320,7 @@ class DockerSchedulerNode(SchedulerNode):
             container = client.containers.run(
                 image.id,
                 volumes=volumes,
+                tmpfs=_hidden_from_node(email_file),
                 labels=[
                     "siliconcompiler",
                     f"sc_node:{self.name}:{self.step}:{self.index}"

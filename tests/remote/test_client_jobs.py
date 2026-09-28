@@ -315,6 +315,31 @@ def test_a_framework_distribution_carries_the_range_siliconcompiler_declares(
     assert pins["siliconcompiler"]
 
 
+def test_a_cocotb_node_names_cocotb_even_where_its_setup_cannot_run(
+        fake_v1, logged_in, gcd_design):
+    '''Declared on the task's class, so Verilator's compile step -- which
+    runs none of the user's Python, and needs Verilator's setup -- still
+    lands where cocotb is.'''
+    from importlib import metadata
+
+    from packaging.requirements import Requirement
+
+    from siliconcompiler import Flowgraph, Project
+    from siliconcompiler.remote.client.run import RemoteRun
+    from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask
+
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("cocotbcompile")
+    flow.node("compile", CocotbCompileTask())
+    project.set_flow(flow)
+
+    declared = [str(Requirement(line).specifier)
+                for line in metadata.requires("siliconcompiler") or []
+                if Requirement(line).name == "cocotb"]
+    assert RemoteRun(project, logged_in)._requires_python()["cocotb"] == declared
+
+
 def test_cocotbs_range_is_siliconcompilers():
     from importlib import metadata
 

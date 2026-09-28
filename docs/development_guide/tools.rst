@@ -101,14 +101,21 @@ Next, you define what the specific task needs to run and what it will produce.
 
    **A task whose tool runs the user's own Python** -- a testbench, a plugin
    -- says so by overriding :meth:`.Task.get_python_environment`, returning the
-   source files the tool loads, any distributions it loads by name, and what
-   SiliconCompiler's own process needs for it. A remote run turns that into the
-   node's environment file; the cocotb tasks are the example.
+   source files the tool loads and any distributions it loads by name. A remote
+   run follows those files' imports and turns them into the node's environment
+   file; the cocotb tasks are the example.
+
+   **What SiliconCompiler's own process needs for the task** -- cocotb, for a
+   cocotb task -- is declared on the class, by overriding
+   :meth:`.Task.framework_distributions`, so a remote run names it without
+   setting the node up and the node's image holds it at SiliconCompiler's
+   range. Import it where the node uses it, never at module import or in
+   ``setup()``: the submitting machine need not have it.
 
 .. important::
 
-   **Do not call** ``find_files`` **(or anything else that resolves a
-   path) in** ``setup()``. A remote run sets up every node on the client, before
+   ``setup()`` **SHOULD NOT call** ``find_files`` **(or anything else that
+   resolves a path)**. A remote run sets up every node on the client, before
    anything is uploaded, to learn what the flow reads -- and resolving a path
    there fetches a remote PDK onto the user's machine just to answer that. Declare
    keys in ``setup()``; resolve the files they name in
