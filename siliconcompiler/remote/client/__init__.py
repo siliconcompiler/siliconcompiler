@@ -845,6 +845,8 @@ class Client:
             try:
                 return send()
             except ServerProblem as e:
+                if e.slug == "terms-not-accepted":
+                    raise self._to_sign(e) from None
                 limit = e.member("limit")
                 if e.slug != "limit-exceeded" or not e.retry_after or \
                         limit not in ("concurrent_jobs", "pending_uploads"):
@@ -862,6 +864,31 @@ class Client:
                             "Waiting: this server's limit of running jobs is reached; "
                             "this one goes as soon as one of yours finishes.")
                 time.sleep(e.retry_after)
+
+    def _to_sign(self, refusal: ServerProblem) -> ServerProblem:
+        '''A `terms-not-accepted` refusal as a person acts on it: each document
+        in its `blocked_by` printed with its own link -- opened, where it may be,
+        on a terminal -- and one with no link named by its title in
+        `GET /v1/me`'s `terms`. Never accepted here.'''
+        blocked = refusal.member("blocked_by")
+        if not isinstance(blocked, dict):
+            return refusal
+
+        for entry in blocked.values():
+            url = entry.get("url") if isinstance(entry, dict) else None
+            if isinstance(url, str) and url:
+                self.open_url(url, "the terms page")
+
+        if all(isinstance(entry, dict) and entry.get("url") for entry in blocked.values()):
+            return refusal
+        try:
+            terms = self.me(remind=False).get("terms") or []
+        except RemoteError:
+            return refusal
+        titles = {entry.get("id"): entry.get("title") for entry in terms
+                  if isinstance(entry, dict) and entry.get("title")}
+        return ServerProblem(refusal.problem, refusal.status, help_url=refusal.help_url,
+                             titles=titles, retry_after=refusal.retry_after)
 
     def job(self, job_id: str) -> tuple:
         '''``GET /v1/jobs/{id}``, and the interval the server asked for.

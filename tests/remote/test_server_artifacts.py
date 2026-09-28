@@ -318,6 +318,20 @@ def test_fetching_an_artifact_is_a_303_to_a_signed_route(server_client, key,
     assert len(bytes_response.data) == item["size_bytes"]
 
 
+def test_every_artifact_is_stored_and_served_gzipped(server_client, key, token, finished):
+    '''Every kind, the manifest and a node's logs included, and the bytes
+    served are the gzip itself.'''
+    items = listing(server_client, key, token, finished["id"])
+    assert {item["kind"] for item in items} >= {"manifest", "logs", "reports", "node"}
+
+    for item in items:
+        response = call(server_client, key, "GET",
+                        f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
+        body = server_client.get(response.headers["Location"].split("http://localhost", 1)[1])
+        assert body.data[:2] == b"\x1f\x8b", item["kind"]
+        assert item["media_type"] == "application/gzip", item["kind"]
+
+
 def test_the_bytes_need_a_signature(server_client, key, token, finished):
     item = listing(server_client, key, token, finished["id"])[0]
 

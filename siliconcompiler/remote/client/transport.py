@@ -252,7 +252,8 @@ class Transport:
                 on_v1: bool = True,
                 oauth: bool = False,
                 _attempt: int = 0,
-                _waits: int = 0) -> requests.Response:
+                _waits: int = 0,
+                _nonced: bool = False) -> requests.Response:
         '''Send one request, proof and all.
 
         ``expect_redirect`` says the caller expects a ``303`` and follows it
@@ -281,7 +282,7 @@ class Transport:
         again = dict(method=method, path=path, authenticated=authenticated, data=data,
                      json_body=json_body, params=params, headers=headers,
                      expect_redirect=expect_redirect, stream=stream, on_v1=on_v1,
-                     oauth=oauth)
+                     oauth=oauth, _nonced=_nonced)
 
         try:
             response = self._session.request(
@@ -350,9 +351,12 @@ class Transport:
         challenge = response.headers.get("WWW-Authenticate", "")
 
         if status == 401 and attempt < MAX_RETRIES:
-            if slug == "dpop-nonce-required" or "use_dpop_nonce" in challenge:
-                # The server wants the nonce it just gave, for this origin.
-                return self.request(**again, _attempt=attempt + 1, _waits=waits)
+            if (slug == "dpop-nonce-required" or "use_dpop_nonce" in challenge) \
+                    and not again["_nonced"]:
+                # The server wants the nonce it just gave, for this origin:
+                # retried once, and a second challenge is the answer.
+                return self.request(**{**again, "_nonced": True},
+                                    _attempt=attempt + 1, _waits=waits)
 
             if slug == "invalid-dpop-proof" and self._correct_clock(response):
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
@@ -410,8 +414,9 @@ class Transport:
 
         error = body["error"]
         if attempt < MAX_RETRIES:
-            if error == "use_dpop_nonce":
-                return self.request(**again, _attempt=attempt + 1, _waits=waits)
+            if error == "use_dpop_nonce" and not again["_nonced"]:
+                return self.request(**{**again, "_nonced": True},
+                                    _attempt=attempt + 1, _waits=waits)
             if error == "invalid_dpop_proof" and self._correct_clock(response):
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 

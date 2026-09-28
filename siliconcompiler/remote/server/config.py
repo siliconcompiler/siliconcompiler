@@ -251,14 +251,16 @@ DEFAULTS: Dict[str, Any] = {
     # <datadir>/images and re-stage.
     "container_mounts": [],
 
-    # Which artifact kinds the API hands over, or None for all of them.
+    # Which artifact kinds the API hands over, or None for all of them. A test
+    # knob, off by default: the profile has no kind that needs an approval.
     #
     # 🔴 **The API's answer and not the portal's.** A kind left out stays in
     # the listing with `fetchable: false` and no `access_request_url` -- it
-    # exists, and there is no path to yes from here -- and fetching it is
-    # `entitlement-denied`. The portal lists and serves it as before, which is
-    # the surface split `max_download_bytes` already makes: a person clicking
-    # one object is not an automated sweep.
+    # exists, and there is no path to yes from here -- and fetching it is the
+    # ladder's own answer for a kind that needs an approval, row 7:
+    # `403 artifact-not-approved`. The portal lists and serves it as before,
+    # which is the surface split `max_download_bytes` already makes: a person
+    # clicking one object is not an automated sweep.
     #
     # ⚠️ Omitting a kind from the LISTING would be legal too -- no kind is
     # guaranteed -- but it says something different: *this server does not keep

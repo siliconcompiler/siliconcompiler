@@ -279,6 +279,55 @@ def test_results_gone_before_the_copy_reject_the_job(server, server_client, key,
     assert not dispatcher.submitted
 
 
+def test_results_withheld_before_the_copy_reject_the_job(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher,
+        monkeypatch):
+    '''🔴 The copy re-checks withholding: an administrator who withheld the
+    earlier results after submit stops them being used.'''
+    from siliconcompiler.remote.server.jobs import JobService
+
+    earlier = ran(server, me)
+    real = JobService._account_upstream
+
+    def withheld_meanwhile(self, *args, **kwargs):
+        found = real(self, *args, **kwargs)
+        self._store.execute("UPDATE artifacts SET withheld_at = '2026-09-28T00:00:00.000Z', "
+                            "withheld_by = ? WHERE job_id = ? AND kind = 'node'",
+                            (me, earlier))
+        return found
+    monkeypatch.setattr(JobService, "_account_upstream", withheld_meanwhile)
+
+    job, response = submitted(server_client, key, token,
+                              job_archive(from_steptwo(nop_project)),
+                              continues_from=[entry(earlier)])
+
+    assert refused(response) == "withheld"
+    assert response.get_json()["job_id"] == earlier
+    assert server.config["SC_STORE"].one("SELECT state FROM jobs WHERE id = ?",
+                                         (job["id"],))["state"] == "rejected"
+    assert not dispatcher.submitted
+
+
+def test_a_store_that_does_not_answer_the_copy_is_the_servers_failure(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher,
+        monkeypatch):
+    from siliconcompiler.remote.server import jobs
+
+    earlier = ran(server, me)
+
+    def no_answer(archive, target):
+        raise OSError(5, "Input/output error")
+    monkeypatch.setattr(jobs, "_extract_outputs", no_answer)
+
+    job, _ = submitted(server_client, key, token, job_archive(from_steptwo(nop_project)),
+                       continues_from=[entry(earlier)])
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "failed"
+    assert read["error"]["type"].endswith("/staging-failed")
+    assert not dispatcher.submitted
+
+
 def test_a_submit_rechecks_what_create_accepted(server, server_client, key, token, me,
                                                 job_archive, nop_project, dispatcher):
     '''Its artifacts can be deleted between the two.'''

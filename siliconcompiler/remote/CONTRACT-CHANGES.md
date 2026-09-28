@@ -74,6 +74,127 @@ It is the logs that say. A column for it, or a statement that
 
 **Where it goes:** surface §17's `resolved_versions` bullet.
 
+#### 3. The grace window is 300 seconds
+
+Contract *A refresh token stays usable for a few minutes after it is replaced*
+leaves the number to the server. `sc-server` uses 300 seconds
+(`REFRESH_GRACE_SECONDS`): a repeat of the replaced token with a valid proof
+from the family's key gets the pair already issued, and after that it is
+reuse, ending the family with `reused`.
+
+**Where it goes:** the profile, as the value this deployment uses.
+
+#### 4. A refused create binds no key
+
+Surface §6, *Idempotency*, binds a key on a final answer: a `2xx`, or a
+refusal without `Retry-After`. ⚠️ **A refused create does not bind here.**
+`sc-server` keeps a create's key on the job row, and a refused create writes
+none, so a retry with the same key is evaluated again rather than replayed --
+it can succeed where the first was refused. Submit keys do bind as the
+contract says, on the job they were sent for.
+
+**Where it goes:** surface §6's *Idempotency*: allow it for create, or have
+`sc-server` keep refused creates' keys.
+
+#### 5. A replayed submit returns the original `202` body
+
+Now that submit answers early, a replay with the same key and body returns the
+`202` body stored when the key was bound (`jobs.submit_reply`), not the job as
+it stands. A client reads the job's progress from the poll, as it must after
+the first answer.
+
+**Where it goes:** surface §15, beside *Submit answers `202` in `staging`*.
+
+#### 6. `api_fetchable_kinds` is kept, as a test knob
+
+The profile has no kind that needs an approval and no controlled resources.
+`api_fetchable_kinds` stays in `sc-server`'s config, off by default and used by
+test modes 2 and 3, and a kind it leaves out gives the ladder's own answer for
+a kind needing an approval: row 7, `fetchable: false`, `403
+artifact-not-approved`, with no `access_request_url`.
+
+**Where it goes:** the profile's §6 table, as a test mode.
+
+#### 7. Item 20 is met by the startup check
+
+*Every check that reads the manifest, and the manifest the run loads, use the
+SiliconCompiler the job resolved to* holds here by the second route that
+paragraph allows: `sc-server` refuses to start while it advertises a
+SiliconCompiler newer than the one it runs, so re-derivation never reads a
+manifest newer than itself. It does not re-derive inside the job's image.
+
+**Where it goes:** the profile, naming which route it takes.
+
+#### 8. `sc_configs/` in an upload is `unrequested_member`
+
+The first archive's allowed members are the manifest at its root,
+`sc_collected_files/`, `sc_python/` and each upstream node's `outputs/`. The
+old client's `sc_configs/` scripts, and `sc-server-progress.json`, are
+therefore `archive-rejected`, `reason: "unrequested_member"`; the server keeps
+its own run state outside the extraction root.
+
+**Where it goes:** surface *What the archive carries, and who decides*, as an
+example.
+
+#### 9. The stream URL's `ended=1` is unsigned, and a nonce `n` is signed
+
+A stream URL serves one connection, so each URL `/logs` hands out carries a
+nonce `n`, covered by the signature. A finished node's URL also carries
+`ended=1`, which is not signed and grants nothing: it only has the stream send
+its `end` at once. Both are this host's business, since the stream URL is
+opaque to a client.
+
+**Where it goes:** the profile's *stream host is this host* section, as
+mechanism, if anywhere.
+
+#### 10. Some interruptions are not yet `run-interrupted`, and a memory limit is not named
+
+A job the scheduler loses ends `failed`, `run-interrupted`, with its running
+nodes `failed` under the same type. ⚠️ **Node-level preemption, a Slurm
+`NODE_FAIL` and an image that would not pull are not told apart from a node
+that failed**: they end the node `failed`, `run-failed`. A time limit is named
+in `detail`; a memory limit is not.
+
+**Where it goes:** nothing in the contract changes; this is `sc-server` short of
+it, and the profile should say so until it is not.
+
+#### 11. Windows modes on the session store are best effort
+
+`~/.sc/auth/` is `0700` with every file `0600` on POSIX, checked on every use.
+On Windows the client grants the user alone through `icacls` when it creates
+the store, and does not check an existing store's ACL.
+
+**Where it goes:** identity *Where the CLI keeps it, and the mode is
+normative*, as the Windows rule.
+
+#### 12. No automatic re-registration on a local socket
+
+Implementation-notes §O allows a subject's key to be re-bound automatically
+where the operating system verifies the uid, on a unix socket or loopback.
+`sc-server` does not: a changed key is `invalid_client` wherever it comes from,
+and `registry release-binding` is the one way back.
+
+**Where it goes:** nothing to change; the profile should say it is not built.
+
+#### 13. `-from` is never widened, through a scheduler hook
+
+Surface *The admitted window* forbids widening `option,from` in the server's
+run. SiliconCompiler's scheduler widens it where an upstream result is
+missing; the runner turns that off through `Scheduler.widen_from = False`, so a
+node whose upstream results lack a file fails, naming it. The hook is
+SiliconCompiler's, and nothing else sets it.
+
+**Where it goes:** nothing to change; implementation-notes, as the mechanism.
+
+#### 14. The profile counts 19 kept tables and lists 20
+
+The profile's §3 is *19 tables of 41*, and implementation-notes §O lists 20:
+`users`; four session and device tables; seven job tables, `job_continuations`
+among them; three artifact tables; `user_limits`; and four software and image
+tables. `sc-server` keeps those 20.
+
+**Where it goes:** the profile's §3 heading and §O's *Kept, 19 tables of 41*.
+
 ---
 
 ## Not ported, deliberately

@@ -975,6 +975,8 @@ def test_a_job_cancelled_while_it_builds_stays_cancelled(
     assert until(lambda: not builder_server.config["SC_JOBS"]._preparing)
 
     assert row(builder_server, job["id"])["state"] == "cancelled"
+    # 🔴 And the build itself stopped: nobody is waiting for it.
+    assert fake.cancelled == ["build:1"]
 
 
 @pytest.mark.parametrize("private_exact,target,public_only", [
