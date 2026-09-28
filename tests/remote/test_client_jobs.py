@@ -430,11 +430,11 @@ def test_listing_follows_the_link_header(fake_v1, logged_in):
     assert len(logged_in.jobs()) == 2
 
 
-def test_a_cancel_with_nothing_to_add_says_who_asked(fake_v1, logged_in):
+def test_a_cancel_with_nothing_to_add_says_where_it_came_from(fake_v1, logged_in):
     """🔴 `reason` is optional on the wire -- requiring it would make a Ctrl-C
-    inexpressible -- and this client always sends one anyway. A job page that
-    says only "cancelled" cannot answer the owner's own question, which is
-    which of their machines did it."""
+    inexpressible -- and this client always sends one anyway. It names the
+    tool and nothing about the machine: a hostname is not the client's to
+    publish on a job page."""
     import socket
 
     fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
@@ -443,8 +443,8 @@ def test_a_cancel_with_nothing_to_add_says_who_asked(fake_v1, logged_in):
     logged_in.cancel_job("01J9-job")
 
     body = json.loads(fake_v1.calls[-1].request.body)
-    assert "sc-remote" in body["reason"]
-    assert socket.gethostname() in body["reason"]
+    assert body["reason"] == "cancelled from sc-remote"
+    assert socket.gethostname() not in body["reason"]
 
 
 def test_a_cancel_with_a_reason_sends_that_one(fake_v1, logged_in):

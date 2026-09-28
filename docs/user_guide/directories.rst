@@ -143,7 +143,8 @@ by one:
    ~/.sc/
    ├── cache/           <- everything kept between runs (see below)
    ├── settings.json    <- your persistent defaults
-   ├── credentials      <- remote server address and login
+   ├── credentials      <- remote server address and upload whitelist
+   ├── auth/            <- remote key and sessions; private (SC_AUTH_DIR moves it)
    └── tool_build/      <- scratch space for sc-install
 
 On Windows the same directory is ``C:\Users\<username>\.sc\``.

@@ -41,29 +41,34 @@ error rather than a redirect somewhere you did not choose.
 What is written, and where
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Two files, both in ``$HOME/.sc/`` (``C:\Users\<USERNAME>\.sc\`` on Windows),
-both readable only by you:
+The configuration file is ``$HOME/.sc/credentials`` (``C:\Users\<USERNAME>\.sc\``
+on Windows), JSON: the server address and the upload whitelist. Everything
+secret is in the session store beside it, ``$HOME/.sc/auth/`` -- or wherever
+``SC_AUTH_DIR`` points:
 
-``credentials``
-  JSON: the server address, your session, and the upload whitelist.
-
-``credentials.key``
+``dpop-key.pem``
   Your machine's private key. **This is the credential.**
+
+``sessions.json``
+  Your session with each server.
+
+``headers.json``
+  Headers an operator's access layer requires, if any (``sc-remote -header``).
 
 .. warning::
 
-   ``credentials.key`` identifies this machine to the server. Treat it the way
+   ``dpop-key.pem`` identifies this machine to the server. Treat it the way
    you would an SSH private key.
 
-   * Both files are created readable only by you, and re-running
-     ``sc-remote -configure`` tightens them if something widened them. If you
-     copy them yourself, restrict them too -- ``chmod 600`` on Linux and macOS;
-     on Windows, remove the inherited permissions through the file's
-     *Properties > Security* dialog or ``icacls``.
-   * **Never commit either file**, and do not paste their contents into an
+   * The store is created readable only by you, and the client **refuses to
+     run** if something widened it -- it does not repair it, because a key
+     others could read may already be copied. Restore the modes
+     (``chmod 700`` on the directory, ``chmod 600`` on each file), then replace
+     the key with ``sc-remote -rotate_key``.
+   * **Never commit the store**, and do not paste its contents into an
      issue, a pull request or a build log.
-   * Do not copy the key between machines. Each machine generates its own, and
-     a server shows you the list: ``sc-remote -configure -list``.
+   * Do not copy the key between machines. Each machine generates its own.
+     ``sc-remote -rotate_key`` replaces it deliberately; nothing else does.
 
 .. note::
 
@@ -343,9 +348,36 @@ about again. A deployment that keeps finished logs but serves no live tail says
 so permanently rather than transiently, so a client stops asking for the tail
 and still gets the log when the node finishes.
 
+From CI
+-------
+
+A CI job has no person to approve a login. Where the server offers token
+exchange, mint a CI credential in the portal and store the one line it shows
+as the pipeline secret ``SC_CI_CREDENTIAL``. Then, before the build:
+
+.. code-block:: bash
+
+  sc-remote -ci_setup -server https://your-server.example.com
+
+On GitHub Actions the session store goes in the job's own temporary directory
+and ``SC_AUTH_DIR`` is exported to later steps. Where the server sits behind
+Cloudflare Access, set ``CF_ACCESS_CLIENT_ID`` and ``CF_ACCESS_CLIENT_SECRET``
+from the operator's service token, and ``-ci_setup`` stores them as headers for
+the server. A credential bound to one project needs that project named on every
+job: set ``SC_REMOTE_PROJECT``. The client warns, as a GitHub annotation, when
+the credential has a week left.
+
 Troubleshooting
 ---------------
 
+* **"The edge refused this request":** Something in front of the server --
+  an access layer such as Cloudflare Access -- answered instead of the API.
+  Check the headers the operator asked you to set: ``sc-remote -configure -list``
+  shows their names, and ``sc-remote -header <name>`` sets one, reading the
+  value from standard input.
+* **"Your credentials were used elsewhere":** A session token was spent twice,
+  so the server ended the session. Replace this machine's key with
+  ``sc-remote -rotate_key``.
 * **Local Changes Not Reflected:** Any modifications you make to local, built-in tool scripts, PDKs, or libraries will not be used in a remote job. The remote server uses its own pre-configured environment.
 * **Network and Filesystem Issues:** Jobs run in isolated environments on the server. Code that relies on specific network or local filesystem calls may not work as expected.
 * **Reporting Issues:** If you encounter problems with the remote workflow, please open an issue on the `SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.

@@ -39,6 +39,16 @@ To delete a job, use:
 
 To read one node's log, live if it is still running, use:
     sc-remote -tail place/0 -cfg <stepdir>/outputs/<design>.pkg.json
+
+To replace this machine's key, use:
+    sc-remote -rotate_key
+
+To set up a CI job from the SC_CI_CREDENTIAL secret, use:
+    sc-remote -ci_setup -server https://example.com
+
+To set a header the operator's access layer requires, use:
+    sc-remote -header CF-Access-Client-Id
+    (the value is read from standard input and never printed)
 -----------------------------------------------------------
 """
 
@@ -76,6 +86,20 @@ To read one node's log, live if it is still running, use:
             self._add_commandline_argument("portal", "bool",
                                            "open this server's portal in a browser, "
                                            "signed in as this machine")
+            self._add_commandline_argument("rotate_key", "bool",
+                                           "replace this machine's key and log in again")
+            self._add_commandline_argument("ci_setup", "bool",
+                                           "write the credential store for a CI job from "
+                                           "the SC_CI_CREDENTIAL secret")
+            self._add_commandline_argument("header", "str",
+                                           "set an operator-required header for the "
+                                           "server; the value is read from standard input")
+            self._add_commandline_argument("remove_header", "str",
+                                           "remove an operator-required header")
+            self._add_commandline_argument("logout", "bool",
+                                           "end this machine's session on the server")
+            self._add_commandline_argument("no_browser", "bool",
+                                           "never open a browser; print the URL instead")
 
     switchlist = ['-cfg',
                   '-credentials',
@@ -88,7 +112,13 @@ To read one node's log, live if it is still running, use:
                   '-cancel',
                   '-delete',
                   '-tail',
-                  '-portal']
+                  '-portal',
+                  '-rotate_key',
+                  '-ci_setup',
+                  '-header',
+                  '-remove_header',
+                  '-logout',
+                  '-no_browser']
 
     # Argument Parser
     remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
@@ -111,7 +141,8 @@ def _credentials(remote) -> Credentials:
 
 def _dispatch(remote):
     # Sanity checks.
-    exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal']
+    exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal',
+                 'rotate_key', 'ci_setup', 'header', 'remove_header', 'logout']
     cfg_only = ['reconnect', 'cancel', 'delete', 'tail']
 
     exclusive_count = sum([1 for arg in exclusive if remote.get("cmdarg", arg)])
@@ -127,7 +158,39 @@ def _dispatch(remote):
         remote.logger.error('Error: -server cannot be specified with '
                             f'{", ".join(["-"+e for e in cfg_only])}')
 
-    client = Client(_credentials(remote), logger=remote.logger)
+    client = Client(_credentials(remote), logger=remote.logger,
+                    open_browser=not remote.get("cmdarg", "no_browser"))
+
+    if remote.get("cmdarg", 'ci_setup'):
+        client.ci_setup(server=remote.get("cmdarg", 'server'))
+        return 0
+
+    if remote.get("cmdarg", 'rotate_key'):
+        client.rotate_key()
+        return 0
+
+    if remote.get("cmdarg", 'logout'):
+        client.logout()
+        return 0
+
+    if remote.get("cmdarg", 'header'):
+        # 🔴 The value is a secret: never an argument, where it would land in
+        # shell history and the process table, and never echoed.
+        name = remote.get("cmdarg", 'header')
+        if sys.stdin.isatty():
+            import getpass
+            value = getpass.getpass(f"Value for {name}: ")
+        else:
+            value = sys.stdin.readline().rstrip("\r\n")
+        if not value:
+            remote.logger.error(f"No value was given for {name}")
+            return 1
+        client.set_header(name, value)
+        return 0
+
+    if remote.get("cmdarg", 'remove_header'):
+        client.set_header(remote.get("cmdarg", 'remove_header'), None)
+        return 0
 
     if remote.get("cmdarg", 'configure'):
         if remote.get("cmdarg", 'list'):

@@ -7,31 +7,60 @@ CLI rename off the critical path.
 '''
 
 import logging
+import os
+import sys
+import time
 
 from typing import Any, Dict, List, Optional
 
-from siliconcompiler.remote.client.credentials import Credentials
+from siliconcompiler.remote.client.credentials import Credentials, parse_ci_secret
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, describe)
+    RemoteError, ServerProblem, SessionEnded, clean, describe)
 from siliconcompiler.remote.client.identity import local_subject, display_name
-from siliconcompiler.remote.client.transport import Transport, normalize_server
+from siliconcompiler.remote.client.transport import (
+    EdgeRefused, LoginRequired, OAuthRefusal, Transport, normalize_server)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
-    "describe",
+    "EdgeRefused", "describe", "SCOPES",
 ]
 
 
 logger = logging.getLogger(__name__)
 
 
+# Every registered scope, sent explicitly: an unsent parameter is an untested
+# one, and a server drops what it does not recognise.
+SCOPES = ("jobs:read", "jobs:write", "jobs:delete", "artifacts:read",
+          "devices:read", "devices:write", "profile:read")
+
+GRANT_CLIENT_CREDENTIALS = "client_credentials"
+GRANT_DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
+GRANT_TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
+
+# How long before a CI credential expires the log is warned in.
+CI_EXPIRY_WARNING_SECONDS = 7 * 86400
+
+# The key rotation command, named in every message that needs it.
+ROTATE_COMMAND = "sc-remote -rotate_key"
+
+# A project a CI credential bound to one names on every create.
+PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
+
+
 class Client:
     '''One machine talking to one server.'''
 
     def __init__(self, credentials: Credentials,
-                 logger: Optional[logging.Logger] = None):
+                 logger: Optional[logging.Logger] = None,
+                 open_browser: bool = True):
         self.credentials = credentials
         self.logger = logger or logging.getLogger(__name__)
+        self.open_browser = open_browser
+
+        # How this session logged in, once it has: a CI session has no refresh
+        # token and trades again instead.
+        self._mode: Optional[str] = None
 
         if not credentials.address:
             # There is no default server to fall back on, so this is an error
@@ -41,13 +70,19 @@ class Client:
             self._transport = None
             return
 
-        self._transport = Transport(
-            normalize_server(credentials.address, credentials.port),
-            credentials.key(),
-            credentials=credentials)
+        self._transport = self._make_transport(
+            normalize_server(credentials.address, credentials.port))
+
+    def _make_transport(self, base_url: str) -> Transport:
+        transport = Transport(base_url, self.credentials.key(),
+                              credentials=self.credentials)
         # No access token: it is never written down, so a command starts with
         # the refresh token and spends it once.
-        self._transport.set_tokens(None, credentials.refresh_token)
+        transport.set_tokens(None, self.credentials.refresh_token)
+        transport.relogin = self._relogin
+        transport.fingerprint = self._fingerprint
+        transport.warn = self.logger.warning
+        return transport
 
     ######################################################################
     # Configuration
@@ -73,8 +108,16 @@ class Client:
             self.logger.info(f"Server: {self.base_url}")
 
         self.logger.info(f"Machine key: {self.credentials.thumbprint}")
+        self.logger.info(f"Session store: {self.credentials.auth_dir}")
         if self.credentials.user_id:
             self.logger.info(f"Identity on this server: {self.credentials.user_id}")
+
+        # Names only: a header's value is a secret, and never printed.
+        for origin in sorted(self.credentials.configured_origins()):
+            names = ", ".join(sorted(self.credentials.headers_for(origin)))
+            self.logger.info(f"Operator headers for {origin}: {names}")
+        if self.credentials.ci_secret():
+            self.logger.info("CI credential: present")
 
         whitelist = self.credentials.directory_whitelist
         self.logger.info("Directory whitelist:")
@@ -182,16 +225,69 @@ class Client:
     ######################################################################
 
     def login(self) -> Dict[str, Any]:
-        '''Obtain a session with no human involved.
+        '''Obtain a session, the way this deployment offers one.
 
-        ``client_credentials`` against a fixed local client: no browser, no
-        issuer, no prompt. The key is generated on first use and bound by the
-        server on first contact.
+        🔴 **The login algorithm** (identity §3): `client_credentials` where it
+        is offered; token exchange where this caller holds a CI credential;
+        otherwise the device grant. What is offered is cached beside the
+        credential, per server, and `unsupported_grant_type` -- from either
+        OAuth endpoint -- is the only thing that says the cache is stale. A
+        `401`, a timeout or a `503` means try again later, never switch.
+        '''
+        offered = self.credentials.session_value("grant_types_supported")
+        if not offered:
+            offered = self._grant_types()
+
+        tried = set()
+        while True:
+            mode = self._choose(offered, tried)
+            try:
+                return self._login_with(mode)
+            except OAuthRefusal as e:
+                if e.error != "unsupported_grant_type" or mode in tried:
+                    raise self._refused(e, mode) from None
+                # Stale: switch, and refresh what is cached.
+                tried.add(mode)
+                offered = [grant for grant in self._grant_types() if grant not in tried]
+
+    def _grant_types(self) -> List[str]:
+        offered = list(self.capabilities().get("grant_types_supported") or [])
+        self.credentials.update_session(grant_types_supported=offered)
+        return offered
+
+    def _choose(self, offered, tried) -> str:
+        '''The two non-interactive branches do not race: which credential this
+        caller holds decides. With no browser, token exchange comes before any
+        user code is printed.'''
+        candidates = [grant for grant in offered if grant not in tried]
+        if GRANT_CLIENT_CREDENTIALS in candidates:
+            return GRANT_CLIENT_CREDENTIALS
+        if self.credentials.ci_secret() and GRANT_TOKEN_EXCHANGE in candidates:
+            return GRANT_TOKEN_EXCHANGE
+        if GRANT_DEVICE_CODE in candidates:
+            return GRANT_DEVICE_CODE
+        raise RemoteError(
+            f"{self.base_url} offers no login this client can use "
+            f"(it offers {', '.join(offered) or 'none'})")
+
+    def _login_with(self, mode: str) -> Dict[str, Any]:
+        if mode == GRANT_CLIENT_CREDENTIALS:
+            body = self._login_client_credentials()
+        elif mode == GRANT_TOKEN_EXCHANGE:
+            body = self._trade_login()
+        else:
+            body = self._login_device()
+        self._mode = mode
+        self.credentials.update_session(login=mode)
+        return body
+
+    def _login_client_credentials(self) -> Dict[str, Any]:
+        '''``client_credentials`` against a fixed local client: no browser, no
+        issuer, no prompt. The key is bound by the server on first contact.
 
         🔴 **No fingerprint, no access.** The subject is derived from this
-        machine's id and the uid; with no id there is nothing to derive it
-        from, and every such machine would be the same principal -- so this
-        refuses before asking, rather than falling back to a shared subject.
+        machine's id and the uid; with no id every such machine would be the
+        same principal, so this refuses before asking.
         '''
         subject, machine_hash, source = local_subject()
         if source == "none":
@@ -202,10 +298,11 @@ class Client:
                 "-- `systemd-machine-id-setup` on Linux -- and try again")
 
         form = {
-            "grant_type": "client_credentials",
+            "grant_type": GRANT_CLIENT_CREDENTIALS,
             "client_id": f"local:{subject}",
             "machine_id_source": source,
             "display_name": display_name(),
+            "scope": " ".join(SCOPES),
         }
         if machine_hash:
             form["machine_id_hash"] = machine_hash
@@ -214,39 +311,209 @@ class Client:
         self.credentials.save_tokens(body)
         return body
 
+    def _login_device(self) -> Dict[str, Any]:
+        '''The device grant: a code for a person, a browser, and a poll.
+
+        The URL is opened where a browser can be, and printed with the code
+        always -- for a headless machine, and for a launch that fails silently.
+        '''
+        import platform
+
+        form = {"scope": " ".join(SCOPES),
+                "requesting_host": platform.node() or "unknown",
+                "device_label": display_name(), **self._fingerprint()}
+
+        while True:
+            started = self.transport.request(
+                "POST", "auth/device", authenticated=False, data=form, oauth=True,
+                headers={"Content-Type": "application/x-www-form-urlencoded"}).json()
+
+            uri = started.get("verification_uri") or ""
+            code = started.get("user_code") or ""
+            self.logger.info(f"To log in, open {clean(uri)} and enter the code {clean(code)}")
+            self.open_url(uri, "the login page")
+
+            interval = max(1, int(started.get("interval") or 5))
+            deadline = time.monotonic() + int(started.get("expires_in") or 600)
+            while time.monotonic() < deadline:
+                time.sleep(interval)
+                try:
+                    body = self.transport.login(
+                        {"grant_type": GRANT_DEVICE_CODE,
+                         "device_code": started.get("device_code", "")})
+                except OAuthRefusal as e:
+                    if e.error == "authorization_pending":
+                        continue
+                    if e.error == "slow_down":
+                        interval += 5
+                        continue
+                    if e.error == "expired_token":
+                        break
+                    if e.error == "access_denied" and e.reason == "devices":
+                        raise RemoteError(
+                            "the login was refused because your account is at its "
+                            "limit of devices: revoke a device you no longer use "
+                            "in the portal, and log in again") from None
+                    if e.error == "access_denied":
+                        raise RemoteError("the login was denied") from None
+                    raise
+                self.credentials.save_tokens(body)
+                return body
+            self.logger.info("The code expired before it was approved; starting again.")
+
+    def _trade_login(self) -> Dict[str, Any]:
+        body = self._trade()
+        self.transport.trade = self._trade_again
+        return body
+
+    def _trade_again(self) -> bool:
+        self._trade()
+        return True
+
+    def _trade(self) -> Dict[str, Any]:
+        '''Token exchange: the CI credential traded for one access token.
+
+        No refresh token comes back, so each new access token is a new trade.
+        🔴 Never over plaintext: the request carries the credential itself.
+        '''
+        import uuid
+
+        import jwt
+
+        from siliconcompiler.remote import dpop
+        from siliconcompiler.remote.client.transport import origin_of
+
+        if not self.transport.base_url.startswith("https://"):
+            raise RemoteError("a CI credential is exchanged only over https, and "
+                              f"{self.transport.base_url} is not")
+
+        credential_id, credential_key = parse_ci_secret(self.credentials.ci_secret())
+        issued = int(time.time())
+        assertion = jwt.encode(
+            {"iss": credential_id, "sub": credential_id,
+             "aud": origin_of(self.transport.base_url),
+             "jti": str(uuid.uuid4()), "iat": issued, "exp": issued + 300,
+             # Bound to the key that signs this request's proof, so it cannot
+             # be re-paired with somebody else's.
+             "cnf": {"jkt": self.credentials.thumbprint}},
+            credential_key, algorithm=dpop.ALGORITHM)
+
+        form = {"grant_type": GRANT_TOKEN_EXCHANGE,
+                "subject_token": assertion,
+                "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+                "requested_token_type": "urn:ietf:params:oauth:token-type:access_token"}
+        try:
+            body = self.transport.login(form)
+        except OAuthRefusal as e:
+            if e.error == "invalid_grant":
+                raise RemoteError(self._ci_refusal(e.reason)) from None
+            raise
+
+        left = body.get("session_expires_in")
+        if isinstance(left, int) and left <= CI_EXPIRY_WARNING_SECONDS:
+            days = max(0, left // 86400)
+            message = (f"This CI credential expires in {days} day{'s' if days != 1 else ''}: "
+                       "mint a new one in the portal and replace the secret")
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                print(f"::warning::{message}", flush=True)
+            self.logger.warning(message)
+        return body
+
+    @staticmethod
+    def _ci_refusal(reason: Optional[str]) -> str:
+        return {
+            "expired": "the CI credential has expired: mint a new one in the portal "
+                       "and replace the secret",
+            "revoked": "the CI credential was revoked: ask for a new one",
+            "deactivated": "the account this CI credential belongs to is deactivated",
+        }.get(reason, "the CI credential was refused")
+
+    def _refused(self, refusal: OAuthRefusal, mode: str) -> RemoteError:
+        '''What a failed login tells the person.'''
+        if refusal.error == "invalid_client":
+            subject = local_subject()[0]
+            return RemoteError(
+                "this server knows you by a different key: "
+                f"{clean(refusal.description or 'the subject is bound to another key')}. "
+                "Retrying will not help. An operator can release the binding: "
+                "python3 -m siliconcompiler.remote.server.registry release-binding "
+                f"{subject}")
+        return RemoteError(str(refusal))
+
+    def _relogin(self, reason: Optional[str]) -> None:
+        '''The session is over: re-authenticate, and never refresh.'''
+        if reason == "reused":
+            message = ("This session was ended because its refresh token was used twice: "
+                       "your credentials were used elsewhere. Replace this machine's key "
+                       f"with `{ROTATE_COMMAND}`, then log in again")
+            if GRANT_CLIENT_CREDENTIALS in (self.credentials.session_value(
+                    "grant_types_supported") or []):
+                message += (". On this server a new key meets your binding, so an "
+                            "operator must then release it")
+            self.logger.warning(message + ".")
+        elif reason:
+            self.logger.info(f"This session has ended ({reason}); starting a new one.")
+        self.login()
+
+    def _fingerprint(self) -> Dict[str, str]:
+        '''The fingerprint pair, derived and never stored; nothing where nothing
+        can be derived, and nothing on a CI session.'''
+        if self._mode == GRANT_TOKEN_EXCHANGE:
+            return {}
+        _, machine_hash, source = local_subject()
+        if source == "none" or not machine_hash:
+            return {}
+        return {"machine_id_hash": machine_hash, "machine_id_source": source}
+
     def ensure_session(self) -> None:
         '''Get an access token for this command, the cheapest way there is.
 
-        🔴 The refresh token is spent FIRST and a fresh grant is the fallback,
-        not the other way round. `client_credentials` mints a new token family
-        every time it is called, and a family lives twelve days whether or not
-        anything uses it -- so logging in per command would leave a trail of
-        live sessions behind, one for every invocation.
+        🔴 The refresh token is spent FIRST and a fresh grant is the fallback:
+        `client_credentials` mints a new token family every time, so logging in
+        per command would leave a trail of live sessions behind.
         '''
         if self.transport.access_token is not None:
             return
-
+        if self.credentials.session_value("login") == GRANT_TOKEN_EXCHANGE:
+            self._mode = GRANT_TOKEN_EXCHANGE
+            self._trade_login()
+            return
         try:
             if self.transport.refresh():
                 return
-        except SessionEnded:
-            # Over rather than stale: there is nothing to renew, and this
-            # machine's key is still enrolled, so a fresh grant is the answer.
-            self.logger.info("This session has ended; starting a new one.")
-
+        except SessionEnded as e:
+            self._relogin(e.reason)
+            return
+        except LoginRequired:
+            self.logger.info("This machine must log in again.")
         self.login()
+
+    def rotate_key(self) -> None:
+        '''Replace this machine's DPoP key, and enrol again as a new device.
+
+        The one deliberate act that changes the key; no error ever does.
+        '''
+        old = self.credentials.thumbprint
+        self.credentials.rotate_key()
+        if self._transport is not None:
+            self._transport = self._make_transport(self._transport.base_url)
+        self.logger.info(f"Replaced this machine's key ({old[:12]}... -> "
+                         f"{self.credentials.thumbprint[:12]}...)")
+        if self._transport is not None:
+            self.login()
+            self.logger.info("Logged in again as a new device.")
 
     def logout(self) -> None:
         '''End this session on the server, then forget it here.
 
         Revoking needs a live access token and this client holds none between
-        commands, so the refresh token is spent to get one. That is worth a
-        round trip: the alternative is dropping the refresh token locally and
-        leaving the family alive on the server for its twelve-day cap.
+        commands, so the refresh token is spent to get one.
         '''
         try:
-            self.ensure_session()
-            self.transport.request("POST", "auth/revoke")
+            if self.transport.access_token is None:
+                self.transport.refresh()
+            if self.transport.access_token is not None:
+                self.transport.request("POST", "auth/revoke")
         except (SessionEnded, RemoteError) as e:
             # Already over, or unreachable. Forgetting it locally is the whole
             # remaining job either way, and it must still happen.
@@ -254,6 +521,81 @@ class Client:
         finally:
             self.credentials.forget_tokens()
             self.transport.set_tokens(None, None)
+
+    ######################################################################
+    # CI and operator headers
+    ######################################################################
+
+    def ci_setup(self, server: Optional[str] = None) -> None:
+        '''Write the store from the CI secret, for a CI job.
+
+        The secret is read from the environment. On GitHub Actions the store
+        goes in the job's own temporary directory, which the runner empties
+        between jobs, and SC_AUTH_DIR is exported to the job's later steps. A
+        Cloudflare Access service token, where CF_ACCESS_CLIENT_ID and
+        CF_ACCESS_CLIENT_SECRET are set, becomes this server's operator headers.
+        '''
+        from siliconcompiler.remote.client.credentials import (
+            AUTH_DIR_VARIABLE, CI_SECRET_VARIABLE)
+
+        secret = os.environ.get(CI_SECRET_VARIABLE)
+        if not secret:
+            raise RemoteError(f"{CI_SECRET_VARIABLE} is not set: it holds the one-line "
+                              "CI credential")
+        parse_ci_secret(secret)
+
+        runner_temp = os.environ.get("RUNNER_TEMP")
+        if runner_temp and not os.environ.get(AUTH_DIR_VARIABLE):
+            from pathlib import Path
+
+            self.credentials.auth_dir = Path(runner_temp) / "sc-auth"
+            exported = os.environ.get("GITHUB_ENV")
+            if exported:
+                with open(exported, "a") as f:
+                    f.write(f"{AUTH_DIR_VARIABLE}={self.credentials.auth_dir}\n")
+
+        if server:
+            address, port, _ = _split_address(server.strip())
+            self.credentials.update(address=address, port=port)
+            self._transport = self._make_transport(normalize_server(address, port))
+
+        self.credentials.save_ci_secret(secret)
+        client_id = os.environ.get("CF_ACCESS_CLIENT_ID")
+        client_secret = os.environ.get("CF_ACCESS_CLIENT_SECRET")
+        if client_id and client_secret:
+            origin = self.transport.api_origin
+            self.credentials.set_header(origin, "CF-Access-Client-Id", client_id)
+            self.credentials.set_header(origin, "CF-Access-Client-Secret", client_secret)
+            self.logger.info(f"Cloudflare Access service token set for {origin}")
+        self.logger.info(f"CI credential stored in {self.credentials.auth_dir}")
+
+    def set_header(self, name: str, value: Optional[str], origin: Optional[str] = None) -> None:
+        '''An operator-configured header for an origin, the API's by default.
+        Its value is a secret, kept in the store and never printed.'''
+        origin = origin or self.transport.api_origin
+        self.credentials.set_header(origin, name, value)
+        self.logger.info(f"{'Set' if value is not None else 'Removed'} the {name} header "
+                         f"for {origin}")
+
+    def open_url(self, url: str, what: str, require_tty: bool = True) -> bool:
+        '''Open a URL a person has to act on -- only `https`, or `http` from a
+        deployment that authenticates nobody -- and never anything else.'''
+        from urllib.parse import urlsplit
+
+        scheme = urlsplit(url or "").scheme
+        unauthenticated = GRANT_CLIENT_CREDENTIALS in (
+            self.credentials.session_value("grant_types_supported") or [])
+        if scheme != "https" and not (scheme == "http" and unauthenticated):
+            self.logger.warning(f"Not opening {what}: {clean(url)} is not an https URL")
+            return False
+        if not self.open_browser or (require_tty and not sys.stdout.isatty()):
+            return False
+        import webbrowser
+
+        try:
+            return bool(webbrowser.open(url))
+        except Exception:                                        # noqa: BLE001
+            return False
 
     ######################################################################
     # Identity
@@ -336,6 +678,10 @@ class Client:
         body: Dict[str, Any] = {"design": design, "jobname": jobname}
         if descriptor:
             body["descriptor"] = descriptor
+        # A CI credential bound to a project acts only in it, so a pipeline
+        # using one names that project on every create.
+        if os.environ.get(PROJECT_VARIABLE):
+            body["project"] = os.environ[PROJECT_VARIABLE]
         if run_hash:
             body["run_hash"] = run_hash
         if continues_from:
@@ -408,16 +754,26 @@ class Client:
         with a single number.
         '''
         self.ensure_session()
-        response = self.transport.request("GET", f"jobs/{job_id}")
+        try:
+            response = self.transport.request("GET", f"jobs/{job_id}")
+        except ServerProblem as e:
+            if e.slug == "not-found" and self._mode == GRANT_TOKEN_EXCHANGE:
+                # A project-bound CI credential reads no job outside its
+                # project, and that looks exactly like a job that is gone.
+                raise ServerProblem(
+                    e.problem, e.status, help_url=e.help_url, job_id=job_id,
+                    next_step="The job may be gone, or this CI credential may be bound "
+                              "to another project than the job's.") from None
+            raise
 
+        # The pace is the server's, in whole seconds and never below 1: a
+        # value below 1 is waited as 1, and no longer floor is added here.
         retry_after = None
         header = response.headers.get("Retry-After")
         if header:
             try:
-                retry_after = max(1, int(header))
+                retry_after = max(1.0, float(header))
             except ValueError:
-                # A date-form Retry-After is legal HTTP and nothing here serves
-                # one; an unreadable value is not a reason to fail a poll.
                 retry_after = None
 
         return response.json(), retry_after
@@ -449,26 +805,15 @@ class Client:
         '''``POST /v1/jobs/{id}/cancel``. Idempotent, and the body is optional.
 
         🔴 A reason is always sent, because *why did this stop* is a question
-        the job page has to answer and "cancelled" is not an answer. Optional
-        on the wire and not optional here: the caller's own words when they
-        have any, and otherwise what this client can say for itself -- which
-        machine asked, which is the part somebody rereading a week later
-        actually wants.
+        the job page has to answer: the caller's own words, else what this
+        client says for itself -- with no host name, since every reader of the
+        job sees it.
         '''
         self.ensure_session()
 
-        body = {"reason": reason or self._who_asked()}
+        body = {"reason": reason or "cancelled from sc-remote"}
         return self.transport.request(
             "POST", f"jobs/{job_id}/cancel", json_body=body).json()
-
-    def _who_asked(self) -> str:
-        import socket
-
-        try:
-            where = socket.gethostname()
-        except Exception:                                        # noqa: BLE001
-            where = "an unknown host"
-        return f"cancelled from sc-remote on {where}"
 
     def delete_job(self, job_id: str) -> None:
         '''``DELETE /v1/jobs/{id}``. Idempotent; the job stays readable.'''
@@ -513,7 +858,7 @@ class Client:
 
         response = self.transport.request(
             "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
-            allow_redirects=False)
+            expect_redirect=True)
         return self.transport.save(self.transport.follow(response), dest)
 
     def node_log(self, job_id: str, step: str, index: str, dest) -> str:
@@ -555,13 +900,13 @@ class Client:
         params = {"step": step, "index": index} if step is not None else {}
         response = self.transport.request(
             "GET", f"jobs/{job_id}/logs", params=params,
-            stream=True, allow_redirects=False)
+            stream=True, expect_redirect=True)
 
         headers = {}
         if last_event_id:
             headers["Last-Event-ID"] = str(last_event_id)
 
-        return self.transport.follow(response, headers=headers)
+        return self.transport.follow(response, headers=headers, kind="stream")
 
     def tail_log(self, job_id: str, step: str, index: str, write=None):
         '''Read one node's log as it is written, to the end.
@@ -634,18 +979,14 @@ class Client:
         # against the new server report a drift that did not happen -- the
         # principal is different because the server is, which is the one case
         # that warning must not fire on.
-        self.credentials.update(address=address, port=port,
-                                access_token=None, refresh_token=None,
-                                user_id=None)
-        self._transport = Transport(
-            normalize_server(address, port), self.credentials.key(),
-            credentials=self.credentials)
+        self.credentials.update(address=address, port=port, user_id=None)
+        self._transport = self._make_transport(normalize_server(address, port))
+        self.credentials.forget_tokens()
+        self._transport.set_tokens(None, None)
 
         capabilities = self.capabilities()
-        if "client_credentials" not in capabilities.get("grant_types_supported", []):
-            raise RemoteError(
-                f"{self.base_url} does not offer a login this client can use "
-                f"(it offers {capabilities.get('grant_types_supported')})")
+        self.credentials.update_session(
+            grant_types_supported=list(capabilities.get("grant_types_supported") or []))
 
         self.login()
         identity = self.me()
@@ -723,17 +1064,14 @@ class Client:
             json_body={"next": landing} if landing else {}).json()
 
         url = answer["url"]
-        self.logger.info(f"Opening {url}")
+        self.logger.info(f"Opening {clean(url)}")
         self.logger.info(
             f"It is good for one use and about {answer['expires_in']} seconds.")
 
-        if open_browser:
-            import webbrowser
-
-            if not webbrowser.open(url):
-                self.logger.warning(
-                    "No browser could be opened here. Paste that URL into one "
-                    "on this machine -- quickly.")
+        if open_browser and not self.open_url(url, "the portal", require_tty=False):
+            self.logger.warning(
+                "No browser was opened here. Paste that URL into one on this "
+                "machine -- quickly.")
 
         return url
 

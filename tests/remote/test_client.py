@@ -11,7 +11,7 @@ import responses
 from unittest import mock
 
 from siliconcompiler.remote import (
-    Client, Credentials, RemoteError, ServerProblem, SessionEnded)
+    Client, Credentials, RemoteError, ServerProblem)
 from siliconcompiler.remote.client.errors import describe
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
@@ -375,11 +375,10 @@ def test_a_dead_refresh_token_falls_back_to_enrolling(fake_v1, tmp_credentials,
                                                       client_credentials):
     '''A session that ended is not a session to renew, and this machine's key
     is still enrolled -- so the answer is a new session, not a failure.'''
-    tmp_credentials.update(refresh_token="long-dead")
+    tmp_credentials.update_session(refresh_token="long-dead")
 
     fake_v1.route(responses.POST, "auth/token",
-                  problem("session-ended", 401, reason="revoked"), status=401,
-                  content_type="application/problem+json")
+                  {"error": "invalid_grant", "reason": "revoked"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
@@ -451,10 +450,11 @@ def test_a_nonce_challenge_is_retried_not_refreshed(fake_v1, tmp_credentials,
     assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1
 
 
-def test_a_dead_session_is_neither_retried_nor_refreshed(fake_v1, tmp_credentials,
-                                                         client_credentials):
-    '''Refreshing a revoked session loops; retrying it loops. The only answer
-    is to log in again.'''
+def test_a_dead_session_is_logged_into_again_never_refreshed(fake_v1, tmp_credentials,
+                                                             client_credentials):
+    '''Refreshing a revoked session loops; retrying it as it is loops. The
+    answer is a new login -- and never a refresh, because the refresh token is
+    the session that ended.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     client = Client(tmp_credentials)
     client.login()
@@ -462,12 +462,31 @@ def test_a_dead_session_is_neither_retried_nor_refreshed(fake_v1, tmp_credential
     fake_v1.route(responses.GET, "me",
                   problem("session-ended", 401, reason="revoked"), status=401,
                   content_type="application/problem+json")
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
-    with pytest.raises(SessionEnded) as raised:
-        client.me()
+    assert client.me()["id"] == "u1"
 
-    assert raised.value.reason == "revoked"
-    assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1
+    grants = [_form(c.request.body)["grant_type"]
+              for c in fake_v1.calls if c.request.method == "POST"]
+    assert grants == ["client_credentials", "client_credentials"]
+
+
+def test_a_reused_refresh_token_says_to_rotate_the_key(fake_v1, tmp_credentials,
+                                                       client_credentials, caplog):
+    '''`reused` means the credentials were used somewhere else: the person is
+    told to replace this machine's key, and on a `client_credentials` server
+    that an operator must release the binding.'''
+    tmp_credentials.update_session(refresh_token="stolen-and-spent")
+    fake_v1.route(responses.POST, "auth/token",
+                  {"error": "invalid_grant", "reason": "reused"}, status=400)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    with caplog.at_level("WARNING"):
+        Client(tmp_credentials).me()
+
+    assert "sc-remote -rotate_key" in caplog.text
+    assert "used elsewhere" in caplog.text
 
 
 def test_an_invalid_proof_fails_rather_than_refreshing(fake_v1, tmp_credentials,
@@ -768,11 +787,9 @@ def test_a_stale_refresh_token_does_not_recurse(fake_v1, tmp_credentials,
     ended in a RecursionError after a couple of hundred REAL round trips, so
     the client flooded the server on its way to crashing.
     '''
-    tmp_credentials.update(refresh_token="long-since-revoked")
+    tmp_credentials.update_session(refresh_token="long-since-revoked")
 
-    fake_v1.route(responses.POST, "auth/token",
-                  problem("invalid-token", 401), status=401,
-                  content_type="application/problem+json")
+    fake_v1.route(responses.POST, "auth/token", {"error": "invalid_grant"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
@@ -788,11 +805,9 @@ def test_a_stale_refresh_token_does_not_recurse(fake_v1, tmp_credentials,
 def test_a_stale_refresh_token_is_replaced_on_disk(fake_v1, tmp_credentials,
                                                    client_credentials):
     '''Self-healing, so the next command costs one request rather than two.'''
-    tmp_credentials.update(refresh_token="long-since-revoked")
+    tmp_credentials.update_session(refresh_token="long-since-revoked")
 
-    fake_v1.route(responses.POST, "auth/token",
-                  problem("invalid-token", 401), status=401,
-                  content_type="application/problem+json")
+    fake_v1.route(responses.POST, "auth/token", {"error": "invalid_grant"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 

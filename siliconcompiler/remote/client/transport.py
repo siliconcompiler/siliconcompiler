@@ -1,47 +1,109 @@
 '''
 The one request path.
 
-Every request this client makes goes through :meth:`Transport.request`. That is
-a design requirement rather than a tidy-up: under ``v1`` each request carries an
-``Authorization`` header and a freshly signed DPoP proof, so a second call site
-is a call site that forgets one. The client this replaces had six request sites
-and passed headers at none of them.
+Every request this client makes to the API goes through :meth:`Transport.request`.
+That is a design requirement rather than a tidy-up: under ``v1`` each request
+carries an ``Authorization`` header, a freshly signed DPoP proof, a
+``User-Agent`` and any operator-configured headers, so a second call site is a
+call site that forgets one.
+
+🔴 **Two error shapes, keyed on the endpoint.** At ``/v1/auth/token`` and
+``/v1/auth/device`` what OAuth processing refuses arrives as ``{"error",
+"error_description", "reason"}``; everything else, the transport-level
+refusals at those two endpoints included, is problem+json. So the
+``Content-Type`` is read first, and a client branches on ``error`` or ``type``,
+then on ``reason``.
+
+🔴 **Redirects are never followed by the HTTP library.** It would carry this
+session's headers and proof to wherever the redirect points. A ``303`` from the
+logs or artifact endpoints is followed by hand, with no ``Authorization`` and no
+proof; any other redirect on a ``/v1`` path is an intermediary refusing the
+request, reported as the edge.
 '''
 
+import email.utils
 import json
 import logging
 import time
 
-from typing import Any, Dict, Optional
+from datetime import datetime, timezone
+from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded)
+    RemoteError, ServerProblem, SessionEnded, clean)
 
-__all__ = ["Transport", "join_url"]
+__all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
+           "OAuthRefusal", "LoginRequired", "USER_AGENT"]
 
 
 logger = logging.getLogger(__name__)
 
-# How many times a request is re-sent after a nonce challenge or a silent
-# refresh. Low on purpose: each of these is a server telling the client exactly
-# what to do differently, so needing more than one means the answer did not
-# help.
+# How many times a request is re-sent after a nonce challenge, a clock
+# correction, a silent refresh or a lost answer. Low on purpose: each of these
+# is a server telling the client exactly what to do differently, so needing
+# more than one means the answer did not help.
 MAX_RETRIES = 2
 
+# How many times a wait the server asked for (`Retry-After`) is honoured before
+# giving up, for the waits the transport takes on itself.
+MAX_WAITS = 10
+
 TIMEOUT_SECONDS = 30
+
+# How far a proof's `iat` may be from the server's clock (surface §6).
+PROOF_WINDOW_SECONDS = 60
+
+
+def _user_agent() -> str:
+    from siliconcompiler import __version__
+    return f"siliconcompiler/{__version__}"
+
+
+# Stable and product-named, never randomised and never the library's default:
+# an edge in front of the API allowlists it rather than challenging it.
+USER_AGENT = _user_agent()
+
+
+class EdgeRefused(RemoteError):
+    '''An intermediary in front of the API refused the request: HTML, or a
+    redirect to an identity provider, on a `/v1` path. Never an API failure.'''
+
+    def __init__(self, origin: str):
+        super().__init__(
+            f"the edge refused this request: check the Cloudflare credentials -- the "
+            f"operator-configured headers for {origin} (sc-remote -header). This is an "
+            "intermediary in front of the server, not the API")
+
+
+class OAuthRefusal(RemoteError):
+    '''What OAuth processing refused at `/v1/auth/token` or `/v1/auth/device`.'''
+
+    def __init__(self, error: str, description: Optional[str] = None,
+                 reason: Optional[str] = None, status: int = 400):
+        self.error = error
+        self.description = description
+        self.reason = reason
+        self.status = status
+        said = f"{error}" + (f" ({reason})" if reason else "")
+        super().__init__(f"the server refused the login: {said}"
+                         + (f": {clean(description)}" if description else ""))
+
+
+class LoginRequired(RemoteError):
+    '''The session cannot be refreshed and a fresh login is the answer: a
+    refresh refused `invalid_grant` with no reason, such as a changed
+    fingerprint.'''
 
 
 def join_url(base: str, path: str = "") -> str:
     '''Join a path onto a base URL, keeping the base's own path.
 
     Explicitly not ``urljoin``: with a base of ``https://host/v1`` it returns
-    ``https://host/jobs``, silently dropping the version prefix. That is fine
-    until a server URL carries one -- which is what ``/v1`` is -- and then every
-    request goes somewhere else.
+    ``https://host/jobs``, silently dropping the version prefix.
     '''
     if not path:
         return base.rstrip("/")
@@ -51,15 +113,12 @@ def join_url(base: str, path: str = "") -> str:
 def normalize_server(address: str, port: Optional[int] = None) -> str:
     '''The base URL for a configured server address.
 
-    The scheme comes from the address, never from the port. The client this
-    replaces defaulted the port to 443 and then read the scheme off the port it
-    had just defaulted, so a server on :8000 was reached over plaintext because
-    of its port number -- which is every local deployment.
+    The scheme comes from the address, never from the port. A server on :8000
+    reached over plaintext because of its port number is every local
+    deployment of the client this replaces.
     '''
     address = address.strip()
     if "://" not in address:
-        # No scheme given. Assume the safe one and let an operator who means
-        # plaintext say so, rather than guessing from a port number.
         address = f"https://{address}"
 
     parts = urlsplit(address)
@@ -75,11 +134,14 @@ def normalize_server(address: str, port: Optional[int] = None) -> str:
     return urlunsplit((parts.scheme, netloc, path, "", ""))
 
 
-class Transport:
-    '''Signs, sends, retries and renders.
+def origin_of(url: str) -> str:
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc}"
 
-    Holds the key and the tokens; knows nothing about jobs.
-    '''
+
+class Transport:
+    '''Signs, sends, retries and renders. Holds the key and the tokens; knows
+    nothing about jobs.'''
 
     def __init__(self, base_url: str, key, credentials=None,
                  session: Optional[requests.Session] = None):
@@ -90,14 +152,31 @@ class Transport:
 
         self._access_token: Optional[str] = None
         self._refresh_token: Optional[str] = None
-        self._nonce: Optional[str] = None
+        # When the access token runs out, from its response's `expires_in`,
+        # never assumed.
+        self._access_expires: Optional[float] = None
 
-        # Whether a refresh is in flight. See refresh().
+        # One nonce per origin: the stream host's is not the API's.
+        self._nonces: Dict[str, str] = {}
+
+        # The server's clock minus this one's, once a proof was refused for its
+        # time; later proofs are corrected by it.
+        self._clock_offset = 0.0
+
         self._refreshing = False
+        self._deprecation_warned = False
+
+        # Set by the client: how a fresh login is had, how a CI session trades
+        # again, and what fingerprint a refresh carries.
+        self.relogin: Optional[Callable[[Optional[str]], None]] = None
+        self.trade: Optional[Callable[[], bool]] = None
+        self.fingerprint: Callable[[], Dict[str, str]] = dict
+
+        # Where messages go, so they reach the run's own log.
+        self.warn: Callable[[str], None] = logger.warning
 
         # Where this server serves its own error `type` pages, once it has
-        # said so with a `Link: <...>; rel="help"`. None until then, and for a
-        # server that does not.
+        # said so with a `Link: <...>; rel="help"`.
         self.help_pages: Optional[str] = None
 
     ######################################################################
@@ -106,27 +185,57 @@ class Transport:
 
     @property
     def access_token(self) -> Optional[str]:
+        if self._access_expires is not None and time.monotonic() >= self._access_expires:
+            return None
         return self._access_token
 
     def set_tokens(self, access_token: Optional[str],
-                   refresh_token: Optional[str]) -> None:
+                   refresh_token: Optional[str],
+                   expires_in: Optional[int] = None) -> None:
         self._access_token = access_token
         self._refresh_token = refresh_token
+        self._access_expires = (time.monotonic() + max(0, int(expires_in) - 5)
+                                if access_token and expires_in else None)
 
     def url(self, path: str = "") -> str:
         return join_url(self.base_url, path)
 
     @property
     def origin(self) -> str:
-        '''The server without the version prefix.
-
-        ⚠️ Not everything a deployment serves is an endpoint. The signed upload
-        PUT and the portal handover both live outside ``/v1``, deliberately, so
-        that the version prefix stays exactly the contract's surface -- and a
-        caller reaching them needs the origin rather than the base.
-        '''
+        '''The server without the version prefix. The signed upload PUT and the
+        portal handover live outside ``/v1``.'''
         base = self.base_url
         return base[:-len("/v1")] if base.endswith("/v1") else base
+
+    @property
+    def api_origin(self) -> str:
+        return origin_of(self.base_url)
+
+    ######################################################################
+    # Headers
+    ######################################################################
+
+    def operator_headers(self, url: str, kind: str = "api") -> Dict[str, str]:
+        '''The operator-configured headers a request to ``url`` carries.
+
+        🔴 To the API's origin, its signed routes included; to another host,
+        such as a stream host, only where configured for it; and never to a
+        storage URL on another origin, whatever is configured.
+        '''
+        if self._credentials is None:
+            return {}
+        target = origin_of(url)
+        if target == self.api_origin:
+            return self._credentials.headers_for(target)
+        if kind == "storage":
+            return {}
+        return self._credentials.headers_for(target)
+
+    def _proof(self, method: str, url: str, token: Optional[str]) -> str:
+        return dpop.sign_proof(
+            self._key, method, url, access_token=token,
+            nonce=self._nonces.get(origin_of(url)),
+            iat=int(time.time() + self._clock_offset))
 
     ######################################################################
     # The request
@@ -138,14 +247,25 @@ class Transport:
                 json_body: Any = None,
                 params: Optional[Dict[str, Any]] = None,
                 headers: Optional[Dict[str, str]] = None,
-                allow_redirects: bool = True,
+                expect_redirect: bool = False,
                 stream: bool = False,
                 on_v1: bool = True,
-                _attempt: int = 0) -> requests.Response:
-        '''Send one request, proof and all.'''
+                oauth: bool = False,
+                _attempt: int = 0,
+                _waits: int = 0) -> requests.Response:
+        '''Send one request, proof and all.
+
+        ``expect_redirect`` says the caller expects a ``303`` and follows it
+        itself; a redirect nobody expected is the edge.
+        '''
         url = self.url(path) if on_v1 else join_url(self.origin, path)
 
-        sent = dict(headers or {})
+        if authenticated and self.access_token is None:
+            # Expired by its own `expires_in`, or never had: one refresh, or a
+            # login, before the request rather than a 401 after it.
+            self._renew()
+
+        sent = {"User-Agent": USER_AGENT, **self.operator_headers(url), **(headers or {})}
         token = self._access_token if authenticated else None
 
         if authenticated:
@@ -154,137 +274,232 @@ class Transport:
                     "not logged in to this server: run sc-remote -configure")
             sent["Authorization"] = f"DPoP {token}"
 
-        # A fresh proof per request, never a reused one: `htm` and `htu` bind it
-        # to this method and this URI, and the server remembers its `jti`.
-        sent["DPoP"] = dpop.sign_proof(
-            self._key, method, url, access_token=token, nonce=self._nonce)
+        # A fresh proof per request, retries included: `htm` and `htu` bind it
+        # to this method and URI, and the server remembers its `jti`.
+        sent["DPoP"] = self._proof(method, url, token)
+
+        again = dict(method=method, path=path, authenticated=authenticated, data=data,
+                     json_body=json_body, params=params, headers=headers,
+                     expect_redirect=expect_redirect, stream=stream, on_v1=on_v1,
+                     oauth=oauth)
 
         try:
             response = self._session.request(
                 method, url, data=data, json=json_body, params=params,
-                headers=sent, timeout=TIMEOUT_SECONDS,
-                allow_redirects=allow_redirects, stream=stream)
-        except requests.Timeout:
-            if _attempt < MAX_RETRIES:
+                headers=sent, timeout=TIMEOUT_SECONDS, allow_redirects=False,
+                stream=stream)
+        except (requests.Timeout, requests.ConnectionError) as e:
+            # A lost answer. Every retry carries a fresh proof and the same
+            # body: a refresh inside the server's grace window gets the same
+            # pair, and a keyed create or submit replays.
+            if _attempt < MAX_RETRIES and (isinstance(e, requests.Timeout) or oauth):
                 time.sleep(2 ** _attempt)
-                return self.request(
-                    method, path, authenticated=authenticated, data=data,
-                    json_body=json_body, params=params, headers=headers,
-                    allow_redirects=allow_redirects, stream=stream,
-                    _attempt=_attempt + 1)
-            raise TimeoutError(f"{self.base_url} did not answer") from None
+                return self.request(**again, _attempt=_attempt + 1, _waits=_waits)
+            if isinstance(e, requests.Timeout):
+                raise TimeoutError(f"{self.base_url} did not answer") from None
+            raise RemoteError(f"could not reach {self.base_url}: {_why(e)}") from None
         except requests.RequestException as e:
-            # Nothing answered at all: the host is down, the name does not
-            # resolve, TLS did not agree. These are the most ordinary failures
-            # there are and none of them is a server refusal, so they must not
-            # reach a user as a urllib3 traceback.
-            raise RemoteError(
-                f"could not reach {self.base_url}: {_why(e)}") from None
+            raise RemoteError(f"could not reach {self.base_url}: {_why(e)}") from None
 
-        # A nonce arrives on the response whether or not the request failed, and
-        # the next proof carries it.
         offered = response.headers.get("DPoP-Nonce")
         if offered:
-            self._nonce = offered
+            self._nonces[origin_of(url)] = offered
 
-        # The same for the page this server serves for an error it is naming,
-        # here or in a job's `error`: kept, so a failure read later off a job
-        # can point at it too.
         helped = help_url(response)
         if helped:
             self.help_pages = helped.rsplit("/", 1)[0] + "/"
 
+        self._notice_deprecation(response)
+
+        if 300 <= response.status_code < 400:
+            if expect_redirect and response.status_code in (301, 302, 303, 307, 308):
+                return response
+            if on_v1:
+                raise EdgeRefused(self.api_origin)
+            return response
+
+        # An HTML page in place of an answer is an access layer's refusal. A
+        # gateway's 5xx is HTML too, but it says the server is unwell, not that
+        # the request was refused, and it is handled as the failure it is.
+        if on_v1 and _is_html(response) and response.status_code < 500 \
+                and response.status_code != 204:
+            raise EdgeRefused(self.api_origin)
+
         if response.status_code < 400:
             return response
 
-        return self._handle_refusal(
-            response, method, path, authenticated=authenticated, data=data,
-            json_body=json_body, params=params, headers=headers,
-            allow_redirects=allow_redirects, stream=stream, attempt=_attempt)
+        return self._handle_refusal(response, again, attempt=_attempt, waits=_waits)
 
-    def _handle_refusal(self, response, method, path, *, attempt, **kwargs):
-        '''Three things wear the same status code, and they are three answers.
+    def _handle_refusal(self, response, again, *, attempt, waits):
+        '''Several answers wear the same status, and they are different answers.
 
-        A client that only refreshes on 401 loops forever on a nonce challenge,
-        and one that refreshes on `session-ended` loops forever on a dead
-        session. Building all three at once is the only way any of them is
-        right.
+        A client that only refreshes on 401 loops for ever on a nonce challenge,
+        and one that refreshes on `session-ended` loops for ever on a dead
+        session.
         '''
+        status = response.status_code
+
+        # 🔴 At the two OAuth endpoints the Content-Type decides the shape:
+        # problem+json is a transport-level refusal, handled by status and type
+        # below and never read for `error`.
+        if again["oauth"] and not _is_problem(response):
+            return self._handle_oauth(response, again, attempt=attempt, waits=waits)
+
         problem = _problem_body(response)
         slug = _slug(problem)
+        challenge = response.headers.get("WWW-Authenticate", "")
 
-        if response.status_code == 401 and attempt < MAX_RETRIES:
-            challenge = response.headers.get("WWW-Authenticate", "")
+        if status == 401 and attempt < MAX_RETRIES:
+            if slug == "dpop-nonce-required" or "use_dpop_nonce" in challenge:
+                # The server wants the nonce it just gave, for this origin.
+                return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
-            if "use_dpop_nonce" in challenge:
-                # The server wants the nonce it just gave us. Re-send as is.
-                return self.request(method, path, _attempt=attempt + 1, **kwargs)
+            if slug == "invalid-dpop-proof" and self._correct_clock(response):
+                return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
-            # 🔴 Only an AUTHENTICATED request can have an expired access
-            # token, and only it can be worth refreshing. The token endpoint
-            # carries no token, so its own 401 means the credential presented
-            # TO it was refused -- and refreshing in answer to that is a
-            # refresh that fails, asks for a refresh, and fails again.
-            #
-            # That loop is not bounded by `attempt`: every hop goes through
-            # login(), which starts a fresh request with the counter back at
-            # zero. It ended in a RecursionError after a couple of hundred real
-            # round trips, so the client flooded the server on its way to
-            # crashing.
-            if kwargs.get("authenticated") and slug == "invalid-token":
-                # An expired access token, and the session may still be alive.
-                if self.refresh():
-                    return self.request(method, path, _attempt=attempt + 1, **kwargs)
+            # 🔴 Only an AUTHENTICATED request can have an expired access token
+            # worth renewing; an unauthenticated one refreshing on its own 401
+            # is a refresh that fails, asks for a refresh, and fails again.
+            if again["authenticated"] and slug == "invalid-token":
+                self._access_token = None
+                self._renew()
+                return self.request(**again, _attempt=attempt + 1, _waits=waits)
+
+            if again["authenticated"] and slug == "session-ended" and self.relogin:
+                # Re-authenticate, and never refresh: the refresh token is the
+                # session that ended.
+                self.set_tokens(None, None)
+                if self._credentials is not None:
+                    self._credentials.forget_tokens()
+                self.relogin(problem.get("reason"))
+                return self.request(**again, _attempt=attempt + 1, _waits=waits)
+
+        # Waited out only where the server said how long, and only for the
+        # answers whose meaning is *later*: a request rate, and a keyed retry
+        # the server is still handling.
+        wait = _retry_after(response)
+        if wait is not None and waits < MAX_WAITS and (
+                slug == "rate-limited"
+                or (slug == "job-state-conflict" and problem.get("reason") == "in_progress")
+                or (status >= 500 and _replayable(again))):
+            time.sleep(wait)
+            return self.request(**again, _attempt=attempt, _waits=waits + 1)
 
         if slug == "session-ended":
-            raise SessionEnded(problem, response.status_code,
-                               help_url=help_url(response))
+            raise SessionEnded(problem, status, help_url=help_url(response))
 
-        raise ServerProblem(problem, response.status_code,
-                            help_url=help_url(response),
-                            next_step=_clock_advice(response) if slug == "invalid-dpop-proof"
-                            else None)
+        raise ServerProblem(problem, status, help_url=help_url(response),
+                            next_step=self._clock_advice(response)
+                            if slug == "invalid-dpop-proof" else None)
+
+    def _handle_oauth(self, response, again, *, attempt, waits):
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        if not isinstance(body, dict) or not isinstance(body.get("error"), str):
+            # Neither shape: an untyped failure of its status.
+            raise ServerProblem(_problem_body(response), response.status_code)
+
+        error = body["error"]
+        if attempt < MAX_RETRIES:
+            if error == "use_dpop_nonce":
+                return self.request(**again, _attempt=attempt + 1, _waits=waits)
+            if error == "invalid_dpop_proof" and self._correct_clock(response):
+                return self.request(**again, _attempt=attempt + 1, _waits=waits)
+
+        raise OAuthRefusal(error, body.get("error_description"),
+                           body.get("reason"), response.status_code)
+
+    def _renew(self) -> None:
+        '''Get an access token: refresh where there is a session, trade again
+        where this is CI, and log in where neither works.'''
+        if self.trade is not None:
+            if self.trade():
+                return
+        else:
+            try:
+                if self.refresh():
+                    return
+            except (SessionEnded, LoginRequired) as e:
+                reason = e.reason if isinstance(e, SessionEnded) else None
+                if self.relogin is None:
+                    raise
+                self.relogin(reason)
+                return
+        if self.relogin is not None:
+            self.relogin(None)
 
     ######################################################################
-    # Storage
+    # The clock
+    ######################################################################
+
+    def _correct_clock(self, response) -> bool:
+        '''A proof refused for its time: take the server's clock from `Date`,
+        correct later proofs by the offset, and say so -- once.'''
+        skew = _skew(response)
+        if skew is None or abs(skew) <= PROOF_WINDOW_SECONDS or self._clock_offset:
+            return False
+        self._clock_offset = -skew
+        self.warn(
+            f"This machine's clock is {_duration(abs(skew))} "
+            f"{'ahead of' if skew > 0 else 'behind'} the server's; proofs are being "
+            "corrected for it. Turn on time synchronization.")
+        return True
+
+    @staticmethod
+    def _clock_advice(response) -> Optional[str]:
+        skew = _skew(response)
+        if skew is None or abs(skew) <= PROOF_WINDOW_SECONDS:
+            return None
+        return (f"This machine's clock is {_duration(abs(skew))} "
+                f"{'ahead of' if skew > 0 else 'behind'} the server's, and a proof is "
+                f"accepted only within {PROOF_WINDOW_SECONDS} seconds of it. Correct the "
+                "clock -- turn on time synchronization -- and try again.")
+
+    def _notice_deprecation(self, response) -> None:
+        '''Once per session: a `Deprecation` header, with its `Sunset` date.'''
+        if self._deprecation_warned or "Deprecation" not in response.headers:
+            return
+        self._deprecation_warned = True
+        sunset = response.headers.get("Sunset")
+        self.warn("This server says the API this client uses is deprecated"
+                  + (f", and it goes away on {clean(sunset)}" if sunset else "")
+                  + ". Upgrade SiliconCompiler.")
+
+    ######################################################################
+    # Storage and streams
     ######################################################################
 
     def put_object(self, url: str, headers: Dict[str, str], path) -> None:
         '''Send the bytes to wherever the grant points.
 
-        The one request this client makes that does NOT go through
-        :meth:`request`, and the exception is the contract rather than an
-        oversight: this addresses storage, not the API. A presigned URL carries
-        its own credential in its signature, so attaching this session's token
-        and a DPoP proof would hand them to a third party that never asked for
-        them -- and on a deployment whose storage is somebody else's bucket,
-        that third party is somebody else.
+        The one request that does NOT go through :meth:`request`, and the
+        exception is the contract: this addresses storage, not the API. A
+        presigned URL carries its own credential in its signature, so it gets no
+        `Authorization`, no proof, and no operator header on another origin.
         '''
+        sent = {"User-Agent": USER_AGENT, **self.operator_headers(url, "storage"),
+                **dict(headers or {})}
         with open(path, "rb") as f:
             try:
                 response = self._session.put(
-                    url, data=f, headers=dict(headers or {}),
-                    timeout=TIMEOUT_SECONDS)
+                    url, data=f, headers=sent, timeout=TIMEOUT_SECONDS,
+                    allow_redirects=False)
             except requests.RequestException as e:
-                raise RemoteError(f"could not upload to {url}: {_why(e)}") from None
+                # 🔴 The URL is a capability: never printed, error messages
+                # included.
+                raise RemoteError(f"could not upload the archive: {_why(e)}") from None
 
         if response.status_code >= 400:
-            problem = _problem_body(response)
-            raise ServerProblem(problem, response.status_code)
+            raise ServerProblem(_problem_body(response), response.status_code)
 
-    def follow(self, response, headers=None, stream: bool = True):
-        '''Follow a 303 to storage, with this session left behind.
+    def follow(self, response, headers=None, stream: bool = True, kind: str = "storage"):
+        '''Follow a 303 by hand, with this session left behind.
 
-        🔴 Not `allow_redirects=True`, and the difference matters where storage
-        is somebody else's bucket. `requests` drops `Authorization` when a
-        redirect changes host and knows nothing about `DPoP`, so an
-        automatically-followed redirect hands a signed proof to a third party.
-        The proof is bound to the API's URI and could not be replayed against
-        it, but a credential-shaped thing arriving at a bucket is not something
-        to rely on being harmless.
-
-        The target carries its own credential in its signature, which is what a
-        presigned URL is.
+        No `Authorization` and no proof, whatever the target's origin; never
+        from an `https` API to plain `http`; operator headers only as
+        :meth:`operator_headers` allows. `kind` is `storage` or `stream`.
         '''
         if response.status_code not in (301, 302, 303, 307, 308):
             return response
@@ -292,22 +507,26 @@ class Transport:
         target = response.headers.get("Location")
         if not target:
             raise RemoteError("the server redirected without saying where")
+        from urllib.parse import urljoin
+        target = urljoin(response.url or self.base_url, target)
 
+        if urlsplit(self.base_url).scheme == "https" and urlsplit(target).scheme != "https":
+            raise RemoteError("the server redirected an https request to plain http, "
+                              "which this client does not follow")
+
+        sent = {"User-Agent": USER_AGENT, **self.operator_headers(target, kind),
+                **dict(headers or {})}
         try:
             return self._session.get(
-                target, headers=dict(headers or {}), stream=stream,
+                target, headers=sent, stream=stream,
                 timeout=TIMEOUT_SECONDS, allow_redirects=False)
         except requests.RequestException as e:
-            raise RemoteError(f"could not reach {target}: {_why(e)}") from None
+            raise RemoteError(f"could not reach the {kind} the server named: "
+                              f"{_why(e)}") from None
 
     def save(self, response, dest) -> str:
-        '''Stream a response body to a file.
-
-        Written through a temporary name and renamed, so an interrupted
-        download never leaves something that looks like a complete artifact --
-        the client's own build directory is the one place a half-file would be
-        picked up by the next step as though it were real.
-        '''
+        '''Stream a response body to a file, through a temporary name, so an
+        interrupted download never leaves something that looks complete.'''
         import os
         import shutil
 
@@ -330,111 +549,106 @@ class Transport:
     # Login
     ######################################################################
 
-    def login(self, form: Dict[str, str]) -> Dict[str, Any]:
-        '''Exchange a grant for a session. Carries a proof and no token.'''
+    def token(self, form: Dict[str, str]) -> Dict[str, Any]:
+        '''`POST /v1/auth/token`: a grant for a session. A proof and no token.'''
         response = self.request(
-            "POST", "auth/token", authenticated=False, data=form,
+            "POST", "auth/token", authenticated=False, data=form, oauth=True,
             headers={"Content-Type": "application/x-www-form-urlencoded"})
+        return response.json()
 
-        body = response.json()
-        self.set_tokens(body.get("access_token"), body.get("refresh_token"))
+    def login(self, form: Dict[str, str]) -> Dict[str, Any]:
+        '''Exchange a grant for a session, and hold it.'''
+        body = self.token(form)
+        self.set_tokens(body.get("access_token"), body.get("refresh_token"),
+                        body.get("expires_in"))
         return body
 
     def refresh(self) -> bool:
         '''Spend the refresh token for a new access token.
 
-        Called on a 401, and called once at the start of a command -- the
-        access token is never written to disk, so a session that survives
-        between invocations survives as its refresh token and nothing else.
-        Returns whether it worked.
+        🔴 **One refresh at a time, per store**, under an inter-process lock. A
+        process that waited re-reads the store and uses what it finds, never the
+        token it held before the lock: presenting a rotated one after the
+        grace window would end every worker's session. Returns whether it
+        worked; raises `SessionEnded` or `LoginRequired` where a login is the
+        answer.
         '''
-        if not self._refresh_token:
-            return False
-
         if self._refreshing:
-            # Belt and braces behind the check in _handle_refusal. A refresh
-            # that provokes a refresh is the one failure here that costs the
-            # SERVER rather than this process: every turn of it is a real
-            # request, so it must be impossible by construction rather than by
-            # one condition being right.
+            # A refresh that provokes a refresh costs the SERVER: impossible by
+            # construction rather than by one condition being right.
             logger.debug("declining to refresh inside a refresh")
             return False
 
+        import contextlib
+
         self._refreshing = True
         try:
-            body = self.login({"grant_type": "refresh_token",
-                               "refresh_token": self._refresh_token})
-        except SessionEnded:
-            # The session is over rather than stale, so there is nothing to
-            # retry and the caller must log in again.
-            self.set_tokens(None, None)
-            raise
-        except ServerProblem as e:
-            logger.debug(f"refresh failed: {e}")
-            return False
+            held = self._credentials.lock() if self._credentials is not None \
+                else contextlib.nullcontext()
+            with held:
+                refresh_token = (self._credentials.refresh_token
+                                 if self._credentials is not None else None) \
+                    or self._refresh_token
+                if not refresh_token:
+                    return False
+
+                # No `scope`: a refresh returns the session's full scope. The
+                # fingerprint pair, where one can be derived.
+                form = {"grant_type": "refresh_token", "refresh_token": refresh_token,
+                        **self.fingerprint()}
+                try:
+                    body = self.token(form)
+                except OAuthRefusal as e:
+                    if e.error != "invalid_grant":
+                        raise
+                    self.set_tokens(None, None)
+                    if self._credentials is not None:
+                        self._credentials.forget_tokens()
+                    if e.reason:
+                        raise SessionEnded(
+                            {"type": "https://siliconcompiler.com/server-errors/session-ended",
+                             "title": "Session ended", "reason": e.reason,
+                             "detail": e.description}, e.status) from None
+                    # A changed fingerprint, or a token the server does not
+                    # know: the person logs in again.
+                    raise LoginRequired(e.description or "log in again") from None
+
+                self.set_tokens(body.get("access_token"),
+                                body.get("refresh_token") or refresh_token,
+                                body.get("expires_in"))
+                if self._credentials is not None:
+                    self._credentials.save_tokens(body)
+                return True
         finally:
             self._refreshing = False
 
-        if self._credentials is not None:
-            self._credentials.save_tokens(body)
-        return True
+
+def _replayable(again) -> bool:
+    '''Whether a retry cannot do something twice: a read, or a keyed write.'''
+    return again["method"] in ("GET", "HEAD") or \
+        "Idempotency-Key" in (again["headers"] or {})
 
 
-def _why(exc: Exception) -> str:
-    """The innermost reason, which is the one worth printing.
-
-    requests wraps urllib3, which wraps the socket error, so the useful
-    sentence is several layers down and the outer repr is mostly class names.
-    """
-    reason = exc
-    for _ in range(5):
-        inner = getattr(reason, "reason", None) or getattr(reason, "args", (None,))[0]
-        if not isinstance(inner, Exception):
-            break
-        reason = inner
-
-    text = str(reason).strip()
-    # urllib3 prefixes the connection object's repr; the sentence after it is
-    # what a person can act on.
-    if ": " in text and text.startswith(("HTTP", "<urllib3")):
-        text = text.split(": ", 1)[1]
-    return text or exc.__class__.__name__
-
-
-def help_url(response) -> Optional[str]:
-    '''The page a server names for this response's error, as an absolute URL.
-
-    RFC 8288's `Link: <...>; rel="help"`. Resolved against the URL that was
-    called, so a relative reference lands on the server that sent it -- and a
-    page the server serves itself is one a person can actually open, where the
-    `type` URI's public page may not be reachable from here.
-    '''
-    from urllib.parse import urljoin
-
+def _retry_after(response) -> Optional[float]:
+    '''`Retry-After` in seconds, a date or a number, never below 1.'''
+    value = (response.headers.get("Retry-After") or "").strip()
+    if not value:
+        return None
     try:
-        target = (response.links.get("help") or {}).get("url")
-    except Exception:                                           # noqa: BLE001
-        return None
-    if not target:
-        return None
-    return urljoin(response.url or "", target)
+        seconds = float(value)
+    except ValueError:
+        try:
+            when = email.utils.parsedate_to_datetime(value)
+        except (TypeError, ValueError):
+            return None
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=timezone.utc)
+        seconds = (when - datetime.now(timezone.utc)).total_seconds()
+    return max(1.0, min(seconds, 300.0))
 
 
-# How far a proof's `iat` may be from the server's clock (surface §6).
-PROOF_WINDOW_SECONDS = 60
-
-
-def _clock_advice(response: requests.Response) -> Optional[str]:
-    '''Where a refused proof is this machine's clock, say so (surface D167).
-
-    A proof carries the time it was made and the server accepts it within a
-    minute of its own; a clock further out than that is refused every time,
-    and "the server did not accept this machine's key" sends a person looking
-    at the key. The server's `Date` says how far out this one is.
-    '''
-    import email.utils
-    from datetime import datetime, timezone
-
+def _skew(response) -> Optional[float]:
+    '''This machine's clock minus the server's, from the response's `Date`.'''
     try:
         theirs = email.utils.parsedate_to_datetime(response.headers.get("Date") or "")
     except (TypeError, ValueError):
@@ -443,13 +657,7 @@ def _clock_advice(response: requests.Response) -> Optional[str]:
         return None
     if theirs.tzinfo is None:
         theirs = theirs.replace(tzinfo=timezone.utc)
-    skew = (datetime.now(timezone.utc) - theirs).total_seconds()
-    if abs(skew) <= PROOF_WINDOW_SECONDS:
-        return None
-    return (f"This machine's clock is {_duration(abs(skew))} "
-            f"{'ahead of' if skew > 0 else 'behind'} the server's, and a proof is "
-            f"accepted only within {PROOF_WINDOW_SECONDS} seconds of it. Correct the "
-            "clock -- turn on time synchronization -- and try again.")
+    return (datetime.now(timezone.utc) - theirs).total_seconds()
 
 
 def _duration(seconds: float) -> str:
@@ -461,13 +669,51 @@ def _duration(seconds: float) -> str:
     return f"{seconds // 3600} hours"
 
 
+def _is_html(response) -> bool:
+    return (response.headers.get("Content-Type") or "").lower().startswith("text/html")
+
+
+def _is_problem(response) -> bool:
+    return (response.headers.get("Content-Type") or "").lower().startswith(
+        "application/problem+json")
+
+
+def _why(exc: Exception) -> str:
+    """The innermost reason, which is the one worth printing."""
+    reason = exc
+    for _ in range(5):
+        inner = getattr(reason, "reason", None) or getattr(reason, "args", (None,))[0]
+        if not isinstance(inner, Exception):
+            break
+        reason = inner
+
+    text = str(reason).strip()
+    if ": " in text and text.startswith(("HTTP", "<urllib3")):
+        text = text.split(": ", 1)[1]
+    return text or exc.__class__.__name__
+
+
+def help_url(response) -> Optional[str]:
+    '''The page a server names for this response's error, as an absolute URL
+    (`Link: <...>; rel="help"`), resolved against the URL that was called.'''
+    from urllib.parse import urljoin
+
+    try:
+        target = (response.links.get("help") or {}).get("url")
+    except Exception:                                           # noqa: BLE001
+        return None
+    if not target:
+        return None
+    return urljoin(response.url or "", target)
+
+
 def _problem_body(response: requests.Response) -> Dict[str, Any]:
     '''What the server said, as far as it can be read.
 
-    problem+json is promised only for what a handler produced. Routing, a
-    framework's own validation and any proxy in front of the server answer in
-    their own shapes -- and those are the errors production serves most, so
-    `response.json()` on a non-2xx is exactly the call that throws.
+    problem+json is promised only for what a handler produced; routing, a
+    framework's own validation and any proxy answer in their own shapes. A body
+    with no `type` is synthesised so every caller sees one shape, and nothing
+    pretends the server named a condition.
     '''
     try:
         body = response.json()
@@ -477,8 +723,6 @@ def _problem_body(response: requests.Response) -> Dict[str, Any]:
     if isinstance(body, dict) and "type" in body:
         return body
 
-    # Synthesised so that every caller downstream sees one shape. The absence of
-    # a `type` is preserved -- nothing pretends the server named a condition.
     text = (response.text or "").strip()
     return {
         "status": response.status_code,
@@ -488,7 +732,7 @@ def _problem_body(response: requests.Response) -> Dict[str, Any]:
 
 
 def _first_line(text: str, limit: int = 300) -> str:
-    '''One line of somebody else's HTML error page, not the whole thing.'''
+    '''One line of somebody else's error page, not the whole thing.'''
     if not text:
         return ""
     if "<" in text[:100]:
@@ -499,7 +743,6 @@ def _first_line(text: str, limit: int = 300) -> str:
 
 
 def _slug(problem: Dict[str, Any]) -> Optional[str]:
-    '''The condition the server named, or None if it named none.'''
     uri = problem.get("type")
     if not isinstance(uri, str):
         return None

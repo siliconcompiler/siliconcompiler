@@ -127,11 +127,14 @@ def access_token_hash(access_token: str) -> str:
 
 def sign_proof(key, method: str, url: str,
                access_token: Optional[str] = None,
-               nonce: Optional[str] = None) -> str:
+               nonce: Optional[str] = None,
+               iat: Optional[int] = None) -> str:
     '''One proof, for one request. Client side.
 
     `htu` is the request URI with any query and fragment removed, per RFC 9449;
     `htm` is the method. A proof is good for one request and is not reused.
+    `iat` is the proof's time, where the caller corrects its clock by the
+    server's.
     '''
     import jwt
 
@@ -139,7 +142,7 @@ def sign_proof(key, method: str, url: str,
         "jti": str(uuid.uuid4()),
         "htm": method.upper(),
         "htu": _htu(url),
-        "iat": int(time.time()),
+        "iat": int(time.time()) if iat is None else int(iat),
     }
     if access_token is not None:
         claims["ath"] = access_token_hash(access_token)
