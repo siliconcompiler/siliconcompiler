@@ -304,14 +304,16 @@ class Resolver:
     def _masked_uri(url: str) -> str:
         from urllib import parse as url_parse
         parsed = url_parse.urlparse(url)
-        if not parsed.username and not parsed.password:
+        if not parsed.username and not parsed.password and not parsed.query:
             return url
         user = "***" if parsed.username else ""
         pwd = ":***" if parsed.password else ""
         auth = f"{user}{pwd}@" if (user or pwd) else ""
         host = parsed.netloc.rpartition("@")[2]
         netloc = f"{auth}{host}"
-        return parsed._replace(netloc=netloc).geturl()
+        query = url_parse.urlencode([(key, "***") for key, _ in
+                                     url_parse.parse_qsl(parsed.query, keep_blank_values=True)])
+        return parsed._replace(netloc=netloc, query=query).geturl()
 
     @property
     def source_print(self) -> str:
@@ -323,6 +325,8 @@ class Resolver:
         """The source URI with sensitive information removed (e.g., tokens)."""
         url = self.urlparse
         netloc = url.hostname
+        if netloc and ":" in netloc:
+            netloc = f"[{netloc}]"
         if url.port:
             netloc = f"{netloc}:{url.port}"
         return url._replace(netloc=netloc).geturl()

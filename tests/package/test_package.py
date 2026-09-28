@@ -120,6 +120,24 @@ def test_safe_uris(unsafe_data, masked):
     assert resolver.cache_id == "2e7ef7cca5512780f587a0f30afe2ff574bc1448"
 
 
+def test_safe_uri_signed_query():
+    resolver = Resolver("testpath", Project("testproj"),
+                        "https://user:password@example.com/archive?"
+                        "X-Amz-Signature=secret&token=another&version=1")
+
+    assert resolver.source_print == ("https://***:***@example.com/archive?"
+                                     "X-Amz-Signature=%2A%2A%2A&token=%2A%2A%2A&version=%2A%2A%2A")
+
+
+def test_safe_uri_ipv6_cache_id():
+    first = Resolver("testpath", None, "https://[2001:db8::1]:443/archive")
+    second = Resolver("testpath", None, "https://[2001:db8::2]:443/archive")
+
+    assert first.safe_source == "https://[2001:db8::1]:443/archive"
+    assert second.safe_source == "https://[2001:db8::2]:443/archive"
+    assert first.cache_id != second.cache_id
+
+
 def test_init_with_env_project():
     project = Project("testproj")
     project.set("option", "env", "FILE_PATH", "this")
