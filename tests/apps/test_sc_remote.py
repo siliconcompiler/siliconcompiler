@@ -70,4 +70,4 @@ def test_a_manifest_with_no_job_is_refused(monkeypatch, caplog):
                                      '-cfg', 'manifest.json'])
 
     assert sc_remote.main() == 1
-    assert 'names no remote job' in caplog.text
+    assert 'no remote job is recorded beside' in caplog.text

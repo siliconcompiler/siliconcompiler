@@ -697,12 +697,10 @@ class Client:
             # results this run takes from the job that ran it (surface D175).
             body["continues_from"] = continues_from
 
-        headers = {}
-        if idempotency_key:
-            headers["Idempotency-Key"] = idempotency_key
+        headers = {"Idempotency-Key": idempotency_key or _fresh_key()}
 
-        return self.transport.request(
-            "POST", "jobs", json_body=body, headers=headers).json()
+        return self._waiting_for_a_slot(lambda: self.transport.request(
+            "POST", "jobs", json_body=body, headers=headers).json())
 
     def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
@@ -746,13 +744,40 @@ class Client:
         '''
         self.ensure_session()
 
-        headers = {}
-        if idempotency_key:
-            headers["Idempotency-Key"] = idempotency_key
+        # A fresh key on every submit, a resubmit after the job was sent back
+        # included; a retry of this one reuses it.
+        headers = {"Idempotency-Key": idempotency_key or _fresh_key()}
 
-        return self.transport.request(
+        return self._waiting_for_a_slot(lambda: self.transport.request(
             "POST", f"jobs/{job_id}/submit",
-            json_body={"digest": digest}, headers=headers).json()
+            json_body={"digest": digest}, headers=headers).json())
+
+    def _waiting_for_a_slot(self, send):
+        '''A create or a submit, with the `limit-exceeded` that only means
+        *later* -- `concurrent_jobs`, `pending_uploads` -- waited out for as
+        long as the server's `Retry-After` says, and retried with the same key.'''
+        told = None
+        while True:
+            try:
+                return send()
+            except ServerProblem as e:
+                limit = e.member("limit")
+                if e.slug != "limit-exceeded" or not e.retry_after or \
+                        limit not in ("concurrent_jobs", "pending_uploads"):
+                    raise
+                if told != limit:
+                    told = limit
+                    if limit == "pending_uploads":
+                        held = ", ".join(clean(str(job)) for job in e.member("job_ids") or [])
+                        self.logger.warning(
+                            "Waiting: this server's limit of jobs waiting for an upload is "
+                            f"reached, held by {held or 'your other jobs'}. Cancel any of "
+                            "them you abandoned.")
+                    else:
+                        self.logger.warning(
+                            "Waiting: this server's limit of running jobs is reached; "
+                            "this one goes as soon as one of yours finishes.")
+                time.sleep(e.retry_after)
 
     def job(self, job_id: str) -> tuple:
         '''``GET /v1/jobs/{id}``, and the interval the server asked for.
@@ -1127,6 +1152,13 @@ def _next_cursor(link: Optional[str]) -> Optional[str]:
     target = link.split(">", 1)[0].lstrip("<")
     values = parse_qs(urlsplit(target).query).get("cursor")
     return values[0] if values else None
+
+
+def _fresh_key() -> str:
+    '''An `Idempotency-Key`: fresh per create and per submit.'''
+    import uuid
+
+    return str(uuid.uuid4())
 
 
 def _ask(question: str) -> str:

@@ -10,13 +10,11 @@ Four calls to start it and one to watch it:
     GET  /v1/jobs/{id}                until `terminal`
 
 🔴 **The refusal comes before the bytes.** That is what the descriptor on the
-create body is for, and it is why the archive is built before the job is created
--- the size is the one descriptor field that costs the whole upload when it is
-omitted.
+create body is for, and it is why the job is created before anything is
+packed.
 '''
 
 import hashlib
-import json
 import logging
 import os
 import re
@@ -38,8 +36,8 @@ from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote.client.errors import (
-    NO_NODE_FAILED, RemoteError, ServerProblem, describe)
-from siliconcompiler.remote.client.results import Results
+    NO_NODE_FAILED, RemoteError, ServerProblem, clean, describe)
+from siliconcompiler.remote.client.results import Results, record_job, recorded_job
 from siliconcompiler.remote.units import size as _size
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
@@ -123,6 +121,7 @@ class RemoteRun:
         self._upstream_sources = None
         # What the job last said it was, for what an interrupt tells the user.
         self._last_state: Optional[str] = None
+        self._owner: Optional[str] = None
         self._forwarded: List[Tuple[str, str, str]] = []       # (name, pin, path)
         self._python_pins = None
 
@@ -155,6 +154,9 @@ class RemoteRun:
     ######################################################################
 
     def _start(self) -> str:
+        # 🔴 Everything that would only fail at the server is said here, before
+        # a job exists or a byte is packed.
+        self._preflight()
         self._preprocess()
 
         design = self.project.name
@@ -162,68 +164,189 @@ class RemoteRun:
 
         from siliconcompiler.remote import owners
 
-        with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
-            upload = Path(tmpdir) / "upload.tar.gz"
-            digest, size = self._pack(upload)
+        # 🔴 Created before anything is packed: a refusal at create costs
+        # nothing, and the job then names what else to put in the archive.
+        job = self.client.create_job(
+            design=design, jobname=jobname,
+            run_hash=self._reuse_hash(),
+            # Every node this run reads and does not run, whose results are
+            # not here and are held by the job that ran it.
+            continues_from=self._upstream()[1] or None,
+            flow=self._flow_descriptor(),
+            # A node's environment file is the declaration; this says the same
+            # at create, for the refusal before the upload.
+            needs=["python.env"] if self._python_env_files() else None,
+            requires={"python": self._requires_python(),
+                      "tools": self._tool_requirements()},
+            # What this machine expects the server to supply. A lookup at the
+            # other end, never a fetch, and credentials stripped -- and only
+            # what the flow reads.
+            sources=owners.sources(self.project, self._needs()[1]) or None,
+            idempotency_key=_key())
 
-            job = self.client.create_job(
-                design=design, jobname=jobname,
-                run_hash=self._reuse_hash(),
-                # Every node this run reads and does not run, whose results
-                # are not here and are held by the job that ran it.
-                continues_from=self._upstream()[1] or None,
-                flow=self._flow_descriptor(),
-                # A node's environment file is the declaration; this says the
-                # same at create, for the refusal before the upload.
-                needs=["python.env"] if self._python_env_files() else None,
-                requires={"python": self._requires_python(),
-                          "tools": self._tool_requirements()},
-                # What this machine expects the server to supply. A lookup at
-                # the other end, never a fetch, and credentials stripped -- and
-                # only what the flow reads.
-                sources=owners.sources(self.project, self._needs()[1]) or None,
-                idempotency_key=_key())
+        job_id = job["id"]
+        self.project.set('record', 'remoteid', job_id)
+        record_job(jobdir(self.project), job_id)
 
-            asked = job.get("upload_sources") or []
-            if asked:
-                # 🔴 What the server cannot supply, it asks for (D114): this
-                # machine resolves those with its OWN credentials and puts them
-                # in the archive -- or fails here, before a byte moves.
-                self.logger.info(f"The server asked for {_named(asked)}")
-                self._collect(asked)
+        if job["state"] in ("completed", "failed"):
+            # A job this server already has. Nothing was uploaded and nothing
+            # will run; the results are whatever it kept.
+            self.logger.info(f"Server returned an existing job: {job_id}")
+            return job_id
+
+        self.logger.info(f"Your job's reference ID is: {job_id}")
+
+        # 🔴 Followed, never constructed. The portal's route shape may change
+        # without a version bump, so this is printed only when the server sent
+        # it -- absent means the deployment has no web UI.
+        if job.get("web_url"):
+            self.logger.info(f"Watch it at: {job['web_url']}")
+            self._open_portal(job_id)
+
+        self._save_manifest()
+
+        try:
+            with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
+                asked = job.get("upload_sources") or []
+                if asked:
+                    # 🔴 What the server cannot supply, it asks for (D114):
+                    # this machine resolves those with its OWN credentials and
+                    # puts them in the archive -- or fails here.
+                    self.logger.info(f"The server asked for {_named(asked)}")
+                    self._collect(asked)
+
+                upload = Path(tmpdir) / "upload.tar.gz"
                 digest, size = self._pack(upload)
 
-            job_id = job["id"]
-            self.project.set('record', 'remoteid', job_id)
+                grant = self.client.upload_grant(job_id, size, digest)
+                self._report_upload(size)
+                self.client.upload(grant, upload)
 
-            if job["state"] in ("completed", "failed"):
-                # A job this server already has. Nothing was uploaded and
-                # nothing will run; the results are whatever it kept.
-                self.logger.info(f"Server returned an existing job: {job_id}")
-                return job_id
-
-            self.logger.info(f"Your job's reference ID is: {job_id}")
-
-            # 🔴 Followed, never constructed. The portal's route shape may
-            # change without a version bump, so this is printed only when the
-            # server sent it -- absent means the deployment has no web UI,
-            # which is a real answer rather than a missing one. It is also the
-            # whole reason the member exists: an id is useless to paste into a
-            # browser.
-            if job.get("web_url"):
-                self.logger.info(f"Watch it at: {job['web_url']}")
-                self._open_portal(job_id)
-
-            self._save_manifest()
-
-            grant = self.client.upload_grant(job_id, size, digest)
-            self._report_upload(size)
-            self.client.upload(grant, upload)
-
-            self.client.submit_job(job_id, digest=digest, idempotency_key=_key())
+                # `202` in `staging`: what staging finds arrives on the job.
+                self.client.submit_job(job_id, digest=digest, idempotency_key=_key())
+        except BaseException as e:
+            self._abandon(job_id, e)
+            raise
 
         self.logger.info("Job submitted")
         return job_id
+
+    def _abandon(self, job_id: str, error: BaseException) -> None:
+        '''Cancel a job that will not be submitted -- an interrupt, or an
+        upload or submit that failed -- so it holds no slot until it is
+        abandoned.'''
+        why = "interrupted before it was submitted" if isinstance(error, KeyboardInterrupt) \
+            else "its upload or submit failed"
+        try:
+            self.client.cancel_job(job_id, reason=f"cancelled from sc-remote: {why}")
+            self.logger.info(f"Cancelled job {job_id}: {why}")
+        except Exception as e:                                   # noqa: BLE001
+            self.logger.warning(f"Could not cancel job {job_id}, which was not "
+                                f"submitted: {e}")
+        # Not a job to reconnect to.
+        self.project.unset('record', 'remoteid')
+
+    def _preflight(self) -> None:
+        '''What the server would refuse, said here before create.'''
+        from siliconcompiler.remote.server.runspec import runtime_flow
+
+        project = self.project
+
+        # 🔴 The PDK fails closed where the class has a PDK setting.
+        if project.valid("asic", "pdk") and not project.get("asic", "pdk"):
+            raise RemoteError(
+                "this project sets no PDK, and a remote run of an ASIC project needs "
+                "one: set it with set_pdk() -- a target usually does -- and run again")
+
+        # A task class no installed distribution provides cannot run anywhere
+        # but here: the server runs only what a package provides.
+        from importlib import metadata
+
+        provided = metadata.packages_distributions()
+        flow = project.get_flow()
+        missing = {}
+        for step, index in runtime_flow(project).get_nodes():
+            name = flow.get_graph_node(step, index).get_taskmodule() or ""
+            module = name.split("/", 1)[0]
+            top = module.split(".", 1)[0]
+            if module == "__main__" or top not in provided:
+                missing.setdefault(name, []).append(f"{step}/{index}")
+        if missing:
+            named = "; ".join(f"{', '.join(nodes)} runs {name}"
+                              for name, nodes in sorted(missing.items()))
+            raise RemoteError(
+                f"a remote run needs every task class from an installed package, and "
+                f"these are not: {named}. Move the task into a package, install it "
+                "here, and run again")
+
+        self._check_upstream_files()
+        self._check_software()
+
+    def _check_upstream_files(self) -> None:
+        '''A `-from` run whose upstream outputs, on this machine, lack a file
+        a node in the run reads.'''
+        from siliconcompiler.remote.server.runspec import runtime_flow
+
+        root = jobdir(self.project)
+        packed = self._upstream()[0]
+        if not packed:
+            return
+        have = set()
+        for outputs in packed:
+            where = os.path.join(root, outputs)
+            for _, _, files in os.walk(where):
+                have.update(files)
+
+        runtime = runtime_flow(self.project)
+        flow = self.project.get_flow()
+        for step, index in runtime.get_nodes():
+            node = flow.get_graph_node(step, index)
+            try:
+                reads = self.project.get("tool", node.get_tool(), "task", node.get_task(),
+                                         "input", step=step, index=index) or []
+            except Exception:                                    # noqa: BLE001
+                continue
+            upstream = [source for source in runtime.get_node_inputs(step, index)
+                        if source not in runtime.get_nodes()]
+            if not upstream:
+                continue
+            lacking = sorted(name for name in reads if name not in have)
+            if lacking:
+                raise RemoteError(
+                    f"{step}/{index} reads {', '.join(lacking)}, which the results of "
+                    f"{', '.join(f'{s}/{i}' for s, i in upstream)} on this machine do "
+                    "not hold. Run from an earlier step")
+
+    def _check_software(self) -> None:
+        '''Advisory: a requirement nothing this server advertises satisfies.
+        The server decides; this only says so before the upload.'''
+        from packaging.specifiers import InvalidSpecifier, SpecifierSet
+
+        try:
+            software = self.client.capabilities().get("software") or {}
+        except RemoteError:
+            return
+        wanted = {"python": self._requires_python(), "tools": self._tool_requirements()}
+        for bucket, requirements in wanted.items():
+            held = software.get(bucket) or {}
+            for name, alternatives in (requirements or {}).items():
+                versions = held.get(name)
+                if versions is None:
+                    self.logger.warning(f"This server advertises no {name}; the job "
+                                        "may be refused")
+                    continue
+                if not alternatives:
+                    continue
+                try:
+                    ok = any(SpecifierSet(spec).filter(versions, prereleases=True)
+                             for spec in alternatives)
+                except InvalidSpecifier:
+                    continue
+                if not ok:
+                    self.logger.warning(
+                        f"This server advertises {name} {', '.join(versions)}, which "
+                        f"does not satisfy {' or '.join(alternatives)}; the job may be "
+                        "refused")
 
     def _needed_from(self, root: str) -> List[str]:
         '''What else of the job directory the run reads, relative to it: the
@@ -245,10 +368,10 @@ class RemoteRun:
         - **Its outputs are here** -- a file under ``outputs/`` other than its
           manifest: its ``outputs/`` is packed, so a file changed by hand is
           the one used. A local run switched to remote takes this path.
-        - **Only its manifest is here**: the job that ran it is read out of the
-          manifest's ``record,remoteid`` -- the server wrote it, and every
-          node's manifest comes back even where its outputs do not -- and
-          named in ``continues_from``.
+        - **Only its manifest is here**: the job that ran it is the one this
+          client recorded fetching it from (`recorded_job`) -- never read out of
+          the manifest, which the server wrote -- and it is named in
+          ``continues_from``.
         - **Neither**: refused before anything moves. A node from a local run
           has no job id, so its results must be here.
 
@@ -259,8 +382,13 @@ class RemoteRun:
 
         from siliconcompiler.remote.server.runspec import outputs_present, upstream_nodes
 
+        # A node skipped in the run it came from is looked through, as the
+        # server does from that job's recorded states.
+        skipped = [(step, index) for step, index in self.project.get_flow().get_nodes()
+                   if self.project.get('record', 'status', step=step, index=index)
+                   == SCNodeStatus.SKIPPED]
         try:
-            upstream = upstream_nodes(self.project)
+            upstream = upstream_nodes(self.project, skipped)
         except Exception as e:                                   # noqa: BLE001
             # A flow that will not resolve fails at the server with a reason;
             # this is only deciding what to send.
@@ -274,7 +402,7 @@ class RemoteRun:
             if outputs_present(node, self.project.name):
                 packed.append(os.path.relpath(os.path.join(node, "outputs"), root))
                 continue
-            ran_in = _remote_id(os.path.join(node, "outputs", f"{self.project.name}.pkg.json"))
+            ran_in = recorded_job(node)
             if ran_in:
                 continued.append({"step": step, "index": index, "job_id": ran_in})
                 continue
@@ -768,7 +896,11 @@ class RemoteRun:
                 self.logger.info("Disconnecting from remote job")
                 self.logger.info(
                     f"To reconnect to this job use: sc-remote -cfg {manifest} -reconnect")
-                self.logger.info(f"To cancel this job use: sc-remote -cfg {manifest} -cancel")
+                # Offered only to whoever may: a job read through a project can
+                # belong to somebody else.
+                me = self.client.credentials.user_id
+                if not (self._owner and me and self._owner != me):
+                    self.logger.info(f"To cancel this job use: sc-remote -cfg {manifest} -cancel")
                 raise
 
     def _poll(self, job_id: str) -> None:
@@ -782,6 +914,8 @@ class RemoteRun:
                 job, retry_after = self.client.job(job_id)
                 transient = 0
                 self._last_state = job.get("state")
+                owner = job.get("owner")
+                self._owner = owner.get("id") if isinstance(owner, dict) else None
             except ServerProblem as refusal:
                 if _is_refusal(refusal):
                     # 🔴 A refusal ends the wait AS A FAILURE. Falling through
@@ -869,8 +1003,10 @@ class RemoteRun:
             by_state.setdefault(node.get("state", "unknown"), []).append(node)
 
         progress = job.get("progress") or {}
+        reason = job.get("state_reason")
+        why = f", {clean(str(reason))}" if reason else ""
         self.logger.info(
-            f"Job is still running ({job.get('state')}): "
+            f"Job is still running ({job.get('state')}{why}): "
             f"{progress.get('completed_count', 0)}/{progress.get('total_count', 0)} nodes")
 
         for state in sorted(by_state):
@@ -1348,22 +1484,6 @@ def _pip_indexes() -> Tuple[Optional[str], List[str]]:
         index = None
     return (owners.strip_userinfo(index) if index else None,
             [owners.strip_userinfo(url) for url in extras])
-
-
-def _remote_id(manifest: str) -> Optional[str]:
-    '''``record,remoteid`` out of a node's manifest, read as JSON -- no need
-    to load it as a project -- or None.'''
-    try:
-        with open(manifest) as f:
-            node = json.load(f)["record"]["remoteid"]["node"]
-    except (OSError, ValueError, KeyError, TypeError):
-        return None
-    for per_step in node.values():
-        for held in (per_step or {}).values():
-            value = (held or {}).get("value")
-            if isinstance(value, str) and value:
-                return value
-    return None
 
 
 def _add_real_files(tar, path: str, arcname: str, logger) -> None:

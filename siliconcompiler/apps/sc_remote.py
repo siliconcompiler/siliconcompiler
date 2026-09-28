@@ -5,6 +5,7 @@ import sys
 from siliconcompiler import Project, Design
 from siliconcompiler.remote import Client, Credentials, RemoteError
 from siliconcompiler.remote.client import read_secret
+from siliconcompiler.remote.client.results import recorded_job
 from siliconcompiler.scheduler.error import SCRuntimeError
 
 
@@ -248,11 +249,14 @@ def _act_on_job(remote, client, project_cfg):
         remote.logger.error(f"Unable to read {project_cfg}: {e}")
         return 1
 
-    job_id = project.get('record', 'remoteid')
+    # 🔴 The job this client recorded beside the results, never the manifest's
+    # own `record,remoteid`: the server wrote the manifest.
+    where = os.path.dirname(os.path.abspath(project_cfg))
+    job_id = recorded_job(where) or recorded_job(os.path.dirname(where))
     if not job_id:
         remote.logger.error(
-            f"{project_cfg} names no remote job: it was never submitted, or it "
-            "was submitted by a different run")
+            f"no remote job is recorded beside {project_cfg}: it was never submitted, "
+            "or it was submitted by a different run")
         return 1
 
     # The server is confirmed before it is acted on, which is the order the

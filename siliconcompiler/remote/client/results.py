@@ -29,12 +29,13 @@ tells them apart -- a closed enum, ``expired`` or ``removed`` -- and
 than interprets.
 '''
 
+import json
 import logging
 import os
 import tarfile
 import tempfile
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from siliconcompiler import utils
 from siliconcompiler.remote.client.errors import RemoteError, clean
@@ -42,10 +43,36 @@ from siliconcompiler.remote.units import size
 from siliconcompiler.schema import Journal
 from siliconcompiler.utils.paths import jobdir, workdir
 
-__all__ = ["Results", "REMOTE_JOB_LOG"]
+__all__ = ["Results", "REMOTE_JOB_LOG", "JOB_FILE", "record_job", "recorded_job"]
 
 
 logger = logging.getLogger(__name__)
+
+
+# Which job a directory's results came from, written by this client when it
+# created the job or fetched them -- and never read out of a manifest, which
+# the server wrote and an upload can name anything in.
+JOB_FILE = "sc_remote_job.json"
+
+
+def record_job(directory: str, job_id: str) -> None:
+    '''Record the job ``directory``'s results came from.'''
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory, JOB_FILE)
+    partial = f"{path}.part"
+    with open(partial, "w") as f:
+        json.dump({"job_id": job_id}, f)
+    os.replace(partial, path)
+
+
+def recorded_job(directory: str) -> Optional[str]:
+    '''The job ``directory``'s results came from, as recorded, or None.'''
+    try:
+        with open(os.path.join(directory, JOB_FILE)) as f:
+            job_id = json.load(f).get("job_id")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return job_id if isinstance(job_id, str) and job_id else None
 
 
 # Kinds that arrive as a gzipped tar and expand in place. A kind this client
@@ -441,12 +468,13 @@ class Results:
             # A node's own manifest goes where the node wrote it, which is
             # where the replay looks and where a node archive would have put
             # it.
-            outputs = os.path.join(workdir(self.project, step=step, index=index),
-                                   "outputs")
+            node = workdir(self.project, step=step, index=index)
+            outputs = os.path.join(node, "outputs")
             os.makedirs(outputs, exist_ok=True)
             self.client.fetch_artifact(
                 job_id, item["id"],
                 os.path.join(outputs, f"{self.project.name}.pkg.json"))
+            record_job(node, job_id)
             return 1
 
         if step is None or index is None:
@@ -460,7 +488,12 @@ class Results:
 
         into = workdir(self.project, step=step, index=index)
         os.makedirs(into, exist_ok=True)
+        landed = self._retrieve_node(job_id, item, kind, step, index, into)
+        if landed:
+            record_job(into, job_id)
+        return landed
 
+    def _retrieve_node(self, job_id, item, kind, step, index, into) -> int:
         if kind == "logs":
             self.client.fetch_artifact(
                 job_id, item["id"], os.path.join(into, f"sc_{step}_{index}.log"))

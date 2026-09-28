@@ -134,10 +134,14 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
     # `Scheduler` run, so the local `job.log` is open and being appended to for
     # the whole of it, and downloading onto it would truncate a file this
     # process is still writing.
+    # And which job each directory's results came from, as this client
+    # recorded it -- never read back out of a manifest.
     extra = here - local_tree
     assert "sc_remote.pkg.json" in extra
     assert "remote-job.log" in extra
+    assert "sc_remote_job.json" in extra
     assert all(name in ("sc_remote.pkg.json", "remote-job.log")
+               or os.path.basename(name) == "sc_remote_job.json"
                or name.startswith("job.")
                for name in extra), sorted(extra)
 

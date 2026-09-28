@@ -34,7 +34,7 @@ def job_body(state="running", nodes=None, terminal=None, **extra):
         "id": "01J9-job", "state": state, "terminal": terminal,
         "state_changed_at": "2026-09-22T10:00:00.000Z",
         "design": "gcd", "jobname": "job0", "flow": "nopflow",
-        "owner": "01J9-user", "project": None,
+        "owner": {"id": "01J9-user", "name": "A User"}, "project": None,
         "created_at": "2026-09-22T10:00:00.000Z",
         "submitted_at": "2026-09-22T10:00:01.000Z",
         "started_at": None, "finished_at": None,
@@ -97,7 +97,7 @@ def test_submit_is_four_calls_in_order(fake_v1, run, nop_project):
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
     job_id = run._start()
@@ -120,7 +120,7 @@ def test_the_upload_carries_no_session(fake_v1, run):
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
     run._start()
@@ -140,7 +140,7 @@ def test_both_posts_carry_an_idempotency_key(fake_v1, run):
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
     run._start()
@@ -164,7 +164,7 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
     run._start()
@@ -1078,7 +1078,8 @@ def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_pa
     assert not {n for n in names if n.startswith(("stepone", "steptwo"))}
 
 
-def _upstream_node(project, step, *, output=None, remoteid=None):
+def _upstream_node(project, step, *, output=None, fetched_from=None, remoteid=None):
+    from siliconcompiler.remote.client.results import record_job
     from siliconcompiler.utils.paths import workdir
 
     outputs = os.path.join(workdir(project, step=step, index="0"), "outputs")
@@ -1088,6 +1089,8 @@ def _upstream_node(project, step, *, output=None, remoteid=None):
         manifest = {"record": {"remoteid": {"node": {"*": {"*": {"value": remoteid}}}}}}
     with open(os.path.join(outputs, "gcd.pkg.json"), "w") as f:
         json.dump(manifest, f)
+    if fetched_from:
+        record_job(os.path.dirname(outputs), fetched_from)
     if output:
         with open(os.path.join(outputs, output), "w") as f:
             f.write("module gcd; endmodule\n")
@@ -1139,10 +1142,10 @@ def test_linked_outputs_are_sent_as_real_files(run, nop_project, tmp_path):
 
 def test_a_node_whose_outputs_never_came_back_is_continued_from_its_job(
         run, nop_project, tmp_path):
-    '''Only its manifest is here: the job that ran it is named, read out of the
-    manifest as JSON, and nothing of the node is packed.'''
+    '''Only its manifest is here: the job this client recorded fetching it
+    from is named, and nothing of the node is packed.'''
     _leftovers(nop_project)
-    _upstream_node(nop_project, "stepone", remoteid="01a0e000-0000-7000-8000-000000000001")
+    _upstream_node(nop_project, "stepone", fetched_from="01a0e000-0000-7000-8000-000000000001")
     nop_project.option.add_from("steptwo")
 
     names = _packed(run, tmp_path)
@@ -1150,6 +1153,18 @@ def test_a_node_whose_outputs_never_came_back_is_continued_from_its_job(
     assert run._upstream()[1] == [{"step": "stepone", "index": "0",
                                    "job_id": "01a0e000-0000-7000-8000-000000000001"}]
     assert not {n for n in names if n.startswith("stepone")}
+
+
+def test_a_manifests_own_remoteid_is_never_the_job_continued_from(
+        run, nop_project, tmp_path):
+    '''🔴 The server wrote the manifest, and an upload can name anything in
+    it: a node whose job was never recorded here has no job id.'''
+    _leftovers(nop_project)
+    _upstream_node(nop_project, "stepone", remoteid="01a0e000-0000-7000-8000-00000000beef")
+    nop_project.option.add_from("steptwo")
+
+    with pytest.raises(RemoteError, match="stepone/0"):
+        _packed(run, tmp_path)
 
 
 def test_a_node_with_neither_is_refused_before_anything_moves(run, nop_project, tmp_path):
@@ -1220,7 +1235,7 @@ def _routes_for_a_submit(fake_v1, created=None):
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
 
@@ -1328,7 +1343,7 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("queued"),
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
     run._send_asked("01J9-job", [{"kind": "design", "name": "gcd",
@@ -1388,3 +1403,141 @@ def test_leaving_a_queued_job_does_not_ask_twice(run, monkeypatch):
         run._watch("01J9-job")
 
     assert len(polls) == 1
+
+
+###########################
+# Create before pack, 202 in staging, and what will not be submitted
+###########################
+
+def _created(fake_v1, **extra):
+    fake_v1.route(responses.POST, "jobs",
+                  {"id": "01J9-job", "state": "created", "project": None,
+                   "created_at": "2026-09-22T10:00:00.000Z", **extra}, status=201)
+
+
+def _granted(fake_v1):
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
+
+
+def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch):
+    '''🔴 Created before anything is packed: a refusal there costs nothing.'''
+    packed = []
+    monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: packed.append(upload))
+    fake_v1.route(responses.POST, "jobs",
+                  problem("software-unavailable", 422, reason="unavailable", unresolved=[]),
+                  status=422, content_type="application/problem+json")
+
+    with pytest.raises(RemoteError):
+        run._start()
+
+    assert not packed
+    assert not any("upload-grant" in call.request.url for call in fake_v1.calls)
+
+
+def test_a_202_then_a_rejected_job_reads_the_refusal_from_the_poll(
+        fake_v1, run, monkeypatch, caplog):
+    '''Submit only matched the digest; what staging found arrives on the job.'''
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+    _created(fake_v1)
+    _granted(fake_v1)
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", nodes=[]),
+                  status=202)
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "rejected", nodes=[], error={
+            "type": "https://siliconcompiler.com/server-errors/archive-rejected",
+            "title": "Archive rejected", "status": 422, "reason": "unrequested_member",
+            "detail": "stray.txt is not something a first archive carries"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+
+    with pytest.raises(RemoteError, match="rejected"):
+        run.run()
+
+    assert "stray.txt" in caplog.text
+
+
+def test_in_progress_and_a_slot_limit_are_waited_out_with_the_same_key(
+        fake_v1, run, monkeypatch, caplog):
+    slept = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    fake_v1.route(responses.POST, "jobs",
+                  problem("job-state-conflict", 409, reason="in_progress"), status=409,
+                  content_type="application/problem+json", headers={"Retry-After": "2"})
+    fake_v1.route(responses.POST, "jobs",
+                  problem("limit-exceeded", 429, limit="pending_uploads",
+                          job_ids=["01J9-old"]),
+                  status=429, content_type="application/problem+json",
+                  headers={"Retry-After": "3"})
+    _created(fake_v1)
+    _granted(fake_v1)
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"), status=202)
+
+    with caplog.at_level("WARNING"):
+        run._start()
+
+    creates = [call.request for call in fake_v1.calls
+               if call.request.method == "POST" and call.request.path_url == "/v1/jobs"]
+    assert len(creates) == 3
+    assert len({request.headers["Idempotency-Key"] for request in creates}) == 1
+    assert 2.0 in slept and 3.0 in slept
+    assert "01J9-old" in caplog.text
+
+
+def test_a_failed_upload_cancels_the_job(fake_v1, run):
+    '''It will not be submitted, so it must not hold a slot until abandoned.'''
+    _created(fake_v1)
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {}, "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "denied", status=403,
+                      content_type="text/plain")
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelled"),
+                  status=202)
+
+    with pytest.raises(RemoteError):
+        run._start()
+
+    cancel = [call.request for call in fake_v1.calls if call.request.url.endswith("/cancel")]
+    assert len(cancel) == 1
+    assert json.loads(cancel[0].body)["reason"].startswith("cancelled from sc-remote")
+    assert not run.project.get('record', 'remoteid')
+
+
+def test_an_interrupt_before_submit_cancels_the_job(fake_v1, run, monkeypatch):
+    _created(fake_v1)
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelled"),
+                  status=202)
+
+    def interrupted(self, upload):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(RemoteRun, "_pack", interrupted)
+
+    with pytest.raises(KeyboardInterrupt):
+        run._start()
+
+    cancel = [call.request for call in fake_v1.calls if call.request.url.endswith("/cancel")]
+    assert "interrupted" in json.loads(cancel[0].body)["reason"]
+
+
+def test_an_asic_project_with_no_pdk_stops_before_create(fake_v1, logged_in, gcd_design):
+    from siliconcompiler import ASIC
+
+    project = ASIC(gcd_design)
+    project.add_fileset("rtl")
+
+    with pytest.raises(RemoteError, match="sets no PDK"):
+        RemoteRun(project, logged_in)._preflight()
+
+    assert not any(call.request.path_url == "/v1/jobs" for call in fake_v1.calls)
+
+
+def test_a_task_class_no_package_provides_stops_before_create(
+        fake_v1, run, nop_project, monkeypatch):
+    monkeypatch.setattr("importlib.metadata.packages_distributions", lambda: {})
+
+    with pytest.raises(RemoteError, match="installed package"):
+        run._preflight()

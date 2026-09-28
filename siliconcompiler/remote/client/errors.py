@@ -28,10 +28,13 @@ class ServerProblem(RemoteError):
 
     def __init__(self, problem: Dict[str, Any], status: int,
                  help_url: Optional[str] = None, next_step: Optional[str] = None,
-                 job_id: Optional[str] = None, titles: Optional[Dict[str, str]] = None):
+                 job_id: Optional[str] = None, titles: Optional[Dict[str, str]] = None,
+                 retry_after: Optional[float] = None):
         self.problem = problem
         self.status = status
         self.help_url = help_url
+        # Seconds, never below 1, where the refusal said when to ask again.
+        self.retry_after = retry_after
         super().__init__(describe(problem, status, next_step=next_step, help_url=help_url,
                                   job_id=job_id, titles=titles))
 

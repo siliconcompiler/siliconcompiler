@@ -384,13 +384,20 @@ class Transport:
                 or (status >= 500 and _replayable(again))):
             time.sleep(wait)
             return self.request(**again, _attempt=attempt, _waits=waits + 1)
+        # A keyed create or submit replays, so a 5xx is retried with the same
+        # key and body even where the server named no wait.
+        if status >= 500 and wait is None and attempt < MAX_RETRIES \
+                and again["method"] == "POST" and "Idempotency-Key" in (again["headers"] or {}):
+            time.sleep(2 ** attempt)
+            return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
         if slug == "session-ended":
             raise SessionEnded(problem, status, help_url=help_url(response))
 
         raise ServerProblem(problem, status, help_url=help_url(response),
                             next_step=self._clock_advice(response)
-                            if slug == "invalid-dpop-proof" else None)
+                            if slug == "invalid-dpop-proof" else None,
+                            retry_after=wait)
 
     def _handle_oauth(self, response, again, *, attempt, waits):
         try:
