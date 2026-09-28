@@ -59,6 +59,21 @@ as D159 says.
 **Where it goes:** surface D159's produced-archive rule, and D175's *what
 arrives* -- the node's outputs as files.
 
+### From follow-on 14 (the `v1` review, in code)
+
+#### 2. Host mode records no install in `resolved_versions`
+
+Surface *How it is built* has `resolved_versions` list what the install added,
+with any version substituted within its release line. A derived image records
+it, in `images.installed`. ⚠️ **Where nodes run on the host there is no image**:
+the install still runs while staging, from `package_indexes`, and substitutes
+within the release line, but nothing on the job keeps what it installed, so
+`resolved_versions` lists neither the host's own versions nor the additions.
+It is the logs that say. A column for it, or a statement that
+`resolved_versions` is images only, closes it.
+
+**Where it goes:** surface §17's `resolved_versions` bullet.
+
 ---
 
 ## Not ported, deliberately

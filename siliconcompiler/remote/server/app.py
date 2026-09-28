@@ -98,6 +98,13 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     schemaclasses.load()
 
     config = Config.load(datadir, test_mode=test_mode)
+    if cluster == "slurm" and not config["containers"] and "python.env" in config["features"]:
+        # 🔴 Bare Slurm with no builder advertises no `python.env`: the install
+        # runs while staging, on this host, and a node elsewhere would run
+        # what this host's Python and platform chose.
+        raise ValueError("features lists python.env, and nodes run on Slurm hosts "
+                         "with no container to build an environment into; turn on "
+                         "containers and env_builder, or leave python.env out")
     store = Store(datadir / "server.db")
     store.ensure_storage_location(config["storage_location_id"],
                                   config["storage_uri_base"])

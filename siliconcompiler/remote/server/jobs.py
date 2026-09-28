@@ -791,6 +791,10 @@ class JobService:
 
             for name, asked in wanted.items():
                 if name not in here:
+                    # 🔴 A listed name is never ignored: a python name nothing
+                    # here tracks is checked against what jobs would run in.
+                    if bucket == images.BUCKETS["python"]:
+                        self._check_untracked_python(name, asked)
                     continue
 
                 spec = images.specifiers(asked)
@@ -811,6 +815,33 @@ class JobService:
                     "software-unavailable", reason="unavailable", detail=detail,
                     unresolved=[{"name": name, "requirement": list(asked or ()),
                                  "available": sorted(said.get(name, ()))}])
+
+    def _check_untracked_python(self, name: str, asked) -> None:
+        '''A `requires.python` name the registry does not track: refused where
+        nodes run in containers, since no live image holds it, and answered
+        from this server's own Python where they run on the host.'''
+        from importlib import metadata
+
+        spec = images.specifiers(asked)
+        available = []
+        if not self._config["containers"]:
+            try:
+                version = metadata.version(name)
+            except metadata.PackageNotFoundError:
+                version = None
+            if version is not None:
+                if images.matches(version, "reported", spec):
+                    return
+                available = [version]
+
+        where = "no image this server runs holds it" if self._config["containers"] \
+            else (f"this server runs {name} {available[0]}" if available
+                  else f"this server's Python has no {name}")
+        raise ProblemError(
+            "software-unavailable", reason="unavailable",
+            detail=f"the job needs {name} {', '.join(asked) or '(any version)'}, and {where}",
+            unresolved=[{"name": name, "requirement": list(asked or ()),
+                         "available": available}])
 
     ######################################################################
     # 14. upload-grant
@@ -1115,69 +1146,59 @@ class JobService:
         return entries
 
     def _check_environments(self, session, job, derived, unpacked: Path) -> None:
-        '''A node's environment files, at submit (surface D131).
+        '''The job's Python: each node's environment file and the uploaded
+        packages, while staging (surface *A node's own Python packages, built
+        while staging*).
 
-        Its presence is the declaration, so a job carrying one relies on
-        `python.env` whether or not it said so at create -- and this deployment
-        advertises it only where it can build one. Then every file is held to
-        its path and its format, and every index it names to the index
-        allowlist. A follow-up carrying one never gets here: it is
-        `unrequested_member`, since only what was asked for may arrive.
+        `sc_python/packages/` is the user's own code, accepted with or without
+        an environment file and never parsed. An environment file is the
+        declaration that a node has a package to install, so a job carrying one
+        relies on `python.env` whether or not it said so at create; each is
+        held to its path -- a node the run executes -- and to the format. A
+        follow-up carrying either never gets here: it is `unrequested_member`,
+        since only what was asked for may arrive.
         '''
         from siliconcompiler.remote import environment
-        from siliconcompiler.remote.server import allowlist
 
         top = unpacked / environment.ROOT
         if not top.exists():
             return
-
-        if "python.env" not in (self._config["features"] or ()):
-            raise self._refuse(session, job, ProblemError(
-                "feature-unsupported", feature="python.env",
-                detail="this job carries a Python environment for a node, and this "
-                       "deployment does not build one"))
 
         def refuse(detail):
             return self._refuse(session, job, ProblemError(
                 "archive-rejected", reason="environment_file", detail=detail))
 
         nodes = set(derived["nodes"])
-        rules = [allowlist.parse(entry) for entry in self._config["index_allowlist"] or []]
-        declared, forwarded = set(), []
+        files = []
         for path in sorted(top.rglob("*")):
             if path.is_dir():
                 continue
             name = path.relative_to(unpacked).as_posix()
             parts = name.split("/")
-            node = tuple(parts[1:3])
-            is_file = len(parts) == 4 and parts[3] == environment.FILENAME and node in nodes
-            if not is_file and len(parts) >= 3 and parts[1] == environment.PACKAGES:
-                # The job's own code, forwarded once beside the files: put on the
-                # tool's PYTHONPATH, never installed, so nothing here parses it.
-                forwarded.append(name)
+            if len(parts) >= 3 and parts[1] == environment.PACKAGES:
+                # The user's own code, uploaded once beside the files: put on
+                # the tool's PYTHONPATH, never installed, so nothing here
+                # parses it.
                 continue
-            if not is_file:
+            node = tuple(parts[2:4])
+            if not (len(parts) == 5 and parts[1] == environment.NODES
+                    and parts[4] == environment.FILENAME and node in nodes):
                 raise refuse(f"{name} is neither {environment.path_for('<step>', '<index>')} "
-                             f"for a node of this flow nor under "
+                             f"for a node this run executes nor under "
                              f"{environment.packages_path()}/")
-            declared.add(node)
+            files.append((name, path))
+
+        if files and "python.env" not in (self._config["features"] or ()):
+            raise self._refuse(session, job, ProblemError(
+                "feature-unsupported", feature="python.env",
+                detail="this job carries a Python environment for a node, and this "
+                       "deployment does not install one"))
+
+        for name, path in files:
             try:
-                parsed = environment.parse(path.read_bytes())
+                environment.parse(path.read_bytes())
             except environment.EnvironmentFileError as e:
                 raise refuse(f"{name}: {e}") from None
-            for url in parsed.indexes:
-                if not allowlist.allows(rules, url):
-                    raise self._refuse(session, job, ProblemError(
-                        "software-unavailable", reason="index-not-allowed", unresolved=[],
-                        detail=f"{name} names the index {url}, which this server does "
-                               "not let a build reach"))
-
-        # The file is the declaration: forwarded packages with no node that has
-        # one are not an environment anyone asked for.
-        if forwarded and not declared:
-            raise refuse(f"{forwarded[0]} is under {environment.packages_path()}/, and "
-                         f"no node of this job has a {environment.FILENAME} to put it on "
-                         "the path of")
 
     def _check_owed(self, session, job, derived, asked) -> None:
         '''Refuse a required value the client should have sent and did not.
@@ -1333,8 +1354,11 @@ class JobService:
                 self._phase(job_id, "copying earlier results")
             self._copy_results(job, unpacked, copies)
 
-            # Then each node's Python, built into an image on the one it
-            # resolved to -- which needs the images resolved first.
+            # Each node's Python: installed here where nodes run on this host,
+            # so a line that will not install rejects the job before any node
+            # runs; built into an image on the one each node resolved to where
+            # they run in containers -- which needs the images resolved first.
+            self._install_on_host(job, derived)
             plan = self._build_environments(
                 job, derived, self._resolve_images(None, job, derived))
             if self._row(job_id)["state"] != "staging":
@@ -1493,7 +1517,7 @@ class JobService:
             parsed = environment.parse(path.read_bytes())
             if parsed.pins:
                 found[node] = environment.render(
-                    parsed.pins, parsed.index_url, parsed.extra_index_urls,
+                    parsed.pins,
                     header="Written by sc-server from what the job's file declared; "
                            "the file itself is never installed.")
         return found
@@ -1527,6 +1551,40 @@ class JobService:
             nodes[node] = image_id
             refs[image_id] = ref
         return images.Plan(plan.job, nodes, refs)
+
+    def _install_on_host(self, job, derived) -> None:
+        '''Host mode: each executed node's environment installed while the
+        job stages, into its user's cache, where the node's task finds it.
+
+        🔴 **A line that will not install rejects the job** --
+        `software-unavailable`, `reason: "uninstallable"`, naming each package
+        and the target Python and platform -- before any node runs. An index
+        that does not answer is this server's failure: `staging-failed`.
+        '''
+        from siliconcompiler.remote import environment
+        from siliconcompiler.remote.server import envinstall
+
+        if self._config["containers"] or "python.env" not in (self._config["features"] or ()):
+            return
+        unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
+        if not any((unpacked / environment.path_for(*node)).is_file()
+                   for node in derived["nodes"]):
+            return
+
+        self._phase(job["id"], "installing Python environments")
+        try:
+            envinstall.install_all(unpacked, self.cache_dir(job["user_id"]) / "python-env",
+                                   logger, derived["nodes"], constrain=_python_names(job),
+                                   indexes=list(self._config["package_indexes"] or []))
+        except envinstall.InstallFailed as e:
+            if e.result.get("network") or e.result.get("returncode") == -1:
+                raise _ServerFailure(_bounded(
+                    f"the install of {e.node[0]}/{e.node[1]}'s Python environment could "
+                    f"not reach an index:\n{e.result.get('tail', '')}")) from None
+            raise self._refuse_staging(job, _build_refusal(e.node, e.text, e.result)) \
+                from None
+        if self._row(job["id"])["state"] != "staging":
+            raise _NoLongerStaging(job["id"])
 
     def _derived_for(self, job, node, base_id, base_ref, key, text) -> Tuple[str, str]:
         '''The derived image for one base and file, as (id, pinned ref).'''
@@ -1586,6 +1644,8 @@ class JobService:
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
                 "bundles_root": str(self.bundles_root()), "mounts": self.container_mounts(),
                 "index_allowlist": list(self._config["index_allowlist"] or []),
+                # Where pip looks: the deployment's, never the job's.
+                "indexes": list(self._config["package_indexes"] or []),
                 "timeout": timeout,
                 "constrain": _python_names(job),
                 "comment": f"sc-server: a node's Python environment ({key[:12]})",

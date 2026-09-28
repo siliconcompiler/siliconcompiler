@@ -293,10 +293,16 @@ DEFAULTS: Dict[str, Any] = {
     "fetch_allowlist": ["https://github.com/siliconcompiler/",
                         "https://codeload.github.com/siliconcompiler/"],
 
-    # Where a node's environment file may send pip: every `--index-url` and
-    # `--extra-index-url` it names must match, by the same rules as
-    # `fetch_allowlist` -- and a separate list, because letting a builder reach
-    # an index is not letting the server fetch a source. PyPI by default.
+    # Where a node's environment is installed from: the primary index, then any
+    # extra ones, PyPI by default. Configuration and never the job's -- an
+    # environment file names no index -- so an index's credential is only ever
+    # the deployment's.
+    "package_indexes": ["https://pypi.org/simple/"],
+
+    # What an environment's install may reach, by the same rules as
+    # `fetch_allowlist`: each of `package_indexes`, and the hosts they serve
+    # files from. A separate list, because letting an install reach an index is
+    # not letting the server fetch a source.
     "index_allowlist": ["https://pypi.org/simple/",
                         "https://files.pythonhosted.org/"],
 
@@ -488,6 +494,17 @@ def _check_policy(values: Dict[str, Any]) -> None:
         for warning in allowlist.check_entries(entries or []):
             import logging
             logging.getLogger("sc-server").warning(warning)
+
+    indexes = values["package_indexes"]
+    if not isinstance(indexes, list) or not indexes or \
+            not all(isinstance(url, str) and url.startswith(("https://", "http://"))
+                    for url in indexes):
+        raise ValueError("package_indexes is a list of index URLs, the primary first")
+    rules = [allowlist.parse(entry) for entry in values["index_allowlist"] or []]
+    for url in indexes:
+        if not allowlist.allows(rules, url):
+            raise ValueError(f"package_indexes names {url}, which index_allowlist does "
+                             "not admit: an install could not reach it")
 
     # 🔴 Advertised only where this server can serve it: nodes that install on
     # the host -- an operator's choice, since a node then reaches an index --

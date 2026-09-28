@@ -27,7 +27,6 @@ from pathlib import Path
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
     IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_bundles, read_images,
-    read_python,
     state_dir, exit_code as published_exit_code,
     runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
@@ -173,14 +172,10 @@ def run(manifest: Path) -> int:
 
     try:
         _check_task_classes(project)
-        if not _image_sources:
-            # Nodes run on this host, so a node's own Python environment is
-            # installed here, into the user's cache, before the flow starts. In
-            # containers it is built into a derived image instead.
-            from siliconcompiler.remote.server import envinstall
-            envinstall.install_all(project, Path(manifest).parent, project.logger,
-                                   constrain=read_python(
-                                       state_dir(manifest) / IMAGES_FILENAME))
+        # A node's own Python environment was installed while the job staged
+        # -- on the host, into the user's cache, or into a derived image -- so
+        # nothing is installed here, where a line that will not install could
+        # only fail the run.
         project.run()
     except Exception as e:
         # The run failing is an outcome this reports, not an error in reporting.

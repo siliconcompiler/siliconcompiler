@@ -188,27 +188,29 @@ off the wire, the operator supplies it through `private_dataroots`.
 ### A node's own Python packages
 
 A node whose tool runs Python of the user's -- a cocotb testbench -- arrives
-with an environment file, `python-env/<step>/<index>/requirements.txt`, which
-the client writes: exact pins, and the user's own editable or local packages
-beside it in `packages/`. The server parses it at submit against a closed
-format and refuses anything else, and every index it names has to be on
-`index_allowlist` (PyPI by default).
+with an environment file, `sc_python/nodes/<step>/<index>/requirements.txt`,
+which the client writes: exact pins and nothing else, and no index. The user's
+own code -- helper modules and editable or local packages -- arrives once per
+job beside it, in `sc_python/packages/`, which this server accepts with or
+without a file and never parses. The server holds each file to a closed format
+while the job stages, and refuses a file for a node the run does not execute.
 
-To build it, a deployment advertises `python.env`. **This server can only where
-nodes run on the host** (`containers` off, the default): the runner installs
-each node's file before the flow starts, wheels only, into the user's own cache,
-and links it onto the tool's `PYTHONPATH` -- never SiliconCompiler's own. It is
-off by default because a node then reaches an index; turn it on in
-`config.json`:
+To install one, a deployment advertises `python.env`. Where nodes run on this
+host (`containers` off, `-cluster local`), each executed node's file is
+installed while the job is `staging`, wheels only, from `package_indexes`
+(PyPI by default), into the user's own cache, and linked onto the tool's
+`PYTHONPATH` -- never SiliconCompiler's own. A line that will not install
+rejects the job before any node runs; an index that does not answer is
+`staging-failed`. It is off by default because the install then reaches an
+index; turn it on in `config.json`:
 
 ```json
-{"features": ["logs", "logs.stream", "logs.stream.job", "python.env"]}
+{"features": ["logs.stream", "logs.stream.job", "python.env"]}
 ```
 
-With containers on, the environment has to be built into a derived image, which
-this server does not do yet, so the feature is refused at startup there. Without
-the feature, a job carrying an environment is refused at create, before its
-upload.
+Where nodes run in containers, the environment builder does it instead
+(below). Bare Slurm with no builder advertises no `python.env`, and the server
+refuses to start with it listed there.
 
 ## Error pages
 
@@ -387,8 +389,10 @@ inside the node's own image in a container that reaches nothing: a read-only
 root, a private `/tmp`, none of the image's mounts, and a network namespace
 holding only a loopback. Its one way out is a unix socket to a proxy the build
 job runs, which admits the hosts of `index_allowlist` -- PyPI by default -- and
-never a private address. Wheels only, so no package's own code runs while it
-builds. `scrunner` has `NET_ADMIN` for that loopback and nothing else.
+never a private address. pip is told `package_indexes`, never an index the job
+names, and may build a source distribution here: this container is the one
+place isolated enough for a package's own code to run. `scrunner` has
+`NET_ADMIN` for that loopback and nothing else.
 
 A build may take `env_build_timeout_seconds` (1800 by default) before the job
 waiting on it is refused.
@@ -689,17 +693,19 @@ for. Nothing in it is required.
 
 - `containers`, `container_mounts`, `batch_queue`: where jobs run, what their
   containers see, and the orchestrator's own partition.
-- `env_builder`, `build_queue`, `env_build_timeout_seconds` and
-  `index_allowlist`: the environment builder (above). `env_builder` needs
+- `env_builder`, `build_queue`, `env_build_timeout_seconds`, `package_indexes`
+  and `index_allowlist`: the environment builder (above). `env_builder` needs
   `containers`, is what advertises `python.env`, and false is the switch.
   `build_queue` is the builder's own partition, and
   `env_build_timeout_seconds` (1800 by default) is how long a job waits for its
-  build. The indexes are configuration, a primary and any extras, PyPI by
-  default (`https://pypi.org/simple/` and `https://files.pythonhosted.org/`);
-  a job names none. A build reaches only those, never runs in a job's sandbox
-  or on the API host, and its image is referenced by digest, so nothing a job
-  pushes changes what any job runs in. Where nodes run on the host, the
-  install runs while the job is `staging`, into the user's own cache.
+  build. The indexes are configuration: `package_indexes` is the primary and
+  any extras, `https://pypi.org/simple/` by default, and a job names none;
+  `index_allowlist` is what an install may reach, those and the hosts they
+  serve files from (`https://files.pythonhosted.org/` for PyPI), and must admit
+  every one of `package_indexes`. A build reaches only those, never runs in a
+  job's sandbox or on the API host, and its image is referenced by digest, so
+  nothing a job pushes changes what any job runs in. Where nodes run on the
+  host, the install runs while the job is `staging`, into the user's own cache.
 - `fetch_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
   `fetch_deadline_seconds`: what the server fetches, and supplies.
 - `public_origins`, `web_url_base`: where this server is reached, and the

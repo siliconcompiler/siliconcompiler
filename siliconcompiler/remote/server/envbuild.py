@@ -21,11 +21,13 @@ API reads.
 - **with a network namespace holding only a loopback**. Its one way out is a
   unix socket bound in from here, to a proxy that admits the hosts of
   `index_allowlist` and nothing else, and never a non-public address;
-- **wheels only**, so none of the packages' own code runs while it builds.
+- **from the deployment's `package_indexes`** -- a job's file names none --
+  and a source distribution may be built here, and only here: its code runs
+  with no PDK data, no credential but an index's own, and no network but the
+  configured indexes.
 
 ⚠️ The proxy sees a host and a port for HTTPS, not a path: an https entry of
-`index_allowlist` admits its whole host here. The path rules still bind every
-index a file names, at submit.
+`index_allowlist` admits its whole host here.
 '''
 
 import copy
@@ -110,6 +112,11 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                    "--proxy-socket", f"{_PROXY}/proxy.sock"]
         for name in spec.get("constrain") or []:
             command += ["--constrain", name]
+        # The deployment's indexes, and a source distribution may be built:
+        # this container is the one place isolated enough to run its code.
+        for index in spec.get("indexes") or []:
+            command += ["--index-url", index]
+        command.append("--allow-source")
         config = build_config(base_spec, base / "rootfs", req, out, sockets, command)
         with open(bundle / "config.json", "w") as f:
             json.dump(config, f, indent=1)

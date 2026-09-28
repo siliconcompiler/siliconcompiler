@@ -217,25 +217,116 @@ def test_a_hash_goes_only_to_a_server_that_reuses_jobs(fake_v1, run, capabilitie
     assert not [call for call in fake_v1.calls if "upload-grant" in call.request.path_url]
 
 
-def test_a_distribution_that_only_supplies_data_is_not_pinned(gcd_design):
-    '''🔴 A name left out of `requires` is not required, so the client names
-    every one the manifest's classes come from -- except one that only supplies
-    data (surface D155): lambdapdk's PDK and libraries are files the job
-    carries, and pinning them would refuse a job over a data release.'''
+def test_requires_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
+    '''🔴 Exactly: `siliconcompiler`, the distribution behind each executed
+    node's task class, and -- where they apply -- a framework distribution,
+    an installed-package dataroot the server supplies at this version, and a
+    distribution holding a private dataroot. Never every class the manifest
+    names: lambdapdk's PDK and libraries are data the job carries.'''
     from importlib.metadata import version
 
     from siliconcompiler import ASIC
-    from siliconcompiler.remote.client.run import _python_requirements
+    from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.targets import skywater130_demo
 
     project = ASIC(gcd_design)
     skywater130_demo(project)
 
-    pins = _python_requirements(project)
+    pins = RemoteRun(project, logged_in)._requires_python()
 
-    assert "lambdapdk" not in pins
-    assert list(pins)[0] == "siliconcompiler"
+    assert list(pins) == ["siliconcompiler"]
     assert version("lambdapdk")          # there to be left out
+
+
+@pytest.fixture
+def installed_data(monkeypatch, nop_project):
+    '''A library whose dataroot is a package installed normally, as
+    `scfakedata` 1.0.0 -- and the flow reads it.'''
+    from siliconcompiler.remote import owners
+
+    entry = ("library", "scfakelib", "scfakedata")
+    monkeypatch.setattr(owners, "installed_dataroots",
+                        lambda project, required=None: [(entry, "scfakedata")])
+    monkeypatch.setattr("siliconcompiler.remote.client.run.metadata.version",
+                        lambda name: "1.0.0" if name == "scfakedata"
+                        else __import__("importlib.metadata").metadata.version(name))
+    return entry
+
+
+def test_an_installed_package_the_server_lists_at_this_version_is_named(
+        fake_v1, logged_in, nop_project, capabilities, installed_data):
+    '''Named exactly, and supplied: its dataroots do not upload.'''
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    published = json.loads(json.dumps(capabilities))
+    published["software"]["python"]["scfakedata"] = ["1.0.0"]
+    fake_v1.replace(responses.GET, "", published)
+
+    run = RemoteRun(nop_project, logged_in)
+
+    assert run._requires_python()["scfakedata"] == ["==1.0.0"]
+    assert not run._uploaded_packages()
+
+
+def test_an_installed_package_the_server_does_not_list_here_uploads(
+        fake_v1, logged_in, nop_project, capabilities, installed_data):
+    '''Where `software` lists it at another version, or not at all, it is
+    not named, and its files go up with the job.'''
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    published = json.loads(json.dumps(capabilities))
+    published["software"]["python"]["scfakedata"] = ["0.9.0"]
+    fake_v1.replace(responses.GET, "", published)
+
+    run = RemoteRun(nop_project, logged_in)
+
+    assert "scfakedata" not in run._requires_python()
+    assert run._uploaded_packages() == {installed_data}
+
+
+def test_a_framework_distribution_carries_the_range_siliconcompiler_declares(
+        fake_v1, logged_in, gcd_design):
+    '''cocotb, for a cocotb task, at SiliconCompiler's own range: the
+    image's version within it runs.'''
+    from importlib import metadata
+
+    from packaging.requirements import Requirement
+
+    from siliconcompiler import Flowgraph, Project
+    from siliconcompiler.remote.client.run import RemoteRun
+    from test_capture import RunsATestbench
+
+    open("tb.py", "w").write("")
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("framework")
+    flow.node("sim", RunsATestbench())
+    project.set_flow(flow)
+
+    declared = next((str(Requirement(line).specifier)
+                     for line in metadata.requires("siliconcompiler") or []
+                     if Requirement(line).name == "scfakebits"), None)
+    pins = RemoteRun(project, logged_in)._requires_python()
+
+    # scfakebits is RunsATestbench's framework distribution; nothing declares
+    # a range for it, so it is pinned where installed and left out where not.
+    assert declared is None
+    assert "scfakebits" in pins
+    assert pins["siliconcompiler"]
+
+
+def test_cocotbs_range_is_siliconcompilers():
+    from importlib import metadata
+
+    from packaging.requirements import Requirement
+
+    from siliconcompiler.remote.client.run import _framework_range
+
+    declared = [str(Requirement(line).specifier)
+                for line in metadata.requires("siliconcompiler") or []
+                if Requirement(line).name == "cocotb"]
+    assert declared
+    assert _framework_range("cocotb") == declared[0]
 
 
 def test_a_reused_job_skips_the_upload(fake_v1, run):
@@ -944,9 +1035,42 @@ def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in,
 
     wanted = RemoteRun(gcd_nop_project, logged_in)._tool_requirements()
 
-    # ⚠️ An empty list is *any version of this*, which is the ordinary case: a
-    # task's requirement is set in setup() and setup happens in the image.
+    # ⚠️ An empty list is *any version of this*: what a node whose setup could
+    # not run here says -- this one needs a PDK -- and it still names the tool.
     assert wanted == {"yosys": []}
+
+
+def test_a_tool_requirement_is_the_version_its_setup_declared(
+        fake_v1, logged_in, gcd_nop_project):
+    '''🔴 From the worked-out copy, where setup ran: a fresh task declares
+    nothing, which is why this was dropped before.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    flow = Flowgraph("declared")
+    flow.node("run", DeclaresAVersion())
+    gcd_nop_project.set_flow(flow)
+
+    assert RemoteRun(gcd_nop_project, logged_in)._tool_requirements() == \
+        {"sctesttool": [">=1.2.0,<2"]}
+
+
+class DeclaresAVersion(__import__("siliconcompiler").Task):
+    '''A task of a tool nothing installs, whose setup says which versions.'''
+
+    def tool(self):
+        return "sctesttool"
+
+    def task(self):
+        return "run"
+
+    def setup(self):
+        super().setup()
+        self.set_exe("sctesttool", vswitch="--version")
+        self.add_version(">=1.2.0,<2")
+
+    def parse_version(self, stdout):
+        return stdout.strip()
 
 
 def test_a_builtin_node_names_no_tool(fake_v1, logged_in, nop_project):

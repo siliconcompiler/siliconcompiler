@@ -153,16 +153,30 @@ only the server has, say), the client says so and uploads by owner alone.
    and did not get is refused at submit, naming its keypath, before anything
    runs.
 
-**A testbench's own Python packages travel as a list, not as files.** A node
-whose tool runs Python of yours -- a cocotb testbench -- gets an environment
-file the client writes, ``python-env/<step>/<index>/requirements.txt``: every
-package the testbench imports, pinned to the version installed on your machine,
-less what the server's image already holds (SiliconCompiler, and cocotb
-itself). Packages you installed editable, from a local path or from version
-control, which no index can reproduce, go up beside it as your own code and are
-put on the tool's path; none of it is installed or run on the way. The server
-builds the rest into the node's environment -- where it offers ``python.env``;
-one that does not says so before anything is uploaded.
+**A testbench's own Python packages travel as a list, not as files.** For each
+node the run executes whose tool runs Python of yours -- a cocotb testbench --
+the client follows the imports of the node's test modules, through your own
+helper modules beside them, to the packages they reach. Each package installed
+from an index goes in an environment file the client writes,
+``sc_python/nodes/<step>/<index>/requirements.txt``, pinned to the version
+installed on your machine with what it depends on, less what the server's image
+already holds (SiliconCompiler, and cocotb itself). The file names no index and
+the client reads no pip configuration: the server installs from its own
+indexes. A node with nothing to install gets no file.
+
+Your own code -- the helper modules your tests import, and packages you
+installed editable, from a local path or from version control, which no index
+can reproduce -- goes up once per job in ``sc_python/packages/``, file by file,
+with no links and no bytecode, and is put first on the tool's path. None of it
+is installed or run on the way. The client stops before creating the job if
+that code holds a compiled extension (``.so``, ``.pyd``, ``.dylib``), if two
+sources would supply the same file, if a node that runs your Python cannot be
+set up on your machine, or if a node has a package to install and the server
+does not offer ``python.env``.
+
+An import made dynamically, through ``importlib`` or a plugin entry point, is
+not followed and fails on the server at import. Add a plain import of the
+package to a test module.
 
 The client prints what goes up, per dataroot, with sizes, before anything
 moves.

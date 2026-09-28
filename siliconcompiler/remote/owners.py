@@ -55,7 +55,7 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
            "strip_userinfo", "account", "Entry", "confined", "upload_report",
            "required", "needed", "work_out", "work_out_required", "with_required",
-           "WorkedOut"]
+           "WorkedOut", "installed_dataroots", "private_holders"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -275,6 +275,53 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
                 item["ref"] = ref
         found[entry] = item
     return list(found.values())
+
+
+def _distribution_of(module: Optional[str]) -> Optional[str]:
+    '''The installed distribution that provides a top-level module.'''
+    from importlib import metadata
+
+    if not module:
+        return None
+    owners = metadata.packages_distributions().get(module.split(".", 1)[0]) or []
+    return owners[0] if owners else None
+
+
+def installed_dataroots(project, required=None) \
+        -> List[Tuple[Tuple[str, Optional[str], str], str]]:
+    '''Each ``(kind, name, dataroot)`` the flow reads from a Python package
+    installed normally, with the distribution that provides it -- what a
+    server may supply by that distribution's version, where it holds it.'''
+    found: Dict[Tuple[str, Optional[str], str], str] = {}
+    for one in _values(project):
+        if one.origin != INSTALLED or not one.dataroot or not needed(one.key, required):
+            continue
+        entry = (one.kind, one.name, one.dataroot)
+        if entry in found:
+            continue
+        resolver = one.resolvers.get(one.dataroot)
+        distribution = _distribution_of(getattr(resolver, "urlpath", None))
+        if distribution:
+            found[entry] = distribution
+    return sorted(found.items())
+
+
+def private_holders(project, required=None) -> Set[str]:
+    '''The distributions whose objects carry a private dataroot the flow
+    reads: the job has to land where that distribution is, since the
+    server's copy of the dataroot is mapped by that object.'''
+    found: Set[str] = set()
+    for one in _values(project):
+        if one.origin != PRIVATE or not needed(one.key, required):
+            continue
+        try:
+            holder = project.get(*one.key[:-1], field="schema")
+        except Exception:                                        # noqa: BLE001
+            continue
+        distribution = _distribution_of(type(holder).__module__)
+        if distribution:
+            found.add(distribution)
+    return found
 
 
 # How the server accounts for a (kind, name, dataroot): worst first.
@@ -511,10 +558,14 @@ def needed(key, required) -> bool:
 
 
 class WorkedOut(NamedTuple):
-    '''What one setup pass on a copy learns: every node's `require`, and the
-    Python environment of each node whose task reports one.'''
+    '''What one setup pass on a copy learns: every node's `require`; the
+    Python environment of each executed node whose task reports one; each
+    executed node's task, set up, with the tool versions it declared; and each
+    node whose setup could not run here, with why.'''
     required: Dict[Tuple[str, str], List[str]]
     environments: Dict[Tuple[str, str], Any]
+    tasks: Dict[Tuple[str, str], Any] = {}
+    failed: Dict[Tuple[str, str], str] = {}
 
 
 def work_out_required(project) -> Dict[Tuple[str, str], List[str]]:
@@ -537,13 +588,15 @@ def work_out(project) -> WorkedOut:
       upstream's outputs to decide what it loads.
 
     Keyed by ``(step, index)``, for every node that set up and was not
-    skipped. Raises whatever a setup raised: a task whose setup needs what only
-    its image has -- cocotb's needs cocotb -- cannot be worked out here, and
-    the caller uploads by owner alone.
+    skipped. 🔴 **Each node on its own**: a setup that cannot run here -- a
+    task needing what only its image has -- is recorded in ``failed`` and
+    drops nothing of any other node. Environments and tasks are kept only for
+    the nodes the run executes, the same `runtime_flow` the server derives.
     '''
     import copy
     import logging
 
+    from siliconcompiler.remote.server.runspec import runtime_flow
     from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
     work = copy.deepcopy(project)
@@ -555,22 +608,32 @@ def work_out(project) -> WorkedOut:
     try:
         work._init_run()
         flow = work.get_flow()
+        executed = set(runtime_flow(work).get_nodes())
         declared: Dict[Tuple[str, str], List[str]] = {}
         environments: Dict[Tuple[str, str], Any] = {}
+        tasks: Dict[Tuple[str, str], Any] = {}
+        failed: Dict[Tuple[str, str], str] = {}
         for layer in flow.get_execution_order():
             for step, index in layer:
                 node = SchedulerNode(work, step, index)
-                with node.runtime():
-                    if not node.setup():
-                        continue
-                    environment = node.task.get_python_environment()
-                if environment is not None:
-                    environments[(step, index)] = environment
+                try:
+                    with node.runtime():
+                        if not node.setup():
+                            continue
+                        environment = node.task.get_python_environment()
+                        versions = list(node.task.get("version") or [])
+                except Exception as e:                           # noqa: BLE001
+                    failed[(step, index)] = str(e) or type(e).__name__
+                    continue
+                if (step, index) in executed:
+                    tasks[(step, index)] = (node.task, versions)
+                    if environment is not None:
+                        environments[(step, index)] = environment
                 values = work.get("tool", flow.get(step, index, "tool"),
                                   "task", flow.get(step, index, "task"), "require",
                                   step=step, index=index) or []
                 declared[(step, index)] = list(dict.fromkeys(values))
-        return WorkedOut(declared, environments)
+        return WorkedOut(declared, environments, tasks, failed)
     finally:
         logger.setLevel(level)
 

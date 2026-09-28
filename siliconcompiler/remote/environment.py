@@ -3,31 +3,33 @@ A node's own Python packages, as a file the client writes and the server parses.
 
 A testbench imports whatever its author had installed -- cocotb's plugins, a UVM
 library, `numpy` -- and the submitting machine is the one place that environment
-is known to exist. So the client writes it down, one file per node that needs
-one, at ``python-env/<step>/<index>/requirements.txt`` in the first archive; the
-file's presence is the declaration (surface D131).
+is known to exist. So the client writes it down, one file per executed node with
+a package to install, at ``sc_python/nodes/<step>/<index>/requirements.txt`` in
+the first archive; the file's presence is the declaration. The user's own code
+travels once per job beside it, in ``sc_python/packages/`` (surface *A node's
+own Python packages, built while staging*).
 
 🔴 **The format is closed, and both ends hold it to the same grammar.** Every
-line is blank, a comment, ``--index-url <URL>`` (at most one),
-``--extra-index-url <URL>``, or ``name[extras]==version`` with an optional
+line is blank, a comment, or ``name[extras]==version`` with an optional
 ``; <marker>`` -- a PEP 503 name, exactly one ``==`` and a full PEP 440 version,
-each name once. Everything else is refused: every other option, a URL or VCS
-requirement, a local path, a continuation. **The file is never handed to pip**:
-a builder writes its own from what :func:`parse` accepted, so a line pip would
-read one way and this grammar another has no route through.
+each name once. Everything else is refused: every option line, an index among
+them, a URL or VCS requirement, a local path, a continuation. **No line names an
+index**: every package comes from the deployment's own. **The file is never
+handed to pip**: a builder writes its own from what :func:`parse` accepted, so a
+line pip would read one way and this grammar another has no route through.
 '''
 
 import re
 
 from typing import List, NamedTuple, Optional, Sequence
-from urllib.parse import urlsplit
 
-__all__ = ["ROOT", "FILENAME", "PACKAGES", "MAX_BYTES", "MAX_LINES",
+__all__ = ["ROOT", "NODES", "FILENAME", "PACKAGES", "MAX_BYTES", "MAX_LINES",
            "SITE", "IMAGE_SITE", "EnvironmentFileError", "Pin", "Environment", "path_for",
            "packages_path", "site_path", "parse", "render"]
 
 
-ROOT = "python-env"
+ROOT = "sc_python"
+NODES = "nodes"
 FILENAME = "requirements.txt"
 MAX_BYTES = 64 * 1024
 MAX_LINES = 1000
@@ -63,41 +65,35 @@ class Pin(NamedTuple):
 
 class Environment(NamedTuple):
     pins: List[Pin]
-    index_url: Optional[str]
-    extra_index_urls: List[str]
-
-    @property
-    def indexes(self) -> List[str]:
-        '''Every index the file names, the replacing one first.'''
-        return ([self.index_url] if self.index_url else []) + list(self.extra_index_urls)
 
 
-# Where the job's forwarded packages -- editable, local and VCS installs, which
-# no index reproduces -- sit, once per job beside the files (surface D160): they
-# come from one Python installation, so every node would get the same copy. The
-# user's own code: uploaded, put first on the tool's PYTHONPATH of every node
-# that has a file, never installed. Each entry is a top-level module or package,
-# by its import name.
+# Where the user's own code sits, once per job beside the files: the helper
+# modules the tests import, and editable, local and VCS installs, which no index
+# reproduces. It comes from one Python installation, so every node gets the same
+# copy. Laid out as a site-packages directory -- each top-level entry a module
+# or package under its import name -- and put first on the tool's PYTHONPATH of
+# every node whose task runs the user's Python. Uploaded, never installed.
 PACKAGES = "packages"
 
 
 def path_for(step: str, index: str) -> str:
     '''Where a node's file sits, relative to the archive root.'''
-    return f"{ROOT}/{step}/{index}/{FILENAME}"
+    return f"{ROOT}/{NODES}/{step}/{index}/{FILENAME}"
 
 
 def packages_path() -> str:
-    '''Where the job's forwarded packages sit, relative to the archive root.'''
+    '''Where the job's uploaded packages sit, relative to the archive root.'''
     return f"{ROOT}/{PACKAGES}"
 
 
-# Beside a node's file, on the node: what the server installed from it.
+# Beside a node's file, on the node: what the server installed from it. The
+# server writes it after extraction, and an upload carrying one is refused.
 SITE = "site"
 
 
 def site_path(step: str, index: str) -> str:
     '''Where what was installed for a node is reached, relative to the job.'''
-    return f"{ROOT}/{step}/{index}/{SITE}"
+    return f"{ROOT}/{NODES}/{step}/{index}/{SITE}"
 
 
 # Where a derived image puts what was installed for a node -- the container
@@ -126,8 +122,6 @@ def parse(data: bytes) -> Environment:
 
     pins: List[Pin] = []
     seen = set()
-    index_url = None
-    extras: List[str] = []
 
     for number, raw in enumerate(lines, start=1):
         line = raw[:-1] if raw.endswith("\r") else raw
@@ -138,19 +132,11 @@ def parse(data: bytes) -> Environment:
             continue
 
         if line.startswith("-"):
-            option, _, url = line.partition(" ")
-            url = url.strip()
-            if option not in ("--index-url", "--extra-index-url") or not url or " " in url:
-                raise EnvironmentFileError(f"{option} is not an option this format takes",
-                                           number)
-            _check_url(url, number)
-            if option == "--index-url":
-                if index_url is not None:
-                    raise EnvironmentFileError("a second --index-url", number)
-                index_url = url
-            else:
-                extras.append(url)
-            continue
+            # 🔴 Every option, an index among them: every package comes from
+            # the deployment's own indexes, and an index credential is never
+            # the job's.
+            raise EnvironmentFileError(f"{line.split()[0]} is an option, and this "
+                                       "format takes none", number)
 
         found = _REQUIREMENT.match(line)
         if not found:
@@ -184,29 +170,12 @@ def parse(data: bytes) -> Environment:
         seen.add(key)
         pins.append(Pin(found["name"], names, version, marker))
 
-    return Environment(pins, index_url, extras)
+    return Environment(pins)
 
 
-def _check_url(url: str, number: int) -> None:
-    try:
-        parts = urlsplit(url)
-    except ValueError:
-        raise EnvironmentFileError("an index that is not a URL", number) from None
-    if parts.scheme not in ("https", "http") or not parts.hostname:
-        raise EnvironmentFileError("an index that is not an http or https URL", number)
-    if parts.username is not None or parts.password is not None:
-        # 🔴 An index's credential comes from the operator, keyed by its
-        # allowlist entry -- never from the user's file.
-        raise EnvironmentFileError("an index URL carrying credentials", number)
-
-
-def render(pins: Sequence[Pin], index_url: Optional[str] = None,
-           extra_index_urls: Sequence[str] = (), header: str = "") -> str:
+def render(pins: Sequence[Pin], header: str = "") -> str:
     '''A file in the format -- what a client writes, and what a builder writes
     from what it parsed rather than handing the user's file on.'''
     lines = [f"# {line}" if line else "#" for line in header.splitlines()]
-    if index_url:
-        lines.append(f"--index-url {index_url}")
-    lines.extend(f"--extra-index-url {url}" for url in extra_index_urls)
     lines.extend(str(pin) for pin in pins)
     return "\n".join(lines) + "\n"

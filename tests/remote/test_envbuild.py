@@ -272,19 +272,38 @@ def image_python(tmp_path):
     wheel(index, "cocotb", "1.9")
     wheel(index, "cocotb_bus", "0.3.0", ["cocotb>=1.6"])
     wheel(index, "pyuvm", "3.0.0", ["cocotb<2.0,>=1.6"])
-    return image / "bin" / "python", index
+    return image / "bin" / "python", simple_index(index)
+
+
+def simple_index(flat):
+    '''A PEP 503 index on disk over a directory of wheels: what
+    `package_indexes` names, as a file: URL.'''
+    import re
+
+    root = flat.parent / "simple"
+    for name in sorted(os.listdir(flat)):
+        project = re.sub(r"[-_.]+", "-", name.split("-", 1)[0]).lower()
+        (root / project).mkdir(parents=True, exist_ok=True)
+        os.replace(flat / name, root / project / name)
+    for project in os.listdir(root):
+        links = "".join(f'<a href="{name}">{name}</a>\n'
+                        for name in sorted(os.listdir(root / project)))
+        (root / project / "index.html").write_text(f"<html><body>{links}</body></html>\n")
+    return root.as_uri() + "/"
 
 
 def build_in(image_python, tmp_path, text):
     python, index = image_python
     (tmp_path / "req.txt").write_text(text)
     env = {key: value for key, value in os.environ.items() if not key.startswith("PIP_")}
-    # Offline: the index above, and pip from wherever this Python finds it.
-    env.update(PIP_NO_INDEX="1", PIP_FIND_LINKS=str(index), PIP_CONFIG_FILE=os.devnull,
-               PYTHONPATH=os.path.dirname(os.path.dirname(pytest.importorskip("pip").__file__)))
+    # Offline: the index above, named as a deployment names its indexes, and
+    # pip from wherever this Python finds it.
+    env.update(PYTHONPATH=os.path.dirname(os.path.dirname(
+        pytest.importorskip("pip").__file__)))
     subprocess.run([str(python), pipbuild.__file__, "--requirements", str(tmp_path / "req.txt"),
                     "--site", str(tmp_path / "out" / "site"), "--result",
-                    str(tmp_path / "result.json"), "--constrain", "cocotb"],
+                    str(tmp_path / "result.json"), "--constrain", "cocotb",
+                    "--index-url", index],
                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return json.loads((tmp_path / "result.json").read_text())
 
@@ -478,6 +497,24 @@ def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
     assert (bundle / "layer" / "numpy" / "__init__.py").is_file()
     assert {mount["destination"] for mount in config["mounts"]} >= {"/sc_server"}
     assert not (workspace / "bundle").exists() and not (workspace / "out").exists()
+
+
+def test_the_build_installs_from_the_deployments_indexes_and_may_build_from_source(
+        tmp_path, base_bundle, pushed):
+    '''🔴 The indexes are configuration and a job names none; and this
+    container, with no mounts and no way out but the proxy, is the one place
+    a source distribution's code may run.'''
+    run = container({"returncode": 0, "python": "cpython-312", "version": "3.12.3",
+                     "platform": "linux-x86_64", "installed": []})
+    workspace, spec = workspace_for(tmp_path, base_bundle.root)
+    spec["indexes"] = ["https://pypi.org/simple/", "https://extra.example/simple/"]
+
+    envbuild.build(spec, workspace, run=run)
+
+    command = run.seen["command"]
+    assert [command[at + 1] for at, part in enumerate(command) if part == "--index-url"] \
+        == spec["indexes"]
+    assert "--allow-source" in command
 
 
 @pytest.mark.parametrize("pip_result,reason", [
