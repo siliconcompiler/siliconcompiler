@@ -103,9 +103,11 @@ class Resolver:
         self.__cacheid = None
         self.__private = False
 
-        if self.urlscheme.endswith("+private"):
+        scheme = self.urlscheme
+        if scheme.endswith("+private"):
             self.__private = True
-            self.__source = self.urlparse._replace(scheme=self.urlscheme.replace("+private", "")).geturl()
+            _, separator, remainder = self.__source.partition(":")
+            self.__source = f"{scheme.removesuffix('+private')}{separator}{remainder}"
 
         if self.__root and hasattr(self.__root, "logger"):
             rootlogger = self.__root.logger
@@ -217,7 +219,8 @@ class Resolver:
     @property
     def is_private(self) -> bool:
         """
-        True if the source requires private access (e.g., private repository or private network location).
+        True if the source requires private access
+        (e.g., private repository or private network location).
         """
         return self.__private
 
@@ -297,26 +300,33 @@ class Resolver:
         """The URI or path specifying the data source."""
         return self.__source
 
+    @staticmethod
+    def _masked_uri(url: str) -> str:
+        from urllib import parse as url_parse
+        parsed = url_parse.urlparse(url)
+        if not parsed.username and not parsed.password and not parsed.query:
+            return url
+        user = "***" if parsed.username else ""
+        pwd = ":***" if parsed.password else ""
+        auth = f"{user}{pwd}@" if (user or pwd) else ""
+        host = parsed.netloc.rpartition("@")[2]
+        netloc = f"{auth}{host}"
+        query = url_parse.urlencode([(key, "***") for key, _ in
+                                     url_parse.parse_qsl(parsed.query, keep_blank_values=True)])
+        return parsed._replace(netloc=netloc, query=query).geturl()
+
     @property
     def source_print(self) -> str:
         """The source URI with sensitive information masked (e.g., tokens)."""
-        url = self.urlparse
-        # If there are no credentials in the URL, return as-is
-        if not url.username and not url.password:
-            return self.source
-        user = "***" if url.username else ""
-        pwd = f":***" if url.password else ""
-        auth = f"{user}{pwd}@" if (user or pwd) else ""
-        netloc = f"{auth}{url.hostname}" if url.hostname else ""
-        if url.port:
-            netloc = f"{netloc}:{url.port}"
-        return url._replace(netloc=netloc).geturl()
+        return Resolver._masked_uri(self.source)
 
     @property
     def safe_source(self) -> str:
         """The source URI with sensitive information removed (e.g., tokens)."""
         url = self.urlparse
         netloc = url.hostname
+        if netloc and ":" in netloc:
+            netloc = f"[{netloc}]"
         if url.port:
             netloc = f"{netloc}:{url.port}"
         return url._replace(netloc=netloc).geturl()
@@ -870,18 +880,26 @@ class FileResolver(Resolver):
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
+        is_private = False
         if source.startswith("file://"):
             source = source[7:]
+        elif source.startswith("file+private://"):
+            is_private = True
+            source = source[15:]
         if source[0] != "$" and not os.path.isabs(source):
             source = os.path.join(cwdirsafe(schema._parent(root=True)), source)
 
-        super().__init__(name, schema, f"file://{source}", None)
+        super().__init__(name, schema, f"file{'+private' if is_private else ''}://{source}", None)
 
     @property
     def urlpath(self) -> str:
         """The absolute file path, stripped of the 'file://' prefix."""
         # Rebuild URL and remove scheme prefix
         return self.urlparse.geturl()[7:]
+
+    @property
+    def safe_source(self) -> str:
+        return self.urlparse.geturl()
 
     def resolve(self) -> str:
         """Returns the absolute path to the file."""

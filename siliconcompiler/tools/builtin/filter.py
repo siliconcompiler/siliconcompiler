@@ -47,6 +47,10 @@ class FilterTask(Task):
     def task(self):
         return "filter"
 
+    @property
+    def _remote_toolname(self) -> Optional[str]:
+        return None
+
     def setup(self):
         super().setup()
 
