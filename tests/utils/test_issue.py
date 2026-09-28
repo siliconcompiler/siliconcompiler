@@ -108,11 +108,7 @@ def project(sources):
 
 
 def make_testcase(proj, **kwargs):
-    '''Generates a testcase and returns (archive path, copy flag map).
-
-    The copy flags are snapshotted at collect time, which is after
-    generate_testcase() has rewritten every path parameter's copy field.
-    '''
+    '''Generates a testcase and returns (archive path, collection selection map).'''
     flags = {}
 
     def record_and_collect(project, **collect_kwargs):

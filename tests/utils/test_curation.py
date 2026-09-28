@@ -178,6 +178,27 @@ def test_collect_same_filename_from_different_directories(path_keys):
             assert f.readline() == expected
 
 
+def test_collect_selects_exact_pernode_value():
+    with open('first.tcl', 'w') as f:
+        f.write('first')
+    with open('second.tcl', 'w') as f:
+        f.write('second')
+
+    proj = Project(Design("testdesign"))
+    key = ('tool', 'tool0', 'task', 'task0', 'prescript')
+    proj.set(*key, 'first.tcl', step='stepone', index='0')
+    proj.set(*key, 'second.tcl', step='steptwo', index='0')
+
+    collect(proj, keys=[(key, 'stepone', '0')])
+
+    first_path = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path('first.tcl', None))
+    second_path = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path('second.tcl', None))
+    assert os.path.isfile(first_path)
+    assert not os.path.exists(second_path)
+
+
 def test_collect_directory(path_keys):
     # Create instance of design
     design = Design("testdesign")
