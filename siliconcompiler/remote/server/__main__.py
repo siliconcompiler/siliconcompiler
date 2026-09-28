@@ -98,8 +98,17 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     datadir = Path(args.datadir).resolve()
 
+    # Where this server is reached when config.json names no public_origins:
+    # this host's own names on this port. Behind a proxy, config names it.
+    import socket
+    here_names = dict.fromkeys(
+        name for name in ("localhost", "127.0.0.1", socket.gethostname(),
+                          socket.getfqdn()) if name)
+    origins = [f"http://{name}:{args.port}" for name in here_names]
+
     try:
-        app = create_app(datadir, cluster=args.cluster, test_mode=args.test_mode)
+        app = create_app(datadir, cluster=args.cluster, test_mode=args.test_mode,
+                         public_origins=origins)
     except Exception as e:                                       # noqa: BLE001
         # A bad config file or an unreadable store is a setup problem, and a
         # traceback buries the one line that says which.
@@ -115,6 +124,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     logger.info(f"error type pages: http://localhost:{args.port}/server-errors/ "
                 "-- and each refusal names its page with a Link header")
     logger.info(f"cluster: {args.cluster}")
+    logger.info(f"reached at: {', '.join(app.config['SC_PUBLIC_ORIGINS'])} "
+                "-- a client addressing it any other way is refused; set "
+                "public_origins in config.json behind a proxy")
     if args.test_mode is not None:
         # Loud, because it changes what every client is told and a deployment
         # left in it serves less than its operator thinks.

@@ -17,8 +17,8 @@ import re
 
 from typing import Any, Dict, Optional
 
-__all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "ProblemError", "bound",
-           "problem", "set_detail_max"]
+__all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "OAuthError", "ProblemError",
+           "bound", "problem", "set_detail_max"]
 
 
 # Fixed by the contract and identical on every deployment.
@@ -170,6 +170,41 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
 # Why a session is over. All four are one client branch -- re-authenticate, and
 # do NOT refresh.
 SESSION_END_REASONS = ("revoked", "reused", "deactivated", "expired")
+
+
+class OAuthError(Exception):
+    '''A refusal OAuth processing makes at `/v1/auth/token` or
+    `/v1/auth/device`, rendered in the OAuth shape (RFC 6749 §5.2):
+    `{"error", "error_description"}`, with `reason` where one applies.
+
+    Only what OAuth processing refuses: the transport-level refusals raised
+    before it -- 405, 415, 426, 429 -- stay `ProblemError`, and problem+json.
+    '''
+
+    # The codes a client branches on, and nothing else is ever sent.
+    CODES = ("invalid_request", "invalid_client", "invalid_grant",
+             "unsupported_grant_type", "invalid_scope", "access_denied",
+             "use_dpop_nonce", "invalid_dpop_proof")
+
+    def __init__(self, error: str, description: Optional[str] = None,
+                 reason: Optional[str] = None, status: int = 400,
+                 headers: Optional[dict] = None):
+        if error not in self.CODES:
+            raise KeyError(f"{error} is not an OAuth error code this server sends")
+        self.error = error
+        self.description = description
+        self.reason = reason
+        self.status = status
+        self.headers = headers or {}
+        super().__init__(description or error)
+
+    def body(self) -> Dict[str, Any]:
+        body: Dict[str, Any] = {"error": self.error}
+        if self.description:
+            body["error_description"] = bound(self.description)
+        if self.reason:
+            body["reason"] = self.reason
+        return body
 
 
 class ProblemError(Exception):

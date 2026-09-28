@@ -17,7 +17,7 @@ import time
 import flask
 
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.routes.auth import require
+from siliconcompiler.remote.server.routes.auth import public_url, require
 from siliconcompiler.remote.server.storage import SignatureError
 from siliconcompiler.remote.server.routes.errorpages import help_link
 
@@ -101,7 +101,7 @@ def upload_grant(session, job_id):
     happen. Without this call a grant that expired left the job in a state with
     no way back.
     '''
-    return _private(_jobs().grant(session, job_id, flask.request.url_root,
+    return _private(_jobs().grant(session, job_id, public_url(""),
                                   _body(required=False)))
 
 
@@ -180,7 +180,7 @@ def cancel(session, job_id):
 
 
 @blueprint.route("/v1/jobs/<job_id>", methods=["DELETE"])
-@require("jobs:write")
+@require("jobs:delete")
 def delete(session, job_id):
     '''Endpoint 19: idempotent, and the row survives it.'''
     _jobs().delete(session, job_id)

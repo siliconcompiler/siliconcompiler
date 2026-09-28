@@ -1,18 +1,25 @@
 '''
 Endpoints 3, 4 and 5: getting a session, and ending one.
 
-The device grant is routed and refuses. That is the contract's own answer for a
-deployment whose ``grant_types_supported`` omits it, and routing it rather than
-leaving it unrouted is what turns a 404 that means *this server is old* into a
-501 that means *this deployment will never do that*.
+🔴 **Two shapes, keyed on the endpoint.** What OAuth processing refuses at
+`/v1/auth/token` and `/v1/auth/device` is answered in the OAuth shape --
+`{"error", "error_description"}`, with `reason` where one applies -- and the
+transport-level refusals raised before it (405, 415, 429) stay problem+json,
+as everywhere. `/v1/auth/revoke` is an ordinary endpoint and answers
+problem+json.
+
+The device grant is routed and refuses `unsupported_grant_type`, which is the
+login algorithm's cue to use `client_credentials`.
 '''
+
+from urllib.parse import urlsplit
 
 import flask
 
 from siliconcompiler.remote import dpop
-from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.errors import OAuthError, ProblemError
 
-__all__ = ["blueprint", "current_session", "require"]
+__all__ = ["blueprint", "current_session", "require", "public_origin", "public_url"]
 
 
 blueprint = flask.Blueprint("auth", __name__)
@@ -22,18 +29,39 @@ GRANT_CLIENT_CREDENTIALS = "client_credentials"
 GRANT_REFRESH_TOKEN = "refresh_token"
 GRANT_DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
 
+# Refused rather than ignored: silently dropping one would mint a token its
+# caller misunderstands. Every other unknown parameter is ignored (RFC 6749 §3.2).
+_REFUSED_PARAMETERS = ("actor_token", "audience", "resource")
+
 
 def _issuer():
     return flask.current_app.config["SC_ISSUER"]
 
 
-def request_url() -> str:
-    '''The URL a DPoP proof is checked against.
+def public_origin() -> str:
+    '''The origin this deployment is reached at, from configuration.
 
-    `url_root` rather than anything reconstructed by hand, so a deployment
-    behind a proxy checks against what the client actually addressed.
+    🔴 **Never `Host`, `X-Forwarded-Host`, `base_url` or `url_root`**: a URL
+    this server hands out gets pasted and clicked, and a proof checked against
+    a caller-chosen host is not checked. `Host` only picks AMONG the configured
+    origins, where there are several; one it does not match gets the first.
     '''
-    return flask.request.base_url
+    origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
+    host = flask.request.host
+    for origin in origins:
+        if urlsplit(origin).netloc == host:
+            return origin
+    return origins[0]
+
+
+def public_url(path: str) -> str:
+    '''An absolute URL on this deployment, for a path under its mount point.'''
+    return f"{public_origin()}{flask.request.script_root}/{path.lstrip('/')}"
+
+
+def request_url() -> str:
+    '''The URL a DPoP proof's `htu` is checked against.'''
+    return public_url(flask.request.path)
 
 
 def current_session():
@@ -80,63 +108,51 @@ def token():
     this borrows the grant's shape. A DPoP proof is REQUIRED on every grant --
     there is no unbound session to be had here.
     '''
-    if not flask.request.mimetype == "application/x-www-form-urlencoded":
-        raise ProblemError(
-            "unsupported-media-type",
-            detail="the token endpoint takes application/x-www-form-urlencoded")
+    form = _oauth_form()
 
     proof = flask.request.headers.get("DPoP")
     if not proof:
-        raise ProblemError("invalid-dpop-proof",
-                           detail="a DPoP proof is required on every grant")
+        raise OAuthError("invalid_dpop_proof", "a DPoP proof is required on every grant")
 
     try:
         jkt = dpop.verify_proof(proof, "POST", request_url())
     except dpop.DPoPError as e:
-        raise ProblemError("invalid-dpop-proof", detail=str(e)) from None
+        raise OAuthError("invalid_dpop_proof", str(e)) from None
+    _issuer()._check_replay(proof, oauth=True)
 
-    form = flask.request.form
     grant_type = form.get("grant_type")
 
     if grant_type == GRANT_CLIENT_CREDENTIALS:
         client_id = form.get("client_id", "")
         if not client_id.startswith("local:"):
-            raise ProblemError(
-                "invalid-request",
-                detail="client_id must be local:<derivation> on this deployment")
-
-        # 🔴 One of four, and nothing else (identity D59): the weak-path flag a
-        # device carries for ever, and a value outside the set is a 400 rather
-        # than a store constraint answering 500.
-        source = form.get("machine_id_source") or "none"
-        if source not in MACHINE_ID_SOURCES:
-            raise ProblemError(
-                "invalid-request",
-                detail=f"machine_id_source is one of {', '.join(MACHINE_ID_SOURCES)}")
+            raise OAuthError("invalid_request",
+                             "client_id must be local:<derivation> on this deployment")
 
         body = _issuer().client_credentials(
             subject=client_id[len("local:"):],
             jkt=jkt,
             requested_scope=form.get("scope"),
             machine_id_hash=form.get("machine_id_hash") or None,
-            machine_id_source=source,
+            machine_id_source=_machine_id_source(form),
             display_name=form.get("display_name") or None)
 
     elif grant_type == GRANT_REFRESH_TOKEN:
         refresh_token = form.get("refresh_token")
         if not refresh_token:
-            raise ProblemError("invalid-request", detail="refresh_token is required")
-        body = _issuer().refresh(refresh_token, jkt, form.get("scope"))
+            raise OAuthError("invalid_request", "refresh_token is required")
+        # `scope` is ignored: a refresh returns the session's full scope.
+        body = _issuer().refresh(refresh_token, jkt,
+                                 machine_id_hash=form.get("machine_id_hash") or None,
+                                 machine_id_source=_machine_id_source(form))
 
-    elif grant_type == GRANT_DEVICE_CODE:
-        raise ProblemError(
-            "feature-unsupported", feature="device_grant",
-            detail="this deployment does not support the device grant")
+    elif not grant_type:
+        raise OAuthError("invalid_request", "grant_type is required")
 
     else:
-        raise ProblemError(
-            "invalid-request",
-            detail=f"unsupported grant_type: {grant_type}")
+        # The device grant and token exchange included: neither is offered
+        # here, and this is the answer on which a client switches login mode.
+        raise OAuthError("unsupported_grant_type",
+                         f"this deployment does not offer {grant_type}")
 
     response = flask.jsonify(body)
     # RFC 6749 makes this a MUST on any response carrying tokens.
@@ -145,18 +161,46 @@ def token():
     return response
 
 
+def _oauth_form():
+    '''The form, once the transport-level checks pass.
+
+    415 is raised before any OAuth processing, so it stays problem+json; a
+    refused parameter is OAuth processing's own `invalid_request`.
+    '''
+    if flask.request.mimetype != "application/x-www-form-urlencoded":
+        raise ProblemError(
+            "unsupported-media-type",
+            detail="this endpoint takes application/x-www-form-urlencoded")
+
+    form = flask.request.form
+    refused = [name for name in _REFUSED_PARAMETERS if name in form]
+    if refused:
+        raise OAuthError("invalid_request",
+                         f"{', '.join(refused)} is not supported here")
+    return form
+
+
+def _machine_id_source(form) -> str:
+    # 🔴 One of four, and nothing else (identity D59): the weak-path flag a
+    # device carries for ever. Absent reads as none.
+    source = form.get("machine_id_source") or "none"
+    if source not in MACHINE_ID_SOURCES:
+        raise OAuthError("invalid_request",
+                         f"machine_id_source is one of {', '.join(MACHINE_ID_SOURCES)}")
+    return source
+
+
 @blueprint.route("/v1/auth/device", methods=["POST"])
 def device_authorization():
-    '''Endpoint 3: routed, and it refuses.
+    '''Endpoint 3: routed, and it refuses in the OAuth shape.
 
-    Permanent rather than transient, so a client must not retry. The `feature`
-    member says which capability is missing, and `device_grant` is in that
-    vocabulary precisely because this capability is advertised by
-    grant_types_supported rather than by `features`.
+    `unsupported_grant_type`, which is what the device endpoint answers where
+    the deployment does not offer the device grant: the client's cue to switch
+    to `client_credentials`, never a reason to retry.
     '''
-    raise ProblemError(
-        "feature-unsupported", feature="device_grant",
-        detail="this deployment issues sessions with client_credentials")
+    _oauth_form()
+    raise OAuthError("unsupported_grant_type",
+                     "this deployment issues sessions with client_credentials")
 
 
 @blueprint.route("/v1/auth/revoke", methods=["POST"])

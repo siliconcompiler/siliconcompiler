@@ -11,7 +11,7 @@ moves out without a client change.
 
 import logging
 
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from pathlib import Path
 
@@ -19,7 +19,7 @@ from siliconcompiler.remote.server.auth import TokenIssuer
 from siliconcompiler.remote.server.config import Config
 from siliconcompiler.remote.server.dispatch import dispatcher_for
 from siliconcompiler.remote.server import errors
-from siliconcompiler.remote.server.errors import ERRORS, ProblemError, problem
+from siliconcompiler.remote.server.errors import ERRORS, OAuthError, ProblemError, problem
 from siliconcompiler.remote.server.jobs import JobService
 from siliconcompiler.remote.server.logstream import StreamLimiter
 from siliconcompiler.remote.server import reaper
@@ -66,7 +66,8 @@ def _keep_off_path(datadir: Path) -> None:
 
 
 def create_app(datadir: Union[str, Path], cluster: str = "local",
-               bind_keys: bool = True, test_mode: Optional[int] = None):
+               bind_keys: bool = True, test_mode: Optional[int] = None,
+               public_origins: Optional[List[str]] = None):
     '''Build the application for one deployment.
 
     Everything a handler needs hangs off the app: the store, the config, the
@@ -79,6 +80,10 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     and every later one is refused.
 
     ``test_mode`` is one of ``config.TEST_MODES``, applied under config.json.
+
+    ``public_origins`` is where this deployment is reached when config.json
+    names none; the entry point passes this host's names on its port, and a
+    test client's is ``http://localhost``.
     '''
     require_server_dependency()
 
@@ -109,6 +114,9 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
                       SC_STORE=store, SC_CLUSTER=cluster,
                       SC_ISSUER=issuer, SC_BIND_KEYS=bind_keys,
                       SC_STORAGE=storage,
+                      SC_PUBLIC_ORIGINS=_origins(
+                          config["public_origins"] or public_origins
+                          or ["http://localhost"]),
                       SC_JOBS=JobService(store, config, storage,
                                          dispatcher_for(cluster), datadir),
                       SC_STREAMS=StreamLimiter(
@@ -178,6 +186,22 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     reaper.sweep(store, storage, config, datadir)
 
     return app
+
+
+def _origins(values) -> List[str]:
+    '''Each configured origin as scheme://host[:port], and nothing else.'''
+    from urllib.parse import urlsplit
+
+    origins = []
+    for value in values:
+        parts = urlsplit(str(value).strip())
+        if parts.scheme not in ("http", "https") or not parts.netloc \
+                or parts.path.strip("/") or parts.query or parts.fragment:
+            raise ValueError(f"public_origins holds scheme://host[:port]; not {value!r}")
+        origins.append(f"{parts.scheme}://{parts.netloc}")
+    if not origins:
+        raise ValueError("public_origins names no origin")
+    return origins
 
 
 def _check_this_server_can_read_them(versions) -> None:
@@ -268,6 +292,16 @@ def _register_error_handlers(app) -> None:
         for name, value in exc.headers.items():
             response.headers[name] = value
         return _with_help(response, body)
+
+    @app.errorhandler(OAuthError)
+    def _oauth_error(exc: OAuthError):
+        response = flask.jsonify(exc.body())
+        response.status_code = exc.status
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
+        for name, value in exc.headers.items():
+            response.headers[name] = value
+        return response
 
     # Routing answers before any handler runs, so these four would otherwise
     # leave Flask's HTML. They carry nothing a client branches on beyond the

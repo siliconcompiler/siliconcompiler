@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 from siliconcompiler.remote import dpop
-from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.errors import OAuthError, ProblemError
 from siliconcompiler.remote.server.ids import uuid7
 from siliconcompiler.remote.server.store import Store, now
 
@@ -34,24 +34,25 @@ __all__ = [
 logger = logging.getLogger("sc-server")
 
 
-# Six values, closed and frozen. Every one is <resource>:read or
-# <resource>:write and there is no third shape, so a reader can tell what a
-# value costs without consulting a table. The vocabulary being closed is what
-# bounds a stolen token: it is these and nothing else, ever.
+# The registered scopes (identity.md, *Scopes*). Only these are granted, `v1`
+# may register more, and none is ever administrative. Every value is
+# <resource>:<action>, so a reader can tell what one costs without a table.
 SCOPES = (
     "jobs:read",
     "jobs:write",
+    "jobs:delete",
     "artifacts:read",
     "devices:read",
     "devices:write",
     "profile:read",
 )
 
-# Write carries read, and the expansion happens at mint rather than at check --
-# so what is stored and what is published are the same string, and a client is
-# never told it has less than it has.
+# Write carries read, and so does `jobs:delete`; the expansion happens at mint
+# rather than at check, so what is stored and what is published are the same
+# string, and a client is never told it has less than it has.
 _IMPLIES = {
     "jobs:write": "jobs:read",
+    "jobs:delete": "jobs:read",
     "devices:write": "devices:read",
 }
 
@@ -59,19 +60,20 @@ ACCESS_TOKEN_SECONDS = 900          # 15 minutes
 REFRESH_TOKEN_SECONDS = 604800      # 7 days, sliding
 SESSION_SECONDS = 1036800           # 12 days, the family cap. NEVER extended
 
-# A moment of overlap after a refresh token is replaced. Without it, a client
-# whose response was lost retries with a token the server has already rotated
-# and gets its whole session killed for reuse.
-REFRESH_GRACE_SECONDS = 30
+# A few minutes after a refresh token is replaced, a repeat of it with a valid
+# proof from the family's key gets the replacement already issued. Minutes and
+# not seconds: a lost response is noticed only when the read times out, so its
+# retry arrives at least one client timeout after the rotation.
+REFRESH_GRACE_SECONDS = 300
 
 # Two vocabularies, deliberately different sizes, and this is the only place
 # they meet. The column records WHY a family ended, in six values an operator
-# reading the store wants; the wire carries WHAT THE CLIENT MUST DO, in three
-# that are one branch each. Leaking the column's values would have a client
-# branching on names the contract does not have.
+# reading the store wants; the wire carries WHAT THE CLIENT MUST DO, in four
+# that are one branch each -- `reused` also telling the person their
+# credentials were used elsewhere.
 _WIRE_REASON = {
     "user_logout": "revoked",
-    "reuse_detected": "revoked",
+    "reuse_detected": "reused",
     "device_revoked": "revoked",
     "ci_credential_revoked": "revoked",
     "admin": "revoked",
@@ -84,19 +86,18 @@ _SIGNING_KEY_FILE = "token-signing-key"
 def expand_scope(requested: Optional[str]) -> str:
     '''The scope a token is minted with.
 
-    Omitting `scope` asks for everything this profile grants, which is all six:
-    the caller is one self-asserted identity on a machine it already owns.
+    Omitting `scope` asks for every registered scope: the caller is one
+    self-asserted identity on a machine it already owns. An unrecognised value
+    is dropped and the rest granted; only a request with nothing recognised
+    left is refused, `invalid_scope`.
     '''
     if requested is None or not requested.strip():
         granted = set(SCOPES)
     else:
-        asked = set(requested.split())
-        unknown = asked - set(SCOPES)
-        if unknown:
-            raise ProblemError(
-                "invalid-request",
-                detail=f"unknown scope: {' '.join(sorted(unknown))}")
-        granted = set(asked)
+        granted = set(requested.split()) & set(SCOPES)
+        if not granted:
+            raise OAuthError("invalid_scope",
+                             "no requested scope is one this server registers")
 
     for write, read in _IMPLIES.items():
         if write in granted:
@@ -197,10 +198,8 @@ class TokenIssuer:
                     display_name=display_name)
 
                 if not user["is_active"]:
-                    raise ProblemError(
-                        "session-ended", reason="deactivated",
-                        detail="this account is not active",
-                        headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+                    raise OAuthError("invalid_grant", "this account is not active",
+                                     reason="deactivated")
 
                 device = self._bind_device(user["id"], jkt, machine_id_hash,
                                            machine_id_source, display_name)
@@ -218,10 +217,11 @@ class TokenIssuer:
             logger.warning(
                 f"refused a session for a known subject presenting a different "
                 f"key (device {mismatch.device_id})")
-            raise ProblemError(
-                "invalid-dpop-proof",
-                detail="this subject is bound to a different key",
-                headers={"WWW-Authenticate": 'DPoP error="invalid_client"'}) from None
+            raise OAuthError(
+                "invalid_client",
+                "this subject is bound to a different key; retrying will not "
+                "help, and an operator can release the binding",
+                status=401) from None
 
     def _bind_device(self, user_id: str, jkt: str,
                      machine_id_hash: Optional[str],
@@ -279,8 +279,14 @@ class TokenIssuer:
             "SELECT * FROM devices WHERE id = ?", (existing["id"],))
 
     def refresh(self, refresh_token: str, jkt: str,
-                requested_scope: Optional[str]) -> dict:
-        '''Rotate a session, without widening it.'''
+                machine_id_hash: Optional[str] = None,
+                machine_id_source: Optional[str] = None) -> dict:
+        '''Rotate a session. It always returns the family's full scope.
+
+        The proof was verified before this is called, and its key is compared
+        with the family's here, BEFORE reuse detection: a refresh token held
+        without the key is refused `invalid_dpop_proof` and ends nothing.
+        '''
         import jwt
 
         try:
@@ -288,9 +294,7 @@ class TokenIssuer:
                                 algorithms=["HS256"],
                                 options={"require": ["jti", "family", "exp"]})
         except jwt.PyJWTError:
-            raise ProblemError(
-                "invalid-token", detail="the refresh token does not verify",
-                headers={"WWW-Authenticate": 'DPoP error="invalid_token"'}) from None
+            raise OAuthError("invalid_grant", "the refresh token does not verify") from None
 
         row = self._store.one(
             "SELECT rt.*, tf.user_id, tf.device_id, tf.scope, tf.dpop_jkt, "
@@ -300,61 +304,76 @@ class TokenIssuer:
             "WHERE rt.jti = ?", (claims["jti"],))
 
         if row is None:
-            raise ProblemError(
-                "invalid-token", detail="unknown refresh token",
-                headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+            raise OAuthError("invalid_grant", "unknown refresh token")
+
+        # The key the family is bound to, checked on every refresh and before
+        # anything else about the token: this is where a stolen refresh token
+        # stops being useful -- or harmful -- to anything without the key.
+        if row["dpop_jkt"] != jkt:
+            raise OAuthError("invalid_dpop_proof",
+                             "this session is bound to a different key")
 
         if row["family_revoked_at"] is not None:
-            raise self._session_ended(_wire_reason(row["revoked_reason"]))
-
-        # The key the family is bound to, checked on every refresh. This is
-        # where a stolen refresh token stops being useful to anything that does
-        # not also hold the key.
-        if row["dpop_jkt"] != jkt:
-            raise ProblemError(
-                "invalid-dpop-proof",
-                detail="this session is bound to a different key")
+            raise self._grant_ended(_wire_reason(row["revoked_reason"]))
 
         timestamp = now()
         if row["replaced_at"] is not None:
             replaced = _seconds_since(row["replaced_at"], timestamp)
             if replaced > REFRESH_GRACE_SECONDS:
-                # Reuse past the grace window is the signal the whole family has
-                # leaked, so the session ends rather than the request failing.
+                # Reuse past the grace window, with the family's own key, is the
+                # signal the whole family has leaked: the session ends.
                 self._revoke_family(row["family_id"], "reuse_detected")
-                raise self._session_ended("revoked")
-            # Inside the window: a retry of a lost response, not an attack.
+                raise self._grant_ended("reused")
+            # Inside the window: a retry of a lost response, not an attack. It
+            # gets the replacement already issued, never a second live one.
             return self._replay_refresh(row)
 
         if timestamp >= row["absolute_expires_at"]:
             # Not revoked: nothing decided this, the session cap simply passed.
             # The column stays NULL and the client is told to log in again.
-            raise self._session_ended("expired")
+            raise self._grant_ended("expired")
 
         user = self._store.one("SELECT * FROM users WHERE id = ?", (row["user_id"],))
         if not user["is_active"]:
             # Re-read on every refresh, so deactivating an account ends its
             # sessions within one access-token lifetime.
             self._revoke_family(row["family_id"], "account_inactive")
-            raise self._session_ended("deactivated")
+            raise self._grant_ended("deactivated")
 
-        # A rotation may narrow inside the family's ceiling, never widen past
-        # it. Omitting `scope` returns to the ceiling.
-        ceiling = set(row["scope"].split())
-        granted = ceiling if requested_scope is None else \
-            set(expand_scope(requested_scope).split()) & ceiling
+        self._check_fingerprint(row, machine_id_hash, machine_id_source)
 
-        return self._rotate(row, " ".join(s for s in SCOPES if s in granted))
+        return self._rotate(row)
+
+    def _check_fingerprint(self, row, machine_id_hash, machine_id_source) -> None:
+        '''🔴 Step up, never revoke (identity §6): a refresh from a machine
+        whose fingerprint changed is refused `invalid_grant` with no reason,
+        and the session stays live. A device enrolled with `none` has no
+        change detection.'''
+        if not row["device_id"]:
+            return
+        device = self._store.one("SELECT machine_id_hash, machine_id_source FROM devices "
+                                 "WHERE id = ?", (row["device_id"],))
+        if device is None or device["machine_id_source"] == "none":
+            return
+        if (machine_id_source or "none", machine_id_hash or None) == \
+                (device["machine_id_source"], device["machine_id_hash"]):
+            return
+        self._store.execute(
+            "INSERT INTO device_events (device_id, kind) VALUES (?, 'machine_id_mismatch')",
+            (row["device_id"],))
+        raise OAuthError("invalid_grant",
+                         "this machine's fingerprint is not the one this device "
+                         "enrolled with; log in again")
 
     def _replay_refresh(self, row) -> dict:
         replacement = self._store.one(
             "SELECT * FROM refresh_tokens WHERE jti = ?", (row["replaced_by"],))
         return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
                             row["scope"], row["family_id"],
-                            replacement["jti"], replacement["expires_at"],
-                            row["absolute_expires_at"])
+                            replacement["jti"], replacement["issued_at"],
+                            replacement["expires_at"], row["absolute_expires_at"])
 
-    def _rotate(self, row, scope: str) -> dict:
+    def _rotate(self, row) -> dict:
         timestamp = now()
         new_jti = str(uuid7())
         expires = _plus(timestamp, min(
@@ -363,15 +382,11 @@ class TokenIssuer:
 
         with self._store.transaction():
             self._store.execute(
-                "INSERT INTO refresh_tokens (jti, family_id, expires_at) "
-                "VALUES (?, ?, ?)", (new_jti, row["family_id"], expires))
+                "INSERT INTO refresh_tokens (jti, family_id, issued_at, expires_at) "
+                "VALUES (?, ?, ?, ?)", (new_jti, row["family_id"], timestamp, expires))
             self._store.execute(
                 "UPDATE refresh_tokens SET replaced_by = ?, replaced_at = ? "
                 "WHERE jti = ?", (new_jti, timestamp, row["jti"]))
-            if scope != row["scope"]:
-                self._store.execute(
-                    "UPDATE token_families SET scope = ? WHERE id = ?",
-                    (scope, row["family_id"]))
 
             # 🔴 A rotation is the device being used, and it is the ONLY signal
             # most of them give. The client refreshes rather than logging in
@@ -389,7 +404,7 @@ class TokenIssuer:
                     (timestamp, row["device_id"]))
 
         return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
-                            scope, row["family_id"], new_jti, expires,
+                            row["scope"], row["family_id"], new_jti, timestamp, expires,
                             row["absolute_expires_at"])
 
     def _issue(self, user_id: str, device_id: Optional[str], jkt: str,
@@ -407,14 +422,14 @@ class TokenIssuer:
             "VALUES (?, ?, ?, 'interactive', ?, ?, ?)",
             (family_id, user_id, device_id, jkt, scope, session_end))
         self._store.execute(
-            "INSERT INTO refresh_tokens (jti, family_id, expires_at) VALUES (?, ?, ?)",
-            (jti, family_id, refresh_end))
+            "INSERT INTO refresh_tokens (jti, family_id, issued_at, expires_at) "
+            "VALUES (?, ?, ?, ?)", (jti, family_id, timestamp, refresh_end))
 
         return self._tokens(user_id, device_id, jkt, scope, family_id,
-                            jti, refresh_end, session_end)
+                            jti, timestamp, refresh_end, session_end)
 
     def _tokens(self, user_id, device_id, jkt, scope, family_id,
-                refresh_jti, refresh_expires, session_expires) -> dict:
+                refresh_jti, refresh_issued, refresh_expires, session_expires) -> dict:
         import jwt
 
         issued = int(time.time())
@@ -428,10 +443,12 @@ class TokenIssuer:
              "cnf": {"jkt": jkt}},
             self._secret, algorithm="HS256")
 
+        # Built from its row alone, so a retry inside the grace window is
+        # handed the very same refresh token, not a second one.
         refresh = jwt.encode(
             {"iss": "sc-server", "jti": refresh_jti, "family": family_id,
-             "iat": issued,
-             "exp": issued + max(0, _seconds_between(refresh_expires))},
+             "iat": int(_parse(refresh_issued)),
+             "exp": int(_parse(refresh_expires))},
             self._secret, algorithm="HS256")
 
         return {
@@ -498,10 +515,17 @@ class TokenIssuer:
             raise self._session_ended(
                 _wire_reason(family["revoked_reason"] if family else None))
 
+        # Best effort, with no security claim (profile §0): a token whose
+        # family is another user's is not a token for this one.
+        if family["user_id"] != claims["sub"]:
+            raise ProblemError(
+                "invalid-token", detail="the access token does not verify",
+                headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+
         return Session(claims["sub"], claims["scope"], claims["family"],
                        claims.get("device"), jkt)
 
-    def _check_replay(self, proof: str) -> None:
+    def _check_replay(self, proof: str, oauth: bool = False) -> None:
         '''One proof, one request.
 
         The window is the proof's own lifetime: anything older fails on `iat`
@@ -517,6 +541,8 @@ class TokenIssuer:
                 self._seen.pop(seen, None)
 
         if jti in self._seen:
+            if oauth:
+                raise OAuthError("invalid_dpop_proof", "proof replayed")
             raise ProblemError("invalid-dpop-proof", detail="proof replayed")
         self._seen[jti] = current
 
@@ -591,19 +617,39 @@ class TokenIssuer:
                 "INSERT INTO device_events (device_id, kind, actor_id) "
                 "VALUES (?, 'revoked', ?)", (device_id, actor_id))
 
+    def release_binding(self, user_id: str, actor_id: str) -> int:
+        '''The operator's release of a subject's key binding: its live device
+        is revoked, so the next `client_credentials` call enrols whatever key
+        it presents. Returns how many devices were released.'''
+        devices = self._store.all(
+            "SELECT id FROM devices WHERE user_id = ? AND revoked_at IS NULL", (user_id,))
+        for device in devices:
+            self.revoke_device(device["id"], actor_id)
+        return len(devices)
+
     @staticmethod
     def _session_ended(reason: str) -> ProblemError:
         '''The client must re-authenticate and must NOT refresh.
 
-        All three reasons are one client branch, which is why they are one slug
-        with a `reason` member rather than three slugs.
+        Every reason is one client branch, which is why they are one slug with
+        a `reason` member rather than four slugs.
         '''
         return ProblemError(
             "session-ended", reason=reason,
-            detail={"revoked": "this session was revoked",
-                    "deactivated": "this account is not active",
-                    "expired": "this session has aged out"}.get(reason),
+            detail=_ENDED.get(reason),
             headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+
+    @staticmethod
+    def _grant_ended(reason: str) -> OAuthError:
+        '''The same condition at the token endpoint, in the OAuth shape.'''
+        return OAuthError("invalid_grant", _ENDED.get(reason), reason=reason)
+
+
+_ENDED = {"revoked": "this session was revoked",
+          "reused": "this session was ended because its refresh token was used "
+                    "twice: your credentials were used elsewhere",
+          "deactivated": "this account is not active",
+          "expired": "this session has aged out"}
 
 
 def _wire_reason(stored: Optional[str]) -> str:

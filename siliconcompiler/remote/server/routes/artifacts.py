@@ -18,7 +18,7 @@ import flask
 
 from siliconcompiler.remote.server import logstream
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.routes.auth import require
+from siliconcompiler.remote.server.routes.auth import public_url, require
 from siliconcompiler.remote.server.storage import DOWNLOAD_SECONDS, SignatureError
 
 __all__ = ["blueprint"]
@@ -45,8 +45,8 @@ def _redirect(row):
     expires = int(time.time()) + DOWNLOAD_SECONDS
     signature = storage.sign_download(row["id"], expires)
 
-    target = (f"{flask.request.url_root.rstrip('/')}/storage/artifact/"
-              f"{row['job_id']}/{row['id']}?expires={expires}&sig={signature}")
+    target = public_url(f"storage/artifact/{row['job_id']}/{row['id']}"
+                        f"?expires={expires}&sig={signature}")
 
     response = flask.make_response("", 303)
     response.headers["Location"] = target
@@ -136,8 +136,8 @@ def _stream_redirect(job_id, step, index):
     expires = int(time.time()) + config.limits["max_log_stream_seconds"]
     signature = storage.sign_stream(job_id, step, index, expires)
 
-    target = (f"{flask.request.url_root.rstrip('/')}/stream/logs/"
-              f"{job_id}/{step}/{index}?expires={expires}&sig={signature}")
+    target = public_url(f"stream/logs/{job_id}/{step}/{index}"
+                        f"?expires={expires}&sig={signature}")
 
     response = flask.make_response("", 303)
     response.headers["Location"] = target
@@ -153,8 +153,7 @@ def _job_stream_redirect(job_id):
     expires = int(time.time()) + config.limits["max_log_stream_seconds"]
     signature = storage.sign_job_stream(job_id, expires)
 
-    target = (f"{flask.request.url_root.rstrip('/')}/stream/logs/"
-              f"{job_id}?expires={expires}&sig={signature}")
+    target = public_url(f"stream/logs/{job_id}?expires={expires}&sig={signature}")
 
     response = flask.make_response("", 303)
     response.headers["Location"] = target

@@ -415,6 +415,29 @@ def _cmd_limits(store, args) -> int:
     return 0
 
 
+def _cmd_release(store, args) -> int:
+    """Release a subject's key binding.
+
+    🔴 The recovery path is the control, not a convenience around it: a lost
+    key re-registering by itself would let anybody claim somebody else's key
+    was lost. So a person does it here, and the next `client_credentials`
+    call for the subject enrols whatever key it presents, as a new device.
+    """
+    from siliconcompiler.remote.server.auth import TokenIssuer
+
+    who = store.one("SELECT id, issuer, subject FROM users WHERE id = ? OR subject = ?",
+                    (args.user, args.user))
+    if who is None:
+        raise SystemExit(f"no such user: {args.user}")
+
+    issuer = TokenIssuer(Path(args.datadir).resolve(), store)
+    released = issuer.release_binding(who["id"], _operator(store))
+    print(f"{who['id']}  {who['issuer']}:{who['subject']}: released "
+          f"{released} device{'s' if released != 1 else ''}; its next login enrols a "
+          "new key")
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python3 -m siliconcompiler.remote.server.registry",
@@ -524,6 +547,13 @@ def _parser() -> argparse.ArgumentParser:
         help="max_download_bytes=1GiB, =unlimited, or =inherit")
     limits.add_argument("-note", help="why, for whoever reads this later")
     limits.set_defaults(run=_cmd_limits)
+
+    release = commands.add_parser(
+        "release-binding",
+        help="let a user log in with a new key: ends their device's sessions and "
+             "frees the subject to enrol another")
+    release.add_argument("user", help="a user id or subject")
+    release.set_defaults(run=_cmd_release)
 
     return parser
 

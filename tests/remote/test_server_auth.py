@@ -2,7 +2,7 @@ import pytest
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.server.auth import SCOPES, expand_scope
-from siliconcompiler.remote.server.errors import TYPE_BASE, ProblemError
+from siliconcompiler.remote.server.errors import TYPE_BASE, OAuthError
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -14,6 +14,14 @@ BASE = "http://localhost/v1"
 def slug(response):
     body = response.get_json() or {}
     return (body.get("type") or "").rsplit("/", 1)[-1]
+
+
+def oauth(response):
+    '''The OAuth shape: `error`, and never a problem+json `type`.'''
+    body = response.get_json()
+    assert "type" not in body, body
+    assert response.mimetype == "application/json"
+    return body["error"], body.get("reason")
 
 
 @pytest.fixture
@@ -55,17 +63,17 @@ def call(client, key, method, path, token, **kwargs):
 # Scope
 ###########################
 
-def test_the_vocabulary_is_six_values():
-    '''Closed and frozen, every one <resource>:read or <resource>:write. It is
-    what bounds a stolen token: these and nothing else, ever.'''
-    assert set(SCOPES) == {"jobs:read", "jobs:write", "artifacts:read",
+def test_the_vocabulary_is_the_registered_scopes():
+    '''Only registered scopes are granted, and every one is
+    <resource>:<action>. None is administrative.'''
+    assert set(SCOPES) == {"jobs:read", "jobs:write", "jobs:delete", "artifacts:read",
                            "devices:read", "devices:write", "profile:read"}
-    assert all(s.count(":") == 1 and s.split(":")[1] in ("read", "write")
-               for s in SCOPES)
+    assert all(s.count(":") == 1 for s in SCOPES)
 
 
 def test_write_carries_read():
     assert expand_scope("jobs:write") == "jobs:read jobs:write"
+    assert expand_scope("jobs:delete") == "jobs:read jobs:delete"
     assert expand_scope("devices:write") == "devices:read devices:write"
 
 
@@ -73,13 +81,16 @@ def test_omitting_scope_asks_for_everything_this_profile_grants():
     assert set(expand_scope(None).split()) == set(SCOPES)
 
 
-def test_an_unknown_scope_is_refused_rather_than_dropped():
-    '''Silently dropping it would hand back a token that does less than the
-    caller believes.'''
-    with pytest.raises(ProblemError) as raised:
-        expand_scope("jobs:read jobs:delete")
+def test_an_unknown_scope_is_dropped_and_the_rest_granted():
+    '''The response's `scope` says what was granted.'''
+    assert expand_scope("jobs:read nosuch:thing") == "jobs:read"
 
-    assert raised.value.error.slug == "invalid-request"
+
+def test_nothing_recognised_left_is_invalid_scope():
+    with pytest.raises(OAuthError) as raised:
+        expand_scope("nosuch:thing admin:all")
+
+    assert raised.value.error == "invalid_scope"
 
 
 def test_the_granted_string_is_stable():
@@ -120,28 +131,79 @@ def test_the_token_endpoint_needs_a_proof(client):
         "/v1/auth/token", data={"grant_type": "client_credentials"},
         content_type="application/x-www-form-urlencoded")
 
-    assert response.status_code == 401
-    assert slug(response) == "invalid-dpop-proof"
+    assert response.status_code == 400
+    assert oauth(response) == ("invalid_dpop_proof", None)
 
 
 def test_the_token_endpoint_is_form_encoded(client, key):
-    '''RFC 6749's shape, since this borrows the grant.'''
+    '''RFC 6749's shape, since this borrows the grant -- and a 415 is raised
+    before any OAuth processing, so it is problem+json there as everywhere.'''
     response = client.post(
         "/v1/auth/token", json={"grant_type": "client_credentials"},
         headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")})
 
     assert response.status_code == 415
     assert slug(response) == "unsupported-media-type"
+    assert response.mimetype == "application/problem+json"
+    assert "error" not in response.get_json()
 
 
-def test_an_unknown_grant_is_refused(client, key):
+@pytest.mark.parametrize("path", ["/v1/auth/token", "/v1/auth/device"])
+def test_a_method_refusal_at_an_oauth_endpoint_is_problem_json(client, path):
+    response = client.get(path)
+
+    assert response.status_code == 405
+    assert slug(response) == "method-not-allowed"
+    assert "error" not in response.get_json()
+
+
+def test_an_unknown_grant_is_unsupported(client, key):
     response = client.post(
         "/v1/auth/token", data={"grant_type": "password"},
         headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
         content_type="application/x-www-form-urlencoded")
 
     assert response.status_code == 400
-    assert slug(response) == "invalid-request"
+    assert oauth(response) == ("unsupported_grant_type", None)
+
+
+def test_a_malformed_request_is_invalid_request(client, key):
+    response = client.post(
+        "/v1/auth/token", data={"grant_type": "client_credentials",
+                                "client_id": "nope"},
+        headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
+        content_type="application/x-www-form-urlencoded")
+
+    assert oauth(response) == ("invalid_request", None)
+
+
+def test_unknown_parameters_are_ignored(client, key):
+    '''RFC 6749 §3.2: an unknown parameter at the token endpoint is ignored.'''
+    response = login(client, key, some_future_parameter="x")
+
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize("name", ["actor_token", "audience", "resource"])
+def test_the_three_that_would_be_misunderstood_are_refused(client, key, name):
+    response = login(client, key, **{name: "x"})
+
+    assert response.status_code == 400
+    assert oauth(response) == ("invalid_request", None)
+
+
+def test_an_unrecognised_scope_is_dropped_and_the_response_says_so(client, key):
+    response = login(client, key, scope="jobs:read nosuch:thing")
+
+    assert response.status_code == 200
+    assert response.get_json()["scope"] == "jobs:read"
+
+
+def test_no_recognised_scope_is_invalid_scope(client, key):
+    response = login(client, key, scope="nosuch:thing")
+
+    assert response.status_code == 400
+    assert oauth(response) == ("invalid_scope", None)
 
 
 ###########################
@@ -166,11 +228,26 @@ def test_one_user_cannot_claim_another(client, key):
     mallory = dpop.generate_key()
     response = login(client, mallory, subject="machine:1001")
 
-    assert response.status_code == 401
-    assert slug(response) == "invalid-dpop-proof"
     # OAuth-shaped at the token endpoint, which is where RFC 6749 puts a client
-    # that does not authenticate.
-    assert 'invalid_client' in response.headers["WWW-Authenticate"]
+    # that does not authenticate; and it says why, so a person can ask.
+    assert response.status_code == 401
+    assert oauth(response) == ("invalid_client", None)
+    assert "bound to a different key" in response.get_json()["error_description"]
+
+
+def test_the_operator_can_release_a_binding(client, key, server):
+    '''The recovery path is a person, not an automatic rebind: the registry
+    CLI's release-binding frees the subject to enrol a new key.'''
+    from siliconcompiler.remote.server import registry
+
+    login(client, key, subject="machine:1001")
+    replacement = dpop.generate_key()
+    assert login(client, replacement, subject="machine:1001").status_code == 401
+
+    assert registry.main(["-datadir", str(server.config["SC_DATADIR"]),
+                          "release-binding", "machine:1001"]) == 0
+
+    assert login(client, replacement, subject="machine:1001").status_code == 200
 
 
 def test_a_refused_rebind_is_recorded(client, key, server):
@@ -299,27 +376,29 @@ def test_a_refresh_is_bound_to_the_key(client, key):
                                          f"{BASE}/auth/token")},
         content_type="application/x-www-form-urlencoded")
 
-    assert response.status_code == 401
-    assert slug(response) == "invalid-dpop-proof"
+    assert response.status_code == 400
+    assert oauth(response) == ("invalid_dpop_proof", None)
 
 
-def test_a_refresh_may_narrow_and_may_not_widen(client, key):
-    first = login(client, key).get_json()
+def refreshing(client, token, signer, **extra):
+    return client.post(
+        "/v1/auth/token",
+        data={"grant_type": "refresh_token", "refresh_token": token, **extra},
+        headers={"DPoP": dpop.sign_proof(signer, "POST", f"{BASE}/auth/token")},
+        content_type="application/x-www-form-urlencoded")
 
-    def refresh(token, scope=None):
-        data = {"grant_type": "refresh_token", "refresh_token": token}
-        if scope:
-            data["scope"] = scope
-        return client.post(
-            "/v1/auth/token", data=data,
-            headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
-            content_type="application/x-www-form-urlencoded").get_json()
 
-    narrowed = refresh(first["refresh_token"], "jobs:read")
-    assert narrowed["scope"] == "jobs:read"
+def test_a_refresh_returns_the_full_scope_whatever_it_asks(client, key, server):
+    '''Rule 3: a server never narrows a session on refresh, and never writes a
+    narrowed scope into the family.'''
+    first = login(client, key, scope="jobs:write profile:read").get_json()
+    assert first["scope"] == "jobs:read jobs:write profile:read"
 
-    widened = refresh(narrowed["refresh_token"], "jobs:write artifacts:read")
-    assert widened["scope"] == "jobs:read"
+    again = refreshing(client, first["refresh_token"], key, scope="jobs:read").get_json()
+
+    assert again["scope"] == "jobs:read jobs:write profile:read"
+    assert server.config["SC_STORE"].one("SELECT scope FROM token_families")["scope"] == \
+        "jobs:read jobs:write profile:read"
 
 
 def test_replaying_a_refresh_inside_the_grace_window_is_not_an_attack(client, key):
@@ -340,6 +419,78 @@ def test_replaying_a_refresh_inside_the_grace_window_is_not_an_attack(client, ke
     assert refresh().status_code == 200
 
 
+def test_a_lost_response_is_answered_with_the_same_pair(client, key, server):
+    '''🔴 The replacement already issued, and never a second live refresh
+    token in the family.'''
+    first = login(client, key).get_json()
+
+    one = refreshing(client, first["refresh_token"], key).get_json()
+    two = refreshing(client, first["refresh_token"], key).get_json()
+
+    assert one["refresh_token"] == two["refresh_token"]
+    live = server.config["SC_STORE"].all(
+        "SELECT jti FROM refresh_tokens WHERE replaced_at IS NULL")
+    assert len(live) == 1
+
+
+def test_a_repeat_after_the_window_ends_the_session_as_reused(client, key, server):
+    from siliconcompiler.remote.server import auth
+
+    first = login(client, key).get_json()
+    second = refreshing(client, first["refresh_token"], key).get_json()
+    server.config["SC_STORE"].execute(
+        "UPDATE refresh_tokens SET replaced_at = '2020-01-01T00:00:00.000Z' "
+        "WHERE replaced_at IS NOT NULL")
+
+    assert auth.REFRESH_GRACE_SECONDS >= 120          # a few minutes
+    response = refreshing(client, first["refresh_token"], key)
+
+    assert response.status_code == 400
+    assert oauth(response) == ("invalid_grant", "reused")
+    # The whole family: the current token is dead too.
+    assert oauth(refreshing(client, second["refresh_token"], key)) == \
+        ("invalid_grant", "reused")
+    assert server.config["SC_STORE"].one(
+        "SELECT revoked_reason FROM token_families")["revoked_reason"] == "reuse_detected"
+
+
+def test_an_ended_session_is_invalid_grant_with_its_reason(client, key):
+    first = login(client, key).get_json()
+    call(client, key, "POST", "/v1/auth/revoke", first["access_token"])
+
+    response = refreshing(client, first["refresh_token"], key)
+
+    assert oauth(response) == ("invalid_grant", "revoked")
+
+
+def test_an_unknown_refresh_token_is_invalid_grant(client, key):
+    assert oauth(refreshing(client, "not-a-token", key)) == ("invalid_grant", None)
+
+
+def test_a_changed_fingerprint_steps_up_and_revokes_nothing(client, key, server):
+    '''Identity §6: a wrong fingerprint with a valid key is a machine that
+    changed. Refused `invalid_grant` with no reason, and the session lives.'''
+    first = login(client, key, machine_id_hash="aaaa",
+                  machine_id_source="linux_machine_id").get_json()
+
+    moved = refreshing(client, first["refresh_token"], key, machine_id_hash="bbbb",
+                       machine_id_source="linux_machine_id")
+
+    assert moved.status_code == 400
+    assert oauth(moved) == ("invalid_grant", None)
+    assert server.config["SC_STORE"].one(
+        "SELECT revoked_at FROM token_families")["revoked_at"] is None
+    assert refreshing(client, first["refresh_token"], key, machine_id_hash="aaaa",
+                      machine_id_source="linux_machine_id").status_code == 200
+
+
+def test_a_device_enrolled_with_none_has_no_change_detection(client, key):
+    first = login(client, key).get_json()
+
+    assert refreshing(client, first["refresh_token"], key, machine_id_hash="cccc",
+                      machine_id_source="linux_machine_id").status_code == 200
+
+
 def test_an_old_refresh_with_another_keys_proof_revokes_nothing(client, key):
     '''🔴 Identity D56: reuse is judged only after the refresh's proof
     verifies. Otherwise anyone holding a leaked, long-rotated token could end
@@ -357,8 +508,8 @@ def test_an_old_refresh_with_another_keys_proof_revokes_nothing(client, key):
 
     stolen = refresh(first, dpop.generate_key())
 
-    assert stolen.status_code == 401
-    assert slug(stolen) == "invalid-dpop-proof"
+    assert stolen.status_code == 400
+    assert oauth(stolen) == ("invalid_dpop_proof", None)
     # And the family lives: the owner's current token still refreshes.
     assert refresh(third, key).status_code == 200
 
@@ -421,27 +572,78 @@ def test_a_device_belonging_to_someone_else_is_not_found(client):
 ###########################
 
 def test_the_device_grant_is_routed_and_refuses(client, key):
-    '''Routed rather than unrouted, which turns a 404 that means "this server is
-    old" into a 501 that means "this deployment never will".'''
+    '''Routed rather than unrouted, and in the OAuth shape: the login
+    algorithm's cue to use client_credentials.'''
     response = client.post(
-        "/v1/auth/device", data={},
-        headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/device")})
+        "/v1/auth/device", data={"scope": " ".join(SCOPES)},
+        headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/device")},
+        content_type="application/x-www-form-urlencoded")
 
-    assert response.status_code == 501
-    assert slug(response) == "feature-unsupported"
-    assert response.get_json()["feature"] == "device_grant"
+    assert response.status_code == 400
+    assert oauth(response) == ("unsupported_grant_type", None)
 
 
-def test_the_device_code_grant_refuses_the_same_way(client, key):
+@pytest.mark.parametrize("grant", ["urn:ietf:params:oauth:grant-type:device_code",
+                                   "urn:ietf:params:oauth:grant-type:token-exchange"])
+def test_the_grants_this_profile_lacks_refuse_the_same_way(client, key, grant):
     response = client.post(
         "/v1/auth/token",
-        data={"grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-              "device_code": "whatever"},
+        data={"grant_type": grant, "device_code": "whatever"},
         headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
         content_type="application/x-www-form-urlencoded")
 
-    assert response.status_code == 501
-    assert response.get_json()["feature"] == "device_grant"
+    assert response.status_code == 400
+    assert oauth(response) == ("unsupported_grant_type", None)
+
+
+###########################
+# Configured public origins
+###########################
+
+def test_htu_and_handed_out_urls_come_from_config_behind_a_proxy(tmp_path):
+    '''A proxy rewrites `Host`; the server checks proofs against, and builds
+    URLs on, the origin it is configured with -- never the header.'''
+    import json
+
+    from siliconcompiler.remote.server.app import create_app
+
+    datadir = tmp_path / "proxied"
+    datadir.mkdir()
+    (datadir / "config.json").write_text(json.dumps(
+        {"public_origins": ["https://sc.example.test"]}))
+    app = create_app(datadir)
+    client = app.test_client()
+    key = dpop.generate_key()
+    public = "https://sc.example.test/v1"
+    backend = {"Host": "backend:8080"}
+
+    token = client.post(
+        "/v1/auth/token", data={"grant_type": "client_credentials",
+                                "client_id": "local:machine:1000"},
+        headers={"DPoP": dpop.sign_proof(key, "POST", f"{public}/auth/token"), **backend},
+        content_type="application/x-www-form-urlencoded").get_json()["access_token"]
+
+    def authed(method, path, **kwargs):
+        return client.open(path, method=method, headers={
+            "Authorization": f"DPoP {token}", **backend,
+            "DPoP": dpop.sign_proof(key, method, "https://sc.example.test" + path,
+                                    access_token=token)}, **kwargs)
+
+    job = authed("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    grant = authed("POST", f"/v1/jobs/{job['id']}/upload-grant",
+                   json={"size_bytes": 10, "digest": "sha256:" + "0" * 64}).get_json()
+    assert grant["url"].startswith("https://sc.example.test/storage/upload/")
+
+    handover = authed("POST", "/portal/session", json={}).get_json()
+    assert handover["url"].startswith("https://sc.example.test/portal/")
+
+    # A proof made for the Host the proxy wrote is not a proof for this server.
+    wrong = client.get("/v1/me", headers={
+        "Authorization": f"DPoP {token}", **backend,
+        "DPoP": dpop.sign_proof(key, "GET", "http://backend:8080/v1/me",
+                                access_token=token)})
+    assert wrong.status_code == 401
+    assert slug(wrong) == "invalid-dpop-proof"
 
 
 ###########################

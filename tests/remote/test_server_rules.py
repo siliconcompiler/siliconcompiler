@@ -50,7 +50,7 @@ def test_machine_id_source_is_one_of_four(server_client):
 
     response = login(server_client, dpop.generate_key(), machine_id_source="dmi_uuid")
 
-    assert (response.status_code, slug(response)) == (400, "invalid-request")
+    assert (response.status_code, response.get_json()["error"]) == (400, "invalid_request")
 
 
 def test_a_device_says_which_is_the_callers(server_client, key, token):

@@ -39,6 +39,7 @@ def live_server():
 
     app = create_app(os.path.abspath("datadir"), cluster="local")
     server = make_server("127.0.0.1", 0, app, threaded=True)
+    app.config["SC_PUBLIC_ORIGINS"] = [f"http://127.0.0.1:{server.server_port}"]
 
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

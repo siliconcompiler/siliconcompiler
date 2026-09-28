@@ -364,7 +364,7 @@ def offer_session():
     endpoints and this is not one of them -- the same reason the signed upload
     ``PUT`` lives outside it.
     '''
-    from siliconcompiler.remote.server.routes.auth import current_session
+    from siliconcompiler.remote.server.routes.auth import current_session, public_origin
 
     session = current_session()
     session.require("profile:read")
@@ -375,7 +375,8 @@ def offer_session():
     # so that one URL both authenticates and arrives somewhere useful.
     body = flask.request.get_json(silent=True) or {}
     token = _sessions().offer(session.user_id, _safe_path(body.get("next")))
-    url = flask.url_for("portal.enter", token=token, _external=True)
+    # On the configured origin, never the request's `Host`.
+    url = public_origin() + flask.url_for("portal.enter", token=token)
 
     response = flask.jsonify({"url": url, "expires_in": HANDOVER_SECONDS})
     response.headers["Cache-Control"] = "private, no-store"

@@ -186,6 +186,16 @@ DEFAULTS: Dict[str, Any] = {
     # and that this job has no page on it, which is never true.
     "web_url_base": None,
 
+    # The origins this deployment is reached at, one or several, as
+    # scheme://host[:port]: what a DPoP proof's `htu` is checked against, and
+    # what every URL this server hands out is built on -- the upload PUT, the
+    # artifact 303, the stream URL and the portal handover.
+    #
+    # 🔴 **Config, and never `Host` or `X-Forwarded-Host`**, for the reason
+    # `web_url_base` is. None takes the ones the server was started with: this
+    # host's names on its own port.
+    "public_origins": None,
+
     # Which peers the portal answers over plaintext, as addresses or networks.
     #
     # 🔴 **The portal's session cookie is a bearer secret** -- possession is

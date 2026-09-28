@@ -592,6 +592,9 @@ def write_config() -> None:
     # derived from a request header -- see config.py for why that distinction
     # is a security one and not a tidiness one.
     config["web_url_base"] = WEB_URL_BASE
+    # Where a client reaches the API, for its proofs and every URL handed out:
+    # compose publishes it on this host's loopback.
+    config["public_origins"] = [WEB_URL_BASE, WEB_URL_BASE.replace("localhost", "127.0.0.1")]
 
     path.write_text(json.dumps(config, indent=2) + "\n")
     say(f"wrote {path}")
