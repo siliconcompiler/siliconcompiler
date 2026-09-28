@@ -18,6 +18,7 @@ from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import CachedSchema, CachedSchemaMeta, SchemaFrozenError, \
     SchemaVersionWarning
 from siliconcompiler.schema._metadata import version as schema_version
+from siliconcompiler.schema.parametervalue import PathNodeValue
 
 
 @pytest.fixture
@@ -1895,12 +1896,14 @@ def test_find_files_scalar_dataroot_not_found_collected(monkeypatch):
     assert schema.set("file", "test.txt")
     assert schema.set("file", "test", field="dataroot")
 
-    os.makedirs("collected", exist_ok=True)
-    with open("collected/test_6a073242867241e0a655d49d76a3f2e5c8cfea05.txt", "w") as f:
+    collected_path = PathNodeValue.generate_hashed_collection_path("test.txt", "test")
+    collected_file = os.path.join("collected", collected_path)
+    os.makedirs(os.path.dirname(collected_file), exist_ok=True)
+    with open(collected_file, "w") as f:
         f.write("test")
 
     assert schema._find_files("file", collection_dir="collected") == \
-        os.path.abspath("collected/test_6a073242867241e0a655d49d76a3f2e5c8cfea05.txt")
+        os.path.abspath(collected_file)
 
 
 def test_find_files_scalar_dataroot_not_found_allow(monkeypatch):
@@ -2267,13 +2270,16 @@ def test_find_files_with_collection_dir():
 
     os.makedirs("collections_dir", exist_ok=True)
 
-    with open("collections_dir/test_3a52ce780950d4d969792a2559cd519d7ee8c727.txt", "w") as f:
+    collected_path = PathNodeValue.generate_hashed_collection_path("test.txt", None)
+    collected_file = os.path.join("collections_dir", collected_path)
+    os.makedirs(os.path.dirname(collected_file), exist_ok=True)
+    with open(collected_file, "w") as f:
         f.write("test")
 
     assert schema.set("package", "file", "test.txt")
 
     assert schema._find_files("package", "file", collection_dir="collections_dir") == [
-        os.path.abspath("collections_dir/test_3a52ce780950d4d969792a2559cd519d7ee8c727.txt")
+        os.path.abspath(collected_file)
     ]
 
 
@@ -4203,7 +4209,10 @@ def test_hash_files_with_collection_dir():
 
     os.makedirs("collections_dir", exist_ok=True)
 
-    with open("collections_dir/test_3a52ce780950d4d969792a2559cd519d7ee8c727.txt", "w") as f:
+    collected_path = PathNodeValue.generate_hashed_collection_path("test.txt", None)
+    collected_file = os.path.join("collections_dir", collected_path)
+    os.makedirs(os.path.dirname(collected_file), exist_ok=True)
+    with open(collected_file, "w") as f:
         f.write("test")
 
     assert schema.set("package", "file", "test.txt")

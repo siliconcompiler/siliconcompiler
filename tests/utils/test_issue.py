@@ -6,6 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Design, Flowgraph, PDK, Project
+from siliconcompiler.schema.parametervalue import PathNodeValue
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.yosys import YosysStdCellLibrary
 from siliconcompiler.utils.curation import collect
@@ -136,16 +137,16 @@ def make_testcase(proj, **kwargs):
 
 
 def collected_files(archive):
-    '''Returns the basenames collected into the archive's collection directory.'''
+    '''Returns paths stored beneath the archive's collection directory.'''
     with tarfile.open(archive) as tar:
         return set(
-            os.path.basename(name) for name in tar.getnames()
-            if os.path.dirname(name) == COLLECT_DIR)
+            name for name in tar.getnames()
+            if name.startswith(COLLECT_DIR + '/'))
 
 
 def collected(archive, stem, ext):
-    '''Checks the archive for a collected file, which is stored hashed.'''
-    return any(name.startswith(f'{stem}_') and name.endswith(ext)
+    '''Checks the archive for a collected file with the requested basename.'''
+    return any(os.path.basename(name).startswith(stem) and name.endswith(ext)
                for name in collected_files(archive))
 
 
@@ -187,10 +188,11 @@ def test_library_tool_file_resolves_in_archive(project):
         os.chdir(cwd)
 
     assert len(techmap) == 1
+    collection_dir = os.path.abspath(
+        os.path.join(replay_dir, 'build/heartbeat/job0/sc_collected_files'))
     for path in (techmap[0], tracks):
         assert os.path.isfile(path)
-        assert os.path.dirname(path) == \
-            os.path.abspath(os.path.join(replay_dir, 'build/heartbeat/job0/sc_collected_files'))
+        assert os.path.commonpath((collection_dir, path)) == collection_dir
 
 
 def test_library_tool_file_excluded_without_libraries(project):

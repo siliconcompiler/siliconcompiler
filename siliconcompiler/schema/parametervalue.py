@@ -1,11 +1,13 @@
 import copy
 import os
 import pathlib
+import posixpath
 import sys
 
 import os.path
 
 from typing import Dict, List, Tuple, Union, Optional
+from urllib.parse import quote
 
 from .parametertype import NodeType
 
@@ -868,11 +870,16 @@ class PathNodeValue(NodeValue):
         if path is None:
             return None
 
-        pure_path = pathlib.PurePosixPath(pathlib.PureWindowsPath(path).as_posix())
+        normalized_path = posixpath.normpath(pathlib.PureWindowsPath(path).as_posix())
+        pure_path = pathlib.PurePosixPath(normalized_path)
         parent = pure_path.parent
         parent_name = parent.name or 'root'
         parent_hash = PathNodeValue.__generate_collection_hash(parent.parts, dataroot)
-        bucket = f'{parent_name}_{parent_hash}'
+        safe_parent_name = quote(parent_name, safe='-_~')
+        while safe_parent_name.endswith('.'):
+            safe_parent_name = safe_parent_name[:-1] + '%2E'
+        max_label_length = 255 - len(parent_hash) - 1
+        bucket = f'{safe_parent_name[:max_label_length]}_{parent_hash}'
         if not pure_path.name:
             return bucket
         return str(pathlib.PurePosixPath(bucket) / pure_path.name)

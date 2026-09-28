@@ -851,6 +851,31 @@ def test_generate_hashed_collection_path_hashes_dataroot():
     assert without_dataroot != with_dataroot
 
 
+def test_generate_hashed_collection_path_sanitizes_drive_label():
+    collected_path = PathNodeValue.generate_hashed_collection_path(
+        pathlib.PureWindowsPath(r"C:\\file.v"), None)
+
+    assert collected_path == "C%3A_a20042df2f26039d1532cd42c6cdd9f2adbf8e0f/file.v"
+
+
+def test_generate_hashed_collection_path_limits_bucket_component():
+    path = f"{'a' * 300}/file.v"
+
+    bucket = pathlib.PurePosixPath(
+        PathNodeValue.generate_hashed_collection_path(path, None)).parts[0]
+
+    assert len(bucket.encode('utf-8')) <= 255
+    assert len(bucket.rsplit('_', 1)[1]) == 40
+
+
+def test_generate_hashed_collection_path_normalizes_parent_segments():
+    parent_path = PathNodeValue.generate_hashed_collection_path("foo/..", None)
+    assert parent_path == PathNodeValue.generate_hashed_collection_path(".", None)
+    assert parent_path != PathNodeValue.generate_hashed_collection_path("foo/__parent__", None)
+    assert PathNodeValue.generate_hashed_collection_path(".", None) == \
+        "root_665f66b0cf05eb7f77f25184c26dc1a2a387d2ad"
+
+
 def test_directory_resolve_path_collected_empty():
     value = DirectoryNodeValue()
 

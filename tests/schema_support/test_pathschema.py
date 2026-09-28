@@ -9,6 +9,7 @@ from unittest.mock import patch
 from siliconcompiler import Project, Design
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
+from siliconcompiler.schema.parametervalue import PathNodeValue
 from siliconcompiler.schema_support.pathschema import PathSchemaBase, PathSchema, \
     PathSchemaSimpleBase
 from siliconcompiler.package import FileResolver
@@ -199,12 +200,13 @@ def test_find_files_collectiondir():
     test = Test()
     assert test.set("test", "dir", "test")
 
-    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+    collected_path = PathNodeValue.generate_hashed_collection_path("test", None)
+    os.makedirs(os.path.join("collect", collected_path), exist_ok=True)
 
     with patch("siliconcompiler.schema_support.pathschema.collectiondir") as collect:
         collect.return_value = os.path.abspath("collect")
         assert test.find_files("test", "dir") == \
-            os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
+            os.path.abspath(os.path.join("collect", collected_path))
         collect.assert_called_once()
 
 
@@ -368,7 +370,8 @@ def test_check_filepaths_collectiondir():
     test = Test()
     assert test.set("test", "dir", "test")
 
-    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+    collected_path = PathNodeValue.generate_hashed_collection_path("test", None)
+    os.makedirs(os.path.join("collect", collected_path), exist_ok=True)
 
     with patch("siliconcompiler.schema_support.pathschema.collectiondir") as collect:
         collect.return_value = os.path.abspath("collect")
@@ -515,12 +518,13 @@ def test_simple_find_files_collectiondir():
     test = Test()
     assert test.set("test", "dir", "test")
 
-    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+    collected_path = PathNodeValue.generate_hashed_collection_path("test", None)
+    os.makedirs(os.path.join("collect", collected_path), exist_ok=True)
 
     with patch("siliconcompiler.schema_support.pathschema.collectiondir") as collect:
         collect.return_value = os.path.abspath("collect")
         assert test.find_files("test", "dir") == \
-            os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
+            os.path.abspath(os.path.join("collect", collected_path))
         collect.assert_called_once()
 
 
