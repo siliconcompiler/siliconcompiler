@@ -133,11 +133,12 @@ def _extract_archive(fileobj: IO[bytes], path: str, data_url: str) -> str:
     fileobj.seek(0)
     header = fileobj.read(8)
     if not zstd_available() and is_zstd(header):
-        raise PermanentResolutionError(f"Could not extract file from {data_url}. "
-                                       f"{zstd_unavailable_message()}")
+        raise PermanentResolutionError(
+            f"Could not extract file from {Resolver._masked_uri(data_url)}. "
+            f"{zstd_unavailable_message()}")
 
-    raise TypeError(f"Could not extract file from {data_url}. File is not a valid "
-                    "tar (gzip, bzip2, xz or zstd) or zip archive.")
+    raise TypeError(f"Could not extract file from {Resolver._masked_uri(data_url)}. "
+                    "File is not a valid tar (gzip, bzip2, xz or zstd) or zip archive.")
 
 
 def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
