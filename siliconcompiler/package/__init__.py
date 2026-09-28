@@ -105,7 +105,8 @@ class Resolver:
 
         if self.urlscheme.endswith("+private"):
             self.__private = True
-            self.__source = self.urlparse._replace(scheme=self.urlscheme.replace("+private", "")).geturl()
+            self.__source = self.urlparse._replace(
+                scheme=self.urlscheme.replace("+private", "")).geturl()
 
         if self.__root and hasattr(self.__root, "logger"):
             rootlogger = self.__root.logger
@@ -217,7 +218,8 @@ class Resolver:
     @property
     def is_private(self) -> bool:
         """
-        True if the source requires private access (e.g., private repository or private network location).
+        True if the source requires private access
+        (e.g., private repository or private network location).
         """
         return self.__private
 
@@ -305,7 +307,7 @@ class Resolver:
         if not url.username and not url.password:
             return self.source
         user = "***" if url.username else ""
-        pwd = f":***" if url.password else ""
+        pwd = ":***" if url.password else ""
         auth = f"{user}{pwd}@" if (user or pwd) else ""
         netloc = f"{auth}{url.hostname}" if url.hostname else ""
         if url.port:
