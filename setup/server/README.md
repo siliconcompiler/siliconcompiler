@@ -38,8 +38,8 @@ which an editable install has already written. `SC_VERSION=...` overrides both.
 every commit after it, so a checkout 42 commits past `v0.38.9` reports `0.38.9`
 and the image has to as well. Deriving `0.38.10.dev42` made the server
 advertise a version the very checkout that built it never sends: every submit
-from that machine came back `version-skew`, *install a version this server
-accepts*, and there was none to install.
+from that machine was refused, *install a version this server accepts*, and
+there was none to install.
 
 ## Three images, and which one runs where
 
@@ -667,26 +667,106 @@ anything ran.
 
 ## The server's own settings, in one place
 
-What `config.json` in the data directory holds for this stack, beyond the
-contract's `limits`, `features` and `notices` -- every key has a working
+`sc-server`'s own configuration and deployment rules: what the API contract
+leaves to each implementation, which crucible's `implementation-notes.md` §O
+keeps for this one. `config.json` in the data directory holds them, beside the
+contract's `limits`, `features` and `notices`, and every key has a working
 default in `siliconcompiler/remote/server/config.py`, which says what each is
-for:
+for. Nothing in it is required.
 
-- **Start-up refuses a deployment that could dispatch nothing**: with
-  `containers` on, a live image must hold `siliconcompiler`, or the server does
-  not start. It is a check, not a column.
 - `containers`, `container_mounts`, `batch_queue`: where jobs run, what their
   containers see, and the orchestrator's own partition.
-- `env_builder` (needs `containers`; what advertises `python.env`, and false is
-  the switch), `build_queue` (its own partition), `env_build_timeout_seconds`.
-- `fetch_allowlist`, `index_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
+- `env_builder`, `build_queue`, `env_build_timeout_seconds` and
+  `index_allowlist`: the environment builder (above). `env_builder` needs
+  `containers`, is what advertises `python.env`, and false is the switch.
+  `build_queue` is the builder's own partition, and
+  `env_build_timeout_seconds` (1800 by default) is how long a job waits for its
+  build. The indexes are configuration, a primary and any extras, PyPI by
+  default (`https://pypi.org/simple/` and `https://files.pythonhosted.org/`);
+  a job names none. A build reaches only those, never runs in a job's sandbox
+  or on the API host, and its image is referenced by digest, so nothing a job
+  pushes changes what any job runs in. Where nodes run on the host, the
+  install runs while the job is `staging`, into the user's own cache.
+- `fetch_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
   `fetch_deadline_seconds`: what the server fetches, and supplies.
-- `portal_plaintext_peers`, `web_url_base`: who the portal answers over
-  plaintext, and the origin a job's page is published under.
-- A per-user limit override lives in the store's `user_limits`, written by
-  `python3 -m siliconcompiler.remote.server.registry`, not by the portal. `-1`
-  there is unlimited, and it is `null` on the wire: nothing negative reaches a
-  client.
+- `public_origins`, `web_url_base`, `portal_plaintext_peers`: where this server
+  is reached, the origin a job's page is published under, and who the portal
+  answers over plaintext.
+- `notices`: each `{"level", "message", "starts_at", "ends_at"}`, published from
+  when the server starts until its `ends_at` passes. `level` is `info` or
+  `warning` and `message` is 1 to 500 characters, with no customer name,
+  incident detail or internal host name in it, since `GET /v1` takes no
+  credential.
+- `poll_interval_seconds`: the `Retry-After` a read of an unfinished job
+  carries, 1 by default, and never below 1.
+
+### Plain http, and what is on the wire
+
+Over plain http, two things this server hands out are bearer secrets on the
+wire: the signed storage route an artifact's `303` leads to, and the stream URL
+a log's `303` leads to. Holding either is enough to read what it names until it
+expires. The contract's transport rule permits both, because no other secret
+crosses a plaintext wire. Serve the API through a reverse proxy with https
+wherever it is reached from beyond the machine it runs on.
+
+### What it checks at startup
+
+It refuses to start, naming the reason, when:
+
+- `config.json` sets a key it does not have, a negative limit, a kind or
+  resource kind it does not know, `env_builder` without `containers`, or
+  `python.env` in `features` where nodes run in containers and no builder can
+  build them an environment;
+- no runnable `siliconcompiler` is advertised: with `containers` on, a live
+  image must hold one. It is a check, not a column;
+- it advertises a `siliconcompiler` newer than the one it runs, since a newer
+  manifest cannot be read correctly. Upgrade the server before registering a
+  newer version;
+- the store on disk was written by another version of its schema.
+
+It logs the origins it answers at, the cluster, the test mode where one is
+set, and its identity assurance, `self_asserted`: this server does not verify
+who a caller is.
+
+### The tables it keeps
+
+Twenty, in the reference schema's shape, which the portal package shared with
+crucible reads: `users`; `devices`, `device_events`, `token_families`,
+`refresh_tokens`; `jobs`, `job_states`, `node_states`, `job_state_transitions`,
+`job_nodes`, `job_node_edges`, `job_continuations`; `artifact_kinds`,
+`storage_locations`, `artifacts`; `user_limits`; and `software`,
+`software_versions`, `images`, `image_contents`. It keeps no entitlements,
+terms, projects, CI credentials, device authorizations, notices table, audit or
+metering tables, and no `admin_actions` or `admin_elevations`: there is no
+administrative mode, and registering or retiring an image or a software version
+names its actor in its own row.
+
+### The operator CLI
+
+`python3 -m siliconcompiler.remote.server.registry -datadir <datadir>` is
+the operator's, and nothing it does has an API endpoint:
+
+| Command | |
+|---|---|
+| `list` | the registry: software, versions and images |
+| `add-software`, `add-version`, `add-image`, `retire` | register and retire what jobs may run in |
+| `stage` | unpack an image's bundle ahead of the first job that needs it |
+| `resolve` | what a job asking for these versions and tools would be placed in |
+| `limits` | one account's allowance, and setting a per-user `max_download_bytes`: `-1` is unlimited in the store and `null` on the wire |
+| `release-binding` | free a user's subject to enrol a new key, ending the sessions of the device bound to the old one. A user whose key was lost is otherwise refused `invalid_client` on every login |
+
+### The portal's screens
+
+| Screen | Shows | Writes |
+|---|---|---|
+| Jobs, list and detail, with the flowgraph and node selector | each job, its nodes and their dependencies, and its state history | cancel, archive, discard, delete |
+| Logs, live and archived, per node | each node's log, through the same stream the API hands out | none |
+| Artifacts, downselected by the node selector | each artifact, and its bytes | none |
+| Devices | each device: its key, what its fingerprint was derived from, when it enrolled and when it was last seen | revoke |
+| Account | the caller's identity, limits and usage | none |
+| Images and software | each registered image, its digest, and the versions it holds | register, retire |
+
+The portal is alpha, as the `v1` client and this server are.
 
 ## Credentials
 

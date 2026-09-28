@@ -83,7 +83,8 @@
            border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
 </style>
 <header>
-  <h1>sc-server</h1>
+  {# Alpha, as the v1 client and this server are: what it shows may change. #}
+  <h1>sc-server <span class="tag" title="The v1 client, this server and its portal are alpha">alpha</span></h1>
   <nav>
     <a href="{{ url_for('portal.jobs') }}" class="{{ 'on' if active == 'jobs' }}">Jobs</a>
     <a href="{{ url_for('portal.devices') }}" class="{{ 'on' if active == 'devices' }}">Devices</a>

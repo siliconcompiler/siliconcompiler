@@ -271,13 +271,55 @@ def test_a_config_file_overrides_one_limit_and_keeps_the_rest():
 
     Path("datadir").mkdir()
     Path("datadir/config.json").write_text(json.dumps(
-        {"limits": {"concurrent_jobs": 1}, "notices": ["back at 09:00"]}))
+        {"limits": {"concurrent_jobs": 1},
+         "notices": [{"level": "info", "message": "back at 09:00"}]}))
 
     body = create_app("datadir").test_client().get("/v1").get_json()
 
     assert body["limits"]["concurrent_jobs"] == 1
     assert body["limits"]["max_job_nodes"] == 1000
-    assert body["notices"] == ["back at 09:00"]
+    # `starts_at` and `ends_at` are REQUIRED and nullable: left out, they are
+    # null, and never absent.
+    assert body["notices"] == [{"level": "info", "message": "back at 09:00",
+                                "starts_at": None, "ends_at": None}]
+
+
+@pytest.mark.parametrize("notice,complaint", [
+    ({"level": "urgent", "message": "x"}, "level"),
+    ({"level": "info", "message": ""}, "1 to 500"),
+    ({"level": "info", "message": "x" * 501}, "1 to 500"),
+    ({"level": "info", "message": "x", "audience": "all"}, "audience"),
+    ({"level": "info", "message": "x", "ends_at": "Saturday"}, "ends_at"),
+    ({"level": "info", "message": "x", "starts_at": "2026-09-27T02:00:00+01:00"},
+     "starts_at"),
+    ("maintenance on Sunday", "a notice is"),
+])
+def test_a_notice_is_refused_unless_it_has_the_published_shape(notice, complaint):
+    from siliconcompiler.remote.server.config import Config
+
+    Path("datadir").mkdir()
+    Path("datadir/config.json").write_text(json.dumps({"notices": [notice]}))
+
+    with pytest.raises(ValueError, match=complaint):
+        Config.load("datadir")
+
+
+def test_a_notice_is_published_until_its_end_passes():
+    '''Published from when it is posted until `ends_at` passes. `starts_at`
+    is when the event starts, not when the notice is shown, so a notice for
+    next week's downtime is published now.'''
+    from siliconcompiler.remote.server.app import create_app
+
+    over = {"level": "warning", "message": "was down", "starts_at": None,
+            "ends_at": "2020-01-01T00:00:00Z"}
+    coming = {"level": "warning", "message": "down next week",
+              "starts_at": "2099-01-01T02:00:00Z", "ends_at": "2099-01-01T06:00:00.500Z"}
+    Path("datadir").mkdir()
+    Path("datadir/config.json").write_text(json.dumps({"notices": [over, coming]}))
+
+    body = create_app("datadir").test_client().get("/v1").get_json()
+
+    assert body["notices"] == [coming]
 
 
 def test_a_misspelled_config_key_is_refused_rather_than_ignored():

@@ -124,7 +124,12 @@ DEFAULTS: Dict[str, Any] = {
     "identity_assurance": "self_asserted",
 
     # REQUIRED, and [] is the answer here. An operator with something to say
-    # puts it in config.json.
+    # puts it in config.json, each as `{"level", "message", "starts_at",
+    # "ends_at"}`: `level` is `info` or `warning`, `message` 1 to 500
+    # characters, and the two times describe the event the notice announces,
+    # each null or RFC 3339 in UTC. A notice is published from when the server
+    # starts until its `ends_at` passes. `GET /v1` takes no credential, so a
+    # message names no customer, no incident detail and no internal host.
     "notices": [],
 
     # OPTIONAL: absent unless the operator sets one. Absent is not empty.
@@ -358,6 +363,12 @@ DEFAULTS: Dict[str, Any] = {
     "software_drivers": [],
 }
 
+# A notice's shape (surface §1). `starts_at` and `ends_at` are REQUIRED on the
+# wire and nullable, so where config leaves one out it is null.
+NOTICE_LEVELS = ("info", "warning")
+NOTICE_MEMBERS = ("level", "message", "starts_at", "ends_at")
+MAX_NOTICE_CHARS = 500
+
 # The resource kinds `denied_resources` is keyed by -- the contract's closed
 # `resource_kinds` set.
 RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
@@ -520,10 +531,54 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 not all(isinstance(name, str) for name in names):
             raise ValueError(f"denied_resources.{kind} must be a list of names")
 
+    values["notices"] = [_notice(entry) for entry in values["notices"] or []]
+
     # Served as `Retry-After`, which is whole seconds and never below 1.
     interval = values["poll_interval_seconds"]
     if not isinstance(interval, int) or isinstance(interval, bool) or interval < 1:
         raise ValueError("poll_interval_seconds is a whole number of seconds, at least 1")
+
+
+def _notice(entry) -> Dict[str, Any]:
+    '''One configured notice, checked and in its wire shape.'''
+    if not isinstance(entry, dict):
+        raise ValueError("a notice is {\"level\", \"message\", \"starts_at\", "
+                         f"\"ends_at\"}}; not {entry!r}")
+    unknown = set(entry) - set(NOTICE_MEMBERS)
+    if unknown:
+        raise ValueError(f"a notice has no {', '.join(sorted(unknown))}; its members are "
+                         f"{', '.join(NOTICE_MEMBERS)}")
+    if entry.get("level") not in NOTICE_LEVELS:
+        raise ValueError(f"a notice's level is {' or '.join(NOTICE_LEVELS)}; "
+                         f"not {entry.get('level')!r}")
+    message = entry.get("message")
+    if not isinstance(message, str) or not 1 <= len(message) <= MAX_NOTICE_CHARS:
+        raise ValueError(f"a notice's message is 1 to {MAX_NOTICE_CHARS} characters")
+
+    notice = {"level": entry["level"], "message": message}
+    for name in ("starts_at", "ends_at"):
+        value = entry.get(name)
+        if value is not None and _instant(value) is None:
+            raise ValueError(f"a notice's {name} is null or an RFC 3339 time in UTC, "
+                             f"such as 2026-09-27T02:00:00Z; not {value!r}")
+        notice[name] = value
+    return notice
+
+
+def _instant(value) -> Optional[float]:
+    '''Seconds since the epoch for an RFC 3339 time in UTC, or None.'''
+    import re
+    from datetime import datetime, timezone
+
+    if not isinstance(value, str) or \
+            not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{1,6})?Z", value):
+        return None
+    try:
+        moment = datetime.strptime(value[:19], "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+    fraction = float("0" + value[19:-1]) if value[19:-1] else 0.0
+    return moment.replace(tzinfo=timezone.utc).timestamp() + fraction
 
 
 class Config:
@@ -619,6 +674,15 @@ class Config:
         patterns = (self._values["denied_resources"] or {}).get(resource_kind, [])
         return any(fnmatchcase(name, pattern) for pattern in patterns)
 
+    def notices(self, at: Optional[float] = None) -> list:
+        '''The notices published now: each from when it was posted -- here,
+        when the server started -- until its `ends_at` passes.'''
+        import time
+
+        at = time.time() if at is None else at
+        return [dict(notice) for notice in self._values["notices"]
+                if notice["ends_at"] is None or _instant(notice["ends_at"]) > at]
+
     def capabilities(self, software: Dict[str, list]) -> Dict[str, Any]:
         '''The ``GET /v1`` body.
 
@@ -630,14 +694,15 @@ class Config:
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
-            # Eleven (D118): `max_detail_chars` bounds this server's own output
-            # and no client acts on it -- the test `run_heartbeat_seconds`
-            # failed -- so it stays in config and off the wire.
+            # Ten, every one REQUIRED (surface §1): `max_detail_chars` bounds
+            # this server's own output and no client acts on it -- the test
+            # `run_heartbeat_seconds` failed -- so it stays in config and off
+            # the wire.
             "limits": {name: value for name, value in self._values["limits"].items()
                        if name not in _NOT_PUBLISHED},
             "features": list(self._values["features"]),
             "identity_assurance": self._values["identity_assurance"],
-            "notices": list(self._values["notices"]),
+            "notices": self.notices(),
         }
 
         # OPTIONAL, and absent means the operator set none. Emitting null would

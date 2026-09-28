@@ -665,11 +665,10 @@ def test_me_omits_authorized_and_sends_empty_projects(client, key):
 
 
 def test_me_carries_the_account_limits(client, key):
-    '''Not the same key set as GET /v1's ceiling: five overlap and a client
-    combines only those.
+    '''🔴 Seven members, the caller's effective values: the server combines
+    the two blocks, and a client reads the account's limits here alone.
 
-    🆕 `max_download_bytes` is here as well as on `GET /v1`, and it is the
-    reason this block matters to a client at all now: `GET /v1` carries no
+    `max_download_bytes` is here as well as on `GET /v1`: `GET /v1` carries no
     credential, so it cannot vary by caller. The deployment's default is there
     and the value that applies to THIS caller is here.
     '''
@@ -691,6 +690,8 @@ def test_me_usage_is_derived_and_reported_only(client, key):
                           "storage_bytes", "jobs_active"}
     assert usage["jobs_active"] == 0
     assert usage["compute_seconds"]["limit"] is None
+    # No license is metered here, and there is no per-tool row to report.
+    assert usage["license_seconds"] == {}
     # Windows are calendar, so resets_at is always a real instant.
     assert usage["compute_seconds"]["resets_at"].endswith("Z")
 

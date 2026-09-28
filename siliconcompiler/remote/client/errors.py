@@ -120,7 +120,30 @@ _NEXT_STEP = {
     "run-interrupted": "The environment ended the run, not the job: resubmitting "
                        "unchanged may work.",
     "staging-failed": "The server could not get the job ready; submit again later.",
+    # Retried once in the transport with the nonce the server gave; seen here
+    # only when that retry was refused too.
+    "dpop-nonce-required": "The server wanted a fresh proof and refused the retry; "
+                           "try again.",
 }
+
+
+def _by_status(status: Optional[int]) -> Optional[str]:
+    '''🔴 An unknown `type` is acted on by its status, as an untyped failure
+    is.'''
+    if not isinstance(status, int):
+        return None
+    if status >= 500:
+        return "The server failed; try again later."
+    if status == 429:
+        return "Wait and retry."
+    if status == 401:
+        return "Log in again with sc-remote -configure."
+    if status == 404:
+        return "Check the id, or it may have been deleted."
+    if status >= 400:
+        return "The server refused the request; retrying it unchanged will not help."
+    return None
+
 
 # `archive-rejected` is one slug over many mistakes. Keyed on `reason`.
 _NEXT_STEP_BY_REASON = {
@@ -212,7 +235,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
         lines.append(f"  {line}")
 
     slug = _slug(problem)
-    step = next_step or _advice(slug, problem)
+    step = next_step or _advice(slug, problem, status)
     if step:
         lines.append(f"  {step}")
 
@@ -231,11 +254,14 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     return "\n".join(lines)
 
 
-def _advice(slug: Optional[str], problem: Dict[str, Any]) -> Optional[str]:
+def _advice(slug: Optional[str], problem: Dict[str, Any],
+            status: Optional[int] = None) -> Optional[str]:
     '''The registry's client action for this type, refined by `reason`.
 
-    An unknown `reason` acts on the type alone, and an unknown type has no
-    advice: the status says what to do.'''
+    An unknown `reason` acts on the type alone, and an unknown type -- or none,
+    for a body no handler produced -- acts on the status.'''
+    if slug not in _NEXT_STEP:
+        return _by_status(status)
     if slug == "archive-rejected":
         return _NEXT_STEP_BY_REASON.get(problem.get("reason")) or _NEXT_STEP[slug]
     if slug == "run-failed":
@@ -246,7 +272,7 @@ def _advice(slug: Optional[str], problem: Dict[str, Any]) -> Optional[str]:
     if slug == "session-ended" and problem.get("reason") == "reused":
         return ("Your credentials were used elsewhere. Rotate this machine's key "
                 "with `sc-remote -rotate_key`, then log in again.")
-    return _NEXT_STEP.get(slug) if slug else None
+    return _NEXT_STEP[slug]
 
 
 def blocked_lines(blocked_by, titles: Optional[Dict[str, str]] = None) -> list:

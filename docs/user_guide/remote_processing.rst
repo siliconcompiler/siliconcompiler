@@ -9,6 +9,12 @@ Remote execution runs against a server you or your organization operates.
 SiliconCompiler does not host a server for you -- see
 :ref:`For Developers: Custom Servers <custom-servers>` for how to stand one up.
 
+.. note::
+
+  The ``v1`` remote client, ``sc-server`` and its portal are **alpha**. The
+  ``v1`` API they speak is versioned, but the client's commands, what it prints
+  and the portal's screens may still change between releases.
+
 .. _private-server:
 
 Step 1: Configure Your Remote Server
@@ -86,6 +92,11 @@ After configuration, run ``sc-remote`` without any arguments to test the connect
   sc-remote
 
 A successful connection will typically display a status message or an empty list of your remote jobs, confirming that your configuration and credentials are correct.
+
+It also prints every notice the server publishes, such as scheduled downtime,
+and names any terms document whose next version takes effect soon and that you
+have not accepted, with the page where you can accept it early. A remote run
+shows each of these once. The client never accepts terms for you.
 
 Step 3: Run a Remote Job
 ------------------------

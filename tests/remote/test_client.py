@@ -255,7 +255,9 @@ def test_a_notice_is_a_warning_because_somebody_has_to_read_it(
     is exactly when this runs.'''
     import logging
 
-    capabilities["notices"] = ["maintenance on Sunday 02:00 UTC"]
+    capabilities["notices"] = [{"level": "warning", "message": "maintenance on Sunday",
+                                "starts_at": "2026-09-27T02:00:00Z",
+                                "ends_at": "2026-09-27T06:00:00Z"}]
     fake_v1.replace(responses.GET, "", capabilities)
     fake_v1.route(responses.GET, "healthz", {"status": "pass"},
                   content_type="application/health+json")
@@ -263,9 +265,172 @@ def test_a_notice_is_a_warning_because_somebody_has_to_read_it(
     caplog.set_level(logging.INFO)
     Client(tmp_credentials).print_deployment()
 
-    assert "Notice: maintenance on Sunday 02:00 UTC" in caplog.text
+    assert ("Notice: maintenance on Sunday (2026-09-27T02:00:00Z to "
+            "2026-09-27T06:00:00Z)") in caplog.text
     assert any(record.levelname == "WARNING" and "maintenance" in record.message
                for record in caplog.records)
+
+
+def notice(level, message, **times):
+    return {"level": level, "message": message, "starts_at": None, "ends_at": None,
+            **times}
+
+
+def test_each_notice_is_shown_once_per_session_and_at_its_own_level(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    '''`level` picks how loudly and nothing branches on the text; a level
+    this client does not know is shown as a warning, the cautious default.'''
+    import logging
+
+    capabilities["notices"] = [notice("info", "new tools image"),
+                               notice("severe", "a level from a later server"),
+                               notice("warning", "down Saturday",
+                                      ends_at="2026-10-03T06:00:00Z")]
+    fake_v1.replace(responses.GET, "", capabilities)
+    caplog.set_level(logging.INFO)
+
+    client = Client(tmp_credentials)
+    client.capabilities()
+    client.capabilities()
+
+    shown = [(record.levelname, record.message) for record in caplog.records
+             if record.message.startswith("Notice:")]
+    assert shown == [("INFO", "Notice: new tools image"),
+                     ("WARNING", "Notice: a level from a later server"),
+                     ("WARNING", "Notice: down Saturday (until 2026-10-03T06:00:00Z)")]
+
+
+def test_the_check_command_shows_every_notice_every_time(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    import logging
+
+    capabilities["notices"] = [notice("info", "new tools image")]
+    fake_v1.replace(responses.GET, "", capabilities)
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
+    caplog.set_level(logging.INFO)
+
+    client = Client(tmp_credentials)
+    client.capabilities()
+    client.print_deployment()
+    client.print_deployment()
+
+    assert caplog.text.count("Notice: new tools image") == 3
+
+
+def test_a_deprecation_warns_once_per_session_with_its_sunset(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    import logging
+
+    headers = {"Deprecation": "@1790000000", "Sunset": "Sat, 01 May 2027 00:00:00 GMT"}
+    fake_v1.replace(responses.GET, "", capabilities, headers=headers)
+    caplog.set_level(logging.INFO)
+
+    client = Client(tmp_credentials)
+    client.capabilities()
+    client.capabilities()
+
+    warned = [record for record in caplog.records if "deprecated" in record.message]
+    assert len(warned) == 1
+    assert warned[0].levelname == "WARNING"
+    assert "Sat, 01 May 2027 00:00:00 GMT" in warned[0].message
+
+
+###########################
+# Upcoming terms
+###########################
+
+def terms_entry(accepted_at=None, decision_url="https://portal.test/terms/tos"):
+    entry = {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
+             "version": "2026-09-01", "accepted_at": "2026-09-02T00:00:00Z",
+             "declined_at": None, "document_url": "https://portal.test/tos",
+             "upcoming": {"version": "2026-11-01", "effective_at": "2026-11-01T00:00:00Z",
+                          "accepted_at": accepted_at}}
+    if decision_url:
+        entry["decision_url"] = decision_url
+    return entry
+
+
+def me_body(*terms):
+    return {"id": "u1", "issuer": "local", "projects": [], "can_submit": True,
+            "limits": {}, "usage": {"jobs_active": 0}, "terms": list(terms)}
+
+
+def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
+        logged_in, fake_v1, caplog, monkeypatch):
+    '''Before it takes effect, so the change need not first reach the person
+    as a refused submit. 🔴 The client never accepts: nothing is sent.'''
+    import logging
+
+    from siliconcompiler.remote import client as client_module
+
+    monkeypatch.setattr(client_module, "_ask",
+                        lambda question: pytest.fail("asked without a terminal"))
+    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+    logged_in.me()
+
+    named = [record.message for record in caplog.records if "2026-11-01" in record.message]
+    assert len(named) == 1
+    assert "Terms of Service" in named[0]
+    assert "2026-11-01T00:00:00Z" in named[0]
+    assert "accepted early, at https://portal.test/terms/tos" in caplog.text
+    assert not [c for c in fake_v1.calls if c.request.method != "GET"
+                and "/auth/" not in c.request.url]
+
+
+def test_an_accepted_upcoming_version_is_not_mentioned(logged_in, fake_v1, caplog):
+    import logging
+
+    fake_v1.route(responses.GET, "me",
+                  me_body(terms_entry(accepted_at="2026-10-01T00:00:00Z", decision_url=None)))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+
+    assert "2026-11-01" not in caplog.text
+
+
+def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
+        logged_in, fake_v1, monkeypatch):
+    from siliconcompiler.remote import client as client_module
+
+    for stream in ("stdin", "stdout"):
+        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    answers = iter(["n", "y"])
+    monkeypatch.setattr(client_module, "_ask", lambda question: next(answers))
+    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+
+    logged_in.me()
+    assert opened == []
+
+    # Every time in the check command.
+    logged_in.remind_terms(me_body(terms_entry()), always=True)
+    assert opened == ["https://portal.test/terms/tos"]
+
+
+def test_a_ci_run_only_reports_an_upcoming_version(logged_in, fake_v1, monkeypatch,
+                                                   caplog):
+    import logging
+
+    from siliconcompiler.remote import client as client_module
+
+    for stream in ("stdin", "stdout"):
+        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    monkeypatch.setenv("CI", "true")
+    monkeypatch.setattr(client_module, "_ask",
+                        lambda question: pytest.fail("offered to open it in CI"))
+    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+
+    assert "2026-11-01" in caplog.text
 
 
 ###########################
@@ -656,9 +821,41 @@ def test_every_refusal_branches_on_its_type(fake_v1, tmp_credentials,
         assert raised.value.member(name) == value
 
 
+def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
+    '''A type from a later registry is not a type this client knows, and
+    the status still says what to do: a 4xx is not worth repeating.'''
+    fake_v1.route(responses.GET, "me", problem("a-type-from-later", 422),
+                  status=422, content_type="application/problem+json")
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug == "a-type-from-later"
+    assert "retrying it unchanged will not help" in str(raised.value)
+
+
+def test_an_unknown_reason_is_acted_on_by_its_type():
+    text = describe(problem("archive-rejected", 422, reason="a-reason-from-later"))
+
+    assert "Fix what the reason names, in a new job." in text
+
+
+def test_an_untyped_5xx_says_to_try_later():
+    assert "try again later" in describe({"title": "Bad Gateway"}, 502)
+
+
 ###########################
 # Devices
 ###########################
+
+def test_devices_follow_the_next_link(fake_v1, logged_in):
+    fake_v1.route(responses.GET, "devices", {"items": [{"id": "d1"}]},
+                  headers={"Link": f'<{V1_URL}/devices?cursor=c2>; rel="next"'})
+    fake_v1.route(responses.GET, "devices", {"items": [{"id": "d2"}]})
+
+    assert [device["id"] for device in logged_in.devices()] == ["d1", "d2"]
+    assert fake_v1.calls[-1].request.url.endswith("cursor=c2")
+
 
 def test_devices_are_listed_and_revoked(fake_v1, tmp_credentials,
                                         client_credentials):

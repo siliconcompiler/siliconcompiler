@@ -14,7 +14,8 @@ def main():
     description = """
 -----------------------------------------------------------
 SC app that provides an entry point to common remote / server
-interactions.
+interactions. The v1 remote client is alpha: its commands and
+what it prints may still change.
 
 To configure a server, use:
     sc-remote -configure -server https://example.com

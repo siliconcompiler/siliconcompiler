@@ -62,6 +62,11 @@ class Client:
         # token and trades again instead.
         self._mode: Optional[str] = None
 
+        # A session is this client: each notice, and each upcoming terms
+        # version, is shown once in it.
+        self._notices_shown = set()
+        self._terms_reminded = set()
+
         if not credentials.address:
             # There is no default server to fall back on, so this is an error
             # rather than a redirect. It is raised on use rather than on
@@ -128,16 +133,40 @@ class Client:
     # Discovery
     ######################################################################
 
-    def capabilities(self) -> Dict[str, Any]:
+    def capabilities(self, notices: bool = True) -> Dict[str, Any]:
         '''``GET /v1``: the first call on every path, and it carries no
         credential.
 
         A JSON capabilities block means this is a ``v1`` server. What a client
         branches on inside it is ``grant_types_supported`` and never
         ``identity_assurance``, which is advisory.
+
+        Each of its `notices` is shown once per session, which is when a person
+        is reading; ``notices=False`` leaves that to the caller.
         '''
-        return self.transport.request(
+        published = self.transport.request(
             "GET", "", authenticated=False).json()
+        if notices:
+            self._show_notices(published)
+        return published
+
+    def _show_notices(self, published, always: bool = False) -> None:
+        '''Each notice once per session, or with ``always`` every time.
+
+        Displayed and never branched on: `level` only picks how loudly, and a
+        level this client does not know is shown as a warning.
+        '''
+        import json
+
+        for notice in (published.get("notices") if isinstance(published, dict)
+                       else None) or []:
+            key = json.dumps(notice, sort_keys=True, default=str)
+            if key in self._notices_shown and not always:
+                continue
+            self._notices_shown.add(key)
+            level, line = _notice(notice)
+            (self.logger.info if level == "info" else self.logger.warning)(
+                f"Notice: {line}")
 
     def health(self) -> Dict[str, Any]:
         '''``GET /v1/healthz``: one word, and no credential.
@@ -173,17 +202,16 @@ class Client:
         from siliconcompiler.remote.units import duration, size
 
         health = self.health()
-        published = self.capabilities()
+        published = self.capabilities(notices=False)
 
         self.logger.info(f"Health: {health.get('status', 'unknown')}")
         self.logger.info(f"API: {published.get('api_version', 'unknown')}")
         self.logger.info(
             f"Identity assurance: {published.get('identity_assurance', 'unknown')}")
 
-        # Read once by a person at the start of a session, which is exactly
-        # when this runs. An operator with something to say puts it here.
-        for notice in published.get("notices") or []:
-            self.logger.warning(f"Notice: {notice}")
+        # Every time here, which is where somebody asks for the server's
+        # status; once per session everywhere else.
+        self._show_notices(published, always=True)
 
         # Two buckets, a closed set, and both always present. They are shown
         # apart because they are satisfied apart: the whole python set has to
@@ -609,8 +637,12 @@ class Client:
     # Identity
     ######################################################################
 
-    def me(self) -> Dict[str, Any]:
-        '''``GET /v1/me``, and remember which principal this server saw.'''
+    def me(self, remind: bool = True) -> Dict[str, Any]:
+        '''``GET /v1/me``, and remember which principal this server saw.
+
+        An upcoming terms version not yet accepted is named once per session;
+        ``remind=False`` leaves that to the caller.
+        '''
         self.ensure_session()
         body = self.transport.request("GET", "me").json()
 
@@ -625,12 +657,64 @@ class Client:
                 "identity are not visible to this one.")
 
         self.credentials.update(user_id=body.get("id"))
+        if remind:
+            self.remind_terms(body)
         return body
 
+    def remind_terms(self, me: Dict[str, Any], always: bool = False) -> None:
+        '''Each upcoming terms version this person has not accepted: the
+        document, the version and when it takes effect, with where to accept
+        it, so the change need not first reach them as a refused submit.
+
+        Once per session, or with ``always`` every time. 🔴 **Never accepted
+        here**: accepting is the person's, in a browser. On an interactive
+        terminal outside CI this offers to open the page; a CI run only
+        reports it.
+        '''
+        for entry in (me.get("terms") if isinstance(me, dict) else None) or []:
+            if not isinstance(entry, dict):
+                continue
+            upcoming = entry.get("upcoming")
+            if not isinstance(upcoming, dict) or upcoming.get("accepted_at") is not None:
+                continue
+            key = (entry.get("id"), upcoming.get("version"))
+            if key in self._terms_reminded and not always:
+                continue
+            self._terms_reminded.add(key)
+
+            title = clean(entry.get("title") or entry.get("id") or "A terms document")
+            when = upcoming.get("effective_at")
+            self.logger.warning(
+                f"{title}: version {clean(upcoming.get('version') or '?')} takes effect"
+                + (f" {clean(when)}" if when else "")
+                + ", and you have not accepted it. Once it does, a submit it covers is "
+                  "refused until you have.")
+
+            url = entry.get("decision_url")
+            if not isinstance(url, str) or not url:
+                continue
+            self.logger.warning(f"  It may be accepted early, at {clean(url)}")
+            interactive = sys.stdin.isatty() and sys.stdout.isatty()
+            if interactive and not self._in_ci() and self.open_browser:
+                if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
+                    self.open_url(url, "the terms page")
+
+    def _in_ci(self) -> bool:
+        return self._mode == GRANT_TOKEN_EXCHANGE or bool(os.environ.get("CI")) \
+            or bool(self.credentials.ci_secret())
+
     def devices(self) -> list:
-        '''The machines that can act as me.'''
+        '''The machines that can act as me, following ``Link`` to the end.'''
         self.ensure_session()
-        return self.transport.request("GET", "devices").json()["items"]
+
+        items, params = [], {}
+        while True:
+            response = self.transport.request("GET", "devices", params=params)
+            items.extend(response.json().get("items") or [])
+            cursor = _next_cursor(response.headers.get("Link"))
+            if not cursor:
+                return items
+            params = {"cursor": cursor}
 
     def revoke_device(self, device_id: str) -> None:
         '''Revoke a machine, ending every session it holds.'''
@@ -1170,6 +1254,23 @@ def _fresh_key() -> str:
     import uuid
 
     return str(uuid.uuid4())
+
+
+def _notice(notice) -> tuple:
+    '''A notice as ``(level, line)``. An unknown level, or a notice that is
+    not an object, is shown as a warning: the cautious default.'''
+    if not isinstance(notice, dict):
+        return "warning", clean(str(notice))
+    level = notice.get("level") if notice.get("level") in ("info", "warning") else "warning"
+    line = clean(notice.get("message") or "")
+    starts, ends = notice.get("starts_at"), notice.get("ends_at")
+    if starts and ends:
+        line += f" ({clean(starts)} to {clean(ends)})"
+    elif starts:
+        line += f" (from {clean(starts)})"
+    elif ends:
+        line += f" (until {clean(ends)})"
+    return level, line
 
 
 def _ask(question: str) -> str:

@@ -811,7 +811,7 @@ def test_a_server_with_no_live_tail_simply_does_not_tail(fake_v1, run,
     from siliconcompiler.remote.client.run import _Tails
 
     run.project.option.set_quiet(False)
-    fake_v1.replace(responses.GET, "", dict(capabilities, features=["logs"]))
+    fake_v1.replace(responses.GET, "", dict(capabilities, features=[]))
 
     assert _Tails(run)._enabled is False
 
@@ -870,7 +870,7 @@ def test_without_one_each_running_node_is_followed(fake_v1, run, capabilities,
 
     run.project.option.set_quiet(False)
     fake_v1.replace(responses.GET, "",
-                    dict(capabilities, features=["logs", "logs.stream"]))
+                    dict(capabilities, features=["logs.stream"]))
     opened = []
     monkeypatch.setattr(_Tails, "_tail", lambda self, *args: opened.append(args[1]))
 

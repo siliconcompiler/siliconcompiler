@@ -60,15 +60,18 @@ def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
 def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     '''The account's allowance, as `GET /v1/me` publishes it.
 
-    ⚠️ Six members and not ``GET /v1``'s key set. Four keys appear in both
-    blocks and a client combines only those.
+    🔴 **Seven members, every one REQUIRED, and the caller's effective
+    values**: the server combines the two blocks and publishes the result here,
+    so a client reads the account's limits from `GET /v1/me` alone
+    (entitlements *Combining the two `limits` blocks*). Five keys appear in
+    both blocks -- `max_job_nodes`, `pending_uploads`, `concurrent_jobs`,
+    `job_retention_days` and `max_download_bytes` -- and they differ only where
+    a `user_limits` row overrides one for this account.
 
-    🆕 **`max_download_bytes` is the seventh, and it is here because it is the
-    only one that can differ per account.** `GET /v1` carries no credential and
-    cannot vary by caller, so a per-user ceiling has nowhere else to be
-    published -- which makes this the block a client must read for it. The
-    deployment's default stays on `GET /v1`, and the two disagreeing is exactly
-    what an override looks like.
+    `max_download_bytes` is the one that can differ per account today.
+    `GET /v1` carries no credential and cannot vary by caller, so a per-user
+    ceiling has nowhere else to be published. The deployment's default stays on
+    `GET /v1`, and the two disagreeing is exactly what an override looks like.
     '''
     ceiling = dict(config.limits)
     ceiling.update(overrides or {})

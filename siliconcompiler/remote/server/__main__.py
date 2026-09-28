@@ -37,7 +37,8 @@ CLUSTERS = ("local", "slurm")
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m siliconcompiler.remote.server",
-        description="SiliconCompiler remote job server (v1 API).",
+        description="SiliconCompiler remote job server (v1 API), alpha: the v1 client, "
+                    "this server and its portal may still change.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Policy -- limits, features, notices -- has defaults and can be\n"
@@ -119,7 +120,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         logger.info(line)
 
     logger.info(f"siliconcompiler {sc_version}, serving the v1 API on "
-                f"port {args.port}")
+                f"port {args.port} (alpha)")
     logger.info(f"data directory: {datadir}")
     logger.info(f"error type pages: http://localhost:{args.port}/server-errors/ "
                 "-- and each refusal names its page with a Link header")

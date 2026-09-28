@@ -18,7 +18,16 @@
     <span class="muted">gone {{ item.deleted_at | when }}{%
       if item.delete_reason %} — {{ item.delete_reason }}{% endif %}</span>
   {% elif item.blocked_by %}
-    <span class="muted">held back ({{ item.blocked_by | join(', ') }})</span>
+    {#
+      A map of each document in the way, by its terms id, to its signing link
+      or to {} where there is none. This profile has no terms, so nothing here
+      builds one; the shared screen still renders the shape.
+    #}
+    <span class="muted">held back until signed:
+      {% for terms_id, entry in item.blocked_by.items() -%}
+        {%- if entry.url and entry.url.startswith(('https://', 'http://')) %}<a href="{{ entry.url }}" rel="noopener">{{ terms_id }}</a>
+        {%- else %}{{ terms_id }}{% endif %}{{ ', ' if not loop.last }}
+      {%- endfor %}</span>
   {% else %}
     <span class="muted">not available</span>
   {% endif %}

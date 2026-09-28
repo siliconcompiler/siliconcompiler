@@ -281,6 +281,15 @@ class RemoteRun:
 
         self._check_upstream_files()
         self._check_software()
+        self._remind_terms()
+
+    def _remind_terms(self) -> None:
+        '''An upcoming terms version not yet accepted, named before the
+        submit it would refuse. Advisory: the server decides.'''
+        try:
+            self.client.me()
+        except RemoteError:
+            return
 
     def _check_upstream_files(self) -> None:
         '''A `-from` run whose upstream outputs, on this machine, lack a file
