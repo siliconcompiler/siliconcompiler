@@ -246,12 +246,13 @@ class RemoteRun:
         self.logger.info("Job submitted")
         return job_id
 
-    def _abandon(self, job_id: str, error: BaseException) -> None:
-        '''Cancel a job that will not be submitted -- an interrupt, or an
-        upload or submit that failed -- so it holds no slot until it is
-        abandoned.'''
-        why = "interrupted before it was submitted" if isinstance(error, KeyboardInterrupt) \
-            else "its upload or submit failed"
+    def _abandon(self, job_id: str, error: BaseException, why: Optional[str] = None) -> None:
+        '''Cancel a job that will not be submitted -- an interrupt, an upload
+        or submit that failed, or something asked for that cannot be sent -- so
+        it holds no slot until it is abandoned.'''
+        if why is None:
+            why = "interrupted before it was submitted" \
+                if isinstance(error, KeyboardInterrupt) else "its upload or submit failed"
         try:
             self.client.cancel_job(job_id, reason=f"cancelled from sc-remote: {why}")
             self.logger.info(f"Cancelled job {job_id}: {why}")
@@ -1030,7 +1031,9 @@ class RemoteRun:
             try:
                 dist = metadata.distribution(name)
             except metadata.PackageNotFoundError:
-                self._abandon(job_id, RuntimeError(name))
+                self._abandon(job_id, RuntimeError(name),
+                              why=f"the server asked for the Python package {name}, "
+                                  "which is not installed here")
                 raise RemoteError(
                     f"the server has no index offering the Python package {name}, and it "
                     "is not installed here either, so no wheel of it can be sent") from None
@@ -1039,7 +1042,8 @@ class RemoteRun:
             try:
                 path = wheels.build(dist, str(folder))
             except capture.CannotForward as e:
-                self._abandon(job_id, RuntimeError(name))
+                self._abandon(job_id, e, why=f"the server asked for the Python package "
+                                             f"{name}, which cannot be sent as a wheel")
                 raise RemoteError(f"the server has no index offering the Python package "
                                   f"{name}, so it asked for its wheel: {e}") from None
             rows.append(("python package", name, None, os.path.getsize(path), 1))

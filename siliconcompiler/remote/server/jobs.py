@@ -709,8 +709,10 @@ class JobService:
         =================================  =================================
         A source that is                   Answer
         =================================  =================================
-        private, and not in the map        `resource-unavailable`, refused
-        held, or in the private map        supplied -- not listed
+        private                            not listed: in the private map,
+                                           supplied; not, `resource-unavailable`
+                                           while staging, which knows its kind
+        held                               supplied -- not listed
         an installed package held here     supplied -- not listed
         on the allowlist, not held         assumed fetchable -- not listed
         anything else                      listed in `upload_sources`

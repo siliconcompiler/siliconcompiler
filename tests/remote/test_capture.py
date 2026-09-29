@@ -597,4 +597,5 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     with pytest.raises(RemoteError, match="scfakec.*compiled file"):
         RemoteRun(project, logged_in)._send_asked(
             "01J9-job", [{"kind": "python", "name": "scfakec"}])
-    assert [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+    cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+    assert "scfakec, which cannot be sent as a wheel" in json.loads(cancel.request.body)["reason"]
