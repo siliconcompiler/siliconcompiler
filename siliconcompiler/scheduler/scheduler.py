@@ -730,7 +730,10 @@ class Scheduler:
             self.__project.option.set_jobname(curret_job)
             copy_to = collectiondir(self.__project)
             if os.path.exists(copy_from):
+                # A collection's links are relative and stay inside it, so they are
+                # kept, where following one would copy its target again
                 shutil.copytree(copy_from, copy_to,
+                                symlinks=True,
                                 dirs_exist_ok=True,
                                 copy_function=utils.link_copy)
 

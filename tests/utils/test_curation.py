@@ -14,6 +14,10 @@ from siliconcompiler.utils.paths import collectiondir
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
 
+needs_symlinks = pytest.mark.skipif(
+    sys.platform == "win32", reason="Making a symbolic link needs a privilege on Windows")
+
+
 class FauxTask0(Task):
     def tool(self):
         return "tool0"
@@ -419,8 +423,7 @@ def test_collect_absolute_file_inside_collected_directory(two_dataroots, path_ke
     assert os.path.samefile(files[0], os.path.join(idir, "a.v"))
 
 
-@pytest.mark.skipif(sys.platform == "win32",
-                    reason="Symbolic links need a privilege on Windows, so it copies")
+@needs_symlinks
 def test_collect_directory_under_two_dataroots_linked(two_dataroots, path_keys):
     design = two_dataroots
     design.add_idir("rtl", dataroot="top", fileset="rtl")
@@ -496,6 +499,163 @@ def test_collect_link_falls_back_to_copy(two_dataroots, path_keys, monkeypatch):
     for path in files:
         with open(path) as f:
             assert f.read() == 'a'
+
+
+@needs_symlinks
+def test_collect_link_inside_directory_kept(path_keys):
+    os.makedirs('rtl')
+    with open('rtl/defs.vh', 'w') as f:
+        f.write('defs')
+    os.symlink('defs.vh', 'rtl/alias.vh')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.readlink(os.path.join(idir, "alias.vh")) == "defs.vh"
+
+
+@needs_symlinks
+def test_collect_link_out_of_directory_stored_once(path_keys):
+    """A link's target outside the collection is stored at its first appearance,
+    and a later link to it points there, relative, whatever the source link said."""
+    os.makedirs('outside')
+    with open('outside/ext.vh', 'w') as f:
+        f.write('ext')
+    os.makedirs('first')
+    os.makedirs('second')
+    os.symlink(os.path.join('..', 'outside', 'ext.vh'), 'first/ext.vh')
+    os.symlink(os.path.abspath('outside/ext.vh'), 'second/ext.vh')
+
+    design = Design("testdesign")
+    design.add_idir("first", fileset="rtl")
+    design.add_idir("second", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree('outside')
+
+    first, second = design.get_idir(fileset="rtl")
+    assert not os.path.islink(os.path.join(first, "ext.vh"))
+    assert not os.path.isabs(os.readlink(os.path.join(second, "ext.vh")))
+    with open(os.path.join(second, "ext.vh")) as f:
+        assert f.read() == 'ext'
+
+
+@needs_symlinks
+def test_collect_link_to_collected_directory_points_at_its_home(path_keys):
+    os.makedirs('a')
+    os.makedirs('b')
+    with open('b/x.v', 'w') as f:
+        f.write('x')
+    os.symlink(os.path.join('..', 'b'), 'a/b')
+
+    design = Design("testdesign")
+    design.add_idir("a", fileset="rtl")
+    design.add_idir("b", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    a, b = design.get_idir(fileset="rtl")
+    assert not os.path.islink(b)
+    assert os.path.islink(os.path.join(a, "b"))
+    assert os.path.samefile(os.path.join(a, "b"), b)
+
+
+@needs_symlinks
+def test_collect_link_to_own_directory_kept(path_keys):
+    os.makedirs('rtl/inc')
+    with open('rtl/inc/i.vh', 'w') as f:
+        f.write('i')
+    os.symlink('..', 'rtl/inc/up')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.readlink(os.path.join(idir, "inc", "up")) == ".."
+
+
+@needs_symlinks
+def test_collect_link_to_hidden_file_stored(path_keys):
+    """A hidden file is left out of a directory, but a link naming it still gets it."""
+    os.makedirs('rtl')
+    with open('rtl/.defs.vh', 'w') as f:
+        f.write('defs')
+    os.symlink('.defs.vh', 'rtl/defs.vh')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(idir) == ["defs.vh"]
+    assert not os.path.islink(os.path.join(idir, "defs.vh"))
+
+
+@needs_symlinks
+def test_collect_dangling_link_left_out(project_logger, caplog, path_keys):
+    os.makedirs('rtl')
+    with open('rtl/a.v', 'w') as f:
+        f.write('a')
+    os.symlink('missing.vh', 'rtl/broken.vh')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+    project_logger(proj)
+
+    collect(proj, keys=path_keys(proj), verbose=False)
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(idir) == ["a.v"]
+    assert f"Leaving out {os.path.abspath('rtl/broken.vh')}: its target missing.vh does " \
+        "not exist" in caplog.text
+
+
+@needs_symlinks
+def test_collect_links_in_directory_without_symlinks(project_logger, caplog, path_keys,
+                                                     monkeypatch):
+    """Without symbolic links, a link to a file is a hard link to its copy, a link to
+    a directory is a copy made of hard links, and a link to a directory that holds
+    it is left out, since the copy would never end."""
+    os.makedirs('rtl/inc')
+    with open('rtl/defs.vh', 'w') as f:
+        f.write('defs')
+    with open('rtl/inc/i.vh', 'w') as f:
+        f.write('i')
+    os.symlink('defs.vh', 'rtl/alias.vh')
+    os.symlink('inc', 'rtl/inc_alias')
+    os.symlink('..', 'rtl/inc/up')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+    project_logger(proj)
+
+    monkeypatch.setattr(os, "symlink", Mock(side_effect=OSError("privilege not held")))
+    collect(proj, keys=path_keys(proj), verbose=False)
+
+    idir = design.get_idir(fileset="rtl")[0]
+    alias = os.path.join(idir, "alias.vh")
+    assert not os.path.islink(alias)
+    assert os.path.samefile(alias, os.path.join(idir, "defs.vh"))
+    inc_alias = os.path.join(idir, "inc_alias")
+    assert not os.path.islink(inc_alias)
+    assert os.path.samefile(os.path.join(inc_alias, "i.vh"),
+                            os.path.join(idir, "inc", "i.vh"))
+    assert not os.path.lexists(os.path.join(idir, "inc", "up"))
+    assert f"Leaving out {os.path.abspath('rtl/inc/up')}: it links to a directory " \
+        "that holds it" in caplog.text
 
 
 def test_collect_file_with_false():

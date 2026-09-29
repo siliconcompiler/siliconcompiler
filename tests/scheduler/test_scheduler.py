@@ -23,7 +23,7 @@ from siliconcompiler.schema.parametervalue import PathNodeValue
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
-from siliconcompiler.utils.paths import jobdir, workdir
+from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -443,6 +443,30 @@ def test_increment_job_name_default_no_dir(basic_project):
     assert basic_project.get("option", "jobname") == "job0"
     assert scheduler._Scheduler__increment_job_name() is False
     assert basic_project.get("option", "jobname") == "job0"
+
+
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="Making a symbolic link needs a privilege on Windows")
+def test_run_setup_copies_collection_links(basic_project):
+    """A new job's copy of the previous collection keeps its links, where following
+    the one to its own directory would never end."""
+    basic_project.set('option', 'clean', True)
+    basic_project.set('option', 'jobincr', True)
+
+    rtl = os.path.join(collectiondir(basic_project), "rtl")
+    os.makedirs(rtl)
+    with open(os.path.join(rtl, "a.v"), "w") as f:
+        f.write("a")
+    os.symlink("..", os.path.join(rtl, "up"))
+
+    scheduler = Scheduler(basic_project)
+    assert scheduler._Scheduler__increment_job_name() is True
+    scheduler._Scheduler__run_setup()
+
+    copied = os.path.join(collectiondir(basic_project), "rtl")
+    assert copied != rtl
+    assert os.path.isfile(os.path.join(copied, "a.v"))
+    assert os.readlink(os.path.join(copied, "up")) == ".."
 
 
 @pytest.mark.parametrize("prev_name,new_name", [

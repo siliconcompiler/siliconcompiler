@@ -3,6 +3,7 @@ import tarfile
 
 import os.path
 
+from collections import deque
 from typing import List, Optional, TYPE_CHECKING, Tuple
 
 from siliconcompiler.schema import BaseSchema, Parameter
@@ -52,6 +53,10 @@ def collect(project: "Project",
     already holds, directly or inside a directory, gets a link to that copy at its
     own collected path: a symbolic link, or where one cannot be made, a hard link
     or a copy.
+
+    A link inside a collected directory is kept, pointed at its target's copy. A
+    target the collection does not otherwise hold is stored at the first link to it,
+    and a link whose target does not exist is left out with a warning.
 
     Args:
         keys (List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]):
@@ -186,9 +191,10 @@ def collect(project: "Project",
 
     symlinks = True
 
-    def link(copy: str, import_path: str) -> None:
+    def link(copy: str, import_path: str, real_path: str) -> bool:
         """
-        Name copy, already in the collection, at import_path too
+        Name copy, the collection's copy of real_path, at import_path too.
+        False if it cannot, which is a directory copied into itself
         """
         nonlocal symlinks
         os.makedirs(os.path.dirname(import_path), exist_ok=True)
@@ -197,20 +203,84 @@ def collect(project: "Project",
             try:
                 os.symlink(os.path.relpath(copy, os.path.dirname(import_path)), import_path,
                            target_is_directory=is_dir)
-                return
+                return True
             except OSError:
                 # Windows needs a privilege most users lack to make one
                 symlinks = False
         if is_dir:
-            shutil.copytree(copy, import_path)
-            return
+            if _is_within(import_path, copy):
+                return False
+            # Walked again from its source, so each file in it is hard-linked
+            copy_tree(real_path, import_path, real_path)
+            return True
         try:
             os.link(copy, import_path)
         except OSError:
             shutil.copy2(copy, import_path)
+        return True
+
+    path_filter = FilterDirectories(project)
+
+    # Links met while copying directories, as (link, where it goes), made once
+    # every directory is in, so each can point at its target's home
+    links = deque()
+
+    def copy_tree(source: str, dest: str, real_path: str) -> None:
+        """
+        Copy the directory source, whose real path is real_path, to dest. A file the
+        collection already holds is linked to, and a link is left for resolve_links
+        """
+        # Directories keep default permissions, since links go into them later
+        os.makedirs(dest)
+        with os.scandir(source) as it:
+            entries = sorted(it, key=lambda entry: entry.name)
+        ignore = set(path_filter.filter(source, [entry.name for entry in entries]))
+        for entry in entries:
+            if entry.name in ignore:
+                continue
+            entry_dest = os.path.join(dest, entry.name)
+            if entry.is_symlink():
+                links.append((entry.path, entry_dest))
+                continue
+            entry_real = os.path.join(real_path, entry.name)
+            copy = find_stored(entry_real)
+            if copy:
+                link(copy, entry_dest, entry_real)
+            elif entry.is_dir():
+                copy_tree(entry.path, entry_dest, entry_real)
+            else:
+                shutil.copy2(entry.path, entry_dest)
+
+    def resolve_links() -> None:
+        """
+        Point each link left by copy_tree at its target's copy, storing the target
+        at the link if the collection does not hold it yet
+        """
+        while links:
+            source, dest = links.popleft()
+            if not os.path.exists(source):
+                project.logger.warning(
+                    f"Leaving out {source}: its target {os.readlink(source)} does not exist")
+                continue
+            real_path = os.path.realpath(source)
+            copy = find_stored(real_path)
+            if copy:
+                if not link(copy, dest, real_path):
+                    project.logger.warning(
+                        f"Leaving out {source}: it links to a directory that holds it")
+                continue
+
+            if verbose:
+                project.logger.info(f"  Collecting link target: {real_path}")
+            stored[real_path] = dest
+            if os.path.isdir(real_path):
+                path_filter.abspath = real_path
+                copy_tree(real_path, dest, real_path)
+                path_filter.abspath = None
+            else:
+                shutil.copy2(real_path, dest)
 
     try:
-        path_filter = FilterDirectories(project)
         # Directories first, so that a file inside one is found there
         for is_dir, params in ((True, dirs), (False, files)):
             for real_path, abs_path, value in resolve(params):
@@ -223,7 +293,7 @@ def collect(project: "Project",
 
                 copy = find_stored(real_path)
                 if copy:
-                    link(copy, import_path)
+                    link(copy, import_path, real_path)
                     continue
 
                 if is_dir:
@@ -233,16 +303,17 @@ def collect(project: "Project",
 
                     if verbose:
                         project.logger.info(f"  Collecting directory: {abs_path}")
+                    stored[real_path] = import_path
                     path_filter.abspath = abs_path
-                    os.makedirs(os.path.dirname(import_path), exist_ok=True)
-                    shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
+                    copy_tree(abs_path, import_path, real_path)
                     path_filter.abspath = None
                 else:
                     if verbose:
                         project.logger.info(f"  Collecting file: {abs_path}")
                     os.makedirs(os.path.dirname(import_path), exist_ok=True)
                     shutil.copy2(abs_path, import_path)
-                stored[real_path] = import_path
+                    stored[real_path] = import_path
+            resolve_links()
     finally:
         if prev_dir:
             # Delete existing directory
