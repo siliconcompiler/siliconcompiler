@@ -549,12 +549,32 @@ class Results:
             os.replace(partial, dest)
 
     def _unpack(self, job_id: str, item: Dict[str, Any], into: str) -> None:
-        '''Expand one archive into the node's working directory: paths in a
-        node-bound tar are relative to it, and nothing lands outside it.'''
+        '''Expand one archive into the node's working directory.
+
+        Paths in a node-bound tar are relative to the node, and its links may
+        point into a sibling node's ``outputs/`` -- a passed-through file is a
+        link to the node that produced it -- so the archive is extracted
+        against the job's local directory, each member's name and each hard
+        link's target under ``<step>/<index>/``: the data filter then bounds
+        links by the job, not the node, and nothing lands outside the job.'''
+        root = jobdir(self.project)
+        prefix = os.path.relpath(into, root).replace(os.sep, "/")
         with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
             path = self._download(job_id, item, tmpdir)
             with tarfile.open(path, "r:*") as tar:
-                utils.extract_safely(tar, into)
+                members = []
+                for member in tar.getmembers():
+                    name = member.name
+                    while name.startswith("./"):
+                        name = name[2:]
+                    member.name = prefix if name in ("", ".") else f"{prefix}/{name}"
+                    if member.islnk():
+                        target = member.linkname
+                        while target.startswith("./"):
+                            target = target[2:]
+                        member.linkname = f"{prefix}/{target}"
+                    members.append(member)
+                utils.extract_safely(tar, root, members=members)
 
     def _replay(self) -> None:
         '''Fold the retrieved manifests back into this project.

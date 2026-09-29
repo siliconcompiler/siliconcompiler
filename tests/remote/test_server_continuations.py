@@ -263,7 +263,7 @@ def test_results_gone_before_the_copy_reject_the_job(server, server_client, key,
 
     earlier = ran(server, me)
 
-    def gone(archive, target):
+    def gone(archive, *args, **kwargs):
         raise FileNotFoundError(archive)
     monkeypatch.setattr(jobs, "_extract_outputs", gone)
 
@@ -358,3 +358,179 @@ def test_a_skipped_upstream_node_is_looked_through(server, server_client, key, t
     assert response.status_code == 202, response.get_json()
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == "queued"
+
+
+###########################
+# A copied node's links (surface *Passed-through files are resolved while staging*)
+###########################
+
+def three_nodes(project, both=False):
+    '''stepone -> steptwo -> stepthree, run from stepthree: it reads steptwo,
+    and -- with ``both`` -- stepone too.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    flow = Flowgraph("passflow")
+    for step in ("stepone", "steptwo", "stepthree"):
+        flow.node(step, NOPTask())
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    if both:
+        flow.edge("stepone", "stepthree")
+    project.set_flow(flow)
+    project.option.add_from("stepthree")
+    return project
+
+
+def ran_passing(server, user_id, copied_from=None):
+    '''An earlier job whose `steptwo` passed `stepone`'s output through, as a
+    link. With ``copied_from``, it took `stepone` from that job rather than
+    running it, so it holds no archive of it.'''
+    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.ids import uuid7
+
+    store, jobs = server.config["SC_STORE"], server.config["SC_JOBS"]
+    job_id = str(uuid7())
+    store.execute(
+        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, manifest_pdk) "
+        "VALUES (?, ?, 'completed', 'gcd', 'earlier', '{}', 'none')", (job_id, user_id))
+    job = store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
+    root = jobs.job_root(user_id, job_id)
+    tree = root / "gcd" / "earlier"
+    one = tree / "stepone" / "0"
+    (one / "outputs").mkdir(parents=True)
+    (one / "outputs" / "gcd.vg").write_text("module gcd; endmodule // from stepone\n")
+    (one / "outputs" / "gcd.pkg.json").write_text("{}")
+    two = tree / "steptwo" / "0"
+    (two / "outputs").mkdir(parents=True)
+    (two / "outputs" / "gcd.vg").symlink_to("../../../stepone/0/outputs/gcd.vg")
+    (two / "outputs" / "gcd.pkg.json").write_text("{}")
+    (two / "sc_steptwo_0.log").write_text("ran\n")
+
+    if copied_from:
+        store.execute('INSERT INTO job_continuations (job_id, step, "index", from_job_id) '
+                      "VALUES (?, 'stepone', '0', ?)", (job_id, copied_from))
+        ran_nodes = ["steptwo"]
+    else:
+        ran_nodes = ["stepone", "steptwo"]
+    for step in ran_nodes:
+        store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
+                      "VALUES (?, ?, '0', 'completed')", (job_id, step))
+        artifacts.collect_node(store, server.config["SC_STORAGE"], server.config["SC_CONFIG"],
+                               job, root, step, "0")
+    return job_id
+
+
+def copied(server, me, job, step="steptwo"):
+    return server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0" / step / "0" / \
+        "outputs" / "gcd.vg"
+
+
+def test_a_copied_nodes_link_to_a_home_not_in_place_gets_the_file(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher):
+    '''The home is not copied or uploaded: its file comes from the home
+    node's archive in the earlier job, placed at the link's path. No bytes
+    pass to or from the user.'''
+    earlier = ran_passing(server, me)
+
+    job, response = submitted(server_client, key, token,
+                              job_archive(three_nodes(nop_project)),
+                              continues_from=[entry(earlier, step="steptwo")])
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+    placed = copied(server, me, job)
+    assert not placed.is_symlink()
+    assert placed.read_text() == "module gcd; endmodule // from stepone\n"
+
+
+def test_a_copied_nodes_link_to_a_home_also_copied_stays_a_link(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher):
+    earlier = ran_passing(server, me)
+
+    job, response = submitted(server_client, key, token,
+                              job_archive(three_nodes(nop_project, both=True)),
+                              continues_from=[entry(earlier, step="steptwo"),
+                                              entry(earlier, step="stepone")])
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+    placed = copied(server, me, job)
+    assert placed.is_symlink()
+    assert placed.read_text() == "module gcd; endmodule // from stepone\n"
+
+
+def test_a_withheld_home_is_refused_naming_it(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher):
+    earlier = ran_passing(server, me)
+    server.config["SC_STORE"].execute(
+        "UPDATE artifacts SET withheld_at = '2026-09-01T00:00:00.000Z', withheld_by = ? "
+        "WHERE job_id = ? AND kind = 'node' AND step = 'stepone'", (me, earlier))
+
+    job, response = submitted(server_client, key, token,
+                              job_archive(three_nodes(nop_project)),
+                              continues_from=[entry(earlier, step="steptwo")])
+
+    body = response.get_json()
+    assert (response.status_code, slug(response)) == (422, "prior-results-unavailable")
+    assert (body["reason"], body["step"], body["index"], body["job_id"]) == \
+        ("withheld", "stepone", "0", earlier)
+    assert not dispatcher.submitted
+
+
+def test_a_home_the_earlier_job_took_from_a_third_resolves_through_it(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher):
+    '''The earlier job copied `stepone` in, so it has no archive of it: its
+    own continuations lead to the job that ran it.'''
+    first = ran_passing(server, me)
+    earlier = ran_passing(server, me, copied_from=first)
+    assert not server.config["SC_STORE"].all(
+        "SELECT id FROM artifacts WHERE job_id = ? AND step = 'stepone'", (earlier,))
+
+    job, response = submitted(server_client, key, token,
+                              job_archive(three_nodes(nop_project)),
+                              continues_from=[entry(earlier, step="steptwo")])
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+    assert copied(server, me, job).read_text() == "module gcd; endmodule // from stepone\n"
+
+
+def _uploaded_pass_through(nop_project, target="../../../stepone/0/outputs/gcd.vg"):
+    from siliconcompiler.utils.paths import workdir
+
+    for step in ("stepone", "steptwo"):
+        outputs = os.path.join(workdir(nop_project, step=step, index="0"), "outputs")
+        os.makedirs(outputs, exist_ok=True)
+        with open(os.path.join(outputs, "gcd.pkg.json"), "w") as f:
+            f.write("{}")
+    one = os.path.join(workdir(nop_project, step="stepone", index="0"), "outputs")
+    with open(os.path.join(one, "gcd.vg"), "w") as f:
+        f.write("module gcd; endmodule\n")
+    two = os.path.join(workdir(nop_project, step="steptwo", index="0"), "outputs")
+    os.symlink(target, os.path.join(two, "gcd.vg"))
+
+
+def test_an_upload_carrying_a_pass_through_link_is_taken(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher):
+    '''A link in an upstream node's `outputs/` into another's, in the same
+    archive: what the client packs for a passed-through file.'''
+    _uploaded_pass_through(three_nodes(nop_project, both=True))
+
+    job, response = submitted(server_client, key, token, job_archive(nop_project))
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+    assert copied(server, me, job).is_symlink()
+
+
+def test_a_link_in_upstream_outputs_to_anywhere_else_is_refused(
+        server, server_client, key, token, me, job_archive, nop_project, dispatcher):
+    _uploaded_pass_through(three_nodes(nop_project, both=True),
+                           target="../../../gcd.pkg.json")
+
+    job, response = submitted(server_client, key, token, job_archive(nop_project))
+
+    assert (response.status_code, slug(response)) == (422, "archive-rejected")
+    assert response.get_json()["reason"] == "unrequested_member"
+    assert "steptwo/0/outputs/gcd.vg is a link" in response.get_json()["detail"]

@@ -19,12 +19,19 @@ without closing it.
 Only the ROOT may be reached through a link: it is the server's own directory,
 and a datadir mounted through one is ordinary.
 
-🔴 **An archive keeps only the links that resolve inside it** (surface D159).
-A link is data the job wrote, and its target names a path: one pointing out --
-absolute, or climbing past the top -- tells whoever downloads the archive where
-this server keeps things (a private PDK's mount, another user's tree), and
-lands outside a naive extractor's directory. Those are dropped and logged,
-never stored.
+🔴 **An archive keeps a link inside the job as a link, pointed at the file's
+real home, and follows none out of it** (contract.md, *A produced archive keeps
+a link inside the job as a link*; database D142). Nothing is copied in place of
+a link: some tools keep links in their own databases, and copying their
+targets could store terabytes. A chain is read hop by hop (`links.resolve`);
+one that ends at a regular file or a directory inside the job's build
+directory becomes one relative link to where it ends, so SiliconCompiler's
+``outputs/x`` -> ``inputs/x`` -> upstream ``outputs/x`` is one link to the
+upstream node's ``outputs/x``. A hard-linked file is found its home by inode
+(`links.Homes`): stored as a link to it where that is another node, as a tar
+hard link where its other name is already in the archive. A chain that leaves
+the job, dangles or loops, and a file with a name outside the job, are dropped
+and logged, never stored.
 '''
 
 import logging
@@ -33,7 +40,9 @@ import stat
 import tarfile
 
 from pathlib import Path
-from typing import Iterable
+from typing import Dict, Iterable, Optional, Tuple
+
+from siliconcompiler.remote import links
 
 __all__ = ["open_inside", "size_inside", "inside", "add_tree", "add_file",
            "link_stays_inside"]
@@ -98,37 +107,53 @@ def add_file(tar: tarfile.TarFile, root, path, arcname: str) -> bool:
 
 
 def add_tree(tar: tarfile.TarFile, root, top, base, skip: Iterable[str] = (),
-             follow_inside: bool = False) -> None:
+             job_tree=None, homes: Optional["links.Homes"] = None) -> None:
     '''``top`` and everything under it into ``tar``, named relative to
     ``base``, never reading through a link out of ``root``.
 
-    A link is stored AS a link -- its target named, never read -- where that
-    target resolves inside ``top``, and dropped where it does not. With
-    ``follow_inside``, one that resolves to a regular file under ``root`` is
-    stored as that file's bytes instead: what a node's `inputs/` wants, its
-    upstream's outputs, which are inside the job. A name in ``skip`` is left
-    out wherever it appears.
+    A link is stored as a link, never read through: where its chain ends at a
+    regular file or directory inside ``job_tree`` -- the job's build directory
+    -- as one relative link to where it ends, and dropped otherwise. With
+    ``homes``, a hard-linked file becomes a link to its home where that is
+    outside ``top``, a tar hard link where its first name is already in this
+    archive, and is dropped where it has a name outside the job. A name in
+    ``skip`` is left out wherever it appears.
     '''
     skip = frozenset(skip)
     top, base = Path(top), Path(base)
     arcname = os.path.relpath(str(top), str(base))
+    packing = _Packing(job_tree if job_tree is not None else top, top, homes)
     if not _SAFE:
-        return _add_tree_by_path(tar, root, top, top, arcname, skip, follow_inside)
+        return _add_tree_by_path(tar, root, top, arcname, skip, packing)
 
     fd = _open_dir(root, top)
     try:
         if arcname != os.curdir:
             tar.addfile(_dir_info(tar, arcname, os.fstat(fd)))
-        _walk(tar, root, top, fd, top, arcname, skip, follow_inside)
+        _walk(tar, root, fd, top, arcname, skip, packing)
     finally:
         os.close(fd)
 
 
+class _Packing:
+    '''What one archive is being built from, and what it holds so far.'''
+
+    def __init__(self, job_tree, top, homes):
+        self.job_tree = Path(job_tree)
+        self.real_top = os.path.realpath(str(top))
+        self.homes = homes
+        # Each hard-linked file already stored, by inode, and the name it is
+        # stored under.
+        self.first: Dict[Tuple[int, int], str] = {}
+
+    def holds(self, path: str) -> bool:
+        return path == self.real_top or path.startswith(self.real_top + os.sep)
+
+
 def link_stays_inside(tree, link_dir, target: str) -> bool:
     '''Whether a link in ``link_dir`` naming ``target`` resolves inside
-    ``tree``, lexically -- as an extractor would see it, which is what matters
-    for what an archive carries. An absolute target never does: it names this
-    server's paths whatever it points at.'''
+    ``tree``, lexically -- as an extractor would see it. An absolute target
+    never does: it names this server's paths whatever it points at.'''
     if not target or os.path.isabs(target) or target.startswith(("/", "\\")):
         return False
     here = os.path.relpath(str(link_dir), str(tree))
@@ -137,15 +162,57 @@ def link_stays_inside(tree, link_dir, target: str) -> bool:
         and not os.path.isabs(resolved)
 
 
-def _add_link(tar, tree, link_dir, target: str, arcname: str, mtime=None) -> None:
-    if not link_stays_inside(tree, link_dir, target):
-        logger.info(f"left out of an archive: {arcname}, a link out of it ({target})")
+def _add_symlink(tar, packing: "_Packing", dir_path: Path, name: str, arcname: str,
+                 mtime=None) -> None:
+    '''A link, as one relative link to where its chain ends inside the job
+    -- a hard-linked end at its home -- or nothing.'''
+    end = links.resolve(packing.job_tree, dir_path / name)
+    if end is not None and packing.homes is not None and os.path.isfile(end):
+        info = os.lstat(end)
+        if info.st_nlink > 1:
+            if packing.homes.leaves(info):
+                end = None
+            else:
+                end = packing.homes.home(info) or end
+    if end is None:
+        logger.info(f"left out of an archive: {arcname}, a link that does not end "
+                    "inside the job")
         return
+    _write_link(tar, arcname, links.relative(end, os.path.realpath(str(dir_path))), mtime)
+
+
+def _write_link(tar, arcname: str, target: str, mtime=None) -> None:
     link = tar.tarinfo(arcname)
     link.type, link.linkname = tarfile.SYMTYPE, target
     if mtime is not None:
         link.mtime = mtime
     tar.addfile(link)
+
+
+def _add_regular(tar, packing: "_Packing", handle, info, dir_path: Path, arcname: str) -> None:
+    '''A regular file: its bytes, or -- hard-linked -- a link to its home or
+    to its first name in this archive.'''
+    if info.st_nlink > 1 and packing.homes is not None:
+        if packing.homes.leaves(info):
+            # 🔴 A name outside the job: this could be PDK data hard-linked in.
+            logger.info(f"left out of an archive: {arcname}, a file with a name "
+                        "outside the job")
+            return
+        key = (info.st_dev, info.st_ino)
+        if key in packing.first:
+            member = tar.tarinfo(arcname)
+            member.type, member.linkname = tarfile.LNKTYPE, packing.first[key]
+            member.mtime = info.st_mtime
+            tar.addfile(member)
+            return
+        home = packing.homes.home(info)
+        if home is not None and not packing.holds(home):
+            _write_link(tar, arcname,
+                        links.relative(home, os.path.realpath(str(dir_path))),
+                        info.st_mtime)
+            return
+        packing.first[key] = arcname
+    _add_open(tar, handle, info, arcname)
 
 
 ######################################################################
@@ -199,7 +266,7 @@ def _regular(fd: int, path) -> int:
     return fd
 
 
-def _walk(tar, root, tree, dir_fd, dir_path: Path, arcdir: str, skip, follow_inside) -> None:
+def _walk(tar, root, dir_fd, dir_path: Path, arcdir: str, skip, packing) -> None:
     with os.scandir(dir_fd) as entries:
         names = sorted(entry.name for entry in entries)
     for name in names:
@@ -209,10 +276,7 @@ def _walk(tar, root, tree, dir_fd, dir_path: Path, arcdir: str, skip, follow_ins
         info = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
 
         if stat.S_ISLNK(info.st_mode):
-            target = os.readlink(name, dir_fd=dir_fd)
-            if follow_inside and _add_link_target(tar, root, dir_path, target, arcname):
-                continue
-            _add_link(tar, tree, dir_path, target, arcname, info.st_mtime)
+            _add_symlink(tar, packing, dir_path, name, arcname, info.st_mtime)
         elif stat.S_ISDIR(info.st_mode):
             try:
                 sub = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
@@ -221,7 +285,7 @@ def _walk(tar, root, tree, dir_fd, dir_path: Path, arcdir: str, skip, follow_ins
                 continue            # swapped for a link or removed underneath
             try:
                 tar.addfile(_dir_info(tar, arcname, os.fstat(sub)))
-                _walk(tar, root, tree, sub, dir_path / name, arcname, skip, follow_inside)
+                _walk(tar, root, sub, dir_path / name, arcname, skip, packing)
             finally:
                 os.close(sub)
         elif stat.S_ISREG(info.st_mode):
@@ -231,21 +295,9 @@ def _walk(tar, root, tree, dir_fd, dir_path: Path, arcdir: str, skip, follow_ins
             except OSError:
                 continue
             with os.fdopen(fd, "rb") as handle:
-                _add_open(tar, handle, os.fstat(handle.fileno()), arcname)
+                _add_regular(tar, packing, handle, os.fstat(handle.fileno()), dir_path,
+                             arcname)
         # Devices, FIFOs and sockets are nobody's results.
-
-
-def _add_link_target(tar, root, dir_path: Path, target: str, arcname: str) -> bool:
-    '''A link's target as file bytes, where it is a regular file under root.'''
-    full = os.path.normpath(target if os.path.isabs(target)
-                            else os.path.join(str(dir_path), target))
-    try:
-        fd = _open_file(root, full)
-    except OSError:
-        return False
-    with os.fdopen(fd, "rb") as handle:
-        _add_open(tar, handle, os.fstat(handle.fileno()), arcname)
-    return True
 
 
 def _add_open(tar, handle, info, arcname: str) -> None:
@@ -278,7 +330,7 @@ def _open_file_by_path(root, path) -> int:
                     path)
 
 
-def _add_tree_by_path(tar, root, tree, top: Path, arcname: str, skip, follow_inside) -> None:
+def _add_tree_by_path(tar, root, top: Path, arcname: str, skip, packing) -> None:
     if not inside(root, top) or top.is_symlink():
         raise PermissionError(f"{top} is not under {root}")
     if arcname != os.curdir:
@@ -288,12 +340,13 @@ def _add_tree_by_path(tar, root, tree, top: Path, arcname: str, skip, follow_ins
             continue
         name = f"{arcname}/{child.name}" if arcname != os.curdir else child.name
         if child.is_symlink():
-            target = os.readlink(str(child))
-            if follow_inside and inside(root, child) and child.is_file():
-                add_file(tar, root, child, name)
-                continue
-            _add_link(tar, tree, top, target, name)
+            _add_symlink(tar, packing, top, child.name, name)
         elif child.is_dir():
-            _add_tree_by_path(tar, root, tree, child, name, skip, follow_inside)
+            _add_tree_by_path(tar, root, child, name, skip, packing)
         elif child.is_file():
-            add_file(tar, root, child, name)
+            try:
+                fd = _open_file(root, child)
+            except OSError:
+                continue
+            with os.fdopen(fd, "rb") as handle:
+                _add_regular(tar, packing, handle, os.fstat(handle.fileno()), top, name)

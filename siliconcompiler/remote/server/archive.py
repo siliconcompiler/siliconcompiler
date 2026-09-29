@@ -12,12 +12,22 @@ Every refusal is ``archive-rejected`` with a ``reason`` naming which rule was
 broken. One slug and six discriminators rather than six slugs: the registry is
 frozen at v1 and a member's value can be added after the freeze where a slug
 cannot.
+
+🔴 **An upload may carry links that resolve inside it** (contract.md's Member
+types and Links rows; D65): a symlink whose target, joined to its own
+directory, stays inside the extraction root, and a tar hard link to an earlier
+regular-file member. One resolving outside is ``link_member`` and is never
+followed. **No member name is absolute or holds ``..``** -- a link's target
+may climb, a member's name may not -- and **nothing is written through a
+link**: a member whose path, or any parent of it, is already a link, and a
+second non-directory member with a name already extracted, are ``traversal``.
 '''
 
+import os
 import tarfile
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 __all__ = ["ArchiveRejected", "extract", "VIOLATIONS", "MAX_EXPANSION_RATIO"]
 
@@ -53,13 +63,19 @@ class ArchiveRejected(Exception):
 
 
 def extract(archive: Path, dest: Path, limits: Dict[str, int],
-            allowed=None) -> int:
+            allowed=None, prefix: str = "", select=None) -> int:
     '''Unpack ``archive`` into ``dest``, or refuse.
 
     ``allowed``, where given, is asked of every member's normalised name
     before anything of it is written; a member it refuses rejects the archive
     as ``unrequested_member``. A follow-up archive may carry only what the
     server asked for.
+
+    ``prefix`` is put before every member's name, and every hard link's
+    target, so an archive of one node is placed at ``<step>/<index>/`` in the
+    job's tree and its links are bounded by the job rather than by the node.
+    ``select``, where given, skips a member whose name -- before the prefix --
+    it does not take.
 
     Streamed member by member and checked before each write, so the budget binds
     on what has been written rather than on what the headers promised. A tar
@@ -76,12 +92,33 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
     # above it.
     root = dest.resolve()
 
+    # Every link planted, so a refusal can take them all away again.
+    symlinks = []
+    try:
+        return _extract(archive, dest, root, limits, allowed, prefix, select, symlinks)
+    except ArchiveRejected:
+        # 🔴 No link this archive planted outlives its refusal.
+        for planted in symlinks:
+            try:
+                if (dest / planted).is_symlink():
+                    (dest / planted).unlink()
+            except OSError:
+                pass
+        raise
+
+
+def _extract(archive: Path, dest: Path, root: Path, limits, allowed, prefix, select,
+             symlinks) -> int:
     compressed = archive.stat().st_size
     max_members = limits["max_archive_members"]
     max_expanded = limits["max_archive_expanded_bytes"]
 
     members = 0
     expanded = 0
+    # Every non-directory member written, and the regular files among them: a
+    # name is written once, and a hard link names an earlier regular file.
+    written = set()
+    regular = set()
 
     with tarfile.open(archive, "r:*") as tar:
         for member in tar:
@@ -91,9 +128,12 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
                     "member_count",
                     f"the archive holds more than {max_members} members")
 
-            name = member.name.strip()
-            while name.startswith("./"):
-                name = name[2:]
+            name = _normalized(member.name)
+            if select is not None and not select(name):
+                continue
+            if prefix:
+                name = f"{prefix.rstrip('/')}/{name}" if name not in ("", ".") \
+                    else prefix.rstrip("/")
 
             if name in ("", "."):
                 # The archive's own root. `tar.add(dir, arcname="")` writes one
@@ -105,21 +145,53 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
                 raise ArchiveRejected(
                     "traversal", "the archive holds an unnamed member")
 
+            _check_name(name)
             _check_path(name, root, dest)
+            _check_not_through_a_link(name, dest, directory=member.isdir(),
+                                      written=written)
 
             if allowed is not None and not allowed(name):
                 raise ArchiveRejected(
                     "unrequested_member",
                     "the archive holds a member that was not asked for")
 
-            if member.issym() or member.islnk():
-                # Refused rather than resolved. A link is the one member whose
-                # meaning depends on where it is read: the same archive is safe
-                # here and an arbitrary-file-read there, and a build directory
-                # has no need of one.
-                raise ArchiveRejected(
-                    "link_member",
-                    f"the archive holds a link: {name}")
+            if member.issym():
+                target = _link_target(name, member.linkname)
+                if target is None:
+                    raise ArchiveRejected(
+                        "link_member",
+                        f"the archive holds a link that resolves outside it: {name}")
+                if allowed is not None and not allowed(target):
+                    raise ArchiveRejected(
+                        "unrequested_member",
+                        f"{name} links to something that was not asked for")
+                (dest / name).parent.mkdir(parents=True, exist_ok=True)
+                os.symlink(member.linkname, dest / name)
+                symlinks.append(name)
+                if not _stays_inside(dest / name, root):
+                    raise ArchiveRejected(
+                        "link_member",
+                        f"the archive holds a link that resolves outside it: {name}")
+                written.add(name)
+                continue
+
+            if member.islnk():
+                target = _normalized(member.linkname)
+                if prefix:
+                    target = f"{prefix.rstrip('/')}/{target}"
+                if target not in regular:
+                    raise ArchiveRejected(
+                        "link_member",
+                        f"{name} is a hard link to something that is not an earlier "
+                        "file in the archive")
+                if allowed is not None and not allowed(target):
+                    raise ArchiveRejected(
+                        "unrequested_member",
+                        f"{name} links to something that was not asked for")
+                (dest / name).parent.mkdir(parents=True, exist_ok=True)
+                os.link(dest / target, dest / name)
+                written.add(name)
+                continue
 
             if member.ischr() or member.isblk() or member.isfifo() or member.isdev():
                 raise ArchiveRejected(
@@ -147,8 +219,63 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
                     f"the archive expands more than {MAX_EXPANSION_RATIO}:1")
 
             _write(tar, member, dest / name)
+            written.add(name)
+            regular.add(name)
+
+    # 🔴 Once every member is in place: a link written early can be made to
+    # leave the root by one written after it, so each is resolved again.
+    for name in symlinks:
+        if not _stays_inside(dest / name, root):
+            raise ArchiveRejected(
+                "link_member", f"the archive holds a link that resolves outside it: {name}")
 
     return expanded
+
+
+def _normalized(name: str) -> str:
+    name = name.strip()
+    while name.startswith("./"):
+        name = name[2:]
+    return name
+
+
+def _check_name(name: str) -> None:
+    '''🔴 No member name is absolute or holds ``..``, lexically -- beside the
+    resolved-path check, since a link's target may climb and a name may not.'''
+    parts = name.replace("\\", "/").split("/")
+    if os.pardir in parts:
+        raise ArchiveRejected("traversal", f"the archive holds a member named with ..: {name}")
+
+
+def _check_not_through_a_link(name: str, dest: Path, directory: bool, written) -> None:
+    '''🔴 Nothing is written through a link: a member whose path, or any
+    parent of it, is already a link, and a second non-directory member with a
+    name already extracted.'''
+    parts = name.split("/")
+    for depth in range(1, len(parts) + 1):
+        if os.path.islink(dest.joinpath(*parts[:depth])):
+            raise ArchiveRejected("traversal",
+                                  f"the archive would write through a link: {name}")
+    if not directory and name in written:
+        raise ArchiveRejected("traversal", f"the archive holds {name} twice")
+
+
+def _link_target(name: str, target: str) -> Optional[str]:
+    '''Where a symlink named ``name`` points, as a name in the archive, or
+    None where that is not inside it -- lexically, as an extractor sees it.'''
+    if not target or os.path.isabs(target) or target.startswith(("/", "\\")) \
+            or ":" in target.split("/", 1)[0]:
+        return None
+    joined = os.path.normpath(os.path.join(os.path.dirname(name), target))
+    if joined in (os.curdir, os.pardir) or joined.startswith(os.pardir + os.sep) \
+            or os.path.isabs(joined):
+        return None
+    return joined.replace(os.sep, "/")
+
+
+def _stays_inside(link: Path, root: Path) -> bool:
+    real = Path(os.path.realpath(str(link)))
+    return real == root or root in real.parents
 
 
 def _check_path(name: str, root: Path, dest: Path) -> None:

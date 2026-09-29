@@ -1264,9 +1264,11 @@ def test_a_run_from_part_way_sends_the_results_it_starts_from(
     assert run._upstream()[1] == []                  # nothing to continue from
 
 
-def test_linked_outputs_are_sent_as_real_files(run, nop_project, tmp_path):
-    '''🔴 SiliconCompiler links a task's pass-through files -- a hard link, then a
-    symlink -- and the server refuses any link member.'''
+def test_linked_outputs_are_sent_as_links_and_each_file_once(run, nop_project, tmp_path):
+    '''🔴 Links stay links, and a file is stored once (contract.md, *An upload
+    keeps links*): a hard link is a tar hard link to the first, a symlink to a
+    file the archive holds is a link to it, and a link to nothing is left
+    out.'''
     import tarfile
 
     _leftovers(nop_project)
@@ -1281,11 +1283,12 @@ def test_linked_outputs_are_sent_as_real_files(run, nop_project, tmp_path):
 
     with tarfile.open(upload) as tar:
         members = {member.name: member for member in tar.getmembers()}
-        assert not any(member.issym() or member.islnk() for member in members.values())
-        for name in ("gcd.vg", "hard.vg", "soft.vg"):
-            member = members[f"stepone/0/outputs/{name}"]
-            assert member.isfile()
-            assert tar.extractfile(member).read() == b"module gcd; endmodule\n"
+        first = members["stepone/0/outputs/gcd.vg"]
+        assert first.isfile() and tar.extractfile(first).read() == b"module gcd; endmodule\n"
+        hard = members["stepone/0/outputs/hard.vg"]
+        assert hard.islnk() and hard.linkname == "stepone/0/outputs/gcd.vg"
+        soft = members["stepone/0/outputs/soft.vg"]
+        assert soft.issym() and soft.linkname == "gcd.vg"
     assert "stepone/0/outputs/dangling.vg" not in members
 
 
@@ -1690,3 +1693,118 @@ def test_a_task_class_no_package_provides_stops_before_create(
 
     with pytest.raises(RemoteError, match="installed package"):
         run._preflight()
+
+
+###########################
+# Links in what goes up (contract.md, *An upload keeps links*; client-v1-migration D4)
+###########################
+
+def _three_nodes(project, both=False):
+    '''stepone -> steptwo -> stepthree, run from stepthree: it reads steptwo,
+    and -- with ``both`` -- stepone too.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    flow = Flowgraph("passflow")
+    for step in ("stepone", "steptwo", "stepthree"):
+        flow.node(step, NOPTask())
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    if both:
+        flow.edge("stepone", "stepthree")
+    project.set_flow(flow)
+    project.option.add_from("stepthree")
+    return project
+
+
+def _passed_through(project, hard=True):
+    '''steptwo passed stepone's output through, as `link_symlink_copy`
+    leaves it: `outputs/x` -> `inputs/x`, the input a hard link (or a
+    symlink) to the upstream file.'''
+    from siliconcompiler.utils.paths import workdir
+
+    upstream = _upstream_node(project, "stepone", output="gcd.vg")
+    two = workdir(project, step="steptwo", index="0")
+    _upstream_node(project, "steptwo")
+    os.makedirs(os.path.join(two, "inputs"), exist_ok=True)
+    if hard:
+        os.link(os.path.join(upstream, "gcd.vg"), os.path.join(two, "inputs", "gcd.vg"))
+    else:
+        os.symlink(os.path.join(upstream, "gcd.vg"), os.path.join(two, "inputs", "gcd.vg"))
+    os.symlink("../inputs/gcd.vg", os.path.join(two, "outputs", "gcd.vg"))
+    return two
+
+
+def _members(run, tmp_path):
+    import tarfile
+
+    upload = tmp_path / "upload.tar.gz"
+    run._pack(upload)
+    with tarfile.open(upload) as tar:
+        return {member.name: member for member in tar.getmembers()}, \
+            {member.name: tar.extractfile(member).read() for member in tar.getmembers()
+             if member.isfile()}
+
+
+@pytest.mark.parametrize("hard", [True, False], ids=["hard-linked", "symlinked"])
+def test_a_chain_into_a_node_also_packed_is_one_link(run, nop_project, tmp_path, hard):
+    _three_nodes(nop_project, both=True)
+    _passed_through(nop_project, hard=hard)
+
+    members, _ = _members(run, tmp_path)
+
+    link = members["steptwo/0/outputs/gcd.vg"]
+    assert link.issym()
+    assert link.linkname == "../../../stepone/0/outputs/gcd.vg"
+    assert members["stepone/0/outputs/gcd.vg"].isfile()
+
+
+def test_a_chain_into_a_node_not_packed_is_the_file_once(run, nop_project, tmp_path):
+    '''stepone is not in the archive: the file is stored at its first
+    appearance, and a later link to it points at that copy.'''
+    _three_nodes(nop_project)
+    two = _passed_through(nop_project, hard=False)
+    os.symlink("../../../stepone/0/outputs/gcd.vg", os.path.join(two, "outputs", "again.vg"))
+
+    members, contents = _members(run, tmp_path)
+
+    assert not any(name.startswith("stepone") for name in members)
+    again, first = members["steptwo/0/outputs/again.vg"], "steptwo/0/outputs/gcd.vg"
+    # Sorted: `again.vg` comes first, so it holds the bytes.
+    assert again.isfile() and contents["steptwo/0/outputs/again.vg"] == \
+        b"module gcd; endmodule\n"
+    assert members[first].issym() and members[first].linkname == "again.vg"
+
+
+def test_a_link_out_of_the_build_directory_is_left_out_and_named(
+        run, nop_project, tmp_path, caplog):
+    '''To a file or a directory: never followed, never sent.'''
+    import logging
+
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    (outside / "secret.lib").write_text("the foundry's own\n")
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    os.symlink(str(outside / "secret.lib"), os.path.join(outputs, "lib"))
+    os.symlink(str(outside), os.path.join(outputs, "libs"))
+    nop_project.option.add_from("steptwo")
+    caplog.set_level(logging.WARNING)
+
+    members, _ = _members(run, tmp_path)
+
+    assert "stepone/0/outputs/lib" not in members
+    assert not any(name.startswith("stepone/0/outputs/libs") for name in members)
+    assert "stepone/0/outputs/lib is a link out of the build directory" in caplog.text
+
+
+def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
+    '''A link to a node this machine never fetched is a missing file.'''
+    _three_nodes(nop_project)
+    from siliconcompiler.utils.paths import workdir
+
+    two = workdir(nop_project, step="steptwo", index="0")
+    _upstream_node(nop_project, "steptwo", output="own.vg")
+    os.symlink("../../../stepone/0/outputs/gcd.vg", os.path.join(two, "outputs", "gcd.vg"))
+
+    with pytest.raises(RemoteError, match="steptwo/0/outputs/gcd.vg is a link to"):
+        run._check_upstream_files()

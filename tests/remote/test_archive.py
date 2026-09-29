@@ -133,12 +133,28 @@ def test_a_symlink_is_refused_not_resolved(tmp_path):
     assert not (tmp_path / "dest" / "shadow").exists()
 
 
-def test_a_hard_link_is_refused_too(tmp_path):
+def test_a_hard_link_to_an_earlier_file_is_extracted_as_one(tmp_path):
+    '''A tar hard link to an earlier regular-file member is the same file
+    under a second name (contract.md's Member types row).'''
     archive = tmp_path / "a.tar.gz"
     link = tarfile.TarInfo("shadow")
     link.type = tarfile.LNKTYPE
     link.linkname = "manifest.json"
     build(archive, [regular("manifest.json", b"{}"), (link, None)])
+
+    extract(archive, tmp_path / "dest", LIMITS)
+
+    dest = tmp_path / "dest"
+    assert (dest / "shadow").read_bytes() == b"{}"
+    assert os.path.samefile(dest / "shadow", dest / "manifest.json")
+
+
+def test_a_hard_link_to_anything_but_an_earlier_file_is_refused(tmp_path):
+    archive = tmp_path / "a.tar.gz"
+    link = tarfile.TarInfo("shadow")
+    link.type = tarfile.LNKTYPE
+    link.linkname = "later.json"
+    build(archive, [(link, None), regular("later.json", b"{}")])
 
     with pytest.raises(ArchiveRejected) as rejected:
         extract(archive, tmp_path / "dest", LIMITS)
@@ -227,3 +243,118 @@ def test_nothing_is_left_behind_by_a_refusal(tmp_path):
 
     assert Path(tmp_path / "dest" / "first").is_file()
     assert not Path(tmp_path / "dest" / "shadow").exists()
+
+
+###########################
+# Links that resolve inside the archive (contract.md's Links row; D65)
+###########################
+
+def symlink(name, target):
+    info = tarfile.TarInfo(name)
+    info.type, info.linkname = tarfile.SYMTYPE, target
+    return info, None
+
+
+def test_an_inward_symlink_is_extracted_as_a_link(tmp_path):
+    '''A pass-through: one node's output linked to another's, climbing out of
+    its own directory and staying in the archive.'''
+    archive = tmp_path / "a.tar.gz"
+    build(archive, [regular("stepone/0/outputs/gcd.vg", b"module gcd; endmodule\n"),
+                    symlink("steptwo/0/outputs/gcd.vg", "../../../stepone/0/outputs/gcd.vg")])
+
+    extract(archive, tmp_path / "dest", LIMITS)
+
+    link = tmp_path / "dest" / "steptwo/0/outputs/gcd.vg"
+    assert link.is_symlink()
+    assert link.read_bytes() == b"module gcd; endmodule\n"
+
+
+def test_a_link_out_of_the_archive_is_refused(tmp_path):
+    archive = tmp_path / "a.tar.gz"
+    build(archive, [symlink("steptwo/0/outputs/stolen", "../../../../etc/passwd")])
+
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "dest", LIMITS)
+
+    assert rejected.value.reason == "link_member"
+    assert not (tmp_path / "dest" / "steptwo/0/outputs/stolen").exists()
+
+
+def test_a_link_made_to_leave_by_a_later_one_is_refused(tmp_path):
+    '''Each link resolves inside as it is written; together they climb out.
+    Every link is resolved again once all are in place.'''
+    archive = tmp_path / "a.tar.gz"
+    directory = tarfile.TarInfo("d")
+    directory.type = tarfile.DIRTYPE
+    build(archive, [(directory, None),
+                    symlink("a/far", "x/../../out"),
+                    symlink("a/x", "../d")])
+
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "dest", LIMITS)
+
+    assert rejected.value.reason == "link_member"
+    assert not (tmp_path / "dest" / "a" / "far").is_symlink()
+
+
+def test_a_member_named_with_dotdot_is_traversal(tmp_path):
+    '''A link's target may climb; a member's name may not.'''
+    archive = tmp_path / "a.tar.gz"
+    build(archive, [regular("stepone/../manifest.json", b"{}")])
+
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "dest", LIMITS)
+
+    assert rejected.value.reason == "traversal"
+
+
+def test_nothing_is_written_through_an_earlier_link(tmp_path):
+    '''🔴 A symlink planted first would let a later member overwrite the
+    manifest, or a file outside the collection.'''
+    archive = tmp_path / "a.tar.gz"
+    directory = tarfile.TarInfo("stepone")
+    directory.type = tarfile.DIRTYPE
+    build(archive, [(directory, None), regular("stepone/manifest.json", b"{}"),
+                    symlink("sc_collected_files", "stepone"),
+                    regular("sc_collected_files/manifest.json", b"owned")])
+
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "dest", LIMITS)
+
+    assert rejected.value.reason == "traversal"
+    assert (tmp_path / "dest" / "stepone" / "manifest.json").read_bytes() == b"{}"
+
+
+def test_a_second_member_of_one_name_is_traversal(tmp_path):
+    archive = tmp_path / "a.tar.gz"
+    build(archive, [regular("manifest.json", b"{}"), regular("manifest.json", b"owned")])
+
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "dest", LIMITS)
+
+    assert rejected.value.reason == "traversal"
+    assert (tmp_path / "dest" / "manifest.json").read_bytes() == b"{}"
+
+
+def test_a_follow_up_link_to_what_was_not_asked_for_is_refused(tmp_path):
+    '''A link in a follow-up archive is held to what that archive may carry,
+    its target included.'''
+    archive = tmp_path / "a.tar.gz"
+    build(archive, [symlink("sc_collected_files/asked/x", "../../manifest.json")])
+
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "dest", LIMITS,
+                allowed=lambda name: name.startswith("sc_collected_files"))
+
+    assert rejected.value.reason == "unrequested_member"
+
+
+def test_a_link_counts_as_a_member_and_not_toward_the_size(tmp_path):
+    archive = tmp_path / "a.tar.gz"
+    build(archive, [regular("stepone/0/outputs/x", b"12345"),
+                    symlink("steptwo/0/outputs/x", "../../../stepone/0/outputs/x")])
+
+    assert extract(archive, tmp_path / "dest", LIMITS) == 5
+    with pytest.raises(ArchiveRejected) as rejected:
+        extract(archive, tmp_path / "again", dict(LIMITS, max_archive_members=1))
+    assert rejected.value.reason == "member_count"

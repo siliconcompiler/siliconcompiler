@@ -93,6 +93,7 @@ import tarfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from siliconcompiler.remote import links
 from siliconcompiler.remote.server import confine
 from siliconcompiler.remote.server.dispatch import RUN_LOG
 from siliconcompiler.remote.server.ids import uuid7
@@ -136,6 +137,10 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     # a node's code can leave a link anywhere in its working directory, and
     # following one would index the host's files as the job's results.
     root = Path(build_root)
+    # Where a link may end, and every hard-linked file's home, walked once for
+    # this node's archives (database D142).
+    job_tree = root / job["design"] / job["jobname"]
+    homes = links.Homes(job_tree)
 
     written += _log_archive(store, storage, job, location, floor, step, index,
                             workdir, root)
@@ -160,26 +165,27 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     reports = workdir / "reports"
     if _real_dir(reports) and any(reports.iterdir()):
         written += _archive(store, storage, job, location, floor, "reports",
-                            step, index, reports, workdir, root)
+                            step, index, reports, workdir, root, job_tree=job_tree,
+                            homes=homes)
 
-    # 🔴 A link to a file inside the job is stored as that file's bytes. A
-    # task's pass-through output is a link into its `inputs/`, which this
-    # archive leaves out, so stored as a link it would arrive dangling -- for
-    # a user downloading the node, and for a run continuing from it
-    # (surface D175).
+    # 🔴 A link inside the job stays a link, pointed at the file's real home:
+    # a task's pass-through output becomes one link to the upstream node's
+    # `outputs/`. So a node archive is not self-contained -- a passed-through
+    # file resolves where its home node is unpacked beside it -- and nothing
+    # is copied in place of a link (contract.md; database D142).
     if any(child.name not in _NOT_IN_A_NODE for child in workdir.iterdir()):
         written += _archive(store, storage, job, location, floor, "node",
                             step, index, workdir, workdir, root, skip=_NOT_IN_A_NODE,
-                            follow_inside=True)
+                            job_tree=job_tree, homes=homes)
 
     # What the node was handed, on its own: the node archive leaves it out, and
-    # it is what somebody debugging the node wants to read. 🔴 A link is
-    # followed only to a file inside this job's tree -- an upstream output --
-    # and stored as a link otherwise, never read.
+    # it is what somebody debugging the node wants to read -- links to the
+    # upstream outputs it was handed, never their bytes.
     inputs = workdir / "inputs"
     if _real_dir(inputs) and any(inputs.iterdir()):
         written += _archive(store, storage, job, location, floor, "input",
-                            step, index, inputs, workdir, root, follow_inside=True)
+                            step, index, inputs, workdir, root, job_tree=job_tree,
+                            homes=homes)
 
     return written
 
@@ -445,14 +451,14 @@ def _real_dir(path: Path) -> bool:
 
 
 def _archive(store, storage, job, location, floor, kind, step, index,
-             top: Path, base: Path, root, skip=(), follow_inside: bool = False) -> int:
+             top: Path, base: Path, root, skip=(), job_tree=None, homes=None) -> int:
     '''A directory, as one gzipped tar, recorded as one artifact.
 
     Stored relative to the node's working directory, so a client unpacks it
     straight into the same place without knowing anything about this server's
     layout -- which is the reason the contract has no per-artifact path. Read
-    through `confine`, so a link is stored as a link and never followed out of
-    ``root``; ``follow_inside`` follows one to a file inside it.
+    through `confine`, so a link is stored as a link, pointed at its file's
+    home inside ``job_tree``, and never followed.
     '''
     if _exists(store, job, kind, step, index):
         return 0
@@ -463,7 +469,8 @@ def _archive(store, storage, job, location, floor, kind, step, index,
 
     try:
         with tarfile.open(target, "w:gz") as tar:
-            confine.add_tree(tar, root, top, base, skip=skip, follow_inside=follow_inside)
+            confine.add_tree(tar, root, top, base, skip=skip, job_tree=job_tree,
+                             homes=homes)
     except BaseException:
         target.unlink(missing_ok=True)
         raise

@@ -1018,3 +1018,79 @@ def test_final_is_fetched(fake_v1, results):
     fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0", tarball(["x.json"]))
 
     assert results.fetch("j1") == 2
+
+
+###########################
+# A node archive is not self-contained (client-v1-migration.md)
+###########################
+
+def linked_tarball(members):
+    '''A node archive as `sc-server` now produces one: ``(name, bytes)`` for a
+    file, ``(name, "->", target)`` for a symlink, ``(name, "=>", first)`` for a
+    tar hard link.'''
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+        for entry in members:
+            info = tarfile.TarInfo(entry[0])
+            if len(entry) == 3:
+                info.type = tarfile.SYMTYPE if entry[1] == "->" else tarfile.LNKTYPE
+                info.linkname = entry[2]
+                tar.addfile(info)
+            else:
+                info.size = len(entry[1])
+                tar.addfile(info, io.BytesIO(entry[1]))
+    return buffer.getvalue()
+
+
+def serve_nodes(fake_v1, archives):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts",
+                  {"items": [artifact("node", step, "0") for step in archives]})
+    for step, body in archives.items():
+        fake_v1.route(responses.GET, f"jobs/j1/artifacts/art-node-{step}-0", body,
+                      content_type="application/gzip")
+
+
+@pytest.mark.parametrize("fallback", [False, True], ids=["data-filter", "fallback"])
+def test_a_link_into_a_sibling_nodes_outputs_extracts_inside_the_job(
+        fake_v1, results, nop_project, monkeypatch, fallback):
+    '''A passed-through file is a link to the node that produced it, and a
+    hard-linked pair is one file: both land inside the job's local directory,
+    and resolve once the home node is there.'''
+    from siliconcompiler import utils
+    from siliconcompiler.utils.paths import workdir
+
+    if fallback:
+        monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
+    serve_nodes(fake_v1, {
+        "stepone": linked_tarball([("outputs/gcd.vg", b"module gcd; endmodule\n")]),
+        "steptwo": linked_tarball([
+            ("outputs/gcd.vg", "->", "../../../stepone/0/outputs/gcd.vg"),
+            ("outputs/a.v", b"module a; endmodule\n"),
+            ("outputs/b.v", "=>", "outputs/a.v")])})
+
+    results.fetch("j1")
+
+    two = workdir(nop_project, step="steptwo", index="0")
+    passed = os.path.join(two, "outputs", "gcd.vg")
+    assert os.path.islink(passed)
+    with open(passed) as f:
+        assert f.read() == "module gcd; endmodule\n"
+    assert os.path.samefile(os.path.join(two, "outputs", "a.v"),
+                            os.path.join(two, "outputs", "b.v"))
+
+
+@pytest.mark.parametrize("fallback", [False, True], ids=["data-filter", "fallback"])
+def test_a_link_out_of_the_job_is_refused(fake_v1, results, nop_project, monkeypatch,
+                                          fallback, caplog):
+    from siliconcompiler import utils
+    from siliconcompiler.utils.paths import workdir
+
+    if fallback:
+        monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
+    serve_nodes(fake_v1, {"steptwo": linked_tarball([
+        ("outputs/stolen", "->", "../../../../../../../../etc/passwd")])})
+
+    results.fetch("j1")
+
+    two = workdir(nop_project, step="steptwo", index="0")
+    assert not os.path.lexists(os.path.join(two, "outputs", "stolen"))

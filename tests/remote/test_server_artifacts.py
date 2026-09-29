@@ -878,24 +878,124 @@ def _node_with_inputs(server, finished, step, links):
         "SELECT * FROM artifacts WHERE job_id = ? AND step = ?", (job["id"], step))
 
 
-def test_a_link_inside_the_job_is_followed_to_the_bytes(server, finished):
-    '''An upstream output, linked into a node's `inputs/`: the archive holds
-    the bytes the node read.'''
-    import tarfile
-
+def _upstream_file(server, finished):
     job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
-    upstream = (server.config["SC_JOBS"].job_root(job["user_id"], job["id"]) / "gcd" /
-                "job0" / "stepone" / "0" / "outputs")
+    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
+    upstream = root / "gcd" / "job0" / "stepone" / "0" / "outputs"
     upstream.mkdir(parents=True, exist_ok=True)
     (upstream / "gcd.vg").write_text("module gcd; endmodule\n")
+    return job, root, upstream / "gcd.vg"
 
-    rows = _node_with_inputs(server, finished, "linked", {"gcd.vg": upstream / "gcd.vg"})
-    row, = [row for row in rows if row["kind"] == "input"]
+
+def _members(server, row):
+    import tarfile
 
     with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
-        member = tar.getmember("inputs/gcd.vg")
-        assert member.isfile()
-        assert tar.extractfile(member).read() == b"module gcd; endmodule\n"
+        return {member.name: member for member in tar.getmembers()}
+
+
+def test_the_node_bound_input_holds_links_not_bytes(server, finished):
+    '''🔴 An upstream output linked into a node's `inputs/` is stored as one
+    link to its home, never as the bytes (database D142).'''
+    _, _, upstream = _upstream_file(server, finished)
+
+    rows = _node_with_inputs(server, finished, "linked", {"gcd.vg": upstream})
+    row, = [row for row in rows if row["kind"] == "input"]
+
+    member = _members(server, row)["inputs/gcd.vg"]
+    assert member.issym()
+    assert member.linkname == "../../../stepone/0/outputs/gcd.vg"
+
+
+def _pass_through(server, finished, hard: bool):
+    '''A node that passes its input through: `outputs/x` -> `inputs/x` ->
+    the upstream `outputs/x`, by symlink or by hard link, as
+    `link_symlink_copy` makes it.'''
+    import os
+
+    from siliconcompiler.remote.server import artifacts
+
+    job, root, upstream = _upstream_file(server, finished)
+    node = root / "gcd" / "job0" / "passed" / "0"
+    (node / "inputs").mkdir(parents=True)
+    (node / "outputs").mkdir()
+    (node / "sc_passed_0.log").write_text("log\n")
+    if hard:
+        os.link(upstream, node / "inputs" / "gcd.vg")
+        os.link(node / "inputs" / "gcd.vg", node / "outputs" / "gcd.vg")
+    else:
+        (node / "inputs" / "gcd.vg").symlink_to(upstream)
+        (node / "outputs" / "gcd.vg").symlink_to("../inputs/gcd.vg")
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job, root, "passed", "0")
+    return {row["kind"]: row for row in server.config["SC_STORE"].all(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'passed'", (job["id"],))}
+
+
+@pytest.mark.parametrize("hard", [False, True], ids=["symlinked", "hard-linked"])
+def test_a_pass_through_nodes_archive_holds_one_link_to_its_home(server, finished, hard):
+    '''SiliconCompiler's chain becomes one relative link to the upstream
+    node's `outputs/` -- a symlinked chain by reading it, a hard-linked one by
+    finding the file's home by inode. Nothing is copied.'''
+    rows = _pass_through(server, finished, hard)
+
+    for kind, name in (("node", "outputs/gcd.vg"), ("input", "inputs/gcd.vg")):
+        member = _members(server, rows[kind])[name]
+        assert member.issym(), (kind, member.type)
+        assert member.linkname == "../../../stepone/0/outputs/gcd.vg"
+
+
+def test_a_hard_linked_pair_in_one_node_is_a_tar_hard_link(server, finished):
+    '''Both names in the same archive: the bytes once, and a hard link to
+    their first appearance.'''
+    import os
+
+    from siliconcompiler.remote.server import artifacts
+
+    job, root, _ = _upstream_file(server, finished)
+    node = root / "gcd" / "job0" / "twice" / "0"
+    (node / "outputs").mkdir(parents=True)
+    (node / "outputs" / "a.vg").write_text("module a; endmodule\n")
+    os.link(node / "outputs" / "a.vg", node / "outputs" / "b.vg")
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job, root, "twice", "0")
+    row = server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'twice' AND kind = 'node'",
+        (job["id"],))
+
+    members = _members(server, row)
+    assert members["outputs/a.vg"].isfile()
+    assert members["outputs/b.vg"].islnk()
+    assert members["outputs/b.vg"].linkname == "outputs/a.vg"
+
+
+def test_a_file_with_a_name_outside_the_job_is_dropped(server, finished, tmp_path):
+    '''🔴 A link count above the names the job's tree holds is a name
+    outside the job -- PDK data hard-linked in, perhaps -- and it is treated as
+    a link leaving the job: dropped, never stored.'''
+    import os
+
+    from siliconcompiler.remote.server import artifacts
+
+    job, root, _ = _upstream_file(server, finished)
+    outside = tmp_path / "pdk.lib"
+    outside.write_text("the foundry's own file\n")
+    node = root / "gcd" / "job0" / "borrowed" / "0"
+    (node / "outputs").mkdir(parents=True)
+    (node / "outputs" / "mine.v").write_text("module mine; endmodule\n")
+    try:
+        os.link(outside, node / "outputs" / "pdk.lib")
+    except OSError:
+        pytest.skip("the job tree and tmp_path are on different filesystems")
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job, root, "borrowed", "0")
+    row = server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'borrowed' AND kind = 'node'",
+        (job["id"],))
+
+    members = _members(server, row)
+    assert "outputs/pdk.lib" not in members
+    assert members["outputs/mine.v"].isfile()
 
 
 def test_a_link_out_of_the_job_is_never_read_nor_stored(

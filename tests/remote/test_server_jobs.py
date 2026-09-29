@@ -1895,11 +1895,24 @@ def test_a_manifest_from_a_newer_schema_is_refused(
         body = json.load(f)
     body["schemaversion"]["node"]["default"]["default"]["value"] = "99.0.0"
 
-    # A second member of the same name, which is what extraction ends up with:
-    # the builder writes the real manifest itself, so this is how a manifest
-    # from the future gets into the archive.
-    archive, upload_digest, size = job_archive(
-        extra={f"{nop_project.name}.pkg.json": json.dumps(body).encode()})
+    # The builder writes the real manifest itself, so the manifest from the
+    # future replaces it in the archive: a second member of one name is
+    # refused as `traversal`.
+    import hashlib
+    import io
+    import tarfile
+
+    built, _, _ = job_archive()
+    archive = os.path.abspath("future.tar.gz")
+    with tarfile.open(built) as source, tarfile.open(archive, "w:gz") as out:
+        for member in source.getmembers():
+            data = source.extractfile(member) if member.isfile() else None
+            if member.name.lstrip("./") == f"{nop_project.name}.pkg.json":
+                encoded = json.dumps(body).encode()
+                member.size, data = len(encoded), io.BytesIO(encoded)
+            out.addfile(member, data)
+    blob = open(archive, "rb").read()
+    upload_digest, size = "sha256:" + hashlib.sha256(blob).hexdigest(), len(blob)
     job = stage(server_client, key, token, archive, size)
 
     response = submit(server_client, key, token, job["id"], upload_digest, size)

@@ -659,6 +659,7 @@ def test_a_link_in_an_archive_is_never_followed(signed_in, finished, server, me)
     the archive, and the portal serves nothing by alias.'''
     store = server.config["SC_STORE"]
     root = server.config["SC_JOBS"].job_root(me, finished["id"]) / "gcd" / "job0"
+    (root / "stepone" / "0" / "outputs").mkdir(exist_ok=True)
     (root / "stepone" / "0" / "alias.log").symlink_to("outputs")
 
     store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'node'",

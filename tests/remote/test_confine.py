@@ -120,20 +120,31 @@ def test_a_tree_stores_a_link_inside_it_as_a_link(tree, mode):
     assert members["outputs/gcd.vg"].isfile()
 
 
-@pytest.mark.parametrize("target", ["secret", "../../elsewhere", "inside-but-absolute"])
+@pytest.mark.parametrize("target", ["secret", "../../elsewhere"])
 def test_a_link_out_of_the_tree_is_left_out(tree, mode, target):
     '''🔴 Its target names this server's paths -- where a private PDK is
     mounted, another user's tree -- and lands outside a naive extractor's
-    directory. Absolute, even pointing inside: the path itself is the leak.'''
+    directory. Never followed, never stored.'''
     root, secret = tree
-    linked = {"secret": str(secret), "../../elsewhere": "../../elsewhere",
-              "inside-but-absolute": str(root / "node" / "outputs" / "gcd.vg")}[target]
+    linked = {"secret": str(secret), "../../elsewhere": "../../elsewhere"}[target]
     (root / "node" / "outputs" / "stolen").symlink_to(linked)
 
     members, _ = archived(root, root / "node", root / "node")
 
     assert "outputs/stolen" not in members
     assert members["outputs/gcd.vg"].isfile()
+
+
+def test_an_absolute_link_inside_the_job_is_kept_as_a_relative_one(tree, mode):
+    '''Where it ends inside the job it is one relative link to there, so the
+    archive names no path of this server's.'''
+    root, _ = tree
+    (root / "node" / "outputs" / "alias").symlink_to(root / "node" / "outputs" / "gcd.vg")
+
+    members, _ = archived(root, root / "node", root / "node")
+
+    assert members["outputs/alias"].issym()
+    assert members["outputs/alias"].linkname == "gcd.vg"
 
 
 def test_a_link_climbing_out_of_the_archived_tree_is_left_out_though_in_the_root(tree, mode):
@@ -147,17 +158,26 @@ def test_a_link_climbing_out_of_the_archived_tree_is_left_out_though_in_the_root
     assert "outputs/sibling" not in members
 
 
-def test_a_tree_follows_a_link_inside_only_when_asked(tree, mode):
+def test_a_chain_is_one_link_to_where_it_ends_and_nothing_is_copied(tree, mode):
+    '''🔴 SiliconCompiler's `outputs/x` -> `inputs/x` -> upstream `outputs/x`
+    becomes one link to the upstream file (contract.md, *A produced archive
+    keeps a link inside the job as a link*), and a link out of the job is
+    dropped.'''
     root, secret = tree
+    upstream = root / "up" / "outputs"
+    upstream.mkdir(parents=True)
+    (upstream / "gcd.vg").write_text("module gcd; endmodule\n")
     inputs = root / "node" / "inputs"
     inputs.mkdir()
-    (inputs / "gcd.vg").symlink_to(root / "node" / "outputs" / "gcd.vg")
+    (inputs / "gcd.vg").symlink_to(upstream / "gcd.vg")
     (inputs / "stolen").symlink_to(secret)
+    (root / "node" / "outputs" / "passed.vg").symlink_to("../inputs/gcd.vg")
 
-    members, tar = archived(root, inputs, root / "node", follow_inside=True)
+    members, tar = archived(root, root / "node", root / "node", job_tree=root)
 
-    assert members["inputs/gcd.vg"].isfile()
-    assert tar.extractfile(members["inputs/gcd.vg"]).read() == b"module gcd; endmodule\n"
+    assert members["outputs/passed.vg"].issym()
+    assert members["outputs/passed.vg"].linkname == "../../up/outputs/gcd.vg"
+    assert members["inputs/gcd.vg"].linkname == "../../up/outputs/gcd.vg"
     assert "inputs/stolen" not in members
 
 

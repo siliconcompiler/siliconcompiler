@@ -444,8 +444,10 @@ class JobService:
         needs no change. The copied node gets no row and no artifacts here.
 
         🔴 **The archive is read as untrusted**, like every read of a job's
-        tree: the `data` filter, regular files and directories only -- no
-        link, no FIFO, socket or device -- and only under ``outputs/``.
+        tree: an upload's rules (`archive.extract`), links included, and only
+        under ``outputs/``. A link to a passed-through file's home is then
+        resolved from the earlier job's own archives (:meth:`_resolve_links`),
+        and no bytes pass to or from the user.
         '''
         for (step, index), from_job in copies:
             held = {row["kind"]: row for row in self._store.all(
@@ -462,7 +464,7 @@ class JobService:
             target = unpacked / step / index
             try:
                 _extract_outputs(self._storage.artifact_path(held["node"]["storage_key"]),
-                                 target)
+                                 unpacked, step, index, self._config.limits)
                 with gzip.open(self._storage.artifact_path(
                         held["manifest"]["storage_key"])) as source, \
                         open(target / "outputs" / f"{job['design']}.pkg.json", "wb") as out:
@@ -473,10 +475,118 @@ class JobService:
                     reason="expired",
                     detail=f"the results of {step}/{index} in job {from_job} went before "
                            "they could be copied")) from None
+            except archive.ArchiveRejected as e:
+                raise _ServerFailure(f"the results of {step}/{index} in job {from_job} "
+                                     f"could not be copied: {e.detail}") from None
             except OSError as e:
                 raise _ServerFailure(f"this server's store did not answer the copy of "
                                      f"{step}/{index} from job {from_job}: {e}") from None
             logger.info(f"{job['id']}: copied {step}/{index} from {from_job}")
+
+        in_place = {node for node, _ in copies} | {
+            node for node in self._upstream_uploaded(job, unpacked)}
+        for (step, index), from_job in copies:
+            self._resolve_links(job, unpacked, (step, index), from_job, in_place)
+
+    # How many earlier jobs a passed-through file's home is looked for through.
+    CONTINUATION_DEPTH = 8
+
+    def _upstream_uploaded(self, job, unpacked: Path):
+        '''The nodes whose outputs arrived in the upload.'''
+        for top in sorted(unpacked.iterdir()):
+            if not top.is_dir() or top.is_symlink():
+                continue
+            for node in sorted(top.iterdir()):
+                if (node / "outputs").is_dir() and not (node / "outputs").is_symlink() \
+                        and runspec.outputs_present(node, job["design"]):
+                    yield (top.name, node.name)
+
+    def _resolve_links(self, job, unpacked: Path, node, from_job: str, in_place) -> None:
+        '''Every link in a copied node's ``outputs/`` to a file whose home is
+        not in place in this job's tree: the file itself, from the home node's
+        archive in the earlier job (surface *Passed-through files are resolved
+        while staging*).
+
+        Where the home is copied or uploaded, the link stays. Where the earlier
+        job itself took the home from another job, it has no archive of it:
+        its continuations are followed to the job that ran it.
+        '''
+        outputs = unpacked / node[0] / node[1] / "outputs"
+        for dirpath, dirnames, filenames in os.walk(outputs, followlinks=False):
+            for name in sorted(dirnames + filenames):
+                path = Path(dirpath) / name
+                if not path.is_symlink():
+                    continue
+                home = _link_home(unpacked, path)
+                if home is None or home[0] == node or home[0] in in_place:
+                    continue
+                self._place_from_home(job, path, home, from_job, depth=0)
+
+    def _place_from_home(self, job, path: Path, home, from_job: str, depth: int) -> None:
+        '''The file ``home`` names, from its node's archive in ``from_job``
+        -- or through ``from_job``'s own continuations -- at ``path``, in
+        place of the link.'''
+        (step, index), member = home
+        if depth > self.CONTINUATION_DEPTH:
+            raise self._refuse_staging(job, ProblemError(
+                "prior-results-unavailable", step=step, index=index, job_id=from_job,
+                reason="expired",
+                detail=f"{step}/{index}'s results, which a copied node links to, are "
+                       f"more than {self.CONTINUATION_DEPTH} jobs back"))
+
+        row = self._store.one(
+            'SELECT storage_key, withheld_at, deleted_at FROM artifacts WHERE job_id = ? '
+            "AND step = ? AND \"index\" = ? AND kind = 'node'", (from_job, step, index))
+        if row is None:
+            earlier = self._store.one(
+                'SELECT from_job_id FROM job_continuations WHERE job_id = ? AND step = ? '
+                'AND "index" = ?', (from_job, step, index))
+            if earlier is not None:
+                return self._place_from_home(job, path, home, earlier["from_job_id"],
+                                             depth + 1)
+        if row is None or row["deleted_at"]:
+            raise self._refuse_staging(job, ProblemError(
+                "prior-results-unavailable", step=step, index=index, job_id=from_job,
+                reason="expired",
+                detail=f"the node artifact of {step}/{index} in job {from_job}, the home "
+                       "of a file a copied node links to, is gone"))
+        if row["withheld_at"]:
+            raise self._refuse_staging(job, ProblemError(
+                "prior-results-unavailable", step=step, index=index, job_id=from_job,
+                reason="withheld",
+                detail=f"the node artifact of {step}/{index} in job {from_job}, the home "
+                       "of a file a copied node links to, is withheld"))
+
+        import tempfile
+        try:
+            with tempfile.TemporaryDirectory(dir=str(path.parent)) as scratch:
+                scratch = Path(scratch)
+                _extract_outputs(self._storage.artifact_path(row["storage_key"]),
+                                 scratch, step, index, self._config.limits,
+                                 only=member)
+                found = scratch / step / index / member
+                if found.is_symlink():
+                    # The home's own pass-through: its home, in turn.
+                    onward = _link_home(scratch, found)
+                    if onward is None:
+                        raise _ServerFailure(f"a link in {step}/{index} of job "
+                                             f"{from_job} leads nowhere")
+                    path.unlink()
+                    return self._place_from_home(job, path, onward, from_job, depth + 1)
+                if not found.exists():
+                    raise self._refuse_staging(job, ProblemError(
+                        "prior-results-unavailable", step=step, index=index,
+                        job_id=from_job, reason="expired",
+                        detail=f"{member} is not in the node artifact of {step}/{index} "
+                               f"in job {from_job}"))
+                path.unlink()
+                os.replace(found, path)
+        except archive.ArchiveRejected as e:
+            raise _ServerFailure(f"the results of {step}/{index} in job {from_job} could "
+                                 f"not be read: {e.detail}") from None
+        except OSError as e:
+            raise _ServerFailure(f"this server's store did not answer for {step}/{index} "
+                                 f"of job {from_job}: {e}") from None
 
     def _skipped_upstream(self, job) -> Set[Tuple[str, str]]:
         '''The nodes skipped in the jobs this one continues from, by those jobs'
@@ -1128,17 +1238,43 @@ class JobService:
                        "manifest, sc_collected_files/, the Python environment and "
                        "the outputs of each node the run reads and does not run"))
 
+        def real_dir(path):
+            return path.is_dir() and not path.is_symlink()
+
+        outputs = []
         for top in sorted(unpacked.iterdir()):
             if top.name in allowed:
                 continue
-            if not top.is_dir() or not any(step == top.name for step, _ in upstream):
+            if not real_dir(top) or not any(step == top.name for step, _ in upstream):
                 raise refuse(top.name)
             for node in sorted(top.iterdir()):
-                if (top.name, node.name) not in upstream or not node.is_dir():
+                if (top.name, node.name) not in upstream or not real_dir(node):
                     raise refuse(f"{top.name}/{node.name}")
                 for member in sorted(node.iterdir()):
-                    if member.name != "outputs":
+                    if member.name != "outputs" or not real_dir(member):
                         raise refuse(f"{top.name}/{node.name}/{member.name}")
+                outputs.append(member)
+
+        # 🔴 A link in an upstream node's `outputs/` points at a file's home in
+        # another node's `outputs/` in this archive, or at its own node's: a
+        # passed-through file, packed once (contract.md, *An upload keeps
+        # links*). A link carries no bytes, so it counts as a member and not
+        # toward the expanded size.
+        homes = [os.path.realpath(str(path)) for path in outputs]
+        for here in outputs:
+            for dirpath, dirnames, filenames in os.walk(here, followlinks=False):
+                for name in dirnames + filenames:
+                    path = os.path.join(dirpath, name)
+                    if not os.path.islink(path):
+                        continue
+                    real = os.path.realpath(path)
+                    if not any(real == home or real.startswith(home + os.sep)
+                               for home in homes):
+                        raise self._refuse_staging(job, ProblemError(
+                            "archive-rejected", reason="unrequested_member",
+                            detail=f"{os.path.relpath(path, str(unpacked))} is a link "
+                                   "outside the outputs of the nodes this archive "
+                                   "carries"))
 
     ######################################################################
     # What a run's files are, and where the server's copies come from
@@ -3694,22 +3830,33 @@ def _name(value, field: str) -> str:
 _RUN_HASH = re.compile(r"^[\x20-\x7e]{1,128}$")
 
 
-def _extract_outputs(archive_path: Path, target: Path) -> None:
-    '''The ``outputs/`` of a node archive into ``target``: regular files and
-    directories only, through the `data` filter.'''
-    import tarfile
+def _extract_outputs(archive_path: Path, tree: Path, step: str, index: str, limits,
+                     only: Optional[str] = None) -> None:
+    '''The ``outputs/`` of a node archive -- or the one member ``only``
+    names -- into ``tree``, at ``<step>/<index>/``, under an upload's rules:
+    its links kept, bounded by the job's tree rather than the node's.'''
+    def wanted(name):
+        if only is not None:
+            return name == only or only.startswith(f"{name}/") or name.startswith(f"{only}/")
+        return name == "outputs" or name.startswith("outputs/")
 
-    from siliconcompiler.utils import tar_extract_kwargs
+    tree.mkdir(parents=True, exist_ok=True)
+    archive.extract(archive_path, tree, limits, prefix=f"{step}/{index}", select=wanted)
 
-    target.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(archive_path, "r:*") as tar:
-        for member in tar:
-            name = member.name.lstrip("./")
-            if not (name == "outputs" or name.startswith("outputs/")):
-                continue
-            if not (member.isfile() or member.isdir()):
-                continue
-            tar.extract(member, target, **tar_extract_kwargs())
+
+def _link_home(tree: Path, link: Path):
+    '''Where a link under ``tree`` points, as ``((step, index), member)``
+    with ``member`` relative to that node -- or None where it is not a node's
+    ``outputs/``.'''
+    target = os.readlink(link)
+    if os.path.isabs(target):
+        return None
+    joined = os.path.normpath(os.path.join(os.path.dirname(os.path.relpath(link, tree)),
+                                           target))
+    parts = joined.replace(os.sep, "/").split("/")
+    if len(parts) < 4 or parts[2] != "outputs" or os.pardir in parts:
+        return None
+    return (parts[0], parts[1]), "/".join(parts[2:])
 
 
 def _continuations(value) -> List[Tuple[str, str, str]]:

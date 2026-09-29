@@ -238,6 +238,16 @@ so the local build directory and :meth:`.Project.summary` are current while the
 rest of the flow is still running -- and a long flow does not end with one large
 download.
 
+**A passed-through file comes back as a link to the node that produced it.** A
+task that hands an input on unchanged holds it as a link, and the server keeps
+it that way rather than storing a second copy: the file resolves once its home
+node is in the job's directory beside it. Fetching the whole job gives you a
+consistent tree; to use one node on its own, fetch the node its links point at
+too. A link out of the job is never sent back, and neither is one to nothing.
+The same holds going up: a ``-from`` run sends each linked file once, and stops
+before anything moves if an upstream result links to a node that is not on
+your machine.
+
 With the dashboard open (:keypath:`option,nodashboard` unset) the node table is
 the dashboard's, so the run prints only what changed. Per-node timers run off
 the server's own start times, which makes them continuous across a poll, a
