@@ -87,6 +87,12 @@ Prefer ``git+ssh://`` where you can. A token supplied this way is written into
 the cached clone's ``.git/config``, whereas SSH keeps the credential out of the
 URL entirely.
 
+A private repository does not need the ``+private`` marker (``git+ssh+private://``,
+``file+private://`` and the rest). The marker says a source must never leave this
+machine: a :ref:`remote run <remote_processing>` is not to upload it, so the
+SiliconCompiler server has to hold its own copy. Mark a source ``+private`` only if
+it must stay here; a repository this machine can fetch needs no marker.
+
 Dataroot relative to my current file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

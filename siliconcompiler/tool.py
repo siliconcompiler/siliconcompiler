@@ -762,20 +762,46 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     @property
     def _remote_toolname(self) -> Optional[str]:
         """
-        Returns information about the remote source of the tool.
+        Names the tool that must be installed where this task runs remotely.
+
+        A remote run uses this to choose an environment for the node, such as a
+        container image that holds the tool. The leading underscore does not
+        make it internal: overriding it is how a driver declares what it needs.
+
+        The default, :meth:`tool`, is right for most tasks. That includes a task
+        with no executable that drives its tool's Python package in
+        SiliconCompiler's own process, as the slang tasks do.
+
+        Return ``None`` when the task needs nothing beyond SiliconCompiler
+        itself, as the builtin tasks do.
+
+        This is read from a task that has not been set up and has no project,
+        so return a constant rather than a value computed from the schema.
 
         Returns:
-            Optional[str]: The remote tool name if available, otherwise None.
+            Optional[str]: the tool the node needs, or ``None`` when it needs
+            only SiliconCompiler.
         """
         return self.tool()
 
     @property
     def _remote_inherits_env(self) -> bool:
         """
-        Indicates whether the remote tool needs to inherit the previous node's environment.
+        Says whether this task runs remotely wherever its input node ran.
+
+        Return ``True`` for a task that runs what an earlier node produced,
+        because the environment that built it is the one most likely to be able
+        to run it. ``exec_input`` does this. Where the node has more than one
+        input, the first is followed. Pair it with :attr:`_remote_toolname`
+        returning ``None``, so the node requires no tool of its own.
+
+        Like :attr:`_remote_toolname`, this is part of the driver contract
+        despite the underscore, and is read from a task that has not been set
+        up and has no project.
 
         Returns:
-            bool: True if the remote tool inherits the previous node's environment, False otherwise.
+            bool: ``True`` to run where the input node ran. The default,
+            ``False``, places the node by :attr:`_remote_toolname` alone.
         """
         return False
 
