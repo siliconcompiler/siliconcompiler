@@ -35,6 +35,11 @@ def filter_collection_keys(keys: List[CollectionKey]) -> List[CollectionKey]:
     return filtered_keys
 
 
+def _is_within(path: str, root: str) -> bool:
+    """True if path is root or anything under it."""
+    return path == root or path.startswith(root + os.sep)
+
+
 def collect(project: "Project",
             keys: List[CollectionKey],
             directory: Optional[str] = None,
@@ -42,6 +47,11 @@ def collect(project: "Project",
             whitelist: Optional[List[str]] = None) -> None:
     '''
     Collects the specified files and directories into a collection directory.
+
+    Each file or directory is stored once. A value naming one the collection
+    already holds, directly or inside a directory, gets a link to that copy at its
+    own collected path: a symbolic link, or where one cannot be made, a hard link
+    or a copy.
 
     Args:
         keys (List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]):
@@ -127,89 +137,112 @@ def collect(project: "Project",
         else:
             files[(key, step, index)] = values
 
+    def resolve(params):
+        """
+        Pair each value with the real path of what it names, in path order, so a
+        directory comes before anything inside it
+        """
+        found = []
+        for key, step, index in sorted(params.keys()):
+            abs_paths = find_files(*key, step=step, index=index)
+
+            if not isinstance(abs_paths, (list, tuple, set)):
+                abs_paths = [abs_paths]
+
+            for abs_path, value in zip(abs_paths, params[(key, step, index)]):
+                if not abs_path:
+                    raise FileNotFoundError(f"{value.get()} could not be copied")
+                found.append((os.path.realpath(abs_path), abs_path, value))
+        return sorted(found, key=lambda f: f[0])
+
+    def found_in_collection(value) -> bool:
+        """
+        True if the value already resolves in the collection by its own path
+        """
+        try:
+            path = value.resolve_path(search=[], collection_dir=directory)
+        except FileNotFoundError:
+            return False
+        return path is not None and _is_within(path, directory)
+
+    # Real path of each file or directory copied in -> where its copy is
+    stored = {}
+
+    def find_stored(real_path: str) -> Optional[str]:
+        """
+        Where the collection already holds real_path, as itself or inside a
+        directory it holds
+        """
+        if real_path in stored:
+            return stored[real_path]
+        source = real_path
+        while os.path.dirname(source) != source:
+            source = os.path.dirname(source)
+            if source in stored:
+                copy = os.path.join(stored[source], os.path.relpath(real_path, source))
+                if os.path.exists(copy):
+                    return copy
+        return None
+
+    symlinks = True
+
+    def link(copy: str, import_path: str) -> None:
+        """
+        Name copy, already in the collection, at import_path too
+        """
+        nonlocal symlinks
+        os.makedirs(os.path.dirname(import_path), exist_ok=True)
+        is_dir = os.path.isdir(copy)
+        if symlinks:
+            try:
+                os.symlink(os.path.relpath(copy, os.path.dirname(import_path)), import_path,
+                           target_is_directory=is_dir)
+                return
+            except OSError:
+                # Windows needs a privilege most users lack to make one
+                symlinks = False
+        if is_dir:
+            shutil.copytree(copy, import_path)
+            return
+        try:
+            os.link(copy, import_path)
+        except OSError:
+            shutil.copy2(copy, import_path)
+
     try:
         path_filter = FilterDirectories(project)
-        collected_dirs = set()
-        for key, step, index in sorted(dirs.keys()):
-            abs_paths = find_files(*key, step=step, index=index)
-
-            if not isinstance(abs_paths, (list, tuple, set)):
-                abs_paths = [abs_paths]
-
-            abs_paths = zip(abs_paths, dirs[(key, step, index)])
-            abs_paths = sorted(abs_paths, key=lambda p: p[0])
-
-            for abs_path, value in abs_paths:
-                if not abs_path:
-                    raise FileNotFoundError(f"{value.get()} could not be copied")
-
-                if abs_path.startswith(directory):
-                    # File already imported in directory
-                    continue
-
-                imported = False
-                for collected in collected_dirs:
-                    if abs_path == collected or abs_path.startswith(collected + os.sep):
-                        imported = True
-                        break
-                if imported:
-                    continue
-
-                collected_dirs.add(abs_path)
-
-                import_path = os.path.join(
-                    directory,
-                    value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
-                if os.path.exists(import_path):
-                    continue
-
-                if whitelist is not None and abs_path not in whitelist:
-                    raise RuntimeError(f'{abs_path} is not on the approved collection list.')
-
-                if verbose:
-                    project.logger.info(f"  Collecting directory: {abs_path}")
-                path_filter.abspath = abs_path
-                os.makedirs(os.path.dirname(import_path), exist_ok=True)
-                shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
-                path_filter.abspath = None
-
-        for key, step, index in sorted(files.keys()):
-            abs_paths = find_files(*key, step=step, index=index)
-
-            if not isinstance(abs_paths, (list, tuple, set)):
-                abs_paths = [abs_paths]
-
-            abs_paths = zip(abs_paths, files[(key, step, index)])
-            abs_paths = sorted(abs_paths, key=lambda p: p[0])
-
-            for abs_path, value in abs_paths:
-                if not abs_path:
-                    raise FileNotFoundError(f"{value.get()} could not be copied")
-
-                if abs_path.startswith(directory):
-                    # File already imported in directory
-                    continue
-
-                # Skip files that live inside a directory that was already collected;
-                # they are reachable via the collected directory's search path.
-                contained = False
-                for collected in collected_dirs:
-                    if abs_path.startswith(collected + os.sep):
-                        contained = True
-                        break
-                if contained:
+        # Directories first, so that a file inside one is found there
+        for is_dir, params in ((True, dirs), (False, files)):
+            for real_path, abs_path, value in resolve(params):
+                if _is_within(abs_path, directory) or found_in_collection(value):
                     continue
 
                 import_path = os.path.join(
                     directory,
                     value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
-                if os.path.exists(import_path):
+
+                copy = find_stored(real_path)
+                if copy:
+                    link(copy, import_path)
                     continue
 
-                if verbose:
-                    project.logger.info(f"  Collecting file: {abs_path}")
-                os.makedirs(os.path.dirname(import_path), exist_ok=True)
-                shutil.copy2(abs_path, import_path)
+                if is_dir:
+                    if whitelist is not None and abs_path not in whitelist:
+                        raise RuntimeError(
+                            f'{abs_path} is not on the approved collection list.')
+
+                    if verbose:
+                        project.logger.info(f"  Collecting directory: {abs_path}")
+                    path_filter.abspath = abs_path
+                    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+                    shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
+                    path_filter.abspath = None
+                else:
+                    if verbose:
+                        project.logger.info(f"  Collecting file: {abs_path}")
+                    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+                    shutil.copy2(abs_path, import_path)
+                stored[real_path] = import_path
     finally:
         if prev_dir:
             # Delete existing directory
