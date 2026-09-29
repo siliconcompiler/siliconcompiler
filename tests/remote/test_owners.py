@@ -615,7 +615,7 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
     ("tool", "openroad", "task", "place", "script"),
 ])
 def test_what_is_skipped_is_what_collect_leaves_out(key):
-    '''🔴 One rule at both ends (CORE-FOLLOWUPS item 6): the client's copy had
+    '''🔴 One rule at both ends (it was CORE-FOLLOWUPS item 6): the client's copy had
     drifted, keeping a template's `default` keypath the collection drops.'''
     from siliconcompiler.utils.curation import filter_collection_keys
 
