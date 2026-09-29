@@ -132,14 +132,16 @@ def stage(client, key, token, archive, size, **body):
     return job
 
 
-def submit(client, key, token, job_id, digest, size=None, **extra):
-    '''``size`` is taken for the callers' symmetry with `stage` and never
-    sent: the grant fixed it, and a `bytes` member is refused.'''
+def submit(client, key, token, job_id, digest=None, size=None, **extra):
+    '''``digest`` and ``size`` are taken for the callers' symmetry with
+    `stage` and never sent: submit takes no body, and the upload is checked
+    against the digest the grant bound (surface §15). ``extra`` is sent, to
+    test the refusal of a body with a member.'''
     headers = {}
     if "idempotency_key" in extra:
         headers["Idempotency-Key"] = extra.pop("idempotency_key")
     return call(client, key, "POST", f"/v1/jobs/{job_id}/submit", token,
-                json={"digest": digest, **extra}, headers=headers)
+                json=extra, headers=headers)
 
 
 ###########################
@@ -295,10 +297,10 @@ def test_a_private_source_carries_no_source_and_no_ref(server_client, key, token
     '''`private` defaults to false; when true, its path never leaves the
     client, so a `source` or `ref` beside it is refused rather than trusted.'''
     defaulted = create(server_client, key, token, sources=[
-        {"kind": "library", "name": "ip", "dataroot": "ip",
+        {"name": "ip", "dataroot": "ip",
          "source": "git+ssh://git@example.com/ip.git", "ref": "v1"}])
     leaked = create(server_client, key, token, jobname="job1", sources=[
-        {"kind": "pdk", "name": "gf180", "dataroot": "gf180", "private": True,
+        {"name": "gf180", "dataroot": "gf180", "private": True,
          "source": "file:///opt/pdks/gf180"}])
 
     assert defaulted.status_code == 201
@@ -693,29 +695,32 @@ def test_submit_records_the_flows_shape(server, server_client, key, token,
 def test_a_digest_mismatch_refuses_before_anything_is_extracted(
         server, server_client, key, token, job_archive, dispatcher):
     '''🔴 The order is normative. Getting it wrong is how an archive bomb gets
-    opened.'''
+    opened. The upload is checked against the digest its grant bound, before
+    anything is extracted.'''
     archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
+    job = create(server_client, key, token).get_json()
+    grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
+                 token, json=sized(size, digest)).get_json()
+    put(server_client, grant, b"\0" * size)
 
-    response = submit(server_client, key, token, job["id"],
-                      "sha256:" + "0" * 64, size)
+    response = submit(server_client, key, token, job["id"])
 
     assert response.status_code == 422
     assert slug(response) == "upload-digest-mismatch"
-    assert "storage holds" in response.get_json()["detail"]
+    assert "the grant bound" in response.get_json()["detail"]
 
     root = server.config["SC_JOBS"].job_root(
         call(server_client, key, "GET", "/v1/me", token).get_json()["id"], job["id"])
     assert not root.exists()
 
     # 🔴 A refusal of the request, not of the archive: the job still waits,
-    # its upload where the grant put it, and the right digest submits it.
+    # and the bytes the grant was issued for, sent to it, submit it.
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == "awaiting_input"
     assert read["error"] is None
-    assert server.config["SC_STORAGE"].stat_upload(job["id"]) is not None
 
-    again = submit(server_client, key, token, job["id"], digest, size)
+    put(server_client, grant, open(archive, "rb").read())
+    again = submit(server_client, key, token, job["id"])
     assert again.status_code == 202
     assert job_after(server_client, key, token, again)["state"] == "queued"
 
@@ -736,18 +741,21 @@ def test_bytes_short_of_the_grant_are_a_digest_mismatch(server_client, key, toke
     assert slug(response) == "upload-digest-mismatch"
 
 
-def test_the_digest_is_prefixed_and_sha256_only(server_client, key, token,
+def test_a_submit_body_with_a_member_is_refused(server_client, key, token,
                                                 job_archive, dispatcher):
-    '''One value that is either right or malformed, where two fields can
-    disagree.'''
+    '''Submit takes no body (surface §15; D277), and nothing is ignored: a
+    member -- the digest a client used to send included -- is refused under
+    the strict rule.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
 
-    response = submit(server_client, key, token, job["id"],
-                      digest.split(":", 1)[1], size)
+    response = submit(server_client, key, token, job["id"], digest=digest)
+    assert response.status_code == 202
 
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
+    other = stage(server_client, key, token, archive, size, jobname="job1")
+    refused = call(server_client, key, "POST", f"/v1/jobs/{other['id']}/submit", token,
+                   json={"digest": digest})
+    assert (refused.status_code, slug(refused)) == (400, "invalid-request")
 
 
 def test_an_archive_violation_names_which_rule(server_client, key, token,
@@ -851,11 +859,15 @@ def test_the_job_object_carries_every_required_member(server_client, key, token)
 
     body = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
 
-    for member in ("id", "state", "terminal", "state_changed_at", "design",
+    for member in ("id", "state", "terminal", "transitions", "design",
                    "jobname", "flow", "owner", "project", "created_at",
                    "submitted_at", "started_at", "finished_at", "archived_at",
-                   "deleted_at", "error", "nodes", "progress"):
+                   "deleted_at", "delete_reason", "error", "nodes", "progress"):
         assert member in body, member
+    # 🔴 `transitions` in place of `state_changed_at` (D278), never empty, and
+    # no `deleted_cause`: every job deletion is a person's (D279).
+    assert "state_changed_at" not in body and "deleted_cause" not in body
+    assert [entry["state"] for entry in body["transitions"]] == ["created"]
     # ABSENT, never null, where the deployment serves no web UI: a null would
     # claim there is a portal and this job has no page.
     assert "web_url" not in body
@@ -2768,7 +2780,11 @@ def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
     cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
                      json={"reason": "wrong corner"}).get_json()
     assert cancelled["state"] == "cancelling"
-    assert cancelled["state_reason"] == "wrong corner"
+    # A cancel's reason is on its entry of `transitions`, never the job's
+    # `state_reason`, which carries only a live staging phase (D278).
+    assert "state_reason" not in cancelled
+    assert (cancelled["transitions"][-1]["state"],
+            cancelled["transitions"][-1]["reason"]) == ("cancelling", "wrong corner")
 
     root = server.config["SC_JOBS"].job_root(me, job["id"])
     runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
@@ -2779,7 +2795,9 @@ def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == "cancelled"
-    assert read["state_reason"] == "wrong corner"
+    assert [entry["state"] for entry in read["transitions"]][-2:] == \
+        ["cancelling", "cancelled"]
+    assert read["transitions"][-2]["reason"] == "wrong corner"
     nodes = {node["step"]: node for node in read["nodes"]}
     # A terminal job has only terminal nodes, and one a cancel stopped has no
     # exit code and says why.

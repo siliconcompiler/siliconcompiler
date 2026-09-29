@@ -56,7 +56,10 @@ secret is in the session store beside it, ``$HOME/.sc/auth/`` -- or wherever
   Your machine's private key. **This is the credential.**
 
 ``sessions.json``
-  Your session with each server.
+  Your session with each server. ``sc-remote`` on its own shows the one this
+  machine holds -- its scope, the device it is bound to, and when its access
+  token, its refresh token and the session itself end -- as the server reports
+  it; showing it refreshes nothing.
 
 ``headers.json``
   Headers an operator's access layer requires, if any (``sc-remote -header``).

@@ -248,6 +248,37 @@ class Client:
         if published.get("terms_url"):
             self.logger.info(f"Terms: {published['terms_url']}")
 
+    def print_identity(self, identity: Dict[str, Any]) -> None:
+        '''Who the server says you are, the session this machine holds, and
+        what you have used -- all from one `GET /v1/me`, which rotates
+        nothing, so showing a session never refreshes it (surface §5).'''
+        from siliconcompiler.remote.units import duration, size
+
+        self.logger.info(f"Server reports you as {identity['id']} "
+                         f"(issuer {identity['issuer']})")
+
+        session = identity.get("session") or {}
+        if session:
+            where = f" on device {session['device_id']}" if session.get("device_id") else ""
+            self.logger.info(f"Session: {session.get('kind', 'unknown')}{where}")
+            self.logger.info(f"  scope: {session.get('scope') or '(none)'}")
+            self.logger.info(f"  access token until {session.get('access_expires_at')}")
+            self.logger.info("  refresh token until "
+                             f"{session.get('refresh_expires_at') or '(none: it cannot refresh)'}")
+            self.logger.info(f"  ends at {session.get('session_expires_at')}, "
+                             "and is never extended")
+
+        usage = identity.get("usage") or {}
+        self.logger.info(f"Jobs running: {usage.get('jobs_active', 0)}")
+        compute = usage.get("compute_seconds") or {}
+        if compute:
+            total = compute.get("total")
+            self.logger.info(f"Compute: {duration(compute.get('used') or 0)} this month"
+                             + (f", {duration(total)} in all" if total is not None else ""))
+        stored = usage.get("storage_bytes") or {}
+        if stored:
+            self.logger.info(f"Storage: {size(stored.get('used') or 0)}")
+
     ######################################################################
     # Sessions
     ######################################################################
@@ -846,14 +877,14 @@ class Client:
                    if name.lower() != "content-length"}
         self.transport.put_object(grant["url"], headers, path)
 
-    def submit_job(self, job_id: str, digest: str,
+    def submit_job(self, job_id: str,
                    idempotency_key: Optional[str] = None) -> Dict[str, Any]:
-        '''``POST /v1/jobs/{id}/submit``: carrying the digest of what was PUT,
-        and nothing else -- the grant fixed the size.
+        '''``POST /v1/jobs/{id}/submit``, with no body (surface §15; D277).
 
-        The digest describes the bytes that moved, not a freshly built archive:
-        a re-tar of the same directory is a different digest, and the server
-        compares against what storage reports.
+        The grant fixed the archive's size and digest, and the server checks
+        what storage holds against the digest the grant bound -- so the bytes
+        that moved are what is judged, not a freshly built archive, and there
+        is nothing left for the request to say.
         '''
         self.ensure_session()
 
@@ -862,8 +893,7 @@ class Client:
         headers = {"Idempotency-Key": idempotency_key or _fresh_key()}
 
         return self._waiting_for_a_slot(lambda: self.transport.request(
-            "POST", f"jobs/{job_id}/submit",
-            json_body={"digest": digest}, headers=headers).json())
+            "POST", f"jobs/{job_id}/submit", json_body={}, headers=headers).json())
 
     def _waiting_for_a_slot(self, send):
         '''A create or a submit, with the `limit-exceeded` that only means

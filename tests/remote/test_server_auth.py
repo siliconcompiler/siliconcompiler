@@ -696,6 +696,65 @@ def test_me_usage_is_derived_and_reported_only(client, key):
     assert usage["compute_seconds"]["resets_at"].endswith("Z")
 
 
+def test_me_usage_carries_total_beside_used(client, key):
+    '''`used` this calendar month, `total` everything recorded -- and `null`
+    on a stock, whose `used` is already the whole (entitlements §3; D74).'''
+    token = login(client, key).get_json()["access_token"]
+    usage = call(client, key, "GET", "/v1/me", token).get_json()["usage"]
+
+    for member in ("used", "total", "limit", "window", "resets_at"):
+        assert member in usage["compute_seconds"], member
+        assert member in usage["storage_bytes"], member
+    assert usage["compute_seconds"]["total"] == 0
+    assert usage["storage_bytes"]["total"] is None
+    assert usage["storage_bytes"]["window"] is None
+    assert usage["storage_bytes"]["resets_at"] is None
+
+
+def test_me_carries_the_session_the_request_was_made_in(client, key, server):
+    '''🔴 From the calling token's family and device, every member REQUIRED
+    (surface §5; D276), and reading it rotates nothing.'''
+    first = login(client, key).get_json()
+    session = call(client, key, "GET", "/v1/me", first["access_token"]).get_json()["session"]
+
+    assert session["kind"] == "interactive"
+    assert session["scope"] == first["scope"]
+    device = call(client, key, "GET", "/v1/devices", first["access_token"]) \
+        .get_json()["items"][0]["id"]
+    assert session["device_id"] == device
+    for member in ("access_expires_at", "refresh_expires_at", "session_expires_at"):
+        assert session[member].endswith("Z"), member
+    assert session["refresh_expires_at"] <= session["session_expires_at"]
+
+    # Nothing rotated: the refresh token still refreshes.
+    assert refreshing(client, first["refresh_token"], key).status_code == 200
+
+
+def test_a_ci_session_has_no_device_and_no_refresh(server):
+    '''The shape a CI session takes, from its family: `device_id` null, and
+    `refresh_expires_at` null where there is no refresh token. `sc-server`
+    mints none itself -- CI credentials are crucible's -- so its family is
+    written here as crucible writes one.'''
+    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.auth import Session
+
+    store = server.config["SC_STORE"]
+    user = store.upsert_user("ci", "pipeline")
+    store.execute(
+        "INSERT INTO token_families (id, user_id, device_id, kind, dpop_jkt, scope, "
+        "  absolute_expires_at) VALUES ('fam-ci', ?, NULL, 'ci', 'jkt', "
+        "  'jobs:read jobs:write', '2026-12-01T00:00:00.000Z')", (user["id"],))
+
+    view = accounts.session_view(store, Session(
+        user_id=user["id"], scope="jobs:read jobs:write", family_id="fam-ci",
+        device_id=None, jkt="jkt", expires_at=1790000000))
+
+    assert (view["kind"], view["device_id"], view["refresh_expires_at"]) == \
+        ("ci", None, None)
+    assert view["scope"] == "jobs:read jobs:write"
+    assert view["session_expires_at"] == "2026-12-01T00:00:00.000Z"
+
+
 def test_authenticated_responses_are_never_cacheable(client, key):
     '''A cache rule that matched /v1/* would serve one caller's response to
     another's request.'''

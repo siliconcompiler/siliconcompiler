@@ -708,13 +708,12 @@ class JobService:
         '''
         asked = []
         for item in declared:
-            kind, name, dataroot = item["kind"], item["name"], item["dataroot"]
+            name, dataroot = item["name"], item["dataroot"]
             if item["private"]:
-                if kind == "design" or not self._supply.private_root(name, dataroot):
-                    raise ProblemError(
-                        "resource-unavailable", resource_kind=kind, resource=name,
-                        detail=f"a private {kind} dataroot this server has no copy "
-                               "of; it is never uploaded, so it cannot be sent")
+                # ⚠️ Not refused here: this server has no catalogue to find a
+                # name's kind in (entitlements D75), and the refusal names it.
+                # The manifest's read, while staging, does -- and refuses
+                # there, `resource-unavailable` with its kind.
                 continue
             source, ref = item.get("source"), item.get("ref")
             if self._supply.held(source, ref) or self._supply.allowlisted(source, ref):
@@ -722,7 +721,7 @@ class JobService:
             if source and source.startswith("python://") and \
                     self._supply.package(source[len("python://"):].split("/")[0]):
                 continue
-            asked.append({"kind": kind, "name": name, "dataroot": dataroot})
+            asked.append({"kind": "dataroot", "name": name, "dataroot": dataroot})
         return asked
 
     def _identity(self, run_hash: Optional[str], requires) -> Optional[str]:
@@ -863,11 +862,12 @@ class JobService:
         # The early entitlement check: the tools `requires` names and the
         # resources `sources` names, against what nobody here may use.
         # Re-derived at submit, where the manifest is the answer.
-        wanted = [(item["kind"], item["name"]) for item in descriptor.get("sources") or []
-                  if item["kind"] in owners.RESOURCE_KINDS]
+        # A source names no kind: the name finds it (entitlements D75).
+        wanted = [(self._config.denied_kind(item["name"]), item["name"])
+                  for item in descriptor.get("sources") or []]
         wanted += [("tool", name) for name in sorted(requires["tools"])]
         for kind, name in wanted:
-            if self._config.denied(kind, name):
+            if kind is not None and self._config.denied(kind, name):
                 raise ProblemError(
                     "entitlement-denied", resource_kind=kind, resource=name,
                     detail=f"this job names a {kind} this deployment does not allow")
@@ -1073,14 +1073,17 @@ class JobService:
                 "job-state-conflict",
                 detail=f"a job in {job['state']} cannot be submitted")
 
-        # 🔴 The digest and nothing else: the grant fixed the size and storage
-        # enforced it on the PUT.
-        _only(body if isinstance(body, dict) else {}, ("digest",), "the submit request")
-        digest = body.get("digest") if isinstance(body, dict) else None
-        if not isinstance(digest, str) or not _SHA256.match(digest):
+        # 🔴 No body (surface §15; D277): the grant bound the size and the
+        # digest, storage enforced the size on the PUT, and the upload is
+        # checked against the digest the grant bound. A body with a member is
+        # refused under the strict rule, never ignored.
+        _only(body if isinstance(body, dict) else {}, (), "the submit request")
+        digest = job["grant_digest"]
+        if not digest:
             raise ProblemError(
-                "invalid-request",
-                detail="digest is required and is 'sha256:<hex>'")
+                "job-state-conflict",
+                detail="no upload grant has been issued for this job; ask for one and "
+                       "PUT to it")
 
         reported = self._storage.stat_upload(job["id"])
         if reported is None:
@@ -1091,11 +1094,11 @@ class JobService:
 
         # Only bytes matching the digest the grant bound are ever extracted, so
         # nothing written to the upload location after this changes what runs.
-        if reported_digest != digest or (job["grant_digest"] and job["grant_digest"] != digest):
+        if reported_digest != digest:
             raise ProblemError(
                 "upload-digest-mismatch",
-                detail=f"storage holds {size} bytes, {reported_digest}, and this "
-                       f"submit names {digest}")
+                detail=f"storage holds {size} bytes, {reported_digest}, and the grant "
+                       f"bound {digest}")
 
         # Every archive of the job together (D125): a follow-up cannot carry
         # what the first was refused for being too large.
@@ -1373,12 +1376,13 @@ class JobService:
         '''
         if summary["required"] is None:
             return
-        before = {(item["kind"], item["name"], item["dataroot"])
-                  for item in json.loads(job["upload_sources"] or "[]")}
+        before = {(item.get("name"), item.get("dataroot"))
+                  for item in json.loads(job["upload_sources"] or "[]")
+                  if item.get("kind") == "dataroot"}
         for entry in asked:
             if not (entry.kind == owners.DESIGN
                     or entry.origin in (owners.LOCAL, owners.EDITABLE)
-                    or (entry.kind, entry.name, entry.dataroot) in before):
+                    or (entry.name, entry.dataroot) in before):
                 continue
             where = f" ({entry.dataroot})" if entry.dataroot else ""
             raise self._refuse(session, job, ProblemError(
@@ -1395,8 +1399,9 @@ class JobService:
         ⚠️ **Each with the rest of its parameter**, as the client collects it
         (`owners.collection_keys`): a value asked for brings the others in its
         ``(key, step, index)``, whatever their dataroot.'''
-        asked = {(item["kind"], item["name"], item["dataroot"])
-                 for item in json.loads(job["upload_sources"] or "[]")}
+        asked = {(item.get("name"), item.get("dataroot"))
+                 for item in json.loads(job["upload_sources"] or "[]")
+                 if item.get("kind") == "dataroot"}
         summary = self._stored_summary(job, root)
         records = summary["values"]
         where = [(tuple(record["key"]), record["step"], record["index"])
@@ -1404,7 +1409,7 @@ class JobService:
         private = {at for at, record in zip(where, records)
                    if record["origin"] == owners.PRIVATE}
         keys = {at for at, record in zip(where, records)
-                if (record["kind"], record["name"], record["dataroot"]) in asked
+                if (record["name"], record["dataroot"]) in asked
                 and owners.needed(at[0], summary["required"]) and at not in private}
         paths = {record["collected_path"] for at, record in zip(where, records)
                  if at in keys and record["origin"] != owners.PRIVATE}
@@ -3631,7 +3636,10 @@ class JobService:
             # `terminal`, do not switch on the name -- which is what makes an
             # eleventh state additive instead of breaking.
             "terminal": job["state"] in TERMINAL_STATES,
-            "state_changed_at": job["state_changed_at"],
+            # 🔴 Every state the job has entered, oldest first (surface §17;
+            # D278): how long it spent in each, and why it moved where the
+            # server knows. Never empty.
+            "transitions": self._transitions(job),
             "design": job["design"],
             "jobname": job["jobname"],
             "flow": job["manifest_flow"],
@@ -3645,13 +3653,15 @@ class JobService:
             "finished_at": job["finished_at"],
             "archived_at": job["archived_at"],
             "deleted_at": job["deleted_at"],
-            # Nothing deletes a job for retention, so a deleted job was removed.
-            "deleted_cause": "removed" if job["deleted_at"] else None,
+            # Set exactly when deleted_at is: every job deletion is a person's,
+            # so a job carries no deleted_cause (D279).
             "delete_reason": job["delete_reason"] if job["deleted_at"] else None,
             "error": _error(job["error_type"], self._why(job), job["error_members"])
             if job["state"] in ("failed", "rejected") else None,
         }
-        if job["state_reason"] and body["error"] is None:
+        # Only the live staging phase: a transition's reason, a cancel's
+        # included, is on its entry of `transitions`.
+        if job["state"] == "staging" and job["state_reason"] and body["error"] is None:
             body["state_reason"] = bound(job["state_reason"])
 
         # 🔴 Followed, never constructed. The portal's route shape may change
@@ -3722,6 +3732,21 @@ class JobService:
             "cancelled_count": count("cancelled"),
         }
         return body
+
+    def _transitions(self, job) -> List[Dict[str, Any]]:
+        '''`transitions`, from `job_state_transitions`: each state entered,
+        with when, and a reason where one was recorded -- bounded and scrubbed
+        like `detail`.'''
+        rows = self._store.all(
+            "SELECT to_state, occurred_at, reason FROM job_state_transitions "
+            "WHERE job_id = ? ORDER BY occurred_at, rowid", (job["id"],))
+        entries = []
+        for row in rows:
+            entry = {"state": row["to_state"], "at": row["occurred_at"]}
+            if row["reason"]:
+                entry["reason"] = bound(row["reason"])
+            entries.append(entry)
+        return entries or [{"state": job["state"], "at": job["state_changed_at"]}]
 
     def _display_name(self, user_id: str) -> str:
         row = self._store.one("SELECT display_name FROM users WHERE id = ?", (user_id,))
@@ -3836,7 +3861,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 # job reuse's, and top level: the descriptor is what submit re-derives.
 CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from")
 DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources")
-SOURCE_MEMBERS = ("kind", "name", "dataroot", "source", "ref", "private")
+SOURCE_MEMBERS = ("name", "dataroot", "source", "ref", "private")
 
 
 def _only(body: Dict[str, Any], allowed, where: str) -> None:
@@ -4018,23 +4043,21 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         raise ProblemError("invalid-request", detail="sources is a list")
     checked = []
     for item in declared:
-        if not isinstance(item, dict) or item.get("kind") not in owners.SOURCE_KINDS \
-                or not isinstance(item.get("name"), str) \
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str) \
                 or not isinstance(item.get("dataroot"), str) \
                 or not isinstance(item.get("private", False), bool):
             raise ProblemError(
                 "invalid-request",
-                detail="each source is {kind, name, dataroot} with an optional source, "
-                       f"ref and private, and kind is one of {', '.join(owners.SOURCE_KINDS)}")
+                detail="each source is {name, dataroot} -- its owner and its own name -- "
+                       "with an optional source, ref and private")
         _only(item, SOURCE_MEMBERS, "a source")
         private = item.get("private", False)
         if private and ("source" in item or "ref" in item):
             raise ProblemError(
                 "invalid-request",
-                detail=f"{item['kind']} {item['name']} is private, so it carries no "
+                detail=f"{item['name']} ({item['dataroot']}) is private, so it carries no "
                        "source and no ref: its path never leaves the client")
-        entry = {"kind": item["kind"], "name": item["name"],
-                 "dataroot": item["dataroot"], "private": private}
+        entry = {"name": item["name"], "dataroot": item["dataroot"], "private": private}
         if isinstance(item.get("source"), str):
             # 🔴 Stripped again: a client that sent `user:token@` anyway has
             # its secret neither stored nor logged here.

@@ -185,7 +185,8 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
 
     submitted = [call for call in fake_v1.calls
                  if call.request.path_url.endswith("/submit")][0]
-    assert set(json.loads(submitted.request.body)) == {"digest"}
+    # No body (surface §15; D277): the grant bound the digest.
+    assert json.loads(submitted.request.body) == {}
 
 
 @pytest.mark.parametrize("advertised", [True, False])
@@ -1443,13 +1444,13 @@ def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
     HTTPResolver.resolve_remote = resolve_remote
     try:
         _routes_for_a_submit(fake_v1, created={"upload_sources": [
-            {"kind": "pdk", "name": "acme", "dataroot": "acme"}]})
+            {"kind": "dataroot", "name": "acme", "dataroot": "acme"}]})
         with caplog.at_level("INFO"):
             run._start()
     finally:
         HTTPResolver.resolve_remote = real
 
-    assert "The server asked for pdk acme (acme)" in caplog.text
+    assert "The server asked for acme (acme)" in caplog.text
     assert "pdk acme (acme):" in caplog.text
 
 
@@ -1474,8 +1475,8 @@ def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
     HTTPResolver.resolve_remote = unreachable
     try:
         _routes_for_a_submit(fake_v1, created={"upload_sources": [
-            {"kind": "pdk", "name": "acme", "dataroot": "acme"}]})
-        with pytest.raises(RemoteError, match="pdk acme .acme.*cannot reach it either"):
+            {"kind": "dataroot", "name": "acme", "dataroot": "acme"}]})
+        with pytest.raises(RemoteError, match="acme .acme.*cannot reach it either"):
             run._start()
     finally:
         HTTPResolver.resolve_remote = real
@@ -1498,7 +1499,7 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
     fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
-    run._send_asked("01J9-job", [{"kind": "design", "name": "gcd",
+    run._send_asked("01J9-job", [{"kind": "dataroot", "name": "gcd",
                                   "dataroot": "gcd-pytest-example"}])
 
     put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
@@ -1511,10 +1512,10 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
 
 
 def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
-    run._sent.add((("design", "gcd", "gcd-pytest-example"),))
+    run._sent.add((("dataroot", "gcd", "gcd-pytest-example"),))
 
     with pytest.raises(RemoteError, match="asked again"):
-        run._send_asked("01J9-job", [{"kind": "design", "name": "gcd",
+        run._send_asked("01J9-job", [{"kind": "dataroot", "name": "gcd",
                                       "dataroot": "gcd-pytest-example"}])
 
 
@@ -1808,3 +1809,94 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
 
     with pytest.raises(RemoteError, match="steptwo/0/outputs/gcd.vg is a link to"):
         run._check_upstream_files()
+
+
+###########################
+# The v1 API changes of 2026-09-29, the client's half
+###########################
+
+def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project, tmp_path):
+    '''🔴 Never the dataroot's name alone: many objects use SiliconCompiler's
+    default, `root` (surface D282). Asked for one owner's, the other's stays.'''
+    from siliconcompiler import StdCellLibrary
+
+    for name in ("alib", "blib"):
+        lib = StdCellLibrary(name)
+        (tmp_path / name).mkdir()
+        (tmp_path / name / f"{name}.pdf").write_text(name)
+        lib.set_dataroot("root", str(tmp_path / name))
+        with lib.active_dataroot("root"):
+            lib.set("package", "doc", "datasheet", f"{name}.pdf")
+        nop_project.add_dep(lib)
+
+    collection = tmp_path / "collected"
+    run._collect([{"kind": "dataroot", "name": "alib", "dataroot": "root"}],
+                 directory=str(collection), only_asked=True)
+
+    found = {name for _, _, names in os.walk(collection) for name in names}
+    assert "alib.pdf" in found and "blib.pdf" not in found
+
+
+def test_the_poll_line_reads_its_time_and_reason_from_transitions():
+    '''How long the job has been in its state, from the last entry of
+    `transitions`, and why it entered it (surface §17; D278).'''
+    import time
+    from datetime import datetime, timezone
+
+    from siliconcompiler.remote.client.run import _state_line
+
+    entered = datetime.fromtimestamp(time.time() - 300, tz=timezone.utc) \
+        .strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    line = _state_line({"state": "cancelling", "transitions": [
+        {"state": "created", "at": "2026-09-29T10:00:00.000Z"},
+        {"state": "cancelling", "at": entered, "reason": "wrong corner"}]})
+
+    assert line.startswith("cancelling for 5m") and line.endswith(", wrong corner")
+    # A live staging phase is the job's own, and wins.
+    assert _state_line({"state": "staging", "state_reason": "fetching sources",
+                        "transitions": [{"state": "staging", "at": entered}]}) \
+        .endswith(", fetching sources")
+
+
+def test_the_session_is_shown_from_me_and_nothing_is_refreshed(logged_in, fake_v1, caplog):
+    '''`sc-remote` shows the session this machine holds -- from `GET /v1/me`,
+    which rotates nothing -- and what it has used, this month and in all.'''
+    import logging
+
+    caplog.set_level(logging.INFO)
+    logged_in.print_identity({
+        "id": "u1", "issuer": "local",
+        "session": {"kind": "interactive", "scope": "jobs:read jobs:write",
+                    "device_id": "dev-1", "access_expires_at": "2026-09-29T10:15:00.000Z",
+                    "refresh_expires_at": "2026-10-06T10:00:00.000Z",
+                    "session_expires_at": "2026-10-11T10:00:00.000Z"},
+        "usage": {"jobs_active": 2,
+                  "compute_seconds": {"used": 3600, "total": 7200, "limit": None,
+                                      "window": "calendar_month", "resets_at": "x"},
+                  "storage_bytes": {"used": 2048, "total": None, "limit": None,
+                                    "window": None, "resets_at": None}}})
+
+    text = caplog.text
+    assert "Session: interactive on device dev-1" in text
+    assert "scope: jobs:read jobs:write" in text
+    assert "refresh token until 2026-10-06T10:00:00.000Z" in text
+    assert "ends at 2026-10-11T10:00:00.000Z" in text
+    assert "Compute: 1h 00m this month, 2h 00m in all" in text
+    assert not [call for call in fake_v1.calls if "auth/token" in call.request.url
+                and "refresh_token" in (call.request.body or "")]
+
+
+def test_a_ci_session_says_it_cannot_refresh(logged_in, caplog):
+    import logging
+
+    caplog.set_level(logging.INFO)
+    logged_in.print_identity({
+        "id": "u1", "issuer": "ci",
+        "session": {"kind": "ci", "scope": "jobs:read", "device_id": None,
+                    "access_expires_at": "a", "refresh_expires_at": None,
+                    "session_expires_at": "s"},
+        "usage": {"jobs_active": 0}})
+
+    assert "Session: ci\n" in caplog.text or caplog.text.count("Session: ci") == 1
+    assert "on device" not in caplog.text
+    assert "it cannot refresh" in caplog.text

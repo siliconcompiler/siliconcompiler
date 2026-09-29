@@ -59,6 +59,7 @@ def me(session):
         "limits": accounts.account_limits(
             config, accounts.effective_limits(store, config, session.user_id)),
         "usage": accounts.usage(store, session.user_id),
+        "session": accounts.session_view(store, session),
         # No service-scoped terms document exists to block it.
         "can_submit": True,
         "terms": [],

@@ -131,15 +131,20 @@ def usage(store, user_id: str) -> Dict[str, Any]:
     # The calendar month to date. Windows are calendar; rolling windows are not
     # in v1, so resets_at is always a real instant.
     month_start = now()[:8] + "01T00:00:00.000Z"
-    compute = store.one(
-        "SELECT coalesce(sum(julianday(finished_at) - julianday(started_at)), 0) "
-        "       * 86400 AS n FROM jobs "
-        "WHERE user_id = ? AND started_at IS NOT NULL AND finished_at IS NOT NULL "
-        "  AND finished_at >= ?", (user_id, month_start))["n"]
+
+    def compute_since(start):
+        return int(store.one(
+            "SELECT coalesce(sum(julianday(finished_at) - julianday(started_at)), 0) "
+            "       * 86400 AS n FROM jobs "
+            "WHERE user_id = ? AND started_at IS NOT NULL AND finished_at IS NOT NULL "
+            "  AND finished_at >= ?", (user_id, start))["n"])
 
     return {
+        # `used` this calendar month and `total` everything the store records:
+        # every job row is kept, a deleted one included (entitlements §3).
         "compute_seconds": {
-            "used": int(compute),
+            "used": compute_since(month_start),
+            "total": compute_since(""),
             "limit": None,
             "window": "calendar_month",
             "resets_at": _next_month(month_start),
@@ -147,8 +152,40 @@ def usage(store, user_id: str) -> Dict[str, Any]:
         # An empty map rather than null: no license is metered here, and there
         # is no per-tool row to report.
         "license_seconds": {},
-        "storage_bytes": {"used": int(stored), "limit": None},
+        # A stock: `used` is already the whole, so `total` is null, and it
+        # neither has a window nor resets.
+        "storage_bytes": {"used": int(stored), "total": None, "limit": None,
+                          "window": None, "resets_at": None},
         "jobs_active": active,
+    }
+
+
+def session_view(store, session) -> Dict[str, Any]:
+    '''`GET /v1/me`'s `session`: the one this request was made in, from the
+    calling token's family and device. Reading it rotates nothing, so a
+    client can show a person their session without refreshing it.'''
+    from datetime import datetime, timezone
+
+    from siliconcompiler.remote.server.auth import SCOPES
+
+    family = store.one("SELECT kind, absolute_expires_at FROM token_families WHERE id = ?",
+                       (session.family_id,))
+    refresh = store.one(
+        "SELECT expires_at FROM refresh_tokens WHERE family_id = ? AND replaced_at IS NULL "
+        "  AND revoked_at IS NULL ORDER BY issued_at DESC LIMIT 1", (session.family_id,))
+    access = None
+    if session.expires_at is not None:
+        access = datetime.fromtimestamp(session.expires_at, tz=timezone.utc) \
+            .strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    kind = family["kind"] if family else "interactive"
+    return {
+        "kind": kind,
+        # As a token's scope string, in the registry's own order.
+        "scope": " ".join(scope for scope in SCOPES if scope in session.scope),
+        "device_id": session.device_id if kind == "interactive" else None,
+        "access_expires_at": access,
+        "refresh_expires_at": refresh["expires_at"] if refresh else None,
+        "session_expires_at": family["absolute_expires_at"] if family else access,
     }
 
 

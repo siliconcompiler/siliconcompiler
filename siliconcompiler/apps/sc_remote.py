@@ -225,10 +225,7 @@ def _dispatch(remote):
     client.print_configuration()
     client.print_deployment()
 
-    identity = client.me()
-    remote.logger.info(f"Server reports you as {identity['id']} "
-                       f"(issuer {identity['issuer']})")
-    remote.logger.info(f"Jobs running: {identity['usage']['jobs_active']}")
+    client.print_identity(client.me())
 
     return 0
 

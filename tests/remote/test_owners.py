@@ -221,16 +221,18 @@ def test_sources_names_what_is_not_uploaded_and_strips_credentials(project, tmp_
                              create=False))
     project.add_asiclib(private(StdCellLibrary, "secretlib", tmp_path))
 
-    listed = {(item["kind"], item["name"]): item for item in owners.sources(project)}
+    listed = {(item["name"], item["dataroot"]): item for item in owners.sources(project)}
+    # By owner and dataroot, and no kind: the server finds it from the name.
+    assert not any("kind" in item for item in listed.values())
 
-    remote = listed[("pdk", "lambda")]
+    remote = listed[("lambda", "lambda")]
     assert remote["source"] == "https://github.com/siliconcompiler/x/archive/"
     assert remote["ref"] == "v1" and remote["private"] is False
 
-    hidden = listed[("library", "secretlib")]
+    hidden = listed[("secretlib", "secretlib")]
     # 🔴 A private dataroot's path is never sent.
     assert hidden["private"] is True and "source" not in hidden
-    assert ("design", "gcd") not in listed
+    assert not any(name == "gcd" for name, _ in listed)
 
 
 ###########################
@@ -519,7 +521,7 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
     def read():
         return call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert wait_for(lambda: read()["state"] == "awaiting_input")
-    assert read()["upload_sources"] == [{"kind": "pdk", "name": "mine", "dataroot": "mine"}]
+    assert read()["upload_sources"] == [{"kind": "dataroot", "name": "mine", "dataroot": "mine"}]
     assert not dispatcher.submitted
 
 

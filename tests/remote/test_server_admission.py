@@ -168,8 +168,7 @@ def test_concurrent_submits_admit_only_the_concurrent_jobs_ceiling(
               for n in range(5)]
     through_the_early_check_together(monkeypatch, "_check_concurrent_jobs", 5)
 
-    results = all_at_once(5, lambda n: jobs.submit(session, staged[n], {"digest": digest},
-                                                   None))
+    results = all_at_once(5, lambda n: jobs.submit(session, staged[n], {}, None))
 
     admitted = [result for result in results if isinstance(result, dict)]
     refused = [result for result in results if isinstance(result, ProblemError)]

@@ -315,18 +315,22 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
 
     🔴 Credentials are stripped from every URL, and a private dataroot's source
     is ABSENT -- its path is never sent.
+
+    Each names its dataroot by ``name``, the object that owns it, and
+    ``dataroot``, its own name, and no kind: a resource's name is unique across
+    kinds, so the server finds the kind from it (surface D282).
     '''
-    found: Dict[Tuple[str, Optional[str], str], Dict[str, Any]] = {}
+    found: Dict[Tuple[Optional[str], str], Dict[str, Any]] = {}
     for one in _values(project):
         if one.origin not in (INSTALLED, REMOTE, PRIVATE) or not one.dataroot:
             continue
         if not needed(one.key, required):
             continue
-        entry = (one.kind, one.name, one.dataroot)
+        entry = (one.name, one.dataroot)
         if entry in found:
             continue
         resolver = one.resolvers.get(one.dataroot)
-        item = {"kind": one.kind, "name": one.name, "dataroot": one.dataroot,
+        item = {"name": one.name, "dataroot": one.dataroot,
                 "private": one.origin == PRIVATE}
         if one.origin != PRIVATE:
             item["source"] = strip_userinfo(getattr(resolver, "source", None))
@@ -348,15 +352,15 @@ def _distribution_of(module: Optional[str]) -> Optional[str]:
 
 
 def installed_dataroots(project, required=None) \
-        -> List[Tuple[Tuple[str, Optional[str], str], str]]:
-    '''Each ``(kind, name, dataroot)`` the flow reads from a Python package
+        -> List[Tuple[Tuple[Optional[str], str], str]]:
+    '''Each ``(name, dataroot)`` the flow reads from a Python package
     installed normally, with the distribution that provides it -- what a
     server may supply by that distribution's version, where it holds it.'''
-    found: Dict[Tuple[str, Optional[str], str], str] = {}
+    found: Dict[Tuple[Optional[str], str], str] = {}
     for one in _values(project):
         if one.origin != INSTALLED or not one.dataroot or not needed(one.key, required):
             continue
-        entry = (one.kind, one.name, one.dataroot)
+        entry = (one.name, one.dataroot)
         if entry in found:
             continue
         resolver = one.resolvers.get(one.dataroot)
@@ -410,8 +414,9 @@ class Entry(NamedTuple):
 
     @property
     def wire(self) -> Dict[str, Any]:
-        '''As `upload_sources` spells it.'''
-        return {"kind": self.kind, "name": self.name, "dataroot": self.dataroot}
+        '''As `upload_sources` spells it: a dataroot, by its owner and its own
+        name (surface D282).'''
+        return {"kind": "dataroot", "name": self.name, "dataroot": self.dataroot}
 
 
 def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]]:

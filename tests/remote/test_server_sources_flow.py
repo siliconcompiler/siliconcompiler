@@ -72,9 +72,9 @@ def read(server_client, key, token, job_id):
 
 def test_create_asks_only_for_what_it_cannot_supply(server_client, key, token):
     job = create(server_client, key, token, sources=[
-        {"kind": "pdk", "name": "lambda", "dataroot": "lambda",
+        {"name": "lambda", "dataroot": "lambda",
          "source": LAMBDA, "ref": "v0.2.22", "private": False},
-        {"kind": "library", "name": "acme_ip", "dataroot": "acme_ip",
+        {"name": "acme_ip", "dataroot": "acme_ip",
          "source": "git+ssh://git@github.com/acme/ip.git", "ref": "v1.2",
          "private": False},
     ]).get_json()
@@ -82,7 +82,7 @@ def test_create_asks_only_for_what_it_cannot_supply(server_client, key, token):
     # Allowlisted and not held: assumed fetchable, not listed. Behind a key
     # this server has not got: asked for.
     assert job["upload_sources"] == [
-        {"kind": "library", "name": "acme_ip", "dataroot": "acme_ip"}]
+        {"kind": "dataroot", "name": "acme_ip", "dataroot": "acme_ip"}]
 
 
 def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
@@ -93,20 +93,24 @@ def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
                                           sources=[]).get_json()
 
 
-def test_a_private_source_with_no_copy_here_is_refused_at_create(
+def test_a_private_source_with_no_copy_here_waits_for_the_manifests_read(
         server_client, key, token):
+    '''⚠️ Not refused at create: a source names no kind, and this server has
+    no catalogue to find a name's kind in, which the refusal names. The
+    manifest's read does, while staging, where it is refused
+    (`test_owners`: a private PDK this server has no copy of). Never asked
+    for, either: it is never uploaded.'''
     response = create(server_client, key, token, sources=[
-        {"kind": "pdk", "name": "secret", "dataroot": "secret", "private": True}])
+        {"name": "secret", "dataroot": "secret", "private": True}])
 
-    assert response.status_code == 422
-    assert slug(response) == "resource-unavailable"
-    assert response.get_json()["resource"] == "secret"
+    assert response.status_code == 201
+    assert "upload_sources" not in response.get_json()
 
 
 def test_credentials_in_a_source_are_never_stored(server, server_client, key, token):
     '''🔴 The client strips them; the server strips them again.'''
     job = create(server_client, key, token, sources=[
-        {"kind": "library", "name": "ip", "dataroot": "ip",
+        {"name": "ip", "dataroot": "ip",
          "source": "https://user:ghp_secret@gitlab.com/acme/ip/archive/",
          "ref": "v1", "private": False}]).get_json()
 
@@ -157,7 +161,7 @@ def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")
     back = read(server_client, key, token, job["id"])
-    assert back["upload_sources"] == [{"kind": "pdk", "name": "lambda", "dataroot": "lambda"}]
+    assert back["upload_sources"] == [{"kind": "dataroot", "name": "lambda", "dataroot": "lambda"}]
     assert back["terminal"] is False
     assert not dispatcher.submitted
 
@@ -166,6 +170,37 @@ def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
         "AND from_state = 'staging' AND to_state = 'awaiting_input'",
         (job["id"],))["reason"]
     assert "pdk lambda (lambda): the source answered 404" in reason
+
+    # 🔴 `transitions` lists every state entered, the send-back included, and
+    # the entry says why (surface §17; D278).
+    assert [entry["state"] for entry in back["transitions"]] == \
+        ["created", "awaiting_input", "staging", "awaiting_input"]
+    assert "the source answered 404" in back["transitions"][-1]["reason"]
+
+
+def test_two_owners_of_one_dataroot_name_are_told_apart(server_client, key, token):
+    '''🔴 A dataroot's name is unique only within its owner, and many objects
+    use SiliconCompiler's default, `root`: `upload_sources` names both
+    (surface §13; D282).'''
+    job = create(server_client, key, token, sources=[
+        {"name": "acme_ip", "dataroot": "root",
+         "source": "git+ssh://git@github.com/acme/ip.git", "ref": "v1", "private": False},
+        {"name": "beta_ip", "dataroot": "root",
+         "source": "git+ssh://git@github.com/beta/ip.git", "ref": "v1", "private": False},
+    ]).get_json()
+
+    assert job["upload_sources"] == [
+        {"kind": "dataroot", "name": "acme_ip", "dataroot": "root"},
+        {"kind": "dataroot", "name": "beta_ip", "dataroot": "root"}]
+
+
+def test_a_source_names_no_kind(server_client, key, token):
+    '''The server finds a name's kind (entitlements D75): a `kind` is an
+    unknown member, refused under the strict rule.'''
+    response = create(server_client, key, token, sources=[
+        {"kind": "pdk", "name": "lambda", "dataroot": "lambda", "private": False}])
+
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
 
 
 def test_a_job_sent_back_counts_as_waiting_again(server, server_client, key, token,
@@ -395,7 +430,9 @@ def test_cancelling_a_job_still_fetching_stops_the_fetch(
     # staging thread stops the fetch and writes `cancelled` -- the API's, as a
     # staging job has no scheduler id.
     assert cancelled["state"] == "cancelling"
-    assert cancelled["state_reason"] == "cancelled"
+    # No reason was given, so its entry carries none.
+    assert cancelled["transitions"][-1]["state"] == "cancelling"
+    assert "reason" not in cancelled["transitions"][-1]
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "cancelled")
     assert not dispatcher.submitted
@@ -409,7 +446,7 @@ def test_a_private_source_mapped_here_is_supplied_at_create(server, server_clien
         "secret": {"secret": str(tmp_path)}}
 
     job = create(server_client, key, token, sources=[
-        {"kind": "pdk", "name": "secret", "dataroot": "secret", "private": True}])
+        {"name": "secret", "dataroot": "secret", "private": True}])
 
     assert job.status_code == 201
     assert "upload_sources" not in job.get_json()

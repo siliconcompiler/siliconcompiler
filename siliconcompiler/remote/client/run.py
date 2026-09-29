@@ -190,7 +190,7 @@ class RemoteRun:
             # other end, never a fetch, and credentials stripped -- and only
             # what the flow reads.
             sources=[item for item in owners.sources(self.project, self._needs()[1])
-                     if (item["kind"], item["name"], item["dataroot"])
+                     if (item["name"], item["dataroot"])
                      not in self._uploaded_packages()] or None,
             idempotency_key=_key())
 
@@ -233,7 +233,7 @@ class RemoteRun:
                 self.client.upload(grant, upload)
 
                 # `202` in `staging`: what staging finds arrives on the job.
-                self.client.submit_job(job_id, digest=digest, idempotency_key=_key())
+                self.client.submit_job(job_id, idempotency_key=_key())
         except BaseException as e:
             self._abandon(job_id, e)
             raise
@@ -472,7 +472,7 @@ class RemoteRun:
 
         from siliconcompiler.remote import owners
 
-        seen = tuple(sorted((item.get("kind"), item.get("name"), item.get("dataroot"))
+        seen = tuple(sorted((item.get("kind"), item.get("name"), item.get("dataroot") or "")
                             for item in asked))
         if seen in self._sent:
             raise RemoteError(f"the server asked again for {_named(asked)}, which "
@@ -497,8 +497,7 @@ class RemoteRun:
             grant = self.client.upload_grant(job_id, size, f"sha256:{digest.hexdigest()}")
             self._report_upload(size, owners.upload_report(self.project, collection))
             self.client.upload(grant, upload)
-            self.client.submit_job(job_id, digest=f"sha256:{digest.hexdigest()}",
-                                   idempotency_key=_key())
+            self.client.submit_job(job_id, idempotency_key=_key())
 
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page, where a person is plainly watching.
@@ -686,7 +685,7 @@ class RemoteRun:
             return False
 
     def _uploaded_packages(self):
-        '''Each ``(kind, name, dataroot)`` from an installed package the
+        '''Each ``(name, dataroot)`` from an installed package the
         server does not list at this version: its files upload.'''
         from siliconcompiler.remote import owners
 
@@ -794,7 +793,7 @@ class RemoteRun:
                     if self._supplied(distribution)}
         for one in owners._values(project):
             if one.origin == owners.PRIVATE or \
-                    (one.kind, one.name, one.dataroot) in supplied:
+                    (one.name, one.dataroot) in supplied:
                 resolver = one.resolvers.get(one.dataroot)
                 try:
                     path = resolver.get_path() if resolver is not None else None
@@ -819,8 +818,10 @@ class RemoteRun:
         '''
         from siliconcompiler.remote import owners
 
-        wanted = {(item.get("kind"), item.get("name"), item.get("dataroot"))
-                  for item in asked}
+        # 🔴 By owner AND dataroot, never the dataroot alone: many objects use
+        # SiliconCompiler's default, `root` (surface D282).
+        wanted = {(item.get("name"), item.get("dataroot"))
+                  for item in asked if item.get("kind") == "dataroot"}
         required = self._needs()[1]
         # An installed package the server does not list at this version
         # supplies none of its dataroots: they upload, in the first archive.
@@ -833,7 +834,7 @@ class RemoteRun:
             if not only_asked and owners.uploads(self.project, one.key, one.dataroot,
                                                  one.resolvers, one.value.get()):
                 return True
-            return (one.kind, one.name, one.dataroot) in wanted
+            return (one.name, one.dataroot) in wanted
 
         try:
             keys = owners.collection_keys(self.project, pick)
@@ -1203,10 +1204,8 @@ class RemoteRun:
             by_state.setdefault(node.get("state", "unknown"), []).append(node)
 
         progress = job.get("progress") or {}
-        reason = job.get("state_reason")
-        why = f", {clean(str(reason))}" if reason else ""
         self.logger.info(
-            f"Job is still running ({job.get('state')}{why}): "
+            f"Job is still running ({_state_line(job)}): "
             f"{progress.get('completed_count', 0)}/{progress.get('total_count', 0)} nodes")
 
         for state in sorted(by_state):
@@ -1546,6 +1545,23 @@ def _durations(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
     return durations
 
 
+def _state_line(job: Dict[str, Any]) -> str:
+    '''The job's state as a person reads it: how long it has been in it, from
+    the last entry of `transitions` (surface §17), and why -- the live
+    staging phase, or the reason the job entered its state, such as a
+    cancel's.'''
+    from siliconcompiler.remote.units import duration
+
+    state = str(job.get("state"))
+    last = (job.get("transitions") or [{}])[-1]
+    entered = _epoch(last.get("at")) if last.get("state") == job.get("state") else None
+    if entered is not None:
+        state += f" for {duration(max(0, time.time() - entered))}"
+    reason = job.get("state_reason") or (last.get("reason")
+                                         if last.get("state") == job.get("state") else None)
+    return state + (f", {clean(str(reason))}" if reason else "")
+
+
 def _epoch(timestamp: str) -> Optional[float]:
     '''An RFC 3339 instant as epoch seconds, or None if it cannot be read.
 
@@ -1860,7 +1876,9 @@ def _pin(version: str) -> str:
 
 def _named(asked) -> str:
     '''`upload_sources` as a person reads it.'''
-    return ", ".join(f"{item.get('kind')} {item.get('name')} ({item.get('dataroot')})"
+    return ", ".join(f"{item.get('name')} ({item.get('dataroot')})"
+                     if item.get("kind") == "dataroot" else
+                     f"the Python package {item.get('name')}"
                      for item in asked)
 
 

@@ -3,7 +3,7 @@ import time
 import pytest
 
 from conftest import call, login, slug
-from test_server_jobs import FakeDispatcher, stage, submit
+from test_server_jobs import FakeDispatcher, create, stage, submit
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -1056,19 +1056,24 @@ def _uploads(server, job_id):
 def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
         server, server_client, key, token, job_archive, dispatcher):
     '''A refusal of the request, so the job still waits and its upload is
-    kept for the submit that names the right digest -- and only then is it
-    recorded, under the hash storage holds.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    wrong = "sha256:" + "0" * 64
+    kept where the grant put it; the bytes the grant was issued for, sent to
+    it, are recorded -- under the hash storage holds.'''
+    from test_server_jobs import put, sized
 
-    response = submit(server_client, key, token, job["id"], wrong, size)
+    archive, digest, size = job_archive()
+    job = create(server_client, key, token).get_json()
+    grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
+                 token, json=sized(size, digest)).get_json()
+    put(server_client, grant, b"\0" * size)
+
+    response = submit(server_client, key, token, job["id"])
 
     assert slug(response) == "upload-digest-mismatch"
     assert not _uploads(server, job["id"])
-    assert server.config["SC_STORAGE"].stat_upload(job["id"]) == (size, digest)
+    assert server.config["SC_STORAGE"].stat_upload(job["id"])[0] == size
 
-    submit(server_client, key, token, job["id"], digest, size)
+    put(server_client, grant, open(archive, "rb").read())
+    submit(server_client, key, token, job["id"])
     kept, = _uploads(server, job["id"])
     assert kept["content_hash"] == digest and kept["upload_seq"] == 1
 
@@ -1260,7 +1265,8 @@ def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
     said = reasons.pop()
     assert said == "deleted by its owner"
     read = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}", token).get_json()
-    assert read["delete_reason"] == said and read["deleted_cause"] == "removed"
+    # Set exactly when deleted_at is, and no deleted_cause on a job (D279).
+    assert read["delete_reason"] == said and "deleted_cause" not in read
     # And never the account it acted as.
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     assert me not in said

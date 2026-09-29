@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>upload-digest-mismatch &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The digest you submitted is not what storage holds.">
+<meta name="description" content="What storage holds is not the upload the grant was issued for.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,12 +21,12 @@
 </header>
 
 <main>
-<p>The <code>digest</code> you sent with the submit is not what storage holds for this job. Nothing was opened: the check comes before extraction, precisely so the bytes cannot change between the check and the use.</p>
+<p>What storage holds for this job does not match the <code>digest</code> its upload grant was issued for. The submit carries no digest of its own: the grant bound one, and the upload is checked against it. Nothing was opened: the check comes before extraction, precisely so the bytes cannot change between the check and the use.</p>
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>Upload again to the grant, then submit with the digest of exactly those bytes.</li>
+  <li>Upload exactly the bytes the grant was issued for, to the grant, and submit again. A different archive needs a grant of its own.</li>
   <li>A transfer that was cut short is the usual cause.</li>
 </ol>
 </div>

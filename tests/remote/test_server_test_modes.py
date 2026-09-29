@@ -409,7 +409,7 @@ def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")
     back = read(server_client, key, token, job["id"])
-    assert back["upload_sources"] == [{"kind": "pdk", "name": "lambda", "dataroot": "lambda"}]
+    assert back["upload_sources"] == [{"kind": "dataroot", "name": "lambda", "dataroot": "lambda"}]
     reason = server.config["SC_STORE"].one(
         "SELECT reason FROM job_state_transitions WHERE job_id = ? "
         "AND to_state = 'awaiting_input' AND from_state = 'staging'", (job["id"],))["reason"]
