@@ -47,7 +47,7 @@ __all__ = ["SUMMARY_VERSION", "Invalid", "request", "validate", "read", "contain
 
 # The summary's own version: a shape change is a new number, and the server
 # refuses a number it does not know as it refuses any other malformed summary.
-SUMMARY_VERSION = 1
+SUMMARY_VERSION = 2
 
 # 🔴 Bounds on what the read may say. A summary is written by whatever the
 # manifest makes this process do, so it is capped as it is read back, whole and
@@ -151,9 +151,9 @@ def validate(summary: Any) -> Dict[str, Any]:
             node([entry.get("step"), entry.get("index")], "a node")
             text(entry.get("task"), "a node's task class", optional=True)
             text(entry.get("tool"), "a node's tool", MAX_NAME, optional=True)
-            if not isinstance(entry.get("resolved"), bool) \
-                    or not isinstance(entry.get("inherits"), bool):
-                fail("a node's resolved and inherits are not booleans")
+            if not all(isinstance(entry.get(flag), bool)
+                       for flag in ("resolved", "inherits", "python")):
+                fail("a node's resolved, inherits and python are not booleans")
 
     for edge in listed(summary.get("edges") or [], "edges", MAX_NODES * 4):
         if not isinstance(edge, list) or len(edge) != 4:
@@ -277,12 +277,14 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
         inherits = runspec.inheriting_nodes(flow, nodes,
                                             [tuple(edge) for edge in edges])
         known = schemaclasses.known()
+        python = runspec.python_nodes(flow, nodes)
         summary["nodes"] = [{
             "step": step, "index": index,
             "task": flow.get_graph_node(step, index).get_taskmodule(),
             "resolved": flow.get_graph_node(step, index).get_taskmodule() in known,
             "tool": tools.get((step, index)),
-            "inherits": (step, index) in inherits} for step, index in nodes]
+            "inherits": (step, index) in inherits,
+            "python": (step, index) in python} for step, index in nodes]
         summary["edges"] = edges
         summary["tools"] = sorted({tool for tool in tools.values() if tool})
 

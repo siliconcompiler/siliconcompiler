@@ -393,6 +393,20 @@ def nop_project(gcd_nop_project):
 
 
 @pytest.fixture
+def python_project(nop_project):
+    '''The two-node flow, its first node running the user's Python: what the
+    job's Python packages are installed for.'''
+    from pytasks import RunsPython
+
+    flow = Flowgraph("pyflow")
+    flow.node("stepone", RunsPython())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    nop_project.set_flow(flow)
+    return nop_project
+
+
+@pytest.fixture
 def job_archive(nop_project):
     '''Build the archive a client would PUT, and report it as storage would.
 

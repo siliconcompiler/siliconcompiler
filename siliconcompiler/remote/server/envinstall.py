@@ -1,21 +1,20 @@
 '''
-Installing a node's Python environment on the host, while the job is staging.
+Installing a job's Python packages on the host, while the job is staging.
 
 Where nodes run on this host -- this server without containers, dispatching
-locally -- each executed node's environment file is installed here while the
-job is `staging`, into a cache kept per user, so a line that will not install
-rejects the job before any node runs rather than failing the run. A deployment
-that runs containers builds a derived image instead -- `envbuild` -- with the
-same install, `pipbuild`.
+locally -- the job's `python_packages` and its uploaded wheels are installed
+here while the job is `staging`, into a cache kept per user, so a package that
+will not install rejects the job before any node runs rather than failing the
+run. A deployment that runs containers builds a derived image instead --
+`envbuild` -- with the same install, `pipbuild`.
 
-🔴 **The uploaded file is never handed to pip.** It is parsed against the format
-again and a file of this server's own is written from what parsed, so a line pip
-would read one way and the grammar another has no route through. **Wheels only**:
-a source distribution builds only in the isolated builder. **From the
-deployment's `package_indexes`**, never an index a job names. What this Python
-already holds for the job's `requires.python` is never installed a second time
--- see `pipbuild`. The result goes on the tool's `PYTHONPATH` through a `site`
-link beside the node's file, and never on SiliconCompiler's own.
+🔴 **Nothing the job wrote is handed to pip.** The lists were held to their
+grammar at create, and the files pip reads are this server's own, written from
+what parsed. **Wheels only**: a source distribution builds only in the isolated
+builder. **From the deployment's `package_indexes`**, never an index a job
+names. What this Python already holds is never installed a second time -- see
+`pipbuild`. The result goes on the tool's `PYTHONPATH` through a `site` link in
+the job's directory, and never on SiliconCompiler's own.
 '''
 
 import hashlib
@@ -27,125 +26,116 @@ import sysconfig
 import uuid
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
 from siliconcompiler.remote import environment
 
-__all__ = ["InstallFailed", "HEADER", "install", "install_all", "recorded"]
+__all__ = ["InstallFailed", "HEADER", "install", "recorded", "digest"]
 
 
-HEADER = ("Written by sc-server from what the job's file declared; the file itself "
-          "is never installed.")
+HEADER = ("Written by sc-server from the job's python_packages; nothing the job "
+          "wrote is handed to pip.")
 
 
 class InstallFailed(RuntimeError):
-    '''A node's environment that did not install. ``result`` is pipbuild's
-    record, ``text`` the file this server wrote.'''
+    '''A job's packages that did not install. ``result`` is pipbuild's record.'''
 
-    def __init__(self, node: Tuple[str, str], text: str, result: Dict[str, Any]):
-        self.node, self.text, self.result = node, text, result
+    def __init__(self, result: Dict[str, Any]):
+        self.result = result
         super().__init__(
-            f"{node[0]}/{node[1]}: its Python environment would not install for "
-            f"{result.get('python')} on {result.get('platform')}:\n"
-            f"{result.get('tail', '')}")
+            f"the job's Python packages would not install for {result.get('python')} "
+            f"on {result.get('platform')}:\n{result.get('tail', '')}")
 
 
-def install_all(job_dir: Path, root: Path, logger, nodes, constrain=(),
-                indexes=()) -> List[Tuple[Tuple[str, str], Dict[str, Any]]]:
-    '''Each of ``nodes`` that carries an environment file, installed into
-    ``root`` and linked beside its file. Returns each node installed with what
-    its install added (:func:`recorded`).
-
-    ``constrain`` is what the job's `requires.python` names: each is pinned to
-    the version this host holds. Raises InstallFailed for the first node that
-    will not install.
-    '''
-    installed = []
-    for step, index in sorted(nodes):
-        path = Path(job_dir) / environment.path_for(step, index)
-        if not path.is_file():
-            continue
-        parsed = environment.parse(path.read_bytes())
-        if not parsed.pins:
-            continue
-        target = install(parsed, root, logger, (step, index), constrain, indexes)
-
-        link = Path(job_dir) / environment.site_path(step, index)
-        if link.is_symlink() or link.exists():
-            link.unlink()
-        link.symlink_to(target, target_is_directory=True)
-        installed.append(((step, index), recorded(target)))
-    return installed
+def digest(path) -> str:
+    '''A wheel's sha256, which is what an install of it is keyed on.'''
+    found = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            found.update(chunk)
+    return found.hexdigest()
 
 
 def recorded(target) -> Dict[str, Any]:
     '''What the install of ``target`` added: each distribution with its
-    version, and each version substituted within its release line -- kept
-    beside the environment, so a cached one reports the same as a fresh one
-    (profile §5, *`resolved_versions` covers images only*).'''
+    version, each version substituted within its release line, and each listed
+    version this host's own copy was kept over -- kept beside the environment,
+    so a cached one reports the same as a fresh one (profile §5,
+    *`resolved_versions` covers images only*).'''
     try:
         with open(f"{target}.json") as f:
             found = json.load(f)
     except (OSError, ValueError):
-        return {"installed": [], "substituted": {}}
+        return {"installed": [], "substituted": {}, "ignored": {}}
     return {"installed": [list(pair) for pair in found.get("installed") or []],
-            "substituted": dict(found.get("substituted") or {})}
+            "substituted": dict(found.get("substituted") or {}),
+            "ignored": dict(found.get("ignored") or {})}
 
 
-def install(parsed: environment.Environment, root: Path, logger, node: Tuple[str, str],
-            constrain=(), indexes=()) -> str:
-    '''One environment into a directory of its own, built once and shared by
-    every node of this user asking for the same set.
+def install(packages: environment.Packages, wheels: Sequence[str], root: Path, logger,
+            constrain=(), indexes=()) -> Tuple[str, Dict[str, Any]]:
+    '''A job's packages into a directory of their own, built once and shared
+    by every job of this user asking for the same set. Returns the directory
+    and what its install added (:func:`recorded`). Raises InstallFailed.
 
-    Keyed by this Python, this platform, the constraints and the indexes --
-    the install adds to what those pin and comes from where they say, so both
-    are part of what the result means -- and the file this server writes.
-    Built under a lock beside it and moved into place whole, so a directory
-    that exists is one that is finished.
+    Keyed by this Python, this platform, what it holds, the indexes, the job's
+    `requires.python` names, the files this server writes and each wheel's
+    digest -- the install adds to what this Python holds and comes from where
+    the indexes say, so all of it is part of what the result means. Built
+    under a lock beside it and moved into place whole, so a directory that
+    exists is one that is finished.
     '''
     from fasteners import InterProcessLock
 
     from siliconcompiler.remote.server import pipbuild
 
-    text = environment.render(parsed.pins, header=HEADER)
+    requirements = environment.render(packages.requirements, header=HEADER)
+    constraints = environment.render(packages.constraints, header=HEADER)
+    wheels = sorted(str(path) for path in wheels)
     tag = sys.implementation.cache_tag
     key = hashlib.sha256(json.dumps({
         "python": tag, "platform": sysconfig.get_platform(),
-        "constraints": pipbuild.constraints(constrain), "indexes": list(indexes),
-        "file": text,
+        "holds": pipbuild.pins(), "indexes": list(indexes),
+        "constrain": sorted(environment.canonical(name) for name in constrain),
+        "requirements": requirements, "constraints": constraints,
+        "wheels": [digest(path) for path in wheels],
     }).encode()).hexdigest()[:16]
     target = Path(root) / f"{tag}-{key}"
     if target.is_dir():
-        return str(target)
+        return str(target), recorded(target)
 
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     with InterProcessLock(f"{target}.lock"):
         if target.is_dir():
-            return str(target)
+            return str(target), recorded(target)
 
         staging = Path(f"{target}.{uuid.uuid4().hex}")
-        written = Path(f"{staging}.txt")
-        written.write_text(text)
-        logger.info(f"Installing {node[0]}/{node[1]}'s Python environment into {target}: "
-                    f"{', '.join(str(pin) for pin in parsed.pins)}")
+        listed = Path(f"{staging}.requirements.txt")
+        limited = Path(f"{staging}.constraints.txt")
+        listed.write_text(requirements)
+        limited.write_text(constraints)
+        named = [str(pin) for pin in packages.requirements] + \
+            [os.path.basename(path) for path in wheels]
+        logger.info(f"Installing the job's Python packages into {target}: "
+                    f"{', '.join(named) or 'nothing beyond what this host holds'}")
         try:
-            result = pipbuild.install(str(written), str(staging), constrain=constrain,
-                                      indexes=indexes)
+            result = pipbuild.install(str(listed), str(limited), str(staging),
+                                      wheels=wheels, indexes=indexes)
         finally:
-            written.unlink(missing_ok=True)
+            listed.unlink(missing_ok=True)
+            limited.unlink(missing_ok=True)
         if result["returncode"] != 0:
             shutil.rmtree(staging, ignore_errors=True)
-            raise InstallFailed(node, text, result)
-        for name, (asked, got) in (result.get("substituted") or {}).items():
-            logger.info(f"{node[0]}/{node[1]}: {name}=={asked} does not install here; "
-                        f"{got} from its release line was installed instead")
-        # Nothing to install is still an environment: the image held it all.
+            raise InstallFailed(result)
+        # Nothing to install is still an environment: this host held it all.
         staging.mkdir(exist_ok=True)
         with open(f"{target}.json", "w") as f:
             json.dump({"installed": [list(pair) for pair in result.get("installed") or []],
                        "substituted": {name: list(pair) for name, pair in
-                                       (result.get("substituted") or {}).items()}}, f)
+                                       (result.get("substituted") or {}).items()},
+                       "ignored": {name: list(pair) for name, pair in
+                                   (result.get("ignored") or {}).items()}}, f)
         os.rename(staging, target)
 
-    return str(target)
+    return str(target), recorded(target)

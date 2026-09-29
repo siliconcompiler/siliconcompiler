@@ -308,6 +308,30 @@ def collected_path(one: _Value) -> Optional[str]:
     return PathNodeValue.generate_hashed_collection_path(one.value.get(), one.dataroot)
 
 
+def collected_paths(project, paths) -> Dict[str, str]:
+    '''Where `collect` puts each of ``paths`` -- files on this machine that a
+    path parameter names -- under the collection directory: ``{path: its
+    collected path}``, for each a non-private value resolves to. What puts a
+    test's helper modules in the test's own collected folder.'''
+    wanted = {os.path.realpath(str(path)): str(path) for path in paths}
+    found: Dict[str, str] = {}
+    for one in _values(project):
+        if one.origin == PRIVATE:
+            continue
+        resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
+        try:
+            base = resolver.get_path() if resolver is not None else None
+            here = one.value.resolve_path(search=[str(base)] if base else None)
+        except Exception:                                       # noqa: BLE001
+            continue
+        path = wanted.get(os.path.realpath(str(here))) if here else None
+        if path is not None and path not in found:
+            where = collected_path(one)
+            if where:
+                found[path] = where
+    return found
+
+
 def sources(project, required=None) -> List[Dict[str, Any]]:
     '''The dataroots this client expects the server to supply: the descriptor's
     `sources`. One entry per (kind, name, dataroot) not uploaded -- and, given

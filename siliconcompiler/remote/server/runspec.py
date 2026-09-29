@@ -18,7 +18,7 @@ import logging
 import os
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("sc-server")
 
@@ -489,6 +489,26 @@ def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
                 found[(step, index)] = before.get((step, index))
         except Exception:                                       # noqa: BLE001
             continue
+    return found
+
+
+def python_nodes(flow, nodes) -> Set[Tuple[str, str]]:
+    '''The nodes whose task runs the user's Python: its class reports what
+    that Python needs (`Task.get_python_environment`). Where the job's Python
+    packages are installed, and whose tool finds them on its `PYTHONPATH`.
+
+    Read off the class, never a setup: the read runs none.
+    '''
+    from siliconcompiler.tool import Task
+
+    found = set()
+    for step, index in nodes:
+        try:
+            task = flow.get_task_module(step, index)
+        except Exception:                                       # noqa: BLE001
+            continue
+        if getattr(task, "get_python_environment", None) is not Task.get_python_environment:
+            found.add((step, index))
     return found
 
 

@@ -17,6 +17,7 @@ packed.
 import hashlib
 import logging
 import os
+import posixpath
 import re
 import sys
 import shutil
@@ -122,14 +123,13 @@ class RemoteRun:
         # versions it declared; and each node whose setup could not run here.
         self._tasks = {}
         self._failed = {}
-        self._env_files = None
         self._upstream_sources = None
         # What the job last said it was, for what an interrupt tells the user.
         self._last_state: Optional[str] = None
         self._owner: Optional[str] = None
-        # The user's own code, once per job: {path under sc_python/packages/:
-        # the file here}.
-        self._packages: Dict[str, str] = {}
+        # The job's Python, worked out once: `_python`.
+        self._python_worked = None
+        self._wheel_dir: Optional[str] = None
         self._python_pins = None
         self._software = None
 
@@ -181,9 +181,12 @@ class RemoteRun:
             # not here and are held by the job that ran it.
             continues_from=self._upstream()[1] or None,
             flow=self._flow_descriptor(),
-            # A node's environment file is the declaration; this says the same
-            # at create, for the refusal before the upload.
-            needs=["python.env"] if self._python_env_files() else None,
+            # The job's Python packages: what an index can supply, listed here
+            # and authoritative; what none can, uploaded as wheels. Either
+            # relies on `python.env`, and says so for the refusal before the
+            # upload.
+            python_packages=self._python()[0],
+            needs=["python.env"] if self._python()[0] or self._python()[1] else None,
             requires={"python": self._requires_python(),
                       "tools": self._tool_requirements()},
             # What this machine expects the server to supply. A lookup at the
@@ -237,6 +240,8 @@ class RemoteRun:
         except BaseException as e:
             self._abandon(job_id, e)
             raise
+        finally:
+            self._drop_wheels()
 
         self.logger.info("Job submitted")
         return job_id
@@ -479,10 +484,12 @@ class RemoteRun:
                               "this client has already sent")
         self._sent.add(seen)
 
-        self.logger.info(f"The server could not fetch {_named(asked)}; sending it")
+        self.logger.info(f"The server could not supply {_named(asked)}; sending it")
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
             collection = Path(tmpdir) / "sc_collected_files"
-            self._collect(asked, directory=str(collection), only_asked=True)
+            if any(item.get("kind") == "dataroot" for item in asked):
+                self._collect(asked, directory=str(collection), only_asked=True)
+            report = self._wheels_asked(job_id, asked, collection)
 
             upload = Path(tmpdir) / "follow-up.tar.gz"
             with tarfile.open(upload, mode="w:gz") as tar:
@@ -495,7 +502,7 @@ class RemoteRun:
                     size += len(chunk)
 
             grant = self.client.upload_grant(job_id, size, f"sha256:{digest.hexdigest()}")
-            self._report_upload(size, owners.upload_report(self.project, collection))
+            self._report_upload(size, owners.upload_report(self.project, collection) + report)
             self.client.upload(grant, upload)
             self.client.submit_job(job_id, idempotency_key=_key())
 
@@ -594,7 +601,7 @@ class RemoteRun:
                 return self._needed
 
             # 🔴 Each node on its own: one setup that cannot run here drops no
-            # other node's environment. The set of files the flow reads is
+            # other node's Python. The set of files the flow reads is
             # then unknown, so every file goes up by owner alone.
             self._environments = worked.environments
             self._tasks = worked.tasks
@@ -693,53 +700,114 @@ class RemoteRun:
         return {entry for entry, distribution in owners.installed_dataroots(project, required)
                 if not self._supplied(distribution)}
 
-    def _python_env_files(self):
-        '''Each executed node's environment file, worked out once: ``(step,
-        index) -> text``, only for a node with a line to install. The user's
-        own code, found at the same time, is `_packages`, once per job.
+    def _python(self):
+        '''The job's Python, worked out once (surface *A node's own Python
+        packages, built while staging*): ``(python_packages or None, {wheel
+        file name: its path here}, {path under the collection directory: the
+        file here})``.
 
-        🔴 The client always writes it and the user never does: each
-        distribution the node's code reaches that was installed from an index,
-        and what those depend on, at the versions installed here -- less every
-        `requires.python` name and what each depends on, which the image
-        holds. No index is named, and no pip configuration is read.
+        🔴 The client always builds the lists and the user never does: each
+        distribution the run's Python imports, or a task loads by name, at the
+        version installed here, and every other distribution installed here as
+        a constraint -- less every `requires.python` name, which the image
+        holds, and every distribution no index can supply, which goes up as a
+        wheel built here. The user's own modules go up as files, in their
+        test's collected folder. No index is named, and no pip configuration
+        is read.
+
+        ⚠️ Constraints alone install nothing, so a job whose Python imports no
+        installed distribution and carries no wheel sends no `python_packages`
+        and needs no `python.env`: a testbench of only its own modules runs
+        anywhere its image holds cocotb.
         '''
-        if self._env_files is None:
-            self._needs()
-            files = {}
-            packages: Dict[str, str] = {}
-            from siliconcompiler.remote import environment
-            from siliconcompiler.remote.client import capture
+        if self._python_worked is not None:
+            return self._python_worked
 
-            self._check_worked_out()
-            provided = list(self._requires_python())
-            excluded = self._not_sent_roots()
-            for (step, index), wanted in sorted(self._environments.items()):
+        from siliconcompiler.remote import owners
+        from siliconcompiler.remote.client import capture, wheels
+
+        self._needs()
+        self._check_worked_out()
+        if not self._environments:
+            self._python_worked = (None, {}, {})
+            return self._python_worked
+
+        excluded = self._not_sent_roots()
+        tests = sorted({os.path.abspath(source) for wanted in self._environments.values()
+                        for source in wanted.sources})
+        collected = owners.collected_paths(self.project, tests)
+
+        roots: Dict[str, set] = {}
+        helpers: Dict[str, str] = {}
+        for (step, index), wanted in sorted(self._environments.items()):
+            try:
+                found = capture.reach(wanted.sources, wanted.requirements)
+            except capture.CannotForward as e:
+                raise RemoteError(f"{step}/{index}: {e}") from None
+            for warning in found.warnings:
+                self.logger.warning(f"{step}/{index}: {warning}")
+            for name, extras in found.distributions.items():
+                roots.setdefault(name, set()).update(extras)
+            for test, files in sorted(found.helpers.items()):
+                # A private or supplied dataroot brings its own helpers.
+                if any(test == root or test.startswith(root + os.sep) for root in excluded):
+                    continue
+                where = collected.get(test)
+                if where is None:
+                    self.logger.warning(
+                        f"{step}/{index}: {test} is not a file this project names, so "
+                        "the modules beside it that it imports are not sent")
+                    continue
+                folder = posixpath.dirname(where)
+                for relative, path in sorted(files.items()):
+                    try:
+                        capture.place(helpers, f"{folder}/{relative}", path,
+                                      f"{step}/{index}'s helper module {relative}")
+                    except capture.CannotForward as e:
+                        raise RemoteError(f"{step}/{index}: {e}") from None
+
+        try:
+            listed = capture.lists(roots, self._requires_python())
+        except capture.CannotForward as e:
+            raise RemoteError(str(e)) from None
+        for warning in listed.warnings:
+            self.logger.warning(warning)
+
+        # 🔴 Built before create: a distribution with a compiled file, or a
+        # build that fails, stops the run before anything exists.
+        built: Dict[str, str] = {}
+        if listed.wheels:
+            self._wheel_dir = tempfile.mkdtemp(prefix="sc-remote-wheels-")
+            for dist in listed.wheels:
                 try:
-                    found = capture.capture(wanted.sources, wanted.requirements,
-                                            provided, excluded=excluded)
-                    for path, source in sorted(found.files.items()):
-                        capture.place(packages, path, source, f"{step}/{index}'s code")
+                    path = wheels.build(dist, self._wheel_dir)
                 except capture.CannotForward as e:
-                    raise RemoteError(f"{step}/{index}: {e}") from None
-                for warning in found.warnings:
-                    self.logger.warning(f"{step}/{index}: {warning}")
-                if found.pins:
-                    files[(step, index)] = environment.render(
-                        [environment.Pin(name, (), version, None)
-                         for name, version in found.pins],
-                        header=_ENV_HEADER.format(version=sc_version,
-                                                  node=f"{step}/{index}"))
-                self.logger.info(
-                    f"Python environment for {step}/{index}: {len(found.pins)} to "
-                    f"install, {len(found.files)} of your own files sent")
-            self._env_files = files
-            self._packages = packages
-        return self._env_files
+                    self._drop_wheels()
+                    raise RemoteError(str(e)) from None
+                built[os.path.basename(path)] = path
+
+        member = None
+        if listed.requirements or built:
+            member = {"requirements": [f"{name}=={version}"
+                                       for name, version in listed.requirements],
+                      "constraints": [f"{name}=={version}"
+                                      for name, version in listed.constraints]}
+        self.logger.info(
+            f"Python packages: {len(listed.requirements)} to install"
+            + (f" under {len(listed.constraints)} constraints" if member else "")
+            + f", {len(built)} built as wheels, and {len(helpers)} of your own files "
+            "sent beside the tests")
+        self._python_worked = (member, built, helpers)
+        return self._python_worked
+
+    def _drop_wheels(self) -> None:
+        if self._wheel_dir:
+            shutil.rmtree(self._wheel_dir, ignore_errors=True)
+            self._wheel_dir = None
 
     def _check_worked_out(self) -> None:
         '''Stop before create where a node the run executes runs the user's
-        Python and its setup could not run here: its environment cannot be
+        Python and its setup could not run here: what it imports cannot be
         worked out, and a node missing a package fails only on the server.'''
         from siliconcompiler.remote.server.runspec import runtime_flow
         from siliconcompiler.tool import Task
@@ -762,10 +830,10 @@ class RemoteRun:
                     f"worked out here, because its setup failed: {why}")
 
     def _check_python_env(self) -> None:
-        '''Stop before create where a node has a package to install and the
-        server does not install one.'''
-        files = self._python_env_files()
-        if not files:
+        '''Stop before create where the job has Python packages to install and
+        the server installs none.'''
+        member, built, _ = self._python()
+        if not member and not built:
             return
         try:
             features = self.client.capabilities().get("features") or []
@@ -773,12 +841,10 @@ class RemoteRun:
             return
         if "python.env" in features:
             return
-        step, index = sorted(files)[0]
-        lines = [line for line in files[(step, index)].splitlines()
-                 if line and not line.startswith("#")]
+        named = (member or {}).get("requirements", []) + sorted(built)
         raise RemoteError(
-            f"{step}/{index} needs {', '.join(lines)} installed, and this server does "
-            "not install a node's Python packages (it lists no python.env)")
+            f"this run's Python needs {', '.join(named)} installed, and this server "
+            "does not install a job's Python packages (it lists no python.env)")
 
     def _not_sent_roots(self) -> List[str]:
         '''Directories whose files reach a node through their own dataroot --
@@ -877,6 +943,14 @@ class RemoteRun:
         # set this archive was filtered by out of the manifest it came with.
         self._needs()[0].write_manifest(os.path.join(root, manifest))
 
+        # The job's wheels and the user's helper modules go where the server
+        # looks for them: in the collection, beside what `collect` put there.
+        collected = collectiondir(self.project)
+        placed = []
+        if collected and (self._python()[1] or self._python()[2]):
+            os.makedirs(collected, exist_ok=True)
+            placed = self._place_python(collected)
+
         packed = self._upstream()[0]
         with tarfile.open(upload, mode="w:gz") as tar:
             outputs = _LinkPacker(tar, root, packed, self.logger)
@@ -885,12 +959,10 @@ class RemoteRun:
                     outputs.add(name)
                 else:
                     tar.add(os.path.join(root, name), arcname=name)
-            self._add_environments(tar)
 
-        collected = collectiondir(self.project)
         from siliconcompiler.remote import owners
-        self._uploading = owners.upload_report(self.project, collected) \
-            if collected and os.path.isdir(collected) else []
+        self._uploading = (owners.upload_report(self.project, collected)
+                           if collected and os.path.isdir(collected) else []) + placed
         if collected and os.path.isdir(collected):
             # It is in the archive now, and it is the largest thing in the build
             # directory. Keeping a second copy on this machine is what the old
@@ -909,32 +981,69 @@ class RemoteRun:
 
         return f"sha256:{digest.hexdigest()}", size
 
-    def _add_environments(self, tar) -> None:
-        '''Each node's environment file, and the user's own code once beside
-        them -- in the first archive only, which is the only one this builds.
-
-        🔴 **The packages go in file by file**, so packages sharing a namespace
-        merge, as regular files: no links and no bytecode, both stripped when
-        the tree was worked out.'''
-        import io
-        import stat
-        import time
-
+    def _place_python(self, collection: str):
+        '''The job's wheels and the user's helper modules, into the
+        collection directory before it is packed: each wheel under
+        `sc_collected_files/python/`, and each helper in its test's collected
+        folder, keeping its name. A helper `collect` already put there is a
+        file the project names, and is left as it is. Returns the upload
+        report's rows for them.'''
         from siliconcompiler.remote import environment
 
-        for (step, index), text in self._python_env_files().items():
-            data = text.encode()
-            info = tarfile.TarInfo(environment.path_for(step, index))
-            info.size, info.mtime = len(data), time.time()
-            tar.addfile(info, io.BytesIO(data))
+        _, built, helpers = self._python()
+        rows = []
+        weight = files = 0
+        for relative, source in sorted(helpers.items()):
+            target = os.path.join(collection, *relative.split("/"))
+            if os.path.exists(target):
+                continue
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copyfile(source, target)
+            weight += os.path.getsize(target)
+            files += 1
+        if files:
+            rows.append(("python", "helper modules", None, weight, files))
+        for name, path in sorted(built.items()):
+            target = os.path.join(collection, environment.WHEELS, name)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copyfile(path, target)
+            rows.append(("python package", environment.wheel_name(name), None,
+                         os.path.getsize(target), 1))
+        return rows
 
-        for path, source in sorted(self._packages.items()):
-            held = os.stat(source)
-            info = tarfile.TarInfo(f"{environment.packages_path()}/{path}")
-            info.size, info.mtime = held.st_size, held.st_mtime
-            info.mode = stat.S_IMODE(held.st_mode) & 0o755
-            with open(source, "rb") as handle:
-                tar.addfile(info, handle)
+    def _wheels_asked(self, job_id: str, asked, collection: Path):
+        '''The wheel of each Python package the server asked for (surface
+        *How it is built*: a package no configured index has), repacked from
+        what is installed here, into ``collection``. Returns the upload
+        report's rows.
+
+        🔴 One holding a compiled file cannot be sent: the run stops, and the
+        job, which would wait for it, is cancelled.'''
+        from siliconcompiler.remote import environment
+        from siliconcompiler.remote.client import capture, wheels
+
+        rows = []
+        for item in asked:
+            if item.get("kind") != "python":
+                continue
+            name = item.get("name") or ""
+            try:
+                dist = metadata.distribution(name)
+            except metadata.PackageNotFoundError:
+                self._abandon(job_id, RuntimeError(name))
+                raise RemoteError(
+                    f"the server has no index offering the Python package {name}, and it "
+                    "is not installed here either, so no wheel of it can be sent") from None
+            folder = collection / environment.WHEELS
+            folder.mkdir(parents=True, exist_ok=True)
+            try:
+                path = wheels.build(dist, str(folder))
+            except capture.CannotForward as e:
+                self._abandon(job_id, RuntimeError(name))
+                raise RemoteError(f"the server has no index offering the Python package "
+                                  f"{name}, so it asked for its wheel: {e}") from None
+            rows.append(("python package", name, None, os.path.getsize(path), 1))
+        return rows
 
     def _run_hash(self) -> Optional[str]:
         '''This run's hash for job reuse, or None -- which it always is today.
@@ -1666,13 +1775,6 @@ def _normalize_spec(task, declared: str) -> Optional[str]:
         logger.debug(f"dropping a requirement that is not PEP 440: {joined!r}")
         return None
     return joined
-
-
-# What every environment file says of itself. Comment lines, so the format
-# ignores them.
-_ENV_HEADER = ("Generated by SiliconCompiler {version} for {node}: the Python\n"
-               "packages this node's own code imports, as installed where the job\n"
-               "was submitted. sc-remote writes it on every run; do not edit it.")
 
 
 class _LinkPacker:

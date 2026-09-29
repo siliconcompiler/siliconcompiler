@@ -183,7 +183,7 @@ MOUNTS = ["/run/munge", "/sc_tools/etc", "/etc/resolv.conf"]
 # nodes on. See the two partitions in slurm.conf.
 BATCH_QUEUE = os.environ.get("SC_BATCH_QUEUE", "coordinate")
 
-# The partition a node's Python environment is built in (`build_queue`). A
+# The partition a job's Python packages are built in (`build_queue`). A
 # queue of its own, so a burst of builds -- the first jobs after a new tool
 # image, each asking for its own set -- waits there and not in the slots flows
 # are waiting on.

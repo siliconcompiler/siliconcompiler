@@ -102,8 +102,10 @@ Next, you define what the specific task needs to run and what it will produce.
    **A task whose tool runs the user's own Python** -- a testbench, a plugin
    -- says so by overriding :meth:`.Task.get_python_environment`, returning the
    source files the tool loads and any distributions it loads by name. A remote
-   run follows those files' imports and turns them into the node's environment
-   file; the cocotb tasks are the example.
+   run follows those files' imports into the job's Python packages, and sends
+   the modules beside those files with them; the cocotb tasks are the example.
+   The server reads only whether a class overrides it, to know which nodes get
+   the packages on their tool's path.
 
    **What SiliconCompiler's own process needs for the task** -- cocotb, for a
    cocotb task -- is declared on the class, by overriding

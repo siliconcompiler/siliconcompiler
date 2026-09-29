@@ -185,24 +185,31 @@ forward.
 this server's own environment; it is uploaded again. To keep a proprietary PDK
 off the wire, the operator supplies it through `private_dataroots`.
 
-### A node's own Python packages
+### A job's own Python packages
 
-A node whose tool runs Python of the user's -- a cocotb testbench -- arrives
-with an environment file, `sc_python/nodes/<step>/<index>/requirements.txt`,
-which the client writes: exact pins and nothing else, and no index. The user's
-own code -- helper modules and editable or local packages -- arrives once per
-job beside it, in `sc_python/packages/`, which this server accepts with or
-without a file and never parses. The server holds each file to a closed format
-while the job stages, and refuses a file for a node the run does not execute.
+A job whose nodes run Python of the user's -- a cocotb testbench -- lists the
+packages that Python needs in its create body, `python_packages`: exact
+`name==version` requirements and constraints, and no index. The server holds the
+lists to their grammar at create and keeps them on the job, and writes its own
+requirements and constraints files from them for pip. A package no index can
+supply -- installed editable, from a local path or from git -- arrives as a pure
+wheel under `sc_collected_files/python/`, which the server checks while the job
+stages: tagged `none-any`, no compiled file, one per distribution, and not also
+listed. The user's own helper modules arrive as collected files beside their
+tests. `sc_python/` is the server's own, and an upload carrying it is refused.
 
-To install one, a deployment advertises `python.env`. Where nodes run on this
-host (`containers` off, `-cluster local`), each executed node's file is
-installed while the job is `staging`, wheels only, from `package_indexes`
-(PyPI by default), into the user's own cache, and linked onto the tool's
-`PYTHONPATH` -- never SiliconCompiler's own. A line that will not install
-rejects the job before any node runs; an index that does not answer is
-`staging-failed`. It is off by default because the install then reaches an
-index; turn it on in `config.json`:
+To install them, a deployment advertises `python.env`. Where nodes run on this
+host (`containers` off, `-cluster local`), the job's packages and wheels are
+installed once while the job is `staging`, wheels only, from `package_indexes`
+(PyPI by default), into the user's own cache, with every distribution this
+host's Python holds pinned to the version it holds; and linked at
+`sc_python/site` in the job, onto the tool's `PYTHONPATH` of each node that runs
+the user's Python -- never SiliconCompiler's own. An entry whose version will
+not install is tried once more within its release line, and the substitution
+is in the job-level log. A package no index has sends the job back for its
+wheel; one that will not install rejects the job before any node runs; an index
+that does not answer is `staging-failed`. It is off by default because the
+install then reaches an index; turn it on in `config.json`:
 
 ```json
 {"features": ["logs.stream", "logs.stream.job", "python.env"]}
@@ -359,7 +366,7 @@ an operator learns to ignore warnings.
 ```
 compute*     a node's task -- EDA tools, real cores, real memory
 coordinate   the run's own orchestrating process
-build        a node's Python environment, built into an image while staging
+build        a job's Python packages, built into an image while staging
 ```
 
 The orchestrator loads the manifest, drives the flow, and submits every node as
@@ -380,11 +387,12 @@ appends.
 
 ### The environment builder
 
-A cocotb testbench imports what its author had installed, so a job carries a
-Python environment file per node, and this stack builds each one into an image
-of its own while the job is `staging`: the node's image with the packages in
-one more layer, pushed to `registry` beside it and staged as a bundle that
-borrows the base's root filesystem. `bootstrap` turns it on with
+A cocotb testbench imports what its author had installed, so a job lists its
+Python packages and uploads the wheels no index has, and this stack builds them
+into an image of its own while the job is `staging`, once for each image a node
+running the user's Python resolved to: that image with the packages in one more
+layer, pushed to `registry` beside it and staged as a bundle that borrows the
+base's root filesystem. `bootstrap` turns it on with
 `"env_builder": true` and `"build_queue": "build"`, which is also what makes
 `GET /v1` advertise `python.env`. Set `env_builder` to false in the volume's
 `config.json` to switch it off.

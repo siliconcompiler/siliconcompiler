@@ -17,8 +17,8 @@ from siliconcompiler.remote import environment
 from siliconcompiler.remote.server import envbuild, images, oci, pipbuild
 
 
-# A node's Python environment, built into an image while the job is `staging`
-# (surface D131's container mode). Nothing here runs a container, reaches an
+# A job's Python packages, built into an image while the job is `staging`
+# (implementation-notes §L, container mode). Nothing here runs a container, reaches an
 # index or pushes to a registry: each of those is faked at its edge, and what
 # is asserted is what crosses it.
 
@@ -191,21 +191,29 @@ def write_dist(site, name, version, requires=()):
             f.write(f"Requires-Dist: {requirement}\n")
 
 
+def requirements(tmp_path, requirements="", constraints=""):
+    (tmp_path / "req.txt").write_text(requirements)
+    (tmp_path / "con.txt").write_text(constraints)
+    return str(tmp_path / "req.txt"), str(tmp_path / "con.txt")
+
+
 def test_the_layer_is_the_environments_own_site_packages(pip, tmp_path):
     '''🔴 A venv that sees this Python's packages, pip run from it: never
-    `--target`, which ignores what is installed.'''
-    (tmp_path / "req.txt").write_text("a_pkg==1.0\n")
+    `--target`, which ignores what is installed -- and every distribution
+    this Python holds pinned, with the job's constraints after them.'''
+    from importlib import metadata
 
-    result = pipbuild.install(str(tmp_path / "req.txt"), str(tmp_path / "out" / "site"),
-                              constrain=["pytest", "PyTest"])
+    listed, limited = requirements(tmp_path, "a_pkg==1.0\n", "zz-not-here==3.1\n")
+
+    result = pipbuild.install(listed, limited, str(tmp_path / "out" / "site"))
 
     (command, _, constraints), = pip.calls
     assert command[1:4] == ["-m", "pip", "install"]
     assert command[0] != sys.executable
     assert command[command.index("--only-binary") + 1] == ":all:"
     assert "--target" not in command
-    from importlib import metadata
-    assert constraints.splitlines()[1:] == [f"pytest=={metadata.version('pytest')}"]
+    assert f"pytest=={metadata.version('pytest')}" in constraints.splitlines()
+    assert constraints.splitlines()[-1] == "zz-not-here==3.1"
     assert result["installed"] == [["a-pkg", "1.0"], ["b-ext", "1.0"]]
     # Only what was added: not the .pth that let it see this Python's.
     assert sorted(os.listdir(tmp_path / "out" / "site")) == [
@@ -217,10 +225,10 @@ def test_behind_the_proxy_pip_sees_no_configuration_but_the_proxy(pip, tmp_path,
                                                                   monkeypatch):
     monkeypatch.setenv("PIP_INDEX_URL", "https://pkgs.example.com/simple/")
     monkeypatch.setenv("HTTPS_PROXY", "http://somewhere-else:3128")
-    (tmp_path / "req.txt").write_text("a_pkg==1.0\n")
+    listed, limited = requirements(tmp_path, "a_pkg==1.0\n")
     sockets = tempfile.mkdtemp(prefix="sc-t-")
 
-    pipbuild.install(str(tmp_path / "req.txt"), str(tmp_path / "site"),
+    pipbuild.install(listed, limited, str(tmp_path / "site"),
                      proxy_socket=os.path.join(sockets, "proxy.sock"))
 
     (_, env, _), = pip.calls
@@ -234,7 +242,7 @@ def test_behind_the_proxy_pip_sees_no_configuration_but_the_proxy(pip, tmp_path,
 ###########################
 
 def wheel(where, name, version, requires=()):
-    '''A pure wheel, as small as pip will take.'''
+    '''A pure wheel, as small as pip will take. Returns its path.'''
     import zipfile
 
     path = os.path.join(where, f"{name}-{version}-py3-none-any.whl")
@@ -249,6 +257,7 @@ def wheel(where, name, version, requires=()):
     with zipfile.ZipFile(path, "w") as archive:
         for member, body in files.items():
             archive.writestr(member, body)
+    return path
 
 
 @pytest.fixture
@@ -292,18 +301,18 @@ def simple_index(flat):
     return root.as_uri() + "/"
 
 
-def build_in(image_python, tmp_path, text):
+def build_in(image_python, tmp_path, text, constraints="", wheels=()):
     python, index = image_python
-    (tmp_path / "req.txt").write_text(text)
+    listed, limited = requirements(tmp_path, text, constraints)
     env = {key: value for key, value in os.environ.items() if not key.startswith("PIP_")}
     # Offline: the index above, named as a deployment names its indexes, and
     # pip from wherever this Python finds it.
     env.update(PYTHONPATH=os.path.dirname(os.path.dirname(
         pytest.importorskip("pip").__file__)))
-    subprocess.run([str(python), pipbuild.__file__, "--requirements", str(tmp_path / "req.txt"),
-                    "--site", str(tmp_path / "out" / "site"), "--result",
-                    str(tmp_path / "result.json"), "--constrain", "cocotb",
-                    "--index-url", index],
+    subprocess.run([str(python), pipbuild.__file__, "--requirements", listed,
+                    "--constraints", limited, "--site", str(tmp_path / "out" / "site"),
+                    "--result", str(tmp_path / "result.json"), "--index-url", index,
+                    *[part for path in wheels for part in ("--wheel", str(path))]],
                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return json.loads((tmp_path / "result.json").read_text())
 
@@ -324,7 +333,53 @@ def test_a_pin_needing_another_cocotb_is_uninstallable(image_python, tmp_path):
     assert result["returncode"] != 0
     assert "cocotb==2.0" in result["unresolved"] or any(
         "cocotb" in name for name in result["unresolved"]), result
+    assert not result.get("absent")
     assert not (tmp_path / "out").joinpath("site").exists()
+
+
+def test_a_listed_version_the_image_holds_another_of_stays_the_images(image_python, tmp_path):
+    '''🔴 Never installed a second time: the listed version is ignored, and
+    said.'''
+    result = build_in(image_python, tmp_path, "cocotb==1.9\n")
+
+    assert result["returncode"] == 0, result.get("tail")
+    assert result["installed"] == []
+    assert result["ignored"] == {"cocotb": ["1.9", "2.0"]}
+
+
+def test_a_version_the_index_lacks_is_taken_from_its_release_line(image_python, tmp_path):
+    '''§L's order: the exact version, else the newest in its line -- that
+    entry relaxed alone, and recorded.'''
+    result = build_in(image_python, tmp_path, "cocotb-bus==0.3.7\n")
+
+    assert result["returncode"] == 0, result.get("tail")
+    assert result["installed"] == [["cocotb-bus", "0.3.0"]]
+    assert result["substituted"] == {"cocotb-bus": ["0.3.7", "0.3.0"]}
+
+
+def test_a_package_no_index_has_is_absent_not_uninstallable(image_python, tmp_path):
+    '''What sends the job back for its wheel: no configured index has the
+    project at all -- and the rest of the lists are still worked through, so
+    one trip asks for every one.'''
+    result = build_in(image_python, tmp_path,
+                      "scfake-private==1.2.0\ncocotb-bus==0.3.0\nscfake-other==0.1.0\n")
+
+    assert result["returncode"] != 0
+    assert result["absent"] == ["scfake-other", "scfake-private"]
+    assert not (tmp_path / "out").joinpath("site").exists()
+
+
+def test_an_uploaded_wheel_is_installed_with_the_rest(image_python, tmp_path):
+    '''Its dependencies come from the index, under the constraints; the
+    wheel itself runs nothing.'''
+    made = tmp_path / "made"
+    made.mkdir()
+    helper = wheel(made, "scfake_helper", "0.1.0", ["cocotb-bus>=0.3"])
+
+    result = build_in(image_python, tmp_path, "", wheels=[helper])
+
+    assert result["returncode"] == 0, result.get("tail")
+    assert result["installed"] == [["cocotb-bus", "0.3.0"], ["scfake-helper", "0.1.0"]]
 
 
 @pytest.mark.parametrize("output,named,network", [
@@ -341,9 +396,12 @@ def test_a_pin_needing_another_cocotb_is_uninstallable(image_python, tmp_path):
 def test_a_failed_install_says_which_and_whether_it_was_the_network(
         pip, tmp_path, output, named, network):
     pip.output = output
-    (tmp_path / "req.txt").write_text("numpy==9.9\n")
+    # A name this Python does not hold, or it is never handed to pip at all.
+    listed, limited = requirements(tmp_path, "scnotheld==9.9\n")
 
-    result = pipbuild.install(str(tmp_path / "req.txt"), str(tmp_path / "site"))
+    # Every index has numpy: what failed is the version, never the name.
+    result = pipbuild.install(listed, limited, str(tmp_path / "site"),
+                              probe=lambda name: True)
 
     assert result["returncode"] == 1
     assert (result["unresolved"], result["network"]) == (named, network)
@@ -430,6 +488,7 @@ def workspace_for(tmp_path, root, text="numpy==2.0.1\n"):
     workspace = tmp_path / "ws"
     workspace.mkdir()
     (workspace / envbuild.REQUIREMENTS).write_text(text)
+    (workspace / envbuild.CONSTRAINTS).write_text("scapy==2.5.0\n")
     return workspace, {"key": "k" * 64, "base_ref": f"registry:5000/sc-tools@{digest('b')}",
                        "base_digest": digest("b"), "bundles_root": str(root),
                        "mounts": ["/sc_server"],
@@ -480,10 +539,11 @@ def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
 
     assert result == {"ok": True, "ref": f"registry:5000/sc-tools@{digest('d')}",
                       "digest": digest("d"), "installed": [["numpy", "2.0.1"]],
+                      "substituted": {}, "ignored": {},
                       "python": "cpython-312", "version": "3.12.3",
                       "platform": "linux-x86_64"}
     assert base_bundle.staged == [(spec["base_ref"], digest("b"), ["/sc_server"])]
-    assert run.seen["req"] == ["pipbuild.py", "requirements.txt"]
+    assert run.seen["req"] == ["constraints.txt", "pipbuild.py", "requirements.txt"]
     assert run.seen["path"] == "/venv/bin:/usr/bin:/bin"
 
     # 🔴 Its bundle is the base's root with the layer bound in -- no second
@@ -515,6 +575,34 @@ def test_the_build_installs_from_the_deployments_indexes_and_may_build_from_sour
     assert [command[at + 1] for at, part in enumerate(command) if part == "--index-url"] \
         == spec["indexes"]
     assert "--allow-source" in command
+
+
+def test_the_wheels_go_in_beside_the_lists(tmp_path, base_bundle, pushed):
+    run = container({"returncode": 0, "python": "cpython-312", "version": "3.12.3",
+                     "platform": "linux-x86_64", "installed": []})
+    workspace, spec = workspace_for(tmp_path, base_bundle.root)
+    (workspace / envbuild.WHEELS).mkdir()
+    wheel(workspace / envbuild.WHEELS, "scfake_helper", "0.1.0")
+
+    envbuild.build(spec, workspace, run=run)
+
+    assert run.seen["req"] == ["constraints.txt", "pipbuild.py", "requirements.txt", "wheels"]
+    command = run.seen["command"]
+    assert command[command.index("--wheel") + 1] == \
+        "/tmp/sc-req/wheels/scfake_helper-0.1.0-py3-none-any.whl"
+    assert command[command.index("--constraints") + 1] == "/tmp/sc-req/constraints.txt"
+
+
+def test_a_package_no_index_has_comes_back_as_absent(tmp_path, base_bundle, pushed):
+    run = container({"returncode": 1, "absent": ["scfake-private"], "unresolved": [],
+                     "python": "cpython-312", "platform": "linux-x86_64", "tail": ""})
+    workspace, spec = workspace_for(tmp_path, base_bundle.root)
+
+    result = envbuild.build(spec, workspace, run=run)
+
+    assert (result["ok"], result["reason"], result["absent"]) == \
+        (False, "absent", ["scfake-private"])
+    assert pushed == []
 
 
 @pytest.mark.parametrize("pip_result,reason", [
@@ -690,10 +778,16 @@ def test_a_second_build_of_the_same_key_is_the_first(store):
     assert first == second
 
 
-def test_the_key_is_the_base_and_the_file(store):
-    assert images.derivation(digest("a"), "numpy==2.0.1\n") != \
-        images.derivation(digest("b"), "numpy==2.0.1\n") != \
-        images.derivation(digest("a"), "numpy==2.0.2\n")
+def test_the_key_is_the_base_the_lists_the_wheels_and_the_framework(store):
+    '''§L, *What it caches*: whatever changes what the install gives the run
+    changes the key.'''
+    def key(base="a", listed="numpy==2.0.1\n", limited="", wheels=(), names=("cocotb",)):
+        return images.derivation(digest(base), listed, limited, wheels, names)
+
+    assert len({key(), key(base="b"), key(listed="numpy==2.0.2\n"),
+                key(limited="scapy==2.5.0\n"), key(wheels=["w1"]),
+                key(names=("cocotb", "pyuvm"))}) == 6
+    assert key(wheels=["w1", "w2"]) == key(wheels=["w2", "w1"])
 
 
 def test_the_catalogue_keeps_what_the_server_built_apart(store):
@@ -729,6 +823,9 @@ def test_a_bundle_lives_as_long_as_its_base(store, tmp_path):
 ###########################
 
 def test_a_node_in_a_derived_image_finds_its_layer(monkeypatch, tmp_path, gcd_design):
+    '''Where the node runs the user's Python, and only there.'''
+    from pytasks import RunsPython
+
     from siliconcompiler import Flowgraph, Project
     from siliconcompiler.scheduler import SchedulerNode
     from siliconcompiler.tools.builtin.nop import NOPTask
@@ -736,20 +833,22 @@ def test_a_node_in_a_derived_image_finds_its_layer(monkeypatch, tmp_path, gcd_de
     project = Project(gcd_design)
     project.add_fileset("rtl")
     flow = Flowgraph("tbflow")
-    flow.node("sim", NOPTask())
+    flow.node("sim", RunsPython())
+    flow.node("other", NOPTask())
     project.set_flow(flow)
 
-    def path():
-        node = SchedulerNode(project, "sim", "0")
+    def path(step):
+        node = SchedulerNode(project, step, "0")
         with node.runtime():
             return node.task.get_runtime_environmental_variables().get("PYTHONPATH", "")
 
     layer = tmp_path / "layer"
     monkeypatch.setattr(environment, "IMAGE_SITE", str(layer))
-    assert str(layer) not in path().split(os.pathsep)          # every other image
+    assert str(layer) not in path("sim").split(os.pathsep)     # every other image
 
     layer.mkdir()
-    assert str(layer) in path().split(os.pathsep)
+    assert str(layer) in path("sim").split(os.pathsep)
+    assert str(layer) not in path("other").split(os.pathsep)
 
 
 ###########################
@@ -794,8 +893,11 @@ class Builder(FakeDispatcher):
 
     def submit_build(self, name, workspace, spec, queue=None):
         spec = json.loads(open(spec).read())
+        wheels = workspace / envbuild.WHEELS
         self.builds.append({"queue": queue, "spec": spec,
-                            "file": (workspace / envbuild.REQUIREMENTS).read_text()})
+                            "file": (workspace / envbuild.REQUIREMENTS).read_text(),
+                            "constraints": (workspace / envbuild.CONSTRAINTS).read_text(),
+                            "wheels": sorted(os.listdir(wheels)) if wheels.is_dir() else []})
         result = self.answer(spec)
         if result is not None:
             (workspace / envbuild.RESULT).write_text(json.dumps(result))
@@ -843,11 +945,12 @@ def builder(server, answer):
     return fake
 
 
-def submitted(client, key, token, job_archive, text="# mine\nnumpy==2.0.1   # pinned\n",
-              jobname=None):
-    archive, upload_digest, size = job_archive(
-        extra={environment.path_for("stepone", "0"): text.encode()})
+def submitted(client, key, token, job_archive, project,
+              packages=("numpy==2.0.1",), jobname=None):
+    archive, upload_digest, size = job_archive(project)
     job = stage(client, key, token, archive, size, requires=wants("0.38.0"),
+                python_packages={"requirements": list(packages),
+                                 "constraints": ["scapy==2.5.0"]},
                 **({"jobname": jobname} if jobname else {}))
     response = submit(client, key, token, job["id"], upload_digest, size)
     assert response.status_code == 202, response.get_json()
@@ -864,11 +967,11 @@ def placed(server, job_id):
                 "SELECT * FROM job_nodes WHERE job_id = ?", (job_id,))}
 
 
-def test_a_node_with_an_environment_runs_in_the_image_built_for_it(
-        builder_server, client, key, token, job_archive):
+def test_a_node_running_the_users_python_runs_in_the_image_built_for_it(
+        builder_server, client, key, token, job_archive, python_project):
     fake = builder(builder_server, lambda spec: BUILT)
 
-    job = submitted(client, key, token, job_archive)
+    job = submitted(client, key, token, job_archive, python_project)
 
     assert job["state"] == "staging"              # nothing waits on a build
     assert until(lambda: fake.submitted)
@@ -876,9 +979,10 @@ def test_a_node_with_an_environment_runs_in_the_image_built_for_it(
     (build,) = fake.builds
     assert build["queue"] == "build"
     assert build["spec"]["base_ref"] == f"ghcr.io/x/sc@{digest('a')}"
-    # 🔴 The server's own rendering, never the uploaded file.
-    assert "# mine" not in build["file"] and "# pinned" not in build["file"]
-    assert environment.parse(build["file"].encode()).pins[0].name == "numpy"
+    # 🔴 The server's own files, written from what parsed.
+    assert build["file"].splitlines()[1:] == ["numpy==2.0.1"]
+    assert build["constraints"].splitlines()[1:] == ["scapy==2.5.0"]
+    assert "constrain" not in build["spec"]
 
     store = builder_server.config["SC_STORE"]
     derived = images.derived_image(store, placed(builder_server, job["id"])[("steptwo", "0")],
@@ -898,13 +1002,13 @@ def test_a_node_with_an_environment_runs_in_the_image_built_for_it(
         "python": {"numpy": ["2.0.1"], "siliconcompiler": ["0.38.0"]}, "tools": {}}
 
 
-def test_the_same_file_on_the_same_image_is_built_once(
-        builder_server, client, key, token, job_archive):
+def test_the_same_packages_on_the_same_image_are_built_once(
+        builder_server, client, key, token, job_archive, python_project):
     fake = builder(builder_server, lambda spec: BUILT)
 
-    first = submitted(client, key, token, job_archive)
+    first = submitted(client, key, token, job_archive, python_project)
     assert until(lambda: len(fake.submitted) == 1)
-    second = submitted(client, key, token, job_archive)
+    second = submitted(client, key, token, job_archive, python_project)
     assert until(lambda: len(fake.submitted) == 2)
 
     assert len(fake.builds) == 1
@@ -912,8 +1016,8 @@ def test_the_same_file_on_the_same_image_is_built_once(
         placed(builder_server, second["id"])[("stepone", "0")]
 
 
-def test_an_environment_that_will_not_install_rejects_the_job(
-        builder_server, client, key, token, job_archive):
+def test_packages_that_will_not_install_reject_the_job(
+        builder_server, client, key, token, job_archive, python_project):
     '''🔴 Never asked for as an upload: the package could carry binaries this
     server cannot run.'''
     fake = builder(builder_server, lambda spec: {
@@ -921,7 +1025,7 @@ def test_an_environment_that_will_not_install_rejects_the_job(
         "python": "cpython-312", "version": "3.12.3", "platform": "linux-x86_64",
         "refused": [], "tail": "ERROR: No matching distribution found for numpy==2.0.1"})
 
-    job = submitted(client, key, token, job_archive)
+    job = submitted(client, key, token, job_archive, python_project)
     assert until(lambda: row(builder_server, job["id"])["state"] == "rejected")
 
     stored = row(builder_server, job["id"])
@@ -929,18 +1033,51 @@ def test_an_environment_that_will_not_install_rejects_the_job(
     reason = builder_server.config["SC_STORE"].one(
         "SELECT reason FROM job_state_transitions WHERE job_id = ? AND to_state = 'rejected'",
         (job["id"],))["reason"]
-    assert "stepone/0" in reason and "numpy==2.0.1" in reason
+    assert "stepone/0's image" in reason and "numpy==2.0.1" in reason
     assert "cpython-312" in reason and "linux-x86_64" in reason
     assert fake.submitted == []
     assert stored["upload_sources"] is None       # nothing asked of the client
 
 
+def test_a_package_no_index_has_sends_the_job_back_from_the_builder(
+        builder_server, client, key, token, job_archive, python_project):
+    fake = builder(builder_server, lambda spec: {
+        "ok": False, "reason": "absent", "absent": ["scfake-private"],
+        "python": "cpython-312", "version": "3.12.3", "platform": "linux-x86_64"})
+
+    job = submitted(client, key, token, job_archive, python_project,
+                    packages=("numpy==2.0.1", "scfake-private==1.0.0"))
+    assert until(lambda: row(builder_server, job["id"])["state"] == "awaiting_input")
+
+    stored = row(builder_server, job["id"])
+    assert json.loads(stored["upload_sources"]) == [{"kind": "python", "name": "scfake-private"}]
+    assert json.loads(stored["python_answered"]) == ["scfake-private"]
+    assert fake.submitted == []
+
+
+def test_the_jobs_wheels_are_handed_to_the_build(
+        builder_server, client, key, token, job_archive, python_project, tmp_path):
+    from test_environment import make_wheel
+
+    fake = builder(builder_server, lambda spec: BUILT)
+    helper = make_wheel(tmp_path, "scfake-helper", "0.1.0")
+    archive, upload_digest, size = job_archive(python_project, extra={
+        f"{environment.wheels_path()}/{os.path.basename(helper)}": open(helper, "rb").read()})
+    job = stage(client, key, token, archive, size, requires=wants("0.38.0"))
+    assert submit(client, key, token, job["id"], upload_digest, size).status_code == 202
+
+    assert until(lambda: fake.submitted)
+    (build,) = fake.builds
+    assert build["wheels"] == [os.path.basename(helper)]
+    assert build["file"].splitlines()[1:] == []
+
+
 def test_a_build_the_server_could_not_run_is_its_own_failure(
-        builder_server, client, key, token, job_archive):
+        builder_server, client, key, token, job_archive, python_project):
     builder(builder_server, lambda spec: {"ok": False, "reason": "error",
                                           "detail": "the registry did not answer"})
 
-    job = submitted(client, key, token, job_archive)
+    job = submitted(client, key, token, job_archive, python_project)
     # This server's own failure: `failed`, never `rejected`.
     assert until(lambda: row(builder_server, job["id"])["state"] == "failed")
 
@@ -948,11 +1085,11 @@ def test_a_build_the_server_could_not_run_is_its_own_failure(
 
 
 def test_a_build_job_that_vanishes_is_not_waited_on(
-        builder_server, client, key, token, job_archive):
+        builder_server, client, key, token, job_archive, python_project):
     fake = builder(builder_server, lambda spec: None)
     fake.alive = False
 
-    job = submitted(client, key, token, job_archive)
+    job = submitted(client, key, token, job_archive, python_project)
 
     assert until(lambda: row(builder_server, job["id"])["state"] == "failed")
     assert row(builder_server, job["id"])["error_type"].endswith("/staging-failed")
@@ -961,13 +1098,13 @@ def test_a_build_job_that_vanishes_is_not_waited_on(
 
 @pytest.mark.threaded_staging
 def test_a_job_cancelled_while_it_builds_stays_cancelled(
-        builder_server, client, key, token, job_archive):
+        builder_server, client, key, token, job_archive, python_project):
     '''🔴 Refusing it afterwards would rewrite what its owner did as something
     the server decided.'''
     from conftest import call
 
     fake = builder(builder_server, lambda spec: None)
-    job = submitted(client, key, token, job_archive)
+    job = submitted(client, key, token, job_archive, python_project)
     assert until(lambda: fake.builds)
 
     call(client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})

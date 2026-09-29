@@ -151,8 +151,8 @@ _NEXT_STEP_BY_REASON = {
                       "client bug, or a task whose requirements miss a file.",
     "unrequested_member": "The archive carried something the server did not ask for; "
                           "that is a client bug.",
-    "environment_file": "A node's Python environment file broke its format; the "
-                        "client writes it, so that is a client bug.",
+    "python_package": "An uploaded wheel was refused; the client builds every "
+                      "wheel, so that is a client bug.",
     "breakpoint": "Clear option,breakpoint: nobody is at a remote run.",
     "interactive_task": "Remove the task that opens a window: nobody is at a "
                         "remote run.",

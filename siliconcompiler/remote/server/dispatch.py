@@ -265,8 +265,8 @@ class SlurmDispatcher(Dispatcher):
         script = workspace / BUILD_SCRIPT
         script.write_text(
             "#!/bin/sh\n"
-            "# Written by sc-server: one node's Python environment, built into\n"
-            "# an image. It writes result.json beside this file.\n"
+            "# Written by sc-server: a job's Python packages, built into an\n"
+            "# image. It writes result.json beside this file.\n"
             f"exec {shlex.quote(sys.executable)} "
             "-m siliconcompiler.remote.server.envbuild "
             f"{shlex.quote(str(spec))}\n")

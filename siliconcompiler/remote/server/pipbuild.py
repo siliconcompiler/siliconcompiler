@@ -1,27 +1,28 @@
 '''
-One node's environment file, installed into a directory of its own.
+A job's Python packages, installed into a directory of their own.
 
 Run by the builder inside the node's base image, and by host mode on the host
-(surface D131). The same file for both, so there is one answer to *what does
-installing an environment mean*.
+(surface *How it is built, while the job is staging*; implementation-notes
+§L). The same file for both, so there is one answer to *what does installing
+a job's packages mean*.
 
 🔴 **Standard library only, and it never imports SiliconCompiler.** In the
 builder it runs under the base image's own Python, and the SiliconCompiler
 there is whatever version the image holds -- this module may not exist in it.
 It is copied in and run as a file.
 
-🔴 **Against what the interpreter holds** (surface D161, build rule 5). pip runs
-in a virtual environment made from the node's Python with its installed
-packages visible, and a constraints file pins each distribution the job's
-`requires.python` names to the version installed:
+🔴 **Against what the interpreter holds.** pip runs in a virtual environment
+made from the node's Python with its installed packages visible, and every
+distribution the interpreter holds is pinned, in the constraints, to the
+version it holds -- which wins over the job's own lists:
 
-- what the interpreter has at a satisfying version is counted as installed,
-  and never installed a second time -- a testbench package depending on cocotb
-  does not bring a second cocotb ahead of the one the simulator loads;
-- a pin needing a different version of a pinned distribution is a resolution
+- a listed distribution the interpreter holds stays at its version, is never
+  installed a second time, and its listed version is recorded as ignored --
+  a testbench package depending on cocotb does not bring a second cocotb
+  ahead of the one the simulator loads;
+- a requirement needing a different version of one it holds is a resolution
   failure, reported as uninstallable;
-- anything else it needs a different version of lands in the environment, and
-  the interpreter's own copy is left as it is.
+- nothing the interpreter holds is ever changed.
 
 The result is the environment's own site-packages, which holds only what was
 added. ``pip install --target`` is never used: it ignores what is installed.
@@ -39,22 +40,24 @@ in the isolated builder, whose one way out is the proxy.
 **From the deployment's indexes** (``--index-url``, the primary first), never
 from any configuration pip would otherwise read.
 
-**Each line at its exact version, else within its release line** (surface *How
-it is built*): where a pinned version has nothing that installs for this Python
-and platform, the line is tried once more as ``X.*`` -- ``0.Y.*`` below 1.0 --
-and what was installed instead is recorded under ``substituted``. Only a line
-that is not found is retried: one that conflicts with a pinned distribution is
-uninstallable as it stands.
+**Each entry at its exact version, else within its release line** (§L's
+order): where a listed version has nothing that installs for this Python and
+platform, that one entry is tried again as ``X.*`` -- ``0.Y.*`` below 1.0 --
+and resolved again, and what was installed instead is recorded under
+``substituted``. **A package no configured index has at all** is recorded
+under ``absent`` rather than relaxed: the job is sent back for its wheel. One
+that conflicts with a pinned distribution is uninstallable as it stands.
 
 Usage::
 
-    python3 pipbuild.py --requirements R --site S --result J
-                        [--constrain NAME ...] [--proxy-socket P]
+    python3 pipbuild.py --requirements R --constraints C [--wheel W ...]
+                        --site S --result J [--proxy-socket P]
                         [--index-url URL ...] [--allow-source]
 
-``J`` is written whatever happens, as JSON: the return code, this Python's
-tag, version and platform, what was installed, and, when pip failed, the
-packages it named and the tail of its output.
+``R`` and ``C`` are files of ``name==version`` lines the server wrote. ``J`` is
+written whatever happens, as JSON: the return code, this Python's tag, version
+and platform, what was installed, substituted, ignored and absent, and, when
+pip failed, the packages it named and the tail of its output.
 '''
 
 import argparse
@@ -108,17 +111,14 @@ def provided():
     return found
 
 
-def constraints(names):
-    '''``name==version`` for each of ``names`` this interpreter holds, at the
-    version it holds. A name it does not hold constrains nothing; a version
-    pip could not parse is left out rather than failing every build.'''
-    held = provided()
-    lines = []
-    for name in sorted({canonical(name) for name in names}):
-        version = held.get(name)
-        if version and _PEP440.match(version):
-            lines.append(f"{name}=={version}")
-    return lines
+def pins(held=None):
+    '''``name==version`` for every distribution this interpreter holds, at the
+    version it holds: what the constraints pin, so none is installed a second
+    time. A version pip could not parse is left out rather than failing every
+    build.'''
+    held = provided() if held is None else held
+    return [f"{name}=={version}" for name, version in sorted(held.items())
+            if version and _PEP440.match(version)]
 
 
 def installed(site):
@@ -146,8 +146,35 @@ def named(output: str):
     return found
 
 
-# A requirement line as the format writes it: name[extras]==version ; marker.
-_LINE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(\[[^\]]*\])?==([^\s;]+)(.*)$")
+def _name_of(requirement: str) -> str:
+    return canonical(re.split(r"[\[=<>!~;( ]", requirement.strip(), maxsplit=1)[0])
+
+
+# An entry as the server writes it: name==version.
+_LINE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==(\S+)$")
+
+
+def read_entries(path):
+    '''The ``[name, version]`` entries of a file the server wrote, comments
+    and blank lines left out.'''
+    entries = []
+    if not path:
+        return entries
+    with open(path) as f:
+        for raw in f.read().splitlines():
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                continue
+            match = _LINE.match(line)
+            if not match:
+                raise ValueError(f"{path}: {line!r} is not name==version")
+            entries.append([match.group(1), match.group(2)])
+    return entries
+
+
+def wheel_name(path):
+    '''The canonical distribution a wheel's file name says it is.'''
+    return canonical(os.path.basename(path).split("-", 1)[0])
 
 
 def release_line(version: str):
@@ -162,32 +189,76 @@ def release_line(version: str):
     return f"0.{int(minor)}.*" if minor is not None else None
 
 
-def _widened(requirements: str, missing):
-    '''The requirements with each line pip could not find moved to its
-    release line: (the new text, {name: the line's version}) -- or None where
-    no line changed.'''
-    wanted = {canonical(re.split(r"[\[=<>!~; ]", one, maxsplit=1)[0]) for one in missing}
-    lines, widened = [], {}
-    with open(requirements) as f:
-        for raw in f.read().splitlines():
-            match = _LINE.match(raw.strip())
-            if match and canonical(match.group(1)) in wanted:
-                series = release_line(match.group(3))
-                if series:
-                    widened[canonical(match.group(1))] = match.group(3)
-                    raw = f"{match.group(1)}{match.group(2) or ''}=={series}{match.group(4)}"
-            lines.append(raw)
-    return ("\n".join(lines) + "\n", widened) if widened else None
+def on_index(name, indexes, proxy=None):
+    '''Whether any of ``indexes`` has a project page for ``name`` at all
+    (PEP 503): True, False, or None where one could not be asked.
+
+    What tells *a package no index has* -- the job is sent back for its wheel
+    -- from *one no version of which installs here*, which pip's own output
+    says the same way.'''
+    import urllib.error
+    import urllib.request
+    from urllib.parse import urlsplit
+
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
+    for index in indexes or ():
+        url = f"{index.rstrip('/')}/{canonical(name)}/"
+        if url.startswith("file:"):
+            if os.path.isdir(urllib.request.url2pathname(urlsplit(url).path)):
+                return True
+            continue
+        request = urllib.request.Request(url, headers={
+            "Accept": "application/vnd.pypi.simple.v1+json, text/html;q=0.1"})
+        try:
+            with opener.open(request, timeout=30) as answer:
+                if answer.status == 200:
+                    return True
+        except urllib.error.HTTPError as e:
+            if e.code in (404, 410):
+                continue
+            return None
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+    return False
 
 
-def install(requirements: str, site: str, constrain=(), proxy_socket=None, echo=None,
-            indexes=(), allow_source=False):
-    '''Install ``requirements`` into ``site``, against this interpreter, with
-    each of ``constrain`` pinned to the version it holds, from ``indexes`` --
-    the primary first -- and from source only where ``allow_source``. Returns
-    the result record; ``echo`` is handed pip's output, whole.'''
+def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=None,
+            indexes=(), allow_source=False, probe=None):
+    '''Install ``requirements`` and ``wheels`` into ``site``, under
+    ``constraints``, against this interpreter, from ``indexes`` -- the primary
+    first -- and from source only where ``allow_source``. Returns the result
+    record; ``echo`` is handed pip's output, whole. ``probe`` answers
+    :func:`on_index`, for tests.'''
     import glob
     import venv
+
+    held = provided()
+    wheel_names = {wheel_name(path) for path in wheels}
+
+    # 🔴 What this interpreter holds wins: it stays at its version, is never
+    # installed again, and a listed version that differs is recorded.
+    ignored = {}
+    lists = {"requirements": [], "constraints": []}
+    for field, path in (("requirements", requirements), ("constraints", constraints)):
+        for name, version in read_entries(path):
+            key = canonical(name)
+            if key in wheel_names:
+                continue
+            if key in held:
+                if held[key] != version:
+                    ignored[key] = [version, held[key]]
+                continue
+            lists[field].append([key, version])
+
+    result = {"returncode": 0, "python": sys.implementation.cache_tag,
+              "version": ".".join(map(str, sys.version_info[:3])),
+              "platform": sysconfig.get_platform(), "installed": [],
+              "ignored": ignored}
+    if not lists["requirements"] and not wheels:
+        # Nothing to add: the interpreter holds it all.
+        os.makedirs(site, exist_ok=True)
+        return result
 
     # Beside the result, so it lands with one rename -- and so pip's downloads
     # go to disk rather than to a builder's small /tmp.
@@ -210,17 +281,12 @@ def install(requirements: str, site: str, constrain=(), proxy_socket=None, echo=
         with open(os.path.join(packages[0], _VISIBLE), "w") as f:
             f.write(f"import site; [site.addsitedir(p) for p in {sites!r}]\n")
 
-        pinned = os.path.join(work, "constraints.txt")
-        with open(pinned, "w") as f:
-            f.write("# What the job's requires.python pins, at the versions held here.\n")
-            for line in constraints(constrain):
-                f.write(f"{line}\n")
-
         # 🔴 No configuration of anybody's: the indexes are the deployment's,
         # passed below, and a job names none.
         env = {key: value for key, value in os.environ.items()
                if not key.upper().startswith("PIP_") and key != "PYTHONPATH"}
         env["PIP_CONFIG_FILE"] = os.devnull
+        proxy = None
         if proxy_socket:
             # 🔴 In the builder the only way out is the proxy, which admits the
             # index allowlist.
@@ -228,48 +294,100 @@ def install(requirements: str, site: str, constrain=(), proxy_socket=None, echo=
                    if not key.upper().startswith(("HTTP_PROXY", "HTTPS_PROXY",
                                                   "ALL_PROXY", "NO_PROXY"))}
             port = _forward(proxy_socket)
-            url = f"http://127.0.0.1:{port}"
-            env.update({"HTTP_PROXY": url, "HTTPS_PROXY": url, "http_proxy": url,
-                        "https_proxy": url, "PYTHONNOUSERSITE": "1", "HOME": work})
+            proxy = f"http://127.0.0.1:{port}"
+            env.update({"HTTP_PROXY": proxy, "HTTPS_PROXY": proxy, "http_proxy": proxy,
+                        "https_proxy": proxy, "PYTHONNOUSERSITE": "1", "HOME": work})
         env["TMPDIR"] = work
 
         command = [os.path.join(environment, "bin", "python"), "-m", "pip", "install",
                    "--no-input", "--disable-pip-version-check",
-                   "--no-cache-dir", "--no-compile", "--no-warn-script-location",
-                   "-c", pinned]
+                   "--no-cache-dir", "--no-compile", "--no-warn-script-location"]
         if not allow_source:
             command += ["--only-binary", ":all:"]
+        if not indexes:
+            command.append("--no-index")
         for number, index in enumerate(indexes or ()):
             command += ["--index-url" if number == 0 else "--extra-index-url", index]
 
-        def run(listed):
-            done = subprocess.run(command + ["-r", listed], env=env,
+        held_pins = pins(held)
+
+        def run():
+            listed = os.path.join(work, "requirements.txt")
+            limited = os.path.join(work, "constraints.txt")
+            with open(listed, "w") as f:
+                f.write("".join(f"{name}=={version}\n"
+                                for name, version in lists["requirements"]))
+            with open(limited, "w") as f:
+                f.write("# What this interpreter holds, at the versions it holds.\n")
+                f.write("".join(f"{line}\n" for line in held_pins))
+                f.write("".join(f"{name}=={version}\n"
+                                for name, version in lists["constraints"]))
+            done = subprocess.run(command + ["-c", limited, "-r", listed, *wheels], env=env,
                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                   stderr=subprocess.STDOUT, text=True)
             if echo is not None:
                 echo(done.stdout)
             return done
 
-        done = run(requirements)
-        substituted = {}
-        if done.returncode != 0:
-            missing = [one for pattern in _NOT_FOUND for one in pattern.findall(done.stdout)]
-            again = _widened(requirements, missing) if missing else None
-            if again is not None:
-                widened = os.path.join(work, "requirements-widened.txt")
-                with open(widened, "w") as f:
-                    f.write(again[0])
-                retried = run(widened)
-                if retried.returncode == 0:
-                    done, substituted = retried, again[1]
+        def entry(key):
+            for field in ("requirements", "constraints"):
+                for one in lists[field]:
+                    if one[0] == key:
+                        return field, one
+            return None, None
 
-        result = {"returncode": done.returncode, "python": sys.implementation.cache_tag,
-                  "version": ".".join(map(str, sys.version_info[:3])),
-                  "platform": sysconfig.get_platform()}
+        asked = probe or (lambda name: on_index(name, indexes, proxy))
+        relaxed, absent = {}, []
+        # Each round changes one entry, and each entry changes at most twice:
+        # relaxed once, or found absent once.
+        rounds = 2 * (len(lists["requirements"]) + len(lists["constraints"])) + 2
+        done = run()
+        while done.returncode != 0 and rounds > 0:
+            rounds -= 1
+            if _NETWORK.search(done.stdout):
+                break
+            changed = False
+            for key in [_name_of(one) for pattern in _NOT_FOUND
+                        for one in pattern.findall(done.stdout)]:
+                if key in absent:
+                    continue
+                field, one = entry(key)
+                there = asked(key)
+                if there is None:
+                    # An index that could not be asked says nothing about
+                    # the package: this server's failure, not the job's.
+                    result["network"] = True
+                    break
+                if not there:
+                    absent.append(key)
+                    if one is not None:
+                        lists[field].remove(one)
+                    changed = True
+                    break
+                series = release_line(one[1]) if one is not None and key not in relaxed \
+                    else None
+                if series:
+                    relaxed[key] = one[1]
+                    one[1] = series
+                    changed = True
+                    break
+            if not changed or result.get("network"):
+                break
+            if not lists["requirements"] and not wheels:
+                break
+            done = run()
+
+        if absent:
+            # 🔴 Sent back for its wheel, whatever else installed: what the
+            # install becomes once it arrives is decided then.
+            result.update({"returncode": 1, "absent": sorted(absent), "unresolved": [],
+                           "tail": "\n".join(done.stdout.strip().splitlines()[-20:])})
+            return result
         if done.returncode != 0:
-            result["unresolved"] = named(done.stdout)
-            result["network"] = bool(_NETWORK.search(done.stdout))
-            result["tail"] = "\n".join(done.stdout.strip().splitlines()[-20:])
+            result.update({"returncode": done.returncode, "unresolved": named(done.stdout),
+                           "network": bool(result.get("network")
+                                           or _NETWORK.search(done.stdout)),
+                           "tail": "\n".join(done.stdout.strip().splitlines()[-20:])})
             return result
 
         # The environment's own site-packages -- lib and lib64 where a scheme
@@ -279,11 +397,11 @@ def install(requirements: str, site: str, constrain=(), proxy_socket=None, echo=
         for directory in packages:
             _merge(directory, site)
         result["installed"] = installed(site)
-        if substituted:
-            # What ran in place of each line's own version, within its line.
-            held = dict(result["installed"])
-            result["substituted"] = {name: [version, held.get(name)]
-                                     for name, version in sorted(substituted.items())}
+        if relaxed:
+            # What ran in place of each entry's own version, within its line.
+            got = dict(result["installed"])
+            result["substituted"] = {name: [version, got.get(name)]
+                                     for name, version in sorted(relaxed.items())}
         return result
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -351,16 +469,17 @@ def _forward(path):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="pipbuild")
     parser.add_argument("--requirements", required=True)
+    parser.add_argument("--constraints")
+    parser.add_argument("--wheel", action="append", default=[])
     parser.add_argument("--site", required=True)
     parser.add_argument("--result", required=True)
-    parser.add_argument("--constrain", action="append", default=[])
     parser.add_argument("--proxy-socket")
     parser.add_argument("--index-url", action="append", default=[])
     parser.add_argument("--allow-source", action="store_true")
     args = parser.parse_args(argv)
 
     try:
-        result = install(args.requirements, args.site, constrain=args.constrain,
+        result = install(args.requirements, args.constraints, args.site, wheels=args.wheel,
                          proxy_socket=args.proxy_socket, echo=sys.stdout.write,
                          indexes=args.index_url, allow_source=args.allow_source)
     except Exception as e:                                      # noqa: BLE001

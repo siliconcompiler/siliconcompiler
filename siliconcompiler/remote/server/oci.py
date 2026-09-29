@@ -1,8 +1,9 @@
 '''
 Deriving an image in a registry: the base, with one layer on top.
 
-A node's Python environment is built into a derived image (surface D131): the
-node's resolved image with the packages its file names in a layer of their own.
+A job's Python packages are built into a derived image (implementation-notes
+§L): the image a node resolved to with the job's packages in a layer of their
+own.
 This is how that image comes to exist without pulling the base. The base's
 layers are already in the registry, so the derived image is its manifest and
 config with one layer appended, and only three small blobs move -- the layer,

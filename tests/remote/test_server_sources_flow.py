@@ -354,16 +354,16 @@ def test_a_follow_up_may_hold_only_what_was_asked_for(
     assert response.get_json()["reason"] == "unrequested_member"
 
 
-def test_a_follow_up_carrying_an_environment_file_is_unrequested(
+def test_a_follow_up_carrying_a_wheel_nobody_asked_for_is_unrequested(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
-    '''The file is the client's and the first archive's, never a source the
-    server asked for (surface D131).'''
+    '''A wheel arrives in the first archive, or answers a `python` entry --
+    never beside a dataroot the server asked for.'''
     from siliconcompiler.remote import environment
 
     job = sent_back(server, server_client, key, token, job_archive, remote_project)
 
     response = send(server_client, key, token, job["id"], {
-        environment.path_for("stepone", "0"): b"numpy==2.0.1\n"})
+        f"{environment.wheels_path()}/scfake-1.0-py3-none-any.whl": b"PK"})
 
     assert response.get_json()["reason"] == "unrequested_member"
 

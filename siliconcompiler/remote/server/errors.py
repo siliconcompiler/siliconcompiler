@@ -157,9 +157,10 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       # sent -- the design, anything local or editable, or
                       # what was asked for -- and did not (D129).
                       "missing_member",
-                      # A node's environment file outside its format, or for
-                      # no node of the flow (D131).
-                      "environment_file",
+                      # An uploaded wheel that is not pure, is malformed, or
+                      # overlaps a listed distribution or another wheel, or any
+                      # wheel where the deployment has no `python.env` (D283).
+                      "python_package",
                       # A member whose extension a deployment's allowlist does
                       # not admit (contract D40). This profile has no such
                       # allowlist and never raises it; listed so the set is

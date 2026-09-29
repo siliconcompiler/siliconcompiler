@@ -727,8 +727,8 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
         if version not in versions:
             versions.append(version)
 
-    # A derived image is its base plus what its layer installed (surface
-    # D131: `resolved_versions` lists what was installed).
+    # A derived image is its base plus what its layer installed:
+    # `resolved_versions` lists what was installed, a substitution included.
     for row in store.all(
             f"SELECT id, derived_from, installed FROM images WHERE derived_from IS NOT NULL "
             f"AND id IN ({', '.join('?' * len(wanted))})", tuple(wanted)):
@@ -1230,27 +1230,30 @@ def _is_bind(entry) -> bool:
 
 
 ######################################################################
-# Derived images: a node's Python, layered on its image (surface D131)
+# Derived images: a job's Python packages, layered on a node's image (§L)
 ######################################################################
 
-# Where a derived image's layer puts a node's Python packages. On the tool's
+# Where a derived image's layer puts a job's Python packages. On the tool's
 # PYTHONPATH only -- see `Task.get_runtime_environmental_variables`.
 LAYER_PATH = IMAGE_SITE
 
 
-def derivation(base_digest: str, environment_file: str, constrain=()) -> str:
-    '''The cache key of a derived image: its base, the file the server wrote,
-    and what the install was constrained by -- the job's `requires.python`
-    names, at the versions the base holds.
+def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
+               constrain=()) -> str:
+    '''The cache key of a derived image (implementation-notes §L, *What it
+    caches*): its base, the requirements and constraints files the server
+    wrote, each uploaded wheel's digest, and the job's sorted
+    `requires.python` names.
 
-    The base's Python tag, and the versions of those names, are functions of
+    The base's Python tag, and the versions of what it holds, are functions of
     its digest, so neither is asked for separately: each could only be learned
     by running the image.'''
     import hashlib
 
     return hashlib.sha256(json.dumps(
-        {"base": base_digest, "file": environment_file,
-         "constrain": sorted(set(constrain))}, sort_keys=True).encode()).hexdigest()
+        {"base": base_digest, "requirements": requirements, "constraints": constraints,
+         "wheels": sorted(wheels), "constrain": sorted(set(constrain))},
+        sort_keys=True).encode()).hexdigest()
 
 
 def derived_image(store, base_id: str, key: str) -> Optional[Dict[str, Any]]:

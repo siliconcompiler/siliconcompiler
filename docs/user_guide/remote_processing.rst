@@ -159,23 +159,34 @@ only the server has, say), the client says so and uploads by owner alone.
 **A testbench's own Python packages travel as a list, not as files.** For each
 node the run executes whose tool runs Python of yours -- a cocotb testbench --
 the client follows the imports of the node's test modules, through your own
-helper modules beside them, to the packages they reach. Each package installed
-from an index goes in an environment file the client writes,
-``sc_python/nodes/<step>/<index>/requirements.txt``, pinned to the version
-installed on your machine with what it depends on, less what the server's image
-already holds (SiliconCompiler, and cocotb itself). The file names no index and
-the client reads no pip configuration: the server installs from its own
-indexes. A node with nothing to install gets no file.
+helper modules beside them, to the packages they reach, and lists them once for
+the whole job when it creates it: each package installed from an index, at the
+version installed on your machine, and the version of every other package
+installed there as a constraint. It leaves out what the server's image already
+holds (SiliconCompiler, and cocotb itself). The list names no index and the
+client reads no pip configuration: the server installs from its own indexes,
+while the job is staging, and a package that will not install there rejects the
+job before any node runs.
 
-Your own code -- the helper modules your tests import, and packages you
-installed editable, from a local path or from version control, which no index
-can reproduce -- goes up once per job in ``sc_python/packages/``, file by file,
-with no links and no bytecode, and is put first on the tool's path. None of it
-is installed or run on the way. The client stops before creating the job if
-that code holds a compiled extension (``.so``, ``.pyd``, ``.dylib``), if two
-sources would supply the same file, if a node that runs your Python cannot be
-set up on your machine, or if a node has a package to install and the server
-does not offer ``python.env``.
+A package you installed editable, from a local path or from version control
+has no index to come from, so the client builds it into a wheel -- with
+``pip wheel --no-deps`` for an editable or local-directory install, and from
+the installed files otherwise -- and uploads it, and the server installs it
+with the rest. A package the server's indexes turn out not to have is asked for
+the same way, while the job stages, and the client answers with its wheel.
+Installing a wheel runs none of its code.
+
+Your own modules -- the helpers your tests import -- go up as files, in the
+same collected folder as the test that imports them and under their own names,
+so the test imports them on the server as it does here. None of it is installed
+or run on the way.
+
+The client stops before creating the job if a package it would send as a wheel,
+or a helper module, holds a compiled extension (``.so``, ``.pyd``, ``.dylib``),
+if a wheel will not build, if two sources would supply the same file, if a node
+that runs your Python cannot be set up on your machine, or if the job has
+packages to install and the server does not offer ``python.env``. A testbench
+whose only Python is its own modules needs no ``python.env`` at all.
 
 An import made dynamically, through ``importlib`` or a plugin entry point, is
 not followed and fails on the server at import. Add a plain import of the

@@ -211,6 +211,15 @@ CREATE TABLE jobs (
                                                     -- together: max_upload_bytes bounds the sum
     upload_sources          text,                   -- JSON: what the server is ASKING for, in
                                                     -- created or awaiting_input. NULL otherwise
+    python_packages         text,                   -- JSON: the create body's python_packages
+                                                    -- as the grammar accepted it -- the
+                                                    -- builder's input, outside anything the
+                                                    -- job writes (database D147). NULL where
+                                                    -- the job lists none
+    python_answered         text,                   -- JSON: each distribution this job was sent
+                                                    -- back for, by canonical name. Its wheel
+                                                    -- replaces the listed entry, and is the one
+                                                    -- wheel that may overlap the lists
 
     idempotency_key        text,
     submit_idempotency_key text,

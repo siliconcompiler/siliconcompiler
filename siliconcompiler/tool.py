@@ -472,7 +472,8 @@ class PythonEnvironment(NamedTuple):
         framework: distributions SiliconCompiler's own process needs for this
             task -- cocotb, for a cocotb task. A remote run pins them in the
             job's ``requires`` so the image holds them, and leaves them out of
-            the environment file, so the tool and SiliconCompiler load one copy.
+            the job's Python packages, so the tool and SiliconCompiler load one
+            copy.
     """
     sources: Tuple[str, ...] = ()
     requirements: Tuple[str, ...] = ()
@@ -1020,11 +1021,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if value is not None:
                 envvars[env] = value
 
-        # A remote run's Python for this node, ahead of everything else on the
-        # tool's path: the user's own code sent once per job -- helper modules,
-        # and editable, local and VCS installs -- where this node's task runs
-        # the user's Python, then what the server installed from its file -- on
-        # the host, or in the layer of the image the node runs in.
+        # A remote run's Python packages, ahead of everything else on the
+        # tool's path, where this node's task runs the user's Python: what the
+        # server installed for the job -- on the host, or in the layer of the
+        # image the node runs in. The user's own modules are collected files,
+        # found where the task finds its tests.
         # Never on this process's: SiliconCompiler does not import from them.
         carried = self.__remote_python()
         if carried:
@@ -1035,22 +1036,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return envvars
 
     def __remote_python(self) -> List[str]:
-        from siliconcompiler.remote.environment import (
-            IMAGE_SITE, packages_path, site_path)
+        from siliconcompiler.remote.environment import IMAGE_SITE, site_path
         from siliconcompiler.utils.paths import jobdir
 
         try:
-            root = jobdir(self.project)
-            paths = [os.path.join(root, site_path(self.step, self.index))]
-            # The user's code goes on the path of every node whose task runs
-            # their Python, with or without a file of its own.
-            if self.get_python_environment() is not None:
-                paths.insert(0, os.path.join(root, packages_path()))
+            if self.get_python_environment() is None:
+                return []
+            # Only where the server installed the job's packages is either
+            # there: a job without any, and every other node's image, has none.
+            paths = [os.path.join(jobdir(self.project), site_path()), IMAGE_SITE]
         except Exception:                                       # noqa: BLE001
             return []
-        # Only a node whose file the server built an image for runs in one
-        # with this directory: every other node's image has none.
-        paths.append(IMAGE_SITE)
         return [path for path in paths if os.path.isdir(path)]
 
     @classmethod
@@ -1063,7 +1059,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         Declared on the class, so a remote run names each in its
         ``requires.python``, at the range SiliconCompiler declares for it,
         without running setup on the submitting machine: the node's image then
-        holds it, and an environment file leaves it out.
+        holds it, and the job's Python packages leave it out.
 
         Returns:
             tuple of str: distribution names; none by default.
@@ -1075,11 +1071,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         What this node's tool runs of the user's Python, for a remote run to
         carry.
 
-        A remote run writes each such node an environment file -- the
-        distributions its sources import and those it loads by name, pinned as
-        installed on the submitting machine -- and sends the user's own
-        editable, local and VCS installs beside it. Called on the submitting
-        machine, after :meth:`setup`.
+        A remote run lists, once per job, the distributions the sources of
+        every such node import and those it loads by name, at the versions
+        installed on the submitting machine; builds a wheel of each installed
+        editable, from a local path or from git; and sends the user's own
+        modules beside the tests. Called on the submitting machine, after
+        :meth:`setup`. The server reads only whether a task class overrides
+        this, to know which nodes run the user's Python.
 
         Returns:
             :class:`PythonEnvironment`, or None where the tool runs none of the

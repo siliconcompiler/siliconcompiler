@@ -295,29 +295,30 @@ DEFAULTS: Dict[str, Any] = {
     "fetch_allowlist": ["https://github.com/siliconcompiler/",
                         "https://codeload.github.com/siliconcompiler/"],
 
-    # Where a node's environment is installed from: the primary index, then any
-    # extra ones, PyPI by default. Configuration and never the job's -- an
-    # environment file names no index -- so an index's credential is only ever
-    # the deployment's.
+    # Where a job's Python packages are installed from: the primary index, then
+    # any extra ones, PyPI by default. Configuration and never the job's -- a
+    # job names no index -- so an index's credential is only ever the
+    # deployment's.
     "package_indexes": ["https://pypi.org/simple/"],
 
-    # What an environment's install may reach, by the same rules as
+    # What the install of a job's packages may reach, by the same rules as
     # `fetch_allowlist`: each of `package_indexes`, and the hosts they serve
     # files from. A separate list, because letting an install reach an index is
     # not letting the server fetch a source.
     "index_allowlist": ["https://pypi.org/simple/",
                         "https://files.pythonhosted.org/"],
 
-    # Whether this server builds an image for a node's Python environment
-    # (surface D131's container mode): the node's image with what its file
-    # names installed in a layer of its own, built once per base and file and
+    # Whether this server builds an image for a job's Python packages
+    # (implementation-notes §L, container mode): the image a node running the
+    # user's Python resolved to, with the job's `python_packages` and uploaded
+    # wheels installed in a layer of its own, built once per base and set and
     # shared by every job asking for the same.
     #
     # 🔴 Needs `containers`, and turning it on is what advertises `python.env`
     # there -- false is the kill switch. The build runs as a job of its own on
     # a compute node (`build_queue`), in a container whose only way out is a
-    # proxy that admits `index_allowlist` and nothing else; nothing the user
-    # wrote runs, because pip installs wheels only.
+    # proxy that admits `index_allowlist` and nothing else. Installing a wheel
+    # runs none of its code; a source distribution is built only there.
     "env_builder": False,
 
     # Which Slurm partition an environment build runs in, or None for the

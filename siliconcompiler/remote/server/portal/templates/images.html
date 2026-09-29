@@ -190,12 +190,12 @@
 <p class="muted">
   {#
     Apart from the table above, because nobody registered these: the builder
-    made each one from a node's environment file, and a job reaches one only
-    through the file it was built from -- no requirement resolves to it.
+    made each one from a job's Python packages, and a job reaches one only
+    through the packages it was built from -- no requirement resolves to it.
   #}
-  A node's Python packages, installed by this server on one of the images
-  above. Built once for each image and file, and shared by every job asking for
-  the same set.
+  A job's Python packages, installed by this server on one of the images
+  above. Built once for each image and set of packages, and shared by every job
+  asking for the same set.
 </p>
 <table>
   <tr><th>Reference</th><th>Digest</th><th>Built on</th><th>Installed</th></tr>

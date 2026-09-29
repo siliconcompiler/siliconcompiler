@@ -7,12 +7,13 @@ import sys
 import pytest
 
 from siliconcompiler.remote import environment
-from siliconcompiler.remote.server import envinstall
+from siliconcompiler.remote.server import envinstall, pipbuild
 
 
-# A node's environment installed on the host while the job stages, into the
+# A job's Python packages installed on the host while the job stages, into the
 # user's own cache (host mode). pip is faked: what is asserted is what it is
-# handed, and what is left behind.
+# handed, and what is left behind. Whether an index has a package is answered
+# here, never by asking one.
 
 
 LOG = logging.getLogger("test")
@@ -20,8 +21,8 @@ LOG = logging.getLogger("test")
 
 @pytest.fixture
 def pip(monkeypatch):
-    '''Every pip call, and what the file it was handed said. Installs a marker
-    into the target, or fails where told to.'''
+    '''Every pip call, and what the files it was handed said. Installs a
+    marker into the target, or fails where told to.'''
     calls = []
 
     def fake(command, **kwargs):
@@ -31,8 +32,9 @@ def pip(monkeypatch):
         constraints = open(command[command.index("-c") + 1]).read()
         calls.append((command, handed, constraints))
         fake.env = kwargs.get("env")
-        if fake.fail:
-            return subprocess.CompletedProcess(command, 1, stdout=fake.fail)
+        failure = fake.fail.pop(0) if isinstance(fake.fail, list) else fake.fail
+        if failure:
+            return subprocess.CompletedProcess(command, 1, stdout=failure)
         # Into the environment whose Python ran it.
         environment = os.path.dirname(os.path.dirname(command[0]))
         site, = {os.path.realpath(path) for path in glob.glob(
@@ -42,141 +44,175 @@ def pip(monkeypatch):
 
     fake.fail = None
     monkeypatch.setattr(subprocess, "run", fake)
+    monkeypatch.setattr(pipbuild, "on_index", lambda name, indexes, proxy=None:
+                        name not in fake.absent)
+    fake.absent = set()
     fake.calls = calls
     return fake
 
 
-def parsed(text):
-    return environment.parse(text.encode())
+def packages(requirements=(), constraints=()):
+    return environment.parse({"requirements": list(requirements),
+                              "constraints": list(constraints)})
 
 
-def test_the_uploaded_file_is_never_handed_to_pip(pip, tmp_path, monkeypatch):
-    '''🔴 Parsed and written again, so a line pip would read one way and the
-    grammar another has no route through -- wheels only, from the
-    deployment's indexes, and no pip configuration of anybody's.'''
+def test_the_lists_are_never_handed_to_pip_as_the_job_wrote_them(pip, tmp_path, monkeypatch):
+    '''🔴 Written again from what parsed, one canonical name per line --
+    wheels only, from the deployment's indexes, and no pip configuration of
+    anybody's.'''
     monkeypatch.setenv("PIP_INDEX_URL", "https://somewhere.example/simple/")
-    user = parsed("# the user's own comment\nnumpy==2.0.1   # trailing\n")
 
-    target = envinstall.install(user, tmp_path / "cache", LOG, ("sim", "0"),
-                                indexes=["https://pypi.org/simple/",
-                                         "https://extra.example/simple/"])
+    target, _ = envinstall.install(packages(["Sc_Fake.Bits==2.0.1"], ["scfake-other==1.0"]),
+                                   [], tmp_path / "cache", LOG,
+                                   indexes=["https://pypi.org/simple/",
+                                            "https://extra.example/simple/"])
 
-    (command, handed, _), = pip.calls
+    (command, handed, constraints), = pip.calls
     assert command[1:4] == ["-m", "pip", "install"]
     assert "--only-binary" in command and command[command.index("--only-binary") + 1] == ":all:"
     assert command[command.index("--index-url") + 1] == "https://pypi.org/simple/"
     assert command[command.index("--extra-index-url") + 1] == "https://extra.example/simple/"
     assert "PIP_INDEX_URL" not in pip.env and pip.env["PIP_CONFIG_FILE"] == os.devnull
-    assert "the user's own comment" not in handed and "trailing" not in handed
-    assert environment.parse(handed.encode()).pins == user.pins
+    assert handed == "sc-fake-bits==2.0.1\n"
+    assert constraints.splitlines()[-1] == "scfake-other==1.0"
     assert os.path.isfile(os.path.join(target, "installed.txt"))
 
 
-def test_what_requires_python_names_is_pinned_to_what_this_host_holds(pip, tmp_path):
-    '''🔴 A venv that sees this Python's packages, with the job's
-    `requires.python` pinned -- never `--target`, which ignores what is
-    installed. The constraints are part of the key.'''
+def test_what_this_host_holds_is_pinned_and_wins(pip, tmp_path):
+    '''🔴 A venv that sees this Python's packages, with every one it holds
+    pinned -- never `--target`, which ignores what is installed. A listed
+    version of one it holds is ignored, and recorded.'''
     from importlib import metadata
 
-    first = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("sim", "0"),
-                               constrain=["PyTest", "not-installed-anywhere"])
-    other = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("sim", "0"))
+    held = metadata.version("pytest")
+    _, record = envinstall.install(packages(["scfake-bits==2.0.1", "pytest==0.0.1"],
+                                            ["packaging==0.0.2"]), [], tmp_path, LOG)
 
-    (command, _, constraints), _ = pip.calls
+    (command, handed, constraints), = pip.calls
     assert "--target" not in command
-    assert f"pytest=={metadata.version('pytest')}" in constraints.splitlines()
-    assert "not-installed-anywhere" not in constraints
-    assert first != other
+    assert f"pytest=={held}" in constraints.splitlines()
+    assert "pytest==0.0.1" not in handed and "packaging==0.0.2" not in constraints
+    assert record["ignored"] == {"pytest": ["0.0.1", held],
+                                 "packaging": ["0.0.2", metadata.version("packaging")]}
+
+
+def test_the_uploaded_wheels_go_in_with_the_lists_and_replace_their_entries(pip, tmp_path):
+    wheel = tmp_path / "scfake_helper-0.1.0-py3-none-any.whl"
+    wheel.write_bytes(b"PK")
+
+    envinstall.install(packages(["scfake-bits==2.0.1"]), [str(wheel)], tmp_path / "c", LOG)
+
+    (command, _, _), = pip.calls
+    assert command[-1] == str(wheel)
 
 
 def test_the_same_set_is_built_once_and_shared(pip, tmp_path):
-    first = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("a", "0"))
-    again = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("b", "0"))
-    other = envinstall.install(parsed("numpy==2.0.2\n"), tmp_path, LOG, ("c", "0"))
+    '''Keyed by the lists, the wheels' digests, the indexes and what this
+    Python holds.'''
+    wheel = tmp_path / "scfake_helper-0.1.0-py3-none-any.whl"
+    wheel.write_bytes(b"PK one")
 
-    assert first == again != other
-    assert len(pip.calls) == 2
+    first, _ = envinstall.install(packages(["scfake-bits==2.0.1"]), [], tmp_path, LOG)
+    again, _ = envinstall.install(packages(["scfake-bits==2.0.1"]), [], tmp_path, LOG)
+    other, _ = envinstall.install(packages(["scfake-bits==2.0.2"]), [], tmp_path, LOG)
+    carried, _ = envinstall.install(packages(["scfake-bits==2.0.1"]), [str(wheel)],
+                                    tmp_path, LOG)
+    wheel.write_bytes(b"PK two")
+    changed, _ = envinstall.install(packages(["scfake-bits==2.0.1"]), [str(wheel)],
+                                    tmp_path, LOG)
+
+    assert first == again
+    assert len({first, other, carried, changed}) == 4
+    assert len(pip.calls) == 4
 
 
 def test_one_that_will_not_install_says_which_and_leaves_nothing(pip, tmp_path):
     pip.fail = "ERROR: no wheel for x"
 
     with pytest.raises(envinstall.InstallFailed) as raised:
-        envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("sim", "0"))
+        envinstall.install(packages(["scfake-bits==2.0.1"]), [], tmp_path, LOG)
 
-    assert "sim/0" in str(raised.value) and sys.implementation.cache_tag in str(raised.value)
+    assert sys.implementation.cache_tag in str(raised.value)
     assert "no wheel" in str(raised.value)
-    assert raised.value.node == ("sim", "0")
     assert not [path for path in tmp_path.iterdir() if not path.name.endswith(".lock")]
 
 
 def test_a_version_that_does_not_install_is_tried_within_its_release_line(
         pip, tmp_path, monkeypatch):
     '''§L's order: the exact version, else one from its release line --
-    `X.*`, or `0.Y.*` below 1.0 -- and the substitution recorded.'''
-    from siliconcompiler.remote.server import pipbuild
-
-    answers = iter(["ERROR: No matching distribution found for numpy==1.26.4\n"
-                    "ERROR: No matching distribution found for tqdm==0.4.1", None])
-
-    real = subprocess.run
-
-    def once_then_fine(command, **kwargs):
-        pip.fail = next(answers)
-        return real(command, **kwargs)
-
-    monkeypatch.setattr(subprocess, "run", once_then_fine)
+    `X.*`, or `0.Y.*` below 1.0 -- one entry relaxed at a time, resolved
+    again, and the substitution recorded.'''
+    pip.fail = ["ERROR: No matching distribution found for scfake-bits==1.26.4",
+                "ERROR: No matching distribution found for scfake-tq==0.4.1", None]
     monkeypatch.setattr(pipbuild, "installed",
-                        lambda site: [["numpy", "1.26.9"], ["tqdm", "0.4.7"]])
+                        lambda site: [["scfake-bits", "1.26.9"], ["scfake-tq", "0.4.7"]])
 
-    envinstall.install(parsed("numpy==1.26.4\ntqdm==0.4.1\nsix==1.16.0\n"),
-                       tmp_path, LOG, ("sim", "0"))
+    _, record = envinstall.install(
+        packages(["scfake-bits==1.26.4", "scfake-tq==0.4.1", "scfake-six==1.16.0"]),
+        [], tmp_path, LOG)
 
-    (_, first, _), (_, second, _) = pip.calls
-    assert "numpy==1.26.4" in first
-    assert {"numpy==1.*", "tqdm==0.4.*", "six==1.16.0"} <= set(second.splitlines())
+    (_, first, _), (_, second, _), (_, third, _) = pip.calls
+    assert "scfake-bits==1.26.4" in first.splitlines()
+    assert {"scfake-bits==1.*", "scfake-tq==0.4.1"} <= set(second.splitlines())
+    assert {"scfake-bits==1.*", "scfake-tq==0.4.*", "scfake-six==1.16.0"} <= \
+        set(third.splitlines())
+    assert record["substituted"] == {"scfake-bits": ["1.26.4", "1.26.9"],
+                                     "scfake-tq": ["0.4.1", "0.4.7"]}
+
+
+def test_a_constraint_that_does_not_install_is_relaxed_the_same_way(pip, tmp_path):
+    pip.fail = ["ERROR: Could not find a version that satisfies the requirement "
+                "scfake-dep==2.3.1 (from scfake-bits)", None]
+
+    envinstall.install(packages(["scfake-bits==1.0"], ["scfake-dep==2.3.1"]), [], tmp_path, LOG)
+
+    (_, _, first), (_, _, second) = pip.calls
+    assert first.splitlines()[-1] == "scfake-dep==2.3.1"
+    assert second.splitlines()[-1] == "scfake-dep==2.*"
+
+
+def test_a_package_no_index_has_is_absent_and_named(pip, tmp_path):
+    '''What sends the job back for its wheel -- never relaxed, since no line
+    of it is there.'''
+    pip.absent = {"scfake-private"}
+    pip.fail = ["ERROR: No matching distribution found for scfake-private==1.2.0"] * 3
+
+    with pytest.raises(envinstall.InstallFailed) as raised:
+        envinstall.install(packages(["scfake-bits==1.0", "scfake-private==1.2.0"]), [],
+                           tmp_path, LOG, indexes=["https://pypi.org/simple/"])
+
+    assert raised.value.result["absent"] == ["scfake-private"]
+    assert "scfake-private" not in pip.calls[-1][1]
+
+
+def test_an_index_that_cannot_be_asked_is_the_servers_failure(pip, tmp_path, monkeypatch):
+    monkeypatch.setattr(pipbuild, "on_index", lambda name, indexes, proxy=None: None)
+    pip.fail = "ERROR: No matching distribution found for scfake-bits==1.0"
+
+    with pytest.raises(envinstall.InstallFailed) as raised:
+        envinstall.install(packages(["scfake-bits==1.0"]), [], tmp_path, LOG)
+
+    assert raised.value.result["network"] is True
+    assert not raised.value.result.get("absent")
 
 
 def test_a_line_conflicting_with_a_pinned_distribution_is_not_widened(pip, tmp_path):
     pip.fail = "The user requested (constraint) cocotb==2.1.0"
 
     with pytest.raises(envinstall.InstallFailed):
-        envinstall.install(parsed("cocotb-bus==0.2.1\n"), tmp_path, LOG, ("sim", "0"))
+        envinstall.install(packages(["cocotb-bus==0.2.1"]), [], tmp_path, LOG)
 
     assert len(pip.calls) == 1
 
 
-def test_every_node_is_installed_and_linked_where_its_task_looks(pip, gcd_design):
-    from siliconcompiler import Flowgraph, Project
-    from siliconcompiler.scheduler import SchedulerNode
-    from siliconcompiler.tools.builtin.nop import NOPTask
-    from siliconcompiler.utils.paths import jobdir
+def test_nothing_to_add_runs_no_pip_and_is_still_an_environment(pip, tmp_path):
+    '''Every requirement one this Python holds: nothing to install, and the
+    listed versions it holds another of recorded.'''
+    target, record = envinstall.install(packages(["pytest==0.0.1"]), [], tmp_path, LOG)
 
-    project = Project(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("tbflow")
-    flow.node("sim", NOPTask())
-    project.set_flow(flow)
-    project.option.set_builddir(os.path.abspath("build"))
-    project.option.set_cachedir(os.path.abspath("cache"))
-
-    job = jobdir(project)
-    for node, text in ((("sim", "0"), "numpy==2.0.1\n"), (("idle", "0"), "# nothing\n")):
-        path = os.path.join(job, environment.path_for(*node))
-        os.makedirs(os.path.dirname(path))
-        open(path, "w").write(text)
-
-    installed = envinstall.install_all(job, os.path.abspath("cache/python-env"), LOG,
-                                       [("sim", "0"), ("idle", "0"), ("other", "0")])
-    assert [node for node, _ in installed] == [("sim", "0")]
-
-    site = os.path.join(job, environment.site_path("sim", "0"))
-    assert os.path.islink(site)
-    assert os.path.realpath(site).startswith(os.path.abspath("cache"))   # the user's own
-    node = SchedulerNode(project, "sim", "0")
-    with node.runtime():
-        path = node.task.get_runtime_environmental_variables()["PYTHONPATH"]
-    assert site in path.split(os.pathsep)
+    assert pip.calls == []
+    assert os.path.isdir(target)
+    assert list(record["ignored"]) == ["pytest"]
 
 
 def test_only_where_nodes_run_on_the_host_is_python_env_offered(tmp_path):
@@ -195,13 +231,11 @@ def test_what_an_install_added_is_kept_beside_it_for_a_cached_one(pip, tmp_path,
     '''🔴 Where nodes run on the host there is no image, so the job-level log
     is the record of what the install added (profile §5) -- and a cached
     environment reports the same as the fresh one.'''
-    from siliconcompiler.remote.server import pipbuild
+    monkeypatch.setattr(pipbuild, "installed", lambda site: [["scfake-bits", "2.0.1"]])
 
-    monkeypatch.setattr(pipbuild, "installed", lambda site: [["numpy", "2.0.1"]])
-
-    first = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("a", "0"))
-    again = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("b", "0"))
+    first, fresh = envinstall.install(packages(["scfake-bits==2.0.1"]), [], tmp_path, LOG)
+    again, cached = envinstall.install(packages(["scfake-bits==2.0.1"]), [], tmp_path, LOG)
 
     assert first == again and len(pip.calls) == 1
-    assert envinstall.recorded(again) == {"installed": [["numpy", "2.0.1"]],
-                                          "substituted": {}}
+    assert fresh == cached == {"installed": [["scfake-bits", "2.0.1"]], "substituted": {},
+                               "ignored": {}}

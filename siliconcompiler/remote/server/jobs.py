@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler.flowgraph import Flowgraph
 
-from siliconcompiler.remote import owners, units
+from siliconcompiler.remote import environment, owners, units
 from siliconcompiler.remote.server import (
     archive, artifacts, confine, images, manifestread, runspec, sandbox)
 from siliconcompiler.remote.server.dispatch import DispatchError
@@ -305,6 +305,9 @@ class JobService:
         # Authoritative, like run_hash: the server never reads a job id out of
         # the upload (surface D175).
         continuations = _continuations(body.get("continues_from"))
+        # Authoritative too, and never re-derived: nothing in the manifest
+        # records it (surface *What the create body lists*).
+        packages = _python_packages(body.get("python_packages"))
 
         # 🔴 Credentials out of every source URL before anything is compared,
         # stored or logged -- the descriptor is kept whole in `jobs.descriptor`.
@@ -313,6 +316,14 @@ class JobService:
             descriptor = dict(descriptor, sources=declared)
         requires = requirements(descriptor)
         self._check_needs(descriptor)
+        if packages is not None and "python.env" not in (self._config["features"] or ()):
+            # 🔴 Relied on whether `needs` said so or not: a stale `GET /v1`,
+            # or a client that forgot the string.
+            raise ProblemError(
+                "feature-unsupported", feature="python.env",
+                detail="this job lists Python packages to install, and this deployment "
+                       "does not install a job's Python packages")
+        stored_packages = json.dumps(packages.wire()) if packages is not None else None
 
         if idempotency_key is not None:
             existing = self._store.one(
@@ -330,8 +341,10 @@ class JobService:
                 # answer a question they did not ask.
                 if (existing["design"], existing["jobname"], existing["run_hash"],
                         json.loads(existing["descriptor"]),
-                        self._continuations_of(existing["id"])) != \
-                        (design, jobname, run_hash, descriptor, sorted(continuations)):
+                        self._continuations_of(existing["id"]),
+                        existing["python_packages"]) != \
+                        (design, jobname, run_hash, descriptor, sorted(continuations),
+                         stored_packages):
                     raise ProblemError(
                         "idempotency-key-reuse",
                         detail="this Idempotency-Key was used for a different request")
@@ -342,7 +355,7 @@ class JobService:
         # 🔴 Before the reuse lookup, because the answer is part of what the
         # lookup is keyed on -- and before the upload, which is the whole point
         # of resolving here at all.
-        identity = self._identity(run_hash, requires) if reuses else None
+        identity = self._identity(run_hash, requires, stored_packages) if reuses else None
 
         if identity:
             hit = self._reuse(session.user_id, identity)
@@ -382,12 +395,13 @@ class JobService:
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
                 "                  descriptor, idempotency_key, run_hash, "
-                "                  job_identity, retention_until, upload_sources, image_id) "
-                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "                  job_identity, retention_until, upload_sources, image_id, "
+                "                  python_packages) "
+                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
                  json.dumps(descriptor), idempotency_key, run_hash, identity,
                  _retention(self._config.limits["job_retention_days"]),
-                 json.dumps(asked) if asked else None, image_id))
+                 json.dumps(asked) if asked else None, image_id, stored_packages))
             for step, index, from_job in continuations:
                 self._store.execute(
                     'INSERT INTO job_continuations (job_id, step, "index", from_job_id) '
@@ -724,8 +738,10 @@ class JobService:
             asked.append({"kind": "dataroot", "name": name, "dataroot": dataroot})
         return asked
 
-    def _identity(self, run_hash: Optional[str], requires) -> Optional[str]:
-        '''``H(client hash || the digests it resolved to)``, or None.
+    def _identity(self, run_hash: Optional[str], requires,
+                  packages: Optional[str] = None) -> Optional[str]:
+        '''``H(client hash || the digests it resolved to || python_packages)``,
+        or None.
 
         🔴 **The client's hash alone is not the job's identity, and treating it
         as one hands back a result produced by different code.** The client
@@ -752,7 +768,9 @@ class JobService:
         if self._config["containers"]:
             digests = images.digests_for(self._store, requires)
 
-        payload = "\n".join([run_hash, *sorted(digests)])
+        # The job's Python packages decide what the install gives the run,
+        # and the client's hash may not cover them.
+        payload = "\n".join([run_hash, *sorted(digests), *([packages] if packages else [])])
         return hashlib.sha256(payload.encode()).hexdigest()
 
     def _reuse(self, user_id: str, identity: str):
@@ -1210,7 +1228,7 @@ class JobService:
         summary = self._read(job, root)
         if not follow_up:
             self._check_members(job, summary, unpacked)
-        self._check_environments(None, job, summary, unpacked)
+        self._check_wheels(None, job, unpacked)
         self._check_denied(None, job, summary)
         entries = self._account(None, job, summary, unpacked)
         asked = [entry for entry in entries if entry.status == owners.ASK]
@@ -1225,21 +1243,19 @@ class JobService:
 
     def _check_members(self, job, summary, unpacked: Path) -> None:
         '''🔴 The first archive holds only the manifest at its root,
-        `sc_collected_files/`, the Python environment, and
+        `sc_collected_files/` -- the job's wheels among it -- and
         `<step>/<index>/outputs/` for each node the run reads and does not
         run; anything else is `unrequested_member` (surface *What the archive
         carries, and who decides*).'''
-        from siliconcompiler.remote import environment
-
         upstream = set(summary["upstream"])
-        allowed = {f"{job['design']}.pkg.json", "sc_collected_files", environment.ROOT}
+        allowed = {f"{job['design']}.pkg.json", "sc_collected_files"}
 
         def refuse(member):
             return self._refuse_staging(job, ProblemError(
                 "archive-rejected", reason="unrequested_member",
                 detail=f"{member} is not something a first archive carries: the "
-                       "manifest, sc_collected_files/, the Python environment and "
-                       "the outputs of each node the run reads and does not run"))
+                       "manifest, sc_collected_files/ and the outputs of each node "
+                       "the run reads and does not run"))
 
         def real_dir(path):
             return path.is_dir() and not path.is_symlink()
@@ -1310,60 +1326,54 @@ class JobService:
                             f"({entry.dataroot}) from this server")
         return entries
 
-    def _check_environments(self, session, job, summary, unpacked: Path) -> None:
-        '''The job's Python: each node's environment file and the uploaded
-        packages, while staging (surface *A node's own Python packages, built
-        while staging*).
+    def _check_wheels(self, session, job, unpacked: Path) -> None:
+        '''The job's wheels, under `sc_collected_files/python/`, every archive
+        (surface *Uploaded wheels*): each pure and well formed, one per
+        distribution, none for a distribution `python_packages` or
+        `requires.python` names -- but the one this job was sent back for,
+        which replaces its listed entry -- and none at all where this
+        deployment does not install a job's Python packages.
 
-        `sc_python/packages/` is the user's own code, accepted with or without
-        an environment file and never parsed. An environment file is the
-        declaration that a node has a package to install, so a job carrying one
-        relies on `python.env` whether or not it said so at create; each is
-        held to its path -- a node the run executes -- and to the format. A
-        follow-up carrying either never gets here: it is `unrequested_member`,
-        since only what was asked for may arrive.
+        `archive-rejected`, `reason: "python_package"`: the client builds every
+        wheel, so each of these is a client bug.
         '''
-        from siliconcompiler.remote import environment
-
-        top = unpacked / environment.ROOT
-        if not top.exists():
+        top = unpacked / environment.wheels_path()
+        if not top.exists() and not top.is_symlink():
             return
 
         def refuse(detail):
             return self._refuse(session, job, ProblemError(
-                "archive-rejected", reason="environment_file", detail=detail))
+                "archive-rejected", reason="python_package", detail=_bounded(detail)))
 
-        nodes = set(summary["nodes"])
-        files = []
-        for path in sorted(top.rglob("*")):
-            if path.is_dir():
-                continue
-            name = path.relative_to(unpacked).as_posix()
-            parts = name.split("/")
-            if len(parts) >= 3 and parts[1] == environment.PACKAGES:
-                # The user's own code, uploaded once beside the files: put on
-                # the tool's PYTHONPATH, never installed, so nothing here
-                # parses it.
-                continue
-            node = tuple(parts[2:4])
-            if not (len(parts) == 5 and parts[1] == environment.NODES
-                    and parts[4] == environment.FILENAME and node in nodes):
-                raise refuse(f"{name} is neither {environment.path_for('<step>', '<index>')} "
-                             f"for a node this run executes nor under "
-                             f"{environment.packages_path()}/")
-            files.append((name, path))
+        if "python.env" not in (self._config["features"] or ()):
+            raise refuse(f"this job uploads {environment.wheels_path()}/, and this "
+                         "deployment does not install a job's Python packages")
+        if top.is_symlink() or not top.is_dir():
+            raise refuse(f"{environment.wheels_path()} is not a directory of wheels")
 
-        if files and "python.env" not in (self._config["features"] or ()):
-            raise self._refuse(session, job, ProblemError(
-                "feature-unsupported", feature="python.env",
-                detail="this job carries a Python environment for a node, and this "
-                       "deployment does not install one"))
-
-        for name, path in files:
+        listed = environment.parse(json.loads(job["python_packages"])).names() \
+            if job["python_packages"] else set()
+        answered = set(json.loads(job["python_answered"] or "[]"))
+        framework = {environment.canonical(name) for name in _python_names(job)}
+        seen: Dict[str, str] = {}
+        for path in sorted(top.iterdir()):
+            name = f"{environment.wheels_path()}/{path.name}"
+            if path.is_symlink() or not path.is_file():
+                raise refuse(f"{name} is not a wheel file")
             try:
-                environment.parse(path.read_bytes())
-            except environment.EnvironmentFileError as e:
+                wheel = environment.check_wheel(path)
+            except environment.WheelError as e:
                 raise refuse(f"{name}: {e}") from None
+            if wheel.name in seen:
+                raise refuse(f"{seen[wheel.name]} and {path.name} are both wheels for "
+                             f"{wheel.name}, and a job uploads one per distribution")
+            seen[wheel.name] = path.name
+            if wheel.name in framework:
+                raise refuse(f"{name} is {wheel.name}, which the job's requires.python "
+                             "names: the image holds it, and it is never installed")
+            if wheel.name in listed and wheel.name not in answered:
+                raise refuse(f"{name} is {wheel.name}, which python_packages also lists: "
+                             "a distribution travels as a wheel or in the lists, not both")
 
     def _check_owed(self, session, job, summary, asked) -> None:
         '''Refuse a required value the client should have sent and did not.
@@ -1393,15 +1403,18 @@ class JobService:
 
     def _requested_members(self, job, root: Path):
         '''What a follow-up archive may hold: the collected files of the
-        dataroots this job asked for that the flow reads, and nothing else --
-        a dataroot asked for selects its required values, never all of it.
+        dataroots this job asked for that the flow reads, the wheel of each
+        Python package it asked for, and nothing else -- a dataroot asked for
+        selects its required values, never all of it.
 
         ⚠️ **Each with the rest of its parameter**, as the client collects it
         (`owners.collection_keys`): a value asked for brings the others in its
         ``(key, step, index)``, whatever their dataroot.'''
+        entries = json.loads(job["upload_sources"] or "[]")
         asked = {(item.get("name"), item.get("dataroot"))
-                 for item in json.loads(job["upload_sources"] or "[]")
-                 if item.get("kind") == "dataroot"}
+                 for item in entries if item.get("kind") == "dataroot"}
+        packages = {environment.canonical(item.get("name") or "")
+                    for item in entries if item.get("kind") == "python"}
         summary = self._stored_summary(job, root)
         records = summary["values"]
         where = [(tuple(record["key"]), record["step"], record["index"])
@@ -1419,6 +1432,10 @@ class JobService:
             parts = member.split("/")
             if parts[0] != "sc_collected_files":
                 return False
+            if len(parts) > 1 and parts[1] == environment.WHEELS:
+                # The wheels folder, and in it only a wheel asked for.
+                return (len(parts) == 2 and bool(packages)) or \
+                    (len(parts) == 3 and environment.wheel_name(parts[2]) in packages)
             inside = "/".join(parts[1:])
             # The collection directory, a bucket holding a requested file, the
             # file, or what a requested directory holds.
@@ -1534,15 +1551,22 @@ class JobService:
                 self._phase(job_id, "copying earlier results")
             self._copy_results(job, unpacked, copies)
 
-            # Each node's Python: installed here where nodes run on this host,
-            # so a line that will not install rejects the job before any node
-            # runs; built into an image on the one each node resolved to where
-            # they run in containers -- which needs the images resolved first.
-            self._install_on_host(job, summary)
-            plan = self._build_environments(
-                job, summary, self._resolve_images(None, job, summary))
+            # The job's Python packages: installed here where nodes run on this
+            # host, so one that will not install rejects the job before any
+            # node runs; built into an image on each one a node running the
+            # user's Python resolved to where they run in containers -- which
+            # needs the images resolved first. A package no configured index
+            # has sends the job back for its wheel.
+            absent = self._install_on_host(job, summary)
+            plan = None
+            if not absent:
+                plan, absent = self._build_environments(
+                    job, summary, self._resolve_images(None, job, summary))
             if self._row(job_id)["state"] != "staging":
                 raise _NoLongerStaging(job_id)
+            if absent:
+                self._send_back(self._row(job_id), [], python=absent)
+                return
 
             # `queued` only once the scheduler holds it.
             self._phase(job_id, "handing the job to the scheduler")
@@ -1627,14 +1651,16 @@ class JobService:
                             "test mode 4)")
         return self._sources.fetch(source, ref, timeout)
 
-    def _send_back(self, job, failed) -> None:
+    def _send_back(self, job, failed, python=()) -> None:
         '''`staging` back to `awaiting_input` -- the one backwards edge
         (surface D130) -- naming what failed, and nothing else.
 
-        ``failed`` is ``(entry, why)`` pairs, and the transition says why for
-        each: a job going backwards is the one move a person watching it will
-        not expect, and "a source could not be fetched" tells them nothing
-        about which or what to do.
+        ``failed`` is ``(entry, why)`` pairs for dataroots, and ``python`` each
+        Python package no configured index has, which the client answers with
+        its wheel (surface *How it is built, while the job is staging*). The
+        transition says why for each: a job going backwards is the one move a
+        person watching it will not expect, and "a source could not be
+        fetched" tells them nothing about which or what to do.
 
         ⚠️ The job counts against `pending_uploads` again and frees its
         `concurrent_jobs` slot, both because those count by state; and
@@ -1645,20 +1671,30 @@ class JobService:
             if entry.wire not in asked:
                 asked.append(entry.wire)
                 reasons.append(f"{entry.kind} {entry.name} ({entry.dataroot}): {why}")
-        reason = (f"{len(asked)} source(s) could not be fetched, so the client "
+        for name in python:
+            wire = {"kind": "python", "name": name}
+            if wire not in asked:
+                asked.append(wire)
+                reasons.append(f"the Python package {name}: no index this server "
+                               "installs from has it")
+        reason = (f"{len(asked)} source(s) this server cannot supply, so the client "
                   "is asked to send them -- " + "; ".join(reasons))
+        # 🔴 Remembered: the wheel answering one replaces its listed entry, and
+        # is the one wheel allowed to overlap the lists.
+        answered = sorted(set(json.loads(job["python_answered"] or "[]")) | set(python))
         with self._store.transaction():
             self._store.execute(
-                "UPDATE jobs SET upload_sources = ?, submit_idempotency_key = NULL, "
-                "  submit_reply = NULL, submit_key_at = NULL "
-                "WHERE id = ?", (json.dumps(asked), job["id"]))
+                "UPDATE jobs SET upload_sources = ?, python_answered = ?, "
+                "  submit_idempotency_key = NULL, submit_reply = NULL, submit_key_at = NULL "
+                "WHERE id = ?", (json.dumps(asked), json.dumps(answered) if answered else None,
+                                 job["id"]))
             self._transition(job["id"], "staging", "awaiting_input",
                              reason=_bounded(reason))
 
     def _dispatch(self, session, job, summary, entries, plan=None) -> None:
         '''Resolve images, write the manifest the run will load, and hand
         the job to the scheduler. ``plan`` is the images already resolved
-        while staging, with any a node's environment was built into.'''
+        while staging, with any the job's Python packages were built into.'''
         root = self.job_root(job["user_id"], job["id"])
         if plan is None:
             plan = self._resolve_images(session, job, summary)
@@ -1686,115 +1722,128 @@ class JobService:
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
 
     ######################################################################
-    # A node's Python environment, built into an image (surface D131)
+    # The job's Python packages (surface *A node's own Python packages,
+    # built while staging*; implementation-notes §L)
     ######################################################################
 
-    def _environments(self, job, summary) -> Dict[Tuple[str, str], str]:
-        '''The file this server writes for each node whose environment it
-        builds: none, unless nodes run in containers and the builder is on.
-
-        🔴 **Written from what parsed, never the uploaded file** -- the same
-        rendering host mode installs from. The file was held to the format at
-        submit; this is the only form of it that goes further.
-        '''
-        from siliconcompiler.remote import environment
-
-        if not (self._config["containers"] and self._config["env_builder"]):
-            return {}
-
+    def _python_install(self, job, summary):
+        '''What the job's Python install is: ``(packages, wheels)`` -- the
+        lists less each distribution a wheel carries, which its wheel replaces,
+        and the wheels' paths -- or None where there is nothing to install: no
+        node runs the user's Python, or the job lists no requirement and
+        uploads no wheel. Constraints alone install nothing.'''
+        if not summary["python"]:
+            return None
         unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
-        found = {}
-        for node in summary["nodes"]:
-            path = unpacked / environment.path_for(*node)
-            if not path.is_file():
-                continue
-            parsed = environment.parse(path.read_bytes())
-            if parsed.pins:
-                found[node] = environment.render(
-                    parsed.pins,
-                    header="Written by sc-server from what the job's file declared; "
-                           "the file itself is never installed.")
-        return found
+        top = unpacked / environment.wheels_path()
+        wheels = sorted(str(path) for path in top.glob("*.whl")) if top.is_dir() else []
+        packages = environment.parse(json.loads(job["python_packages"])) \
+            if job["python_packages"] else environment.Packages()
+        packages = packages.without(environment.wheel_name(path) for path in wheels)
+        if not packages.requirements and not wheels:
+            return None
+        return packages, wheels
 
-    def _build_environments(self, job, summary, plan):
-        '''``plan`` with every node that has an environment moved onto the
-        image built for it -- reused where one exists for its base and file,
-        built otherwise. Nodes whose files are identical share one build.
+    def _install_on_host(self, job, summary) -> List[str]:
+        '''Host mode: the job's Python packages installed while it stages,
+        into its user's cache, and linked where each node that runs the user's
+        Python finds them (`Task.get_runtime_environmental_variables`). Returns
+        each package no configured index has, for which the job is sent back
+        -- empty once installed.
 
-        🔴 **An environment that will not install rejects the job** from
-        `staging`: `software-unavailable`, `reason: "uninstallable"`, naming
-        each package and the target Python and platform. Never asked for as an
-        upload -- the package could carry binaries this server cannot run.
-        '''
-        wanted = self._environments(job, summary)
-        if not wanted:
-            return plan
-
-        nodes, refs = dict(plan.nodes), dict(plan.refs)
-        done: Dict[str, Tuple[str, str]] = {}
-        for node, text in sorted(wanted.items()):
-            base_id = nodes.get(node)
-            base_ref = refs.get(base_id) if base_id else None
-            if not base_ref:
-                raise _ServerFailure(f"{node[0]}/{node[1]} has no image to build its "
-                                     "Python environment on")
-            key = images.derivation(base_ref.split("@", 1)[1], text, _python_names(job))
-            if key not in done:
-                done[key] = self._derived_for(job, node, base_id, base_ref, key, text)
-            image_id, ref = done[key]
-            nodes[node] = image_id
-            refs[image_id] = ref
-        return images.Plan(plan.job, nodes, refs)
-
-    def _install_on_host(self, job, summary) -> None:
-        '''Host mode: each executed node's environment installed while the
-        job stages, into its user's cache, where the node's task finds it.
-
-        🔴 **A line that will not install rejects the job** --
+        🔴 **A package that will not install rejects the job** --
         `software-unavailable`, `reason: "uninstallable"`, naming each package
         and the target Python and platform -- before any node runs. An index
         that does not answer is this server's failure: `staging-failed`.
         '''
-        from siliconcompiler.remote import environment
         from siliconcompiler.remote.server import envinstall
 
         if self._config["containers"] or "python.env" not in (self._config["features"] or ()):
-            return
-        unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
-        if not any((unpacked / environment.path_for(*node)).is_file()
-                   for node in summary["nodes"]):
-            return
+            return []
+        wanted = self._python_install(job, summary)
+        if wanted is None:
+            return []
+        packages, wheels = wanted
 
-        self._phase(job["id"], "installing Python environments")
+        self._phase(job["id"], "installing the job's Python packages")
         try:
-            installed = envinstall.install_all(
-                unpacked, self.cache_dir(job["user_id"]) / "python-env", logger,
-                summary["nodes"], constrain=_python_names(job),
+            target, record = envinstall.install(
+                packages, wheels, self.cache_dir(job["user_id"]) / "python-env", logger,
+                constrain=_python_names(job),
                 indexes=list(self._config["package_indexes"] or []))
         except envinstall.InstallFailed as e:
+            if e.result.get("absent"):
+                return list(e.result["absent"])
             if e.result.get("network") or e.result.get("returncode") == -1:
                 raise _ServerFailure(_bounded(
-                    f"the install of {e.node[0]}/{e.node[1]}'s Python environment could "
-                    f"not reach an index:\n{e.result.get('tail', '')}")) from None
-            raise self._refuse_staging(job, _build_refusal(e.node, e.text, e.result)) \
-                from None
+                    "the install of the job's Python packages could not reach an "
+                    f"index:\n{e.result.get('tail', '')}")) from None
+            raise self._refuse_staging(job, _build_refusal(packages, e.result)) from None
+
+        unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
+        link = unpacked / environment.site_path()
+        link.parent.mkdir(exist_ok=True)
+        if link.is_symlink() or link.is_file():
+            link.unlink()
+        link.symlink_to(target, target_is_directory=True)
 
         # 🔴 Where nodes run on the host there is no image, so no
         # `resolved_versions`: the job-level `logs` is the record of what the
         # install added (profile §5; database D143), fresh or cached alike.
-        for (step, index), record in installed:
-            added = ", ".join(f"{name}=={version}" for name, version in record["installed"])
-            lines = [f"{step}/{index}'s Python environment installed "
-                     f"{added or 'nothing beyond what this host holds'}"]
-            lines += [f"{step}/{index}: {name}=={asked} does not install here; {got} "
-                      "from its release line was installed instead"
-                      for name, (asked, got) in sorted(record["substituted"].items())]
-            self._record_in_job_log(job, lines)
+        self._record_in_job_log(job, _install_lines(record, "this host"))
         if self._row(job["id"])["state"] != "staging":
             raise _NoLongerStaging(job["id"])
+        return []
 
-    def _derived_for(self, job, node, base_id, base_ref, key, text) -> Tuple[str, str]:
-        '''The derived image for one base and file, as (id, pinned ref).'''
+    def _build_environments(self, job, summary, plan):
+        '''``(plan, absent)``: ``plan`` with every node that runs the user's
+        Python moved onto the image built for the job's packages on the image
+        it resolved to -- reused where one exists for that base and key, built
+        otherwise, and one build per base, shared by every such node of the job
+        -- or, with ``plan`` as it was, each package no configured index has,
+        for which the job is sent back.
+
+        🔴 **A package that will not install rejects the job** from
+        `staging`: `software-unavailable`, `reason: "uninstallable"`, naming
+        each package and the target Python and platform.
+        '''
+        from siliconcompiler.remote.server import envinstall
+
+        if not (self._config["containers"] and self._config["env_builder"]):
+            return plan, []
+        wanted = self._python_install(job, summary)
+        if wanted is None:
+            return plan, []
+        packages, wheels = wanted
+        inputs = {"packages": packages, "wheels": wheels,
+                  "requirements": environment.render(packages.requirements,
+                                                     header=envinstall.HEADER),
+                  "constraints": environment.render(packages.constraints,
+                                                    header=envinstall.HEADER)}
+        digests = [envinstall.digest(path) for path in wheels]
+
+        nodes, refs = dict(plan.nodes), dict(plan.refs)
+        done: Dict[str, Tuple[str, str]] = {}
+        for node in sorted(summary["python"]):
+            base_id = nodes.get(node)
+            base_ref = refs.get(base_id) if base_id else None
+            if not base_ref:
+                raise _ServerFailure(f"{node[0]}/{node[1]} has no image to install the "
+                                     "job's Python packages on")
+            key = images.derivation(base_ref.split("@", 1)[1], inputs["requirements"],
+                                    inputs["constraints"], digests, _python_names(job))
+            if key not in done:
+                try:
+                    done[key] = self._derived_for(job, node, base_id, base_ref, key, inputs)
+                except _Absent as e:
+                    return plan, e.names
+            image_id, ref = done[key]
+            nodes[node] = image_id
+            refs[image_id] = ref
+        return images.Plan(plan.job, nodes, refs), []
+
+    def _derived_for(self, job, node, base_id, base_ref, key, inputs) -> Tuple[str, str]:
+        '''The derived image for one base and key, as (id, pinned ref).'''
         import threading
 
         def found():
@@ -1812,15 +1861,15 @@ class JobService:
             existing = found()
             if existing:
                 return existing
-            result = self._run_build(job, node, base_ref, key, text)
+            result = self._run_build(job, node, base_ref, key, inputs)
             image_id = images.register_derived(
                 self._store, base_id, result["ref"], result["digest"], key,
                 [tuple(pair) for pair in result.get("installed") or []],
-                note=f"{node[0]}/{node[1]}'s Python environment, first built for "
-                     f"job {job['id']}, on {result.get('python')} "
-                     f"({result.get('platform')})")
-            logger.info(f"{job['id']}: built {node[0]}/{node[1]}'s environment as "
+                note=f"the Python packages of job {job['id']}, on "
+                     f"{result.get('python')} ({result.get('platform')})")
+            logger.info(f"{job['id']}: built its Python packages on {base_ref} as "
                         f"{result['ref']}")
+            self._record_in_job_log(job, _install_lines(result, base_ref))
             return image_id, images.pinned_ref(result["ref"], result["digest"])
 
     def _refuse_staging(self, job, problem: ProblemError) -> ProblemError:
@@ -1835,9 +1884,10 @@ class JobService:
             raise _NoLongerStaging(job["id"])
         return self._refuse(None, current, problem)
 
-    def _run_build(self, job, node, base_ref, key, text) -> Dict[str, Any]:
+    def _run_build(self, job, node, base_ref, key, inputs) -> Dict[str, Any]:
         '''One build, as a job of its own in the builder queue; its result, or
-        the job refused with why.'''
+        the job refused with why. Raises _Absent for a package no configured
+        index has.'''
         import uuid
 
         from siliconcompiler.remote.server import envbuild
@@ -1845,7 +1895,12 @@ class JobService:
         workspace = self._datadir / "envbuilds" / f"{key[:16]}-{uuid.uuid4().hex[:8]}"
         workspace.mkdir(parents=True)
         try:
-            (workspace / envbuild.REQUIREMENTS).write_text(text)
+            (workspace / envbuild.REQUIREMENTS).write_text(inputs["requirements"])
+            (workspace / envbuild.CONSTRAINTS).write_text(inputs["constraints"])
+            if inputs["wheels"]:
+                (workspace / envbuild.WHEELS).mkdir()
+                for wheel in inputs["wheels"]:
+                    shutil.copy(wheel, workspace / envbuild.WHEELS / os.path.basename(wheel))
             timeout = int(self._config["env_build_timeout_seconds"])
             (workspace / envbuild.SPEC).write_text(json.dumps({
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
@@ -1854,8 +1909,7 @@ class JobService:
                 # Where pip looks: the deployment's, never the job's.
                 "indexes": list(self._config["package_indexes"] or []),
                 "timeout": timeout,
-                "constrain": _python_names(job),
-                "comment": f"sc-server: a node's Python environment ({key[:12]})",
+                "comment": f"sc-server: a job's Python packages ({key[:12]})",
             }, indent=1))
 
             try:
@@ -1863,11 +1917,10 @@ class JobService:
                     key[:12], workspace, workspace / envbuild.SPEC,
                     queue=self._config["build_queue"])
             except DispatchError as e:
-                raise _ServerFailure(f"this server could not start the build of "
-                                     f"{node[0]}/{node[1]}'s Python environment: {e}") \
-                    from None
-            logger.info(f"{job['id']}: building {node[0]}/{node[1]}'s environment "
-                        f"as {build_id}")
+                raise _ServerFailure(f"this server could not start the build of the job's "
+                                     f"Python packages on {base_ref}: {e}") from None
+            logger.info(f"{job['id']}: building its Python packages for "
+                        f"{node[0]}/{node[1]}'s image as {build_id}")
 
             # 🔴 A cancel stops the build: the job leaving `staging` is a build
             # nobody is waiting for.
@@ -1885,14 +1938,18 @@ class JobService:
                 tail = "\n".join(log.read_text(errors="replace").strip().splitlines()[-10:]) \
                     if log.is_file() else ""
                 raise _ServerFailure(_bounded(
-                    f"the build of {node[0]}/{node[1]}'s Python environment "
-                    f"did not finish within {timeout}s" + (f":\n{tail}" if tail else "")))
+                    f"the build of the job's Python packages on {base_ref} did not "
+                    f"finish within {timeout}s" + (f":\n{tail}" if tail else "")))
+            if not result.get("ok") and result.get("reason") == "absent":
+                raise _Absent(list(result.get("absent") or []))
             if not result.get("ok") and result.get("reason") != "uninstallable":
                 raise _ServerFailure(_bounded(
-                    f"this server could not build {node[0]}/{node[1]}'s Python "
-                    f"environment: {result.get('detail') or 'the build failed'}"))
+                    f"this server could not build the job's Python packages on "
+                    f"{base_ref}: {result.get('detail') or 'the build failed'}"))
             if not result.get("ok"):
-                raise self._refuse_staging(job, _build_refusal(node, text, result))
+                raise self._refuse_staging(
+                    job, _build_refusal(inputs["packages"], result,
+                                        where=f" on {node[0]}/{node[1]}'s image"))
             return result
         finally:
             shutil.rmtree(workspace, ignore_errors=True)
@@ -2206,6 +2263,10 @@ class JobService:
             "inherits": {(entry["step"], entry["index"]):
                          before.get((entry["step"], entry["index"]))
                          for entry in raw["nodes"] if entry["inherits"]},
+            # Each node whose task runs the user's Python: where the job's
+            # Python packages are installed.
+            "python": [(entry["step"], entry["index"])
+                       for entry in raw["nodes"] if entry["python"]],
             "tools": sorted({tool for tool in node_tools.values() if tool}),
             "pdk": raw["pdk"],
             "libraries": list(raw["libraries"]),
@@ -3859,7 +3920,8 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 
 # 🔴 Strict on requests (contract.md): what each body may carry. `run_hash` is
 # job reuse's, and top level: the descriptor is what submit re-derives.
-CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from")
+CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from",
+                  "python_packages")
 DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources")
 SOURCE_MEMBERS = ("name", "dataroot", "source", "ref", "private")
 
@@ -3919,6 +3981,18 @@ def _link_home(tree: Path, link: Path):
     if len(parts) < 4 or parts[2] != "outputs" or os.pardir in parts:
         return None
     return (parts[0], parts[1]), "/".join(parts[2:])
+
+
+def _python_packages(member) -> Optional[environment.Packages]:
+    '''`python_packages`, held to its grammar and bounds; None where it is
+    absent or lists nothing. `400 invalid-request`, naming the entry.'''
+    if member is None:
+        return None
+    try:
+        packages = environment.parse(member)
+    except environment.PackagesError as e:
+        raise ProblemError("invalid-request", detail=f"python_packages: {e}") from None
+    return packages if packages.requirements or packages.constraints else None
 
 
 def _continuations(value) -> List[Tuple[str, str, str]]:
@@ -4069,8 +4143,8 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
 
 
 def _python_names(job) -> List[str]:
-    '''What the job's `requires.python` names: an environment is installed
-    with each pinned to the version its image -- or host -- already holds.'''
+    '''What the job's `requires.python` names: the image holds each, and
+    none is ever installed. Part of what a derived image is keyed on.'''
     from siliconcompiler.remote.server.images import BUCKETS
 
     return sorted(requirements(json.loads(job["descriptor"] or "{}") or {})
@@ -4079,6 +4153,33 @@ def _python_names(job) -> List[str]:
 
 class _NoLongerStaging(Exception):
     '''The job left `staging` while it was being prepared.'''
+
+
+class _Absent(Exception):
+    '''Packages no configured index has: the job is sent back for them.'''
+
+    def __init__(self, names):
+        super().__init__(", ".join(names))
+        self.names = list(names)
+
+
+def _install_lines(record, where: str) -> List[str]:
+    '''What an install of the job's Python packages did, for the job-level
+    log: what it added, what it substituted within a release line, and each
+    listed version the target's own copy was kept over.'''
+    added = ", ".join(f"{name}=={version}" for name, version in record.get("installed") or [])
+    lines = [f"The job's Python packages, on {where}: installed "
+             f"{added or f'nothing beyond what {where} holds'}"]
+    lines += [f"{name}=={asked} does not install on {where}; {got} from its release line "
+              "was installed instead"
+              for name, (asked, got) in sorted((record.get("substituted") or {}).items())]
+    ignored = record.get("ignored") or {}
+    if ignored:
+        kept = ", ".join(f"{name} {held} (listed {listed})"
+                         for name, (listed, held) in sorted(ignored.items()))
+        lines.append(_bounded(f"{where} holds {len(ignored)} listed distribution(s) at "
+                              f"another version, which stays: {kept}"))
+    return lines
 
 
 class _ServerFailure(Exception):
@@ -4160,21 +4261,19 @@ def _problem_from(outcome: Dict[str, Any]) -> ProblemError:
                         **members)
 
 
-def _build_refusal(node, text: str, result: Dict[str, Any]) -> ProblemError:
-    '''What a failed environment build tells the job's owner.'''
-    from siliconcompiler.remote import environment
-
-    where = f"{node[0]}/{node[1]}"
+def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> ProblemError:
+    '''What an install that will not resolve tells the job's owner: each
+    package, its version, and the target Python and platform.'''
     target = f"{result.get('python') or 'its Python'} ({result.get('version') or '?'}) " \
              f"on {result.get('platform') or 'its platform'}"
 
     named = list(result.get("unresolved") or []) or \
-        [str(pin) for pin in environment.parse(text.encode()).pins]
+        [str(pin) for pin in packages.requirements]
     unresolved = []
     for requirement in named:
         match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(\[[^\]]*\])?(.*)$", requirement)
         name, spec = (match.group(1), match.group(3).strip()) if match else (requirement, "")
-        unresolved.append({"name": re.sub(r"[-_.]+", "-", name).lower(),
+        unresolved.append({"name": environment.canonical(name),
                            "requirement": [spec] if spec else [], "available": []})
 
     refused = result.get("refused") or []
@@ -4182,8 +4281,8 @@ def _build_refusal(node, text: str, result: Dict[str, Any]) -> ProblemError:
     return ProblemError(
         "software-unavailable", reason="uninstallable", unresolved=unresolved,
         detail=_bounded(
-            f"{where}'s Python environment will not install for {target}: "
-            f"{', '.join(named)}"
+            f"the job's Python packages will not install{where} for {target}: "
+            f"{', '.join(named) or 'the uploaded wheels'}"
             + (f"; the build was refused {', '.join(refused)}, which the index "
                "allowlist does not name" if refused else "")
             + (f"\n{tail}" if tail else "")))

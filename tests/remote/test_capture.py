@@ -1,27 +1,31 @@
+import hashlib
+import io
 import json
 import os
 import tarfile
 
 import pytest
 
-from conftest import outcome
-
-from siliconcompiler import Flowgraph, Project
+from siliconcompiler import Design, Flowgraph, Project
 from siliconcompiler.remote import environment
-from siliconcompiler.remote.client import capture
+from siliconcompiler.remote.client import capture, wheels
 from siliconcompiler.tool import PythonEnvironment
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 
-# A node's own Python, read off the submitting machine and written as its
-# environment file (surface D131): pinned where it came from an index, sent as
-# the user's own code where no index can reproduce it, and never what the
-# image holds.
+# A job's Python, read off the submitting machine (surface *A node's own Python
+# packages, built while staging*): what an index can supply listed in the
+# create body at the version installed here, what none can built into a wheel,
+# the user's own modules sent beside their tests -- and never what the image
+# holds.
 
 
-def _distribution(site, name, version, requires=(), editable_source=None):
-    '''An installed distribution in ``site``, as pip would leave it -- or,
-    with ``editable_source``, one installed editable from there.'''
+def _distribution(site, name, version, requires=(), editable_source=None, archive=None,
+                  files=None):
+    '''An installed distribution in ``site``, as pip would leave it: from an
+    index, or with ``editable_source`` installed editable from there, or with
+    ``archive`` installed from that local file. ``files`` are its package's,
+    beside ``__init__.py``.'''
     dist_info = os.path.join(site, f"{name}-{version}.dist-info")
     os.makedirs(dist_info)
     with open(os.path.join(dist_info, "METADATA"), "w") as f:
@@ -32,13 +36,69 @@ def _distribution(site, name, version, requires=(), editable_source=None):
         f.write(f"{name}\n")
 
     root = editable_source or site
-    os.makedirs(os.path.join(root, name))
-    with open(os.path.join(root, name, "__init__.py"), "w") as f:
-        f.write("VALUE = 1\n")
+    os.makedirs(os.path.join(root, name), exist_ok=True)
+    package = {"__init__.py": "VALUE = 1\n", **(files or {})}
+    for member, body in package.items():
+        with open(os.path.join(root, name, member), "w") as f:
+            f.write(body)
+    record = [f"{name}-{version}.dist-info/{entry},," for entry in
+              ("METADATA", "top_level.txt", "INSTALLER", "RECORD")]
+    open(os.path.join(dist_info, "INSTALLER"), "w").write("pip\n")
+    if not editable_source:
+        record += [f"{name}/{member},," for member in package]
     if editable_source:
         with open(os.path.join(dist_info, "direct_url.json"), "w") as f:
             json.dump({"url": f"file://{editable_source}", "dir_info": {"editable": True}}, f)
+    elif archive:
+        with open(os.path.join(dist_info, "direct_url.json"), "w") as f:
+            json.dump({"url": f"file://{archive}", "archive_info": {}}, f)
+    with open(os.path.join(dist_info, "RECORD"), "w") as f:
+        f.write("\n".join(record) + "\n")
     return dist_info
+
+
+# An in-tree PEP 517 backend: `pip wheel` builds it with nothing to install
+# first, so a test of the real build needs no index and no network.
+_BACKEND = '''
+import os
+import zipfile
+
+NAME, VERSION, TAG, REQUIRES = {name!r}, {version!r}, {tag!r}, {requires!r}
+
+
+def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    here = os.path.dirname(os.path.abspath(__file__))
+    filename = f"{{NAME}}-{{VERSION}}-{{TAG}}.whl"
+    info = f"{{NAME}}-{{VERSION}}.dist-info"
+    members = {{}}
+    for root, dirs, files in os.walk(os.path.join(here, NAME)):
+        for entry in files:
+            full = os.path.join(root, entry)
+            members[os.path.relpath(full, here).replace(os.sep, "/")] = open(full, "rb").read()
+    members[f"{{info}}/METADATA"] = (f"Metadata-Version: 2.1\\nName: {{NAME}}\\n"
+                                    f"Version: {{VERSION}}\\n" + "".join(
+                                        f"Requires-Dist: {{one}}\\n" for one in REQUIRES)).encode()
+    members[f"{{info}}/WHEEL"] = (f"Wheel-Version: 1.0\\nGenerator: test\\n"
+                                 f"Root-Is-Purelib: true\\nTag: {{TAG}}\\n").encode()
+    members[f"{{info}}/RECORD"] = "".join(f"{{member}},,\\n" for member in
+                                          [*members, f"{{info}}/RECORD"]).encode()
+    with zipfile.ZipFile(os.path.join(wheel_directory, filename), "w") as archive:
+        for member, body in members.items():
+            archive.writestr(member, body)
+    return filename
+'''
+
+
+def editable_source(where, name, version, requires=(), tag="py3-none-any"):
+    '''A project a user installed editable: its package, and packaging of
+    its own.'''
+    os.makedirs(os.path.join(where, name), exist_ok=True)
+    with open(os.path.join(where, "pyproject.toml"), "w") as f:
+        f.write('[build-system]\nrequires = []\nbuild-backend = "backend"\n'
+                'backend-path = ["."]\n')
+    with open(os.path.join(where, "backend.py"), "w") as f:
+        f.write(_BACKEND.format(name=name, version=version, tag=tag, requires=list(requires)))
+    return where
 
 
 @pytest.fixture
@@ -46,156 +106,191 @@ def site(monkeypatch):
     site = os.path.abspath("site")
     os.makedirs(site)
     monkeypatch.syspath_prepend(site)
+    # A real `pip wheel` finds nothing it was not handed.
+    monkeypatch.setenv("PIP_NO_INDEX", "1")
     capture._module_distributions.cache_clear()
     yield site
     capture._module_distributions.cache_clear()
 
 
+def dist(name):
+    from importlib import metadata
+
+    return metadata.distribution(name)
+
+
+###########################
+# What the code reaches
+###########################
+
 def test_what_a_source_imports():
     with open("tb.py", "w") as f:
-        f.write("import os\nimport scfakeumi.sub\nfrom cocotb.triggers import Timer\n"
-                "from . import sibling\nimport numpy as np, json\n")
-    with open("broken.py", "w") as f:
-        f.write("not python(\n")
+        f.write("import os\nimport numpy.linalg\nfrom scapy.all import IP\n"
+                "from . import sibling\nimport cocotb as c\n")
 
-    assert capture.imported_modules(["tb.py", "broken.py", "missing.py"]) == \
-        {"scfakeumi", "cocotb", "numpy"}
+    assert capture.imported_modules(["tb.py"]) == {"numpy", "scapy", "cocotb"}
 
 
-def bench(*imports, name="tb.py"):
-    '''A test module importing ``imports``, and its path.'''
-    with open(name, "w") as f:
-        f.write("".join(f"import {module}\n" for module in imports))
-    return [os.path.abspath(name)]
-
-
-def test_what_came_from_an_index_is_pinned_with_what_it_pulls_in(site):
-    _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits>=1"])
-    _distribution(site, "scfakebits", "1.2.0")
-
-    found = capture.capture(bench("scfakeumi"), [], provided=[])
-
-    assert found.pins == [("scfakebits", "1.2.0"), ("scfakeumi", "0.3.1")]
-    assert found.files == {} and found.warnings == []
-
-
-def test_an_editable_install_is_sent_as_code_not_pinned(site, monkeypatch):
-    '''Under its import name, file by file, and never its metadata: the tree
-    is laid out as a site-packages directory of modules.'''
-    source = os.path.abspath("checkout")
-    _distribution(site, "scfakeumi", "0.3.1", editable_source=source)
-    monkeypatch.syspath_prepend(source)          # what the editable hook does
-
-    found = capture.capture(bench("scfakeumi"), [], provided=[])
-
-    assert found.pins == []
-    assert found.files == {"scfakeumi/__init__.py":
-                           os.path.join(source, "scfakeumi", "__init__.py")}
-
-
-def test_a_package_holding_a_compiled_extension_is_refused_naming_it(site, monkeypatch):
-    '''🔴 One built for this machine will not import on the node.'''
-    source = os.path.abspath("checkout")
-    _distribution(site, "scfakeumi", "0.3.1", editable_source=source)
-    open(os.path.join(source, "scfakeumi", "_speedups.cpython-312-x86_64-linux-gnu.so"),
-         "wb").write(b"\x7fELF")
-    monkeypatch.syspath_prepend(source)
-
-    with pytest.raises(capture.CannotForward, match="scfakeumi 0.3.1.*_speedups"):
-        capture.capture(bench("scfakeumi"), [], provided=[])
-
-
-def test_what_the_image_holds_is_left_out(site):
-    '''🔴 SiliconCompiler and what `requires.python` names come with the
-    image, with what they depend on: a second copy on the tool's path is two
-    versions of one package.'''
-    _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
-    _distribution(site, "scfakebits", "1.2.0")
-
-    found = capture.capture(bench("scfakeumi"), [], provided=["scfakeumi"])
-
-    assert found.pins == []
-
-
-def test_a_requirement_by_name_follows_its_extras(site):
-    _distribution(site, "scfakeumi", "0.3.1", requires=['scfakebits ; extra == "bits"'])
-    _distribution(site, "scfakebits", "1.2.0")
-
-    assert capture.capture([], ["scfakeumi"], []).pins == [("scfakeumi", "0.3.1")]
-    assert capture.capture([], ["scfakeumi[bits]"], []).pins == \
-        [("scfakebits", "1.2.0"), ("scfakeumi", "0.3.1")]
-
-
-def test_a_module_no_distribution_provides_is_left_out_and_said(site):
-    found = capture.capture(bench("scnosuchmodule"), [], [])
-
-    assert found.pins == [] and found.files == {}
-    assert "scnosuchmodule" in found.warnings[0]
-
-
-def test_imports_are_followed_through_the_users_helpers(site):
-    '''🔴 A test imports a helper beside it, and the helper imports what it
-    needs: both are reached. The helpers are the user's own code, sent.'''
+def test_what_the_imports_reach_by_distribution(site):
     _distribution(site, "scfakeumi", "0.3.1")
-    os.makedirs("tests/lib")
-    open("tests/checks.py", "w").write("import lib.driver\n")
-    open("tests/lib/__init__.py", "w").write("")
-    open("tests/lib/driver.py", "w").write("import scfakeumi\n")
-    os.makedirs("tests/lib/__pycache__")
-    open("tests/lib/__pycache__/driver.cpython-312.pyc", "wb").write(b"\0")
-    open("tests/lib/stale.pyc", "wb").write(b"\0")
+    open("tb.py", "w").write("import scfakeumi\nimport json\nimport scfakenowhere\n")
 
-    found = capture.capture(bench("checks", name="tests/test_top.py"), [], [])
+    found = capture.reach([os.path.abspath("tb.py")], ["scfakebits[fast]"])
 
-    assert found.pins == [("scfakeumi", "0.3.1")]
-    # File by file, and no bytecode.
-    assert found.files == {
-        "checks.py": os.path.abspath("tests/checks.py"),
-        "lib/__init__.py": os.path.abspath("tests/lib/__init__.py"),
-        "lib/driver.py": os.path.abspath("tests/lib/driver.py")}
+    assert found.distributions == {"scfakeumi": set(), "scfakebits": {"fast"}}
+    assert found.helpers == {}
+    assert "scfakenowhere" in found.warnings[0]
 
 
-def test_no_link_is_sent(site):
-    os.makedirs("tests/lib")
-    open("tests/lib/__init__.py", "w").write("")
-    open("elsewhere.py", "w").write("SECRET = 1\n")
-    os.symlink(os.path.abspath("elsewhere.py"), "tests/lib/linked.py")
+def test_a_helper_beside_the_test_is_the_users_own_before_any_distribution(site):
+    '''As Python finds it: the test's folder is first on the tool's path, so
+    a module there shadows an installed one of the same name -- and its own
+    imports are looked up there too.'''
+    _distribution(site, "tbutil", "9.9")
+    _distribution(site, "scfakeumi", "0.3.1")
+    os.makedirs("bench/mylib/sub")
+    open("bench/tb.py", "w").write("import tbutil\nimport mylib\n")
+    open("bench/tbutil.py", "w").write("import scfakeumi\n")
+    open("bench/mylib/__init__.py", "w").write("from mylib import sub\n")
+    open("bench/mylib/sub/__init__.py", "w").write("import tbutil\n")
+    open("bench/mylib/data.txt", "w").write("carried with the package\n")
+    os.symlink("data.txt", "bench/mylib/linked.txt")
 
-    found = capture.capture(bench("lib", name="tests/test_top.py"), [], [])
+    test = os.path.abspath("bench/tb.py")
+    found = capture.reach([test])
 
-    assert set(found.files) == {"lib/__init__.py"}
-    assert any("linked.py is a link" in warning for warning in found.warnings)
-
-
-def test_a_helper_holding_a_compiled_extension_is_refused(site):
-    os.makedirs("tests/fast")
-    open("tests/fast/__init__.py", "w").write("")
-    open("tests/fast/_c.so", "wb").write(b"\x7fELF")
-
-    with pytest.raises(capture.CannotForward, match="helper module fast.*_c.so"):
-        capture.capture(bench("fast", name="tests/test_top.py"), [], [])
-
-
-def test_packages_sharing_a_namespace_merge_and_one_path_twice_is_refused():
-    '''Built file by file, so a namespace directory two packages share
-    merges -- and two sources for one file are refused, rather than one
-    overwriting the other.'''
-    tree = {}
-    capture.place(tree, "acme/a/__init__.py", "/src/one/acme/a/__init__.py", "one")
-    capture.place(tree, "acme/b/__init__.py", "/src/two/acme/b/__init__.py", "two")
-    capture.place(tree, "acme/a/__init__.py", "/src/one/acme/a/__init__.py", "one")
-
-    assert set(tree) == {"acme/a/__init__.py", "acme/b/__init__.py"}
-    with pytest.raises(capture.CannotForward, match="both be sent as acme/a/__init__.py"):
-        capture.place(tree, "acme/a/__init__.py", "/src/three/acme/a/__init__.py", "three")
+    assert found.distributions == {"scfakeumi": set()}
+    assert sorted(found.helpers[test]) == ["mylib/__init__.py", "mylib/data.txt",
+                                           "mylib/sub/__init__.py", "tbutil.py"]
+    assert any("linked.txt is a link" in warning for warning in found.warnings)
 
 
 def test_a_test_module_that_cannot_be_read_stops_the_work(site):
-    with open("tb.py", "w") as f:
-        f.write("not python(\n")
+    open("tb.py", "w").write("def broken(:\n")
 
     with pytest.raises(capture.CannotForward, match="cannot be read as Python"):
-        capture.capture([os.path.abspath("tb.py")], [], [])
+        capture.reach([os.path.abspath("tb.py")])
+
+
+###########################
+# The lists
+###########################
+
+def test_the_lists_are_what_the_code_reaches_and_everything_else_installed(site):
+    '''🔴 Canonical names at canonical versions -- what the server's grammar
+    takes -- and never a `requires.python` name.'''
+    from importlib import metadata
+
+    _distribution(site, "SCFake_Umi", "0.3.1", requires=["scfakebits"])
+    _distribution(site, "scfakebits", "1.2.0")
+
+    listed = capture.lists({"scfake-umi": set(), "pytest": set()}, ["pytest"])
+
+    assert listed.requirements == [("scfake-umi", "0.3.1")]
+    constraints = dict(listed.constraints)
+    assert constraints["scfakebits"] == "1.2.0"
+    assert constraints["packaging"] == metadata.version("packaging")
+    assert "pytest" not in constraints and "siliconcompiler" not in constraints
+    assert "scfake-umi" not in constraints
+    for name, version in listed.requirements + listed.constraints:
+        environment.parse_entry(f"{name}=={version}")
+
+
+def test_what_no_index_can_supply_is_a_wheel_and_in_neither_list(site):
+    source = os.path.abspath("checkout")
+    _distribution(site, "scfakeedit", "2.0.0", editable_source=source,
+                  requires=["scfakedep"])
+    _distribution(site, "scfakedep", "1.0.0", archive=os.path.abspath("scfakedep.tar.gz"))
+    _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"))
+
+    listed = capture.lists({"scfakeedit": set()}, [])
+
+    assert [one.metadata["Name"] for one in listed.wheels] == ["scfakedep", "scfakeedit"]
+    names = {name for name, _ in listed.requirements + listed.constraints}
+    # Installed from a local source and reached by nothing: in neither.
+    assert not names & {"scfakeedit", "scfakedep", "scfakeloose"}
+
+
+def test_too_many_constraints_shrink_to_what_the_run_depends_on(site, monkeypatch):
+    _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
+    _distribution(site, "scfakebits", "1.2.0")
+    monkeypatch.setattr(environment, "MAX_ENTRIES", 3)
+
+    listed = capture.lists({"scfakeumi": set()}, [])
+
+    assert listed.requirements == [("scfakeumi", "0.3.1")]
+    assert listed.constraints == [("scfakebits", "1.2.0")]
+
+
+###########################
+# The wheels
+###########################
+
+def test_an_install_from_a_local_file_is_repacked_as_a_pure_wheel(site):
+    '''What was installed, and its metadata; none of what pip wrote at
+    install; the same bytes each time, so the server builds its install once.'''
+    import zipfile
+
+    _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"),
+                  files={"data.txt": "a data file\n"})
+    os.makedirs("one")
+    os.makedirs("two")
+
+    first = wheels.build(dist("scfakeloose"), "one")
+    second = wheels.build(dist("scfakeloose"), "two")
+
+    assert os.path.basename(first) == "scfakeloose-3.0.0-py3-none-any.whl"
+    assert environment.check_wheel(first).name == "scfakeloose"
+    with zipfile.ZipFile(first) as archive:
+        members = sorted(archive.namelist())
+    assert members == ["scfakeloose-3.0.0.dist-info/METADATA",
+                       "scfakeloose-3.0.0.dist-info/RECORD",
+                       "scfakeloose-3.0.0.dist-info/WHEEL",
+                       "scfakeloose-3.0.0.dist-info/top_level.txt",
+                       "scfakeloose/__init__.py", "scfakeloose/data.txt"]
+    assert open(first, "rb").read() == open(second, "rb").read()
+
+
+def test_a_compiled_file_is_refused_before_anything_is_built(site):
+    _distribution(site, "scfakec", "1.0.0", archive=os.path.abspath("c.tar.gz"),
+                  files={"_c.so": "\x7fELF"})
+
+    with pytest.raises(capture.CannotForward, match="scfakec 1.0.0.*_c.so"):
+        wheels.build(dist("scfakec"), ".")
+
+
+def test_an_editable_install_is_built_from_its_source(site, monkeypatch):
+    '''`pip wheel --no-deps`, for real: the project's own packaging.'''
+    pytest.importorskip("pip")
+    source = editable_source(os.path.abspath("checkout"), "scfakeedit", "2.0.0",
+                             requires=["scfakebits>=1"])
+    _distribution(site, "scfakeedit", "2.0.0", editable_source=source)
+
+    path = wheels.build(dist("scfakeedit"), ".")
+
+    assert os.path.basename(path) == "scfakeedit-2.0.0-py3-none-any.whl"
+    assert environment.check_wheel(path).version == "2.0.0"
+
+
+def test_an_editable_build_that_is_not_pure_is_refused(site):
+    pytest.importorskip("pip")
+    source = editable_source(os.path.abspath("checkout"), "scfakeedit", "2.0.0",
+                             tag="cp312-cp312-linux_x86_64")
+    _distribution(site, "scfakeedit", "2.0.0", editable_source=source)
+
+    with pytest.raises(capture.CannotForward, match="only a pure wheel"):
+        wheels.build(dist("scfakeedit"), ".")
+    assert not [name for name in os.listdir(".") if name.endswith(".whl")]
+
+
+def test_a_build_that_fails_stops_with_its_error(site):
+    pytest.importorskip("pip")
+    source = editable_source(os.path.abspath("checkout"), "scfakeedit", "2.0.0")
+    open(os.path.join(source, "backend.py"), "w").write("raise ImportError('no backend')\n")
+    _distribution(site, "scfakeedit", "2.0.0", editable_source=source)
+
+    with pytest.raises(capture.CannotForward, match="pip wheel --no-deps.*failed"):
+        wheels.build(dist("scfakeedit"), ".")
 
 
 ###########################
@@ -205,62 +300,22 @@ def test_a_test_module_that_cannot_be_read_stops_the_work(site):
 class RunsATestbench(NOPTask):
     '''A task whose tool runs a testbench of the user's.'''
 
+    def task(self):
+        return "runsatestbench"
+
     def get_python_environment(self):
         return PythonEnvironment(sources=(os.path.abspath("tb.py"),),
                                  framework=("scfakebits",))
-
-
-@pytest.fixture
-def project(gcd_design):
-    project = Project(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("tbflow")
-    flow.node("sim", RunsATestbench())
-    project.set_flow(flow)
-    project.option.set_nodashboard(True)
-    project.option.set_jobname("job0")
-    project.option.set_builddir(os.path.abspath("build"))
-    return project
 
 
 def test_a_task_runs_none_of_the_users_python_by_default():
     assert NOPTask().get_python_environment() is None
 
 
-def test_the_users_code_goes_first_on_the_path_of_a_node_running_their_python(
-        project, gcd_design):
-    '''Once per job, and first on the tool's path of every node whose task
-    runs the user's Python -- with or without a file of its own -- and never
-    on a node whose task runs none.'''
-    from siliconcompiler.scheduler import SchedulerNode
-    from siliconcompiler.utils.paths import jobdir
-
-    forwarded = os.path.join(jobdir(project), environment.packages_path())
-    os.makedirs(forwarded)
-
-    def path(project, step):
-        node = SchedulerNode(project, step, "0")
-        with node.runtime():
-            return node.task.get_runtime_environmental_variables().get(
-                "PYTHONPATH", "").split(os.pathsep)
-
-    assert path(project, "sim")[0] == forwarded
-
-    plain = Project(gcd_design)
-    plain.add_fileset("rtl")
-    flow = Flowgraph("tbflow")
-    flow.node("sim", NOPTask())
-    plain.set_flow(flow)
-    plain.option.set_jobname("job0")
-    plain.option.set_builddir(os.path.abspath("build"))
-    assert forwarded not in path(plain, "sim")
-
-
 def test_a_cocotb_node_names_its_testbench_and_leaves_cocotb_to_the_image():
     '''cocotb is SiliconCompiler's for a cocotb task: this process sets the
-    GPI up from its own copy, so the image holds it and the testbench's file
-    leaves it out.'''
-    from siliconcompiler import Design
+    GPI up from its own copy, so the image holds it and the lists leave it
+    out.'''
     from siliconcompiler.scheduler import SchedulerNode
     from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
 
@@ -287,165 +342,171 @@ def test_a_cocotb_node_names_its_testbench_and_leaves_cocotb_to_the_image():
 
 
 ###########################
-# The client writes it
+# The client, end to end
 ###########################
 
-def test_the_client_writes_each_nodes_file_and_sends_the_users_code_beside_it(
-        site, project, fake_v1, logged_in, monkeypatch):
-    '''No index line, and no pip configuration read: every package comes
-    from the deployment's own indexes.'''
-    from siliconcompiler.remote.client.run import RemoteRun
+def cocotb_project(test_body, helpers=None):
+    '''A cocotb testbench, its test module and the helpers beside it, as a
+    user writes them.'''
+    from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
 
-    source = os.path.abspath("checkout")
-    _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
-    _distribution(site, "scfakebits", "1.2.0")
-    _distribution(site, "scfakeedit", "2.0.0", editable_source=source)
-    monkeypatch.syspath_prepend(source)
-    with open("tb.py", "w") as f:
-        f.write("import scfakeumi\nimport scfakeedit\n")
-    monkeypatch.setenv("PIP_INDEX_URL", "https://user:token@pkgs.example.com/simple/")
-    monkeypatch.setenv("PIP_EXTRA_INDEX_URL", "https://more.example.com/simple/")
+    os.makedirs("bench", exist_ok=True)
+    open("bench/test_gcd.py", "w").write(test_body)
+    for name, body in (helpers or {}).items():
+        os.makedirs(os.path.dirname(os.path.join("bench", name)) or "bench", exist_ok=True)
+        open(os.path.join("bench", name), "w").write(body)
 
-    run = RemoteRun(project, logged_in)
-    run._collect()
-    run._pack(__import__("pathlib").Path("upload.tar.gz"))
+    design = Design("gcd")
+    design.set_dataroot("bench", os.path.abspath("bench"))
+    with design.active_dataroot("bench"), design.active_fileset("tb"):
+        design.set_topmodule("gcd")
+        design.add_file("test_gcd.py", filetype="python")
 
-    with tarfile.open("upload.tar.gz") as tar:
-        names = tar.getnames()
-        text = tar.extractfile(environment.path_for("sim", "0")).read().decode()
-        members = [member for member in tar.getmembers()
-                   if member.name.startswith(environment.packages_path())]
-
-    parsed = environment.parse(text.encode())
-    # The framework's -- scfakebits, as cocotb would be -- is the image's.
-    assert [str(pin) for pin in parsed.pins] == ["scfakeumi==0.3.1"]
-    assert "example.com" not in text and "index" not in text.lower().replace(
-        "indexes", "")
-    assert text.startswith("# Generated by SiliconCompiler")
-    assert f"{environment.packages_path()}/scfakeedit/__init__.py" in names
-    assert all(member.isfile() for member in members)
-
-    # And the create says so, for the refusal before the upload.
-    assert run._python_env_files()
-
-
-def two_testbenches(gcd_design):
-    project = Project(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("tbflow")
-    flow.node("sim", RunsATestbench())
-    flow.node("sim2", RunsATestbench())
-    flow.edge("sim", "sim2")
+    project = Project(design)
+    project.add_fileset("tb")
+    flow = Flowgraph("cocotbflow")
+    flow.node("sim", CocotbExecTask())
     project.set_flow(flow)
     project.option.set_nodashboard(True)
+    project.option.set_jobname("job0")
     project.option.set_builddir(os.path.abspath("build"))
     return project
 
 
-def test_the_users_code_travels_once_and_a_node_of_only_that_gets_no_file(
-        site, gcd_design, fake_v1, logged_in, monkeypatch):
-    '''🔴 Once per job, and a file only for a node with a line to install:
-    one whose only additions are the user's code has none, and needs no
-    `python.env`.'''
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    source = os.path.abspath("checkout")
-    _distribution(site, "scfakeedit", "2.0.0", editable_source=source)
-    monkeypatch.syspath_prepend(source)
-    open("tb.py", "w").write("import scfakeedit\n")
-
-    run = RemoteRun(two_testbenches(gcd_design), logged_in)
-    run._collect()
-    run._pack(__import__("pathlib").Path("upload.tar.gz"))
-
-    with tarfile.open("upload.tar.gz") as tar:
-        names = tar.getnames()
-
-    assert names.count(f"{environment.packages_path()}/scfakeedit/__init__.py") == 1
-    assert not [name for name in names if name.endswith(environment.FILENAME)]
-    assert run._python_env_files() == {}
-
-
-def test_only_a_node_the_run_executes_gets_a_file(
-        site, gcd_design, fake_v1, logged_in):
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    _distribution(site, "scfakeumi", "0.3.1")
-    open("tb.py", "w").write("import scfakeumi\n")
-    project = two_testbenches(gcd_design)
-    project.set("option", "to", "sim")
-
-    files = RemoteRun(project, logged_in)._python_env_files()
-
-    assert set(files) == {("sim", "0")}
-
-
-def test_a_compiled_package_fails_the_run_before_anything_moves(
-        site, project, fake_v1, logged_in, monkeypatch):
-    from siliconcompiler.remote import RemoteError
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    source = os.path.abspath("checkout")
-    _distribution(site, "scfakeedit", "2.0.0", editable_source=source)
-    open(os.path.join(source, "scfakeedit", "_c.so"), "wb").write(b"\x7fELF")
-    monkeypatch.syspath_prepend(source)
-    open("tb.py", "w").write("import scfakeedit\n")
-
-    with pytest.raises(RemoteError, match="sim/0: scfakeedit 2.0.0.*_c.so"):
-        RemoteRun(project, logged_in)._python_env_files()
-
-
-def test_two_nodes_sending_different_files_for_one_path_are_refused(
-        site, gcd_design, fake_v1, logged_in, monkeypatch):
-    from siliconcompiler.remote import RemoteError
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    os.makedirs("other")
-    open("tb.py", "w").write("import shared\n")
-    open("shared.py", "w").write("ONE = 1\n")
-    open("other/tb.py", "w").write("import shared\n")
-    open("other/shared.py", "w").write("TWO = 2\n")
-    project = Project(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("twobenches")
-    flow.node("sim", RunsATestbench())
-    flow.node("sim2", Elsewhere())
-    project.set_flow(flow)
-
-    with pytest.raises(RemoteError, match="both be sent as shared.py"):
-        RemoteRun(project, logged_in)._python_env_files()
-
-
-def test_a_line_to_install_stops_before_create_where_the_server_installs_none(
-        site, project, fake_v1, logged_in, capabilities):
+@pytest.fixture
+def offers_python_env(fake_v1, capabilities):
     import responses
 
+    fake_v1.replace(responses.GET, "", dict(
+        capabilities, features=capabilities["features"] + ["python.env"]))
+
+
+def _routes_for_a_submit(fake_v1):
+    import responses
+
+    fake_v1.route(responses.POST, "jobs",
+                  {"id": "01J9-job", "state": "created", "project": None,
+                   "created_at": "2026-09-22T10:00:00.000Z"}, status=201)
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit",
+                  {"id": "01J9-job", "state": "staging", "terminal": False}, status=202)
+
+
+def _uploaded(fake_v1):
+    put = next(c for c in fake_v1.calls if c.request.url == "https://storage.test/put")
+    body = put.request.body.read() if hasattr(put.request.body, "read") else put.request.body
+    with tarfile.open(fileobj=io.BytesIO(body)) as tar:
+        return {member.name: (tar.extractfile(member).read() if member.isfile() else None)
+                for member in tar.getmembers()}
+
+
+def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
+        site, fake_v1, logged_in, offers_python_env):
+    '''🔴 One job's Python through the client for real: the package an index
+    supplies listed at the version installed here; the editable package built
+    into a wheel with `pip wheel`, and in neither list; the test's own helper
+    module in the test's collected folder under its own name; cocotb left to
+    the image; and the create saying all of it.'''
+    pytest.importorskip("pip")
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    _distribution(site, "scfakebits", "1.2.0")
+    _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
+    source = editable_source(os.path.abspath("checkout"), "scfake_helper", "0.1.0",
+                             requires=["scfakebits>=1"])
+    _distribution(site, "scfake_helper", "0.1.0", editable_source=source)
+    project = cocotb_project("import cocotb\nimport scfakebits\nimport scfake_helper\n"
+                             "import tbutil\n", {"tbutil.py": "import scfakeumi\n"})
+    _routes_for_a_submit(fake_v1)
+
+    run = RemoteRun(project, logged_in)
+    run._start()
+
+    create = next(c for c in fake_v1.calls if c.request.method == "POST"
+                  and c.request.url.endswith("/v1/jobs"))
+    body = json.loads(create.request.body)
+    member = body["python_packages"]
+    assert member["requirements"] == ["scfakebits==1.2.0", "scfakeumi==0.3.1"]
+    listed = {entry.split("==")[0] for entry in member["constraints"]}
+    assert not listed & {"cocotb", "siliconcompiler", "scfake-helper", "scfakebits"}
+    assert "python.env" in body["descriptor"]["needs"]
+    assert "cocotb" in body["descriptor"]["requires"]["python"]
+
+    members = _uploaded(fake_v1)
+    wheel = f"sc_collected_files/{environment.WHEELS}/scfake_helper-0.1.0-py3-none-any.whl"
+    assert wheel in members
+    test, = [name for name in members if name.endswith("/test_gcd.py")]
+    assert f"{os.path.dirname(test)}/tbutil.py" in members
+    assert members[f"{os.path.dirname(test)}/tbutil.py"] == b"import scfakeumi\n"
+    assert not [name for name in members if name.startswith("sc_python")]
+
+
+def test_a_compiled_local_package_is_refused_before_create(
+        site, fake_v1, logged_in, offers_python_env):
+    from siliconcompiler.remote import RemoteError
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    _distribution(site, "scfakec", "1.0.0", archive=os.path.abspath("c.tar.gz"),
+                  files={"_c.so": "\x7fELF"})
+    project = cocotb_project("import scfakec\n")
+
+    with pytest.raises(RemoteError, match="scfakec 1.0.0.*compiled file.*_c.so"):
+        RemoteRun(project, logged_in)._preflight()
+    assert not [c for c in fake_v1.calls if c.request.method == "POST"
+                and c.request.url.endswith("/v1/jobs")]
+
+
+def test_a_helper_holding_a_compiled_extension_is_refused(site, fake_v1, logged_in):
+    from siliconcompiler.remote import RemoteError
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    project = cocotb_project("import mine\n", {"mine/__init__.py": "", "mine/_c.so": "x"})
+
+    with pytest.raises(RemoteError, match="compiled extension"):
+        RemoteRun(project, logged_in)._python()
+
+
+def test_packages_to_install_stop_before_create_where_the_server_installs_none(
+        site, fake_v1, logged_in):
     from siliconcompiler.remote import RemoteError
     from siliconcompiler.remote.client.run import RemoteRun
 
     _distribution(site, "scfakeumi", "0.3.1")
-    open("tb.py", "w").write("import scfakeumi\n")
-    fake_v1.replace(responses.GET, "", dict(capabilities, features=["logs.stream"]))
+    project = cocotb_project("import scfakeumi\n")
 
-    with pytest.raises(RemoteError, match="sim/0 needs scfakeumi==0.3.1.*python.env"):
+    with pytest.raises(RemoteError, match="needs scfakeumi==0.3.1.*python.env"):
         RemoteRun(project, logged_in)._check_python_env()
     assert not [c for c in fake_v1.calls if c.request.method == "POST"
                 and c.request.url.endswith("/v1/jobs")]
 
 
+def test_a_testbench_of_only_its_own_modules_needs_no_python_env(site, fake_v1, logged_in):
+    '''Constraints alone install nothing: no `python_packages`, no
+    `python.env`, and the helpers still travel.'''
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    project = cocotb_project("import cocotb\nimport tbutil\n", {"tbutil.py": "X = 1\n"})
+
+    member, built, helpers = RemoteRun(project, logged_in)._python()
+
+    assert (member, built) == (None, {})
+    assert [os.path.basename(path) for path in helpers] == ["tbutil.py"]
+
+
+def test_a_flow_running_none_of_the_users_python_lists_nothing(
+        site, gcd_nop_project, fake_v1, logged_in):
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    assert RemoteRun(gcd_nop_project, logged_in)._python() == (None, {}, {})
+
+
 class CannotSetUpHere(RunsATestbench):
     def setup(self):
         raise RuntimeError("cocotb is not installed")
-
-
-class Elsewhere(RunsATestbench):
-    '''A testbench in another directory.'''
-
-    def task(self):
-        return "elsewhere"
-
-    def get_python_environment(self):
-        return PythonEnvironment(sources=(os.path.abspath("other/tb.py"),))
 
 
 class Broken(NOPTask):
@@ -471,10 +532,10 @@ def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run
     project.set_flow(flow)
 
     with pytest.raises(RemoteError, match="sim/0 runs your own Python.*cocotb is not installed"):
-        RemoteRun(project, logged_in)._python_env_files()
+        RemoteRun(project, logged_in)._python()
 
 
-def test_one_setup_that_cannot_run_drops_no_other_nodes_environment(
+def test_one_setup_that_cannot_run_drops_no_other_nodes_python(
         site, gcd_design, fake_v1, logged_in):
     from siliconcompiler.remote.client.run import RemoteRun
 
@@ -487,73 +548,53 @@ def test_one_setup_that_cannot_run_drops_no_other_nodes_environment(
     flow.node("other", Broken())
     project.set_flow(flow)
 
-    files = RemoteRun(project, logged_in)._python_env_files()
+    member, _, _ = RemoteRun(project, logged_in)._python()
 
-    assert set(files) == {("sim", "0")}
-
-
-###########################
-# The server takes what is beside it
-###########################
-
-@pytest.fixture
-def builds(server):
-    server.config["SC_CONFIG"]._values["features"] = \
-        server.config["SC_CONFIG"]["features"] + ["python.env"]
-    return server
+    assert member["requirements"] == ["scfakeumi==0.3.1"]
 
 
-@pytest.fixture
-def dispatcher(server):
-    from test_server_jobs import FakeDispatcher
+def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_in):
+    '''The server has no index offering it: the client repacks what is
+    installed here, and sends only that.'''
+    import responses
 
-    fake = FakeDispatcher()
-    server.config["SC_JOBS"]._dispatcher = fake
-    return fake
+    from siliconcompiler.remote.client.run import RemoteRun
 
+    _distribution(site, "scfake_private", "1.2.0")
+    project = cocotb_project("import scfake_private\n")
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit",
+                  {"id": "01J9-job", "state": "staging", "terminal": False}, status=202)
 
-def _submitted(server_client, key, token, job_archive, extra):
-    from test_server_jobs import stage, submit
+    RemoteRun(project, logged_in)._send_asked(
+        "01J9-job", [{"kind": "python", "name": "scfake-private"}])
 
-    path, digest, size = job_archive(extra=extra)
-    job = stage(server_client, key, token, path, size)
-    return outcome(server_client, key, token,
-                   submit(server_client, key, token, job["id"], digest, size))
-
-
-def test_the_users_code_beside_a_file_is_accepted(
-        builds, server_client, key, token, job_archive, dispatcher, monkeypatch):
-    pytest.importorskip("flask")
-    from siliconcompiler.remote.server import envinstall
-
-    monkeypatch.setattr(envinstall, "install",
-                        lambda parsed, root, logger, node, constrain=(), indexes=():
-                        str(__import__("pathlib").Path("site").mkdir(exist_ok=True) or "site"))
-    response = _submitted(server_client, key, token, job_archive, {
-        environment.path_for("stepone", "0"): b"numpy==2.0.1\n",
-        f"{environment.packages_path()}/mine/__init__.py": b"VALUE = 1\n"})
-
-    assert response.status_code == 202, response.get_json()
+    members = _uploaded(fake_v1)
+    wheel = f"sc_collected_files/{environment.WHEELS}/scfake_private-1.2.0-py3-none-any.whl"
+    assert [name for name in members if members[name] is not None] == [wheel]
+    grant = next(c for c in fake_v1.calls if "upload-grant" in c.request.path_url)
+    put = next(c for c in fake_v1.calls if c.request.url == "https://storage.test/put")
+    sent = put.request.body.read() if hasattr(put.request.body, "read") else put.request.body
+    assert json.loads(grant.request.body)["digest"] == \
+        f"sha256:{hashlib.sha256(sent).hexdigest()}"
 
 
-def test_the_users_code_with_no_file_is_accepted(
-        server_client, key, token, job_archive, dispatcher):
-    pytest.importorskip("flask")
-    response = _submitted(server_client, key, token, job_archive, {
-        f"{environment.packages_path()}/mine/__init__.py": b"VALUE = 1\n"})
+def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, logged_in):
+    import responses
 
-    assert response.status_code == 202, response.get_json()
+    from siliconcompiler.remote import RemoteError
+    from siliconcompiler.remote.client.run import RemoteRun
 
+    _distribution(site, "scfakec", "1.0.0", files={"_c.so": "x"})
+    project = cocotb_project("import scfakec\n")
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
+                  {"id": "01J9-job", "state": "cancelled", "terminal": True}, status=202)
 
-def test_the_old_layout_is_not_where_anything_goes(
-        builds, server_client, key, token, job_archive, dispatcher):
-    '''`python-env/` is not a member a first archive carries, and packages
-    beside one node's file are not the job's packages.'''
-    pytest.importorskip("flask")
-    response = _submitted(server_client, key, token, job_archive, {
-        "python-env/stepone/0/requirements.txt": b"numpy==2.0.1\n"})
-    assert response.get_json()["reason"] == "unrequested_member"
-
-    response = _submitted(server_client, key, token, job_archive, {
-        "sc_python/nodes/stepone/0/packages/mine/__init__.py": b"VALUE = 1\n"})
-    assert response.get_json()["reason"] == "environment_file"
+    with pytest.raises(RemoteError, match="scfakec.*compiled file"):
+        RemoteRun(project, logged_in)._send_asked(
+            "01J9-job", [{"kind": "python", "name": "scfakec"}])
+    assert [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]

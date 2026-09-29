@@ -67,9 +67,7 @@ read a stale <code>GET /v1</code> may meet it; so may one that did not read it a
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
     <td><code>logs.stream</code>, <code>logs.stream.job</code>.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td><code>projects</code>, or the first string in <code>descriptor.needs</code> this deployment does not offer.</td></tr>
-<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
-    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: <code>python.env</code>, raised while staging for a job carrying a Python environment file it did not declare.</td></tr>
+    <td><code>projects</code>; the first string in <code>descriptor.needs</code> this deployment does not offer; or <code>python.env</code> for a job that lists <code>python_packages</code> where this deployment does not install a job&rsquo;s Python packages. A wheel uploaded there is <a href="archive-rejected.html"><code>archive-rejected</code></a>, <code>reason: "python_package"</code>, instead.</td></tr>
 </tbody>
 </table>
 

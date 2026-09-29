@@ -1,16 +1,19 @@
 '''
-Building a node's Python environment into an image (surface D131).
+Building a job's Python packages into an image (surface *How it is built,
+while the job is staging*; implementation-notes §L).
 
-The container mode of a node's environment: the node's resolved image with
-what its file names installed in one layer of its own, pushed to the registry
-beside it and staged as a bundle, so the node then runs from one image with no
+The container mode of a job's Python: the image a node resolved to with the
+job's `python_packages` and uploaded wheels installed in one layer of its own,
+pushed to the registry beside it and staged as a bundle, so every node of the
+job that runs the user's Python on that image runs from one image with no
 network at all. Run as a job of its own on a compute node -- the builder queue
 -- by the API while the job is ``staging``::
 
     python -m siliconcompiler.remote.server.envbuild <workspace>/spec.json
 
 and it writes ``<workspace>/result.json`` whatever happens, which is all the
-API reads.
+API reads. The workspace holds the requirements and constraints files the API
+wrote from what parsed, and the job's wheels under ``wheels/``.
 
 🔴 **Isolated, and each part of that is load-bearing** (contract item 3):
 
@@ -21,9 +24,9 @@ API reads.
 - **with a network namespace holding only a loopback**. Its one way out is a
   unix socket bound in from here, to a proxy that admits the hosts of
   `index_allowlist` and nothing else, and never a non-public address;
-- **from the deployment's `package_indexes`** -- a job's file names none --
-  and a source distribution may be built here, and only here: its code runs
-  with no PDK data, no credential but an index's own, and no network but the
+- **from the deployment's `package_indexes`** -- a job names none -- and a
+  source distribution may be built here, and only here: its code runs with no
+  PDK data, no credential but an index's own, and no network but the
   configured indexes.
 
 ⚠️ The proxy sees a host and a port for HTTPS, not a path: an https entry of
@@ -45,13 +48,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlsplit
 
-__all__ = ["SPEC", "RESULT", "REQUIREMENTS", "LOG", "build", "build_config", "Proxy",
-           "wait_for"]
+__all__ = ["SPEC", "RESULT", "REQUIREMENTS", "CONSTRAINTS", "WHEELS", "LOG", "build",
+           "build_config", "Proxy", "wait_for"]
 
 
 SPEC = "spec.json"
 RESULT = "result.json"
 REQUIREMENTS = "requirements.txt"
+CONSTRAINTS = "constraints.txt"
+WHEELS = "wheels"
 LOG = "build.log"
 
 # Inside the build container.
@@ -95,6 +100,13 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
         shutil.rmtree(directory, ignore_errors=True)
         directory.mkdir(parents=True)
     shutil.copy(workspace / REQUIREMENTS, req / REQUIREMENTS)
+    shutil.copy(workspace / CONSTRAINTS, req / CONSTRAINTS)
+    wheels = sorted((workspace / WHEELS).glob("*.whl")) \
+        if (workspace / WHEELS).is_dir() else []
+    if wheels:
+        (req / WHEELS).mkdir()
+        for wheel in wheels:
+            shutil.copy(wheel, req / WHEELS / wheel.name)
     shutil.copy(pipbuild.__file__, req / "pipbuild.py")
 
     # A unix socket's path is bounded (108 bytes), and a workspace under a data
@@ -108,10 +120,11 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
         bundle.mkdir()
         command = ["python3", f"{_REQ}/pipbuild.py",
                    "--requirements", f"{_REQ}/{REQUIREMENTS}",
+                   "--constraints", f"{_REQ}/{CONSTRAINTS}",
                    "--site", f"{_OUT}/site", "--result", f"{_OUT}/pip.json",
                    "--proxy-socket", f"{_PROXY}/proxy.sock"]
-        for name in spec.get("constrain") or []:
-            command += ["--constrain", name]
+        for wheel in wheels:
+            command += ["--wheel", f"{_REQ}/{WHEELS}/{wheel.name}"]
         # The deployment's indexes, and a source distribution may be built:
         # this container is the one place isolated enough to run its code.
         for index in spec.get("indexes") or []:
@@ -140,7 +153,11 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                 "detail": "the build container did not run to the end:\n" + _tail(output)}
 
     facts = {"python": pip.get("python"), "version": pip.get("version"),
-             "platform": pip.get("platform")}
+             "platform": pip.get("platform"), "ignored": pip.get("ignored") or {}}
+    if pip.get("absent"):
+        # A package no configured index has: the job is sent back for it.
+        return {"ok": False, "reason": "absent", **facts, "absent": pip["absent"],
+                "tail": pip.get("tail", "")}
     if pip.get("returncode") != 0:
         # 🔴 A refused host is policy, and says so; a network that did not
         # answer says nothing about the pins, so it is the server's failure
@@ -160,7 +177,8 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
     images.stage_derived_bundle(root, spec["base_digest"], digest, site)
     shutil.rmtree(out, ignore_errors=True)
     return {"ok": True, "ref": ref, "digest": digest,
-            "installed": pip.get("installed") or [], **facts}
+            "installed": pip.get("installed") or [],
+            "substituted": pip.get("substituted") or {}, **facts}
 
 
 def build_config(base: Dict[str, Any], rootfs: Path, req: Path, out: Path,

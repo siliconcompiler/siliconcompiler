@@ -73,8 +73,8 @@ def test_every_violation_is_in_the_vocabulary():
                                "unrequested_member",
                                # D129: a value the flow reads, left out.
                                "missing_member",
-                               # D131: a node's environment file outside its format.
-                               "environment_file",
+                               # D283: an uploaded wheel that is impure or overlaps.
+                               "python_package",
                                # contract D40: an extension off an allowlist this
                                # profile does not have -- listed, never raised.
                                "extension",
