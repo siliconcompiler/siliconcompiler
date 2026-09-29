@@ -24,6 +24,8 @@ from siliconcompiler.package import FileResolver, PythonPathResolver, \
     KeyPathResolver, DatarootResolver
 from siliconcompiler.package import _RESOLVERS_POPULATED
 from siliconcompiler.package.https import HTTPResolver
+from siliconcompiler.package.git import GitResolver
+from siliconcompiler.package.github import GithubResolver
 from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler import utils
@@ -126,7 +128,291 @@ def test_safe_uri_signed_query():
                         "X-Amz-Signature=secret&token=another&version=1")
 
     assert resolver.source_print == ("https://***:***@example.com/archive?"
-                                     "X-Amz-Signature=%2A%2A%2A&token=%2A%2A%2A&version=%2A%2A%2A")
+                                     "X-Amz-Signature=***&token=***&version=***")
+    assert resolver.safe_source == ("https://example.com/archive?"
+                                    "X-Amz-Signature=***&token=***&version=***")
+
+
+# A source, what it is sent as (safe_source) and what it is logged as
+# (source_print). Both mask every query value, and differ only in the userinfo:
+# a log shows it masked, a sent source drops it.
+_MASKED_SOURCES = [
+    # Nothing to mask: kept exactly as written.
+    ("https://example.com/archive.tar.gz",
+     "https://example.com/archive.tar.gz",
+     "https://example.com/archive.tar.gz"),
+    ("git+https://github.com/org/repo.git",
+     "git+https://github.com/org/repo.git",
+     "git+https://github.com/org/repo.git"),
+    ("github://org/repo/v1/archive.tar.gz",
+     "github://org/repo/v1/archive.tar.gz",
+     "github://org/repo/v1/archive.tar.gz"),
+    ("python://siliconcompiler", "python://siliconcompiler", "python://siliconcompiler"),
+    ("dataroot://other", "dataroot://other", "dataroot://other"),
+    # An '@' in the path is not userinfo.
+    ("https://example.com/pkg@1.0/archive.tar.gz",
+     "https://example.com/pkg@1.0/archive.tar.gz",
+     "https://example.com/pkg@1.0/archive.tar.gz"),
+    # An empty query has nothing to mask.
+    ("https://example.com/archive?", "https://example.com/archive?",
+     "https://example.com/archive?"),
+    # A '?' after the '#' is the fragment's, not a query.
+    ("https://example.com/archive#part?x=1", "https://example.com/archive#part?x=1",
+     "https://example.com/archive#part?x=1"),
+
+    # Userinfo.
+    ("https://user@example.com/archive", "https://example.com/archive",
+     "https://***@example.com/archive"),
+    ("https://user:token@example.com/archive", "https://example.com/archive",
+     "https://***:***@example.com/archive"),
+    ("https://user:@example.com/archive", "https://example.com/archive",
+     "https://***@example.com/archive"),
+    ("https://:token@example.com/archive", "https://example.com/archive",
+     "https://:***@example.com/archive"),
+    ("https://@example.com/archive", "https://example.com/archive",
+     "https://example.com/archive"),
+    # An '@' in the password: the host starts after the last one.
+    ("https://user:p@ss@example.com/archive", "https://example.com/archive",
+     "https://***:***@example.com/archive"),
+    ("https://user%40corp:token@example.com/archive", "https://example.com/archive",
+     "https://***:***@example.com/archive"),
+    ("git+ssh://git@github.com/org/repo.git", "git+ssh://github.com/org/repo.git",
+     "git+ssh://***@github.com/org/repo.git"),
+    # The host keeps its case and its port.
+    ("https://user:token@Example.COM:8443/archive", "https://Example.COM:8443/archive",
+     "https://***:***@Example.COM:8443/archive"),
+    ("https://user:token@[2001:db8::1]:443/archive", "https://[2001:db8::1]:443/archive",
+     "https://***:***@[2001:db8::1]:443/archive"),
+
+    # Query: every value is masked and every name kept.
+    ("https://bucket.s3.amazonaws.com/pdk.tar.gz?X-Amz-Algorithm=AWS4-HMAC-SHA256"
+     "&X-Amz-Credential=AKIDEXAMPLE%2F20260929%2Fus-east-1%2Fs3%2Faws4_request"
+     "&X-Amz-Date=20260929T000000Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host"
+     "&X-Amz-Signature=abc123",
+     "https://bucket.s3.amazonaws.com/pdk.tar.gz?X-Amz-Algorithm=***&X-Amz-Credential=***"
+     "&X-Amz-Date=***&X-Amz-Expires=***&X-Amz-SignedHeaders=***&X-Amz-Signature=***",
+     "https://bucket.s3.amazonaws.com/pdk.tar.gz?X-Amz-Algorithm=***&X-Amz-Credential=***"
+     "&X-Amz-Date=***&X-Amz-Expires=***&X-Amz-SignedHeaders=***&X-Amz-Signature=***"),
+    ("https://storage.googleapis.com/bucket/pdk.tar.gz?X-Goog-Algorithm=GOOG4-RSA-SHA256"
+     "&X-Goog-Signature=abc123",
+     "https://storage.googleapis.com/bucket/pdk.tar.gz?X-Goog-Algorithm=***"
+     "&X-Goog-Signature=***",
+     "https://storage.googleapis.com/bucket/pdk.tar.gz?X-Goog-Algorithm=***"
+     "&X-Goog-Signature=***"),
+    ("https://account.blob.core.windows.net/pdk/pdk.tar.gz?sv=2024-11-04&sr=b&sig=abc%2B1%3D",
+     "https://account.blob.core.windows.net/pdk/pdk.tar.gz?sv=***&sr=***&sig=***",
+     "https://account.blob.core.windows.net/pdk/pdk.tar.gz?sv=***&sr=***&sig=***"),
+    # A bare token is masked whole.
+    ("https://example.com/archive?abc123", "https://example.com/archive?***",
+     "https://example.com/archive?***"),
+    # Options are values too.
+    ("git+https://github.com/org/repo.git?lfs=false&submodules=0",
+     "git+https://github.com/org/repo.git?lfs=***&submodules=***",
+     "git+https://github.com/org/repo.git?lfs=***&submodules=***"),
+    # An '@' in the query is not userinfo.
+    ("https://example.com/archive?email=me@example.com", "https://example.com/archive?email=***",
+     "https://example.com/archive?email=***"),
+    ("https://example.com?access_token=abc", "https://example.com?access_token=***",
+     "https://example.com?access_token=***"),
+
+    # Both, and the fragment kept.
+    ("https://user:token@example.com/archive?access_token=abc&v=1#part",
+     "https://example.com/archive?access_token=***&v=***#part",
+     "https://***:***@example.com/archive?access_token=***&v=***#part"),
+
+    # An empty host under a scheme urllib does not know keeps its '//'.
+    ("source:///archive?q=1", "source:///archive?q=***", "source:///archive?q=***"),
+    ("source://user@/archive?q=1", "source:///archive?q=***", "source://***@/archive?q=***"),
+    # No scheme.
+    ("/data/archive?q=1", "/data/archive?q=***", "/data/archive?q=***"),
+]
+
+
+@pytest.mark.parametrize("source,sent,logged", _MASKED_SOURCES)
+def test_masked_sources(source, sent, logged):
+    resolver = Resolver("testpath", None, source)
+
+    assert resolver.safe_source == sent
+    assert resolver.source_print == logged
+
+
+@pytest.mark.parametrize("source,sent,logged", _MASKED_SOURCES)
+def test_masked_sources_are_stable(source, sent, logged):
+    # Masking what is already masked changes nothing, so a source sent to a
+    # server and read back names the same thing.
+    assert Resolver("testpath", None, sent).safe_source == sent
+    assert Resolver("testpath", None, logged).source_print == logged
+
+
+@pytest.mark.parametrize("query,masked", [
+    ("", ""),
+    ("a=1", "a=***"),
+    ("a=1&b=2", "a=***&b=***"),
+    ("a=1&a=2", "a=***&a=***"),
+    ("a=", "a=***"),
+    ("a=b=c", "a=***"),
+    ("=value", "=***"),
+    ("token", "***"),
+    ("token&v=1", "***&v=***"),
+    ("a=1;b=2", "a=***;b=***"),
+    ("token;v=1", "***;v=***"),
+    ("a=1&&b=2", "a=***&&b=***"),
+    ("&a=1&", "&a=***&"),
+    ("na%20me=v", "na%20me=***"),
+    ("b+c=d", "b+c=***"),
+])
+def test_masked_query(query, masked):
+    assert Resolver._masked_query(query) == masked
+
+
+@pytest.mark.parametrize("source", [
+    "https://SECRET@example.com/archive",
+    "https://user:SECRET@example.com/archive",
+    "https://SECRET:@example.com/archive",
+    "https://user:SECRET@other@example.com/archive",
+    "https://example.com/archive?SECRET",
+    "https://example.com/archive?SECRET&v=1",
+    "https://example.com/archive?SECRET;v=1",
+    "https://example.com/archive?token=SECRET",
+    "https://example.com/archive?v=1&token=SECRET",
+    "https://example.com/archive?v=1;token=SECRET",
+    "https://example.com/archive?token=abc=SECRET",
+    "https://example.com/archive?token=SECRET#part",
+    "https://example.com?token=SECRET",
+    "git+https://oauth2:SECRET@gitlab.com/org/repo.git?lfs=false",
+    "https+private://user:SECRET@example.com/archive?sig=SECRET",
+])
+def test_masked_sources_never_carry_secret(source):
+    resolver = Resolver("testpath", None, source)
+
+    assert "SECRET" not in resolver.safe_source
+    assert "SECRET" not in resolver.source_print
+
+
+def test_safe_source_private():
+    resolver = Resolver("testpath", None, "https+private://user:token@example.com/archive?sig=abc")
+
+    assert resolver.is_private is True
+    assert resolver.safe_source == "https://example.com/archive?sig=***"
+    assert resolver.source_print == "https://***:***@example.com/archive?sig=***"
+
+
+@pytest.mark.parametrize("source,sent", [
+    ("https://${ARCHIVE_USER}:${ARCHIVE_TOKEN}@${ARCHIVE_HOST}/archive",
+     "https://${ARCHIVE_HOST}/archive"),
+    ("https://${ARCHIVE_HOST}/archive?access_token=${ARCHIVE_TOKEN}",
+     "https://${ARCHIVE_HOST}/archive?access_token=***"),
+    ("https://${ARCHIVE_HOST}/${ARCHIVE_TOKEN}/archive",
+     "https://${ARCHIVE_HOST}/${ARCHIVE_TOKEN}/archive"),
+    ("https://${ARCHIVE_HOST}/archive?${ARCHIVE_TOKEN}=1",
+     "https://${ARCHIVE_HOST}/archive?${ARCHIVE_TOKEN}=***"),
+    ("https://$ARCHIVE_HOST/archive?t=$ARCHIVE_TOKEN", "https://$ARCHIVE_HOST/archive?t=***"),
+])
+def test_safe_source_keeps_variables_unexpanded(monkeypatch, source, sent):
+    monkeypatch.setenv("ARCHIVE_HOST", "Example.com")
+    monkeypatch.setenv("ARCHIVE_USER", "someone")
+    monkeypatch.setenv("ARCHIVE_TOKEN", "SECRET")
+    resolver = Resolver("testpath", Project("testproj"), source)
+
+    # The resolver itself does see the values.
+    assert resolver.urlparse.hostname == "example.com"
+
+    assert resolver.safe_source == sent
+    assert "SECRET" not in resolver.safe_source
+    assert "someone" not in resolver.safe_source
+
+
+def test_safe_source_keeps_project_env_unexpanded():
+    project = Project("testproj")
+    project.set("option", "env", "ARCHIVE_TOKEN", "SECRET")
+    resolver = Resolver("testpath", project,
+                        "https://example.com/${ARCHIVE_TOKEN}/archive?t=${ARCHIVE_TOKEN}")
+
+    assert "SECRET" in resolver.urlparse.path
+    assert resolver.safe_source == "https://example.com/${ARCHIVE_TOKEN}/archive?t=***"
+
+
+@pytest.mark.parametrize("path,tag,kind,private,sent", [
+    ("https://user:token@example.com/pdk.tar.gz?X-Amz-Signature=abc", "v1",
+     HTTPResolver, False, "https://example.com/pdk.tar.gz?X-Amz-Signature=***"),
+    ("https+private://example.com/pdk.tar.gz?X-Amz-Signature=abc", "v1",
+     HTTPResolver, True, "https://example.com/pdk.tar.gz?X-Amz-Signature=***"),
+    ("git+https://oauth2:token@gitlab.com/org/repo.git?lfs=false", "abc",
+     GitResolver, False, "git+https://gitlab.com/org/repo.git?lfs=***"),
+    ("git+ssh+private://git@github.com/org/repo.git", "abc",
+     GitResolver, True, "git+ssh://github.com/org/repo.git"),
+    ("github://org/repo/v1/archive.tar.gz", "v1",
+     GithubResolver, False, "github://org/repo/v1/archive.tar.gz"),
+    ("github+private://org/repo/v1/archive.tar.gz", "v1",
+     GithubResolver, True, "github://org/repo/v1/archive.tar.gz"),
+    ("python://siliconcompiler", None,
+     PythonPathResolver, False, "python://siliconcompiler"),
+])
+def test_dataroot_safe_source(path, tag, kind, private, sent):
+    # The resolver a dataroot is registered as, which is what a remote run reads.
+    design = Design("test")
+    design.set_dataroot("root", path, tag=tag)
+    resolver = design._find_files_dataroot_resolvers(True)["root"]
+
+    assert type(resolver) is kind
+    assert resolver.is_private is private
+    assert resolver.safe_source == sent
+
+
+@pytest.mark.parametrize("kind,source,reference,cache_id", [
+    (Resolver, "https://user:token@Example.com:8443/pdk.tar.gz?access_token=abc&v=1", "v1",
+     "920fbf4f1ab2a27484412255f4fc53840c5a0b66"),
+    (Resolver, "https://bucket.s3.amazonaws.com/pdk.tar.gz?X-Amz-Signature=first", None,
+     "c9e5b40ae41ce710175184623a9e758bae1f1638"),
+    (Resolver, "https://[2001:db8::1]:443/archive", None,
+     "6d4f286b288367a543629eac23d5046a1b6fd5eb"),
+    (Resolver, "git+ssh://git@github.com/org/repo.git", "abc",
+     "0652534f69c6b56769a3696233513b7e19713585"),
+    (Resolver, "git+ssh+private://git@github.com/org/repo.git", "abc",
+     "0652534f69c6b56769a3696233513b7e19713585"),
+    (Resolver, "git+https://github.com/org/repo.git?lfs=false", "abc",
+     "33435a48a4c9a17e0a3e4c012f31e3d3fb6bb9e8"),
+    (Resolver, "github://org/repo/v1/archive.tar.gz", "v1",
+     "ac50cbd93d6bce60c6d134197714b43fde5088bf"),
+    (FileResolver, "file:///data/archive", None,
+     "f70ba53d46575c587cac27edca9e77e2db517c07"),
+    (FileResolver, "file+private:///data/user@host/archive?v=1", None,
+     "a7ffae0347c5fd635f14fdcc1741e4d851b0d7f9"),
+])
+def test_cache_id_is_stable(kind, source, reference, cache_id):
+    # A remote source's cache directory is named after its cache_id, so a
+    # changed one re-downloads every source already in the cache.
+    assert kind("testpath", Project("testproj"), source, reference).cache_id == cache_id
+
+
+def test_cache_id_keeps_query_values():
+    first = Resolver("testpath", None, "https://example.com/archive?X-Amz-Signature=first")
+    second = Resolver("testpath", None, "https://example.com/archive?X-Amz-Signature=second")
+
+    assert first.safe_source == second.safe_source
+    assert first.cache_id != second.cache_id
+
+
+def test_cache_id_ignores_userinfo():
+    first = Resolver("testpath", None, "https://first:token@example.com/archive")
+    second = Resolver("testpath", None, "https://second:other@example.com/archive")
+
+    assert first.safe_source == second.safe_source
+    assert first.cache_id == second.cache_id
+
+
+def test_cache_id_follows_variables(monkeypatch):
+    source = "https://example.com/${ARCHIVE_VERSION}/archive"
+
+    monkeypatch.setenv("ARCHIVE_VERSION", "v1")
+    first = Resolver("testpath", Project("testproj"), source)
+    first_id = first.cache_id
+
+    monkeypatch.setenv("ARCHIVE_VERSION", "v2")
+    second = Resolver("testpath", Project("testproj"), source)
+
+    assert first.safe_source == second.safe_source == source
+    assert first_id != second.cache_id
 
 
 def test_safe_uri_ipv6_cache_id():
@@ -1509,8 +1795,23 @@ def test_file_resolver_windows_safe_source(monkeypatch, scheme):
     resolver = FileResolver("thisname", Project("testproj"),
                             f"{scheme}://$WINDOWS_SOURCE_PATH")
 
-    assert resolver.safe_source == f"file://{path}"
+    assert resolver.safe_source == "file://$WINDOWS_SOURCE_PATH"
     assert resolver.cache_id
+
+
+@pytest.mark.parametrize("source,sent", [
+    ("file:///data/user@host/archive", "file:///data/user@host/archive"),
+    ("file:///data/archive?v=1", "file:///data/archive?v=1"),
+    ("file:///data/archive#1", "file:///data/archive#1"),
+    ("file:///data/user:token@host/archive", "file:///data/user:token@host/archive"),
+    ("file+private:///data/user@host/archive?v=1", "file:///data/user@host/archive?v=1"),
+    ("file://$DATA_ROOT/archive?v=1", "file://$DATA_ROOT/archive?v=1"),
+    ("/data/archive?v=1", "file:///data/archive?v=1"),
+])
+def test_file_resolver_safe_source_keeps_path(source, sent):
+    # A path has no userinfo or query to mask: every character is its name's.
+    resolver = FileResolver("thisname", Project("testproj"), source)
+    assert resolver.safe_source == sent
 
 
 def test_python_path_resolver():
