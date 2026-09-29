@@ -258,6 +258,52 @@ use it whenever that fileset exists:
 That way a target can leave ``delaymodel`` as ``nldm`` and the driver still picks
 up ``nldm-bin`` automatically when the library ships it.
 
+.. _dev_tools_remote_placement:
+
+Declaring what a task needs remotely
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A remote run can place each node in its own environment, such as a container
+image that holds the node's tool. Two properties of :class:`.Task` tell it what a
+node needs. The leading underscore does not make them internal: they are the
+supported interface for any driver, including one outside this repository.
+
+* :attr:`.Task._remote_toolname` names the tool that must be installed. It
+  defaults to :meth:`.Task.tool`, so most drivers never override it. That
+  includes a task with no executable that drives its tool's Python package, as
+  the slang tasks do. Return another tool's name when the task runs that tool.
+  Return ``None`` when it needs nothing beyond SiliconCompiler, as the builtin
+  tasks do.
+* :attr:`.Task._remote_inherits_env` returns ``True`` when the node should run
+  wherever its input node ran. ``exec_input`` does this to run what an earlier
+  node built. It defaults to ``False``.
+
+Both are read from a task that has not been set up and has no project, so
+return a constant:
+
+.. code-block:: python
+
+  from typing import Optional
+
+  from siliconcompiler import Task
+
+  class RunBuiltBinary(Task):
+      def tool(self):
+          return "mytool"
+
+      def task(self):
+          return "run"
+
+      @property
+      def _remote_toolname(self) -> Optional[str]:
+          # Nothing to install: the program comes from the input node.
+          return None
+
+      @property
+      def _remote_inherits_env(self) -> bool:
+          # Run where the node that built the program ran.
+          return True
+
 API Quick Reference
 -------------------
 
@@ -290,6 +336,18 @@ These are the main methods you will implement in your :class:`.Task` subclass to
     runtime_options
     run
     post_process
+
+Remote Placement Properties
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Override these to declare what a node needs on a remote server. See
+:ref:`dev_tools_remote_placement`.
+
+.. autosummary::
+    :nosignatures:
+
+    _remote_toolname
+    _remote_inherits_env
 
 Configuration Methods
 ^^^^^^^^^^^^^^^^^^^^^
