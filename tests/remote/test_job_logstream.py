@@ -9,7 +9,7 @@ from test_logs import frames
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from siliconcompiler.remote.server import logstream                  # noqa: E402
+from siliconcompiler.remote.server.outputs import logstream                  # noqa: E402
 
 
 # `GET /v1/jobs/{id}/logs` with no step and no index: every node's live log,
@@ -294,7 +294,7 @@ def test_a_good_id_is_a_seek_into_the_index(tmp_path):
 @pytest.fixture
 def job(server, server_client, key, token):
     '''A running job with two nodes, both logging.'''
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store = server.config["SC_STORE"]
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
@@ -443,7 +443,7 @@ def live(tmp_path):
 
     from siliconcompiler.remote import Client, Credentials
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     app = create_app(tmp_path / "datadir", cluster="local")
     server = make_server("127.0.0.1", 0, app, threaded=True)

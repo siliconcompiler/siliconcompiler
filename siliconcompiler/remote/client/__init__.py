@@ -495,7 +495,7 @@ class Client:
                 "this server knows you by a different key: "
                 f"{clean(refusal.description or 'the subject is bound to another key')}. "
                 "Retrying will not help. An operator can release the binding: "
-                "python3 -m siliconcompiler.remote.server.registry release-binding "
+                "python3 -m siliconcompiler.remote.server.software.registry release-binding "
                 f"{subject}")
         return RemoteError(str(refusal))
 

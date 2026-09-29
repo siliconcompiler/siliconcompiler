@@ -15,7 +15,7 @@ from test_server_jobs import FakeDispatcher, create, put, stage, submit
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 from siliconcompiler import PDK                                        # noqa: E402
-from siliconcompiler.remote.server.sources import Permanent            # noqa: E402
+from siliconcompiler.remote.server.staging.sources import Permanent            # noqa: E402
 
 
 # What the server cannot supply, it asks for (D114); create looks up and never
@@ -466,7 +466,7 @@ def test_private_and_local_resources_are_told_apart_at_create(server_client, key
 def test_a_held_copy_records_its_commit_and_holds_no_moving_ref(tmp_path, monkeypatch):
     '''🔴 The commit is recorded before `.git` goes, and a branch is held for
     one job's staging, never across jobs.'''
-    from siliconcompiler.remote.server import sources
+    from siliconcompiler.remote.server.staging import sources
 
     store = sources.SourceStore(tmp_path, [])
     monkeypatch.setattr(store, "allowlisted", lambda source, ref: True)

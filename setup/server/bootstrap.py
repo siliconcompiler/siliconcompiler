@@ -300,7 +300,7 @@ def run_in(image: str, command) -> str:
     probe prints behind a marker: a tool that writes a banner while being asked
     its version lands in the same stream as the answer.
     '''
-    from siliconcompiler.remote.server import probe
+    from siliconcompiler.remote.server.software import probe
 
     created = _call("POST", "/containers/create",
                     # 🔴 `Entrypoint: []` and not just `Cmd`. These images have
@@ -377,7 +377,7 @@ def ask_image(image: str, python_names, tools) -> dict:
     bootstrap because a version could not be read would trade a complete
     catalogue for no deployment at all.
     '''
-    from siliconcompiler.remote.server import probe
+    from siliconcompiler.remote.server.software import probe
 
     wanted = [(name, "python", None, None) for name in python_names]
     # ⚠️ A tool whose version is a distribution is asked the python way, and
@@ -613,7 +613,7 @@ def registry(*args: str) -> None:
     tracebacks with the useful sentence in the middle of the first.
     '''
     done = subprocess.run(
-        [sys.executable, "-m", "siliconcompiler.remote.server.registry",
+        [sys.executable, "-m", "siliconcompiler.remote.server.software.registry",
          "-datadir", str(DATADIR), *args])
     if done.returncode:
         raise SystemExit(
@@ -798,8 +798,8 @@ def already_registered(version: str) -> bool:
     jobs run from the staged bundle, and staging an image that is already
     staged does nothing.
     '''
-    from siliconcompiler.remote.server import images
-    from siliconcompiler.remote.server.store import Store, StoreVersionError
+    from siliconcompiler.remote.server.software import images
+    from siliconcompiler.remote.server.state.store import Store, StoreVersionError
 
     wanted = {
         f"{PULL_FROM}/sc-runtime:{version}": digest_of(RUNTIME_IMAGE, "sc-runtime"),

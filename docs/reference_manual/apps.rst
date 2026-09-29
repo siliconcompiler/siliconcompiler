@@ -18,7 +18,7 @@ CLI apps
   :title: sc-server
 
 .. scapp::
-  :app: python3 -m siliconcompiler.remote.server.registry
+  :app: python3 -m siliconcompiler.remote.server.software.registry
   :title: sc-server-registry
 
 .. scapp::

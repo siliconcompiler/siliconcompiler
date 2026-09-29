@@ -33,12 +33,13 @@ import flask
 import markupsafe
 
 from siliconcompiler.remote import units
-from siliconcompiler.remote.server import accounts, images
-from siliconcompiler.remote.server.artifacts import UNOPENED, fetchable, unopened
-from siliconcompiler.remote.server.auth import SCOPES, Session
 from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.identity import accounts
+from siliconcompiler.remote.server.identity.auth import SCOPES, Session
 from siliconcompiler.remote.server.jobs import MAX_REASON
-from siliconcompiler.remote.server.storage import DOWNLOAD_SECONDS
+from siliconcompiler.remote.server.outputs.artifacts import UNOPENED, fetchable, unopened
+from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.state.storage import DOWNLOAD_SECONDS
 
 __all__ = ["blueprint", "Sessions"]
 
@@ -1075,7 +1076,7 @@ def log(session, job_id, step, index):
             text = "(that log could not be read)"
     elif finished:
         # The working directory is gone; the archive is what is left.
-        from siliconcompiler.remote.server import artifacts
+        from siliconcompiler.remote.server.outputs import artifacts
 
         row = flask.current_app.config["SC_STORE"].one(
             "SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND \"index\" = ? "

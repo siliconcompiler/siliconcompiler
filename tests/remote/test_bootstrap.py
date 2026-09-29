@@ -420,8 +420,8 @@ def registered(bootstrap, monkeypatch, version, runtime, tools, staged=True):
     """A store holding both images live at `version`, as a finished bootstrap
     leaves it."""
     from pathlib import Path
-    from siliconcompiler.remote.server import images
-    from siliconcompiler.remote.server.store import Store
+    from siliconcompiler.remote.server.software import images
+    from siliconcompiler.remote.server.state.store import Store
 
     monkeypatch.setattr(bootstrap, "DATADIR", Path("sc_server").resolve())
 

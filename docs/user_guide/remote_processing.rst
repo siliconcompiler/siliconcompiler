@@ -512,11 +512,11 @@ and register at least one image:
 
 .. code-block:: bash
 
-  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
       add-software siliconcompiler -kind python
-  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
       add-version siliconcompiler 0.39.1 -preference 10
-  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
       add-image ghcr.io/org/sc-runtime:0.39.1 -contains siliconcompiler==0.39.1
 
 ``-kind`` is ``python`` or ``tool`` and it is not decoration: it decides
@@ -531,7 +531,7 @@ names in ``config.json``'s ``software_drivers`` -- never an arbitrary module:
 
 .. code-block:: bash
 
-  python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
       add-software openroad -driver siliconcompiler.tools.openroad
 
 ``add-image`` **resolves the tag to a digest once, there and then**, and the
@@ -596,7 +596,7 @@ own executable, version switch and parser -- the same ones a real run uses.
 
 .. code-block:: bash
 
-  python3 -m siliconcompiler.remote.server.probe \
+  python3 -m siliconcompiler.remote.server.software.probe \
       -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
 
 🔴 **The command runs in the image and the parsing happens outside it**, which
@@ -688,11 +688,11 @@ the cluster installed, and only the tools would match.
 
    .. code-block:: bash
 
-     python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+     python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
          add-image ghcr.io/org/sc-runtime:0.39.1 \
          -contains siliconcompiler==0.39.1 -stage
 
-     python3 -m siliconcompiler.remote.server.registry -datadir <dir> stage
+     python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> stage
 
 .. warning::
 
@@ -704,5 +704,5 @@ the cluster installed, and only the tools would match.
 
    .. code-block:: bash
 
-     python3 -m siliconcompiler.remote.server.registry -datadir <dir> \
+     python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
          resolve -versions siliconcompiler==0.39.1 -tools openroad

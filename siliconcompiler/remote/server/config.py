@@ -16,8 +16,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
-from siliconcompiler.remote.server import allowlist
 from siliconcompiler.remote.server.errors import FEATURES
+from siliconcompiler.remote.server.staging import allowlist
 
 __all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME", "TEST_MODES"]
 
@@ -466,7 +466,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
     The same rule as an unknown key: a kind or a resource kind spelled wrong is
     a restriction the operator believes they set.
     '''
-    from siliconcompiler.remote.server.artifacts import KINDS
+    from siliconcompiler.remote.server.outputs.artifacts import KINDS
 
     # 🔴 A limit is a count or a size, or null for none; nothing negative is
     # ever published (surface D177). `-1` is the store's spelling of unlimited

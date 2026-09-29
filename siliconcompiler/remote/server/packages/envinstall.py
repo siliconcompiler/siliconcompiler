@@ -87,7 +87,7 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
     '''
     from fasteners import InterProcessLock
 
-    from siliconcompiler.remote.server import pipbuild
+    from siliconcompiler.remote.server.packages import pipbuild
 
     requirements = environment.render(packages.requirements, header=HEADER)
     constraints = environment.render(packages.constraints, header=HEADER)

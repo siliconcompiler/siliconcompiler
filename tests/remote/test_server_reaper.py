@@ -29,7 +29,7 @@ def me(server_client, key, token):
 
 
 def sweep(server):
-    from siliconcompiler.remote.server import reaper
+    from siliconcompiler.remote.server.outputs import reaper
 
     return reaper.sweep(server.config["SC_STORE"], server.config["SC_STORAGE"],
                         server.config["SC_CONFIG"], server.config["SC_DATADIR"])
@@ -112,7 +112,7 @@ def test_the_reaper_runs_twice_and_takes_nothing_the_second_time(
 def _second_row_for(store, row, location=None):
     '''Another live row naming ``row``'s bytes -- the next upload's slot, so
     the one-per-node index allows it -- in ``location`` or the same one.'''
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     values = dict(row)
     values.update(id=str(uuid7()), upload_seq=2, retention_until=None,
@@ -228,7 +228,7 @@ def test_a_job_that_produced_nothing_keeps_its_tree(
 def test_a_superseded_bundle_is_reclaimed_and_a_live_one_is_not(server):
     '''A rebuild produces a new digest, which supersedes the old row and used
     to leave its six-and-a-half gigabyte bundle exactly where it was.'''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = server.config["SC_STORE"]
     root = server.config["SC_DATADIR"] / "images"

@@ -58,7 +58,7 @@ def advertised_reported(store, config=None):
 
 
 def _advertised(store, config, read):
-    from siliconcompiler.remote.server.images import PRIMARY, own_version
+    from siliconcompiler.remote.server.software.images import PRIMARY, own_version
 
     containers = bool(config["containers"]) if config is not None else True
 

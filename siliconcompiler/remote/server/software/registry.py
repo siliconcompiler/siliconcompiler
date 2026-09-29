@@ -1,5 +1,5 @@
 '''
-``python3 -m siliconcompiler.remote.server.registry``
+``python3 -m siliconcompiler.remote.server.software.registry``
 
 The operator's side of the image registry: which distributions this deployment
 curates, at which versions, and which containers hold them.
@@ -17,7 +17,7 @@ three and should keep them. This one runs against a datadir, not against a
 running server, and needs nothing from the ``server`` extra: a deployment can be
 curated before it is first started, and from a shell on the host rather than
 over the API. When the portal arrives it calls the same functions in
-:mod:`~siliconcompiler.remote.server.images`, so there is one implementation of
+:mod:`~siliconcompiler.remote.server.software.images`, so there is one implementation of
 each of these writes and not two.
 '''
 
@@ -32,9 +32,9 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.config import Config
-from siliconcompiler.remote.server.store import Store, StoreVersionError
+from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.state.store import Store, StoreVersionError
 
 __all__ = ["main"]
 
@@ -381,7 +381,7 @@ def _cmd_limits(store, args) -> int:
     policy, and this deployment has no admin mode -- so there is no endpoint
     and no form, and this is the whole of the write path.
     """
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
     from siliconcompiler.remote.server.config import Config
 
     config = Config.load(Path(args.datadir).resolve())
@@ -434,7 +434,7 @@ def _cmd_release(store, args) -> int:
     was lost. So a person does it here, and the next `client_credentials`
     call for the subject enrols whatever key it presents, as a new device.
     """
-    from siliconcompiler.remote.server.auth import TokenIssuer
+    from siliconcompiler.remote.server.identity.auth import TokenIssuer
 
     who = store.one("SELECT id, issuer, subject FROM users WHERE id = ? OR subject = ?",
                     (args.user, args.user))
@@ -451,7 +451,7 @@ def _cmd_release(store, args) -> int:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python3 -m siliconcompiler.remote.server.registry",
+        prog="python3 -m siliconcompiler.remote.server.software.registry",
         description="Curate what a SiliconCompiler server runs jobs in.")
     parser.add_argument(
         "-datadir", default="./sc_server", metavar="<dir>",

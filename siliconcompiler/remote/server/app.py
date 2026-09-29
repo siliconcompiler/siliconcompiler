@@ -15,16 +15,16 @@ from typing import List, Optional, Union
 
 from pathlib import Path
 
-from siliconcompiler.remote.server.auth import TokenIssuer
-from siliconcompiler.remote.server.config import Config
-from siliconcompiler.remote.server.dispatch import dispatcher_for
 from siliconcompiler.remote.server import errors
+from siliconcompiler.remote.server.config import Config
 from siliconcompiler.remote.server.errors import ERRORS, OAuthError, ProblemError, problem
+from siliconcompiler.remote.server.identity.auth import TokenIssuer
 from siliconcompiler.remote.server.jobs import JobService
-from siliconcompiler.remote.server.logstream import StreamLimiter
-from siliconcompiler.remote.server import reaper
-from siliconcompiler.remote.server.storage import Storage
-from siliconcompiler.remote.server.store import Store
+from siliconcompiler.remote.server.outputs import reaper
+from siliconcompiler.remote.server.outputs.logstream import StreamLimiter
+from siliconcompiler.remote.server.running.dispatch import dispatcher_for
+from siliconcompiler.remote.server.state.storage import Storage
+from siliconcompiler.remote.server.state.store import Store
 
 __all__ = ["create_app", "missing_server_dependency"]
 
@@ -237,7 +237,7 @@ def _report_read_containment() -> None:
     '''Say at startup what the manifest's read cannot contain itself with
     on this host (profile §5): no network namespace where unprivileged user
     namespaces are off, no resource limits where the platform has none.'''
-    from siliconcompiler.remote.server import sandbox
+    from siliconcompiler.remote.server.staging import sandbox
 
     logger = logging.getLogger("sc-server")
     achieved = sandbox.probe()
@@ -259,7 +259,7 @@ def _check_an_image_holds_this_version(store, config) -> None:
     is this server's own SiliconCompiler, a job resolves to no other, and an
     image holding another version is neither advertised nor used.
     '''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     if not config["containers"]:
         return
@@ -269,7 +269,7 @@ def _check_an_image_holds_this_version(store, config) -> None:
         f"no live image holds siliconcompiler {images.own_version()}, the version this "
         "server runs: this deployment runs jobs in containers, and a job's image must "
         "hold the SiliconCompiler that reads its manifest, so nothing could be "
-        "dispatched. Register one with python3 -m siliconcompiler.remote.server.registry")
+        "dispatched. Register one with python3 -m siliconcompiler.remote.server.software.registry")
 
 
 def _register_error_handlers(app) -> None:

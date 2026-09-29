@@ -139,7 +139,7 @@ user-facing docs on dataroots.
 `Task._remote_toolname` and `Task._remote_inherits_env` (#5448) are how a tool
 driver says which image it needs, or that it follows its input node. Plugin
 drivers outside this repository need them, and the server reads them
-(`runspec.node_tools`, `runspec.inheriting_nodes`,
+(`runflow.node_tools`, `runflow.inheriting_nodes`,
 `setup/server/bootstrap.py`). The leading underscore marks them private, so a
 plugin author has to override a private name to get placement right. They also
 do not appear in the reference manual.

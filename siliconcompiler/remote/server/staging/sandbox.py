@@ -109,7 +109,7 @@ def run_read_in_bundle(dispatcher, asked: Dict[str, Any], workdir, bundle: str,
     bundle made by `images.read_bundle` (profile D63: in the job's container
     where containers are configured). As :func:`run_read` answers.'''
     workdir = _fresh(workdir)
-    command = [*_python(), "-m", "siliconcompiler.remote.server.manifestread",
+    command = [*_python(), "-m", "siliconcompiler.remote.server.staging.manifestread",
                json.dumps(asked)]
     limits = [f"SC_READ_CPU_SECONDS={int(cpu_seconds)}"] if cpu_seconds else []
     limits += [f"SC_READ_MEMORY_BYTES={int(memory_bytes)}"] if memory_bytes else []
@@ -152,8 +152,8 @@ def run_read_in_image(asked: Dict[str, Any], workdir, image: str, timeout: float
     try:
         client = docker.from_env()
         container = client.containers.run(
-            image, ["python3", "-s", "-B", "-m", "siliconcompiler.remote.server.manifestread",
-                    json.dumps(asked)],
+            image, ["python3", "-s", "-B", "-m",
+                    "siliconcompiler.remote.server.staging.manifestread", json.dumps(asked)],
             detach=True, network_mode="none", environment=environment,
             working_dir="/tmp", tmpfs={"/tmp": "size=256m"}, read_only=True,
             volumes={tree: {"bind": tree, "mode": "ro"}},
@@ -198,7 +198,7 @@ def _fresh(workdir) -> Path:
 
 def _summary_in(stdout_path: Path, stderr_path: Path) -> Any:
     '''The summary a finished read wrote, bounded; ReadFailed without one.'''
-    from siliconcompiler.remote.server.manifestread import MAX_SUMMARY_BYTES
+    from siliconcompiler.remote.server.staging.manifestread import MAX_SUMMARY_BYTES
 
     try:
         with open(stdout_path, "rb") as f:
@@ -236,7 +236,7 @@ def _probe() -> Dict[str, bool]:
             result = subprocess.run(
                 [*_python(), "-c",
                  "import json, sys; "
-                 "from siliconcompiler.remote.server.manifestread import contain; "
+                 "from siliconcompiler.remote.server.staging.manifestread import contain; "
                  "sys.stdout.write(json.dumps(contain()))"],
                 env=_environment(Path(home)), cwd=home, stdin=subprocess.DEVNULL,
                 capture_output=True, timeout=60, close_fds=True)
@@ -255,7 +255,7 @@ def _python():
 
 
 def _command(request: Path):
-    return [*_python(), "-m", "siliconcompiler.remote.server.manifestread", f"@{request}"]
+    return [*_python(), "-m", "siliconcompiler.remote.server.staging.manifestread", f"@{request}"]
 
 
 def _environment(home: Path, cpu_seconds: Optional[int] = None,

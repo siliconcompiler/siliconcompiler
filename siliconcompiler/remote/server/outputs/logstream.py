@@ -30,7 +30,7 @@ import time
 from pathlib import Path
 from typing import Dict, Iterator, Optional
 
-from siliconcompiler.remote.server import confine
+from siliconcompiler.remote.server.outputs import confine
 
 try:
     import fcntl

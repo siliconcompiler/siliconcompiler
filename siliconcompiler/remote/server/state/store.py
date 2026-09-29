@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from siliconcompiler.remote.server.ids import uuid7
+from siliconcompiler.remote.server.state.ids import uuid7
 
 __all__ = ["Store", "STORE_VERSION", "now"]
 
@@ -396,7 +396,7 @@ class Store:
             "         CASE sv.version_source WHEN 'reported' THEN 0 ELSE 1 END, "
             "         sv.preference DESC, sv.version DESC")
 
-        from siliconcompiler.remote.server.images import BUCKETS
+        from siliconcompiler.remote.server.software.images import BUCKETS
 
         software: dict = {bucket: {} for bucket in BUCKETS.values()}
         for row in rows:

@@ -15,7 +15,7 @@ from test_server_jobs import (                                           # noqa:
     registry, stage, submit, wants)
 from test_server_sources_flow import read, wait_for                      # noqa: E402
 
-from siliconcompiler.remote.server import manifestread, sandbox          # noqa: E402
+from siliconcompiler.remote.server.staging import manifestread, sandbox          # noqa: E402
 
 
 # Contract §1, *No server process holding credentials parses a manifest*: the
@@ -337,7 +337,7 @@ def test_the_summary_is_kept_outside_what_an_upload_can_write(
     user = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
                                          (job["id"],))["user_id"]
     root = server.config["SC_JOBS"].job_root(user, job["id"])
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
     kept = json.loads((root / runspec.SUMMARY_FILENAME).read_text())
     assert manifestread.validate(kept)["flow"]
     # Above the tree the upload expanded into.
@@ -374,7 +374,7 @@ def test_with_containers_the_read_runs_in_a_bundle_of_the_jobs_own_image(  # noq
     '''On a cluster the read is a batch job in the job's framework image, with
     the extracted tree mounted read-only, nothing else bound, and a network
     namespace of its own (profile D63).'''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     fake = ReadingDispatcher()
     container_server.config["SC_JOBS"]._dispatcher = fake
@@ -392,7 +392,7 @@ def test_with_containers_the_read_runs_in_a_bundle_of_the_jobs_own_image(  # noq
     assert binds[0]["source"].endswith(os.path.join("gcd", "job0"))
     assert {"type": "network"} in spec["linux"]["namespaces"]
     assert spec["root"]["readonly"] is True
-    assert "siliconcompiler.remote.server.manifestread" in fake.reads[0]["command"]
+    assert "siliconcompiler.remote.server.staging.manifestread" in fake.reads[0]["command"]
 
 
 @pytest.mark.real_read

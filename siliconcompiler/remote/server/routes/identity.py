@@ -7,7 +7,7 @@ will do, and the server decides again at create and again at submit.
 
 import flask
 
-from siliconcompiler.remote.server import accounts
+from siliconcompiler.remote.server.identity import accounts
 from siliconcompiler.remote.server.routes.auth import require
 
 __all__ = ["blueprint"]

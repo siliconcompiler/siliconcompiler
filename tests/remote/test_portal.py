@@ -253,7 +253,7 @@ def test_a_form_from_somewhere_else_is_refused(signed_in, server, server_client,
 def finished(server, server_client, key, token, job_archive, dispatcher, me):
     '''A job that ran to completion, with its results indexed.'''
     from test_server_jobs import stage, submit
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -283,7 +283,7 @@ def test_a_nodes_metrics_come_from_the_table_the_jobs_end_filled(
     import json
 
     from test_server_jobs import stage, submit
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -368,7 +368,7 @@ def test_a_nodes_inputs_are_its_own_row(server, signed_in, finished):
         store_user(server, finished), finished["id"]) / "gcd" / "job0" / "steptwo" / "0"
     (root / "inputs").mkdir(parents=True, exist_ok=True)
     (root / "inputs" / "gcd.vg").write_text("module gcd; endmodule\n")
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
 
     job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
     artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
@@ -438,7 +438,7 @@ def test_software_can_be_retired_from_the_screen(signed_in, server):
     *not any more*, and the tool stops raising a requirement at all. Both are
     reachable, because an operator who can only add cannot correct a
     mistake.'''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = server.config["SC_STORE"]
     actor = store.upsert_user("operator", "someone@host")["id"]
@@ -464,7 +464,7 @@ def test_a_version_nothing_reported_is_marked_on_the_screen(signed_in, server):
     recorded with its image's publish date, and 20260924 beats 2.0.1 under
     every comparison there is. The operator reading this screen is the person
     who has to know it can never satisfy a version requirement.'''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = server.config["SC_STORE"]
     actor = store.upsert_user("operator", "someone@host")["id"]
@@ -495,7 +495,7 @@ def test_the_operator_can_record_a_tool_that_reports_nothing(signed_in, server):
 def test_a_retired_distribution_offers_no_per_version_button(signed_in, server):
     '''Once the whole name has stopped raising a requirement, retiring one of
     its versions would change nothing -- and offering it says otherwise.'''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = server.config["SC_STORE"]
     actor = store.upsert_user("operator", "someone@host")["id"]
@@ -521,8 +521,8 @@ def died(server, server_client, key, token, job_archive, dispatcher, me):
     '''A run that failed before it reached a node -- the shape that prompted
     the question: state `failed`, every node `cancelled`, nothing else said.'''
     from test_server_jobs import stage, submit
-    from siliconcompiler.remote.server import runspec
-    from siliconcompiler.remote.server.dispatch import RUN_LOG
+    from siliconcompiler.remote.server.running import runspec
+    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -579,7 +579,7 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
     way. On a job somebody DID cancel the word means what it looks like, and
     the note would contradict the page.'''
     from test_server_jobs import stage, submit
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -664,7 +664,7 @@ def test_a_link_in_an_archive_is_never_followed(signed_in, finished, server, me)
 
     store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'node'",
                   (finished["id"],))
-    from siliconcompiler.remote.server import artifacts as indexer
+    from siliconcompiler.remote.server.outputs import artifacts as indexer
     job = store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
     indexer.collect_node(store, server.config["SC_STORAGE"],
                          server.config["SC_CONFIG"], job,
@@ -695,7 +695,7 @@ def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
     # Re-index so the new file is in the node archive.
     store.execute("DELETE FROM artifacts WHERE job_id = ? AND kind = 'node'",
                   (finished["id"],))
-    from siliconcompiler.remote.server import artifacts as indexer
+    from siliconcompiler.remote.server.outputs import artifacts as indexer
     job = store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
     indexer.collect_node(store, server.config["SC_STORAGE"],
                          server.config["SC_CONFIG"], job,
@@ -822,7 +822,7 @@ def test_the_account_page_shows_the_ceiling_and_the_default(signed_in, server,
                                                             token):
     '''🔴 Two columns, because one cannot say whether anybody set it. "1.0 KiB"
     alone answers neither *is this mine* nor *what would it be otherwise*.'''
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
 
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     accounts.set_limit(server.config["SC_STORE"], me, "max_download_bytes",

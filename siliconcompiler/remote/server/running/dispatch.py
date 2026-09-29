@@ -117,7 +117,7 @@ class LocalDispatcher(Dispatcher):
         log = open(jobroot / RUN_LOG, "ab")
         try:
             process = subprocess.Popen(
-                [sys.executable, "-m", "siliconcompiler.remote.server.runner",
+                [sys.executable, "-m", "siliconcompiler.remote.server.running.runner",
                  str(manifest)],
                 cwd=str(jobroot), stdin=subprocess.DEVNULL,
                 stdout=log, stderr=subprocess.STDOUT,
@@ -132,12 +132,13 @@ class LocalDispatcher(Dispatcher):
 
     def submit_build(self, name: str, workspace: Path, spec: Path,
                      queue: Optional[str] = None) -> str:
-        from siliconcompiler.remote.server.envbuild import LOG
+        from siliconcompiler.remote.server.packages.envbuild import LOG
 
         log = open(workspace / LOG, "ab")
         try:
             process = subprocess.Popen(
-                [sys.executable, "-m", "siliconcompiler.remote.server.envbuild", str(spec)],
+                [sys.executable, "-m", "siliconcompiler.remote.server.packages.envbuild",
+                 str(spec)],
                 cwd=str(workspace), stdin=subprocess.DEVNULL,
                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
         finally:
@@ -164,8 +165,8 @@ class LocalDispatcher(Dispatcher):
             with open(f"/proc/{pid}/cmdline", "rb") as f:
                 command = f.read()
             return any(module in command for module in (
-                b"siliconcompiler.remote.server.runner",
-                b"siliconcompiler.remote.server.envbuild"))
+                b"siliconcompiler.remote.server.running.runner",
+                b"siliconcompiler.remote.server.packages.envbuild"))
         except OSError:
             return False
 
@@ -203,7 +204,7 @@ class SlurmDispatcher(Dispatcher):
             "# job of its own, so this process holds one core and uses almost\n"
             "# none of it.\n"
             f"exec {shlex.quote(sys.executable)} "
-            "-m siliconcompiler.remote.server.runner "
+            "-m siliconcompiler.remote.server.running.runner "
             f"{shlex.quote(str(manifest))}\n")
         script.chmod(0o755)
 
@@ -260,7 +261,7 @@ class SlurmDispatcher(Dispatcher):
         ``--container`` here, and the host needs the Slurm client, the
         container runtime and skopeo and umoci, which a compute node has.
         '''
-        from siliconcompiler.remote.server.envbuild import LOG
+        from siliconcompiler.remote.server.packages.envbuild import LOG
 
         script = workspace / BUILD_SCRIPT
         script.write_text(
@@ -268,7 +269,7 @@ class SlurmDispatcher(Dispatcher):
             "# Written by sc-server: a job's Python packages, built into an\n"
             "# image. It writes result.json beside this file.\n"
             f"exec {shlex.quote(sys.executable)} "
-            "-m siliconcompiler.remote.server.envbuild "
+            "-m siliconcompiler.remote.server.packages.envbuild "
             f"{shlex.quote(str(spec))}\n")
         script.chmod(0o755)
 

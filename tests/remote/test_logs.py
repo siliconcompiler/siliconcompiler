@@ -18,7 +18,7 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 @pytest.fixture
 def running(server, server_client, key, token):
     '''A job with one running node and a log being written under it.'''
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store = server.config["SC_STORE"]
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
@@ -381,7 +381,7 @@ def live(tmp_path):
 
     from siliconcompiler.remote import Client, Credentials
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     app = create_app(tmp_path / "datadir", cluster="local")
     server = make_server("127.0.0.1", 0, app, threaded=True)
@@ -576,7 +576,7 @@ def test_a_skipped_node_is_reported_as_skipped(nop_project):
     what happens to metal fill on a PDK that disables it, and to post-route
     timing repair that is switched off.
     '''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     nop_project.set('record', 'status', 'skipped', step="steptwo", index="0")
 
@@ -595,7 +595,7 @@ def test_a_node_the_run_never_reached_is_still_cancelled(nop_project):
     '''The case `cancelled` is for: no recorded status at all, because the run
     stopped before it got there. Decided by the sweep at the end, never by
     settling -- which also runs before the flow starts.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     runner._progress_path = None
     runner._progress = {"nodes": {"steptwo/0": {"state": "pending"}}}
@@ -609,7 +609,7 @@ def test_a_node_the_run_never_reached_is_still_cancelled(nop_project):
 
 def test_a_failed_node_keeps_its_own_verdict(nop_project):
     '''Only nodes no callback fired for are settled here.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     runner._progress_path = None
     runner._progress = {"nodes": {"stepone/0": {"state": "failed"}}}
@@ -633,7 +633,7 @@ def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
     not something the runner does after run() returns. Read afterwards the
     record is empty, and every node no callback fired for looks like one the
     run never reached.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
     from siliconcompiler.scheduler.taskscheduler import TaskScheduler
     from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -665,7 +665,7 @@ def test_quiet_is_left_as_the_caller_set_it(nop_project, tmp_path):
     it, which is why a quiet run's node logs were always complete. Setting it
     here rewrote a caller's own setting to achieve something it does not do,
     and handed them back a manifest that did not describe their run.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     nop_project.option.set_quiet(False)
     runspec.normalize(nop_project, "job-1", tmp_path / "builds",
@@ -688,7 +688,7 @@ def test_the_runner_silences_the_console_instead(nop_project):
     the server's run log still held all 8797 lines the nodes produced.'''
     import logging
 
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     console = nop_project._logger_console
     runner._silence_console(nop_project)
@@ -701,7 +701,7 @@ def test_the_runner_silences_the_console_instead(nop_project):
 
 
 def test_detaching_twice_is_not_an_error(nop_project):
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     runner._silence_console(nop_project)
     runner._silence_console(nop_project)
@@ -712,7 +712,7 @@ def test_a_node_the_run_writes_off_is_reported_before_the_run_ends(nop_project):
     before the first one starts. Settling only at the end left a node the run
     had already written off reading `pending` for the whole run -- and the
     client showed it as pending right up until the job finished.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     published = []
     runner._progress_path = None
@@ -734,7 +734,7 @@ def test_a_node_the_run_writes_off_is_reported_before_the_run_ends(nop_project):
 
 def test_settling_with_nothing_to_change_writes_nothing(nop_project):
     '''The common case, on every node of every run.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     published = []
     runner._progress_path = None

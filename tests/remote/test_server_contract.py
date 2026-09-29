@@ -76,7 +76,7 @@ def test_a_staging_step_that_breaks_is_staging_failed(server, server_client, key
 def test_an_image_that_will_not_unpack_is_staging_failed(  # noqa: F811
         container_server, container_client, key, container_token, job_archive,  # noqa: F811
         monkeypatch):
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
     from test_server_jobs import wants
 
     fake = FakeDispatcher()
@@ -107,7 +107,7 @@ def test_a_stream_ends_when_its_capability_does(server, server_client, key, toke
     than the access token's: the client asks `/logs` again.'''
     from test_logs import frames
 
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store = server.config["SC_STORE"]
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
@@ -143,7 +143,7 @@ def test_the_log_redirect_is_built_on_the_configured_origin(tmp_path):
     origin and never the `Host` a proxy wrote.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     datadir = tmp_path / "proxied"
     datadir.mkdir()

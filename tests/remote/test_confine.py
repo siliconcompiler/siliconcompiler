@@ -5,7 +5,7 @@ import tarfile
 
 import pytest
 
-from siliconcompiler.remote.server import confine
+from siliconcompiler.remote.server.outputs import confine
 
 
 # A job's build directory is written by the job, and a node's own code can leave

@@ -586,7 +586,7 @@ class Results:
         node's journal is replayed only through the record-and-metric filter
         the job manifest goes through, and only for the nodes the job ran.
         '''
-        from siliconcompiler.remote.server.runspec import runtime_nodes
+        from siliconcompiler.remote.runflow import runtime_nodes
 
         try:
             ran = set(runtime_nodes(self.project))
@@ -632,7 +632,7 @@ class Results:
         Loaded with the classes already here, importing nothing it names.
         '''
         from siliconcompiler import Project
-        from siliconcompiler.remote.server.runspec import runtime_nodes
+        from siliconcompiler.remote.runflow import runtime_nodes
         from siliconcompiler.schema.baseschema import known_classes_only
 
         if ran is None:
@@ -667,7 +667,7 @@ class Results:
         '''Every node manifest on disk, whichever object brought it.'''
         found = []
 
-        from siliconcompiler.remote.server.runspec import runtime_nodes
+        from siliconcompiler.remote.runflow import runtime_nodes
 
         try:
             nodes = runtime_nodes(self.project)

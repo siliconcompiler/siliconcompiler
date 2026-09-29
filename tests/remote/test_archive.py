@@ -6,7 +6,7 @@ import pytest
 
 from pathlib import Path
 
-from siliconcompiler.remote.server.archive import (
+from siliconcompiler.remote.server.staging.archive import (
     ArchiveRejected, MAX_EXPANSION_RATIO, VIOLATIONS, extract)
 
 

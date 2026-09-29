@@ -496,16 +496,16 @@ misconfiguration at the cheapest possible moment:
 ```sh
 echo '{"containers": true}' > <datadir>/config.json
 
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> \
     add-software siliconcompiler -kind python
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> \
     add-version siliconcompiler 0.38.9 -preference 10
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> \
     add-image ghcr.io/siliconcompiler/sc_runner:v0.38.9 \
     -contains siliconcompiler==0.38.9
 
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> list
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> list
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> \
     resolve -versions siliconcompiler==0.38.9 -tools openroad
 ```
 
@@ -522,7 +522,7 @@ out of an image. The probe imports it, so it is a module under
 `siliconcompiler.tools` or one named in `config.json`'s `software_drivers`:
 
 ```sh
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> \
     add-software openroad -kind tool -driver siliconcompiler.tools.openroad
 ```
 
@@ -531,7 +531,7 @@ stored, because `-contains` has to name the same string. For a tool that
 reports no version, register the date its image was published and say so:
 
 ```sh
-python3 -m siliconcompiler.remote.server.registry -datadir <datadir> \
+python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir> \
     add-version openroad 20260924 -unversioned
 ```
 
@@ -543,7 +543,7 @@ real release for ever.
 To get a real version instead, ask the image:
 
 ```sh
-python3 -m siliconcompiler.remote.server.probe \
+python3 -m siliconcompiler.remote.server.software.probe \
     -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
 ```
 
@@ -773,7 +773,7 @@ who a caller is.
 
 Never in the server's own process: not at create, not at submit, and not while
 the job stages. Staging extracts the upload, then reads its manifest in a
-process of its own, `python -m siliconcompiler.remote.server.manifestread`,
+process of its own, `python -m siliconcompiler.remote.server.staging.manifestread`,
 started from the server's own SiliconCompiler, and acts only on the data
 summary that process returns. The summary is validated against a fixed shape
 and bounds, every node name goes through SiliconCompiler's node-name check,
@@ -824,7 +824,7 @@ names its actor in its own row.
 
 ### The operator CLI
 
-`python3 -m siliconcompiler.remote.server.registry -datadir <datadir>` is
+`python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir>` is
 the operator's, and nothing it does has an API endpoint:
 
 | Command | |

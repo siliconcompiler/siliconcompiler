@@ -2,7 +2,7 @@
 The one place a job's manifest is read: a process of its own, while the job
 stages, whose only output is a data summary.
 
-``python3 -m siliconcompiler.remote.server.manifestread <request>``
+``python3 -m siliconcompiler.remote.server.staging.manifestread <request>``
 
 🔴 **Contract §1, *No server process holding credentials parses a manifest*.**
 SiliconCompiler reads a manifest by resolving the classes its ``__meta__`` and
@@ -211,7 +211,8 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
     from siliconcompiler.remote import owners
-    from siliconcompiler.remote.server import runspec, schemaclasses
+    from siliconcompiler.remote import runflow
+    from siliconcompiler.remote.server.staging import schemaclasses
 
     tree = asked["tree"]
     design, jobname = asked["design"], asked["jobname"]
@@ -258,7 +259,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                           f"and the job is {design}/{jobname}")
 
         try:
-            runtime = runspec.runtime_flow(project)
+            runtime = runflow.runtime_flow(project)
             nodes = list(runtime.get_nodes())
         except Exception as e:                                   # noqa: BLE001
             return refuse("archive-rejected", f"the manifest names no runnable flow: {e}",
@@ -269,15 +270,15 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
 
         flow = project.get_flow()
         summary["flow"] = flow.name
-        tools = runspec.node_tools(flow, nodes)
+        tools = runflow.node_tools(flow, nodes)
         edges = [[in_step, in_index, step, index]
                  for step, index in nodes
                  for in_step, in_index in runtime.get_node_inputs(step, index)
                  if (in_step, in_index) in nodes]
-        inherits = runspec.inheriting_nodes(flow, nodes,
+        inherits = runflow.inheriting_nodes(flow, nodes,
                                             [tuple(edge) for edge in edges])
         known = schemaclasses.known()
-        python = runspec.python_nodes(flow, nodes)
+        python = runflow.python_nodes(flow, nodes)
         summary["nodes"] = [{
             "step": step, "index": index,
             "task": flow.get_graph_node(step, index).get_taskmodule(),
@@ -321,7 +322,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                           f"the manifest's flow names a node that is not one: {e}",
                           reason="manifest_invalid")
 
-        summary["upstream"] = [list(node) for node in runspec.upstream_nodes(
+        summary["upstream"] = [list(node) for node in runflow.upstream_nodes(
             project, {tuple(node) for node in asked.get("skipped") or []})]
         summary["pdk"] = _pdk(project)
         summary["libraries"] = _libraries(project)
@@ -464,7 +465,7 @@ def main(argv=None) -> int:
                        int(os.environ.get("SC_READ_MEMORY_BYTES") or MEMORY_BYTES))
 
     if len(argv) != 1:
-        print("usage: python3 -m siliconcompiler.remote.server.manifestread <request>",
+        print("usage: python3 -m siliconcompiler.remote.server.staging.manifestread <request>",
               file=sys.stderr)
         return 2
     text = argv[0]

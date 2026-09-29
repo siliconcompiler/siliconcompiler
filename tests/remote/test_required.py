@@ -283,7 +283,7 @@ def test_a_file_the_flow_does_not_read_may_be_left_out(
 def test_a_source_nothing_in_the_flow_reads_is_never_fetched(
         server, server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
     from test_server_sources_flow import LAMBDA, fake_fetch, wait_for
-    from siliconcompiler.remote.server.sources import Permanent
+    from siliconcompiler.remote.server.staging.sources import Permanent
 
     fake_fetch(server, fail=Permanent("fetched a source nothing reads"))
     pdk = PDK("lambda")
@@ -323,7 +323,7 @@ def test_a_follow_up_carries_only_the_required_values_of_what_was_asked(
     '''A dataroot in `upload_sources` selects the required values under it --
     never the whole repository.'''
     from test_server_sources_flow import LAMBDA, fake_fetch, read, send, wait_for
-    from siliconcompiler.remote.server.sources import Permanent
+    from siliconcompiler.remote.server.staging.sources import Permanent
 
     fake_fetch(server, fail=Permanent("the source answered 404"))
     pdk = PDK("lambda")

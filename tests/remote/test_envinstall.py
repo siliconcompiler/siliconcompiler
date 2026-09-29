@@ -7,7 +7,7 @@ import sys
 import pytest
 
 from siliconcompiler.remote import environment
-from siliconcompiler.remote.server import envinstall, pipbuild
+from siliconcompiler.remote.server.packages import envinstall, pipbuild
 
 
 # A job's Python packages installed on the host while the job stages, into the

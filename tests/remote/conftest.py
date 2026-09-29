@@ -287,7 +287,7 @@ def runs_test_version(monkeypatch):
     test registry holds its images at -- for every fixture that builds one. A
     test of the one-version rule sets its own.'''
     try:
-        from siliconcompiler.remote.server import images
+        from siliconcompiler.remote.server.software import images
     except ImportError:
         return
     monkeypatch.setattr(images, "own_version", lambda: TEST_SC_VERSION)
@@ -302,7 +302,7 @@ def manifest_read_inline(request, monkeypatch):
     if request.node.get_closest_marker("real_read"):
         return
     try:
-        from siliconcompiler.remote.server import manifestread
+        from siliconcompiler.remote.server.staging import manifestread
         from siliconcompiler.remote.server.jobs import JobService
     except ImportError:
         return
@@ -320,7 +320,7 @@ def run_manifest(manifest):
     '''The project a dispatched run executes: the uploaded manifest, with the
     overrides the server wrote beside it applied, as the runner applies them.'''
     from siliconcompiler import Project
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     project = Project.from_manifest(filepath=str(manifest))
     run = runspec.read_run(runspec.state_dir(manifest) / runspec.RUN_FILENAME)

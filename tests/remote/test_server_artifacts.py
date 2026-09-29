@@ -40,7 +40,7 @@ def ran(server, server_client, key, token, job_archive, prepare=None,
     root = jobs.job_root(
         call(server_client, key, "GET", "/v1/me", token).get_json()["id"], job["id"])
 
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     node_root = root / "gcd" / "job0"
     for step in ("stepone", "steptwo"):
@@ -486,7 +486,7 @@ def test_a_node_archive_held_back_only_by_a_pending_member_is_not_ready(
 
 
 def test_a_withheld_member_is_worse_than_a_pending_one():
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
 
     assert artifacts.worst([None, "not-ready", "artifact-not-approved"]) == \
         "artifact-not-approved"
@@ -572,7 +572,7 @@ def test_the_ceiling_that_binds_is_this_accounts_and_not_the_deployments(
     '''🔴 `max_download_bytes` is the one limit a `user_limits` row may
     override, so reading the deployment's number here would enforce a ceiling
     the account was deliberately lifted above.'''
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
 
     item = listing(server_client, key, token, finished["id"])[0]
     _ceiling(server, 1)
@@ -711,7 +711,7 @@ def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypa
 
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     datadir = tmp_path / "quiet"
     datadir.mkdir()
@@ -776,7 +776,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
     '''
     import sqlite3
 
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store = server.config["SC_STORE"]
     existing = store.one(
@@ -801,7 +801,7 @@ def test_the_job_level_rows_are_protected_too(server, finished):
     exactly the rows with no node unprotected -- hence the coalesce.'''
     import sqlite3
 
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store = server.config["SC_STORE"]
     existing = store.one(
@@ -826,7 +826,7 @@ def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
     anyway -- and a CHECK ties the ordinal to job-level `input` exactly.'''
     import sqlite3
 
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store = server.config["SC_STORE"]
     first = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
@@ -871,7 +871,7 @@ def _node_with_inputs(server, finished, step, links):
     (node / f"sc_{step}_0.log").write_text("log\n")
     for name, target in links.items():
         (node / "inputs" / name).symlink_to(target)
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
     artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
                            server.config["SC_CONFIG"], job, root, step, "0")
     return server.config["SC_STORE"].all(
@@ -913,7 +913,7 @@ def _pass_through(server, finished, hard: bool):
     `link_symlink_copy` makes it.'''
     import os
 
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
 
     job, root, upstream = _upstream_file(server, finished)
     node = root / "gcd" / "job0" / "passed" / "0"
@@ -950,7 +950,7 @@ def test_a_hard_linked_pair_in_one_node_is_a_tar_hard_link(server, finished):
     their first appearance.'''
     import os
 
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
 
     job, root, _ = _upstream_file(server, finished)
     node = root / "gcd" / "job0" / "twice" / "0"
@@ -975,7 +975,7 @@ def test_a_file_with_a_name_outside_the_job_is_dropped(server, finished, tmp_pat
     a link leaving the job: dropped, never stored.'''
     import os
 
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
 
     job, root, _ = _upstream_file(server, finished)
     outside = tmp_path / "pdk.lib"
@@ -1027,7 +1027,7 @@ def test_a_log_that_is_a_link_out_is_not_indexed(server, finished, tmp_path):
     (node / "sc_linklog_0.log").symlink_to(secret)
     (node / "outputs" / "gcd.pkg.json").symlink_to(secret)
 
-    from siliconcompiler.remote.server import artifacts
+    from siliconcompiler.remote.server.outputs import artifacts
     artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
                            server.config["SC_CONFIG"], job, root, "linklog", "0")
 
@@ -1165,7 +1165,7 @@ def test_the_server_run_log_stands_in_when_the_flow_wrote_none(
     '''🔴 The case somebody is most likely to be looking at: the run died
     before SiliconCompiler installed its file handler, so there is no
     `job.log`, and the server's own run log is the only account there is.'''
-    from siliconcompiler.remote.server.dispatch import RUN_LOG
+    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     def prepare(job_root, build_dir):
         (job_root / RUN_LOG).write_text("Traceback (most recent call last):\n")
@@ -1185,7 +1185,7 @@ def test_only_one_job_level_log_is_ever_indexed(
     name on the wire, so two job-level logs would reach a client as two objects
     it cannot tell apart -- the duplicate-looking listing this server has
     already produced once.'''
-    from siliconcompiler.remote.server.dispatch import RUN_LOG
+    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     def prepare(job_root, build_dir):
         (build_dir / "job.log").write_text("the flow ran\n")
@@ -1202,7 +1202,7 @@ def test_the_job_level_log_carries_both_records_in_one_file(
     whose flow started (database D143).'''
     import gzip
 
-    from siliconcompiler.remote.server.dispatch import RUN_LOG
+    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     def prepare(job_root, build_dir):
         (build_dir / "job.log").write_text("the flow ran\n")
@@ -1246,7 +1246,7 @@ def test_the_two_ways_bytes_go_are_told_apart_by_an_enum(
 
     after = server.config["SC_STORE"].all(
         "SELECT * FROM artifacts WHERE job_id = ?", (finished["id"],))
-    from siliconcompiler.remote.server import artifacts as art
+    from siliconcompiler.remote.server.outputs import artifacts as art
 
     assert after and all(art.cause(row) == "removed" for row in after)
 

@@ -31,15 +31,17 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler.flowgraph import Flowgraph
 
-from siliconcompiler.remote import environment, owners, units
-from siliconcompiler.remote.server import (
-    archive, artifacts, confine, images, manifestread, runspec, sandbox)
-from siliconcompiler.remote.server.dispatch import DispatchError
+from siliconcompiler.remote import environment, owners, runflow, units
 from siliconcompiler.remote.server.errors import (
     bound, ERRORS, ProblemError, TYPE_BASE)
-from siliconcompiler.remote.server.ids import uuid7
-from siliconcompiler.remote.server.store import now
-from siliconcompiler.remote.server.storage import grant_seconds
+from siliconcompiler.remote.server.outputs import artifacts, confine
+from siliconcompiler.remote.server.running import runspec
+from siliconcompiler.remote.server.running.dispatch import DispatchError
+from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.staging import archive, manifestread, sandbox
+from siliconcompiler.remote.server.state.ids import uuid7
+from siliconcompiler.remote.server.state.storage import grant_seconds
+from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["JobService", "TERMINAL_STATES", "REUSABLE_STATES"]
 
@@ -121,8 +123,8 @@ class JobService:
         # allowlist, and what answers "can you supply this" by identity.
         import threading
 
-        from siliconcompiler.remote.server import allowlist
-        from siliconcompiler.remote.server.sources import SourceStore
+        from siliconcompiler.remote.server.staging import allowlist
+        from siliconcompiler.remote.server.staging.sources import SourceStore
 
         self._sources = SourceStore(
             self._datadir,
@@ -436,7 +438,7 @@ class JobService:
                      for step, index, from_job in self._continuations_of(job["id"])}
         copies = []
         for step, index in summary["upstream"]:
-            if runspec.outputs_present(unpacked / step / index, job["design"]):
+            if runflow.outputs_present(unpacked / step / index, job["design"]):
                 continue
             if (step, index) not in continued:
                 raise self._refuse(session, job, ProblemError(
@@ -512,7 +514,7 @@ class JobService:
                 continue
             for node in sorted(top.iterdir()):
                 if (node / "outputs").is_dir() and not (node / "outputs").is_symlink() \
-                        and runspec.outputs_present(node, job["design"]):
+                        and runflow.outputs_present(node, job["design"]):
                     yield (top.name, node.name)
 
     def _resolve_links(self, job, unpacked: Path, node, from_job: str, in_place) -> None:
@@ -1473,7 +1475,7 @@ class JobService:
         import time
         from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
 
-        from siliconcompiler.remote.server.sources import Permanent, Transient
+        from siliconcompiler.remote.server.staging.sources import Permanent, Transient
 
         try:
             job = self._row(job_id)
@@ -1615,7 +1617,7 @@ class JobService:
     def _record_in_job_log(self, job, lines) -> None:
         '''Lines of the server's own record of a job, in the run log the
         job-level `logs` carries, each scrubbed like `detail`.'''
-        from siliconcompiler.remote.server.dispatch import RUN_LOG
+        from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
         root = self.job_root(job["user_id"], job["id"])
         try:
@@ -1630,7 +1632,7 @@ class JobService:
         '''What went wrong while staging, in the job-level `logs`, scrubbed
         like `detail`: the only account a person can reach of a job that never
         ran.'''
-        from siliconcompiler.remote.server.dispatch import RUN_LOG
+        from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
         root = self.job_root(job["user_id"], job["id"])
         try:
@@ -1646,7 +1648,7 @@ class JobService:
     def _fetch(self, source: str, ref: str, timeout: int) -> str:
         '''One source into this server's copy -- or, where `fetch_fails` is
         set, a permanent failure, so the job goes back to its client.'''
-        from siliconcompiler.remote.server.sources import Permanent
+        from siliconcompiler.remote.server.staging.sources import Permanent
 
         if self._config["fetch_fails"]:
             raise Permanent("this server fetches nothing (fetch_fails is set, as in "
@@ -1758,7 +1760,7 @@ class JobService:
         and the target Python and platform -- before any node runs. An index
         that does not answer is this server's failure: `staging-failed`.
         '''
-        from siliconcompiler.remote.server import envinstall
+        from siliconcompiler.remote.server.packages import envinstall
 
         if self._config["containers"] or "python.env" not in (self._config["features"] or ()):
             return []
@@ -1809,7 +1811,7 @@ class JobService:
         `staging`: `software-unavailable`, `reason: "uninstallable"`, naming
         each package and the target Python and platform.
         '''
-        from siliconcompiler.remote.server import envinstall
+        from siliconcompiler.remote.server.packages import envinstall
 
         if not (self._config["containers"] and self._config["env_builder"]):
             return plan, []
@@ -1892,7 +1894,7 @@ class JobService:
         index has.'''
         import uuid
 
-        from siliconcompiler.remote.server import envbuild
+        from siliconcompiler.remote.server.packages import envbuild
 
         workspace = self._datadir / "envbuilds" / f"{key[:16]}-{uuid.uuid4().hex[:8]}"
         workspace.mkdir(parents=True)
@@ -2252,7 +2254,7 @@ class JobService:
         node_tools = {(entry["step"], entry["index"]): entry["tool"] for entry in raw["nodes"]}
         edges = [tuple(edge) for edge in raw["edges"]]
         # A node that runs where its input ran follows its FIRST input
-        # (`runspec.inheriting_nodes`), in the edges' order.
+        # (`runflow.inheriting_nodes`), in the edges' order.
         before: Dict[Tuple[str, str], Tuple[str, str]] = {}
         for from_step, from_index, to_step, to_index in edges:
             before.setdefault((to_step, to_index), (from_step, from_index))
@@ -3405,7 +3407,7 @@ class JobService:
         that never refills would retry for ever. The download side of
         `upload-too-large`.
         '''
-        from siliconcompiler.remote.server import accounts
+        from siliconcompiler.remote.server.identity import accounts
 
         allowed = accounts.effective_limits(
             self._store, self._config, session.user_id)["max_download_bytes"]
@@ -3883,7 +3885,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     shares an interpreter and must be held by ONE image, while a tool is
     satisfied per node; accepting a flat map would mean guessing which.
     """
-    from siliconcompiler.remote.server.images import BUCKETS
+    from siliconcompiler.remote.server.software.images import BUCKETS
 
     buckets = tuple(BUCKETS.values())
     found: Dict[str, Dict[str, Any]] = {bucket: {} for bucket in buckets}
@@ -4098,7 +4100,7 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
 def _python_names(job) -> List[str]:
     '''What the job's `requires.python` names: the image holds each, and
     none is ever installed. Part of what a derived image is keyed on.'''
-    from siliconcompiler.remote.server.images import BUCKETS
+    from siliconcompiler.remote.server.software.images import BUCKETS
 
     return sorted(requirements(json.loads(job["descriptor"] or "{}") or {})
                   [BUCKETS["python"]])

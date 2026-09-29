@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 from urllib.parse import urlsplit
 
-from siliconcompiler.remote.server import allowlist
+from siliconcompiler.remote.server.staging import allowlist
 
 __all__ = ["SourceStore", "Transient", "Permanent", "download_url"]
 
@@ -177,7 +177,7 @@ class SourceStore:
         the commit a git source resolved to, and whether its ref moves.'''
         from siliconcompiler import Project
         from siliconcompiler.package import FetchPolicy, RemoteResolver, Resolver, fetch_policy
-        from siliconcompiler.remote.server.envbuild import Proxy
+        from siliconcompiler.remote.server.packages.envbuild import Proxy
 
         work = into.parent
         home = work / "home"

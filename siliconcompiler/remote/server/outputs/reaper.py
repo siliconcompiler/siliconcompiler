@@ -36,8 +36,8 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict
 
-from siliconcompiler.remote.server import images
-from siliconcompiler.remote.server.store import now
+from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["sweep"]
 
@@ -116,7 +116,7 @@ def _artifacts(store, storage, config, datadir) -> int:
     A legal hold is skipped. It is not only policy -- the table would refuse
     the write, since an artifact cannot be both held and deleted.
     '''
-    from siliconcompiler.remote.server.artifacts import referenced_elsewhere
+    from siliconcompiler.remote.server.outputs.artifacts import referenced_elsewhere
 
     rows = store.all(
         "SELECT id, location_id, storage_key, size_bytes FROM artifacts "

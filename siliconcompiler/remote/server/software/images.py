@@ -29,8 +29,8 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
 
 from siliconcompiler.remote.environment import IMAGE_SITE
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.ids import uuid7
-from siliconcompiler.remote.server.store import now
+from siliconcompiler.remote.server.state.ids import uuid7
+from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
            "catalogue", "contents_of", "declared_requirements", "digests_for",
@@ -582,7 +582,7 @@ def plan_for_job(store, requires: Dict[str, Any],
             # ⚠️ What a node needs is DECLARED by its task, so nothing here
             # infers it: `Task._remote_toolname` says `openroad` for an
             # OpenROAD task, `slang` for one that has no executable at all, and
-            # nothing for a builtin. See `runspec.node_tools`.
+            # nothing for a builtin. See `runflow.node_tools`.
             raise _unregistered(tool, node, images)
 
         # 🔴 The python set PLUS this node's tool, which is exactly what
@@ -1397,7 +1397,7 @@ def register_software(store, name: str, display_name: str, actor: str,
 
     Returns the kind that was recorded.
     '''
-    from siliconcompiler.remote.server import probe
+    from siliconcompiler.remote.server.software import probe
 
     if kind not in probe.KINDS:
         raise ValueError(

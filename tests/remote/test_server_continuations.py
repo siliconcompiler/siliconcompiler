@@ -29,8 +29,8 @@ def me(server_client, key, token):
 
 def ran(server, user_id, nodes=(("stepone", "0"),), resources=()):
     '''An earlier job that ran ``nodes``, its results indexed as a run's are.'''
-    from siliconcompiler.remote.server import artifacts
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.outputs import artifacts
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store, jobs = server.config["SC_STORE"], server.config["SC_JOBS"]
     job_id = str(uuid7())
@@ -386,8 +386,8 @@ def ran_passing(server, user_id, copied_from=None):
     '''An earlier job whose `steptwo` passed `stepone`'s output through, as a
     link. With ``copied_from``, it took `stepone` from that job rather than
     running it, so it holds no archive of it.'''
-    from siliconcompiler.remote.server import artifacts
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.outputs import artifacts
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     store, jobs = server.config["SC_STORE"], server.config["SC_JOBS"]
     job_id = str(uuid7())

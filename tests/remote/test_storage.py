@@ -4,7 +4,7 @@ import pytest
 
 from pathlib import Path
 
-from siliconcompiler.remote.server.storage import SignatureError, Storage
+from siliconcompiler.remote.server.state.storage import SignatureError, Storage
 
 
 # `file://` is a first-class deployment rather than a test double: the contract

@@ -99,8 +99,8 @@ def test_a_limit_is_never_negative(tmp_path):
 def test_a_tool_is_placed_by_preference_and_never_by_the_newest_image():
     '''Where two images hold a tool at different versions, the operator's
     preference chooses -- a reported version before a publish date.'''
-    from siliconcompiler.remote.server import images
-    from siliconcompiler.remote.server.images import Held, Requirement
+    from siliconcompiler.remote.server.software import images
+    from siliconcompiler.remote.server.software.images import Held, Requirement
 
     def image(ref, version, preference, built_at, source="reported"):
         return {"id": ref, "registry_ref": ref, "digest": digest("a"), "note": None,

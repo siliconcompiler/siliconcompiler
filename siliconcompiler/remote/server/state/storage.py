@@ -59,7 +59,7 @@ class Storage:
     Two trees, and they are deliberately separate. ``uploads/`` holds what a
     client PUT and nothing has yet looked at; ``artifacts/`` holds what a run
     produced. An upload is not an artifact until it has been through
-    :mod:`~siliconcompiler.remote.server.archive`, and mixing them would put
+    :mod:`~siliconcompiler.remote.server.staging.archive`, and mixing them would put
     unexamined bytes in the tree that gets served back out.
     '''
 

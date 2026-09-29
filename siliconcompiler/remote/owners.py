@@ -691,7 +691,7 @@ def required(project) -> Optional[Set[Tuple[str, ...]]]:
     never the empty set: a flow whose every node reads nothing has no files to
     filter either.
     '''
-    from siliconcompiler.remote.server.runspec import runtime_flow
+    from siliconcompiler.remote.runflow import runtime_flow
 
     flow = project.get_flow()
     keys: Set[Tuple[str, ...]] = set()
@@ -746,7 +746,7 @@ def work_out(project) -> WorkedOut:
     import copy
     import logging
 
-    from siliconcompiler.remote.server.runspec import runtime_flow
+    from siliconcompiler.remote.runflow import runtime_flow
     from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
     work = copy.deepcopy(project)

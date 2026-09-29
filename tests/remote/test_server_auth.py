@@ -1,8 +1,8 @@
 import pytest
 
 from siliconcompiler.remote import dpop
-from siliconcompiler.remote.server.auth import SCOPES, expand_scope
 from siliconcompiler.remote.server.errors import TYPE_BASE, OAuthError
+from siliconcompiler.remote.server.identity.auth import SCOPES, expand_scope
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -238,7 +238,7 @@ def test_one_user_cannot_claim_another(client, key):
 def test_the_operator_can_release_a_binding(client, key, server):
     '''The recovery path is a person, not an automatic rebind: the registry
     CLI's release-binding frees the subject to enrol a new key.'''
-    from siliconcompiler.remote.server import registry
+    from siliconcompiler.remote.server.software import registry
 
     login(client, key, subject="machine:1001")
     replacement = dpop.generate_key()
@@ -434,7 +434,7 @@ def test_a_lost_response_is_answered_with_the_same_pair(client, key, server):
 
 
 def test_a_repeat_after_the_window_ends_the_session_as_reused(client, key, server):
-    from siliconcompiler.remote.server import auth
+    from siliconcompiler.remote.server.identity import auth
 
     first = login(client, key).get_json()
     second = refreshing(client, first["refresh_token"], key).get_json()
@@ -735,8 +735,8 @@ def test_a_ci_session_has_no_device_and_no_refresh(server):
     `refresh_expires_at` null where there is no refresh token. `sc-server`
     mints none itself -- CI credentials are crucible's -- so its family is
     written here as crucible writes one.'''
-    from siliconcompiler.remote.server import accounts
-    from siliconcompiler.remote.server.auth import Session
+    from siliconcompiler.remote.server.identity import accounts
+    from siliconcompiler.remote.server.identity.auth import Session
 
     store = server.config["SC_STORE"]
     user = store.upsert_user("ci", "pipeline")
@@ -875,7 +875,7 @@ def test_an_override_reaches_the_caller_and_not_the_capabilities(client, key):
     deployment's default lives there and the value that applies to THIS caller
     lives in the identity block -- which is why a per-user ceiling had to be
     published on `/v1/me` at all.'''
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
 
     token = login(client, key).get_json()["access_token"]
     me = call(client, key, "GET", "/v1/me", token).get_json()
@@ -897,7 +897,7 @@ def test_minus_one_is_unlimited_and_never_reaches_a_client(client, key):
     '''⚠️ The wire had already spent `null` on unlimited while the table needed
     it for *inherit*, so storage uses `-1` and the resolver turns it into the
     wire's `null`.'''
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
 
     token = login(client, key).get_json()["access_token"]
     me = call(client, key, "GET", "/v1/me", token).get_json()
@@ -913,7 +913,7 @@ def test_minus_one_is_unlimited_and_never_reaches_a_client(client, key):
 
 def test_a_null_column_inherits_rather_than_meaning_unlimited(client, key):
     '''Sparse: a row can exist and override nothing.'''
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
 
     token = login(client, key).get_json()["access_token"]
     me = call(client, key, "GET", "/v1/me", token).get_json()
@@ -930,7 +930,7 @@ def test_a_null_column_inherits_rather_than_meaning_unlimited(client, key):
 def test_only_a_declared_limit_can_be_overridden(client, key):
     '''The column list is not derived from the table, so that adding one is a
     deliberate act rather than an accident.'''
-    from siliconcompiler.remote.server import accounts
+    from siliconcompiler.remote.server.identity import accounts
     import pytest as _pytest
 
     store = client.application.config["SC_STORE"]
@@ -944,7 +944,7 @@ def test_only_a_declared_limit_can_be_overridden(client, key):
 def test_the_refresh_grace_window_is_300_seconds():
     '''This deployment's value for the contract's "a few minutes" (profile §6,
     *The refresh grace window is 300 seconds*).'''
-    from siliconcompiler.remote.server import auth
+    from siliconcompiler.remote.server.identity import auth
 
     assert auth.REFRESH_GRACE_SECONDS == 300
 
@@ -966,7 +966,7 @@ def test_a_changed_key_is_refused_on_a_local_connection_too(client, key, address
 def test_a_session_ends_for_the_registrys_reasons_and_no_other():
     '''`session-ended`'s `reason` is a closed set: every cause the store
     records maps onto one, and each has its own sentence.'''
-    from siliconcompiler.remote.server import auth
+    from siliconcompiler.remote.server.identity import auth
     from siliconcompiler.remote.server.errors import SESSION_END_REASONS
 
     assert set(auth._ENDED) == set(SESSION_END_REASONS)

@@ -4,7 +4,7 @@ import shutil
 
 import pytest
 
-from siliconcompiler.remote.server import probe
+from siliconcompiler.remote.server.software import probe
 
 
 # What is actually inside an image, asked rather than declared.

@@ -4,8 +4,8 @@ import tarfile
 
 import pytest
 
-from siliconcompiler.remote.server import allowlist
-from siliconcompiler.remote.server.sources import Permanent, SourceStore, Transient
+from siliconcompiler.remote.server.staging import allowlist
+from siliconcompiler.remote.server.staging.sources import Permanent, SourceStore, Transient
 
 
 # Where this server fetches a job's sources from (D113, D128, profile D30). The

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from siliconcompiler.remote.server.ids import uuid7, _uuid7_fallback
-from siliconcompiler.remote.server.store import Store, StoreVersionError, now
+from siliconcompiler.remote.server.state.ids import uuid7, _uuid7_fallback
+from siliconcompiler.remote.server.state.store import Store, StoreVersionError, now
 
 
 ###########################

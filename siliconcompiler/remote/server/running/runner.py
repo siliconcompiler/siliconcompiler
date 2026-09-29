@@ -1,7 +1,7 @@
 '''
 The process the batch job starts.
 
-``python3 -m siliconcompiler.remote.server.runner <manifest>``
+``python3 -m siliconcompiler.remote.server.running.runner <manifest>``
 
 This is the whole of what runs on a compute node. It holds no database
 connection and makes no HTTP request: it loads the manifest the job uploaded,
@@ -30,12 +30,13 @@ import traceback
 
 from pathlib import Path
 
-from siliconcompiler.remote.server import images
-from siliconcompiler.remote.server.runspec import (
+from siliconcompiler.remote.runflow import runtime_nodes
+from siliconcompiler.remote.server.running.runspec import (
     IMAGES_FILENAME, PROGRESS_FILENAME, RUN_FILENAME, apply_run, node_image, node_state,
     read_bundles, read_images, read_run, state_dir, exit_code as published_exit_code,
-    runtime_nodes, write_progress)
-from siliconcompiler.remote.server.store import now
+    write_progress)
+from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.state.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 
 __all__ = ["main"]
@@ -543,7 +544,7 @@ def _settle(project) -> None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python3 -m siliconcompiler.remote.server.runner",
+        prog="python3 -m siliconcompiler.remote.server.running.runner",
         description="Run one job a SiliconCompiler server accepted.")
     parser.add_argument("manifest", help="the job's manifest, as it was uploaded")
 

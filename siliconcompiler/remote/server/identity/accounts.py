@@ -15,7 +15,7 @@ page, and what they share is the question underneath.
 from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.store import now
+from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["account_limits", "devices_for", "effective_limits", "lifetime",
            "owned_device", "set_limit", "usage", "user", "OVERRIDABLE"]
@@ -166,7 +166,7 @@ def session_view(store, session) -> Dict[str, Any]:
     client can show a person their session without refreshing it.'''
     from datetime import datetime, timezone
 
-    from siliconcompiler.remote.server.auth import SCOPES
+    from siliconcompiler.remote.server.identity.auth import SCOPES
 
     family = store.one("SELECT kind, absolute_expires_at FROM token_families WHERE id = ?",
                        (session.family_id,))

@@ -7,8 +7,8 @@ import pytest
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler.remote.server.errors import ERRORS, TYPE_BASE, problem, ProblemError
-from siliconcompiler.remote.server.ids import uuid7
-from siliconcompiler.remote.server.store import now
+from siliconcompiler.remote.server.state.ids import uuid7
+from siliconcompiler.remote.server.state.store import now
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")

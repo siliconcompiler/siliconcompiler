@@ -25,7 +25,7 @@ def dispatcher(server):
 
 
 def session_of(server_client, key, token):
-    from siliconcompiler.remote.server.auth import SCOPES, Session
+    from siliconcompiler.remote.server.identity.auth import SCOPES, Session
 
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     return Session(user_id=me, scope=" ".join(SCOPES), family_id=None, device_id=None,

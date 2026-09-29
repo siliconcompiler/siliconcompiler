@@ -263,7 +263,7 @@ def installed(monkeypatch, tmp_path):
     '''Host mode's install while staging, without pip: what it was asked
     for, and a site of its own for each -- or, where ``absent`` is set, the
     packages no index has.'''
-    from siliconcompiler.remote.server import envinstall
+    from siliconcompiler.remote.server.packages import envinstall
 
     asked = []
 
@@ -370,7 +370,7 @@ def test_the_lists_and_the_wheels_are_installed_once_while_staging(
     jobs = server.config["SC_JOBS"]
     tree = jobs.job_root(job["owner"]["id"], job["id"]) / "gcd" / "job0"
     assert (tree / environment.site_path()).is_symlink()
-    from siliconcompiler.remote.server.dispatch import RUN_LOG
+    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
     log = (jobs.job_root(job["owner"]["id"], job["id"]) / RUN_LOG).read_text()
     assert "installed numpy==1.26.4" in log
     assert "packaging 25.0 (listed 1.0)" in log
@@ -468,7 +468,7 @@ def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
     and the target -- not a failed run. An index that does not answer is this
     server's failure: `failed`, `staging-failed`.'''
     from conftest import call
-    from siliconcompiler.remote.server import envinstall
+    from siliconcompiler.remote.server.packages import envinstall
 
     def install(*args, **kwargs):
         raise envinstall.InstallFailed(result)

@@ -266,7 +266,7 @@ class RemoteRun:
 
     def _preflight(self) -> None:
         '''What the server would refuse, said here before create.'''
-        from siliconcompiler.remote.server.runspec import runtime_flow
+        from siliconcompiler.remote.runflow import runtime_flow
 
         project = self.project
 
@@ -316,7 +316,7 @@ class RemoteRun:
     def _check_upstream_files(self) -> None:
         '''A `-from` run whose upstream outputs, on this machine, lack a file
         a node in the run reads.'''
-        from siliconcompiler.remote.server.runspec import runtime_flow
+        from siliconcompiler.remote.runflow import runtime_flow
 
         from siliconcompiler.remote import links
 
@@ -419,12 +419,12 @@ class RemoteRun:
         - **Neither**: refused before anything moves. A node from a local run
           has no job id, so its results must be here.
 
-        The derivation is the server's too (`runspec.upstream_nodes`).
+        The derivation is the server's too (`runflow.upstream_nodes`).
         '''
         if self._upstream_sources is not None:
             return self._upstream_sources
 
-        from siliconcompiler.remote.server.runspec import outputs_present, upstream_nodes
+        from siliconcompiler.remote.runflow import outputs_present, upstream_nodes
 
         # A node skipped in the run it came from is looked through, as the
         # server does from that job's recorded states.
@@ -630,7 +630,7 @@ class RemoteRun:
         distribution excepted.'''
         if self._python_pins is None:
             from siliconcompiler.remote import owners
-            from siliconcompiler.remote.server.runspec import runtime_flow
+            from siliconcompiler.remote.runflow import runtime_flow
 
             project, required = self._needs()
             pins = {"siliconcompiler": [_framework_requirement()]}
@@ -812,7 +812,7 @@ class RemoteRun:
         '''Stop before create where a node the run executes runs the user's
         Python and its setup could not run here: what it imports cannot be
         worked out, and a node missing a package fails only on the server.'''
-        from siliconcompiler.remote.server.runspec import runtime_flow
+        from siliconcompiler.remote.runflow import runtime_flow
         from siliconcompiler.tool import Task
 
         if not self._failed:
@@ -1085,7 +1085,7 @@ class RemoteRun:
         check it would have answered.
         '''
         try:
-            from siliconcompiler.remote.server.runspec import runtime_nodes
+            from siliconcompiler.remote.runflow import runtime_nodes
 
             flow = self.project.get_flow()
             return {"name": flow.name, "nodes": len(runtime_nodes(self.project))}
@@ -1117,8 +1117,7 @@ class RemoteRun:
         """
         wanted: Dict[str, Any] = {}
         try:
-            from siliconcompiler.remote.server.runspec import (
-                node_tools, runtime_nodes)
+            from siliconcompiler.remote.runflow import node_tools, runtime_nodes
 
             self._needs()
             flow = self.project.get_flow()

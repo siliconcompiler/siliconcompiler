@@ -14,7 +14,8 @@ import tempfile
 import pytest
 
 from siliconcompiler.remote import environment
-from siliconcompiler.remote.server import envbuild, images, oci, pipbuild
+from siliconcompiler.remote.server.packages import envbuild, pipbuild
+from siliconcompiler.remote.server.software import images, oci
 
 
 # A job's Python packages, built into an image while the job is `staging`
@@ -736,7 +737,7 @@ def test_anything_but_a_tunnel_or_a_plain_get_is_refused(proxy):
 
 @pytest.fixture
 def store(runs_test_version):
-    from siliconcompiler.remote.server.store import Store
+    from siliconcompiler.remote.server.state.store import Store
 
     with Store("server.db") as db:
         user = db.upsert_user("operator", "someone@host")
@@ -912,7 +913,7 @@ BUILT = {"ok": True, "ref": f"ghcr.io/x/sc@{digest('e')}", "digest": digest("e")
 @pytest.fixture
 def builder_server(runs_test_version):
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.store import Store
+    from siliconcompiler.remote.server.state.store import Store
 
     os.makedirs("builder-datadir", exist_ok=True)
     with open("builder-datadir/config.json", "w") as f:

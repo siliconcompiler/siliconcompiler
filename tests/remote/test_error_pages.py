@@ -181,7 +181,7 @@ def test_the_link_honours_where_the_server_is_mounted(server_client):
 def test_a_failed_jobs_read_names_the_page_for_its_error(
         server, server_client, key, token):
     from conftest import call
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     job_id = str(uuid7())

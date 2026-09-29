@@ -9,7 +9,7 @@ job that runs the user's Python on that image runs from one image with no
 network at all. Run as a job of its own on a compute node -- the builder queue
 -- by the API while the job is ``staging``::
 
-    python -m siliconcompiler.remote.server.envbuild <workspace>/spec.json
+    python -m siliconcompiler.remote.server.packages.envbuild <workspace>/spec.json
 
 and it writes ``<workspace>/result.json`` whatever happens, which is all the
 API reads. The workspace holds the requirements and constraints files the API
@@ -88,7 +88,8 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
     ``run`` starts the build container and waits for it; the default is
     `_run_container`. Tests hand in their own.
     '''
-    from siliconcompiler.remote.server import images, oci, pipbuild
+    from siliconcompiler.remote.server.packages import pipbuild
+    from siliconcompiler.remote.server.software import images, oci
 
     root = Path(spec["bundles_root"])
     base = images.stage_bundle(root, spec["base_ref"], spec["base_digest"],
@@ -194,7 +195,7 @@ def build_config(base: Dict[str, Any], rootfs: Path, req: Path, out: Path,
     spec["root"] = {"path": str(Path(rootfs).resolve()), "readonly": True}
     spec["hostname"] = "sc-envbuild"
 
-    from siliconcompiler.remote.server.images import drop_capabilities
+    from siliconcompiler.remote.server.software.images import drop_capabilities
 
     drop_capabilities(spec)
     process = spec.setdefault("process", {})
@@ -305,7 +306,7 @@ class Proxy:
     '''
 
     def __init__(self, address, entries, private_exact_hosts: bool = False):
-        from siliconcompiler.remote.server import allowlist
+        from siliconcompiler.remote.server.staging import allowlist
 
         self._rules = [allowlist.parse(entry) for entry in entries]
         self._hosts = [rule._replace(segments=()) for rule in self._rules
@@ -342,7 +343,7 @@ class Proxy:
 
     @staticmethod
     def _matching(rules, url: str):
-        from siliconcompiler.remote.server import allowlist
+        from siliconcompiler.remote.server.staging import allowlist
 
         for rule in rules:
             if allowlist.allows([rule], url):

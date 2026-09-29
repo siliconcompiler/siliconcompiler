@@ -520,7 +520,7 @@ def _subclasses(cls) -> List[Any]:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python3 -m siliconcompiler.remote.server.probe",
+        prog="python3 -m siliconcompiler.remote.server.software.probe",
         description="What this machine holds: one JSON line, behind a marker.")
     parser.add_argument(
         "-python", dest="python", action="append", default=[], metavar="<name>",

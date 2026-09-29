@@ -94,9 +94,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from siliconcompiler.remote import links
-from siliconcompiler.remote.server import confine
-from siliconcompiler.remote.server.dispatch import RUN_LOG
-from siliconcompiler.remote.server.ids import uuid7
+from siliconcompiler.remote.server.outputs import confine
+from siliconcompiler.remote.server.running.dispatch import RUN_LOG
+from siliconcompiler.remote.server.state.ids import uuid7
 
 __all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS", "log_text",
            "referenced_elsewhere"]

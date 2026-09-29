@@ -22,8 +22,8 @@ from typing import Dict, Optional
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.server.errors import OAuthError, ProblemError
-from siliconcompiler.remote.server.ids import uuid7
-from siliconcompiler.remote.server.store import Store, now
+from siliconcompiler.remote.server.state.ids import uuid7
+from siliconcompiler.remote.server.state.store import Store, now
 
 __all__ = [
     "SCOPES", "expand_scope", "TokenIssuer", "Session",

@@ -6,7 +6,7 @@ import pytest
 
 def test_a_grant_outlasts_the_largest_upload_at_ten_megabits():
     '''Surface §14: one PUT, no resume -- about fifteen minutes a GiB.'''
-    from siliconcompiler.remote.server.storage import GRANT_SECONDS, grant_seconds
+    from siliconcompiler.remote.server.state.storage import GRANT_SECONDS, grant_seconds
 
     assert grant_seconds(1024) == GRANT_SECONDS                  # never less than the floor
     assert grant_seconds(1024 ** 3) == GRANT_SECONDS             # 859 s: under it

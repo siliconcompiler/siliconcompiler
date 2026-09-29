@@ -161,7 +161,7 @@ def test_a_task_that_opens_a_window_is_refused_and_a_screenshot_is_not(
 def test_the_runner_fails_a_node_whose_task_class_is_not_installed(nop_project):
     '''🔴 Never run as its base class, which would skip the task's own setup:
     the node fails, named, and nothing starts.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     nop_project.get_flow().get_graph_node("steptwo", "0").set(
         "taskmodule", "sc_not_installed_anywhere/Task")

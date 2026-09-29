@@ -1,8 +1,8 @@
 import pytest
 
-from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.store import Store
+from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.state.store import Store
 
 
 # The registry, on its own. Nothing here needs Flask, a port or a job: the
@@ -338,7 +338,7 @@ def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
     goes straight to `srun --partition`, so an image reference in it would
     submit every node to a partition named after a container.
     """
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): "/sc_server/images/659b"},
@@ -361,7 +361,7 @@ def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
 def test_a_server_with_no_cluster_uses_the_docker_scheduler(nop_project):
     """There is no Slurm to place anything, and a digest is what the docker
     scheduler reads out of `queue`."""
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"},
@@ -376,7 +376,7 @@ def test_a_server_with_no_cluster_uses_the_docker_scheduler(nop_project):
 def test_the_manifest_carries_the_placement_to_the_compute_node(nop_project):
     """The runner holds no database connection and should not need one: the
     server writes the answer into the same file the run loads."""
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
@@ -395,7 +395,7 @@ def test_the_runner_leaves_its_own_allocation(monkeypatch):
     """
     import os
 
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     monkeypatch.setenv("SLURM_JOB_ID", "5")
     monkeypatch.setenv("SLURM_STEP_ID", "1")
@@ -407,7 +407,7 @@ def test_the_runner_leaves_its_own_allocation(monkeypatch):
 
 
 def test_a_slurm_placement_reads_back_as_a_bundle(nop_project):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): "/sc_server/images/659b"},
@@ -422,7 +422,7 @@ def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
     on a cold host; without a state for it the wait is indistinguishable from a
     hang, and a node sitting at `pending` while nothing happens is the report
     somebody opens a ticket about."""
-    from siliconcompiler.remote.server import runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}",
@@ -449,7 +449,7 @@ def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
 
 def test_an_image_already_on_the_host_is_never_preparing(monkeypatch, nop_project):
     """There was nothing to wait for, so saying so would be noise."""
-    from siliconcompiler.remote.server import runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
@@ -470,7 +470,7 @@ def test_a_node_whose_image_would_not_pull_is_interrupted_naming_it(
     '''🔴 Told apart by the runtime's pull error, never by an exit status: the
     node failed with its image still not here, and the pull of it had failed
     before the flow started (implementation-notes §10).'''
-    from siliconcompiler.remote.server import runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
 
     ref = f"ghcr.io/x/sc@{digest('a')}"
     runspec.normalize(nop_project, "job-id", "build", "cache",
@@ -499,7 +499,7 @@ def test_a_node_whose_image_would_not_pull_is_interrupted_naming_it(
 def test_a_node_killed_for_memory_names_the_limit(monkeypatch, nop_project):
     '''The docker daemon's `oom` event, by the node's label -- never exit
     status 137, which any SIGKILL gives.'''
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     monkeypatch.setattr(runner, "_oom_killed", {("stepone", "0")})
     monkeypatch.setattr(runner, "_pull_errors", {})
@@ -522,7 +522,7 @@ def test_a_half_written_bundle_counts_as_absent(monkeypatch):
     is what a complete one has, and the unpack renames it into place last."""
     import os
 
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     os.makedirs("bundle", exist_ok=True)
     assert runner._placement_present(("container", "bundle")) is False
@@ -536,7 +536,7 @@ def test_a_fetch_that_fails_does_not_end_the_run(monkeypatch, nop_project):
     """⚠️ The node's own launch tries again and fails with the message that
     knows about registry credentials, and a failed node is already something
     this reports. Ending the run from here would replace that with worse."""
-    from siliconcompiler.remote.server import runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
@@ -556,7 +556,7 @@ def test_a_fetch_that_fails_does_not_end_the_run(monkeypatch, nop_project):
 def test_a_bundle_with_no_recorded_source_says_so(nop_project):
     """The bundle path names a digest and nothing in it says which registry to
     unpack from, which is the whole reason the sources file exists."""
-    from siliconcompiler.remote.server import runner
+    from siliconcompiler.remote.server.running import runner
 
     runner._image_sources = {}
 
@@ -566,7 +566,7 @@ def test_a_bundle_with_no_recorded_source_says_so(nop_project):
 
 def test_a_run_with_no_placement_fetches_nothing(monkeypatch, nop_project):
     """Every deployment that runs no containers, which is the default one."""
-    from siliconcompiler.remote.server import runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache")
 
@@ -584,7 +584,7 @@ def test_a_node_the_flow_skipped_never_waits_for_an_image(monkeypatch, nop_proje
     """`_settle` runs first, so a node the flow has already written off is
     terminal here -- and walking it back to `preparing` would be a state going
     backwards on a client that renders them."""
-    from siliconcompiler.remote.server import runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): f"ghcr.io/x/sc@{digest('a')}"})
@@ -608,7 +608,7 @@ def test_a_cluster_schedules_every_node_image_or_not(nop_project):
     orchestrator could not be given a partition of its own, because the work
     would follow it there.
     '''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache", cluster="slurm")
 
@@ -624,7 +624,7 @@ def test_a_cluster_schedules_every_node_image_or_not(nop_project):
 def test_a_server_with_no_cluster_schedules_nothing_per_node(nop_project):
     '''There is no Slurm, so a node with no image is left exactly as the
     caller sent it.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     runspec.normalize(nop_project, "job-id", "build", "cache", cluster="local")
 
@@ -683,7 +683,7 @@ def test_what_a_node_needs_is_declared_and_never_inferred(registry, store):
 
     ⚠️ Read off a BARE task, so a forty-node flow costs forty attribute reads.
     '''
-    from siliconcompiler.remote.server.runspec import node_tools
+    from siliconcompiler.remote.runflow import node_tools
 
     declared = {"join": None, "compute": None, "place": "openroad",
                 "elaborate": "slang"}

@@ -79,7 +79,7 @@ def test_a_progress_file_replaced_by_a_link_is_not_read(server, tmp_path):
     it says.'''
     import json
 
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     root = tmp_path / "job"
     root.mkdir()

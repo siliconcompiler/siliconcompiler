@@ -8,7 +8,7 @@ from conftest import call, job_after, login, run_manifest, slug
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from siliconcompiler.remote.server.store import now                  # noqa: E402
+from siliconcompiler.remote.server.state.store import now                  # noqa: E402
 
 
 # The integration rig, in process. Every ordering rule the contract calls
@@ -435,7 +435,7 @@ def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
     what the lookup is keyed on: the client's hash is only half of it and the
     server's resolved digests are the other half.
     '''
-    from siliconcompiler.remote.server.ids import uuid7
+    from siliconcompiler.remote.server.state.ids import uuid7
 
     job_id = str(uuid7())
     store.execute(
@@ -1226,7 +1226,7 @@ def test_a_job_that_finished_while_we_looked_is_not_lost(
     This is not theoretical: it fired on a real asicflow run, and everything
     reconcile does between the two readings widens the window.
     '''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -1261,7 +1261,7 @@ def test_a_job_that_finished_while_we_looked_is_not_lost(
 def test_a_job_that_really_is_gone_is_still_reported_lost(
         server, server_client, key, token, job_archive, dispatcher, me):
     '''Reading the file twice must not turn a lost job into a hung one.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -1306,8 +1306,8 @@ def registry(runs_test_version):
     import json
     import os
 
-    from siliconcompiler.remote.server import images
-    from siliconcompiler.remote.server.store import Store
+    from siliconcompiler.remote.server.software import images
+    from siliconcompiler.remote.server.state.store import Store
 
     os.makedirs("container-datadir", exist_ok=True)
     with open("container-datadir/config.json", "w") as f:
@@ -1417,7 +1417,7 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     """🔴 Before anything runs, which is the correct direction: the alternative
     is a job that queues, dispatches and dies on node thirty-one with the
     cluster already paid for."""
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
 
@@ -1429,9 +1429,9 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
 
     # `nopflow` names only `builtin`, which is not a tool anybody installs and
     # raises no requirement. This is the one thing the test needs it to be.
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote import runflow
 
-    monkeypatch.setattr(runspec, "node_tools",
+    monkeypatch.setattr(runflow, "node_tools",
                         lambda flow, nodes: {node: "openroad" for node in nodes})
 
     archive, upload_digest, size = job_archive()
@@ -1519,7 +1519,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
     own preflight said yes. *No image matches* would send them looking for a
     version of a tool that is already installed; the true answer is that
     nothing here can be matched against a range."""
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
     images.register_software(store, "magic", "Magic", operator(store), "tool")
@@ -1547,7 +1547,7 @@ def test_the_job_identity_folds_in_what_the_server_chose(
     work; this server chooses what runs it -- so re-registering an image
     invalidates reuse exactly when it should, because a new digest is
     precisely *the code changed*."""
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
     jobs = container_server.config["SC_JOBS"]
@@ -1582,7 +1582,7 @@ def test_a_candidate_whose_images_were_superseded_is_not_returned(
     ✅ A finished job records what its nodes RAN IN, so the question is asked
     the other way round: are those images still live?
     """
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
     jobs = container_server.config["SC_JOBS"]
@@ -1645,7 +1645,7 @@ def test_the_stored_identity_is_not_the_clients_own_hash(
 def test_a_version_with_no_image_is_never_advertised(container_server, container_client):
     """So a client is refused before it uploads, rather than told yes and
     refused at submit."""
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
     images.register_version(store, "siliconcompiler", "0.38.1", operator(store),
@@ -1679,7 +1679,7 @@ def fake_unpack(root, ref, digest, mounts=()):
     as one staged before per-job bundles did, the whole data directory.'''
     import json
 
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     bundle = images.bundle_path(root, digest)
     (bundle / "rootfs").mkdir(parents=True, exist_ok=True)
@@ -1718,9 +1718,9 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     '''🔴 On a cluster Slurm places the container, and `scheduler,queue` is its
     PARTITION -- so an image reference there would submit every node to a
     partition named after a container.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     fake = FakeDispatcher()
     fake.name = "slurm"
@@ -1786,7 +1786,7 @@ def test_the_orchestrator_goes_to_its_own_queue(
     for the length of the flow and uses almost none of it. On a compute
     partition that is a node slot doing nothing.
     '''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     fake = FakeDispatcher()
     fake.name = "slurm"
@@ -1809,7 +1809,8 @@ def test_a_container_job_cannot_read_the_signing_key_or_the_store(
     directory: not the token signing key, not `server.db`, and not another
     user's work (profile §0). The node's bundle is what the run writes when it
     unpacks the image, from what the server recorded beside the manifest.'''
-    from siliconcompiler.remote.server import images, runner, runspec
+    from siliconcompiler.remote.server.running import runner, runspec
+    from siliconcompiler.remote.server.software import images
 
     fake = FakeDispatcher()
     fake.name = "slurm"
@@ -1859,7 +1860,7 @@ def test_every_directory_a_job_bundle_binds_exists(
     out rather than bound.'''
     import shutil
 
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
 
     fake = FakeDispatcher()
     fake.name = "slurm"
@@ -1960,9 +1961,9 @@ def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
     '''🔴 One version: the one this server runs (profile §5). The manifest's
     read is this server's own SiliconCompiler, so a job resolves to no other,
     and an image holding another is registered but never advertised or run.'''
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.store import Store
+    from siliconcompiler.remote.server.state.store import Store
 
     with Store("container-datadir/server.db") as store:
         actor = operator(store)
@@ -1997,9 +1998,9 @@ def test_a_container_deployment_whose_images_hold_another_version_does_not_start
     import json
     import os
 
-    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.software import images
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.store import Store
+    from siliconcompiler.remote.server.state.store import Store
 
     os.makedirs("elsewhere", exist_ok=True)
     with open("elsewhere/config.json", "w") as f:
@@ -2024,7 +2025,7 @@ def test_a_container_deployment_whose_images_hold_another_version_does_not_start
 
 def running(server, server_client, key, token, job_archive, me):
     '''A submitted job whose run has reported its nodes as started.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2125,7 +2126,7 @@ def test_a_deployment_with_no_cluster_has_no_node_jobs(server):
     '''🔴 An empty answer is the truthful one rather than a gap. Nodes are
     processes inside the run, and the process group is what a cancel signals --
     which is why the column is nullable.'''
-    from siliconcompiler.remote.server.dispatch import LocalDispatcher
+    from siliconcompiler.remote.server.running.dispatch import LocalDispatcher
 
     assert LocalDispatcher().node_jobs("job", [("a", "0")]) == {}
 
@@ -2208,7 +2209,7 @@ def test_a_failed_run_publishes_the_reason_the_run_gave(
     runner records the exception that ended the run and it was being stored on
     the transition and published nowhere, which is why a person on the CLI
     could not reach it at all.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2253,7 +2254,7 @@ def test_a_reason_that_only_repeats_the_slug_is_not_published(
         server, server_client, key, token, job_archive, dispatcher, me):
     '''`detail` is prose about this occurrence. The slug is already `type`, and
     a client branches on that.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2276,7 +2277,7 @@ def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
     '''🔴 This server's own failure while staging is `failed`,
     `staging-failed`, with the detail -- never `rejected`, and never `queued`
     before the scheduler holds the job.'''
-    from siliconcompiler.remote.server.dispatch import DispatchError
+    from siliconcompiler.remote.server.running.dispatch import DispatchError
 
     def refuse(*args, **kwargs):
         raise DispatchError("slurmctld is not answering")
@@ -2307,7 +2308,7 @@ def test_a_failed_node_carries_the_type_that_says_so(
     this server had ever run, the failed ones included -- so a client could not
     tell *this node is why* from *this node is fine* except by re-deriving it
     from the state it already had.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2340,7 +2341,7 @@ def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
     reporting its jobs RUNNING for ever on a machine that is gone. Observed for
     thirteen minutes on a container that no longer existed -- and every other
     check here asks the scheduler, so every other check believed it.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2365,8 +2366,8 @@ def test_a_beating_run_is_left_alone(server, server_client, key, token,
                                      job_archive, dispatcher, me):
     '''A node can run for half an hour without a transition, which is why the
     heartbeat is on a timer and not on progress.'''
-    from siliconcompiler.remote.server import runspec
-    from siliconcompiler.remote.server.store import now
+    from siliconcompiler.remote.server.running import runspec
+    from siliconcompiler.remote.server.state.store import now
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2389,7 +2390,7 @@ def test_no_heartbeat_means_no_opinion(server, server_client, key, token,
     answer for it is the one this server always gave -- ask the scheduler.
     Treating a missing field as silence would declare every in-flight job of an
     upgrade dead.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2512,7 +2513,7 @@ def test_the_sweep_settles_the_jobs_nobody_opens(server, server_client, key,
     '''🔴 A job stuck in `created` is exactly the job nobody opens, and while
     it sits there it holds a slot against its owner's allowance. The ceiling
     gets reached by jobs that no longer exist in any meaningful sense.'''
-    from siliconcompiler.remote.server import reaper
+    from siliconcompiler.remote.server.outputs import reaper
 
     created = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0"}).get_json()
@@ -2537,7 +2538,7 @@ def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key,
     job each node became is one or more RPCs into slurmctld. Without a floor,
     shortening the poll interval multiplies scheduler load by the same factor
     -- which is the load `--max-connections` exists to throttle.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     asked = []
     real = dispatcher.node_jobs
@@ -2572,7 +2573,7 @@ def test_a_cancel_never_takes_a_stale_answer(server, server_client, key, token,
                                              job_archive, dispatcher, me):
     '''⚠️ The floor is a rate limit on watching, not on acting. A cancel needs
     the ids to reach the work, so it asks whatever the clock says.'''
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -2686,7 +2687,7 @@ def test_the_pending_uploads_refusal_names_the_jobs_holding_the_slots(
 
 
 def test_a_manifests_scheduler_settings_are_overridden(nop_project, tmp_path):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     nop_project.option.set_jobincr(True)
     nop_project.option.scheduler.set_name("slurm")
@@ -2757,7 +2758,7 @@ def test_a_cancel_of_a_job_the_scheduler_already_ended_leaves_it(
 
 def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
         server, server_client, key, token, job_archive, dispatcher, me):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     job = running(server, server_client, key, token, job_archive, me)
     cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
@@ -2793,14 +2794,14 @@ def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
 @pytest.mark.parametrize("reported,published", [(0, 0), (1, 1), (-9, 137), (-15, 143),
                                                 (137, 137), (None, None)])
 def test_an_exit_code_is_0_to_255_and_a_signal_is_128_plus_n(reported, published):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     assert runspec.exit_code(reported) == published
 
 
 def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
                                               job_archive, dispatcher, me):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
@@ -2821,7 +2822,7 @@ def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
 
 def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
         server, server_client, key, token, job_archive, dispatcher, me):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
@@ -2841,7 +2842,7 @@ def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
 
 def test_a_memory_limit_is_run_failed_naming_it(server, server_client, key, token,
                                                 job_archive, dispatcher, me):
-    from siliconcompiler.remote.server import runspec
+    from siliconcompiler.remote.server.running import runspec
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
