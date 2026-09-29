@@ -95,6 +95,7 @@ User Classes
 
 .. autoclass:: siliconcompiler.Task
     :members:
+    :private-members: _remote_toolname,_remote_inherits_env
     :show-inheritance:
     :inherited-members:
 
