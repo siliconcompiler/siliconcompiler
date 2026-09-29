@@ -374,14 +374,17 @@ def test_dataroot_safe_source(path, tag, kind, private, sent):
      "33435a48a4c9a17e0a3e4c012f31e3d3fb6bb9e8"),
     (Resolver, "github://org/repo/v1/archive.tar.gz", "v1",
      "ac50cbd93d6bce60c6d134197714b43fde5088bf"),
-    (FileResolver, "file:///data/archive", None,
+    # Rooted at a variable: a bare '/data' is not absolute on Windows, and
+    # would be joined to the working directory.
+    (FileResolver, "file://$DATA_ROOT/archive", None,
      "f70ba53d46575c587cac27edca9e77e2db517c07"),
-    (FileResolver, "file+private:///data/user@host/archive?v=1", None,
+    (FileResolver, "file+private://$DATA_ROOT/user@host/archive?v=1", None,
      "a7ffae0347c5fd635f14fdcc1741e4d851b0d7f9"),
 ])
-def test_cache_id_is_stable(kind, source, reference, cache_id):
+def test_cache_id_is_stable(monkeypatch, kind, source, reference, cache_id):
     # A remote source's cache directory is named after its cache_id, so a
     # changed one re-downloads every source already in the cache.
+    monkeypatch.setenv("DATA_ROOT", "/data")
     assert kind("testpath", Project("testproj"), source, reference).cache_id == cache_id
 
 
@@ -1799,19 +1802,29 @@ def test_file_resolver_windows_safe_source(monkeypatch, scheme):
     assert resolver.cache_id
 
 
+# Rooted at a variable, so each source is the same on every platform: a bare
+# '/data' is not absolute on Windows, and would be joined to the working
+# directory.
 @pytest.mark.parametrize("source,sent", [
-    ("file:///data/user@host/archive", "file:///data/user@host/archive"),
-    ("file:///data/archive?v=1", "file:///data/archive?v=1"),
-    ("file:///data/archive#1", "file:///data/archive#1"),
-    ("file:///data/user:token@host/archive", "file:///data/user:token@host/archive"),
-    ("file+private:///data/user@host/archive?v=1", "file:///data/user@host/archive?v=1"),
+    ("file://$DATA_ROOT/user@host/archive", "file://$DATA_ROOT/user@host/archive"),
     ("file://$DATA_ROOT/archive?v=1", "file://$DATA_ROOT/archive?v=1"),
-    ("/data/archive?v=1", "file:///data/archive?v=1"),
+    ("file://$DATA_ROOT/archive#1", "file://$DATA_ROOT/archive#1"),
+    ("file://$DATA_ROOT/user:token@host/archive", "file://$DATA_ROOT/user:token@host/archive"),
+    ("file+private://$DATA_ROOT/user@host/archive?v=1", "file://$DATA_ROOT/user@host/archive?v=1"),
+    ("$DATA_ROOT/archive?v=1", "file://$DATA_ROOT/archive?v=1"),
 ])
 def test_file_resolver_safe_source_keeps_path(source, sent):
     # A path has no userinfo or query to mask: every character is its name's.
     resolver = FileResolver("thisname", Project("testproj"), source)
     assert resolver.safe_source == sent
+
+
+def test_file_resolver_safe_source_keeps_abspath():
+    # On Windows this is 'file://C:\...\user@host\archive?v=1', where the
+    # backslashes leave the whole path in the URL's host.
+    path = os.path.join(os.path.abspath("data"), "user@host", "archive?v=1")
+    resolver = FileResolver("thisname", Project("testproj"), path)
+    assert resolver.safe_source == f"file://{path}"
 
 
 def test_python_path_resolver():
