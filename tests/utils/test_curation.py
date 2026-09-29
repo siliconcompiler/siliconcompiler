@@ -800,6 +800,38 @@ def test_collect_file_whitelist_pass(path_keys):
     assert len(os.listdir(collectiondir(proj))) == 1
 
 
+@needs_symlinks
+@pytest.mark.parametrize("target_approved", [True, False])
+def test_collect_link_to_directory_whitelist(project_logger, caplog, path_keys,
+                                             target_approved):
+    """A directory a link brings in must be on the whitelist too, or inside a
+    directory on it; one that is not is left out."""
+    os.makedirs('test')
+    os.makedirs('outside/sub')
+    with open('outside/sub/ext.v', 'w') as f:
+        f.write('ext')
+    os.symlink(os.path.join('..', 'outside', 'sub'), 'test/ext')
+
+    design = Design("testdesign")
+    design.add_idir("test", fileset="rtl")
+    proj = Project(design)
+    project_logger(proj)
+
+    whitelist = [os.path.abspath('test')]
+    if target_approved:
+        whitelist.append(os.path.abspath('outside'))
+    collect(proj, keys=path_keys(proj), verbose=False, whitelist=whitelist)
+
+    idir = design.get_idir(fileset="rtl")[0]
+    if target_approved:
+        assert os.listdir(os.path.join(idir, "ext")) == ["ext.v"]
+    else:
+        assert os.listdir(idir) == []
+        assert f"Leaving out {os.path.abspath('test/ext')}: " \
+            f"{os.path.realpath('outside/sub')} is not on the approved collection list" \
+            in caplog.text
+
+
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_archive_notproject(arg):
     with pytest.raises(TypeError, match=r"^project must be a Project$"):

@@ -251,6 +251,13 @@ def collect(project: "Project",
             else:
                 shutil.copy2(entry.path, entry_dest)
 
+    def approved(real_path: str) -> bool:
+        """
+        True if there is no whitelist, or real_path is inside a directory on it
+        """
+        return whitelist is None or any(
+            _is_within(real_path, os.path.realpath(path)) for path in whitelist)
+
     def resolve_links() -> None:
         """
         Point each link left by copy_tree at its target's copy, storing the target
@@ -270,10 +277,17 @@ def collect(project: "Project",
                         f"Leaving out {source}: it links to a directory that holds it")
                 continue
 
+            is_dir = os.path.isdir(real_path)
+            if is_dir and not approved(real_path):
+                project.logger.warning(
+                    f"Leaving out {source}: {real_path} is not on the approved "
+                    "collection list")
+                continue
+
             if verbose:
                 project.logger.info(f"  Collecting link target: {real_path}")
             stored[real_path] = dest
-            if os.path.isdir(real_path):
+            if is_dir:
                 path_filter.abspath = real_path
                 copy_tree(real_path, dest, real_path)
                 path_filter.abspath = None
