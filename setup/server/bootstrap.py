@@ -122,7 +122,7 @@ NOT_PUBLISHED = {"vivado"}
 
 # ⚠️ `builtin` and `execute` are absent from both, and that is the tasks' own
 # doing:
-# both declare `image_requirement() -> None`, because a join runs in
+# both declare `_remote_toolname` None, because a join runs in
 # SiliconCompiler's process and an execute task's command comes out of the
 # manifest. Neither is a thing anybody installs.
 TOOLS = sorted(DRIVERS)
@@ -138,9 +138,10 @@ TOOLS = sorted(DRIVERS)
 # rather than assumed either way.
 #
 # ⚠️ **And a python wrapper still needs its program.** The graphviz
-# distribution shells out to `dot`, so the runtime image installs the system
-# package too -- see the Dockerfile. A row saying an image holds graphviz when
-# only the wrapper is there is a node placed in a container that cannot run it.
+# distribution shells out to `dot`, so both images install the system package
+# too -- see the Dockerfile. The probe does not check for it: a row saying an
+# image holds graphviz when only the wrapper is there is a node placed in a
+# container that cannot run it, and the image build is what prevents that.
 #
 # Both are still TOOLS -- a node names one and has to be placed in an image
 # holding it -- and both are in BOTH images, because they arrive with

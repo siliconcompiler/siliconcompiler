@@ -19,6 +19,7 @@ from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode, 
     SlurmSchedulerNode, DockerSchedulerNode
 from siliconcompiler.scheduler.schedulernode import SchedulerNodeReset
 from siliconcompiler.schema import EditableSchema, Parameter
+from siliconcompiler.schema.parametervalue import PathNodeValue
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -2168,11 +2169,14 @@ def test_collect_additional_files_slurm(gcd_additional_files_project, monkeypatc
 
     rundir = Path(jobdir(gcd_additional_files_project))
 
-    assert (rundir / "sc_collected_files").exists()
-    assert any(f.name.startswith("node1_file_") for f in (rundir / "sc_collected_files").iterdir())
-    assert any(d.name.startswith("node1_dir_") for d in (rundir / "sc_collected_files").iterdir())
-    assert any(f.name.startswith("node2_file_") for f in (rundir / "sc_collected_files").iterdir())
-    assert any(d.name.startswith("node2_dir_") for d in (rundir / "sc_collected_files").iterdir())
+    collection_dir = rundir / "sc_collected_files"
+    assert collection_dir.exists()
+    for name in ("node1_file", "node2_file"):
+        collected_path = PathNodeValue.generate_hashed_collection_path(name, None)
+        assert (collection_dir / collected_path).is_file()
+    for name in ("node1_dir", "node2_dir"):
+        collected_path = PathNodeValue.generate_hashed_collection_path(name, None)
+        assert (collection_dir / collected_path).is_dir()
 
 
 def test_skip_collect_additional_files_slurm(gcd_additional_files_project):
@@ -3211,9 +3215,9 @@ def test_a_node_names_what_it_needs_collected_and_nothing_else_is(gcd_nop_projec
             patch("siliconcompiler.scheduler.scheduler.collect") as collect:
         Scheduler(gcd_nop_project).run()
 
-    select = collect.call_args.kwargs["select"]
-    assert select(RTL, None, {}, None) is True
-    assert select(SDC, None, {}, None) is False
+    collected = {key for key, _, _ in collect.call_args.kwargs["keys"]}
+    assert RTL in collected
+    assert SDC not in collected
     assert gcd_nop_project.get(*RTL, field="copy") == before
 
 

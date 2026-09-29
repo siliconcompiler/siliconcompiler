@@ -8,7 +8,7 @@ import time
 import pytest
 
 from conftest import call, outcome, slug
-from test_owners import DATASHEET, _nop_asic, first, private, resource
+from test_owners import DATASHEET, _nop_asic, collected_path, first, private, resource
 from test_server_jobs import FakeDispatcher, create, put, stage, submit
 
 
@@ -333,7 +333,7 @@ def test_a_follow_up_carrying_an_environment_file_is_unrequested(
 def test_the_asked_for_sources_arrive_and_the_job_runs(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     job = sent_back(server, server_client, key, token, job_archive, remote_project)
-    hashed = first(remote_project, ("library", "lambda", *DATASHEET)).get_hashed_filename()
+    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
 
     response = send(server_client, key, token, job["id"], {
         f"sc_collected_files/{hashed}": b"sent by the client\n"})
@@ -347,7 +347,7 @@ def test_each_upload_is_kept_as_its_own_input(
     '''The first archive and the follow-up, separately and in order, each
     under the digest its submit checked -- so what was sent can be inspected.'''
     job = sent_back(server, server_client, key, token, job_archive, remote_project)
-    hashed = first(remote_project, ("library", "lambda", *DATASHEET)).get_hashed_filename()
+    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
     data, digest, size = follow_up({f"sc_collected_files/{hashed}": b"sent by the client\n"})
 
     grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",

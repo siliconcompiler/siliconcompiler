@@ -25,7 +25,8 @@ def get_resolver() -> Dict[str, Type["SCPResolver"]]:
         dict: A dictionary mapping scheme names to the SCPResolver class.
     """
     return {
-        "scp": SCPResolver
+        "scp": SCPResolver,
+        "scp+private": SCPResolver
     }
 
 

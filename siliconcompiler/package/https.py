@@ -16,7 +16,8 @@ from typing import Callable, Dict, IO, List, Tuple, Type
 from io import BytesIO
 from urllib.parse import urljoin, urlparse
 
-from siliconcompiler.package import FetchRefused, RemoteResolver, current_fetch_policy
+from siliconcompiler.package import FetchRefused, RemoteResolver, Resolver, \
+    current_fetch_policy
 from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
 from siliconcompiler.utils import extract_safely, is_zstd, open_zstd_stream, \
     zstd_available, zstd_errors, zstd_unavailable_message
@@ -137,11 +138,12 @@ def _extract_archive(fileobj: IO[bytes], path: str, data_url: str) -> str:
     fileobj.seek(0)
     header = fileobj.read(8)
     if not zstd_available() and is_zstd(header):
-        raise PermanentResolutionError(f"Could not extract file from {data_url}. "
-                                       f"{zstd_unavailable_message()}")
+        raise PermanentResolutionError(
+            f"Could not extract file from {Resolver._masked_uri(data_url)}. "
+            f"{zstd_unavailable_message()}")
 
-    raise TypeError(f"Could not extract file from {data_url}. File is not a valid "
-                    "tar (gzip, bzip2, xz or zstd) or zip archive.")
+    raise TypeError(f"Could not extract file from {Resolver._masked_uri(data_url)}. "
+                    "File is not a valid tar (gzip, bzip2, xz or zstd) or zip archive.")
 
 
 def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
@@ -156,7 +158,9 @@ def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
     """
     return {
         "http": HTTPResolver,
-        "https": HTTPResolver
+        "https": HTTPResolver,
+        "http+private": HTTPResolver,
+        "https+private": HTTPResolver
     }
 
 
@@ -276,7 +280,8 @@ class HTTPResolver(RemoteResolver):
             if auth_token:
                 headers['Authorization'] = f'token {auth_token}'
 
-        self.logger.info(f'Downloading {self.display_name} data from {data_url}')
+        self.logger.info(f'Downloading {self.display_name} data from '
+                         f'{Resolver._masked_uri(data_url)}')
 
         response = requests.get(data_url, stream=True, headers=headers)
         self._extract_response(response, data_url)
@@ -318,7 +323,7 @@ class HTTPResolver(RemoteResolver):
             error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \
                 else FileNotFoundError
             error = error(f'Failed to download {self.display_name} data source from '
-                          f'{data_url}. Status code: {status}')
+                          f'{Resolver._masked_uri(data_url)}. Status code: {status}')
             # What the source answered, for a caller deciding whether to retry.
             error.status = status
             raise error

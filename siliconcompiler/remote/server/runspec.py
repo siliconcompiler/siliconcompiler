@@ -373,7 +373,7 @@ def outputs_present(node_dir, design: str) -> bool:
 def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
     '''What each node's image must hold, which is what the resolution needs.
 
-    🔴 **Asked of the task and never inferred.** `Task.image_requirement`
+    🔴 **Asked of the task and never inferred.** `Task._remote_toolname`
     declares it; every rule that guesses gets a real task wrong. Inferring
     from `exe` says *nothing* for the slang tasks, which have no executable
     and drive `pyslang` in this process -- and an image without pyslang cannot
@@ -398,7 +398,7 @@ def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
     for step, index in nodes:
         try:
             wanted[(step, index)] = flow.get_task_module(step, index)() \
-                .image_requirement()
+                ._remote_toolname
         except Exception:                                       # noqa: BLE001
             # A task that will not load declares nothing, which places the
             # node in the job's own image -- the safe direction, since that is
@@ -427,7 +427,7 @@ def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
     found: Dict[Tuple[str, str], Optional[Tuple[str, str]]] = {}
     for step, index in nodes:
         try:
-            if flow.get_task_module(step, index)().inherits_image():
+            if flow.get_task_module(step, index)()._remote_inherits_env:
                 found[(step, index)] = before.get((step, index))
         except Exception:                                       # noqa: BLE001
             continue

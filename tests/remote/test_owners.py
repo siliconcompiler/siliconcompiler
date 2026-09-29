@@ -32,10 +32,27 @@ def project(gcd_design):
     return ASIC(gcd_design)
 
 
-def first(project, key):
+def first(project, key, n=0):
     '''The first value of a parameter, out of the list it may be held in.'''
     value = project.get(*key, field=None).getvalues(return_values=False)[0][0]
-    return value.values[0] if hasattr(value, "values") else value
+    return value.values[n] if hasattr(value, "values") else value
+
+
+def collected_path(value):
+    '''Where `collect` puts one value, under the collection directory.'''
+    from siliconcompiler.schema.parametervalue import PathNodeValue
+
+    return PathNodeValue.generate_hashed_collection_path(
+        value.get(), value.get(field="dataroot"))
+
+
+def decide_value(project, key, n):
+    '''`decide`, for the ``n``-th value of the parameter.'''
+    value = first(project, key, n)
+    resolvers = project.get(*key[:-1], field="schema")._find_files_dataroot_resolvers(True)
+    dataroot = value.get(field="dataroot")
+    return (owners.source(resolvers, dataroot),
+            owners.uploads(project, key, dataroot, resolvers))
 
 
 def decide(project, key):
@@ -164,11 +181,14 @@ def test_a_private_pdk_is_never_uploaded(project, tmp_path):
 
 
 def test_the_marker_is_tested_in_one_place():
-    '''Its spelling is open; switching is an edit to `is_private` alone.'''
-    from siliconcompiler.package import FileResolver, PrivateFileResolver
+    '''A `+private` scheme, on a local path or a fetched source alike.'''
+    from siliconcompiler.package import FileResolver
+    from siliconcompiler.package.git import GitResolver
 
-    assert owners.is_private(PrivateFileResolver("x", None, "file+private:///a"))
+    assert owners.is_private(FileResolver("x", None, "file+private:///a"))
+    assert owners.is_private(GitResolver("x", None, "git+ssh+private://host/a.git", "v1"))
     assert not owners.is_private(FileResolver("x", None, "/a"))
+    assert not owners.is_private(GitResolver("x", None, "git+ssh://host/a.git", "v1"))
 
 
 ###########################
@@ -194,45 +214,87 @@ def test_sources_names_what_is_not_uploaded_and_strips_credentials(project, tmp_
 
 
 ###########################
-# collect(), told what to take
+# collect(), told what to take: a parameter at a time
 ###########################
+
+def uploaded_by_owner(project):
+    '''What a remote run hands `collect`, by the owner rule alone.'''
+    return owners.collection_keys(project, lambda one: owners.uploads(
+        project, one.key, one.dataroot, one.resolvers, one.value.get()))
+
+
+def collected_names(project):
+    from siliconcompiler.utils.paths import collectiondir
+
+    return [name for _, _, names in os.walk(collectiondir(project)) for name in names]
+
 
 def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
         project, tmp_path):
     from siliconcompiler.utils.curation import collect
-    from siliconcompiler.utils.paths import collectiondir
 
     project.option.set_builddir(str(tmp_path / "build"))
     project.set_pdk(resource(PDK, "local", tmp_path / "pdk"))
     project.add_asiclib(resource(StdCellLibrary, "remote",
                                  "https://example.test/lib.tar.gz", create=False))
 
-    collect(project, verbose=False,
-            select=lambda key, dataroot, resolvers, path: owners.uploads(
-                project, key, dataroot, resolvers, path))
+    collect(project, keys=uploaded_by_owner(project), verbose=False)
 
-    taken = os.listdir(collectiondir(project))
-    assert any(name.startswith("gcd") and name.endswith(".v") for name in taken)
-    assert any(name.startswith("datasheet") for name in taken)
+    taken = collected_names(project)
+    assert "gcd.v" in taken
     # Remote: not fetched, not collected.
-    assert len([name for name in taken if name.startswith("datasheet")]) == 1
+    assert taken.count("datasheet.pdf") == 1
 
     # 🔴 The caller's project is not rewritten to get there.
     assert not project.get("library", "local", *DATASHEET, field="copy")
 
 
-def test_without_a_selector_collect_still_reads_copy(project, tmp_path):
-    '''`sc-issue` and every other caller: unchanged.'''
-    from siliconcompiler.utils.curation import collect
-    from siliconcompiler.utils.paths import collectiondir
+def two_sources(tmp_path, second, *, create=True):
+    '''A PDK whose one datasheet parameter holds a local file and one from
+    ``second``.'''
+    pdk = PDK("mixed")
+    pdk.set_dataroot("here", str(tmp_path / "pdk"))
+    remote = second.startswith(("https://", "git"))
+    pdk.set_dataroot("there", second, tag="v1" if remote else None)
+    with pdk.active_dataroot("here"):
+        pdk.add(*DATASHEET, "datasheet.pdf")
+    with pdk.active_dataroot("there"):
+        pdk.add(*DATASHEET, "other.pdf")
+    os.makedirs(tmp_path / "pdk", exist_ok=True)
+    (tmp_path / "pdk" / "datasheet.pdf").write_text("the datasheet\n")
+    return pdk
 
-    project.option.set_builddir(str(tmp_path / "build"))
-    project.set_pdk(resource(PDK, "local", tmp_path / "pdk"))
 
-    collect(project, verbose=False)
+def test_a_parameter_goes_up_whole(project, tmp_path):
+    '''⚠️ `collect` takes a parameter's values together, so a value the
+    server could supply goes with a local one beside it.'''
+    project.set_pdk(two_sources(tmp_path, "https://example.test/pdk.tar.gz"))
+    key = ("library", "mixed", *DATASHEET)
+    assert [decide_value(project, key, n)[0] for n in (0, 1)] == [owners.LOCAL, owners.REMOTE]
 
-    assert not any(name.startswith("datasheet")
-                   for name in os.listdir(collectiondir(project)))
+    assert [where[0] for where in uploaded_by_owner(project)
+            if where[0][:2] == ("library", "mixed")] == [key]
+
+
+def test_a_private_value_beside_an_uploaded_one_is_refused(project, tmp_path):
+    '''🔴 Whole would send the private file too: refused, naming the key.'''
+    (tmp_path / "secret").mkdir()
+    project.set_pdk(two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}"))
+
+    with pytest.raises(owners.PrivateBeside, match=r"library,mixed,package,doc,datasheet"):
+        uploaded_by_owner(project)
+
+    # The server's half leaves the parameter out rather than refusing.
+    assert not [where for where in owners.collection_keys(
+        project, lambda one: owners.uploads(project, one.key, one.dataroot, one.resolvers),
+        refuse_private=False) if where[0][:2] == ("library", "mixed")]
+
+
+def test_a_private_parameter_alone_is_left_out_without_a_refusal(project, tmp_path):
+    project.set_pdk(private(PDK, "secret", tmp_path / "secret"))
+
+    assert not [where for where in uploaded_by_owner(project)
+                if where[0][:2] == ("library", "secret")]
 
 
 ###########################
@@ -285,7 +347,9 @@ def test_an_uploaded_file_is_accounted_as_uploaded(project, tmp_path):
     collection = tmp_path / "sc_collected_files"
     collection.mkdir()
     value = first(project, ("library", "mine", *DATASHEET))
-    (collection / value.get_hashed_filename()).write_text("uploaded\n")
+    target = collection / collected_path(value)
+    target.parent.mkdir(parents=True)
+    target.write_text("uploaded\n")
 
     assert status(project, "mine", Supply(), collection).status == owners.UPLOADED
 
@@ -419,7 +483,7 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
 
     project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
     archive, _, _ = job_archive(project)
-    hashed = first(project, ("library", "mine", *DATASHEET)).get_hashed_filename()
+    hashed = collected_path(first(project, ("library", "mine", *DATASHEET)))
     archive, digest, size = _upload_without(project, archive, tmp_path, hashed)
 
     job = stage(server_client, key, token, archive, size)

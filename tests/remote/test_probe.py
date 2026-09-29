@@ -317,38 +317,6 @@ def test_an_answer_that_is_a_version_is_not_marked_unparsed():
 
 
 ###########################
-# A Python wrapper around a program
-###########################
-
-GRAPHVIZ = "siliconcompiler.tools.graphviz.show"
-
-
-def test_the_graphviz_driver_declares_the_program_it_shells_out_to():
-    '''🔴 Declared by the driver, never guessed: the distribution being
-    installed says nothing about `dot`.'''
-    assert probe.wrapped_for("graphviz", GRAPHVIZ) == "dot"
-
-
-def test_a_wrapper_is_present_only_where_its_program_is(tmp_path):
-    '''The marker is printed inside a guard on the program, so a runtime image
-    with the wrapper and not `dot` no longer answers *present*.'''
-    wanted = [("graphviz", "tool", GRAPHVIZ, "graphviz")]
-    text = probe.script(wanted)
-
-    assert "command -v dot" in text
-    guard = text.index("command -v dot")
-    assert guard < text.index("graphviz", text.index("python3"))
-
-
-def test_a_wrapper_that_declares_nothing_is_asked_as_before():
-    '''slang drives pyslang in-process and wraps no program.'''
-    text = probe.script([("slang", "tool", "siliconcompiler.tools.slang.elaborate",
-                          "pyslang")])
-
-    assert "command -v" not in text
-
-
-###########################
 # 🔴 Bounded: the output is somebody else's image's
 ###########################
 

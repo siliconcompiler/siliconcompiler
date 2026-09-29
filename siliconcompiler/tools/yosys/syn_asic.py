@@ -655,6 +655,13 @@ class ASICSynthesis(ASICSynthesisBase):
             "bool",
             "true/false, flag to indicate if optimizations should mark undriven nets",
             True)
+        self.add_parameter(
+            "opt_dff_sat",
+            "bool",
+            "true/false, pass -sat to opt_dff during the final optimization before "
+            "dfflibmap, which uses a SAT solver to find flip-flops that can be replaced "
+            "by a constant driver or merged with an equivalent flip-flop",
+            False)
 
         self.__init_hierarchy_parameter()
         self.__init_moosic_parameter()
@@ -688,6 +695,31 @@ class ASICSynthesis(ASICSynthesisBase):
             "str",
             "control the hierarchy separator used during design flattening",
             "/")
+
+        self.add_parameter(
+            "hier_opt",
+            "bool",
+            "true/false, enable cross-boundary optimization (opt_hier) when the design is "
+            "not flattened. Requires yosys >= 0.58 and has no effect when flatten is true.",
+            True)
+        self.add_parameter(
+            "hier_opt_uniquify",
+            "bool",
+            "true/false, give each module instance its own copy before hierarchical "
+            "optimization. opt_hier can only propagate what every instance of a shared "
+            "module has in common, so without this two instances wired to different "
+            "constants block each other. Opt in, because this renames the instances in "
+            "the output netlist and a module kept for reuse is no longer shared between "
+            "its instances. Modules named in preserve_modules are left shared. Has no "
+            "effect unless hier_opt is enabled.",
+            False)
+        self.add_parameter(
+            "hier_opt_max_rounds",
+            "int<1..>",
+            "Maximum rounds of the opt_hier and uniquify convergence loops. Both propagate "
+            "across one level of hierarchy per round, so a design needs roughly as many "
+            "rounds as it is deep.",
+            10)
 
     def __init_abc_parameter(self):
         self.add_parameter(
@@ -787,6 +819,19 @@ class ASICSynthesis(ASICSynthesisBase):
         else:
             self.add("var", "blackbox_modules", modules, step=step, index=index)
 
+    def set_yosys_optdffsat(self, enable: bool,
+                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables using a SAT solver to find flip-flops that can be replaced
+        by a constant driver or merged with an equivalent flip-flop.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "opt_dff_sat", enable, step=step, index=index)
+
     def set_yosys_flatten(self, enable: bool,
                           step: Optional[str] = None, index: Optional[str] = None):
         """
@@ -822,6 +867,43 @@ class ASICSynthesis(ASICSynthesisBase):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "hier_threshold", threshold, step=step, index=index)
+
+    def set_yosys_hieropt(self, enable: bool,
+                          step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables cross-boundary optimization of a design that is not flattened.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "hier_opt", enable, step=step, index=index)
+
+    def set_yosys_hieroptuniquify(self, enable: bool,
+                                  step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables giving each module instance its own copy before
+        cross-boundary optimization.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "hier_opt_uniquify", enable, step=step, index=index)
+
+    def set_yosys_hieroptmaxrounds(self, rounds: int,
+                                   step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the maximum number of rounds of the cross-boundary optimization loop.
+
+        Args:
+            rounds (int): The maximum number of rounds.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "hier_opt_max_rounds", rounds, step=step, index=index)
 
     def set_yosys_hierarchyseparator(self, separator: str,
                                      step: Optional[str] = None, index: Optional[str] = None):
@@ -923,10 +1005,18 @@ class ASICSynthesis(ASICSynthesisBase):
         self.add_required_key("var", "tie_undef")
         self.add_required_key("var", "add_tieoffs")
         self.add_required_key("var", "opt_undriven")
+        self.add_required_key("var", "opt_dff_sat")
         self.add_required_key("var", "flatten")
         self.add_required_key("var", "auto_flatten")
         self.add_required_key("var", "hier_threshold")
         self.add_required_key("var", "hierarchy_separator")
+
+        # Only read when the design keeps its hierarchy
+        if not self.get("var", "flatten"):
+            self.add_required_key("var", "hier_opt")
+            if self.get("var", "hier_opt"):
+                self.add_required_key("var", "hier_opt_uniquify")
+                self.add_required_key("var", "hier_opt_max_rounds")
 
         if self.get("var", "strategy"):
             self.add_required_key("var", "strategy")

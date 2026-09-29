@@ -42,11 +42,17 @@ when its key is in :func:`required` -- the union of every running node's
 flow that runs three. Both ends read the set from the same manifest; the client
 works it out by running each node's setup on a copy (:func:`work_out_required`)
 and carries it there.
+
+⚠️ **A parameter goes up whole.** What the table decides for each value,
+`collect` carries out per parameter -- one ``(key, step, index)`` -- so a value
+the server could have supplied travels with a local one beside it
+(:func:`collection_keys`). A private value beside an uploaded one is refused
+rather than sent: keep private files in a fileset of their own.
 '''
 
 import os
 
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
@@ -55,7 +61,8 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
            "strip_userinfo", "account", "Entry", "confined", "upload_report",
            "required", "needed", "work_out", "work_out_required", "with_required",
-           "WorkedOut", "installed_dataroots", "private_holders"]
+           "WorkedOut", "installed_dataroots", "private_holders",
+           "collection_keys", "collected_path", "PrivateBeside"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -83,15 +90,14 @@ _NEVER = {("option", "builddir"), ("option", "cachedir"),
 
 
 def is_private(resolver) -> bool:
-    '''Whether a dataroot is marked never to leave the machine.
+    '''Whether a dataroot is marked never to leave the machine: a ``+private``
+    scheme, ``file+private://``, ``git+ssh+private://`` and the rest
+    (:attr:`~siliconcompiler.package.Resolver.is_private`).
 
-    🔴 **The one place the marker is tested.** Its spelling is not decided -- a
-    ``file+private://`` scheme, which this is, or a ``private`` field beside
-    ``path`` and ``tag`` -- so switching is an edit here and nowhere else.
+    🔴 **The one place the marker is tested**, so what a remote run makes of it
+    is decided here and nowhere else.
     '''
-    from siliconcompiler.package import PrivateFileResolver
-
-    return isinstance(resolver, PrivateFileResolver)
+    return bool(getattr(resolver, "is_private", False))
 
 
 def skipped(key) -> bool:
@@ -214,6 +220,8 @@ class _Value(NamedTuple):
     name: Optional[str]
     dataroot: Optional[str]
     origin: str                 # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
+    step: Optional[str] = None
+    index: Optional[str] = None
 
 
 def _values(project) -> Iterator[_Value]:
@@ -229,7 +237,7 @@ def _values(project) -> Iterator[_Value]:
             continue
 
         resolvers = None
-        for held, _, _ in param.getvalues(return_values=False):
+        for held, step, index in param.getvalues(return_values=False):
             if not held.has_value:
                 continue
             if resolvers is None:
@@ -245,7 +253,58 @@ def _values(project) -> Iterator[_Value]:
                 yield _Value(tuple(key), one, resolvers,
                              DESIGN if who == PROJECT else who,
                              project.name if who == PROJECT else name,
-                             dataroot, source(resolvers, dataroot, path=one.get()))
+                             dataroot, source(resolvers, dataroot, path=one.get()),
+                             step, index)
+
+
+class PrivateBeside(ValueError):
+    '''A parameter that would go up holds a private value too.'''
+
+    def __init__(self, mixed: List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]):
+        self.mixed = mixed
+        named = "; ".join(f"[{','.join(key)}]" + (f" ({step}/{index})" if step else "")
+                          for key, step, index in mixed)
+        super().__init__(
+            f"{named} holds files marked private beside files this run sends. A "
+            "parameter's files go up together, so the private ones would too: put "
+            "them in a fileset of their own.")
+
+
+def collection_keys(project, pick: Callable[[_Value], bool],
+                    refuse_private: bool = True) \
+        -> List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]:
+    '''What `collect` is handed: every ``(key, step, index)`` one of whose
+    values ``pick`` takes -- and then all of its values, since `collect` takes
+    a parameter whole.
+
+    🔴 **Both ends call this**, the client to collect and the server to know
+    what a follow-up archive may carry, so they agree on what "whole" includes.
+
+    A private value is never picked, and one beside a picked value is
+    :class:`PrivateBeside` -- raised, unless ``refuse_private`` is off, where
+    the parameter is left out.
+    '''
+    from siliconcompiler.utils.curation import filter_collection_keys
+
+    picked: Dict[Tuple[Tuple[str, ...], Optional[str], Optional[str]], None] = {}
+    private = set()
+    for one in _values(project):
+        where = (one.key, one.step, one.index)
+        if one.origin == PRIVATE:
+            private.add(where)
+        elif pick(one):
+            picked[where] = None
+    mixed = [where for where in picked if where in private]
+    if mixed and refuse_private:
+        raise PrivateBeside(mixed)
+    return filter_collection_keys([where for where in picked if where not in private])
+
+
+def collected_path(one: _Value) -> Optional[str]:
+    '''Where `collect` puts ``one``, under the collection directory.'''
+    from siliconcompiler.schema.parametervalue import PathNodeValue
+
+    return PathNodeValue.generate_hashed_collection_path(one.value.get(), one.dataroot)
 
 
 def sources(project, required=None) -> List[Dict[str, Any]]:

@@ -688,58 +688,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """str: The name of this task."""
         raise NotImplementedError("task name must be implemented by the child class")
 
-    def image_requirement(self) -> Optional[str]:
-        """
-        What a container image must hold for this task to run.
-
-        Declared rather than inferred, and that is the point: an orchestrator
-        placing nodes in images has to know what each one needs, and every
-        rule that guesses gets a real task wrong.
-
-        Inferring it from ``exe`` says *nothing* for the slang tasks, which
-        have no executable and drive ``pyslang`` in this process -- and an
-        image without pyslang cannot run them. Inferring it from
-        :meth:`tool` says *builtin*, which is not a thing anybody installs.
-
-        Returns:
-            str: the name an image must hold, which defaults to this task's
-                tool. None where the task needs nothing of its image.
-
-        Examples:
-            >>> task.image_requirement()
-            'openroad'
-        """
-        return self.tool()
-
-    def wrapped_executable(self) -> Optional[str]:
-        """
-        The program this task drives through a Python wrapper, if any.
-
-        For a task whose tool is a Python package that shells out to a program
-        -- graphviz's, which runs ``dot`` -- the package being installed says
-        nothing about whether the program is. Declared here rather than
-        inferred, like :meth:`image_requirement`: what an image must hold for
-        the task to run is the driver's to say.
-
-        Returns:
-            str: the program's name, or None when the task wraps no program.
-        """
-        return None
-
-    def inherits_image(self) -> bool:
-        """
-        Whether this task should run wherever the previous node ran.
-
-        For a task whose command is not known until it is built -- the
-        execute tasks assemble one from the manifest -- there is nothing to
-        require an image for, and the environment that produced the inputs is
-        the one most likely to be able to run it.
-
-        Returns:
-            bool: True to follow the input node's placement.
-        """
-        return False
-
     @property
     def logger(self) -> logging.Logger:
         """logging.Logger: The logger instance."""
@@ -809,6 +757,26 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         outside the active run are treated as on-disk dependencies.
         """
         return self.__io_runtime_flow
+
+    @property
+    def _remote_toolname(self) -> Optional[str]:
+        """
+        Returns information about the remote source of the tool.
+
+        Returns:
+            Optional[str]: The remote tool name if available, otherwise None.
+        """
+        return self.tool()
+
+    @property
+    def _remote_inherits_env(self) -> bool:
+        """
+        Indicates whether the remote tool needs to inherit the previous node's environment.
+
+        Returns:
+            bool: True if the remote tool inherits the previous node's environment, False otherwise.
+        """
+        return False
 
     def get_logpath(self, log: str) -> str:
         """
@@ -2095,19 +2063,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         Adds a required keypath to the task driver. If the key is valid relative to the task object
             the key will be assumed as a task key.
 
-        A key already required is not added again, so a setup that runs twice
-        -- a second run in one process, or a manifest that arrives with its
-        requirements already worked out, as a remote run's does -- lists each
-        key once.
-
         Args:
             obj (:class:`BaseSchema` or str): if this is a string it will be considered
                 part of the key, otherwise the keypath to the obj will be prepended to
                 the key
             key (list of str): required key path
-
-        Returns:
-            The value added, or None where the key was already required.
         '''
 
         if isinstance(obj, BaseSchema):
@@ -2120,10 +2080,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if any([not isinstance(k, str) for k in key]):
             raise ValueError("key can only contain strings")
 
-        required = ",".join(key)
-        if required in (self.get("require", step=step, index=index) or []):
-            return None
-        return self.add("require", required, step=step, index=index)
+        return self.add("require", ",".join(key), step=step, index=index)
 
     def get_digest_keys(self) -> Set[Tuple[str, ...]]:
         '''
@@ -3534,7 +3491,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         schema.insert(
             'require',
             Parameter(
-                '[str]',
+                '{str}',
                 scope=Scope.JOB,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Task: parameter requirements",

@@ -164,8 +164,11 @@ RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server,cocot
 # 🔴 Deliberately NOT docker or podman. Handing a compute node the ability to
 # start containers on the host is a much larger grant than running a flow, and
 # Slurm's own container support exists precisely so that grant is unnecessary.
+#
+# graphviz for `dot`, as in the runtime image below: siliconcompiler brings the
+# Python wrapper into every image, so every image claims graphviz.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        crun skopeo umoci \
+        crun skopeo umoci graphviz \
     && rm -rf /var/lib/apt/lists/*
 
 # cgroup.conf overrides the base image's, which disables cgroups entirely --
@@ -223,7 +226,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 # shells out to `dot`. It arrives with siliconcompiler, so this image declares
 # it and nodes that need it are placed here rather than in the twelve-gigabyte
 # tool image -- and without the binary that placement is a container that
-# cannot run what the registry says it holds.
+# cannot run what the registry says it holds. The probe does not ask for `dot`:
+# every image holding the wrapper installs it (the cluster stage too).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates git python3 python3-venv libmunge2 graphviz \
     && rm -rf /var/lib/apt/lists/*

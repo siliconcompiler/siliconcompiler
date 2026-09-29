@@ -29,7 +29,7 @@ from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.package.cleanup import auto_cleanup
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
-from siliconcompiler.utils.curation import collect
+from siliconcompiler.utils.curation import collect, filter_collection_keys
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -350,10 +350,16 @@ class Scheduler:
             # Collect what the nodes that run elsewhere cannot reach
             keys, legacy = self.__collect_keys()
             if keys or legacy:
-                project = self.__project
-                collect(project, select=lambda key, dataroot, resolvers, path: (
-                    tuple(key) in keys
-                    or (legacy and bool(project.get(*key, field='copy')))))
+                collect_keys = []
+                for key in self.project.allkeys():
+                    param = self.project.get(*key, field=None)
+                    if not param.is_path:
+                        continue
+                    if tuple(key) in keys or (legacy and param.get(field='copy')):
+                        collect_keys.extend((key, step, index)
+                                            for _, step, index in
+                                            param.getvalues(return_values=False))
+                collect(self.project, keys=filter_collection_keys(collect_keys))
 
             try:
                 self.run_core()

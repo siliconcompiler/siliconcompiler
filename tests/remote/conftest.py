@@ -364,8 +364,8 @@ def job_archive(nop_project):
             from siliconcompiler.utils.curation import collect
 
             collect(project, verbose=False,
-                    select=lambda key, dataroot, resolvers, path: owners.uploads(
-                        project, key, dataroot, resolvers, path))
+                    keys=owners.collection_keys(project, lambda one: owners.uploads(
+                        project, one.key, one.dataroot, one.resolvers, one.value.get())))
         project.write_manifest(os.path.join(root, f"{project.name}.pkg.json"))
 
         path = os.path.abspath(f"upload-{project.name}-{project.option.get_jobname()}.tar.gz")

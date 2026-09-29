@@ -3,7 +3,7 @@ import tarfile
 
 import os.path
 
-from typing import Callable, List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Tuple
 
 from siliconcompiler.schema import BaseSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
@@ -16,17 +16,36 @@ if TYPE_CHECKING:
     from siliconcompiler.project import Project
 
 
+CollectionKey = Tuple[Tuple[str, ...], Optional[str], Optional[str]]
+
+
+def filter_collection_keys(keys: List[CollectionKey]) -> List[CollectionKey]:
+    """Remove schema entries that must never be included in a collection."""
+    filtered_keys = []
+    for key, step, index in keys:
+        if 'default' in key or key[0] == 'history':
+            continue
+        if key in (('option', 'builddir'), ('option', 'cachedir'),
+                   ('option', 'credentials')):
+            continue
+        if (len(key) >= 5 and key[0] == 'tool' and key[2] == 'task'
+                and key[4] in ('input', 'report', 'output')):
+            continue
+        filtered_keys.append((key, step, index))
+    return filtered_keys
+
+
 def collect(project: "Project",
+            keys: List[CollectionKey],
             directory: Optional[str] = None,
             verbose: bool = True,
-            whitelist: Optional[List[str]] = None,
-            select: Optional[Callable[..., bool]] = None) -> None:
+            whitelist: Optional[List[str]] = None) -> None:
     '''
-    Collects files and directories specified in the schema and places
-    them in a collection directory. By default the function only copies items
-    that have the 'copy' field set to True in their schema definition.
+    Collects the specified files and directories into a collection directory.
 
     Args:
+        keys (List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]):
+            Path parameter keypaths and their flowgraph step and index to collect.
         directory (str, optional): The output directory for collected files.
             Defaults to the path from :meth:`.collectiondir`.
         verbose (bool): If True, logs information about each collected file/directory.
@@ -34,12 +53,6 @@ def collect(project: "Project",
         whitelist (List[str], optional): A list of absolute paths that are
             allowed to be collected. If an item to be collected is not on this list,
             a `RuntimeError` is raised. Defaults to None.
-        select (callable, optional): Decides, in place of the 'copy' field,
-            whether one value is collected. Called as
-            ``select(key, dataroot, resolvers, path)`` with the parameter's
-            keypath, the value's dataroot name, the owning schema's dataroot
-            resolvers and the value itself. Defaults to None, which reads the
-            'copy' field.
 
     Raises:
         RuntimeError: If a file or directory to be collected is not in the `whitelist`.
@@ -90,63 +103,29 @@ def collect(project: "Project",
     dirs = {}
     files = {}
 
-    for key in project.allkeys():
-        if key[0] == 'history':
-            # skip history
-            continue
-
-        # Skip runtime directories
-        if key == ('option', 'builddir'):
-            # skip builddir
-            continue
-        if key == ('option', 'cachedir'):
-            # skip cache
-            continue
-
-        if key[0] == 'tool' and key[2] == 'task' and key[4] in ('input',
-                                                                'report',
-                                                                'output'):
-            # skip flow files files from builds
-            continue
-
+    for key, step, index in keys:
         param: Parameter = project.get(*key, field=None)
 
         if not param.is_path:
             continue
 
-        if select is None and not param.get(field='copy'):
+        values = None
+        for candidate, candidate_step, candidate_index in param.getvalues(return_values=False):
+            if candidate_step == step and candidate_index == index:
+                values = candidate
+                break
+        if values is None or not values.has_value:
             continue
 
-        resolvers = None
-        if select is not None:
-            resolvers = project.get(*key[:-1], field="schema") \
-                ._find_files_dataroot_resolvers(True)
+        if isinstance(values, (NodeSetValue, NodeListValue)):
+            values = values.values
+        else:
+            values = [values]
 
-        for values, step, index in param.getvalues(return_values=False):
-            if not values.has_value:
-                continue
-
-            if isinstance(values, (NodeSetValue, NodeListValue)):
-                values = values.values
-            else:
-                values = [values]
-
-            if select is not None:
-                # Every value is kept, so that the paths `find_files` returns
-                # for this key still pair up with them; the ones not selected
-                # are skipped when they do.
-                chosen = [select(key, value.get(field='dataroot'), resolvers,
-                                 value.get())
-                          for value in values]
-                if not any(chosen):
-                    continue
-                values = [(value if keep else None)
-                          for value, keep in zip(values, chosen)]
-
-            if param.is_directory:
-                dirs[(key, step, index)] = values
-            else:
-                files[(key, step, index)] = values
+        if param.is_directory:
+            dirs[(key, step, index)] = values
+        else:
+            files[(key, step, index)] = values
 
     try:
         path_filter = FilterDirectories(project)
@@ -157,9 +136,8 @@ def collect(project: "Project",
             if not isinstance(abs_paths, (list, tuple, set)):
                 abs_paths = [abs_paths]
 
-            abs_paths = [(path, value) for path, value
-                         in zip(abs_paths, dirs[(key, step, index)]) if value is not None]
-            abs_paths = sorted(abs_paths, key=lambda p: p[0] or "")
+            abs_paths = zip(abs_paths, dirs[(key, step, index)])
+            abs_paths = sorted(abs_paths, key=lambda p: p[0])
 
             for abs_path, value in abs_paths:
                 if not abs_path:
@@ -179,7 +157,9 @@ def collect(project: "Project",
 
                 collected_dirs.add(abs_path)
 
-                import_path = os.path.join(directory, value.get_hashed_filename())
+                import_path = os.path.join(
+                    directory,
+                    value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
                 if os.path.exists(import_path):
                     continue
 
@@ -189,6 +169,7 @@ def collect(project: "Project",
                 if verbose:
                     project.logger.info(f"  Collecting directory: {abs_path}")
                 path_filter.abspath = abs_path
+                os.makedirs(os.path.dirname(import_path), exist_ok=True)
                 shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
                 path_filter.abspath = None
 
@@ -198,9 +179,8 @@ def collect(project: "Project",
             if not isinstance(abs_paths, (list, tuple, set)):
                 abs_paths = [abs_paths]
 
-            abs_paths = [(path, value) for path, value
-                         in zip(abs_paths, files[(key, step, index)]) if value is not None]
-            abs_paths = sorted(abs_paths, key=lambda p: p[0] or "")
+            abs_paths = zip(abs_paths, files[(key, step, index)])
+            abs_paths = sorted(abs_paths, key=lambda p: p[0])
 
             for abs_path, value in abs_paths:
                 if not abs_path:
@@ -220,12 +200,15 @@ def collect(project: "Project",
                 if contained:
                     continue
 
-                import_path = os.path.join(directory, value.get_hashed_filename())
+                import_path = os.path.join(
+                    directory,
+                    value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
                 if os.path.exists(import_path):
                     continue
 
                 if verbose:
                     project.logger.info(f"  Collecting file: {abs_path}")
+                os.makedirs(os.path.dirname(import_path), exist_ok=True)
                 shutil.copy2(abs_path, import_path)
     finally:
         if prev_dir:

@@ -799,6 +799,10 @@ class RemoteRun:
         required values under that dataroot, never all of it. A private
         dataroot is never collected, asked or not: it must not leave this
         machine.
+
+        ⚠️ **A parameter goes up whole**, as `collect` takes it: a selected
+        value brings the rest of its ``(key, step, index)`` with it, and one
+        holding a private value too is refused (`owners.collection_keys`).
         '''
         from siliconcompiler.remote import owners
 
@@ -810,24 +814,23 @@ class RemoteRun:
         if not only_asked:
             wanted |= self._uploaded_packages()
 
-        def select(key, dataroot, resolvers, path):
-            if owners.skipped(key) or not owners.needed(key, required):
+        def pick(one) -> bool:
+            if not owners.needed(one.key, required):
                 return False
-            origin = owners.source(resolvers, dataroot, path=path)
-            if origin == owners.PRIVATE:
-                return False
-            if not only_asked and owners.uploads(self.project, key, dataroot,
-                                                 resolvers, path):
+            if not only_asked and owners.uploads(self.project, one.key, one.dataroot,
+                                                 one.resolvers, one.value.get()):
                 return True
-            who, name = owners.owner(self.project, key)
-            kind = owners.DESIGN if who == owners.PROJECT else who
-            name = self.project.name if who == owners.PROJECT else name
-            return (kind, name, dataroot) in wanted
+            return (one.kind, one.name, one.dataroot) in wanted
 
         try:
-            collect(self.project, directory=directory, verbose=directory is None,
-                    whitelist=list(self.client.credentials.directory_whitelist),
-                    select=select)
+            keys = owners.collection_keys(self.project, pick)
+        except owners.PrivateBeside as e:
+            raise RemoteError(str(e)) from None
+
+        try:
+            collect(self.project, keys=keys, directory=directory,
+                    verbose=directory is None,
+                    whitelist=list(self.client.credentials.directory_whitelist))
         except (FileNotFoundError, RuntimeError, ValueError) as e:
             if not asked:
                 raise

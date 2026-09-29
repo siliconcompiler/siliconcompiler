@@ -181,12 +181,21 @@ package to a test module.
 The client prints what goes up, per dataroot, with sizes, before anything
 moves.
 
+**Files marked private never go up.** A dataroot registered with a ``+private``
+scheme -- ``file+private://``, ``git+ssh+private://`` and the rest -- is data
+that must not leave your machine: the server supplies its own copy of it, under
+the names of the object and the dataroot, or refuses the job. Files go up a
+parameter at a time -- a fileset's files together -- so keep private files in a
+fileset of their own: one holding a private file beside a file that goes up
+stops the run here, naming it.
+
 **What the server cannot supply, it asks for.** A source the server does not
-hold and will not fetch itself -- a private git repository behind your own key
-is the common case -- is named in the answer to the first call, and the client
-fetches it with your credentials and adds it to the upload. If it fails later
--- the server's own fetch of a release was refused -- the job goes back to
-waiting for input, and the client sends only what was asked for. If your
+hold and will not fetch itself -- a private git repository behind your own key,
+not marked ``+private``, is the common case -- is named in the answer to the
+first call, and the client fetches it with your credentials and adds it to the
+upload. If it fails later -- the server's own fetch of a release was refused
+-- the job goes back to waiting for input, and the client sends only what was
+asked for. If your
 machine cannot reach it either, the run stops here, naming it, and nothing is
 uploaded.
 

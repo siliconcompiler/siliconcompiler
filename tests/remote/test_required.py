@@ -7,7 +7,7 @@ from siliconcompiler.remote import owners
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from conftest import outcome, slug
-from test_owners import DATASHEET, _upload_without, first, private
+from test_owners import DATASHEET, _upload_without, collected_path, first, private
 
 
 # Only what the flow requires goes up (D129). The owner table says whether a
@@ -155,10 +155,30 @@ def test_only_what_the_flow_reads_goes_up(gcd_design, tmp_path, logged_in):
 
     RemoteRun(project, logged_in)._collect()
 
-    collected = set(os.listdir(collectiondir(project)))
-    assert first(project, ("library", "mylib", *DATASHEET)).get_hashed_filename() in collected
-    assert first(project, ("library", "mylib", *QUICKSTART)).get_hashed_filename() \
-        not in collected
+    collected = collectiondir(project)
+    assert os.path.exists(os.path.join(
+        collected, collected_path(first(project, ("library", "mylib", *DATASHEET)))))
+    assert not os.path.exists(os.path.join(
+        collected, collected_path(first(project, ("library", "mylib", *QUICKSTART)))))
+
+
+def test_a_private_file_beside_a_sent_one_stops_the_run_here(
+        gcd_design, tmp_path, logged_in):
+    '''🔴 A parameter goes up whole, so one holding a private file beside a
+    local one is refused on this machine, naming it -- before anything is
+    collected.'''
+    from siliconcompiler.remote.client.errors import RemoteError
+    from siliconcompiler.remote.client.run import RemoteRun
+    from siliconcompiler.utils.paths import collectiondir
+    from test_owners import two_sources
+
+    (tmp_path / "secret").mkdir()
+    pdk = two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}")
+    project = reading(gcd_design, tmp_path, ("library", "mixed", *DATASHEET), pdk=pdk)
+
+    with pytest.raises(RemoteError, match=r"library,mixed,package,doc,datasheet"):
+        RemoteRun(project, logged_in)._collect()
+    assert not os.path.exists(collectiondir(project))
 
 
 def test_a_setup_that_cannot_run_here_uploads_by_owner_alone(
@@ -179,8 +199,9 @@ def test_a_setup_that_cannot_run_here_uploads_by_owner_alone(
     assert run._needs() == (project, None)
 
     run._collect()
-    assert first(project, ("library", "mylib", *QUICKSTART)).get_hashed_filename() \
-        in os.listdir(collectiondir(project))
+    assert os.path.exists(os.path.join(
+        collectiondir(project),
+        collected_path(first(project, ("library", "mylib", *QUICKSTART)))))
 
 
 def test_the_manifest_carries_the_set_and_the_run_adds_nothing_twice(
@@ -233,7 +254,7 @@ def test_a_required_file_the_client_should_have_sent_is_refused_before_dispatch(
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
                               pdk=PDK("lambda"), libs=[lib]))
-    hashed = first(project, ("library", "mylib", *DATASHEET)).get_hashed_filename()
+    hashed = collected_path(first(project, ("library", "mylib", *DATASHEET)))
 
     job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
                               left_out=hashed)
@@ -250,7 +271,7 @@ def test_a_file_the_flow_does_not_read_may_be_left_out(
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
                               pdk=PDK("lambda"), libs=[lib]))
-    hashed = first(project, ("library", "mylib", *QUICKSTART)).get_hashed_filename()
+    hashed = collected_path(first(project, ("library", "mylib", *QUICKSTART)))
 
     job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
                               left_out=hashed)
@@ -318,7 +339,7 @@ def test_a_follow_up_carries_only_the_required_values_of_what_was_asked(
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")
 
-    unread = first(project, ("library", "lambda", *QUICKSTART)).get_hashed_filename()
+    unread = collected_path(first(project, ("library", "lambda", *QUICKSTART)))
     refused = send(server_client, key, token, job["id"],
                    {f"sc_collected_files/{unread}": b"not asked for\n"})
     assert refused.get_json()["reason"] == "unrequested_member"

@@ -108,23 +108,22 @@ def project(sources):
 
 
 def make_testcase(proj, **kwargs):
-    '''Generates a testcase and returns (archive path, selection map).
+    '''Generates a testcase and returns (archive path, collection selection map).
 
-    The selection is what generate_testcase() hands `collect` to decide by:
-    each path parameter, and whether the bundle takes it. 🔴 It never writes
-    the project's `copy` fields to say so, and this asserts that too.
+    🔴 generate_testcase() hands `collect` the keys it takes, and never writes
+    the project's `copy` fields to say so; this asserts that too.
     '''
     flags = {}
 
     def record_and_collect(project, **collect_kwargs):
-        select = collect_kwargs["select"]
+        selected_keys = {','.join(key) for key, _, _ in collect_kwargs['keys']}
         for keypath in project.allkeys():
             if 'default' in keypath:
                 continue
             param = project.get(*keypath, field=None)
             if not param.is_path:
                 continue
-            flags[','.join(keypath)] = select(keypath, None, {}, None)
+            flags[','.join(keypath)] = ','.join(keypath) in selected_keys
         return collect(project, **collect_kwargs)
 
     before = {','.join(keypath): proj.get(*keypath, field='copy')
@@ -144,16 +143,16 @@ def make_testcase(proj, **kwargs):
 
 
 def collected_files(archive):
-    '''Returns the basenames collected into the archive's collection directory.'''
+    '''Returns paths stored beneath the archive's collection directory.'''
     with tarfile.open(archive) as tar:
         return set(
-            os.path.basename(name) for name in tar.getnames()
-            if os.path.dirname(name) == COLLECT_DIR)
+            name for name in tar.getnames()
+            if name.startswith(COLLECT_DIR + '/'))
 
 
 def collected(archive, stem, ext):
-    '''Checks the archive for a collected file, which is stored hashed.'''
-    return any(name.startswith(f'{stem}_') and name.endswith(ext)
+    '''Checks the archive for a collected file with the requested basename.'''
+    return any(os.path.basename(name).startswith(stem) and name.endswith(ext)
                for name in collected_files(archive))
 
 
@@ -195,10 +194,11 @@ def test_library_tool_file_resolves_in_archive(project):
         os.chdir(cwd)
 
     assert len(techmap) == 1
+    collection_dir = os.path.abspath(
+        os.path.join(replay_dir, 'build/heartbeat/job0/sc_collected_files'))
     for path in (techmap[0], tracks):
         assert os.path.isfile(path)
-        assert os.path.dirname(path) == \
-            os.path.abspath(os.path.join(replay_dir, 'build/heartbeat/job0/sc_collected_files'))
+        assert os.path.commonpath((collection_dir, path)) == collection_dir
 
 
 def test_library_tool_file_excluded_without_libraries(project):

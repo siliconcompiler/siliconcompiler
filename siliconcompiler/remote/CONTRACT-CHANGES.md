@@ -195,6 +195,46 @@ tables. `sc-server` keeps those 20.
 
 **Where it goes:** the profile's §3 heading and §O's *Kept, 19 tables of 41*.
 
+### From merging SiliconCompiler's collection rework (2026-09-28)
+
+#### 15. A parameter goes up whole
+
+Surface *What goes up, by owner* judges each file from its own dataroot, and a
+follow-up archive holding a member under any dataroot not asked for is
+`unrequested_member`. ⚠️ **SiliconCompiler's `collect` now takes a parameter at
+a time** -- one `(key, step, index)` -- and not a value at a time, so a fileset
+holding a local file and one the server supplies uploads both. Each file is
+still judged by its dataroot; the verdicts then apply per parameter:
+
+- a parameter goes up where any of its values would, and all of its values go
+  with it -- the first archive and a follow-up alike;
+- a follow-up may therefore carry, beside what was asked for, the other values
+  of each parameter holding an asked-for value, and the server accepts exactly
+  those (`owners.collection_keys`, the one rule both ends call);
+- 🔴 **a parameter holding a private value beside one that would go up is
+  refused on the client**, naming the parameter, rather than sending the
+  private file: the user keeps private files in a fileset of their own.
+
+This is *A directory parameter goes whole* one level up.
+
+**Where it goes:** surface *What goes up, by owner* (judged per file, carried
+out per parameter) and item 6 of *What the server cannot supply, it asks for*.
+
+#### 16. The private marker is a `+private` scheme, on any source
+
+Surface *What goes up, by owner* leaves the spelling [open](#open): a
+`file+private` scheme or a `private` field. SiliconCompiler decided it: a
+`+private` suffix on any resolver's scheme -- `file+private`, `git+private`,
+`git+https+private`, `git+ssh+private`, `ssh+private`, `http+private`,
+`https+private` -- read through `Resolver.is_private`. ⚠️ **Every one means
+*marked private*: never uploaded, and supplied by the operator by name or
+refused**, a fetched source included. A private repository that is not marked
+is still the other case -- not on the allowlist, so asked for and uploaded by
+the client.
+
+**Where it goes:** surface *What goes up, by owner*'s spelling note, closing the
+open item, and the create table's `private` member.
+
 ---
 
 ## Not ported, deliberately

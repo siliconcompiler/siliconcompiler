@@ -63,6 +63,14 @@ def test_tool_name(tool):
     assert tool().tool() == "builtin"
 
 
+@pytest.mark.parametrize("tool", [
+    NOPTask, JoinTask, MinimumTask, MaximumTask,
+    MuxTask, VerifyTask, ImportFilesTask, FilterTask, Wait
+])
+def test_remote_toolname_is_none(tool):
+    assert tool()._remote_toolname is None
+
+
 def test_nop_name():
     assert NOPTask().task() == "nop"
 

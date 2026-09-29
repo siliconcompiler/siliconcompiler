@@ -579,7 +579,7 @@ def plan_for_job(store, requires: Dict[str, Any],
             # submit already knew.
             #
             # ⚠️ What a node needs is DECLARED by its task, so nothing here
-            # infers it: `Task.image_requirement` says `openroad` for an
+            # infers it: `Task._remote_toolname` says `openroad` for an
             # OpenROAD task, `slang` for one that has no executable at all, and
             # nothing for a builtin. See `runspec.node_tools`.
             raise _unregistered(tool, node, images)

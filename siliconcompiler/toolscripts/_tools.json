@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "a042f15848b96a66fcb290234bb0da06a2a11834",
+    "git-commit": "6e51da991dcbe0918b4ec2aa96c11cbd1c3544d5",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
@@ -52,7 +52,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "396536743ff33852cd8af176988f077219bc8b8d",
+    "git-commit": "4654362dd2b3ad7ebaf03e07d05f44450811c134",
     "auto-update": true,
     "_comment-prune-dirs": [
       "The archive globs are measured against a build of this image. They",
@@ -633,7 +633,7 @@
   },
   "wildebeest": {
     "git-url": "https://github.com/zeroasiccorp/wildebeest.git",
-    "git-commit": "7d376b59814404f68f800e49c9400501840ef9f0",
+    "git-commit": "676398124406ffc62a18dd0624471b950e18046f",
     "docker-depends": "yosys",
     "auto-update": true,
     "docker-prune-dirs": [

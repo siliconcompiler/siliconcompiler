@@ -173,7 +173,7 @@ def test_the_catalogue_covers_every_tool_siliconcompiler_drives(bootstrap):
         if not (task_cls.__module__ or "").startswith("siliconcompiler.tools."):
             continue
         try:
-            wanted = task_cls().image_requirement()
+            wanted = task_cls()._remote_toolname
         except Exception:                                        # noqa: BLE001
             continue
         if wanted:

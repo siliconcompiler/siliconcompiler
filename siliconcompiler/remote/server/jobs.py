@@ -1264,22 +1264,34 @@ class JobService:
     def _requested_members(self, job, root: Path):
         '''What a follow-up archive may hold: the collected files of the
         dataroots this job asked for that the flow reads, and nothing else --
-        a dataroot asked for selects its required values, never all of it.'''
+        a dataroot asked for selects its required values, never all of it.
+
+        ⚠️ **Each with the rest of its parameter**, as the client collects it
+        (`owners.collection_keys`): a value asked for brings the others in its
+        ``(key, step, index)``, whatever their dataroot.'''
         asked = {(item["kind"], item["name"], item["dataroot"])
                  for item in json.loads(job["upload_sources"] or "[]")}
         derived = self._derive(None, job, root)
-        names = set()
-        for one in owners._values(derived["project"]):
-            if (one.kind, one.name, one.dataroot) in asked \
-                    and owners.needed(one.key, derived["required"]):
-                names.add(one.value.get_hashed_filename())
+        project = derived["project"]
+        keys = set(owners.collection_keys(
+            project,
+            lambda one: (one.kind, one.name, one.dataroot) in asked
+            and owners.needed(one.key, derived["required"]),
+            refuse_private=False))
+        paths = {owners.collected_path(one) for one in owners._values(project)
+                 if (one.key, one.step, one.index) in keys}
+        paths.discard(None)
 
         def allowed(member: str) -> bool:
             parts = member.split("/")
-            if parts == ["sc_collected_files"]:
-                return True
-            return len(parts) >= 2 and parts[0] == "sc_collected_files" \
-                and parts[1] in names
+            if parts[0] != "sc_collected_files":
+                return False
+            inside = "/".join(parts[1:])
+            # The collection directory, a bucket holding a requested file, the
+            # file, or what a requested directory holds.
+            return not inside or any(
+                inside == path or inside.startswith(f"{path}/")
+                or path.startswith(f"{inside}/") for path in paths)
         return allowed
 
     def _start_preparing(self, job_id: str) -> None:

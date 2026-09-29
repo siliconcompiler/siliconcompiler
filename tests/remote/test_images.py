@@ -633,8 +633,7 @@ def test_what_a_node_needs_is_declared_and_never_inferred(registry, store):
     class Flow:
         def get_task_module(self, step, index):
             class Task:
-                def image_requirement(self_inner):
-                    return declared[step]
+                _remote_toolname = declared[step]
             return Task
 
     assert node_tools(Flow(), [(step, "0") for step in declared]) == {
@@ -651,16 +650,16 @@ def test_the_real_tasks_declare_what_they_need():
     from siliconcompiler.tools.execute.exec_input import ExecInputTask
     from siliconcompiler.tools.slang.elaborate import Elaborate
 
-    assert NOPTask().image_requirement() is None
-    assert NOPTask().inherits_image() is False
+    assert NOPTask()._remote_toolname is None
+    assert NOPTask()._remote_inherits_env is False
 
     # No executable, and still has to be placed somewhere holding it.
-    assert Elaborate().image_requirement() == "slang"
+    assert Elaborate()._remote_toolname == "slang"
 
     # 🆕 Nothing to require -- the command comes out of the manifest -- and it
     # follows its input rather than defaulting to the job's image.
-    assert ExecInputTask().image_requirement() is None
-    assert ExecInputTask().inherits_image() is True
+    assert ExecInputTask()._remote_toolname is None
+    assert ExecInputTask()._remote_inherits_env is True
 
 
 ###########################
