@@ -64,6 +64,10 @@ cannot supply, and telling an absent package from one that will not install
 (surface D285–D287, profile D64, database D148, implementation-notes §L) — were
 decided too, and removed the same way. Follow-on 16 brings the code up to them.
 
+The two of follow-on 16's list — a cancelled job's reason on its transition, and
+a cancel's reason at most 300 characters and served whole (surface D288) — were
+decided too, and removed the same way. Follow-on 17 brings the code up to them.
+
 ---
 
 ## Open — not yet in the contract docs
@@ -106,34 +110,6 @@ here.
   editable** (surface *Uploaded wheels*). The node's resolver may still ask
   (CORE-FOLLOWUPS item 10).
   **Tracked in:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
-
-### From follow-on 16
-
-#### 3. A cancelled job's reason is on its transition, not its `state_reason`
-
-Surface D287 has a job cancelled for what the client cannot supply end "with
-the cause in `state_reason`". ⚠️ **D278 took `state_reason` off a job but for
-the live staging phase**: a transition's reason, a cancel's among them, is on
-its entry in `transitions`. `sc-server` does both halves of that: the store
-keeps the cancel's reason in the job's `state_reason` column, and the job object
-serves it on its `cancelled` transition, with no `state_reason` member.
-
-**Where it goes:** surface D287's wording: *the cause on its `cancelled`
-transition's `reason`*.
-
-#### 4. A cancel's reason is taken at 500 characters and served at 300
-
-`POST /v1/jobs/{id}/cancel` takes an optional `reason` (surface D75), and the
-contract sets no length for it: `sc-server` takes up to 500 characters
-(`MAX_REASON`) and refuses a longer one, `400 invalid-request`. A transition's
-`reason` on the job object is bounded like a `detail` (D246), at
-`max_detail_chars`, 300 here, so a long cancel reason is served cut short. The
-client's reasons for what it cannot supply name every item, and run past 300
-when several fail; the client prints the whole list, and the job object has its
-first 300 characters.
-
-**Where it goes:** surface D278's `transitions` bullet, saying a reason is
-bounded as a `detail` is; or cancel's `reason` bounded at the same length.
 
 ---
 
