@@ -13,7 +13,7 @@ import threading
 
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 from siliconcompiler.remote.server.ids import uuid7
 
@@ -28,6 +28,11 @@ __all__ = ["Store", "STORE_VERSION", "now"]
 # moves for unrelated reasons. This is the third independent version in the
 # tree, alongside the package version, and it is the one a store file records.
 STORE_VERSION = 16
+
+# How many times an admission's whole transaction is tried before its lock
+# contention is this server's failure. Each try already waits the connection's
+# busy timeout for the lock.
+ADMISSION_ATTEMPTS = 5
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
@@ -238,6 +243,45 @@ class Store:
         '''
         return _Transaction(self.connection)
 
+    def admission(self, work: Callable[[], Any], attempts: int = ADMISSION_ATTEMPTS) -> Any:
+        '''Run ``work`` -- a count and the write it decides -- as one
+        transaction that no other admission can interleave with, and return
+        what it returns.
+
+        🔴 **A numeric `pending_uploads` or `concurrent_jobs` is a hard
+        ceiling** (entitlements §2), so the count that admits a job and the
+        write that makes it count must be one step. SQLite serialises writers
+        per database, and ``BEGIN IMMEDIATE`` takes that write lock BEFORE the
+        count, so two admissions cannot both read the same count and both
+        insert -- which a deferred ``BEGIN`` allows, since it reads first and
+        upgrades later (implementation-notes §3, *(c)*).
+
+        ⚠️ **Where the lock is not had within the busy timeout, the whole
+        transaction is tried again**, count included, never one statement: a
+        retried insert alone is the overshoot this exists to prevent. Only the
+        ``BEGIN IMMEDIATE`` can be refused so, since the lock is held from it
+        to the commit, and ``work`` runs once -- it may move a file. A
+        `ProblemError` from ``work`` -- the refusal -- rolls back and is raised.
+        '''
+        import time
+
+        con = self.connection
+        for attempt in range(attempts):
+            try:
+                con.execute("BEGIN IMMEDIATE")
+                break
+            except sqlite3.OperationalError as e:
+                if not _busy(e) or attempt == attempts - 1:
+                    raise
+                time.sleep(0.05 * 2 ** attempt)
+        try:
+            result = work()
+        except BaseException:
+            con.execute("ROLLBACK")
+            raise
+        con.execute("COMMIT")
+        return result
+
     ######################################################################
     # Writes every phase needs
     ######################################################################
@@ -375,6 +419,12 @@ class _Transaction:
         else:
             self._con.execute("ROLLBACK")
         return False
+
+
+def _busy(error: sqlite3.OperationalError) -> bool:
+    '''Whether an error is SQLite's lock not being had in time.'''
+    text = str(error).lower()
+    return "locked" in text or "busy" in text
 
 
 def _close(con: sqlite3.Connection) -> None:

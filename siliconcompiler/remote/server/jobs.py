@@ -377,7 +377,12 @@ class JobService:
         job_id = str(uuid7())
         device_id = session.device_id
 
-        with self._store.transaction():
+        def admit():
+            # 🔴 Counted again, inside the transaction that inserts: the
+            # checks above answer early, and these are what hold the ceiling
+            # when several creates arrive at once (`Store.admission`).
+            self._check_concurrent_jobs(session.user_id)
+            self._check_pending_uploads(session.user_id)
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
                 "                  descriptor, idempotency_key, run_hash, "
@@ -392,6 +397,8 @@ class JobService:
                     'INSERT INTO job_continuations (job_id, step, "index", from_job_id) '
                     "VALUES (?, ?, ?, ?)", (job_id, step, index, from_job))
             self._transition(job_id, None, "created", actor=session.user_id)
+
+        self._store.admission(admit)
 
         # The job object, in `created`: `upload_sources` is on it where the
         # server is asking, and absent where there is nothing to send.
@@ -709,10 +716,14 @@ class JobService:
         return ran_in <= live
 
     def _check_pending_uploads(self, user_id: str) -> None:
+        '''`pending_uploads`, where numeric: a hard ceiling on the caller's
+        jobs in `created` or `awaiting_input`. `null` is unenforced.'''
+        ceiling = self._config.limits["pending_uploads"]
+        if ceiling is None:
+            return
         held = [row["id"] for row in self._store.all(
             "SELECT id FROM jobs WHERE user_id = ? "
             "AND state IN ('created', 'awaiting_input') ORDER BY created_at", (user_id,))]
-        ceiling = self._config.limits["pending_uploads"]
         if len(held) >= ceiling:
             # Which jobs hold the slots, so the client can cancel one it abandoned.
             raise ProblemError(
@@ -1015,7 +1026,17 @@ class JobService:
         # 🔴 Kept from here on, as its own `input`, whatever staging finds:
         # every upload the job took can be looked at afterwards -- a refused one
         # most of all (surface D133).
-        with self._store.transaction():
+        def admit():
+            # 🔴 `concurrent_jobs` counted again inside the transaction that
+            # moves the job into `staging`, which is what it counts, and the
+            # job's own state with it: two submits cannot both take the last
+            # slot (`Store.admission`). Before anything is moved, so a refusal
+            # leaves the upload where the grant put it.
+            if self._row(job["id"])["state"] != "awaiting_input":
+                raise ProblemError(
+                    "job-state-conflict",
+                    detail="this job was submitted or ended meanwhile")
+            self._check_concurrent_jobs(session.user_id)
             artifacts.record_upload(
                 self._store, self._storage, self._config, job,
                 self._storage.upload_path(job["id"]), reported_digest, size)
@@ -1028,6 +1049,8 @@ class JobService:
                  now() if idempotency_key is not None else None, job["id"]))
             self._transition(job["id"], "awaiting_input", "staging",
                              actor=session.user_id, state_reason="unpacking the upload")
+
+        self._store.admission(admit)
         # Only what is left of it: an interrupted PUT's partial file.
         self._storage.discard_upload(job["id"])
 
@@ -1832,10 +1855,15 @@ class JobService:
         return True
 
     def _check_concurrent_jobs(self, user_id: str) -> None:
+        '''`concurrent_jobs`, where numeric: a hard ceiling on the caller's
+        jobs in `staging`, `queued`, `running` or `cancelling`. `null` is
+        unenforced.'''
+        ceiling = self._config.limits["concurrent_jobs"]
+        if ceiling is None:
+            return
         active = self._store.one(
             "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
             "AND state IN ('staging', 'queued', 'running', 'cancelling')", (user_id,))["n"]
-        ceiling = self._config.limits["concurrent_jobs"]
         if active >= ceiling:
             raise ProblemError(
                 "limit-exceeded", limit="concurrent_jobs",
