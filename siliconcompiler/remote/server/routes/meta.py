@@ -11,8 +11,6 @@ import logging
 
 import flask
 
-from siliconcompiler import __version__ as sc_version
-
 __all__ = ["advertised_reported", "advertised_software", "blueprint"]
 
 
@@ -60,18 +58,25 @@ def advertised_reported(store, config=None):
 
 
 def _advertised(store, config, read):
+    from siliconcompiler.remote.server.images import PRIMARY, own_version
+
     containers = bool(config["containers"]) if config is not None else True
 
     software = read(containers=containers)
-    if containers or software["python"] or software["tools"]:
-        return software
+    if not (containers or software["python"] or software["tools"]):
+        # A deployment that runs no containers runs what this process was
+        # installed with. `tools` stays empty -- which is the true answer for
+        # a deployment that runs no containers and therefore advertises no
+        # tool image.
+        software = {"python": {}, "tools": {}}
 
-    # A deployment that runs no containers runs what this process was
-    # installed with, and this process reports its own version. `siliconcompiler`
-    # is REQUIRED and it is a python distribution, so it goes in that bucket
-    # and `tools` stays empty -- which is the true answer for a deployment that
-    # runs no containers and therefore advertises no tool image.
-    return {"python": {"siliconcompiler": [sc_version]}, "tools": {}}
+    # 🔴 **One SiliconCompiler: the one this server runs**, whatever the
+    # registry tracks and in both modes (profile §5). The manifest's read is
+    # this server's own SiliconCompiler, so it is the only one a job may
+    # resolve to; with containers on, the startup check holds a live image to
+    # it.
+    software["python"][PRIMARY] = [own_version()]
+    return software
 
 
 @blueprint.route("/v1", methods=["GET"])

@@ -55,7 +55,7 @@ def test_a_layer_puts_the_tree_where_it_is_asked_and_is_reproducible(tmp_path):
 
 
 @pytest.fixture
-def registry(monkeypatch, tmp_path):
+def registry(monkeypatch, tmp_path, runs_test_version):
     '''A registry at registry:5000, marked insecure as the rig marks it, with
     one base image of two layers in `sc-tools`. Records every upload.'''
     responses = pytest.importorskip("responses")
@@ -647,7 +647,7 @@ def test_anything_but_a_tunnel_or_a_plain_get_is_refused(proxy):
 ###########################
 
 @pytest.fixture
-def store():
+def store(runs_test_version):
     from siliconcompiler.remote.server.store import Store
 
     with Store("server.db") as db:
@@ -808,7 +808,7 @@ BUILT = {"ok": True, "ref": f"ghcr.io/x/sc@{digest('e')}", "digest": digest("e")
 
 
 @pytest.fixture
-def builder_server():
+def builder_server(runs_test_version):
     from siliconcompiler.remote.server.app import create_app
     from siliconcompiler.remote.server.store import Store
 
@@ -887,8 +887,8 @@ def test_a_node_with_an_environment_runs_in_the_image_built_for_it(
         ("stepone", "0"): derived["id"],
         ("steptwo", "0"): row(builder_server, job["id"])["image_id"]}
 
-    from siliconcompiler import Project
-    project = Project.from_manifest(filepath=str(fake.submitted[0][2]))
+    from conftest import run_manifest
+    project = run_manifest(fake.submitted[0][2])
     assert project.option.scheduler.get_queue(step="stepone", index="0") == \
         f"ghcr.io/x/sc@{digest('e')}"
 

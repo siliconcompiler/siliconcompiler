@@ -1029,6 +1029,25 @@ def _show(detail, row, archive, wanted: str):
         truncated=truncated)
 
 
+@blueprint.route("/portal/jobs/<job_id>/metrics/<step>/<index>", methods=["GET"])
+@screen
+def metrics(session, job_id, step, index):
+    '''One node's metrics and records.
+
+    🔴 **From the table the job's end filled**, never from the `manifest`
+    artifact and never through SiliconCompiler (contract §1): the panel needs
+    no artifact fetch and no manifest parse on each view.
+    '''
+    detail = _jobs().get(session, job_id)
+    found = _jobs().node_metrics(session, job_id, step, index)
+    if found is None:
+        flask.abort(404)
+    return flask.render_template(
+        "metrics.html", job=detail, step=step, index=index,
+        metrics=sorted((found["metrics"] or {}).items()),
+        records=sorted((found["records"] or {}).items()))
+
+
 @blueprint.route("/portal/jobs/<job_id>/logs/<step>/<index>", methods=["GET"])
 @screen
 def log(session, job_id, step, index):

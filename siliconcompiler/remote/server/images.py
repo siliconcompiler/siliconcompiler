@@ -254,6 +254,27 @@ class Plan(NamedTuple):
 # Reading the registry
 ######################################################################
 
+def own_version() -> str:
+    '''The SiliconCompiler this server runs: the one version it advertises,
+    and the one every job resolves to (profile §5).
+
+    🔴 **One version, because the manifest's read is this server's own
+    SiliconCompiler** (`manifestread`). A job that resolved to another would
+    have its manifest read by a SiliconCompiler that is not its own, which
+    reading a manifest is only backwards compatible enough to survive by luck.
+    '''
+    from siliconcompiler import __version__
+
+    return __version__
+
+
+def holds_own_version(image) -> bool:
+    '''Whether ``image`` holds this server's own SiliconCompiler.'''
+    mine = normalize(own_version())
+    return any(held.name == PRIMARY and normalize(held.version) == mine
+               for held in image["contents"])
+
+
 def live_images(store) -> List[Dict[str, Any]]:
     '''Every image this deployment may run, with what it declares it holds.
 
@@ -518,7 +539,7 @@ def _newest_first(built_at: Optional[str]) -> str:
 
 def plan_for_job(store, requires: Dict[str, Any],
                  node_tools: Dict[Tuple[str, str], Optional[str]],
-                 inherits=None) -> Plan:
+                 inherits=None, job_image_id: Optional[str] = None) -> Plan:
     '''Which image every node of this job runs in.
 
     🔴 **N images, not one.** A forty-node flow over six tools resolves six, and
@@ -537,9 +558,11 @@ def plan_for_job(store, requires: Dict[str, Any],
     software = live_software(store)
 
     # 🔴 The python set alone decides the JOB image, because those names share
-    # one interpreter and one container therefore has to hold all of them.
+    # one interpreter and one container therefore has to hold all of them --
+    # picked at create (`job_image_for`), and kept while it is still live.
     pinned = declared_requirements(software, requires)
-    job_image = resolve_declared(images, pinned)
+    job_image = next((image for image in images if image["id"] == job_image_id), None) \
+        or resolve_declared(images, pinned)
 
     refs = {image["id"]: pinned_ref(image["registry_ref"], image["digest"])
             for image in images}
@@ -620,6 +643,12 @@ def declared_requirements(software, requires: Dict[str, Any]) -> List[Requiremen
     so spreading them over two containers is not a deployment, it is a broken
     one. The `tools` bucket is the opposite and is resolved per node.
 
+    🔴 **The framework is always this server's own version** (:func:`own_version`),
+    beside whatever the client asked for: create refused a requirement that
+    version does not satisfy, so the pin only narrows what was asked, and a
+    requirement it contradicts is refused naming the client's. Every image a
+    job resolves to, its nodes' included, holds that version.
+
     🔴 **Computable without the upload**, which is what lets create resolve
     images as well as submit: it needs the declared versions and the registry
     and nothing else. That is what keeps the create-time reuse check able to
@@ -631,14 +660,7 @@ def declared_requirements(software, requires: Dict[str, Any]) -> List[Requiremen
     pinned = [Requirement(name, specifiers(wanted), "library")
               for name, wanted in sorted(asked.items())
               if name in tracked and isinstance(wanted, (str, int, float, list))]
-
-    if PRIMARY in tracked and not any(want.name == PRIMARY for want in pinned):
-        # The client named no framework version. The deployment's own
-        # preference order picks, which is what `preference` is for -- and
-        # deliberately NOT the newest, because a rebuilt image is newer and is
-        # not necessarily preferred.
-        pinned.append(Requirement(PRIMARY, None, "library"))
-
+    pinned.append(Requirement(PRIMARY, (f"=={own_version()}",), "library"))
     return pinned
 
 
@@ -652,6 +674,15 @@ def resolve_declared(images, requirements: Sequence[Requirement]):
     if found is None:
         raise _unsatisfiable(requirements, images)
     return found
+
+
+def job_image_for(store, requires: Dict[str, Any]) -> Dict[str, Any]:
+    '''The image a job's own process runs in, from its `requires.python`
+    alone: picked at create, before anything is uploaded (surface §13, *Create
+    picks the job's image from `requires.python` alone*; database D145).
+    Raises the refusal create answers with where nothing fits.'''
+    return resolve_declared(live_images(store),
+                            declared_requirements(live_software(store), requires))
 
 
 def digests_for(store, requires: Dict[str, Any]) -> List[str]:
@@ -1143,6 +1174,47 @@ def job_bundle(shared, target, mounts, drop=()):
         if not (_is_bind(entry) and entry.get("source")
                 and os.path.realpath(entry["source"]) in dropped)]
     _add_mounts(spec, mounts)
+
+    target.mkdir(parents=True, exist_ok=True)
+    partial = target / "config.json.part"
+    with open(partial, "w") as f:
+        json.dump(spec, f)
+    os.replace(partial, target / "config.json")
+    return target
+
+
+def read_bundle(shared, target, tree):
+    '''A bundle for reading one job's manifest in the job's own image: the
+    shared bundle's root filesystem, with the job's extracted ``tree`` mounted
+    read-only and nothing else bound, in a network namespace of its own.
+    Returns ``target``.
+
+    🔴 **The staging sandbox, on this profile** (implementation-notes §E; profile
+    D63): no credential -- nothing of the data directory, no munge socket, no
+    slurm.conf -- no PDK data, no private root, and no network. It is the
+    shared bundle with every bind mount taken away, since a mount baked into a
+    shared bundle is every job's.
+    '''
+    import os
+    from pathlib import Path
+
+    shared, target = Path(shared), Path(target)
+    with open(shared / "config.json") as f:
+        spec = json.load(f)
+
+    root = spec.get("root") or {}
+    where = Path(root.get("path") or "rootfs")
+    spec["root"] = {"path": str((where if where.is_absolute() else shared / where).resolve()),
+                    "readonly": True}
+    spec["mounts"] = [entry for entry in spec.get("mounts", []) if not _is_bind(entry)]
+    # /tmp is the read's HOME, and the root filesystem is read-only.
+    spec["mounts"].append({"destination": "/tmp", "type": "tmpfs", "source": "tmpfs",
+                           "options": ["nosuid", "nodev", "size=256m"]})
+    _add_mounts(spec, [(str(tree), "ro")])
+
+    namespaces = spec.setdefault("linux", {}).setdefault("namespaces", [])
+    if not any(entry.get("type") == "network" for entry in namespaces):
+        namespaces.append({"type": "network"})
 
     target.mkdir(parents=True, exist_ok=True)
     partial = target / "config.json.part"

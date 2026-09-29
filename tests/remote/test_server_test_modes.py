@@ -332,14 +332,14 @@ def test_the_pdk_is_named_first_and_the_rest_are_counted(
     library, then tool -- and the detail says there are more, so fixing one
     is not followed by a surprise.'''
     jobs = server.config["SC_JOBS"]
-    real = jobs._derive
+    real = jobs._act_on
 
-    def derive(session, job, root):
-        derived = real(session, job, root)
-        derived.update(pdk="GF180_5LM_1TM_9K_9t", libraries=["nangate45"])
-        return derived
+    def act_on(job, raw):
+        summary = real(job, raw)
+        summary.update(pdk="GF180_5LM_1TM_9K_9t", libraries=["nangate45"])
+        return summary
 
-    monkeypatch.setattr(jobs, "_derive", derive)
+    monkeypatch.setattr(jobs, "_act_on", act_on)
 
     archive, digest, size = job_archive(lint_project)
     job = stage(server_client, key, token, archive, size)

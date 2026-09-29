@@ -24,8 +24,14 @@ def py(name=None, wanted=None, tools=None):
     return {"python": {name: wanted} if name else {}, "tools": tools or {}}
 
 
+# The SiliconCompiler this module's registry holds, and so the one the server
+# under test runs (profile §5).
+OWN = "0.39.1"
+
+
 @pytest.fixture
-def store():
+def store(monkeypatch):
+    monkeypatch.setattr(images, "own_version", lambda: OWN)
     with Store("server.db") as db:
         user = db.upsert_user("operator", "someone@host")
         db.actor = user["id"]

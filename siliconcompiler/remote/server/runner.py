@@ -4,9 +4,15 @@ The process the batch job starts.
 ``python3 -m siliconcompiler.remote.server.runner <manifest>``
 
 This is the whole of what runs on a compute node. It holds no database
-connection and makes no HTTP request: it loads the manifest the server
-normalized, runs it, and writes what it is doing into the job's own directory.
-The API process reads that file.
+connection and makes no HTTP request: it loads the manifest the job uploaded,
+applies the server's overrides to it itself (`runspec.apply_run`), runs it, and
+writes what it is doing into the job's own directory. The API process reads
+that file.
+
+🔴 **The overrides are applied here, in the job's own SiliconCompiler**, never
+by rewriting the manifest in the API process (contract §1): the server writes
+what the run needs as data, beside the manifest and outside the tree the upload
+expanded into.
 
 🔴 **That indirection is the point.** A run that reported over HTTP would need a
 credential on every compute node, and one that wrote to the store would make the
@@ -26,8 +32,8 @@ from pathlib import Path
 
 from siliconcompiler.remote.server import images
 from siliconcompiler.remote.server.runspec import (
-    IMAGES_FILENAME, PROGRESS_FILENAME, node_image, node_state, read_bundles, read_images,
-    state_dir, exit_code as published_exit_code,
+    IMAGES_FILENAME, PROGRESS_FILENAME, RUN_FILENAME, apply_run, node_image, node_state,
+    read_bundles, read_images, read_run, state_dir, exit_code as published_exit_code,
     runtime_nodes, write_progress)
 from siliconcompiler.remote.server.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
@@ -132,6 +138,11 @@ def run(manifest: Path) -> int:
     Scheduler.widen_from = False
 
     project = Project.from_manifest(filepath=str(manifest))
+    # The server's answer to how this run executes: its build and cache
+    # directories, its placement, where each dataroot is supplied.
+    run_data = read_run(state_dir(manifest) / RUN_FILENAME)
+    if run_data is not None:
+        apply_run(project, run_data)
     _silence_console(project)
 
     # In the job root, above the tree the upload expanded into, where the
@@ -476,7 +487,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python3 -m siliconcompiler.remote.server.runner",
         description="Run one job a SiliconCompiler server accepted.")
-    parser.add_argument("manifest", help="the normalized manifest to run")
+    parser.add_argument("manifest", help="the job's manifest, as it was uploaded")
 
     args = parser.parse_args(argv)
     return run(Path(args.manifest))

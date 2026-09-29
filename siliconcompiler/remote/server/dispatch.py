@@ -40,6 +40,7 @@ COMMAND_TIMEOUT = 20
 RUN_SCRIPT = "sc-server-run.sh"
 RUN_LOG = "sc-server-run.log"
 BUILD_SCRIPT = "sc-server-build.sh"
+READ_SCRIPT = "sc-server-read.sh"
 
 
 class DispatchError(RuntimeError):
@@ -71,6 +72,13 @@ class Dispatcher:
                      queue: Optional[str] = None) -> str:
         '''Start one environment build (`envbuild`), which writes its result
         into ``workspace``. Returns an id `is_alive` answers for.'''
+        raise NotImplementedError
+
+    def submit_read(self, name: str, workdir: Path, command: List[str], bundle: str,
+                    timeout: int, queue: Optional[str] = None) -> str:
+        '''Start one manifest read (`manifestread`) in ``bundle``, writing
+        its summary to ``workdir``/summary.json. Returns an id `is_alive`
+        answers for. Only where a job's own process runs in a bundle.'''
         raise NotImplementedError
 
     def node_jobs(self, job_id: str, nodes) -> Dict[Tuple[str, str], str]:
@@ -277,6 +285,41 @@ class SlurmDispatcher(Dispatcher):
         if completed.returncode != 0:
             raise DispatchError(
                 f"sbatch refused the build: {completed.stderr.strip() or completed.stdout.strip()}")
+        return completed.stdout.strip().split(";")[0]
+
+    def submit_read(self, name: str, workdir: Path, command: List[str], bundle: str,
+                    timeout: int, queue: Optional[str] = None) -> str:
+        '''``sbatch`` one manifest read into the job's own image.
+
+        🔴 **Nothing of this process's goes with it**: ``--export=NONE``, and
+        the bundle mounts the job's extracted tree read-only and nothing else,
+        in a network namespace of its own (`images.read_bundle`). The summary
+        comes back on the job's stdout, which Slurm writes outside the
+        container.
+        '''
+        script = workdir / READ_SCRIPT
+        script.write_text(
+            "#!/bin/sh\n"
+            "# Written by sc-server: one job's manifest, read in its own image.\n"
+            "export HOME=/tmp TMPDIR=/tmp LC_ALL=C.UTF-8 PYTHONNOUSERSITE=1\n"
+            "cd /tmp\n"
+            f"exec {' '.join(shlex.quote(part) for part in command)}\n")
+        script.chmod(0o755)
+
+        submitted = ["sbatch", "--parsable", "--no-requeue", "--ntasks=1", "--export=NONE",
+                     f"--job-name=sc-read-{name}", "--chdir=/tmp",
+                     f"--time={max(1, -(-int(timeout) // 60))}",
+                     f"--output={workdir / 'summary.json'}",
+                     f"--error={workdir / 'stderr.txt'}",
+                     f"--container={bundle}"]
+        if queue:
+            submitted.append(f"--partition={queue}")
+        submitted.append(str(script))
+
+        completed = _run(submitted)
+        if completed.returncode != 0:
+            raise DispatchError(f"sbatch refused the manifest's read: "
+                                f"{completed.stderr.strip() or completed.stdout.strip()}")
         return completed.stdout.strip().split(";")[0]
 
     def is_alive(self, scheduler_job_id: str) -> bool:

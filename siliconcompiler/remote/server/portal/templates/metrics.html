@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% set active = 'jobs' %}
+{% block title %}{{ step }}/{{ index }} metrics · {{ job.design }} · sc-server{% endblock %}
+{% block body %}
+<h2>{{ step }}/{{ index }}</h2>
+<p class="lede">
+  <a href="{{ url_for('portal.job', job_id=job.id) }}">{{ job.design }}/{{ job.jobname }}</a>
+  &middot; <a href="{{ url_for('portal.log', job_id=job.id, step=step, index=index) }}">log</a>
+</p>
+
+{#
+  🔴 Filled once, when the job ended, from its final manifest read as plain
+  JSON -- never the manifest artifact, and never through SiliconCompiler.
+#}
+{% if not metrics and not records %}
+<p class="muted">Nothing was recorded for this node: it did not run, or the job
+ended before its manifest was written.</p>
+{% endif %}
+
+{% if metrics %}
+<h3>Metrics</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th></tr>
+  {% for name, value in metrics %}
+  <tr><td class="mono">{{ name }}</td><td class="mono">{{ value }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% if records %}
+<h3>Records</h3>
+<table>
+  <tr><th>Record</th><th>Value</th></tr>
+  {% for name, value in records %}
+  <tr><td class="mono">{{ name }}</td><td class="mono">{{ value }}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

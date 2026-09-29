@@ -171,8 +171,10 @@ def test_software_falls_back_to_this_server_when_no_image_is_registered(client):
         "python": {"siliconcompiler": [sc_version]}, "tools": {}}
 
 
-def test_a_registered_image_takes_over_from_the_fallback(server, client):
-    '''Once an operator is curating a registry, the join governs.'''
+def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
+    '''🔴 One version, the one this server runs, whatever the registry
+    tracks (profile §5): the manifest's read is this server's own
+    SiliconCompiler, so a job may resolve to no other.'''
     store = server.config["SC_STORE"]
     user = store.upsert_user("local", "operator")
 
@@ -190,8 +192,10 @@ def test_a_registered_image_takes_over_from_the_fallback(server, client):
     store.execute("INSERT INTO image_contents (image_id, software_name, version) "
                   "VALUES (?, 'siliconcompiler', '9.9.9')", (image,))
 
+    from siliconcompiler import __version__
+
     assert client.get("/v1").get_json()["software"] == {
-        "python": {"siliconcompiler": ["9.9.9"]}, "tools": {}}
+        "python": {"siliconcompiler": [__version__]}, "tools": {}}
 
 
 ###########################

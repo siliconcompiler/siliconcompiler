@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import call, job_after, login, slug
+from conftest import call, job_after, login, run_manifest, slug
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -1265,7 +1265,7 @@ def operator(store):
 
 
 @pytest.fixture
-def registry():
+def registry(runs_test_version):
     """A curated registry, seeded before any server opens it.
 
     🔴 Before, and not after: a deployment that runs jobs in containers and has
@@ -1343,7 +1343,7 @@ def test_a_container_deployment_with_no_images_does_not_start():
     with open("empty-registry/config.json", "w") as f:
         json.dump({"containers": True}, f)
 
-    with pytest.raises(RuntimeError, match="no runnable siliconcompiler"):
+    with pytest.raises(RuntimeError, match="no live image holds siliconcompiler"):
         create_app("empty-registry", cluster="local")
 
 
@@ -1369,7 +1369,6 @@ def test_the_node_is_told_a_digest_and_never_a_tag(
         job_archive, container_dispatcher):
     """🔴 Rebuilding `sc:0.38.0` must not change what a job already accepted
     runs, which is only true if the pinned form is what reaches the manifest."""
-    from siliconcompiler import Project
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
@@ -1377,7 +1376,7 @@ def test_the_node_is_told_a_digest_and_never_a_tag(
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = container_dispatcher.submitted[0][2]
-    project = Project.from_manifest(filepath=str(manifest))
+    project = run_manifest(manifest)
 
     assert project.option.scheduler.get_name(step="stepone", index="0") == "docker"
     assert project.option.scheduler.get_queue(step="stepone", index="0") == \
@@ -1691,7 +1690,6 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     '''🔴 On a cluster Slurm places the container, and `scheduler,queue` is its
     PARTITION -- so an image reference there would submit every node to a
     partition named after a container.'''
-    from siliconcompiler import Project
     from siliconcompiler.remote.server import runspec
 
     from siliconcompiler.remote.server import images
@@ -1711,7 +1709,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = fake.submitted[0][2]
-    project = Project.from_manifest(filepath=str(manifest))
+    project = run_manifest(manifest)
     scheduler = project.option.scheduler
 
     assert scheduler.get_name(step="stepone", index="0") == "slurm"
@@ -1916,28 +1914,67 @@ def test_a_manifest_from_a_newer_schema_is_refused(
     assert "only backwards compatible" in read["error"]["detail"]
 
 
-def test_a_server_may_not_advertise_what_it_cannot_read(registry):
-    '''🔴 The framework image decides what RUNS a flow; it does not decide what
-    READS it.
-
-    Submit re-derives the flow from the uploaded manifest in the API process,
-    with the API process's SiliconCompiler -- so advertising a newer version is
-    a promise that ends in a refusal AFTER the upload. Caught when an operator
-    restarts the server they just configured, which is the cheapest moment
-    there is.
-    '''
+def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
+        registry, key):
+    '''🔴 One version: the one this server runs (profile §5). The manifest's
+    read is this server's own SiliconCompiler, so a job resolves to no other,
+    and an image holding another is registered but never advertised or run.'''
     from siliconcompiler.remote.server import images
     from siliconcompiler.remote.server.app import create_app
     from siliconcompiler.remote.server.store import Store
 
     with Store("container-datadir/server.db") as store:
         actor = operator(store)
+        images.register_version(store, "siliconcompiler", "99.0.0", actor, preference=99)
+        images.register_image(store, "ghcr.io/x/future:99", digest("f"),
+                              [("siliconcompiler", "99.0.0")], actor)
+
+    app = create_app("container-datadir", cluster="local")
+    client = app.test_client()
+    token = login(client, key).get_json()["access_token"]
+
+    assert client.get("/v1").get_json()["software"]["python"]["siliconcompiler"] == \
+        [images.own_version()]
+
+    refused = create(client, key, token, requires=wants("99.0.0"))
+    assert (refused.status_code, slug(refused)) == (422, "software-unavailable")
+    assert refused.get_json()["unresolved"][0]["name"] == "siliconcompiler"
+
+    # A job asking for nothing in particular runs in the image holding this
+    # server's own version, picked at create.
+    job = create(client, key, token).get_json()
+    held = app.config["SC_STORE"].one("SELECT image_id FROM jobs WHERE id = ?",
+                                      (job["id"],))["image_id"]
+    assert held == app.config["SC_STORE"].one(
+        "SELECT id FROM images WHERE digest = ?", (digest("a"),))["id"]
+
+
+def test_a_container_deployment_whose_images_hold_another_version_does_not_start(
+        runs_test_version):
+    '''With containers on, a live image must hold the server's own
+    SiliconCompiler, or nothing could be dispatched.'''
+    import json
+    import os
+
+    from siliconcompiler.remote.server import images
+    from siliconcompiler.remote.server.app import create_app
+    from siliconcompiler.remote.server.store import Store
+
+    os.makedirs("elsewhere", exist_ok=True)
+    with open("elsewhere/config.json", "w") as f:
+        json.dump({"containers": True}, f)
+    with Store("elsewhere/server.db") as store:
+        with store.transaction():
+            actor = store.upsert_user("operator", "someone@host")["id"]
+        images.register_software(store, "siliconcompiler", "SiliconCompiler", actor,
+                                 "python")
         images.register_version(store, "siliconcompiler", "99.0.0", actor)
         images.register_image(store, "ghcr.io/x/future:99", digest("f"),
                               [("siliconcompiler", "99.0.0")], actor)
 
-    with pytest.raises(RuntimeError, match="which it cannot read"):
-        create_app("container-datadir", cluster="local")
+    with pytest.raises(RuntimeError, match=f"no live image holds siliconcompiler "
+                                           f"{images.own_version()}"):
+        create_app("elsewhere", cluster="local")
 
 
 ###########################

@@ -6,10 +6,15 @@ a scheduler. The ordering rules that matter are here, and one of them is a
 security property rather than a preference:
 
 🔴 **submit checks the digest against what storage reports and answers `202`;
-only then, while staging, is the archive extracted, the manifest re-derived and
-every check re-run against what was re-derived.** Getting that order wrong is
-how an archive bomb gets opened. Nothing in this file may be reordered without
+only then, while staging, is the archive extracted, the manifest read and every
+check re-run against what the read returned.** Getting that order wrong is how
+an archive bomb gets opened. Nothing in this file may be reordered without
 reading that sentence again.
+
+🔴 **No manifest is parsed in this process** (contract §1, *No server process
+holding credentials parses a manifest*). The read runs while the job stages, in
+a process of its own (`manifestread`, started by `sandbox`), and this module
+acts only on the data summary it returns.
 '''
 
 import base64
@@ -20,16 +25,15 @@ import logging
 import os
 import re
 import shutil
-import warnings
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler.flowgraph import Flowgraph
-from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
 from siliconcompiler.remote import owners, units
-from siliconcompiler.remote.server import archive, artifacts, confine, images, runspec
+from siliconcompiler.remote.server import (
+    archive, artifacts, confine, images, manifestread, runspec, sandbox)
 from siliconcompiler.remote.server.dispatch import DispatchError
 from siliconcompiler.remote.server.errors import (
     bound, ERRORS, ProblemError, TYPE_BASE)
@@ -94,22 +98,6 @@ _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 # How long an `Idempotency-Key` is honoured (surface §6).
 IDEMPOTENCY_SECONDS = 24 * 3600
-
-
-def _as_data(method):
-    '''🔴 Every manifest ``method`` reads, it reads as data (contract §1): a
-    class or task module the manifest names is looked up among what this
-    installation provides, and never imported -- for the whole call, since the
-    project it derives is used throughout.'''
-    import functools
-
-    from siliconcompiler.remote.server import schemaclasses
-
-    @functools.wraps(method)
-    def wrapped(*args, **kwargs):
-        with schemaclasses.reading():
-            return method(*args, **kwargs)
-    return wrapped
 
 
 class JobService:
@@ -276,7 +264,8 @@ class JobService:
         '''Returns the job object and the status it should be served with.
 
         The top-level members are authoritative; everything under `descriptor`
-        is advisory, re-derived at submit, and stored as `jobs.descriptor`.
+        is advisory, checked again against the manifest's read while staging, and
+        stored as `jobs.descriptor`.
         🔴 Strict, like every request body: an unknown member is refused, never
         ignored.
         '''
@@ -374,6 +363,13 @@ class JobService:
 
         asked = self._look_up(declared) if declared is not None else None
 
+        # 🔴 The job's own image, from `requires.python` alone, before anything
+        # is uploaded (surface §13; database D145): whether ONE image holds the
+        # python set together is only the join's to say. Node images wait for
+        # the manifest's read, which is what says which tools the nodes run.
+        image_id = images.job_image_for(self._store, requires)["id"] \
+            if self._config["containers"] else None
+
         job_id = str(uuid7())
         device_id = session.device_id
 
@@ -386,12 +382,12 @@ class JobService:
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
                 "                  descriptor, idempotency_key, run_hash, "
-                "                  job_identity, retention_until, upload_sources) "
-                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?)",
+                "                  job_identity, retention_until, upload_sources, image_id) "
+                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
                  json.dumps(descriptor), idempotency_key, run_hash, identity,
                  _retention(self._config.limits["job_retention_days"]),
-                 json.dumps(asked) if asked else None))
+                 json.dumps(asked) if asked else None, image_id))
             for step, index, from_job in continuations:
                 self._store.execute(
                     'INSERT INTO job_continuations (job_id, step, "index", from_job_id) '
@@ -413,7 +409,7 @@ class JobService:
     # A run that starts part-way through its flow (surface D175)
     ######################################################################
 
-    def _account_upstream(self, session, job, derived, unpacked: Path):
+    def _account_upstream(self, session, job, summary, unpacked: Path):
         '''Every node the run reads and does not run: in the archive, or
         copied from the job `continues_from` names -- and none in neither.
         Returns the nodes to copy, as ``((step, index), from_job)``.
@@ -425,8 +421,7 @@ class JobService:
         continued = {(step, index): from_job
                      for step, index, from_job in self._continuations_of(job["id"])}
         copies = []
-        for step, index in runspec.upstream_nodes(derived["project"],
-                                                  self._skipped_upstream(job)):
+        for step, index in summary["upstream"]:
             if runspec.outputs_present(unpacked / step / index, job["design"]):
                 continue
             if (step, index) not in continued:
@@ -554,7 +549,7 @@ class JobService:
 
     def _resources_of(self, job_id: str) -> List[Tuple[str, str]]:
         '''What one job's results were built from: its PDK and libraries as
-        its submit re-derived them, and its tools.'''
+        its manifest's read found them, and its tools.'''
         row = self._store.one("SELECT manifest_resources, manifest_pdk, manifest_tools "
                               "FROM jobs WHERE id = ?", (job_id,))
         if row is None:
@@ -735,7 +730,8 @@ class JobService:
         '''The early reject, on whatever is present.
 
         Client-asserted, so this is a hint and not a boundary -- every value is
-        re-derived at submit. It exists to save an upload, and it never refuses
+        checked again against the manifest's read. It exists to save an upload, and it
+        never refuses
         a descriptor for being sparse: a missing field skips the check it would
         have answered.
         '''
@@ -767,12 +763,6 @@ class JobService:
                     detail=f"this job names a {kind} this deployment does not allow")
 
         self._check_versions(requires)
-
-        # And whether ONE image holds the python set together, which only the
-        # join can say -- where nodes run in containers, and only for a
-        # descriptor that names any: a sparse one skips the check.
-        if self._config["containers"] and requires.get("python"):
-            images.digests_for(self._store, requires)
 
     def _check_versions(self, requires: Dict[str, Dict[str, Any]]) -> None:
         '''Refuse a client this deployment cannot run.
@@ -952,7 +942,7 @@ class JobService:
         '''Endpoint 15: `202` in `staging`, once the upload matches the digest.
 
         🔴 **Nothing here opens the archive** (surface §15). It is kept, the job
-        stages, and extraction, re-derivation and every check run there. A
+        stages, and extraction, the manifest's read and every check run there. A
         refusal of the request itself -- the digest, the job's state,
         `concurrent_jobs` -- leaves the job `awaiting_input` with its upload
         where the grant put it, so the client may submit again.
@@ -1064,8 +1054,8 @@ class JobService:
 
     def _unpack(self, job):
         '''Staging's first phase: the newest upload extracted, the manifest
-        re-derived over every archive, and every check re-run against it.
-        Returns ``(derived, entries)``.'''
+        read again over every archive, and every check re-run against the read.
+        Returns ``(summary, entries)``.'''
         root = self.job_root(job["user_id"], job["id"])
 
         # The archive is the contents of one job directory, so it expands at
@@ -1082,7 +1072,8 @@ class JobService:
 
         # 🔴 A follow-up archive may hold only the dataroots that were asked
         # for (D124), so it cannot replace what the first archive carried after
-        # the server checked it.
+        # the server checked it -- decided from the last read, before this
+        # archive is opened.
         allowed = self._requested_members(job, root) if follow_up else None
         try:
             archive.extract(self._storage.artifact_path(latest["storage_key"]),
@@ -1102,24 +1093,24 @@ class JobService:
         self._phase(job["id"], "checking the manifest")
         job = self._row(job["id"])
 
-        # Re-derived over the union of every archive, never from `sources`.
-        derived = self._derive(None, job, root)
+        # Read again over the union of every archive, never from `sources`.
+        summary = self._read(job, root)
         if not follow_up:
-            self._check_members(job, derived, unpacked)
-        self._check_environments(None, job, derived, unpacked)
-        self._check_denied(None, job, derived)
-        entries = self._account(None, job, derived, unpacked)
+            self._check_members(job, summary, unpacked)
+        self._check_environments(None, job, summary, unpacked)
+        self._check_denied(None, job, summary)
+        entries = self._account(None, job, summary, unpacked)
         asked = [entry for entry in entries if entry.status == owners.ASK]
-        self._check_owed(None, job, derived, asked)
+        self._check_owed(None, job, summary, asked)
 
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET manifest_pdk = ?, manifest_resources = ? WHERE id = ?",
-                (derived["pdk"], json.dumps([list(pair) for pair in _resources(derived)]),
+                (summary["pdk"], json.dumps([list(pair) for pair in _resources(summary)]),
                  job["id"]))
-        return derived, entries
+        return summary, entries
 
-    def _check_members(self, job, derived, unpacked: Path) -> None:
+    def _check_members(self, job, summary, unpacked: Path) -> None:
         '''🔴 The first archive holds only the manifest at its root,
         `sc_collected_files/`, the Python environment, and
         `<step>/<index>/outputs/` for each node the run reads and does not
@@ -1127,8 +1118,7 @@ class JobService:
         carries, and who decides*).'''
         from siliconcompiler.remote import environment
 
-        upstream = set(runspec.upstream_nodes(derived["project"],
-                                              self._skipped_upstream(job)))
+        upstream = set(summary["upstream"])
         allowed = {f"{job['design']}.pkg.json", "sc_collected_files", environment.ROOT}
 
         def refuse(member):
@@ -1154,7 +1144,7 @@ class JobService:
     # What a run's files are, and where the server's copies come from
     ######################################################################
 
-    def _account(self, session, job, derived, unpacked: Path):
+    def _account(self, session, job, summary, unpacked: Path):
         '''Every file the manifest names, as how it reaches the run; refuse
         what nobody can supply.
 
@@ -1163,8 +1153,8 @@ class JobService:
         send either (D127): a private dataroot this server has no copy of, a
         private design, or a path that escapes the root it is supplied under.
         '''
-        entries = owners.account(derived["project"], unpacked / "sc_collected_files",
-                                 self._supply, derived["required"])
+        entries = owners.account_records(summary["values"], unpacked / "sc_collected_files",
+                                         self._supply, summary["required"])
         for entry in entries:
             if entry.status != owners.UNAVAILABLE:
                 continue
@@ -1181,7 +1171,7 @@ class JobService:
                             f"({entry.dataroot}) from this server")
         return entries
 
-    def _check_environments(self, session, job, derived, unpacked: Path) -> None:
+    def _check_environments(self, session, job, summary, unpacked: Path) -> None:
         '''The job's Python: each node's environment file and the uploaded
         packages, while staging (surface *A node's own Python packages, built
         while staging*).
@@ -1204,7 +1194,7 @@ class JobService:
             return self._refuse(session, job, ProblemError(
                 "archive-rejected", reason="environment_file", detail=detail))
 
-        nodes = set(derived["nodes"])
+        nodes = set(summary["nodes"])
         files = []
         for path in sorted(top.rglob("*")):
             if path.is_dir():
@@ -1236,7 +1226,7 @@ class JobService:
             except environment.EnvironmentFileError as e:
                 raise refuse(f"{name}: {e}") from None
 
-    def _check_owed(self, session, job, derived, asked) -> None:
+    def _check_owed(self, session, job, summary, asked) -> None:
         '''Refuse a required value the client should have sent and did not.
 
         🔴 **Before anything dispatches (D129)**, rather than a node failing
@@ -1245,7 +1235,7 @@ class JobService:
         can still ask for. Only a flow whose set is known is checked: without it
         there is no telling a missing file from one nothing reads.
         '''
-        if derived["required"] is None:
+        if summary["required"] is None:
             return
         before = {(item["kind"], item["name"], item["dataroot"])
                   for item in json.loads(job["upload_sources"] or "[]")}
@@ -1271,15 +1261,17 @@ class JobService:
         ``(key, step, index)``, whatever their dataroot.'''
         asked = {(item["kind"], item["name"], item["dataroot"])
                  for item in json.loads(job["upload_sources"] or "[]")}
-        derived = self._derive(None, job, root)
-        project = derived["project"]
-        keys = set(owners.collection_keys(
-            project,
-            lambda one: (one.kind, one.name, one.dataroot) in asked
-            and owners.needed(one.key, derived["required"]),
-            refuse_private=False))
-        paths = {owners.collected_path(one) for one in owners._values(project)
-                 if (one.key, one.step, one.index) in keys}
+        summary = self._stored_summary(job, root)
+        records = summary["values"]
+        where = [(tuple(record["key"]), record["step"], record["index"])
+                 for record in records]
+        private = {at for at, record in zip(where, records)
+                   if record["origin"] == owners.PRIVATE}
+        keys = {at for at, record in zip(where, records)
+                if (record["kind"], record["name"], record["dataroot"]) in asked
+                and owners.needed(at[0], summary["required"]) and at not in private}
+        paths = {record["collected_path"] for at, record in zip(where, records)
+                 if at in keys and record["origin"] != owners.PRIVATE}
         paths.discard(None)
 
         def allowed(member: str) -> bool:
@@ -1304,7 +1296,6 @@ class JobService:
         threading.Thread(target=self._prepare, args=(job_id,), daemon=True,
                          name=f"prepare-{job_id[:8]}").start()
 
-    @_as_data
     def _prepare(self, job_id: str) -> None:
         '''Everything between submit and `queued`: unpack and check the
         upload, fetch what the run needs and the server does not hold, copy
@@ -1331,10 +1322,10 @@ class JobService:
             root = self.job_root(job["user_id"], job_id)
             unpacked = root / job["design"] / job["jobname"]
             if job["unpack_pending"]:
-                derived, entries = self._unpack(job)
+                summary, entries = self._unpack(job)
             else:
-                derived = self._derive(None, job, root)
-                entries = self._account(None, job, derived, unpacked)
+                summary = self._stored_summary(job, root)
+                entries = self._account(None, job, summary, unpacked)
 
             wanted = {}
             for entry in entries:
@@ -1393,11 +1384,11 @@ class JobService:
 
             # Everything in hand: a missing file in a fetched copy is refused
             # here, from `staging` -- and then it queues, and only moves on.
-            entries = self._account(None, job, derived, unpacked)
+            entries = self._account(None, job, summary, unpacked)
 
             # The results of each node this run reads and does not run, from
             # the earlier job that ran it (surface D175).
-            copies = self._account_upstream(None, job, derived, unpacked)
+            copies = self._account_upstream(None, job, summary, unpacked)
             if copies:
                 self._phase(job_id, "copying earlier results")
             self._copy_results(job, unpacked, copies)
@@ -1406,15 +1397,15 @@ class JobService:
             # so a line that will not install rejects the job before any node
             # runs; built into an image on the one each node resolved to where
             # they run in containers -- which needs the images resolved first.
-            self._install_on_host(job, derived)
+            self._install_on_host(job, summary)
             plan = self._build_environments(
-                job, derived, self._resolve_images(None, job, derived))
+                job, summary, self._resolve_images(None, job, summary))
             if self._row(job_id)["state"] != "staging":
                 raise _NoLongerStaging(job_id)
 
             # `queued` only once the scheduler holds it.
             self._phase(job_id, "handing the job to the scheduler")
-            self._dispatch(None, self._row(job_id), derived, entries, plan=plan)
+            self._dispatch(None, self._row(job_id), summary, entries, plan=plan)
         except ProblemError:
             # Already recorded on the job by `_refuse`.
             pass
@@ -1509,14 +1500,14 @@ class JobService:
             self._transition(job["id"], "staging", "awaiting_input",
                              reason=_bounded(reason))
 
-    def _dispatch(self, session, job, derived, entries, plan=None) -> None:
+    def _dispatch(self, session, job, summary, entries, plan=None) -> None:
         '''Resolve images, write the manifest the run will load, and hand
         the job to the scheduler. ``plan`` is the images already resolved
         while staging, with any a node's environment was built into.'''
         root = self.job_root(job["user_id"], job["id"])
         if plan is None:
-            plan = self._resolve_images(session, job, derived)
-        manifest = self._normalize(session, job, root, derived, plan, entries)
+            plan = self._resolve_images(session, job, summary)
+        manifest = self._write_run(job, root, summary, plan, entries)
 
         try:
             bundle = self._framework_bundle(job, plan)
@@ -1533,7 +1524,7 @@ class JobService:
         except DispatchError as e:
             raise _ServerFailure(f"this server's scheduler refused the job: {e}") from None
 
-        if not self._record_submission(job, derived, scheduler_job_id, plan):
+        if not self._record_submission(job, summary, scheduler_job_id, plan):
             # Cancelled while it was handed over: the scheduler lets it go.
             self._dispatcher.cancel(scheduler_job_id)
             raise _NoLongerStaging(job["id"])
@@ -1543,7 +1534,7 @@ class JobService:
     # A node's Python environment, built into an image (surface D131)
     ######################################################################
 
-    def _environments(self, job, derived) -> Dict[Tuple[str, str], str]:
+    def _environments(self, job, summary) -> Dict[Tuple[str, str], str]:
         '''The file this server writes for each node whose environment it
         builds: none, unless nodes run in containers and the builder is on.
 
@@ -1558,7 +1549,7 @@ class JobService:
 
         unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
         found = {}
-        for node in derived["nodes"]:
+        for node in summary["nodes"]:
             path = unpacked / environment.path_for(*node)
             if not path.is_file():
                 continue
@@ -1570,7 +1561,7 @@ class JobService:
                            "the file itself is never installed.")
         return found
 
-    def _build_environments(self, job, derived, plan):
+    def _build_environments(self, job, summary, plan):
         '''``plan`` with every node that has an environment moved onto the
         image built for it -- reused where one exists for its base and file,
         built otherwise. Nodes whose files are identical share one build.
@@ -1580,7 +1571,7 @@ class JobService:
         each package and the target Python and platform. Never asked for as an
         upload -- the package could carry binaries this server cannot run.
         '''
-        wanted = self._environments(job, derived)
+        wanted = self._environments(job, summary)
         if not wanted:
             return plan
 
@@ -1600,7 +1591,7 @@ class JobService:
             refs[image_id] = ref
         return images.Plan(plan.job, nodes, refs)
 
-    def _install_on_host(self, job, derived) -> None:
+    def _install_on_host(self, job, summary) -> None:
         '''Host mode: each executed node's environment installed while the
         job stages, into its user's cache, where the node's task finds it.
 
@@ -1616,13 +1607,13 @@ class JobService:
             return
         unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
         if not any((unpacked / environment.path_for(*node)).is_file()
-                   for node in derived["nodes"]):
+                   for node in summary["nodes"]):
             return
 
         self._phase(job["id"], "installing Python environments")
         try:
             envinstall.install_all(unpacked, self.cache_dir(job["user_id"]) / "python-env",
-                                   logger, derived["nodes"], constrain=_python_names(job),
+                                   logger, summary["nodes"], constrain=_python_names(job),
                                    indexes=list(self._config["package_indexes"] or []))
         except envinstall.InstallFailed as e:
             if e.result.get("network") or e.result.get("returncode") == -1:
@@ -1738,10 +1729,10 @@ class JobService:
         finally:
             shutil.rmtree(workspace, ignore_errors=True)
 
-    def _check_denied(self, session, job, derived) -> None:
+    def _check_denied(self, session, job, summary) -> None:
         '''Refuse a run that uses a PDK, library or tool nobody may use.
 
-        🔴 **After re-derivation and before image resolution**: what the
+        🔴 **After the manifest's read and before image resolution**: what the
         manifest names is only known once it is open, and *you may not use it*
         is asked before *can this server provide it* -- a denied tool this
         deployment has no image for is still a denial, and the caller should
@@ -1750,8 +1741,14 @@ class JobService:
         ⚠️ The first one found is the one named, in the order PDK, library,
         tool, because the slug carries one `resource`. The detail says how many
         more there are, so fixing one is not followed by a surprise.
+
+        ⚠️ **A summary that lies can evade this**, since the names are the
+        read's (contract §1, *The summary cannot widen access*). That widens
+        nothing here: `denied_resources` is a test stand-in for grants, and
+        this profile has no controlled resources, no content index and no
+        gate a summary feeds -- anyone may upload the same files anyway.
         '''
-        wanted = _resources(derived) + [("tool", name) for name in derived["tools"]]
+        wanted = _resources(summary) + [("tool", name) for name in summary["tools"]]
 
         denied = [(kind, name) for kind, name in wanted
                   if self._config.denied(kind, name)]
@@ -1765,7 +1762,7 @@ class JobService:
             detail=f"this flow uses a {kind} this deployment does not allow"
                    + (f", and {more} more" if more else "")))
 
-    def _resolve_images(self, session, job, derived):
+    def _resolve_images(self, session, job, summary):
         '''Which container every node of this job runs in.
 
         🔴 Before the dispatcher is called and after the archive is open, which
@@ -1781,17 +1778,14 @@ class JobService:
         the host would be a record of something that did not happen.
         '''
         if not self._config["containers"]:
-            return images.Plan(None, {node: None for node in derived["nodes"]}, {})
+            return images.Plan(None, {node: None for node in summary["nodes"]}, {})
 
         requires = requirements(json.loads(job["descriptor"]) or {})
 
-        flow = derived["project"].get_flow()
-        inherits = runspec.inheriting_nodes(flow, derived["nodes"],
-                                            derived["edges"])
-
         try:
             return images.plan_for_job(self._store, requires,
-                                       derived["node_tools"], inherits)
+                                       summary["node_tools"], summary["inherits"],
+                                       job_image_id=job["image_id"])
         except ProblemError as problem:
             # Its own slug, not a guessed one: `plan_for_job` refuses for more
             # than one reason and the job must record the one the caller was
@@ -1837,7 +1831,7 @@ class JobService:
             raise _ServerFailure(f"this server could not unpack the image the job's "
                                  f"own process runs in: {e}") from None
 
-    def _record_submission(self, job, derived, scheduler_job_id, plan) -> bool:
+    def _record_submission(self, job, summary, scheduler_job_id, plan) -> bool:
         '''`staging` to `queued`, now the scheduler holds it; False where the
         job left `staging` meanwhile, and stays as it is.'''
         with self._store.transaction():
@@ -1848,17 +1842,17 @@ class JobService:
                 "  manifest_tools = ?, manifest_pdk = ?, "
                 "  scheduler_job_id = ?, image_id = ?, submitted_at = ? "
                 "WHERE id = ?",
-                (derived["flow"], len(derived["nodes"]),
-                 json.dumps(derived["tools"]), derived["pdk"],
+                (summary["flow"], len(summary["nodes"]),
+                 json.dumps(summary["tools"]), summary["pdk"],
                  scheduler_job_id, plan.job, now(), job["id"]))
             self._transition(job["id"], "staging", "queued")
 
-            for step, index in derived["nodes"]:
+            for step, index in summary["nodes"]:
                 self._store.execute(
                     'INSERT INTO job_nodes (job_id, step, "index", state, image_id) '
                     "VALUES (?, ?, ?, 'pending', ?)",
                     (job["id"], step, index, plan.nodes.get((step, index))))
-            for from_step, from_index, to_step, to_index in derived["edges"]:
+            for from_step, from_index, to_step, to_index in summary["edges"]:
                 self._store.execute(
                     "INSERT INTO job_node_edges "
                     "(job_id, from_step, from_index, to_step, to_index) "
@@ -1882,205 +1876,191 @@ class JobService:
                 detail=f"{active} of your jobs are already running",
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
-    def _derive(self, session, job, root: Path) -> Dict[str, Any]:
-        '''Read the uploaded manifest and re-run every check against it.
+    ######################################################################
+    # The manifest's read (contract §1)
+    ######################################################################
 
-        The descriptor said what the client believed; this is what it sent. Only
-        this side is authoritative, which is why the checks run twice.
+    def _read(self, job, root: Path) -> Dict[str, Any]:
+        '''Read the uploaded manifest -- in a process of its own, never this
+        one -- and act on what the read says.
+
+        🔴 **Contract §1, *No server process holding credentials parses a
+        manifest*.** The read is `manifestread`, started contained by
+        `sandbox`; what comes back is data, validated here, stored in the job
+        root, and every check after it works from it. The descriptor said what
+        the client believed; this is what it sent, and only this side is
+        authoritative, which is why the checks run twice.
+
+        Returns the summary, as :meth:`_summary` shapes it for the checks.
         '''
-        from siliconcompiler import Project
-
-        manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
-        if not manifest.is_file():
-            raise self._refuse(session, job, ProblemError(
+        unpacked = root / job["design"] / job["jobname"]
+        if not (unpacked / f"{job['design']}.pkg.json").is_file():
+            raise self._refuse_staging(job, ProblemError(
                 "archive-rejected", reason="manifest_missing",
                 detail=f"the archive holds no {job['design']}.pkg.json at its root"))
 
-        # 🔴 Reading a manifest is only BACKWARDS compatible, and the failure
-        # in the other direction is silent. SiliconCompiler migrates an older
-        # manifest, but a newer one holds keys this schema does not have: they
-        # are dropped, and a value whose type or legal values changed since is
-        # rejected or replaced by its default. So the read "either fails or
-        # quietly returns something other than what was written" -- and this
-        # server acts on what it read, deciding the node list, the flow and the
-        # limits from it.
-        #
-        # Caught rather than re-derived, because SiliconCompiler already knows
-        # when it is out of its depth and says so; what is wrong is only that
-        # it says it as a warning, which is right for a scheduler that can rerun
-        # the node and wrong for a server admitting somebody else's work.
-        with warnings.catch_warnings(record=True) as raised:
-            warnings.simplefilter("always", SchemaVersionWarning)
-            try:
-                # Whole, not lazily: every class it names is resolved here,
-                # inside `_as_data`, and none is left to a later access.
-                project = Project.from_manifest(filepath=str(manifest), lazyload=False)
-            except Exception as e:
-                raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", reason="manifest_invalid",
-                    detail=f"the uploaded manifest could not be read: {e}")) from None
-
-        newer = [str(warning.message) for warning in raised
-                 if issubclass(warning.category, SchemaVersionWarning)]
-        if newer:
-            # Written by a SiliconCompiler newer than the one the job resolved
-            # to, so it does not satisfy requires.python.siliconcompiler.
-            raise self._refuse(session, job, ProblemError(
-                "declared-mismatch",
-                detail=f"this server cannot read that manifest: {newer[0]}. "
-                       "It was written by a newer SiliconCompiler than this "
-                       "deployment runs, and reading one is only backwards "
-                       "compatible"))
-
-        if project.name != job["design"] or project.option.get_jobname() != job["jobname"]:
-            raise self._refuse(session, job, ProblemError(
-                "declared-mismatch",
-                detail=f"the manifest is {project.name}/{project.option.get_jobname()} "
-                       f"and the job is {job['design']}/{job['jobname']}"))
+        declared = requirements(json.loads(job["descriptor"]) or {})
+        asked = manifestread.request(
+            unpacked, job["design"], job["jobname"],
+            (declared.get(images.BUCKETS["python"]) or {}).get("siliconcompiler"),
+            self._skipped_upstream(job))
+        try:
+            raw = self._run_read(job, root, asked)
+        except sandbox.Cancelled:
+            raise _NoLongerStaging(job["id"]) from None
+        except sandbox.ReadFailed as e:
+            raise self._refuse_staging(job, ProblemError(
+                "archive-rejected", reason="manifest_invalid",
+                detail=_bounded(f"the manifest has not been read: {e}"))) from None
+        except OSError as e:
+            raise _ServerFailure(f"this server could not start the manifest's read: "
+                                 f"{e}") from None
 
         try:
-            runtime = runspec.runtime_flow(project)
-            nodes = list(runtime.get_nodes())
-        except Exception as e:
-            raise self._refuse(session, job, ProblemError(
+            raw = manifestread.validate(raw)
+        except manifestread.Invalid as e:
+            raise self._refuse_staging(job, ProblemError(
                 "archive-rejected", reason="manifest_invalid",
-                detail=f"the manifest names no runnable flow: {e}")) from None
+                detail=_bounded(f"the manifest's read returned a summary this server "
+                                f"cannot use: {e}"))) from None
 
-        if not nodes:
-            raise self._refuse(session, job, ProblemError(
-                "archive-rejected", reason="manifest_invalid",
-                detail="the manifest's flow has no nodes to run"))
+        contained = raw.get("contained") or {}
+        logger.info(f"{job['id']}: read its manifest in {raw.get('seconds')}s"
+                    + ("" if contained.get("network") else ", with no network namespace")
+                    + ("" if contained.get("limits") else ", with no resource limits"))
 
+        # 🔴 In the job root, above the tree the upload expanded into, so no
+        # upload can write it: a resumed staging and a follow-up's allowed set
+        # read it back.
+        runspec.write_json(root / runspec.SUMMARY_FILENAME, raw)
+        return self._act_on(job, raw)
+
+    def _run_read(self, job, root: Path, asked) -> Any:
+        '''The read: in the job's own image where this deployment runs jobs in
+        containers, and on this host otherwise, as a subprocess of this
+        server's own SiliconCompiler -- the one version it advertises, so the
+        one every job resolves to (profile §5, D63).'''
+        limits = dict(
+            timeout=self._config["manifest_read_timeout_seconds"],
+            alive=lambda: (self._row(job["id"]) or {"state": None})["state"] == "staging",
+            cpu_seconds=self._config["manifest_read_cpu_seconds"],
+            memory_bytes=self._config["manifest_read_memory_bytes"])
+        workdir = root / sandbox.READ_DIRNAME
+        if not (self._config["containers"] and job["image_id"]):
+            return sandbox.run_read(asked, workdir, **limits)
+
+        image = self._store.one("SELECT registry_ref, digest FROM images WHERE id = ?",
+                                (job["image_id"],))
+        ref = images.pinned_ref(image["registry_ref"], image["digest"])
+        if self._dispatcher.name != "slurm":
+            # The docker daemon's own container, as nodes run in here.
+            try:
+                return sandbox.run_read_in_image(asked, workdir, ref, **limits)
+            except OSError as e:
+                # 🔴 The job's image that cannot be had while staging is this
+                # server's failure, not the job's (database D145).
+                raise _ServerFailure(str(e)) from None
+
+        # A bundle of the job's own image, with nothing but its tree mounted.
+        try:
+            common = images.stage_bundle(self.bundles_root(), ref, image["digest"],
+                                         mounts=self.container_mounts())
+            bundle = images.read_bundle(common, self.job_bundles(job["id"]) / "read",
+                                        root / job["design"] / job["jobname"])
+        except Exception as e:                                   # noqa: BLE001
+            raise _ServerFailure(f"this server could not unpack the image the job's "
+                                 f"manifest is read in: {e}") from None
+        try:
+            return sandbox.run_read_in_bundle(self._dispatcher, asked, workdir, str(bundle),
+                                              queue=self._config["batch_queue"], **limits)
+        except DispatchError as e:
+            raise _ServerFailure(f"this server's scheduler refused the manifest's read: "
+                                 f"{e}") from None
+
+    def _stored_summary(self, job, root: Path) -> Dict[str, Any]:
+        '''The summary the job's last read stored, validated again; the read
+        run once more where there is none -- a job staged before one was kept.'''
+        path = root / runspec.SUMMARY_FILENAME
+        try:
+            with open(path, "rb") as f:
+                body = f.read(manifestread.MAX_SUMMARY_BYTES + 1)
+            if len(body) > manifestread.MAX_SUMMARY_BYTES:
+                raise ValueError("too large")
+            return self._summary(manifestread.validate(json.loads(body)))
+        except (OSError, ValueError):
+            return self._read(job, root)
+
+    def _act_on(self, job, raw) -> Dict[str, Any]:
+        '''Refuse what the read found, in the order the checks run.'''
+        outcome = raw["outcome"]
+        if outcome is not None and raw["nodes"] is None:
+            raise self._refuse_staging(job, _problem_from(outcome))
+
+        nodes = raw["nodes"] or []
         if len(nodes) > self._config.limits["max_job_nodes"]:
-            raise self._refuse(session, job, ProblemError(
+            raise self._refuse_staging(job, ProblemError(
                 "node-limit-exceeded", limit="max_job_nodes",
                 detail=f"{len(nodes)} nodes, and this server runs at most "
                        f"{self._config.limits['max_job_nodes']}"))
+        if outcome is not None:
+            raise self._refuse_staging(job, _problem_from(outcome))
 
-        # 🔴 A node's task class this installation does not provide is refused
-        # (surface D163): its own setup and pre- and post-processing run on the
-        # node, so running it as its base class would silently lose them. Only
-        # task classes -- a Design, flow or library subclass is data this
-        # server never calls, and SiliconCompiler's own examples define theirs
-        # in the script. Looked up, never imported: see `_as_data`.
-        self._check_task_classes(session, job, project, nodes)
-        self._check_unattended(session, job, project, nodes)
+        # The read compared them; this compares what it reported.
+        if (raw["design"], raw["jobname"]) != (job["design"], job["jobname"]):
+            raise self._refuse_staging(job, ProblemError(
+                "declared-mismatch",
+                detail=f"the manifest is {raw['design']}/{raw['jobname']} and the job "
+                       f"is {job['design']}/{job['jobname']}"))
+        return self._summary(raw)
 
-        # 🔴 The software version is NOT re-derived here, and that is a
-        # limitation worth stating rather than a check that was forgotten. A
-        # manifest records `record,scversion` per node as each node runs, so a
-        # manifest that has never run carries none -- there is nothing on this
-        # side to compare against. The SiliconCompiler version is therefore
-        # decided at create, `software-unavailable` naming `siliconcompiler`,
-        # from the descriptor's `versions`, which is exactly the field whose
-        # absence the contract says costs the whole upload.
+    @staticmethod
+    def _summary(raw) -> Dict[str, Any]:
+        '''A validated summary, as the checks read it.
 
-        for step, index in nodes:
-            try:
-                Flowgraph.check_node_name(step, index)
-            except ValueError as e:
-                raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", reason="manifest_invalid",
-                    detail=f"the manifest's flow names a node that is not one: {e}")) \
-                    from None
-
-        edges = []
-        for step, index in nodes:
-            for in_step, in_index in runtime.get_node_inputs(step, index):
-                if (in_step, in_index) in nodes:
-                    edges.append((in_step, in_index, step, index))
-
-        node_tools = runspec.node_tools(project.get_flow(), nodes)
-
-        # 🔴 The PDK fails closed only where the class has a PDK setting: one
-        # left unset there is not knowing which, and a class without one
-        # resolves to 'none'.
-        if project.valid("asic", "pdk") and not project.get("asic", "pdk"):
-            raise self._refuse(session, job, ProblemError(
-                "resource-unresolved", resource_kind="pdk",
-                detail=f"this {type(project).__name__} project sets no PDK: set one "
-                       "with set_pdk() before it is submitted"))
-
+        🔴 **The tools are this server's reading of the nodes**, never the
+        summary's own list: a check that widened nothing still has no reason to
+        believe a second copy of the same answer.
+        '''
+        nodes = [(entry["step"], entry["index"]) for entry in raw["nodes"]]
+        node_tools = {(entry["step"], entry["index"]): entry["tool"] for entry in raw["nodes"]}
+        edges = [tuple(edge) for edge in raw["edges"]]
+        # A node that runs where its input ran follows its FIRST input
+        # (`runspec.inheriting_nodes`), in the edges' order.
+        before: Dict[Tuple[str, str], Tuple[str, str]] = {}
+        for from_step, from_index, to_step, to_index in edges:
+            before.setdefault((to_step, to_index), (from_step, from_index))
         return {
-            "project": project,
-            "flow": project.get_flow().name,
+            "raw": raw,
+            "flow": raw["flow"],
             "nodes": nodes,
             "edges": edges,
             "node_tools": node_tools,
+            "inherits": {(entry["step"], entry["index"]):
+                         before.get((entry["step"], entry["index"]))
+                         for entry in raw["nodes"] if entry["inherits"]},
             "tools": sorted({tool for tool in node_tools.values() if tool}),
-            "pdk": _pdk(project),
-            "libraries": _libraries(project),
-            "fpga": _fpga(project),
+            "pdk": raw["pdk"],
+            "libraries": list(raw["libraries"]),
+            "fpga": raw["fpga"],
             # What the flow reads (D129), from the `require` the client worked
             # out and carried here; None where it could not.
-            "required": owners.required(project),
+            "required": ({tuple(key) for key in raw["required"]}
+                         if raw["required"] is not None else None),
+            "upstream": [tuple(node) for node in raw["upstream"]],
+            "values": raw["values"],
         }
 
-    def _check_unattended(self, session, job, project, nodes) -> None:
-        '''🔴 A job nobody is at (surface D165): a node that would wait for a
-        person is refused rather than left to hang its allocation until the
-        deadline. A breakpoint, or a task that opens a window -- every
-        `ShowTask`, OpenROAD's `WebTask` -- but not a `ScreenshotTask`, which
-        renders headless.'''
-        from siliconcompiler import OpenTask, ScreenshotTask
+    def _write_run(self, job, root: Path, summary, plan, entries=()) -> Path:
+        '''What the run needs from this server, as data beside the manifest;
+        the manifest the run loads, which is the one uploaded.
 
-        flow = project.get_flow()
-        for step, index in nodes:
-            if project.option.get_breakpoint(step=step, index=index):
-                raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", reason="breakpoint",
-                    detail=f"{step}/{index} has a breakpoint set, which stops the run "
-                           "for a person to look -- and nobody is at a remote run. "
-                           "Clear option,breakpoint for it"))
-            try:
-                task = flow.get_task_module(step, index)
-            except ImportError:
-                continue                    # `_check_task_classes` said so first
-            if issubclass(task, OpenTask) and not issubclass(task, ScreenshotTask):
-                raise self._refuse(session, job, ProblemError(
-                    "archive-rejected", reason="interactive_task",
-                    detail=f"{step}/{index} runs {task.__module__}/{task.__name__}, "
-                           "which opens a window for a person -- and nobody is at a "
-                           "remote run. A screenshot task renders the same view "
-                           "without one"))
-
-    def _check_task_classes(self, session, job, project, nodes) -> None:
-        from siliconcompiler.schema.baseschema import BaseSchema
-
-        known = BaseSchema._known_classes()
-        if known is None:
-            # Outside `_as_data`, where nothing is refused because nothing is
-            # looked up -- which no caller that reads an upload is.
-            return
-
-        flow = project.get_flow()
-        unknown: Dict[str, List[str]] = {}
-        for step, index in nodes:
-            name = flow.get_graph_node(step, index).get_taskmodule()
-            if name not in known:
-                unknown.setdefault(name, []).append(f"{step}/{index}")
-        if not unknown:
-            return
-
-        named = "; ".join(f"{', '.join(where)} runs {name}"
-                          for name, where in sorted(unknown.items()))
-        raise self._refuse(session, job, ProblemError(
-            "software-unavailable", reason="unknown_class",
-            unresolved=[{"name": name, "requirement": [], "available": []}
-                        for name in sorted(unknown)],
-            detail=_bounded(f"this server does not have the task class each of these "
-                            f"nodes runs: {named}. A task's own setup runs on the node, "
-                            "so it is not run as its base class instead")))
-
-    def _normalize(self, session, job, root: Path, derived, plan, entries=()) -> Path:
-        '''Apply the server's settings and write the manifest the run will load.
-
-        One place, once, after the digest check and after the archive limits
-        bound. The list itself is in `runspec.normalize`, which is the file both
-        ends read.
+        🔴 **Nothing here rewrites the manifest.** The runner loads it, in the
+        job's own SiliconCompiler, and applies these overrides there
+        (`runspec.apply_run`): the job id, the build and cache directories,
+        each node's placement, the cluster, and where each dataroot is
+        supplied. The list itself is `runspec.normalize`, the file both ends
+        read.
         '''
-        project = derived["project"]
-
         cache = self.cache_dir(job["user_id"])
         cache.mkdir(parents=True, exist_ok=True)
 
@@ -2103,15 +2083,15 @@ class JobService:
                 sources[bundle] = ref
                 shared[bundle] = str(common)
 
-        runspec.normalize(project, job["id"], root, cache, images=placements,
-                          cluster=self._dispatcher.name)
-
         # 🔴 Every dataroot points at the copy the run will actually read --
         # this job's upload, or this server's own supplied copy -- so the
         # manifest the run writes records which, and no dataroot is left
         # naming a path on the submitter's machine (D111, D112).
-        runspec.point_dataroots(
-            project, entries, root / job["design"] / job["jobname"] / "sc_collected_files")
+        unpacked = root / job["design"] / job["jobname"]
+        runspec.write_run(
+            root / runspec.RUN_FILENAME, job_id=job["id"], builddir=root, cachedir=cache,
+            cluster=self._dispatcher.name, placements=placements,
+            dataroots=runspec.dataroot_targets(entries, unpacked / "sc_collected_files"))
 
         # Only the bundles need a source: a digest the docker scheduler pulls
         # already says where it comes from.
@@ -2122,9 +2102,7 @@ class JobService:
             job_mounts=self.job_mounts(job) if sources else [],
             drop=[str(self._datadir)] if sources else [])
 
-        manifest = root / job["design"] / job["jobname"] / f"{job['design']}.pkg.json"
-        project.write_manifest(str(manifest))
-        return manifest
+        return unpacked / f"{job['design']}.pkg.json"
 
     def _refuse(self, session, job, problem: ProblemError) -> ProblemError:
         '''Record a refusal, and hand back the problem for the caller to raise.
@@ -2940,6 +2918,7 @@ class JobService:
         # with an empty listing: the first thing a client does on seeing
         # `terminal` is ask what the run produced.
         self._index(job)
+        self._record_metrics(job)
 
         reason = progress.get("error")
         limited = [f"{key} exceeded its {node['limit']} limit"
@@ -2967,6 +2946,39 @@ class JobService:
                 (said, job["id"]))
             self._transition(job["id"], job["state"], state, reason=reason,
                              state_reason=said)
+
+    def _record_metrics(self, job) -> None:
+        '''Each node's metrics and records, into `job_nodes`, once, as the job
+        ends: what the portal's metrics panel reads (implementation-notes §E,
+        *The portal's metrics come from a table*).
+
+        🔴 **Plain JSON, never SiliconCompiler** (contract §1, its second
+        paragraph): the run's final manifest is read with `json`, under a size
+        limit, and nothing read this way decides a refusal or a grant.
+        '''
+        root = self.job_root(job["user_id"], job["id"])
+        found = _node_metrics(root / job["design"] / job["jobname"]
+                              / f"{job['design']}.pkg.json")
+        if not found:
+            return
+        with self._store.transaction():
+            for (step, index), (metrics, records) in found.items():
+                self._store.execute(
+                    'UPDATE job_nodes SET metrics = ?, records = ? '
+                    'WHERE job_id = ? AND step = ? AND "index" = ?',
+                    (json.dumps(metrics), json.dumps(records), job["id"], step, index))
+
+    def node_metrics(self, session, job_id: str, step: str, index: str):
+        '''One node's metrics and records as the job's end recorded them, or
+        None -- through the same ownership check as every read of a job.'''
+        self.owned(session, job_id)
+        row = self._store.one(
+            'SELECT metrics, records FROM job_nodes WHERE job_id = ? AND step = ? '
+            'AND "index" = ?', (job_id, step, index))
+        if row is None:
+            return None
+        return {"metrics": json.loads(row["metrics"]) if row["metrics"] else None,
+                "records": json.loads(row["records"]) if row["records"] else None}
 
     def _index(self, job) -> None:
         '''Turn what the run left on disk into rows.
@@ -3773,12 +3785,12 @@ def _pdk(project) -> str:
     return pdk or "none"
 
 
-def _resources(derived) -> List[Tuple[str, str]]:
-    '''The PDK, libraries and FPGA device a derived flow needs, as
+def _resources(summary) -> List[Tuple[str, str]]:
+    '''The PDK, libraries and FPGA device a job's flow needs, as
     ``(resource_kind, name)``, in the order a refusal names them.'''
-    return (([("pdk", derived["pdk"])] if derived["pdk"] != "none" else []) +
-            [("library", name) for name in derived["libraries"]] +
-            ([("fpga", derived["fpga"])] if derived.get("fpga") else []))
+    return (([("pdk", summary["pdk"])] if summary["pdk"] != "none" else []) +
+            [("library", name) for name in summary["libraries"]] +
+            ([("fpga", summary["fpga"])] if summary.get("fpga") else []))
 
 
 def _fpga(project) -> Optional[str]:
@@ -3865,6 +3877,80 @@ class _NoLongerStaging(Exception):
 class _ServerFailure(Exception):
     '''This server's own failure while staging: `staging-failed`, its message
     the `detail`.'''
+
+
+# The run's final manifest, read once as plain JSON for its metrics: larger
+# than this is left unread, since the panel is not worth parsing gigabytes.
+METRICS_MANIFEST_BYTES = 256 * 1024 * 1024
+# Each value kept for the panel, bounded as `detail` is.
+_METRIC_VALUE_CHARS = 1000
+
+
+def _node_metrics(manifest: Path) -> Dict[Tuple[str, str], Tuple[Dict[str, Any], Dict[str, Any]]]:
+    '''``{(step, index): (metrics, records)}`` out of a run's final manifest,
+    read as plain JSON. Empty where there is none, or it is too large or not
+    JSON.'''
+    try:
+        if manifest.stat().st_size > METRICS_MANIFEST_BYTES:
+            logger.info(f"{manifest} is too large to read its metrics from")
+            return {}
+        with open(manifest, "rb") as f:
+            body = json.loads(f.read(METRICS_MANIFEST_BYTES + 1))
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(body, dict):
+        return {}
+
+    def value_of(held):
+        value = held.get("value") if isinstance(held, dict) else None
+        if value is None or isinstance(value, (bool, int, float)):
+            return value
+        text = json.dumps(value) if not isinstance(value, str) else value
+        return text[:_METRIC_VALUE_CHARS]
+
+    found: Dict[Tuple[str, str], Tuple[Dict[str, Any], Dict[str, Any]]] = {}
+    for section, slot in (("metric", 0), ("record", 1)):
+        params = body.get(section)
+        if not isinstance(params, dict):
+            continue
+        for name, param in params.items():
+            if name.startswith("__") or not isinstance(param, dict):
+                continue
+            nodes = param.get("node")
+            if not isinstance(nodes, dict):
+                continue
+            for step, indexes in nodes.items():
+                if not isinstance(indexes, dict) or step in ("global", "default"):
+                    continue
+                for index, held in indexes.items():
+                    value = value_of(held)
+                    if value is None or index in ("global", "default"):
+                        continue
+                    found.setdefault((str(step), str(index)), ({}, {}))[slot][name] = value
+    return found
+
+
+def _problem_from(outcome: Dict[str, Any]) -> ProblemError:
+    '''The refusal a read reported, with only the members its type carries.
+
+    🔴 **A read's members are written by whatever the manifest made the read
+    do**, so each is taken by name and shape, never passed through: a member
+    called `status` or `type` would otherwise be a field of the problem body.
+    '''
+    members: Dict[str, Any] = {}
+    given = outcome.get("members") or {}
+    if outcome["type"] == "software-unavailable":
+        members["unresolved"] = [
+            {"name": str(item.get("name"))[:manifestread.MAX_NAME],
+             "requirement": [], "available": []}
+            for item in (given.get("unresolved") or [])[:100] if isinstance(item, dict)]
+    if outcome["type"] == "resource-unresolved":
+        kind = given.get("resource_kind")
+        members["resource_kind"] = kind if kind in owners.RESOURCE_KINDS else "pdk"
+    if outcome.get("reason"):
+        members["reason"] = outcome["reason"]
+    return ProblemError(outcome["type"], detail=_bounded(outcome.get("detail") or ""),
+                        **members)
 
 
 def _build_refusal(node, text: str, result: Dict[str, Any]) -> ProblemError:

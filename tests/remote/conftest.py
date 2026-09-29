@@ -276,6 +276,59 @@ def staging_inline(request, monkeypatch):
     monkeypatch.setattr(JobService, "_start_preparing", inline)
 
 
+# The SiliconCompiler the tests' registries hold, which the server under test
+# runs: one version is advertised and every job resolves to it (profile §5).
+TEST_SC_VERSION = "0.38.0"
+
+
+@pytest.fixture
+def runs_test_version(monkeypatch):
+    '''The server under test runs `TEST_SC_VERSION`, the SiliconCompiler a
+    test registry holds its images at -- for every fixture that builds one. A
+    test of the one-version rule sets its own.'''
+    try:
+        from siliconcompiler.remote.server import images
+    except ImportError:
+        return
+    monkeypatch.setattr(images, "own_version", lambda: TEST_SC_VERSION)
+
+
+@pytest.fixture(autouse=True)
+def manifest_read_inline(request, monkeypatch):
+    '''The manifest's read runs in the test process, so a task class a test
+    defines is one the read can resolve. A test marked `real_read` keeps the
+    real contained subprocess, which is what the containment tests, and at
+    least one end-to-end run, use.'''
+    if request.node.get_closest_marker("real_read"):
+        return
+    try:
+        from siliconcompiler.remote.server import manifestread
+        from siliconcompiler.remote.server.jobs import JobService
+    except ImportError:
+        return
+
+    def inline(self, job, root, asked):
+        summary = manifestread.read(json.loads(json.dumps(asked)))
+        summary.update(contained={"network": False, "limits": False}, seconds=0)
+        # Through JSON, as the subprocess's answer is.
+        return json.loads(json.dumps(summary))
+
+    monkeypatch.setattr(JobService, "_run_read", inline)
+
+
+def run_manifest(manifest):
+    '''The project a dispatched run executes: the uploaded manifest, with the
+    overrides the server wrote beside it applied, as the runner applies them.'''
+    from siliconcompiler import Project
+    from siliconcompiler.remote.server import runspec
+
+    project = Project.from_manifest(filepath=str(manifest))
+    run = runspec.read_run(runspec.state_dir(manifest) / runspec.RUN_FILENAME)
+    if run is not None:
+        runspec.apply_run(project, run)
+    return project
+
+
 def job_after(client, key, token, response):
     '''The job a `202` submit answered for, as it stands once staging ran.'''
     return call(client, key, "GET", f"/v1/jobs/{response.get_json()['id']}",

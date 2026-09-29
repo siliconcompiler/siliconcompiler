@@ -545,9 +545,11 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
     response = submit(server_client, key, token, job["id"], digest, size)
 
     assert response.status_code == 202, response.get_json()
-    text = open(dispatcher.submitted[0][2]).read()
-    manifest = json.loads(text)
-    pointed = json.dumps(manifest["library"]["secret"]["dataroot"]["secret"]["path"])
-    assert str(root) in pointed
-    assert str(tmp_path / "client-copy") not in text
-    assert "sc_collected_files" in json.dumps(manifest["library"]["gcd"]["dataroot"])
+    from conftest import run_manifest
+
+    # What the run executes: the upload, with the server's overrides applied.
+    ran = run_manifest(dispatcher.submitted[0][2])
+    assert str(root) in ran.get("library", "secret", "dataroot", "secret", "path")
+    assert str(tmp_path / "client-copy") not in json.dumps(ran.getdict()["library"])
+    assert "sc_collected_files" in ran.get("library", "gcd", "dataroot",
+                                           "gcd-pytest-example", "path")

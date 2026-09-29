@@ -596,13 +596,15 @@ names a version for such a tool is refused with *present but reports no
 version*, rather than with *no image matches* -- the second would send somebody
 looking for something that is already installed.
 
-**A version is advertised only when the server can read it.** Submitting
-re-derives the flow from the uploaded manifest, and that happens in the server's
-own SiliconCompiler -- reading a manifest is only backwards compatible, so a
-newer one loses the keys this schema does not have. A deployment therefore
-**upgrades the server before registering a version newer than it**, and a server
-asked to advertise one it cannot read refuses to start rather than accepting
-jobs it would have to turn away after the upload.
+**sc-server advertises one SiliconCompiler: the one it runs.** A job's manifest
+is read while the job stages, in a process of the server's own SiliconCompiler
+and never in the server itself, and reading a manifest is only backwards
+compatible, so every job resolves to that one version. A client whose version
+is another is refused when it creates the job, before anything is uploaded; an
+image holding another version is registered but neither advertised nor used,
+and a deployment that runs jobs in containers refuses to start until a live
+image holds the server's own. To offer a newer SiliconCompiler, upgrade the
+server.
 
 **A node waiting for its image reports** ``preparing``. A tool image is minutes
 on a host that has not seen it, and without a state for that the wait is

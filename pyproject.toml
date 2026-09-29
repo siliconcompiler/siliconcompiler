@@ -147,6 +147,7 @@ markers = [
     "nocache: don't automatically set the cache directory",
     "isolated_manager: give this test an MPManager server of its own instead of the session-wide one. Needed only by tests that assert on the manager's own lifecycle.",
     "threaded_staging: sc-server stages a submitted job in its own thread, as in production, instead of inline.",
+    "real_read: sc-server reads a job's manifest in its own contained subprocess, as in production, instead of in the test process.",
 ]
 pythonpath = [
     "tests"

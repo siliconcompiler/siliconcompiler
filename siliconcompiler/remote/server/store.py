@@ -27,7 +27,7 @@ __all__ = ["Store", "STORE_VERSION", "now"]
 # Deliberately not `schemaversion`, which is SiliconCompiler's build schema and
 # moves for unrelated reasons. This is the third independent version in the
 # tree, alongside the package version, and it is the one a store file records.
-STORE_VERSION = 16
+STORE_VERSION = 17
 
 # How many times an admission's whole transaction is tried before its lock
 # contention is this server's failure. Each try already waits the connection's

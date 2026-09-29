@@ -45,6 +45,18 @@ PROGRESS_FILENAME = "sc-server-progress.json"
 # consumers, two different facts.
 IMAGES_FILENAME = "sc-server-images.json"
 
+# Written by the API process, read by the run: what the run needs from the
+# server -- the job id, the build and cache directories, each node's
+# placement, the cluster, and where each dataroot is supplied. The runner
+# applies it to the uploaded manifest in the job's own SiliconCompiler
+# (`apply_run`); nothing in the API process rewrites the manifest.
+RUN_FILENAME = "sc-server-run.json"
+
+# What the manifest's read returned (`manifestread`), kept for a resumed
+# staging and a follow-up's allowed set. Written by the API process; no
+# upload can reach it.
+SUMMARY_FILENAME = "sc-server-summary.json"
+
 # Every `option,scheduler` key: placement is the deployment's, so each is reset
 # before the server writes its own.
 SCHEDULER_KEYS = ("cores", "defer", "maxnodes", "maxthreads", "memory",
@@ -250,13 +262,30 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
     return None
 
 
-def point_dataroots(project, entries, collection) -> int:
+def dataroot_targets(entries, collection) -> List[List[Optional[str]]]:
+    '''Where each dataroot the run reads is supplied, from `owners.account`'s
+    answer, as ``[kind, name, dataroot, target]``: an uploaded one at this
+    job's collection, a supplied one at this server's own copy -- a held
+    source, or an operator's private root. An installed package is left out,
+    since it is found by name.'''
+    from siliconcompiler.remote import owners
+
+    found = []
+    for entry in entries:
+        if entry.status == owners.SUPPLIED and entry.root:
+            target = str(entry.root)
+        elif entry.status == owners.UPLOADED:
+            target = str(collection)
+        else:
+            continue
+        found.append([entry.kind, entry.name, entry.dataroot, target])
+    return found
+
+
+def point_dataroots(project, targets) -> int:
     '''Point every dataroot at the copy the run will actually read.
 
-    ``entries`` is `owners.account`'s answer. An uploaded dataroot points at
-    this job's upload, a supplied one at this server's own copy -- a held
-    source, or an operator's private root -- and an installed package is left
-    as it is, since it is found by name.
+    ``targets`` is :func:`dataroot_targets`' answer.
 
     🔴 **Two things at once.** The manifest the run writes then records, for
     each dataroot, which copy it resolved to -- the upload's or the server's
@@ -272,7 +301,7 @@ def point_dataroots(project, entries, collection) -> int:
     '''
     from siliconcompiler.remote import owners
 
-    by = {(entry.kind, entry.name, entry.dataroot): entry for entry in entries}
+    by = {(kind, name, dataroot): target for kind, name, dataroot, target in targets}
     pointed = 0
     for key in sorted(project.allkeys(include_default=False)):
         if key[0] == "history" or len(key) < 3 or key[-1] != "path" \
@@ -281,18 +310,47 @@ def point_dataroots(project, entries, collection) -> int:
         who, name = owners.owner(project, key)
         kind = owners.DESIGN if who == owners.PROJECT else who
         name = project.name if who == owners.PROJECT else name
-        entry = by.get((kind, name, key[-2]))
-        if entry is None:
-            continue
-        if entry.status == owners.SUPPLIED and entry.root:
-            target = str(entry.root)
-        elif entry.status == owners.UPLOADED:
-            target = str(collection)
-        else:
+        target = by.get((kind, name, key[-2]))
+        if target is None:
             continue
         project.set(*key, target)
         pointed += 1
     return pointed
+
+
+def write_run(path, job_id: str, builddir, cachedir, cluster: str,
+              placements=None, dataroots=()) -> None:
+    '''What the run needs from the server: see `RUN_FILENAME`.'''
+    write_json(path, {
+        "job_id": job_id, "builddir": str(builddir), "cachedir": str(cachedir),
+        "cluster": cluster,
+        "placements": [[step, index, str(where)]
+                       for (step, index), where in sorted((placements or {}).items())],
+        "dataroots": [list(entry) for entry in dataroots]})
+
+
+def read_run(path) -> Optional[Dict[str, Any]]:
+    ''':func:`write_run`'s file, or None where there is none.'''
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
+
+
+def apply_run(project, run: Dict[str, Any]) -> None:
+    '''The server's overrides, applied to the uploaded manifest by the run
+    itself, in the job's own SiliconCompiler: :func:`normalize`, then
+    :func:`point_dataroots`.
+
+    🔴 **Here and nowhere else.** The API process never rewrites a manifest
+    (contract §1): it writes what the run needs as data, and this is where the
+    manifest becomes the one the run executes.
+    '''
+    normalize(project, run["job_id"], run["builddir"], run["cachedir"],
+              images={(step, index): where for step, index, where in run["placements"]},
+              cluster=run["cluster"])
+    point_dataroots(project, run["dataroots"])
 
 
 def runtime_flow(project):
@@ -525,6 +583,16 @@ def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
         return None
 
     return body if isinstance(body, dict) else None
+
+
+def write_json(path, body: Any) -> None:
+    '''Replace one of the server's own files atomically.'''
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(path.name + ".part")
+    with open(partial, "w") as f:
+        json.dump(body, f)
+    os.replace(partial, path)
 
 
 def write_progress(path, body: Dict[str, Any]) -> None:

@@ -246,6 +246,17 @@ def _cmd_add_image(store, args) -> int:
     print(f"  {image_id}")
     print(f"  {digest}")
 
+    # 🔴 One SiliconCompiler, the one this server runs (profile §5): an image
+    # holding another is registered and then neither advertised nor used.
+    held = [version for name, version in _contains(args.contains)
+            if name == images.PRIMARY]
+    if not any(images.normalize(version) == images.normalize(images.own_version())
+               for version in held):
+        print(f"warning: this image holds siliconcompiler "
+              f"{', '.join(held) if held else '(none)'}, and this server runs "
+              f"{images.own_version()}: it will be neither advertised nor used",
+              file=sys.stderr)
+
     if args.stage:
         print(f"  {_stage(args, images.pinned_ref(args.ref, digest), digest)}")
 

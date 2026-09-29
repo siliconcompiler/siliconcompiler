@@ -276,6 +276,41 @@ def finished(server, server_client, key, token, job_archive, dispatcher, me):
     return job
 
 
+def test_a_nodes_metrics_come_from_the_table_the_jobs_end_filled(
+        server, server_client, key, token, job_archive, dispatcher, me, signed_in):
+    '''🔴 The run's final manifest is read once, as plain JSON, when the job
+    ends; the panel reads the table, never the manifest (contract §1).'''
+    import json
+
+    from test_server_jobs import stage, submit
+    from siliconcompiler.remote.server import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    (root / "gcd.pkg.json").write_text(json.dumps({
+        "metric": {"cellarea": {"node": {"stepone": {"0": {"value": 12.5}}}}},
+        "record": {"status": {"node": {"stepone": {"0": {"value": "success"}}}}}}))
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:05.000Z",
+        "nodes": {"stepone/0": {"state": "completed"},
+                  "steptwo/0": {"state": "completed"}}})
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    # Gone: what the panel shows is the table's, filled when the job ended.
+    (root / "gcd.pkg.json").unlink()
+
+    page = signed_in.get(f"/portal/jobs/{job['id']}/metrics/stepone/0")
+    text = page.get_data(as_text=True)
+    assert page.status_code == 200
+    assert "cellarea" in text and "12.5" in text and "success" in text
+    assert "/metrics/stepone/0" in signed_in.get(f"/portal/jobs/{job['id']}").get_data(
+        as_text=True)
+
+
 def test_the_uploads_are_shown_apart_with_their_hashes(server, signed_in, finished):
     '''What went in, separately and inspectable, and every artifact's hash --
     short in the table, whole on the page that looks inside it.'''

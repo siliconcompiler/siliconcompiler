@@ -1,24 +1,24 @@
 '''
-Reading a job's manifest as data: what it may name, and nothing imported for it.
+What a job's manifest may name, and nothing imported for it -- used inside the
+manifest's read (`manifestread`), never in the API process.
 
-🔴 **Contract §1: `__meta__` resolves through an allowlist, never through
-`importlib.import_module()` on a name the manifest supplied.** SiliconCompiler
-reads a manifest by importing the module each `__meta__` entry -- and each
-flowgraph node's `taskmodule` -- names, and checks what it got afterwards, so
-the import has already run by then. A manifest is written by whoever uploads
-it, and the API process holds the signing key and the store.
+🔴 **Contract §1, *No server process holding credentials parses a manifest*.**
+The read runs in a process of its own while the job stages, and this is how it
+resolves names there: SiliconCompiler reads a manifest by importing the module
+each `__meta__` entry -- and each flowgraph node's `taskmodule` -- names, and
+checks what it got afterwards, so the import has already run by then.
 
-So the allowlist is the classes this server's own installation provides,
-loaded once at start-up: SiliconCompiler whole, its tool drivers, and every
+So the allowlist is the classes the reading process's installation provides,
+loaded once as it starts: SiliconCompiler whole, its tool drivers, and every
 installed distribution that depends on it -- the PDKs and libraries, a site's
 own drivers. A manifest's name is looked up among them
 (`known_classes_only`). A class that is not there resolves to its base type,
-as it always has; a node's TASK class that is not there is refused at submit
+as it always has; a node's TASK class that is not there is refused
 (`software-unavailable`, `unknown_class`), because a task's own methods run on
 the node.
 
-⚠️ The data directory is also kept off `sys.path` (see `create_app`): an
-extracted archive must never be importable in this process, whatever names it.
+⚠️ The extracted tree is never on the reading process's `sys.path`: its working
+directory is an empty one of its own, and nothing on `PYTHONPATH` is the job's.
 '''
 
 import importlib
@@ -30,7 +30,7 @@ from importlib import metadata
 
 from siliconcompiler.schema.baseschema import known_classes_only
 
-__all__ = ["load", "reading"]
+__all__ = ["load", "reading", "known"]
 
 
 logger = logging.getLogger("sc-server")
@@ -62,6 +62,14 @@ def reading():
     '''The context every manifest a job uploaded is read in.'''
     load()
     return known_classes_only()
+
+
+def known():
+    '''The ``module/Class`` names a manifest may resolve to, inside
+    :func:`reading`.'''
+    from siliconcompiler.schema.baseschema import BaseSchema
+
+    return set(BaseSchema._known_classes() or ())
 
 
 def _dependents():

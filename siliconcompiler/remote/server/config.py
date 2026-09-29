@@ -345,6 +345,14 @@ DEFAULTS: Dict[str, Any] = {
     "fetch_timeout_seconds": 300,
     "fetch_deadline_seconds": 1800,
 
+    # The manifest's read, while the job stages (`manifestread`): how long it
+    # may take, wall clock, and the CPU time and memory it holds itself to. A
+    # read past any of them has not read the manifest, and the job is
+    # rejected `manifest_invalid`.
+    "manifest_read_timeout_seconds": 300,
+    "manifest_read_cpu_seconds": 300,
+    "manifest_read_memory_bytes": 4 * 1024 ** 3,
+
     # Every fetch fails for good, and no copy this server already holds is
     # used -- what a server with an empty cache and no route out looks like.
     # An allowlisted source is still not asked for at create, so every job
@@ -465,6 +473,12 @@ def _check_policy(values: Dict[str, Any]) -> None:
                                   or value < 0):
             raise ValueError(f"limits.{name} is a whole number of zero or more, or null "
                              f"for unlimited; not {value!r}")
+
+    for name in ("manifest_read_timeout_seconds", "manifest_read_cpu_seconds",
+                 "manifest_read_memory_bytes"):
+        value = values[name]
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{name} is a whole number above zero; not {value!r}")
 
     kinds = values["api_fetchable_kinds"]
     if kinds is not None:

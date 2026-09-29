@@ -91,11 +91,9 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     datadir.mkdir(parents=True, exist_ok=True)
 
     # 🔴 Nothing under the data directory is importable here: every job's
-    # extracted archive is under it (contract §1). And what a manifest may name
-    # is loaded now, once -- see schemaclasses.
+    # extracted archive is under it. This process reads no manifest at all
+    # (contract §1): that is `manifestread`, a process of its own.
     _keep_off_path(datadir)
-    from siliconcompiler.remote.server import schemaclasses
-    schemaclasses.load()
 
     config = Config.load(datadir, test_mode=test_mode)
     if cluster == "slurm" and not config["containers"] and "python.env" in config["features"]:
@@ -155,25 +153,12 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # why they are not a table.
     app.config["SC_PORTAL"] = portal.Sessions()
 
-    # `siliconcompiler` must be advertised or this server does not start. A
-    # check rather than a column, and this is where it earns its keep: a
-    # deployment running jobs in containers has no fallback, so a registry that
-    # lists every tool and forgets the framework -- or that has no live image at
-    # all -- is a server on which nothing can be submitted. Finding that out at
-    # startup is much cheaper than finding it out at somebody's first submit.
-    # ⚠️ In the `python` bucket, which is where a REQUIRED `siliconcompiler`
-    # lives: it is a distribution in the interpreter, and the bucket it is
-    # published under is part of what that key means.
-    advertised = meta.advertised_software(store, config)["python"]
-
-    if "siliconcompiler" not in advertised:
-        raise RuntimeError(
-            "no runnable siliconcompiler version: this deployment runs jobs in "
-            "containers and no live image holds one, so nothing could be "
-            "dispatched. Register one with "
-            "python3 -m siliconcompiler.remote.server.registry")
-
-    _check_this_server_can_read_them(advertised["siliconcompiler"])
+    # 🔴 **One SiliconCompiler, the one this server runs** (profile §5): the
+    # manifest's read is this server's own, so a job may resolve to no other.
+    # Where jobs run in containers, a live image must hold it or nothing could
+    # be dispatched -- found here rather than at somebody's first submit.
+    _check_an_image_holds_this_version(store, config)
+    _report_read_containment()
 
     # 🔴 Last, and after the checks, because it is the one step whose failure
     # must not be the reason this server does not start. A full disk says what
@@ -248,52 +233,43 @@ def _origins(values) -> List[str]:
     return origins
 
 
-def _check_this_server_can_read_them(versions) -> None:
-    '''This server may not advertise a version newer than it runs.
+def _report_read_containment() -> None:
+    '''Say at startup what the manifest's read cannot contain itself with
+    on this host (profile §5): no network namespace where unprivileged user
+    namespaces are off, no resource limits where the platform has none.'''
+    from siliconcompiler.remote.server import sandbox
 
-    🔴 The framework image decides what RUNS a flow; it does not decide what
-    READS it. Submit re-derives the flow from the uploaded manifest in this
-    process, with this process's SiliconCompiler -- that is where the node
-    list, the limits and every refusal before dispatch come from -- and reading
-    a manifest is only backwards compatible. An older one migrates; a newer one
-    loses the keys this schema does not have and takes defaults for the values
-    that changed.
+    logger = logging.getLogger("sc-server")
+    achieved = sandbox.probe()
+    if not achieved.get("network"):
+        logger.warning("a job's manifest is read with this host's network: unprivileged "
+                       "user namespaces are not available here, so the read cannot give "
+                       "itself a network namespace of its own")
+    if not achieved.get("limits"):
+        logger.warning("a job's manifest is read with no CPU or memory limit of its own: "
+                       "this platform does not set them")
 
-    ⚠️ So advertising a newer version is a promise that ends in a refusal
-    AFTER the upload, which is the exact trap "a version is advertised only
-    when it is runnable" exists to avoid -- one step further along.
 
-    🔴 **The requirement this states: upgrade the server before registering a
-    version newer than it.** Caught here rather than at somebody's submit,
-    because an operator restarting a server they just configured is the cheapest
-    moment there is.
+def _check_an_image_holds_this_version(store, config) -> None:
+    '''With containers on, a live image holds this server's own
+    SiliconCompiler, or this server does not start.
+
+    🔴 **It replaces refusing to start while a newer version was advertised.**
+    That check existed because this process read every manifest; now the read
+    is this server's own SiliconCompiler, a job resolves to no other, and an
+    image holding another version is neither advertised nor used.
     '''
-    from packaging.version import InvalidVersion, Version
+    from siliconcompiler.remote.server import images
 
-    from siliconcompiler import __version__ as mine
-
-    try:
-        running = Version(mine)
-    except InvalidVersion:                                      # pragma: no cover
-        # A version this cannot parse is not a reason to refuse to start: the
-        # comparison is the check, and without one there is nothing to check.
+    if not config["containers"]:
         return
-
-    ahead = []
-    for version in versions:
-        try:
-            if Version(version) > running:
-                ahead.append(version)
-        except InvalidVersion:
-            continue
-
-    if ahead:
-        raise RuntimeError(
-            f"this server runs siliconcompiler {mine} and advertises "
-            f"{', '.join(ahead)}, which it cannot read: a manifest from a newer "
-            "schema loses what this one does not have. Upgrade the server, or "
-            "retire those versions with "
-            "python3 -m siliconcompiler.remote.server.registry")
+    if any(images.holds_own_version(image) for image in images.live_images(store)):
+        return
+    raise RuntimeError(
+        f"no live image holds siliconcompiler {images.own_version()}, the version this "
+        "server runs: this deployment runs jobs in containers, and a job's image must "
+        "hold the SiliconCompiler that reads its manifest, so nothing could be "
+        "dispatched. Register one with python3 -m siliconcompiler.remote.server.registry")
 
 
 def _register_error_handlers(app) -> None:

@@ -136,10 +136,13 @@ def test_an_allowlisted_source_is_fetched_after_submit_then_dispatched(
     assert wait_for(lambda: dispatcher.submitted)
 
     # The run reads the server's held copy, and its manifest says so.
-    manifest = open(dispatcher.submitted[0][2]).read()
+    from conftest import run_manifest
+
+    ran = run_manifest(dispatcher.submitted[0][2])
     held = server.config["SC_JOBS"]._sources.held(LAMBDA, "v1")
-    assert held and held in manifest
-    assert LAMBDA not in json.dumps(json.loads(manifest)["library"]["lambda"]["dataroot"])
+    pointed = json.dumps(ran.getdict()["library"]["lambda"]["dataroot"])
+    assert held and held in pointed
+    assert LAMBDA not in pointed
 
 
 def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(

@@ -708,6 +708,10 @@ for. Nothing in it is required.
   host, the install runs while the job is `staging`, into the user's own cache.
 - `fetch_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
   `fetch_deadline_seconds`: what the server fetches, and supplies.
+- `manifest_read_timeout_seconds`, `manifest_read_cpu_seconds` and
+  `manifest_read_memory_bytes`: the manifest's read while a job stages (below),
+  300 seconds, 300 CPU seconds and 4 GiB by default. A read past any of them
+  has not read the manifest, and the job is rejected `manifest_invalid`.
 - `public_origins`, `web_url_base`: where this server is reached, and the
   origin a job's page is published under. `portal_plaintext_peers` is no longer
   read, and a `config.json` that still sets it starts with a warning.
@@ -737,16 +741,58 @@ It refuses to start, naming the reason, when:
   resource kind it does not know, `env_builder` without `containers`, or
   `python.env` in `features` where nodes run in containers and no builder can
   build them an environment;
-- no runnable `siliconcompiler` is advertised: with `containers` on, a live
-  image must hold one. It is a check, not a column;
-- it advertises a `siliconcompiler` newer than the one it runs, since a newer
-  manifest cannot be read correctly. Upgrade the server before registering a
-  newer version;
+- with `containers` on, no live image holds the `siliconcompiler` it runs. It
+  advertises that one version and no other, whatever the registry tracks, and
+  every job resolves to it: an image holding another is neither advertised nor
+  used, and the registry CLI says so when one is registered;
 - the store on disk was written by another version of its schema.
+
+It warns, and starts, where the manifest's read cannot give itself a network
+namespace or resource limits on this host (below).
 
 It logs the origins it answers at, the cluster, the test mode where one is
 set, and its identity assurance, `self_asserted`: this server does not verify
 who a caller is.
+
+### Where a job's manifest is read
+
+Never in the server's own process: not at create, not at submit, and not while
+the job stages. Staging extracts the upload, then reads its manifest in a
+process of its own, `python -m siliconcompiler.remote.server.manifestread`,
+started from the server's own SiliconCompiler, and acts only on the data
+summary that process returns. The summary is validated against a fixed shape
+and bounds, every node name goes through SiliconCompiler's node-name check,
+and it is kept in the job root, beside the progress file and outside the tree
+an upload expands into.
+
+What the read is given is the job's extracted tree, its declared design and job
+name, and nothing else of the server's:
+
+- where nodes run on this host, it starts with an empty environment, a `HOME`
+  and working directory of its own, no inherited descriptor and `stdin` closed,
+  then enters new user and network namespaces where unprivileged ones are
+  available, and sets its own CPU, memory and file-size limits. The server
+  kills it at `manifest_read_timeout_seconds`, or when the job is cancelled.
+  There is no filesystem boundary here: the read could open a path on the
+  machine, which is within this server's lack of a security claim;
+- with `containers` on, it runs in the job's own image instead, the one create
+  picked from `requires.python`: on Slurm a batch job in a bundle of that
+  image with the extracted tree mounted read-only, nothing else bound and a
+  network namespace of its own; with the docker scheduler a container with no
+  network and the tree read-only.
+
+A read costs a second or so: a fresh interpreter, SiliconCompiler's own
+classes and every installed distribution that depends on it loaded as the
+allowlist a manifest's names resolve among.
+
+The run loads the manifest as it was uploaded. The server writes what the run
+needs beside it as data -- the job id, the build and cache directories, each
+node's placement and where each dataroot is supplied -- and the runner applies
+it in the job's own SiliconCompiler before the flow starts.
+
+When a job ends, its final manifest is read once more, as plain JSON and never
+through SiliconCompiler, for the metrics and records each node's portal panel
+shows.
 
 ### The tables it keeps
 

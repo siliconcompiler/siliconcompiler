@@ -234,9 +234,10 @@ CREATE TABLE jobs (
                                                     -- invalidates reuse exactly when it should,
                                                     -- because a new digest is precisely
                                                     -- "the code changed"
-    image_id          text REFERENCES images(id),   -- the container this job RAN IN, resolved at
-                                                    -- submit. NULL before admission, and on a
-                                                    -- deployment that runs no containers
+    image_id          text REFERENCES images(id),   -- the container this job's own process runs
+                                                    -- in, picked at create from requires.python
+                                                    -- alone (D145). NULL on a deployment that
+                                                    -- runs no containers
     scheduler_job_id  text,                         -- set only where the JOB is the unit of
                                                     -- submission; per-node dispatch puts it on
                                                     -- job_nodes instead. At most one level
@@ -339,6 +340,10 @@ CREATE TABLE job_nodes (
     exit_code   integer,
     error_type  text,                               -- the same taxonomy as jobs.error_type
     state_reason text,                              -- display only: a cancel's reason
+    metrics     text,                               -- what the node's portal panel shows, as JSON:
+    records     text,                               -- the run's final manifest read ONCE as plain
+                                                    -- JSON when the job ends, never loaded through
+                                                    -- SiliconCompiler (contract §1). NULL before
     PRIMARY KEY (job_id, step, "index")
 );
 CREATE INDEX job_nodes_scheduler_idx                -- the sweep's direction is id -> node

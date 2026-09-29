@@ -62,7 +62,8 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
            "strip_userinfo", "account", "Entry", "confined", "upload_report",
            "required", "needed", "work_out", "work_out_required", "with_required",
            "WorkedOut", "installed_dataroots", "private_holders",
-           "collection_keys", "collected_path", "PrivateBeside"]
+           "collection_keys", "collected_path", "PrivateBeside",
+           "value_records", "account_records"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -413,8 +414,54 @@ class Entry(NamedTuple):
         return {"kind": self.kind, "name": self.name, "dataroot": self.dataroot}
 
 
+def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]]:
+    '''Every value the flow reads, as plain data: the manifest's half of
+    :func:`account`, which runs where the manifest is read.
+
+    One record per value -- its ``(key, step, index)``, the owner's kind and
+    name, the dataroot and where it comes from, the path, and where
+    `collect` puts it under the collection directory (:func:`collected_path`,
+    computed here because the layout is the reading SiliconCompiler's) --
+    with what it was found as in ``collection_dir`` (``collected``, relative),
+    and the identity the server would supply it by: a package's module, or a
+    remote source and ref.
+
+    🔴 **What the server acts on is this, never the manifest.** It checks
+    each ``collected`` path it relies on itself (:func:`account_records`),
+    since whatever wrote the manifest decides what this says.
+    '''
+    records = []
+    for one in _values(project):
+        if not needed(one.key, required):
+            continue
+        record = {"key": list(one.key), "step": one.step, "index": one.index,
+                  "kind": one.kind, "name": one.name, "dataroot": one.dataroot,
+                  "origin": one.origin, "path": one.value.get(),
+                  "collected_path": collected_path(one),
+                  "collected": None, "source": None, "ref": None, "package": None}
+        found = _collected_at(one.value, collection_dir)
+        if found is not None:
+            record["collected"] = found
+        resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
+        if one.origin == INSTALLED and resolver is not None:
+            record["package"] = resolver.urlpath
+        elif one.origin == REMOTE and resolver is not None:
+            record["source"] = strip_userinfo(getattr(resolver, "source", None))
+            record["ref"] = getattr(resolver, "reference", None)
+        records.append(record)
+    return records
+
+
 def account(project, collection_dir, supply, required=None) -> List[Entry]:
-    '''Every file the flow reads, as how it reaches the run.
+    '''Every file the flow reads, as how it reaches the run:
+    :func:`value_records`, then :func:`account_records`.'''
+    return account_records(value_records(project, collection_dir, required),
+                           collection_dir, supply, required)
+
+
+def account_records(records, collection_dir, supply, required=None) -> List[Entry]:
+    '''Every file the flow reads, as how it reaches the run: the server's
+    half of :func:`account`, from :func:`value_records`.
 
     ``supply`` answers for this server: ``package(module)``,
     ``private_root(name, dataroot)``, ``held(source, ref)`` and
@@ -431,14 +478,19 @@ def account(project, collection_dir, supply, required=None) -> List[Entry]:
     missing from the server's own copy is `UNAVAILABLE` -- the server should
     have supplied it -- rather than a node failing on it later. Without the set
     that check would refuse a job over a file it never reads.
+
+    🔴 **An uploaded file is the server's own finding.** A record says where
+    the read found it in the collection; it counts only where that path, held
+    inside ``collection_dir``, is really there.
     '''
     groups: Dict[Tuple[str, Optional[str], Optional[str]], Entry] = {}
 
-    for one in _values(project):
-        if not needed(one.key, required):
+    for record in records:
+        key = tuple(record["key"])
+        if not needed(key, required):
             continue
-        entry = _one(one, collection_dir, supply, present=required is not None)
-        group = (one.kind, one.name, one.dataroot)
+        entry = _one(record, collection_dir, supply, present=required is not None)
+        group = (record["kind"], record["name"], record["dataroot"])
         held = groups.get(group)
         if held is None or _WORST.index(entry.status) < _WORST.index(held.status):
             groups[group] = entry
@@ -448,41 +500,43 @@ def account(project, collection_dir, supply, required=None) -> List[Entry]:
                                  str(e.dataroot)))
 
 
-def _one(one: _Value, collection_dir, supply, present: bool = False) -> Entry:
-    base = dict(kind=one.kind, name=one.name, dataroot=one.dataroot,
-                origin=one.origin, key=one.key, path=one.value.get())
+def _one(record, collection_dir, supply, present: bool = False) -> Entry:
+    path = record["path"]
+    base = dict(kind=record["kind"], name=record["name"], dataroot=record["dataroot"],
+                origin=record["origin"], key=tuple(record["key"]), path=path)
 
     # Private wins over everything, the archive included: it must never have
     # been sent, and a copy that arrived anyway is not used.
-    if one.origin == PRIVATE:
-        if one.kind == DESIGN:
+    if record["origin"] == PRIVATE:
+        if record["kind"] == DESIGN:
             return Entry(**base, status=UNAVAILABLE,
                          why="a private design cannot be supplied by a server")
-        root = supply.private_root(one.name, one.dataroot)
+        root = supply.private_root(record["name"], record["dataroot"])
         if not root:
             return Entry(**base, status=UNAVAILABLE,
                          why="a private dataroot this server has no copy of")
-        return _supplied(base, root, one.value.get(), present)
+        return _supplied(base, root, path, present)
 
-    if _collected(one.value, collection_dir):
+    found = record.get("collected")
+    if found and collection_dir and confined(collection_dir, found) is not None \
+            and os.path.exists(confined(collection_dir, found)):
         return Entry(**base, status=UPLOADED)
 
-    if one.origin in (LOCAL, EDITABLE):
+    if record["origin"] in (LOCAL, EDITABLE):
         return Entry(**base, status=ASK)
 
-    resolver = one.resolvers.get(one.dataroot)
-    if one.origin == INSTALLED:
-        return Entry(**base, status=SUPPLIED) if supply.package(resolver.urlpath) \
+    if record["origin"] == INSTALLED:
+        return Entry(**base, status=SUPPLIED) \
+            if record.get("package") and supply.package(record["package"]) \
             else Entry(**base, status=ASK)
 
     # REMOTE: by source and ref, and only from the allowlist.
-    remote = strip_userinfo(getattr(resolver, "source", None))
-    ref = getattr(resolver, "reference", None)
-    if not _relative_and_inside(one.value.get()):
+    remote, ref = record.get("source"), record.get("ref")
+    if not _relative_and_inside(path):
         return Entry(**base, status=UNAVAILABLE, why="a path that escapes its dataroot")
     root = supply.held(remote, ref)
     if root:
-        return _supplied(base, root, one.value.get(), present)
+        return _supplied(base, root, path, present)
     if supply.allowlisted(remote, ref):
         return Entry(**base, status=FETCH, source=remote, ref=ref)
     return Entry(**base, status=ASK)
@@ -498,6 +552,24 @@ def _supplied(base, root, path, present: bool) -> Entry:
         return Entry(**base, status=UNAVAILABLE,
                      why=f"{path} is not in this server's copy")
     return Entry(**base, status=SUPPLIED, root=root)
+
+
+def _collected_at(value, collection_dir) -> Optional[str]:
+    '''Where ``value`` resolves in ``collection_dir``, relative to it, or
+    None where it is not there.'''
+    if not collection_dir or not os.path.isdir(collection_dir):
+        return None
+    try:
+        found = value.resolve_path(search=[], collection_dir=str(collection_dir))
+    except FileNotFoundError:
+        return None
+    if not found:
+        return None
+    base = os.path.abspath(str(collection_dir))
+    found = os.path.abspath(str(found))
+    if found == base or os.path.commonpath([base, found]) != base:
+        return None
+    return os.path.relpath(found, base).replace(os.sep, "/")
 
 
 def _collected(value, collection_dir) -> bool:
