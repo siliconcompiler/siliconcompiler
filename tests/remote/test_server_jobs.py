@@ -1033,14 +1033,21 @@ def test_a_cancel_reason_is_recorded_where_the_portal_reads_it(
     assert rows[-1]["reason"] == "superseded by run43"
 
 
-def test_a_cancel_reason_is_bounded(server_client, key, token):
-    '''User-controlled text that the portal renders and a CLI prints.'''
+@pytest.mark.parametrize("reason", ["x" * 301, "x" * 5000, "two\nlines", "a\x07bell"])
+def test_a_cancel_reason_over_its_bound_is_refused_never_cut(
+        server_client, key, token, reason):
+    '''User-controlled text that the portal renders and a CLI prints: at most
+    300 characters of one line (surface D288), refused rather than repaired,
+    and never echoed.'''
     job = create(server_client, key, token).get_json()
 
     response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                    json={"reason": "x" * 5000})
+                    json={"reason": reason})
 
     assert response.status_code == 400
+    assert slug(response) == "invalid-request"
+    assert "300" in response.get_json()["detail"]
+    assert reason not in response.get_json()["detail"]
 
 
 def test_cancel_is_idempotent(server_client, key, token):
@@ -2789,6 +2796,78 @@ def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
     assert nodes["steptwo"]["state"] == "cancelled"
     assert nodes["steptwo"]["exit_code"] is None
     assert nodes["steptwo"]["state_reason"] == "wrong corner"
+
+
+# 300 characters, and two spaces a `detail`'s bound would fold into one.
+LONG_REASON = ("stopped by hand:  " + "the corner was wrong and the run is repeated " * 7)[:300]
+
+
+def test_a_300_character_reason_is_served_whole(
+        server, server_client, key, token, job_archive, dispatcher, me, monkeypatch):
+    '''🔴 What is accepted is what everyone reads (surface D288): whole, on
+    the job's `cancelling` and `cancelled` transitions and on each node the
+    cancel stopped -- even where a deployment bounds its own text shorter.'''
+    from siliconcompiler.remote.server import errors
+    from siliconcompiler.remote.server.running import runspec
+
+    assert len(LONG_REASON) == 300
+    monkeypatch.setattr(errors, "DETAIL_MAX", 100)
+    job = running(server, server_client, key, token, job_archive, me)
+    cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+                     json={"reason": LONG_REASON}).get_json()
+    assert cancelled["transitions"][-1] == {**cancelled["transitions"][-1],
+                                            "state": "cancelling", "reason": LONG_REASON}
+
+    root = server.config["SC_JOBS"].job_root(me, job["id"])
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:01:00.000Z", "error": "the run's own words",
+        "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
+                  "steptwo/0": {"state": "running"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "cancelled"
+    assert [(entry["state"], entry.get("reason")) for entry in read["transitions"]][-2:] == \
+        [("cancelling", LONG_REASON), ("cancelled", LONG_REASON)]
+    nodes = {node["step"]: node for node in read["nodes"]}
+    assert nodes["steptwo"]["state_reason"] == LONG_REASON
+    # 🔴 Never the job's own member: that carries only a live staging phase.
+    assert "state_reason" not in read
+
+
+def test_a_cancel_that_lands_while_staging_carries_its_reason_to_cancelled(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''The staging thread writes `cancelled` when it stops, with the cancel's
+    reason -- not a word of its own.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+         json={"reason": LONG_REASON})
+    jobs = server.config["SC_JOBS"]
+
+    jobs._settle_cancelled(jobs._row(job["id"]))
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert (read["transitions"][-1]["state"], read["transitions"][-1]["reason"]) == \
+        ("cancelled", LONG_REASON)
+    assert all(node["state_reason"] == LONG_REASON for node in read["nodes"]
+               if node["state"] == "cancelled")
+
+
+def test_the_servers_own_reasons_keep_their_bound(
+        server, server_client, key, token, monkeypatch):
+    '''Only a cancel's reason is served whole: every other is this server's,
+    bounded like a `detail`.'''
+    from siliconcompiler.remote.server import errors
+
+    monkeypatch.setattr(errors, "DETAIL_MAX", 100)
+    job = create(server_client, key, token).get_json()
+    jobs = server.config["SC_JOBS"]
+    with server.config["SC_STORE"].transaction():
+        jobs._transition(job["id"], "created", "awaiting_input", reason="y " * 200)
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    served = read["transitions"][-1]["reason"]
+    assert served.endswith("...") and len(served) < 110
 
 
 @pytest.mark.parametrize("reported,published", [(0, 0), (1, 1), (-9, 137), (-15, 143),

@@ -687,6 +687,21 @@ def test_a_resource_named_without_its_kind_prints_cleanly(fake_v1, logged_in):
     assert "resource_kind" not in rendered and "None" not in rendered
 
 
+def test_a_cancel_reason_over_300_is_refused_before_it_is_sent(fake_v1, logged_in):
+    '''The server would refuse it, never cut it (surface D288): so the client
+    says so first, naming the limit, and sends nothing.'''
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelling"),
+                  status=202)
+
+    with pytest.raises(RemoteError, match="at most 300 characters"):
+        logged_in.cancel_job("01J9-job", reason="x" * 301)
+    assert not [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+
+    logged_in.cancel_job("01J9-job", reason="x" * 300)
+    cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+    assert json.loads(cancel.request.body)["reason"] == "x" * 300
+
+
 def test_a_refusal_carrying_a_trace_id_shows_it(fake_v1, logged_in):
     '''What an operator asks for when a user reports it.'''
     from siliconcompiler.remote import ServerProblem

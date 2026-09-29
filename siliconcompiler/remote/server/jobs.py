@@ -91,7 +91,14 @@ SURFACES = ("api", "portal")
 # Long enough for any real design or job name and short enough that the column,
 # the path and the log line all stay sane.
 MAX_NAME = 100
-MAX_REASON = 500
+
+# A cancel's `reason`, at most (surface D288): refused above it, never cut, and
+# served whole -- what is accepted is what everyone reads.
+MAX_REASON = 300
+
+# What a caller's reason may not hold: it is served as it arrived, so a control
+# character is refused at the boundary rather than stripped on the way out.
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 # `design` and `jobname` become path segments under the job's own root, so they
 # are checked rather than trusted. The manifest's own copies are checked again
@@ -2519,10 +2526,13 @@ class JobService:
         job = self.owned(session, job_id)
 
         if reason is not None:
-            if not isinstance(reason, str) or len(reason) > MAX_REASON:
+            # 🔴 Checked, never repaired (surface §6), and never echoed.
+            if not isinstance(reason, str) or len(reason) > MAX_REASON \
+                    or _CONTROL.search(reason):
                 raise ProblemError(
                     "invalid-request",
-                    detail=f"reason is free text of at most {MAX_REASON} characters")
+                    detail=f"reason is one line of free text of at most {MAX_REASON} "
+                           "characters")
 
         if job["state"] in TERMINAL_STATES or job["state"] == "cancelling":
             # Idempotent: the caller's intent is already satisfied.
@@ -3149,7 +3159,7 @@ class JobService:
                 "  state_reason = ? WHERE job_id = ? "
                 "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
                 (said, job["id"]))
-            self._transition(job["id"], "cancelling", "cancelled", reason="cancelled",
+            self._transition(job["id"], "cancelling", "cancelled", reason=said,
                              state_reason=said)
 
     def _finish(self, job, state: str, progress) -> None:
@@ -3199,13 +3209,16 @@ class JobService:
                 (progress.get("finished_at") or now(), job["id"]))
             # 🔴 A terminal job has only terminal nodes: whatever the run never
             # finished ended with it.
-            said = job["state_reason"] if state == "cancelled" else None
+            said = (job["state_reason"] or "cancelled") if state == "cancelled" else None
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL, "
                 "  state_reason = ? WHERE job_id = ? "
                 "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
                 (said, job["id"]))
-            self._transition(job["id"], job["state"], state, reason=reason,
+            # 🔴 A cancelled job's transition carries the cancel's reason, and
+            # nothing of the server's: that is what `_transitions` serves whole.
+            self._transition(job["id"], job["state"], state,
+                             reason=said if state == "cancelled" else reason,
                              state_reason=said)
 
     def _record_metrics(self, job) -> None:
@@ -3801,7 +3814,9 @@ class JobService:
                     "error_type": row["error_type"],
                 }
                 if row["state_reason"] and not row["error_type"]:
-                    node["state_reason"] = bound(row["state_reason"])
+                    # Only a cancel writes a node's `state_reason`: the
+                    # caller's words, served whole (surface D288).
+                    node["state_reason"] = row["state_reason"]
                 body["nodes"].append(node)
 
         def count(state):
@@ -3818,8 +3833,15 @@ class JobService:
 
     def _transitions(self, job) -> List[Dict[str, Any]]:
         '''`transitions`, from `job_state_transitions`: each state entered,
-        with when, and a reason where one was recorded -- bounded and scrubbed
-        like `detail`.'''
+        with when, and a reason where one was recorded.
+
+        🔴 **Two kinds of reason, kept apart by the state entered.** Every
+        reason on a move into `cancelling` or `cancelled` is the cancel's -- the
+        caller's words, checked at the boundary to at most `MAX_REASON` with no
+        control character, or the default *cancelled* -- and is served whole
+        (surface D288), whatever `max_detail_chars` is set to. Every other
+        reason is this server's own, bounded and scrubbed like `detail`.
+        '''
         rows = self._store.all(
             "SELECT to_state, occurred_at, reason FROM job_state_transitions "
             "WHERE job_id = ? ORDER BY occurred_at, rowid", (job["id"],))
@@ -3827,7 +3849,8 @@ class JobService:
         for row in rows:
             entry = {"state": row["to_state"], "at": row["occurred_at"]}
             if row["reason"]:
-                entry["reason"] = bound(row["reason"])
+                entry["reason"] = row["reason"] if row["to_state"] in _CANCELS \
+                    else bound(row["reason"])
             entries.append(entry)
         return entries or [{"state": job["state"], "at": job["state_changed_at"]}]
 
@@ -4132,6 +4155,10 @@ def _same_version(one: str, other: str) -> bool:
         return Version(one) == Version(other)
     except InvalidVersion:
         return one == other
+
+
+# The states a cancel moves a job into, whose reason is the caller's.
+_CANCELS = ("cancelling", "cancelled")
 
 
 # The contract's closed `resource_kinds`.

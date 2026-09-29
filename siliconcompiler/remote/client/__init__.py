@@ -47,6 +47,10 @@ ROTATE_COMMAND = "sc-remote -rotate_key"
 # A project a CI credential bound to one names on every create.
 PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
 
+# A cancel's reason, at most: the server refuses a longer one and serves what it
+# takes whole (surface D288).
+MAX_CANCEL_REASON = 300
+
 
 class Client:
     '''One machine talking to one server.'''
@@ -1019,7 +1023,16 @@ class Client:
         the job page has to answer: the caller's own words, else what this
         client says for itself -- with no host name, since every reader of the
         job sees it.
+
+        It is at most `MAX_CANCEL_REASON` characters, one line (surface D288):
+        a longer one is refused here, naming the limit, before anything is
+        sent, as the server would refuse it rather than cut it.
         '''
+        if reason is not None and (len(reason) > MAX_CANCEL_REASON or
+                                   any(ord(c) < 32 or 127 <= ord(c) < 160 for c in reason)):
+            raise RemoteError(f"a cancel's reason is one line of at most "
+                              f"{MAX_CANCEL_REASON} characters, and this one is "
+                              f"{len(reason)}")
         self.ensure_session()
 
         body = {"reason": reason or "cancelled from sc-remote"}

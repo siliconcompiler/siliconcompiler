@@ -80,12 +80,6 @@ def the_job(app, client):
     return detail, dict(row)
 
 
-def said(wire: str, stored: str) -> bool:
-    '''Whether the job object's reason is the one stored, which the wire
-    bounds more tightly.'''
-    return wire == stored or (wire.endswith("...") and stored.startswith(wire[:-3]))
-
-
 def test_a_source_asked_for_at_create_that_cannot_be_fetched_here_cancels(
         rig, nop_project):
     url, app, client = rig
@@ -98,7 +92,8 @@ def test_a_source_asked_for_at_create_that_cannot_be_fetched_here_cancels(
     assert detail["state"] == "cancelled" == row["state"]
     assert row["state_reason"].startswith("cancelled from sc-remote: it cannot supply "
                                           "what the server asked for: acme (acme)")
-    assert said(detail["transitions"][-1]["reason"], row["state_reason"])
+    # Served whole (surface D288): what was stored is what the job shows.
+    assert detail["transitions"][-1]["reason"] == row["state_reason"]
     assert "hunter2" not in row["state_reason"]
     # Nothing moved: no upload was ever granted.
     assert app.config["SC_STORE"].one("SELECT count(*) AS n FROM artifacts")["n"] == 0
@@ -122,7 +117,8 @@ def test_a_source_asked_for_after_submit_that_cannot_be_fetched_here_cancels(
     assert [entry["state"] for entry in detail["transitions"]][-3:] == \
         ["staging", "awaiting_input", "cancelled"]
     assert "acme (acme)" in row["state_reason"]
-    assert said(detail["transitions"][-1]["reason"], row["state_reason"])
+    # Served whole (surface D288): what was stored is what the job shows.
+    assert detail["transitions"][-1]["reason"] == row["state_reason"]
     assert "hunter2" not in row["state_reason"]
 
 
@@ -171,7 +167,8 @@ def test_a_compiled_package_asked_for_cancels_naming_its_file(rig, site, monkeyp
     assert detail["state"] == "cancelled"
     assert "the Python package scfakec: it holds a compiled file, scfakec/_c.so" in \
         row["state_reason"]
-    assert said(detail["transitions"][-1]["reason"], row["state_reason"])
+    # Served whole (surface D288): what was stored is what the job shows.
+    assert detail["transitions"][-1]["reason"] == row["state_reason"]
 
 
 ###########################
@@ -210,15 +207,19 @@ def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
     reason = json.loads(cancel.request.body)["reason"]
-    for failed in ("acme (acme): it cannot be fetched here either",
-                   "the Python package scfakec: it holds a compiled file",
-                   "the Python package scfakegone: it is not installed here either"):
-        assert failed in reason and failed in str(raised.value)
+    failed = ("acme (acme): it cannot be fetched here either",
+              "the Python package scfakec: it holds a compiled file",
+              "the Python package scfakegone: it is not installed here either")
+    # Every one printed here; in the reason, those that fit and how many more.
+    assert all(one in str(raised.value) for one in failed)
+    named = sum(one in reason for one in failed)
+    assert named and (named == 3 or reason.endswith(f"; and {3 - named} more"))
+    assert len(reason) <= 300
     assert "scfakefine" not in reason
-    assert "hunter2" not in reason
+    assert "hunter2" not in reason and "hunter2" not in str(raised.value)
 
 
-def test_a_long_reason_is_bounded_to_what_the_server_takes(fake_v1, logged_in, nop_project):
+def test_a_long_reason_is_fitted_to_what_the_server_takes(fake_v1, logged_in, nop_project):
     import responses
 
     fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
@@ -227,7 +228,30 @@ def test_a_long_reason_is_bounded_to_what_the_server_takes(fake_v1, logged_in, n
     RemoteRun(nop_project, logged_in)._abandon("01J9-job", RuntimeError(), why="x" * 2000)
 
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
-    assert len(json.loads(cancel.request.body)["reason"]) == 500
+    assert len(json.loads(cancel.request.body)["reason"]) <= 300
+
+
+def test_more_items_than_fit_are_named_and_counted(fake_v1, logged_in, nop_project):
+    '''🔴 The items that fit, then *and N more* (surface D288), within 300 --
+    and one line, whatever the failures said.'''
+    import responses
+
+    from siliconcompiler.remote.client.run import _CannotSupply
+
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
+                  {"id": "01J9-job", "state": "cancelled", "terminal": True}, status=202)
+    failures = [f"lib{n} (lib{n}): it cannot be fetched here either:\n404" for n in range(20)]
+
+    RemoteRun(nop_project, logged_in)._abandon("01J9-job", _CannotSupply(failures))
+
+    cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+    reason = json.loads(cancel.request.body)["reason"]
+    assert len(reason) <= 300 and "\n" not in reason
+    assert reason.startswith("cancelled from sc-remote: it cannot supply what the server "
+                             "asked for: lib0 (lib0)")
+    named = reason.count("it cannot be fetched here either")
+    assert 0 < named < 20
+    assert reason.endswith(f"; and {20 - named} more")
 
 
 def test_no_credential_survives_in_what_is_said():

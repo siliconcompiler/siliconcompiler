@@ -337,6 +337,10 @@ running on the server.
 already stopped, or deleting one that is already deleted, is the same answer
 again. A job cannot be deleted while it is still running -- cancel it first.
 
+``-cancel -reason "<why>"`` records why, for everyone who reads the job, in at
+most 300 characters on one line; a longer one is refused before anything is
+sent. Without it the reason is *cancelled from sc-remote*.
+
 Looking at it in a browser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

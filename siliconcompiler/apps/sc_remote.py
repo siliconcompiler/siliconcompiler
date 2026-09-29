@@ -82,6 +82,9 @@ To set a header the operator's access layer requires, use:
                                            "reconnect to a running job on the remote")
             self._add_commandline_argument("cancel", "bool",
                                            "cancel a running job on the remote")
+            self._add_commandline_argument("reason", "str",
+                                           "why, for -cancel: one line of at most 300 "
+                                           "characters, shown to every reader of the job")
             self._add_commandline_argument("delete", "bool",
                                            "delete a job on the remote")
             self._add_commandline_argument("tail", "str",
@@ -114,6 +117,7 @@ To set a header the operator's access layer requires, use:
                   '-list',
                   '-reconnect',
                   '-cancel',
+                  '-reason',
                   '-delete',
                   '-tail',
                   '-portal',
@@ -266,8 +270,14 @@ def _act_on_job(remote, client, project_cfg):
     # server says so rather than reporting the job as gone.
     remote.logger.info(f"Server: {client.base_url}")
 
+    if remote.get("cmdarg", 'reason') and not remote.get("cmdarg", 'cancel'):
+        remote.logger.error("Error: -reason is for -cancel")
+        return 1
+
     if remote.get("cmdarg", 'cancel'):
-        job = client.cancel_job(job_id)
+        # Refused here, naming the limit, where it is too long: the server
+        # would refuse it too, never cut it.
+        job = client.cancel_job(job_id, reason=remote.get("cmdarg", 'reason'))
         remote.logger.info(f"Job {job_id} is {job['state']}")
         return 0
 

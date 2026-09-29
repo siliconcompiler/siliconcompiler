@@ -305,6 +305,16 @@ def test_cancel_through_the_cli_is_an_answer_not_an_exception(
     assert "completed" in caplog.text
 
 
+def test_a_cancel_reason_through_the_cli_is_held_to_300(monkeypatch, caplog, submitted):
+    '''`-reason` is the user's own words for `-cancel`, refused here, naming
+    the limit, where the server would refuse it.'''
+    assert run_cli(monkeypatch, "-cfg", submitted, "-cancel", "-reason", "x" * 301) == 1
+    assert "at most 300 characters" in caplog.text
+
+    assert run_cli(monkeypatch, "-cfg", submitted, "-cancel", "-reason", "wrong corner") == 0
+    assert run_cli(monkeypatch, "-cfg", submitted, "-reason", "wrong corner") == 1
+
+
 def test_reconnect_through_the_cli(monkeypatch, caplog, submitted):
     with caplog.at_level("INFO"):
         assert run_cli(monkeypatch, "-cfg", submitted, "-reconnect") == 0

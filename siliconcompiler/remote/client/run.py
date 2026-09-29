@@ -39,6 +39,7 @@ from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, clean, describe)
+from siliconcompiler.remote.client import MAX_CANCEL_REASON
 from siliconcompiler.remote.client.results import Results, record_job, recorded_job
 from siliconcompiler.remote.units import size as _size
 
@@ -257,10 +258,13 @@ class RemoteRun:
         if why is None:
             why = "interrupted before it was submitted" \
                 if isinstance(error, KeyboardInterrupt) else "its upload or submit failed"
-        reason = f"cancelled from sc-remote: {why}"
-        if len(reason) > _MAX_REASON:
-            # The server refuses a longer one, and the job would stay.
-            reason = reason[:_MAX_REASON - 3] + "..."
+        if isinstance(error, _CannotSupply):
+            # The items that fit, then how many more: the whole list is what
+            # this run already printed.
+            reason = _fitted(f"cancelled from sc-remote: {_CannotSupply.LEAD}",
+                             error.failures)
+        else:
+            reason = _fitted("cancelled from sc-remote: ", [why])
         try:
             self.client.cancel_job(job_id, reason=reason)
             self.logger.info(f"Cancelled job {job_id}: {why}")
@@ -2078,8 +2082,11 @@ def _pin(version: str) -> str:
     return f"=={version}"
 
 
-# What the server takes as a cancel's reason, at most (surface §16).
-_MAX_REASON = 500
+# What the server takes as a cancel's reason, at most (surface D288).
+_MAX_REASON = MAX_CANCEL_REASON
+
+# What a cancel's reason may not hold.
+_UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 # A URL's `user:secret@`, wherever it sits in a message.
 _USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@]+@")
@@ -2099,11 +2106,31 @@ class _CannotSupply(RemoteError):
     '''What the server asked for and this machine cannot supply, each item
     and why. ``reason`` is what the job is cancelled with (surface D287).'''
 
+    LEAD = "it cannot supply what the server asked for: "
+
     def __init__(self, failures):
         self.failures = list(failures)
-        self.reason = "it cannot supply what the server asked for: " + "; ".join(failures)
+        self.reason = self.LEAD + "; ".join(failures)
         super().__init__("the server asked for what this machine cannot supply, so the "
                          "job is cancelled:\n" + "\n".join(f"  {one}" for one in failures))
+
+
+def _fitted(lead: str, items: List[str], limit: int = _MAX_REASON) -> str:
+    '''``lead`` and as many of ``items`` as fit within ``limit`` characters,
+    then *and N more* for the rest (surface D288). An item that would not fit
+    even alone is cut, so the reason names something. One line: the server
+    takes no control character, so each item is made one first.'''
+    items = [" ".join(_UNPRINTABLE.sub(" ", str(item)).split()) for item in items]
+    for count in range(len(items), 0, -1):
+        rest = len(items) - count
+        tail = f"; and {rest} more" if rest else ""
+        text = lead + "; ".join(items[:count]) + tail
+        if len(text) <= limit:
+            return text
+    rest = len(items) - 1
+    tail = f"; and {rest} more" if rest else ""
+    room = limit - len(lead) - len(tail) - 3
+    return lead + items[0][:max(room, 0)] + "..." + tail
 
 
 def _moved_at(node: Dict[str, Any]):
