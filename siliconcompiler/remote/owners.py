@@ -79,11 +79,6 @@ INSTALLED = "installed"    # a Python package installed normally
 REMOTE = "remote"          # git, https, or anything fetched -- cached or not
 PRIVATE = "private"        # never leaves the machine; supplied by name
 
-# Parameters that are paths and are never the run's input. The build and cache
-# directories are this machine's; the credentials file is this machine's KEY.
-_NEVER = {("option", "builddir"), ("option", "cachedir"),
-          ("option", "credentials")}
-
 
 def is_private(resolver) -> bool:
     '''Whether a dataroot is marked never to leave the machine: a ``+private``
@@ -97,12 +92,14 @@ def is_private(resolver) -> bool:
 
 
 def skipped(key) -> bool:
-    '''Parameters that are paths and are not the run's input -- the same set
-    `collect` leaves out.'''
-    if key[0] == "history" or tuple(key[:2]) in _NEVER:
-        return True
-    return (key[0] == "tool" and len(key) > 4 and key[2] == "task"
-            and key[4] in ("input", "report", "output"))
+    '''Parameters that are paths and are not the run's input: exactly what
+    `collect` leaves out, by the one rule both use
+    (`curation.never_collected`) -- the build and cache directories and the
+    credentials file, which are this machine's, the run history, a task's own
+    inputs, outputs and reports, and a schema template.'''
+    from siliconcompiler.utils.curation import never_collected
+
+    return never_collected(key)
 
 
 def owner(project, key) -> Tuple[str, Optional[str]]:
