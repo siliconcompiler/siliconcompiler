@@ -40,7 +40,7 @@ NEEDED (D129).** A value goes in the archive, is fetched, or is asked for only
 when its key is in :func:`required` -- the union of every running node's
 `require`. A local library with views for ten tools used to upload all ten for a
 flow that runs three. Both ends read the set from the same manifest; the client
-works it out by running each node's setup on a copy (:func:`work_out_required`)
+works it out by running each node's setup on a copy (:func:`work_out`)
 and carries it there.
 
 ⚠️ **A parameter goes up whole.** What the table decides for each value,
@@ -55,14 +55,12 @@ import os
 from typing import Any, Callable, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
-__all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "SOURCE_KINDS",
-           "LOCAL", "EDITABLE", "INSTALLED", "REMOTE", "PRIVATE",
-           "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
+__all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLED",
+           "REMOTE", "PRIVATE", "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
-           "strip_userinfo", "account", "Entry", "confined", "upload_report",
-           "required", "needed", "work_out", "work_out_required", "with_required",
-           "WorkedOut", "installed_dataroots", "private_holders",
-           "collection_keys", "collected_path", "PrivateBeside",
+           "strip_userinfo", "account", "Entry", "confined", "upload_report", "required",
+           "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
+           "private_holders", "collection_keys", "collected_path", "PrivateBeside",
            "value_records", "account_records"]
 
 
@@ -73,9 +71,6 @@ PROJECT = "project"
 # The resource kinds whose files follow the local-or-editable rule -- the same
 # words the contract's `resource_kinds` uses.
 RESOURCE_KINDS = ("pdk", "library", "fpga")
-
-# What a `sources` / `upload_sources` entry's `kind` may be.
-SOURCE_KINDS = ("pdk", "library", "fpga", "tool", "design")
 
 # Where a dataroot's files come from.
 LOCAL = "local"            # a path on this machine, `$`-rooted included
@@ -726,11 +721,6 @@ class WorkedOut(NamedTuple):
     environments: Dict[Tuple[str, str], Any]
     tasks: Dict[Tuple[str, str], Any] = {}
     failed: Dict[Tuple[str, str], str] = {}
-
-
-def work_out_required(project) -> Dict[Tuple[str, str], List[str]]:
-    '''Every node's `require` -- see :func:`work_out`.'''
-    return work_out(project).required
 
 
 def work_out(project) -> WorkedOut:

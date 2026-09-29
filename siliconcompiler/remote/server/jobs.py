@@ -2329,7 +2329,7 @@ class JobService:
         runspec.write_images(
             root / runspec.IMAGES_FILENAME,
             sources, self.container_mounts() if sources else [],
-            python=_python_names(job), shared=shared,
+            shared=shared,
             job_mounts=self.job_mounts(job) if sources else [],
             drop=[str(self._datadir)] if sources else [])
 
@@ -4047,61 +4047,12 @@ def _run_hash(value) -> Optional[str]:
     return value
 
 
-def _opaque(value, field: str) -> Optional[str]:
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value or len(value) > 200:
-        raise ProblemError("invalid-request",
-                           detail=f"{field} is an opaque string of at most 200 characters")
-    return value
-
-
-def _pdk(project) -> str:
-    '''The PDK this run needs, or the literal 'none'.
-
-    'none' is a value rather than a NULL: a flow that needs no PDK has resolved
-    its PDK requirement, and the column's CHECK on admitted jobs has to be able
-    to tell that apart from one that has not been resolved yet.
-    '''
-    try:
-        pdk = project.get("asic", "pdk")
-    except Exception:                                           # noqa: BLE001
-        pdk = None
-    return pdk or "none"
-
-
 def _resources(summary) -> List[Tuple[str, str]]:
     '''The PDK, libraries and FPGA device a job's flow needs, as
     ``(resource_kind, name)``, in the order a refusal names them.'''
     return (([("pdk", summary["pdk"])] if summary["pdk"] != "none" else []) +
             [("library", name) for name in summary["libraries"]] +
             ([("fpga", summary["fpga"])] if summary.get("fpga") else []))
-
-
-def _fpga(project) -> Optional[str]:
-    '''The FPGA device this run targets, or None for a flow with none.'''
-    try:
-        return project.get("fpga", "device") or None
-    except Exception:                                           # noqa: BLE001
-        return None
-
-
-def _libraries(project) -> List[str]:
-    '''The standard-cell libraries this run uses, main library first.
-
-    ⚠️ `asic,asiclib` is filled in from the main library when a run starts, so
-    a manifest that has never run can carry only `asic,mainlib`. Both are read.
-    '''
-    found: List[str] = []
-    for key in ("mainlib", "asiclib"):
-        try:
-            value = project.get("asic", key)
-        except Exception:                                       # noqa: BLE001
-            continue
-        for name in (value if isinstance(value, list) else [value]):
-            if name and name not in found:
-                found.append(name)
-    return found
 
 
 def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:

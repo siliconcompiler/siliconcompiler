@@ -1035,7 +1035,7 @@ def test_an_out_of_tree_driver_is_configuration(store):
     images.register_software(store, "acme", "Acme", store.actor, "tool",
                              driver="acme_tools.acme", allowed_drivers=["acme_tools.acme"])
 
-    assert images.how_to_ask(store)["acme"]["driver"] == "acme_tools.acme"
+    assert _recorded(store, "acme")["driver"] == "acme_tools.acme"
 
 
 def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
@@ -1045,9 +1045,13 @@ def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
     images.register_software(store, "openroad", "OpenROAD", store.actor, "tool",
                              driver="siliconcompiler.tools.openroad")
 
-    assert images.how_to_ask(store) == {
-        "openroad": {"driver": "siliconcompiler.tools.openroad",
-                     "version_package": None}}
+    assert _recorded(store, "openroad") == {"driver": "siliconcompiler.tools.openroad",
+                                            "version_package": None}
+
+
+def _recorded(store, name):
+    return dict(store.one("SELECT driver, version_package FROM software WHERE name = ?",
+                          (name,)))
 
 
 ###########################

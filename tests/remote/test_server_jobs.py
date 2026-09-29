@@ -2685,23 +2685,6 @@ def test_the_pending_uploads_refusal_names_the_jobs_holding_the_slots(
     assert refused.get_json()["job_ids"] == [held["id"]]
 
 
-def test_the_run_overrides_placement_and_never_refuses_it():
-    '''The job's name and the deployment's placement: every scheduler setting
-    and the job-increment flag are overridden, and the list is a set.'''
-    from siliconcompiler.remote.server import runspec
-
-    assert runspec.OVERRIDDEN == {
-        ("option", "nodashboard"), ("option", "builddir"), ("option", "cachedir"),
-        ("option", "remote"), ("option", "nodisplay"), ("option", "jobincr"),
-        ("record", "remoteid"),
-        ("option", "scheduler", "cores"), ("option", "scheduler", "defer"),
-        ("option", "scheduler", "maxnodes"), ("option", "scheduler", "maxthreads"),
-        ("option", "scheduler", "memory"), ("option", "scheduler", "msgcontact"),
-        ("option", "scheduler", "msgevent"), ("option", "scheduler", "name"),
-        ("option", "scheduler", "options"), ("option", "scheduler", "queue"),
-    }
-
-
 def test_a_manifests_scheduler_settings_are_overridden(nop_project, tmp_path):
     from siliconcompiler.remote.server import runspec
 

@@ -16,6 +16,9 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+from siliconcompiler.remote.server import allowlist
+from siliconcompiler.remote.server.errors import FEATURES
+
 __all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME", "TEST_MODES"]
 
 
@@ -292,8 +295,7 @@ DEFAULTS: Dict[str, Any] = {
     # is what lambdapdk needs -- and codeload only under it, where GitHub's
     # archive redirects land; the whole codeload host would admit every public
     # repository's archive.
-    "fetch_allowlist": ["https://github.com/siliconcompiler/",
-                        "https://codeload.github.com/siliconcompiler/"],
+    "fetch_allowlist": list(allowlist.DEFAULT),
 
     # Where a job's Python packages are installed from: the primary index, then
     # any extra ones, PyPI by default. Configuration and never the job's -- a
@@ -493,6 +495,13 @@ def _check_policy(values: Dict[str, Any]) -> None:
     features = values["features"]
     if "logs" in features:
         raise ValueError("features lists logs, which is folded into logs.stream")
+    # 🔴 `features` is a registry, not free text (surface *features is a
+    # registry*): a string it does not hold would be advertised in `GET /v1`,
+    # and a client that knows it would rely on what nothing here serves.
+    unregistered = sorted(set(features) - set(FEATURES))
+    if unregistered:
+        raise ValueError(f"features lists {', '.join(unregistered)}, which is not a "
+                         f"registered features string: {', '.join(FEATURES)}")
     if "logs.stream.job" in features and "logs.stream" not in features:
         raise ValueError("features lists logs.stream.job without logs.stream, "
                          "which it implies")
@@ -502,8 +511,6 @@ def _check_policy(values: Dict[str, Any]) -> None:
             or not 1 <= keepalive < 100:
         raise ValueError("stream_keepalive_seconds is whole seconds, 1 to 99: below "
                          "an intermediary's idle timeout")
-
-    from siliconcompiler.remote.server import allowlist
 
     # Refused at LOAD, never trusted to a careful matcher: a bare `*` host, a
     # wildcard anywhere but the leftmost label, a globbed scheme.

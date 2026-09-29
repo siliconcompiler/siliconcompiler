@@ -66,7 +66,7 @@ def reading(gcd_design, tmp_path, *keys, pdk=None, libs=()):
 
 def carried(project):
     '''The manifest a client uploads: its `require` worked out and carried.'''
-    return owners.with_required(project, owners.work_out_required(project))
+    return owners.with_required(project, owners.work_out(project).required)
 
 
 ###########################

@@ -123,12 +123,19 @@ def dist(name):
 # What the code reaches
 ###########################
 
-def test_what_a_source_imports():
+def test_what_a_source_imports(site):
+    '''Absolute imports, by their top-level module; a relative one is the
+    source's own package, and the standard library is left out.'''
+    for name in ("scfakenumpy", "scfakescapy"):
+        _distribution(site, name, "1.0")
     with open("tb.py", "w") as f:
-        f.write("import os\nimport numpy.linalg\nfrom scapy.all import IP\n"
-                "from . import sibling\nimport cocotb as c\n")
+        f.write("import os\nimport scfakenumpy.linalg\nfrom scfakescapy.all import IP\n"
+                "from . import sibling\nimport scfakegone as c\n")
 
-    assert capture.imported_modules(["tb.py"]) == {"numpy", "scapy", "cocotb"}
+    found = capture.reach([os.path.abspath("tb.py")])
+
+    assert found.distributions == {"scfakenumpy": set(), "scfakescapy": set()}
+    assert ["scfakegone" in warning for warning in found.warnings] == [True]
 
 
 def test_what_the_imports_reach_by_distribution(site):

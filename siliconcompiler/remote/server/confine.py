@@ -44,8 +44,7 @@ from typing import Dict, Iterable, Optional, Tuple
 
 from siliconcompiler.remote import links
 
-__all__ = ["open_inside", "size_inside", "inside", "add_tree", "add_file",
-           "link_stays_inside"]
+__all__ = ["open_inside", "size_inside", "inside", "add_tree", "add_file"]
 
 
 logger = logging.getLogger("sc-server")
@@ -148,18 +147,6 @@ class _Packing:
 
     def holds(self, path: str) -> bool:
         return path == self.real_top or path.startswith(self.real_top + os.sep)
-
-
-def link_stays_inside(tree, link_dir, target: str) -> bool:
-    '''Whether a link in ``link_dir`` naming ``target`` resolves inside
-    ``tree``, lexically -- as an extractor would see it. An absolute target
-    never does: it names this server's paths whatever it points at.'''
-    if not target or os.path.isabs(target) or target.startswith(("/", "\\")):
-        return False
-    here = os.path.relpath(str(link_dir), str(tree))
-    resolved = os.path.normpath(os.path.join(here, target))
-    return resolved != os.pardir and not resolved.startswith(os.pardir + os.sep) \
-        and not os.path.isabs(resolved)
 
 
 def _add_symlink(tar, packing: "_Packing", dir_path: Path, name: str, arcname: str,

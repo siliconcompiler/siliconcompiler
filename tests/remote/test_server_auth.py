@@ -961,3 +961,13 @@ def test_a_changed_key_is_refused_on_a_local_connection_too(client, key, address
 
     assert response.status_code == 401
     assert oauth(response) == ("invalid_client", None)
+
+
+def test_a_session_ends_for_the_registrys_reasons_and_no_other():
+    '''`session-ended`'s `reason` is a closed set: every cause the store
+    records maps onto one, and each has its own sentence.'''
+    from siliconcompiler.remote.server import auth
+    from siliconcompiler.remote.server.errors import SESSION_END_REASONS
+
+    assert set(auth._ENDED) == set(SESSION_END_REASONS)
+    assert set(auth._WIRE_REASON.values()) <= set(SESSION_END_REASONS)

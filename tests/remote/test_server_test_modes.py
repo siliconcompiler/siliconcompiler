@@ -355,7 +355,7 @@ def test_the_pdk_is_named_first_and_the_rest_are_counted(
 def test_the_libraries_are_the_main_library_and_the_rest():
     '''`asic,asiclib` is filled from the main library when a run starts, so a
     manifest that has never run may carry only `asic,mainlib`.'''
-    from siliconcompiler.remote.server.jobs import _libraries
+    from siliconcompiler.remote.server.manifestread import _libraries
 
     class Manifest:
         def __init__(self, **values):

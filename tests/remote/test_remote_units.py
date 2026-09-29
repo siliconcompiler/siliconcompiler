@@ -48,3 +48,16 @@ def test_a_size_that_is_not_a_number_is_not_a_crash():
 def test_a_duration_reads_as_a_duration(value, shown):
     '''Two units, never three: the third is never what the question was.'''
     assert duration(value) == shown
+
+
+@pytest.mark.parametrize("name,member", [("JobStatus", "TIMEOUT"), ("NodeStatus", "UPLOADED")])
+def test_the_old_protocols_status_names_still_work_and_say_why_not(name, member):
+    '''Released, and read by nothing since v1: kept working, with a warning
+    pointing at what replaced them (AGENTS.md, *Renaming or removing public
+    API*).'''
+    import siliconcompiler.remote as remote
+
+    with pytest.warns(DeprecationWarning, match=f"remote.{name} is deprecated"):
+        found = getattr(remote, name)
+    assert hasattr(found, member)
+    assert name not in remote.__all__

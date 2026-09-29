@@ -34,14 +34,12 @@ from siliconcompiler.remote.server.store import now
 
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
            "catalogue", "contents_of", "declared_requirements", "digests_for",
-           "sweep_bundles", "matches", "normalize", "specifiers",
-           "LAYER_PATH", "derivation", "derived_image", "register_derived",
-           "stage_derived_bundle", "job_bundle",
-           "is_staged", "live_images", "live_software", "pinned_ref",
-           "plan_for_job", "register_image", "register_software",
-           "register_version", "how_to_ask", "resolve",
-           "resolve_declared", "retire_image",
-           "retire_software", "retire_version", "stage_bundle", "tracks"]
+           "sweep_bundles", "matches", "normalize", "specifiers", "LAYER_PATH",
+           "derivation", "derived_image", "register_derived", "stage_derived_bundle",
+           "job_bundle", "is_staged", "live_images", "live_software", "pinned_ref",
+           "plan_for_job", "register_image", "register_software", "register_version",
+           "resolve", "resolve_declared", "retire_image", "retire_software",
+           "retire_version", "stage_bundle"]
 
 
 logger = logging.getLogger("sc-server")
@@ -353,21 +351,6 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
             "derived": derived}
 
 
-def how_to_ask(store) -> Dict[str, Dict[str, Optional[str]]]:
-    '''Every tool, and how its version is read: a driver, or a package.
-
-    What a probe has to be handed. It is a different interpreter with different
-    packages, so *where the driver is* and *which distribution carries the
-    version* are both data rather than things it can work out -- and the second
-    is not derivable at all, because `slang`'s version is `pyslang`'s.
-    '''
-    return {row["name"]: {"driver": row["driver"],
-                          "version_package": row["version_package"]}
-            for row in store.all(
-                "SELECT name, driver, version_package FROM software "
-                "WHERE kind = 'tool' AND retired_at IS NULL")}
-
-
 def live_software(store) -> Dict[str, Dict[str, List[str]]]:
     '''Which distributions this deployment tracks, at which versions, in two
     buckets.
@@ -422,11 +405,6 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
         tracked[BUCKETS[row["kind"]]][row["name"]].append(row["version"])
 
     return tracked
-
-
-def tracks(software: Dict[str, Dict[str, List[str]]], name: str) -> bool:
-    '''Whether this deployment curates images for a name, in either bucket.'''
-    return any(name in bucket for bucket in software.values())
 
 
 ######################################################################

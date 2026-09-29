@@ -39,8 +39,8 @@ from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from siliconcompiler.remote import environment
 
-__all__ = ["Reach", "Lists", "CannotForward", "imported_modules", "reach", "lists",
-           "place", "direct_url", "COMPILED"]
+__all__ = ["Reach", "Lists", "CannotForward", "reach", "lists", "place", "direct_url",
+           "COMPILED"]
 
 
 COMPILED = environment.COMPILED
@@ -67,19 +67,6 @@ class Lists(NamedTuple):
     constraints: List[Tuple[str, str]]
     wheels: List[metadata.Distribution]
     warnings: List[str]
-
-
-def imported_modules(paths: Iterable[str]) -> Set[str]:
-    '''The top-level modules Python sources import: absolute imports only,
-    and the standard library left out. A file that cannot be read or parsed
-    contributes nothing.'''
-    names = set()
-    for path in paths:
-        try:
-            names.update(_imports(path))
-        except CannotForward:
-            continue
-    return names - set(sys.stdlib_module_names)
 
 
 def _imports(path: str) -> Set[str]:

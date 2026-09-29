@@ -308,6 +308,19 @@ def test_a_notice_is_refused_unless_it_has_the_published_shape(notice, complaint
         Config.load("datadir")
 
 
+def test_a_features_string_the_registry_does_not_hold_is_refused():
+    '''🔴 `features` is a registry: a misspelled string would be advertised in
+    `GET /v1`, and a client that knew it would rely on what nothing serves.'''
+    from siliconcompiler.remote.server.config import Config
+
+    Path("datadir").mkdir()
+    Path("datadir/config.json").write_text(json.dumps(
+        {"features": ["logs.stream", "python-env"]}))
+
+    with pytest.raises(ValueError, match="python-env, which is not a registered"):
+        Config.load("datadir")
+
+
 def test_a_notice_is_published_until_its_end_passes():
     '''Published from when it is posted until `ends_at` passes. `starts_at`
     is when the event starts, not when the notice is shown, so a notice for

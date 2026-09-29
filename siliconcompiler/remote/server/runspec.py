@@ -22,10 +22,9 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 logger = logging.getLogger("sc-server")
 
-__all__ = ["inheriting_nodes", "normalize", "node_image", "node_tools",
-           "runtime_flow", "runtime_nodes",
-           "node_state", "exit_code", "PROGRESS_FILENAME", "IMAGES_FILENAME",
-           "read_images", "read_python", "write_images", "read_progress",
+__all__ = ["inheriting_nodes", "normalize", "node_image", "node_tools", "runtime_flow",
+           "runtime_nodes", "node_state", "exit_code", "PROGRESS_FILENAME",
+           "IMAGES_FILENAME", "read_images", "write_images", "read_progress",
            "write_progress", "upstream_nodes", "outputs_present"]
 
 
@@ -61,14 +60,6 @@ SUMMARY_FILENAME = "sc-server-summary.json"
 # before the server writes its own.
 SCHEDULER_KEYS = ("cores", "defer", "maxnodes", "maxthreads", "memory",
                   "msgcontact", "msgevent", "name", "options", "queue")
-
-# What `normalize` overrides whatever the manifest says -- never refuses.
-OVERRIDDEN = frozenset({
-    ("option", "nodashboard"), ("option", "builddir"), ("option", "cachedir"),
-    ("option", "remote"), ("option", "nodisplay"), ("option", "jobincr"),
-    ("record", "remoteid"),
-    *(("option", "scheduler", key) for key in SCHEDULER_KEYS),
-})
 
 
 def state_dir(manifest) -> Path:
@@ -554,32 +545,18 @@ def _mount(mount):
     return str(mount)
 
 
-def write_images(path, sources: Dict[str, str], mounts, python=(), shared=None,
+def write_images(path, sources: Dict[str, str], mounts, shared=None,
                  job_mounts=(), drop=()) -> None:
-    '''``python`` is what the job's `requires.python` names: a node's
-    environment is installed with each pinned to the version already there.
-
-    ``mounts`` are baked into a shared bundle when the run unpacks it;
+    '''``mounts`` are baked into a shared bundle when the run unpacks it;
     ``shared`` maps each job bundle to its shared one, and ``job_mounts`` are
     what the job's own bundles add over it.'''
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump({"sources": sources, "mounts": [_mount(m) for m in mounts],
-                   "python": sorted(python), "shared": dict(shared or {}),
+                   "shared": dict(shared or {}),
                    "job_mounts": [_mount(m) for m in job_mounts],
                    "drop": [str(m) for m in drop]}, f)
-
-
-def read_python(path) -> List[str]:
-    '''What the job's `requires.python` names, as `write_images` wrote it.'''
-    try:
-        with open(path) as f:
-            body = json.load(f)
-    except (OSError, ValueError):
-        return []
-    names = body.get("python") if isinstance(body, dict) else None
-    return [name for name in names or [] if isinstance(name, str)]
 
 
 def read_progress(path, root=None) -> Optional[Dict[str, Any]]:

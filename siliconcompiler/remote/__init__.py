@@ -11,6 +11,8 @@ See ``tests/remote/BEHAVIOUR.md`` for what the client this replaces did and what
 the rewrite owes back.
 '''
 
+import warnings
+
 from siliconcompiler._common import NodeStatus as SCNodeStatus
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
@@ -32,19 +34,14 @@ banner = r'''
 '''
 
 
-class NodeStatus(SCNodeStatus):
-    '''
-    Enum class to help ensure consistent status messages
-    '''
+class _NodeStatus(SCNodeStatus):
+    '''The old protocol's node states, with its own `uploaded`.'''
 
-    # special code for uploaded
     UPLOADED = 'uploaded'
 
 
-class JobStatus():
-    '''
-    Enum class to help ensure consistent status messages
-    '''
+class _JobStatus():
+    '''The old protocol's job states.'''
 
     RUNNING = "running"
 
@@ -55,6 +52,23 @@ class JobStatus():
     TIMEOUT = "timeout"
 
     UNKNOWN = "unknown"
+
+
+# Released, and nothing here reads them since the old protocol went: the v1
+# API publishes a job's and each node's `state` on the job object. Kept working
+# so a script that imports them runs, and says why it should change.
+_DEPRECATED = {"NodeStatus": (_NodeStatus, "siliconcompiler.NodeStatus"),
+               "JobStatus": (_JobStatus, "the `state` of the job object")}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED:
+        value, instead = _DEPRECATED[name]
+        warnings.warn(f"siliconcompiler.remote.{name} is deprecated, and nothing reads "
+                      f"it since the v1 API replaced the old protocol; use {instead}",
+                      DeprecationWarning, stacklevel=2)
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class ClientScheduler(Scheduler):
@@ -109,8 +123,6 @@ from siliconcompiler.remote.client import (            # noqa: E402
 
 
 __all__ = [
-    "NodeStatus",
-    "JobStatus",
     "Client",
     "Credentials",
     "RemoteError",

@@ -18,7 +18,7 @@ import secrets
 import time
 
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.server.errors import OAuthError, ProblemError
@@ -707,7 +707,3 @@ def _seconds_since(earlier: str, later: str) -> float:
 
 def _seconds_between(timestamp: str) -> int:
     return int(_parse(timestamp) - time.time())
-
-
-def scope_for(session: Optional[Session]) -> Tuple[str, ...]:
-    return tuple(sorted(session.scope)) if session else ()
