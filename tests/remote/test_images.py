@@ -557,9 +557,10 @@ def test_a_cluster_schedules_every_node_image_or_not(nop_project):
     scheduler = nop_project.option.scheduler
     for step in ("stepone", "steptwo"):
         assert scheduler.get_name(step=step, index="0") == "slurm"
-        # No image, so no container -- and never requeued: a node's terminal
-        # state is final.
-        assert scheduler.get_options(step=step, index="0") == ["--no-requeue"]
+        # No image, so no container. And no `--no-requeue`, which srun
+        # refuses with exit 255: a node is an srun job, which Slurm never
+        # requeues, so its terminal state is final already.
+        assert not scheduler.get_options(step=step, index="0")
 
 
 def test_a_server_with_no_cluster_schedules_nothing_per_node(nop_project):

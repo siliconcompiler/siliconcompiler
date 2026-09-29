@@ -1824,6 +1824,37 @@ def test_a_container_job_cannot_read_the_signing_key_or_the_store(
     assert spec["root"]["path"] == str(Path(shared[bundle]).resolve() / "rootfs")
 
 
+def test_every_directory_a_job_bundle_binds_exists(
+        container_server, container_client, key, container_token, job_archive,
+        monkeypatch):
+    '''🔴 A bind whose source is missing stops the runtime starting the
+    container at all -- a fresh data directory has no `sources/` until the
+    first fetch -- and an operator's private root that is not there is left
+    out rather than bound.'''
+    import shutil
+
+    from siliconcompiler.remote.server import images
+
+    fake = FakeDispatcher()
+    fake.name = "slurm"
+    container_server.config["SC_JOBS"]._dispatcher = fake
+    container_server.config["SC_CONFIG"]._values["private_dataroots"] = {
+        "acme": {"acme": "/nonexistent/acme-pdk"}}
+    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
+    shutil.rmtree(Path("container-datadir/sources"), ignore_errors=True)
+
+    archive, upload_digest, size = job_archive()
+    job = stage(container_client, key, container_token, archive, size,
+                requires=wants("0.38.0"))
+    submit(container_client, key, container_token, job["id"], upload_digest, size)
+
+    import json
+    spec = json.loads((Path(fake.handed["image"]) / "config.json").read_text())
+    sources = [entry["source"] for entry in spec["mounts"] if entry.get("type") == "none"]
+    assert sources and all(Path(source).exists() for source in sources)
+    assert "/nonexistent/acme-pdk" not in sources
+
+
 def test_no_queue_leaves_it_to_the_cluster(
         server, server_client, key, token, job_archive, dispatcher):
     '''None is the default, and it is correct for a deployment that has not

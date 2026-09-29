@@ -204,8 +204,10 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
         # IGNORED, so per-node placement would look configured and do nothing.
         for step, index in runtime_nodes(project):
             project.option.scheduler.set_name('slurm', step=step, index=index)
-            # A node's terminal state is final: Slurm never runs it twice.
-            project.option.scheduler.add_options(['--no-requeue'], step=step, index=index)
+            # A node's terminal state is final, and Slurm already keeps it so:
+            # a node is an `srun` job, and Slurm requeues only batch jobs. 🔴
+            # Never `--no-requeue` here, which is an sbatch option: srun
+            # refuses it and exits 255 before the node is submitted.
 
             where = (images or {}).get((step, index))
             if where:

@@ -17,6 +17,7 @@ import gzip
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
 import warnings
@@ -214,12 +215,24 @@ class JobService:
         # sources and every private root the operator maps. A job reads what it
         # is supplied and can change none of it -- the next job gets the same
         # copy.
-        supplied = [(str(self._datadir / "sources"), "ro")] + [
-            (str(root), "ro")
-            for roots in (self._config["private_dataroots"] or {}).values()
-            for root in roots.values()]
-        return [(str(self.job_root(job["user_id"], job["id"])), "rw"),
-                (str(self.cache_dir(job["user_id"])), "rw")] + supplied
+        #
+        # ⚠️ **Every source a bundle binds must exist**, or the runtime cannot
+        # start the container at all ("cannot stat"): this server's own
+        # directories are made here, and an operator's root that is not there
+        # is left out, and said -- a job cannot be supplied from it anyway.
+        own = [self.job_root(job["user_id"], job["id"]), self.cache_dir(job["user_id"]),
+               self._datadir / "sources"]
+        for path in own:
+            path.mkdir(parents=True, exist_ok=True)
+        private = []
+        for roots in (self._config["private_dataroots"] or {}).values():
+            for root in roots.values():
+                if os.path.isdir(root):
+                    private.append((str(root), "ro"))
+                else:
+                    logger.warning(f"private dataroot {root} is not a directory here; "
+                                   "no container is given it")
+        return [(str(own[0]), "rw"), (str(own[1]), "rw"), (str(own[2]), "ro")] + private
 
     def framework_mounts(self, job):
         '''What the job's own process sees, beside :meth:`job_mounts`: where
