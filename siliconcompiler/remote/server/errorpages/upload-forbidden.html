@@ -54,7 +54,7 @@
 <tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
     <td><code>pdk</code>, <code>library</code> or <code>fpga</code>.</td></tr>
 <tr><td><code>detected</code></td><td><span class="req">REQUIRED</span></td>
-    <td><code>attribution</code> or <code>content</code>: how the member was found to be controlled.</td></tr>
+    <td><code>attribution</code> or <code>content</code>: how the member was found to be controlled. <code>content</code> is found during extraction, the earliest the server can see it; <code>attribution</code> once the manifest&rsquo;s read reports what each member belongs to.</td></tr>
 <tr><td><code>member</code></td><td><span class="req">REQUIRED</span></td>
     <td>The archive entry, bounded. Named only once the archive has passed its safety checks.</td></tr>
 <tr><td><code>resource</code></td><td><span class="req">OPTIONAL</span></td>

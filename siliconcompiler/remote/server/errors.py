@@ -78,11 +78,13 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # `resource-unresolved`, which is not knowing WHICH.
     _e("resource-unavailable", 422, "This server does not hold that resource",
        ("resource_kind", "resource")),
-    # 🆕 D105, D115: crucible's, raised during extraction for restricted
-    # material the caller may not upload. `detected` is "attribution" or
-    # "content"; `member` the archive entry; `resource` only for a holder, so
-    # it is not REQUIRED. Registered because the registry is the contract's;
-    # this profile allows every upload (profile D26) and never raises it.
+    # 🆕 D105, D115: crucible's, raised while staging for restricted material
+    # the caller may not upload. `detected` is "content", found during
+    # extraction, or "attribution", once the manifest's read reports what each
+    # member belongs to; `member` the archive entry; `resource` only for a
+    # holder, so it is not REQUIRED. Registered because the registry is the
+    # contract's; this profile allows every upload (profile D26) and never
+    # raises it.
     _e("upload-forbidden", 422, "Upload of that resource is not allowed",
        ("resource_kind", "detected", "member")),
     _e("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
@@ -127,7 +129,8 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # profile provisions on first contact and never raises it.
     _e("account-not-provisioned", 403, "Your account is not set up on this deployment"),
     # 🔴 A job-level type like run-interrupted (surface D169): a staging the
-    # server could not complete for its own reasons, after retrying.
+    # server could not complete for its own reasons, after retrying -- an
+    # image the manifest is read in that could not be pulled among them.
     _e("staging-failed", None, "The server could not get this job ready"),
     _e("run-failed", None, "The run failed"),
 )}
