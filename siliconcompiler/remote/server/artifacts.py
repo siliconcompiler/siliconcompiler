@@ -308,46 +308,57 @@ def collect_run_log(store, storage, config, job, build_root) -> int:
                   "text/plain", build_root)
 
 
+# The job-level `logs`, as the server assembles it: its own record of the job,
+# then the flow's. In the job root, beside the progress file.
+JOB_LOG = "sc-server-job.log"
+
+
 def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
     '''The one log that belongs to the run rather than to any node.
 
-    🔴 **`job.log` when the flow wrote one, and the server's own run log when
-    it did not** -- which is the case somebody is far more likely to be looking
-    at, because it is the case where nothing else exists. A run that dies
-    before SiliconCompiler installs its file handler -- a manifest this build
-    cannot read, an image that will not unpack, a system package missing from
-    the runtime -- leaves no build directory at all, so the listing was empty,
-    every node read `cancelled`, and the only account of what happened stayed
-    on the server where the person who ran the job could not reach it.
+    🔴 **Both accounts, in one file: this server's record of the job first --
+    staging, what the install added (profile §5), the run's own stdout, an
+    image that would not pull -- then the flow's `job.log`.** It used to be one
+    or the other, `job.log` wherever the flow wrote one, so anything written to
+    the run log was lost on every job whose flow started: a host install's
+    record included (database D143).
 
-    ⚠️ **One of the two, never both, and the constraint is the contract's
-    rather than this deployment's.** An artifact is identified by
-    `(job, kind, step, index)` and carries no name on the wire, so two
-    job-level `logs` rows reach a client as two objects it cannot tell apart --
-    the duplicate-looking listing this server has already produced once. The
-    two files are also nearly disjoint by design: `_silence_console` keeps the
-    flow's output out of the run log precisely so it does not hold a second
-    copy of every line, which leaves the run log holding what SiliconCompiler
-    never saw, and `job.log` holding what it did. ✅ **Measured on an asicflow
-    run, the run log is 0 lines and `job.log` is 8842** -- so preferring
-    `job.log` is not a coin toss between two accounts, it is taking the only
-    one with anything in it, and falling back is taking the only one there is.
+    ⚠️ **One artifact, never two**, and the constraint is the contract's: an
+    artifact is identified by `(job, kind, step, index)` and carries no name on
+    the wire, so two job-level `logs` rows reach a client as two objects it
+    cannot tell apart. The two files are nearly disjoint by design --
+    `_silence_console` keeps the flow's output out of the run log -- so
+    together they are the whole account, and nothing is said twice.
 
     🔴 Both are reached through the JOB root and not the build directory.
-    `job.log` sits beside the nodes at `<design>/<jobname>/`; the run log is
-    one level up, beside the batch script, because the scheduler wrote it
-    before anything knew a design name.
+    `job.log` sits beside the nodes at `<design>/<jobname>/`, is the job's own
+    file, and is read through `confine`; the run log is one level up, beside
+    the batch script, because the scheduler wrote it before anything knew a
+    design name.
     '''
-    # NOT `job.*.log`, which was the bug: that glob matches the timestamped
-    # backups a re-run leaves and never `job.log` itself. On this server every
-    # job gets its own directory, so there are no backups -- the pattern
-    # matched nothing, every time, and no job has ever had a job-level log.
+    parts = []
+    run_log = job_root / RUN_LOG
+    if run_log.is_file() and not run_log.is_symlink():
+        parts.append(("the server's record of this job", run_log))
     current = build_dir / "job.log"
     if current.is_file():
-        return current
+        parts.append(("job.log", current))
+    if not parts:
+        return None
 
-    run_log = job_root / RUN_LOG
-    return run_log if run_log.is_file() else None
+    combined = job_root / JOB_LOG
+    partial = job_root / f"{JOB_LOG}.part"
+    with open(partial, "wb") as out:
+        for title, path in parts:
+            out.write(f"==> {title} <==\n".encode())
+            try:
+                with confine.open_inside(job_root, path) as source:
+                    shutil.copyfileobj(source, out)
+            except OSError:
+                out.write(b"(it could not be read)\n")
+            out.write(b"\n")
+    os.replace(partial, combined)
+    return combined
 
 
 # What a node archive leaves out, and every one of them for the same reason:

@@ -57,6 +57,11 @@ _image_shared = {}
 _job_mounts = []
 _image_drop = []
 
+# Each placement whose pull failed before the flow started, and what the
+# runtime said; and each node the docker daemon reported killed for memory.
+_pull_errors = {}
+_oom_killed = set()
+
 # Often enough that a stall is noticed in minutes, rarely enough that it is one
 # small write a minute on a filesystem every compute node shares. The server's
 # patience is its `run_heartbeat_seconds` and is many times this, because a
@@ -121,7 +126,27 @@ def _node_finished(project, step, index) -> None:
     if status == "timeout":
         # A limit, named, so the job's error can say which.
         node["limit"] = "time"
+    if node["state"] == "failed":
+        _explain_failure(project, step, index, node)
     _publish()
+
+
+def _explain_failure(project, step, index, node) -> None:
+    '''Say why a failed node failed where the runtime told us, never by its
+    exit status -- 137 is any SIGKILL (implementation-notes §10).
+
+    🔴 **An image that would not pull is an interruption, not the node's
+    failure**: the placement the node needed is still not here, and the pull
+    of it failed with the runtime's own error, before the flow started. A
+    node the docker daemon killed for its memory limit is `run-failed` with
+    that limit named.
+    '''
+    placement = node_image(project, step, index)
+    if placement and placement in _pull_errors and not _placement_present(placement):
+        node["interrupted"] = {"image": placement[1],
+                               "error": _pull_errors[placement][:500]}
+    elif (step, index) in _oom_killed:
+        node["limit"] = "memory"
 
 
 def run(manifest: Path) -> int:
@@ -330,6 +355,9 @@ def _fetch_images(project) -> None:
         # Every deployment that runs no containers, which is the default one.
         return
 
+    if any(mechanism == "image" for mechanism, _ in wanted):
+        _watch_for_oom()
+
     for placement, keys in sorted(wanted.items()):
         if _placement_present(placement):
             continue
@@ -341,6 +369,8 @@ def _fetch_images(project) -> None:
         try:
             _make_placement(placement)
         except Exception as e:                                   # noqa: BLE001
+            # Into the run log, which the job-level `logs` carries.
+            _pull_errors[placement] = str(e) or type(e).__name__
             print(f"could not fetch {placement[1]}: {e}", file=sys.stderr)
 
         for key in keys:
@@ -350,6 +380,34 @@ def _fetch_images(project) -> None:
             if _progress["nodes"][key]["state"] == "preparing":
                 _progress["nodes"][key]["state"] = "queued"
         _publish()
+
+
+def _watch_for_oom() -> None:
+    '''Listen to the docker daemon for this run's containers being killed
+    for memory, as they happen.
+
+    ⚠️ SiliconCompiler's docker scheduler starts each node's container with
+    ``auto_remove``, so once it exits its state -- ``OOMKilled`` with it -- is
+    gone. The daemon's ``oom`` event names the container's labels, and each
+    node's carries ``sc_node:<name>:<step>:<index>``: that needs no change to
+    the scheduler.
+    '''
+    def listen():
+        try:
+            import docker
+
+            for event in docker.from_env().events(decode=True, filters={"event": "oom"}):
+                for label in ((event.get("Actor") or {}).get("Attributes") or {}):
+                    # `sc_node:<name>:<step>:<index>`, read from the right: a
+                    # node name holds no colon, and a design name may.
+                    parts = label.rsplit(":", 2)
+                    if label.startswith("sc_node:") and len(parts) == 3:
+                        _oom_killed.add((parts[1], parts[2]))
+        except Exception:                                        # noqa: BLE001
+            # No daemon, no docker package: nothing to be told.
+            return
+
+    threading.Thread(target=listen, daemon=True).start()
 
 
 def _placement_present(placement) -> bool:

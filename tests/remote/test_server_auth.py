@@ -880,3 +880,25 @@ def test_only_a_declared_limit_can_be_overridden(client, key):
 
     with _pytest.raises(ValueError, match="not a per-user limit"):
         accounts.set_limit(store, me["id"], "max_upload_bytes", 10, me["id"])
+
+
+def test_the_refresh_grace_window_is_300_seconds():
+    '''This deployment's value for the contract's "a few minutes" (profile §6,
+    *The refresh grace window is 300 seconds*).'''
+    from siliconcompiler.remote.server import auth
+
+    assert auth.REFRESH_GRACE_SECONDS == 300
+
+
+@pytest.mark.parametrize("address", ["127.0.0.1", "::1"])
+def test_a_changed_key_is_refused_on_a_local_connection_too(client, key, address):
+    '''Re-registration is never automatic (profile §7): a known subject with
+    a different key is `invalid_client` wherever it comes from, loopback
+    included, and the operator releasing the binding is the one way back.'''
+    client.environ_base["REMOTE_ADDR"] = address
+    login(client, key, subject="machine:1001")
+
+    response = login(client, dpop.generate_key(), subject="machine:1001")
+
+    assert response.status_code == 401
+    assert oauth(response) == ("invalid_client", None)

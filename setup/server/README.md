@@ -251,8 +251,13 @@ archive around it.
 
 A kind the API withholds stays **in the listing** with `fetchable: false` and
 no `access_request_url` &mdash; it exists and there is no path to yes from
-here &mdash; and fetching it is `entitlement-denied`. The portal lists and
-serves it, the same split `max_download_bytes` makes.
+here &mdash; and fetching it is `403 artifact-not-approved`: the entitlement
+ladder's row 7, with no way to ask, since this server offers none. The portal
+lists and serves it, the same split `max_download_bytes` makes.
+
+`api_fetchable_kinds` is what does it, and it is **a test mode**: off by
+default, where every kind is fetchable over the API, and set by modes 2 and 3.
+Outside it this server never emits `access_request_url`.
 
 A denied PDK, library or tool is refused at submit, after the archive is
 opened, as `entitlement-denied` naming `resource_kind` and `resource`, and the
@@ -722,6 +727,8 @@ for. Nothing in it is required.
   credential.
 - `poll_interval_seconds`: the `Retry-After` a read of an unfinished job
   carries, 1 by default, and never below 1.
+- `api_fetchable_kinds`, `denied_resources`, `fetch_fails`: the test modes'
+  own switches (above), off by default.
 
 ### Plain http, and what is on the wire
 

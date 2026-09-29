@@ -1190,6 +1190,29 @@ def test_only_one_job_level_log_is_ever_indexed(
     assert len(_only(listing(server_client, key, token, job["id"]), "logs")) == 1
 
 
+def test_the_job_level_log_carries_both_records_in_one_file(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 The server's record first -- staging, what an install added, the run's
+    own stdout -- then `job.log`: preferring one lost the other on every job
+    whose flow started (database D143).'''
+    import gzip
+
+    from siliconcompiler.remote.server.dispatch import RUN_LOG
+
+    def prepare(job_root, build_dir):
+        (build_dir / "job.log").write_text("the flow ran\n")
+        (job_root / RUN_LOG).write_text("sim/0's Python environment installed numpy==2.0.1\n")
+
+    job = ran(server, server_client, key, token, job_archive, prepare)
+    item, = _only(listing(server_client, key, token, job["id"]), "logs")
+    row = server.config["SC_STORE"].one("SELECT storage_key FROM artifacts WHERE id = ?",
+                                        (item["id"],))
+    with gzip.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"]), "rt") as f:
+        text = f.read()
+
+    assert text.index("numpy==2.0.1") < text.index("the flow ran")
+
+
 def test_the_job_level_log_is_named_for_the_job(
         server, server_client, key, token, job_archive, dispatcher):
     '''No node in the name, because there is no node -- rather than an empty

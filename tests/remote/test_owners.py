@@ -171,6 +171,26 @@ def private(cls, name, root):
     return obj
 
 
+@pytest.mark.parametrize("scheme", [
+    "file+private", "git+private", "git+https+private", "git+ssh+private",
+    "ssh+private", "http+private", "https+private"])
+def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path, scheme):
+    '''🔴 The marker is a `+private` suffix on any scheme (surface D274), read
+    through `Resolver.is_private` before every other source rule: never
+    uploaded, and supplied by name with no source or ref.'''
+    local = scheme == "file+private"
+    source = f"{scheme}://{tmp_path / 'secret'}" if local else f"{scheme}://host/secret.git"
+    pdk = PDK("secret")
+    pdk.set_dataroot("secret", source, tag=None if local else "v1")
+    with pdk.active_dataroot("secret"):
+        pdk.set(*DATASHEET, "datasheet.pdf")
+    project.set_pdk(pdk)
+
+    assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
+    entry, = [item for item in owners.sources(project) if item["name"] == "secret"]
+    assert entry["private"] is True and "source" not in entry and "ref" not in entry
+
+
 def test_a_private_pdk_is_never_uploaded(project, tmp_path):
     '''Even though it is local -- private wins over the owner table.'''
     (tmp_path / "secret").mkdir()

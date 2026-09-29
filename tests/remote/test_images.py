@@ -465,6 +465,58 @@ def test_an_image_already_on_the_host_is_never_preparing(monkeypatch, nop_projec
     assert runner._progress["nodes"]["stepone/0"]["state"] == "pending"
 
 
+def test_a_node_whose_image_would_not_pull_is_interrupted_naming_it(
+        monkeypatch, nop_project):
+    '''🔴 Told apart by the runtime's pull error, never by an exit status: the
+    node failed with its image still not here, and the pull of it had failed
+    before the flow started (implementation-notes §10).'''
+    from siliconcompiler.remote.server import runner, runspec
+
+    ref = f"ghcr.io/x/sc@{digest('a')}"
+    runspec.normalize(nop_project, "job-id", "build", "cache",
+                      images={("stepone", "0"): ref})
+
+    def refused(placement):
+        raise RuntimeError("pull access denied for ghcr.io/x/sc")
+
+    monkeypatch.setattr(runner, "_placement_present", lambda placement: False)
+    monkeypatch.setattr(runner, "_make_placement", refused)
+    monkeypatch.setattr(runner, "_watch_for_oom", lambda: None)
+    monkeypatch.setattr(runner, "_pull_errors", {})
+    monkeypatch.setattr(runner, "_progress_path", None)
+    monkeypatch.setattr(runner, "_progress", {"nodes": {"stepone/0": {"state": "pending"}}})
+    runner._fetch_images(nop_project)
+
+    nop_project.set("record", "status", "error", step="stepone", index="0")
+    runner._node_finished(nop_project, "stepone", "0")
+
+    node = runner._progress["nodes"]["stepone/0"]
+    assert node["state"] == "failed"
+    assert node["interrupted"]["image"] == ref
+    assert "pull access denied" in node["interrupted"]["error"]
+
+
+def test_a_node_killed_for_memory_names_the_limit(monkeypatch, nop_project):
+    '''The docker daemon's `oom` event, by the node's label -- never exit
+    status 137, which any SIGKILL gives.'''
+    from siliconcompiler.remote.server import runner
+
+    monkeypatch.setattr(runner, "_oom_killed", {("stepone", "0")})
+    monkeypatch.setattr(runner, "_pull_errors", {})
+    monkeypatch.setattr(runner, "_progress_path", None)
+    monkeypatch.setattr(runner, "_progress", {"nodes": {"stepone/0": {"state": "running"},
+                                                        "steptwo/0": {"state": "running"}}})
+
+    for step in ("stepone", "steptwo"):
+        nop_project.set("record", "status", "error", step=step, index="0")
+        nop_project.set("record", "toolexitcode", 137, step=step, index="0")
+        runner._node_finished(nop_project, step, "0")
+
+    assert runner._progress["nodes"]["stepone/0"]["limit"] == "memory"
+    # Killed the same way, and not reported as memory: nothing said so.
+    assert "limit" not in runner._progress["nodes"]["steptwo/0"]
+
+
 def test_a_half_written_bundle_counts_as_absent(monkeypatch):
     """An OCI bundle is a directory, so its existence says nothing. The config
     is what a complete one has, and the unpack renames it into place last."""

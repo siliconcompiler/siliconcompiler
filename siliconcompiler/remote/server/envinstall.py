@@ -31,7 +31,7 @@ from typing import Any, Dict, List, Tuple
 
 from siliconcompiler.remote import environment
 
-__all__ = ["InstallFailed", "HEADER", "install", "install_all"]
+__all__ = ["InstallFailed", "HEADER", "install", "install_all", "recorded"]
 
 
 HEADER = ("Written by sc-server from what the job's file declared; the file itself "
@@ -51,9 +51,10 @@ class InstallFailed(RuntimeError):
 
 
 def install_all(job_dir: Path, root: Path, logger, nodes, constrain=(),
-                indexes=()) -> List[Tuple[str, str]]:
+                indexes=()) -> List[Tuple[Tuple[str, str], Dict[str, Any]]]:
     '''Each of ``nodes`` that carries an environment file, installed into
-    ``root`` and linked beside its file. Returns the nodes installed.
+    ``root`` and linked beside its file. Returns each node installed with what
+    its install added (:func:`recorded`).
 
     ``constrain`` is what the job's `requires.python` names: each is pinned to
     the version this host holds. Raises InstallFailed for the first node that
@@ -73,8 +74,22 @@ def install_all(job_dir: Path, root: Path, logger, nodes, constrain=(),
         if link.is_symlink() or link.exists():
             link.unlink()
         link.symlink_to(target, target_is_directory=True)
-        installed.append((step, index))
+        installed.append(((step, index), recorded(target)))
     return installed
+
+
+def recorded(target) -> Dict[str, Any]:
+    '''What the install of ``target`` added: each distribution with its
+    version, and each version substituted within its release line -- kept
+    beside the environment, so a cached one reports the same as a fresh one
+    (profile §5, *`resolved_versions` covers images only*).'''
+    try:
+        with open(f"{target}.json") as f:
+            found = json.load(f)
+    except (OSError, ValueError):
+        return {"installed": [], "substituted": {}}
+    return {"installed": [list(pair) for pair in found.get("installed") or []],
+            "substituted": dict(found.get("substituted") or {})}
 
 
 def install(parsed: environment.Environment, root: Path, logger, node: Tuple[str, str],
@@ -127,6 +142,10 @@ def install(parsed: environment.Environment, root: Path, logger, node: Tuple[str
                         f"{got} from its release line was installed instead")
         # Nothing to install is still an environment: the image held it all.
         staging.mkdir(exist_ok=True)
+        with open(f"{target}.json", "w") as f:
+            json.dump({"installed": [list(pair) for pair in result.get("installed") or []],
+                       "substituted": {name: list(pair) for name, pair in
+                                       (result.get("substituted") or {}).items()}}, f)
         os.rename(staging, target)
 
     return str(target)

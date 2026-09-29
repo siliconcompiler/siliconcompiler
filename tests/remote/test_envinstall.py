@@ -168,7 +168,7 @@ def test_every_node_is_installed_and_linked_where_its_task_looks(pip, gcd_design
 
     installed = envinstall.install_all(job, os.path.abspath("cache/python-env"), LOG,
                                        [("sim", "0"), ("idle", "0"), ("other", "0")])
-    assert installed == [("sim", "0")]
+    assert [node for node, _ in installed] == [("sim", "0")]
 
     site = os.path.join(job, environment.site_path("sim", "0"))
     assert os.path.islink(site)
@@ -189,3 +189,19 @@ def test_only_where_nodes_run_on_the_host_is_python_env_offered(tmp_path):
         {"features": ["python.env"], "containers": True}))
     with pytest.raises(ValueError, match="python.env"):
         Config.load(tmp_path)
+
+
+def test_what_an_install_added_is_kept_beside_it_for_a_cached_one(pip, tmp_path, monkeypatch):
+    '''🔴 Where nodes run on the host there is no image, so the job-level log
+    is the record of what the install added (profile §5) -- and a cached
+    environment reports the same as the fresh one.'''
+    from siliconcompiler.remote.server import pipbuild
+
+    monkeypatch.setattr(pipbuild, "installed", lambda site: [["numpy", "2.0.1"]])
+
+    first = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("a", "0"))
+    again = envinstall.install(parsed("numpy==2.0.1\n"), tmp_path, LOG, ("b", "0"))
+
+    assert first == again and len(pip.calls) == 1
+    assert envinstall.recorded(again) == {"installed": [["numpy", "2.0.1"]],
+                                          "substituted": {}}

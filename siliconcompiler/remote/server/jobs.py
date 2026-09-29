@@ -1581,6 +1581,20 @@ class JobService:
         logger.warning(f"{job_id}: staging failed: {detail}")
         self._log_staging(self._row(job_id), detail)
 
+    def _record_in_job_log(self, job, lines) -> None:
+        '''Lines of the server's own record of a job, in the run log the
+        job-level `logs` carries, each scrubbed like `detail`.'''
+        from siliconcompiler.remote.server.dispatch import RUN_LOG
+
+        root = self.job_root(job["user_id"], job["id"])
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            with open(root / RUN_LOG, "a") as f:
+                for line in lines:
+                    f.write(f"{now()} {bound(line)}\n")
+        except OSError as e:
+            logger.warning(f"{job['id']}: could not write the job's log: {e}")
+
     def _log_staging(self, job, detail: str) -> None:
         '''What went wrong while staging, in the job-level `logs`, scrubbed
         like `detail`: the only account a person can reach of a job that never
@@ -1748,9 +1762,10 @@ class JobService:
 
         self._phase(job["id"], "installing Python environments")
         try:
-            envinstall.install_all(unpacked, self.cache_dir(job["user_id"]) / "python-env",
-                                   logger, summary["nodes"], constrain=_python_names(job),
-                                   indexes=list(self._config["package_indexes"] or []))
+            installed = envinstall.install_all(
+                unpacked, self.cache_dir(job["user_id"]) / "python-env", logger,
+                summary["nodes"], constrain=_python_names(job),
+                indexes=list(self._config["package_indexes"] or []))
         except envinstall.InstallFailed as e:
             if e.result.get("network") or e.result.get("returncode") == -1:
                 raise _ServerFailure(_bounded(
@@ -1758,6 +1773,18 @@ class JobService:
                     f"not reach an index:\n{e.result.get('tail', '')}")) from None
             raise self._refuse_staging(job, _build_refusal(e.node, e.text, e.result)) \
                 from None
+
+        # 🔴 Where nodes run on the host there is no image, so no
+        # `resolved_versions`: the job-level `logs` is the record of what the
+        # install added (profile §5; database D143), fresh or cached alike.
+        for (step, index), record in installed:
+            added = ", ".join(f"{name}=={version}" for name, version in record["installed"])
+            lines = [f"{step}/{index}'s Python environment installed "
+                     f"{added or 'nothing beyond what this host holds'}"]
+            lines += [f"{step}/{index}: {name}=={asked} does not install here; {got} "
+                      "from its release line was installed instead"
+                      for name, (asked, got) in sorted(record["substituted"].items())]
+            self._record_in_job_log(job, lines)
         if self._row(job["id"])["state"] != "staging":
             raise _NoLongerStaging(job["id"])
 
@@ -2693,7 +2720,11 @@ class JobService:
             # it from the state it already had. `run-failed` is registered
             # precisely for this: it is one of the three slugs that are never
             # an HTTP response and only ever a `type` on an error object.
-            error_type = f"{TYPE_BASE}/run-failed" if state == "failed" else None
+            # A node whose image would not pull was interrupted, not failed
+            # (implementation-notes §10): the runner says so from the
+            # runtime's own pull error.
+            error_type = (f"{TYPE_BASE}/run-interrupted" if node.get("interrupted")
+                          else f"{TYPE_BASE}/run-failed") if state == "failed" else None
 
             self._store.execute(
                 'UPDATE job_nodes SET state = ?, started_at = ?, finished_at = ?, '
@@ -3057,18 +3088,24 @@ class JobService:
         self._record_metrics(job)
 
         reason = progress.get("error")
+        nodes = sorted((progress.get("nodes") or {}).items())
         limited = [f"{key} exceeded its {node['limit']} limit"
-                   for key, node in sorted((progress.get("nodes") or {}).items())
-                   if isinstance(node, dict) and node.get("limit")]
-        if state == "failed" and limited:
-            # A limit is `run-failed` with `detail` naming it.
-            reason = "; ".join(limited + ([reason] if reason else []))
+                   for key, node in nodes if isinstance(node, dict) and node.get("limit")]
+        interrupted = [f"{key} could not start: its image "
+                       f"{(node['interrupted'] or {}).get('image')} could not be pulled"
+                       for key, node in nodes
+                       if isinstance(node, dict) and isinstance(node.get("interrupted"), dict)]
+        if state == "failed" and (interrupted or limited):
+            # A limit is `run-failed` with `detail` naming it; an image that
+            # would not pull is `run-interrupted`, naming the image.
+            reason = "; ".join(interrupted + limited + ([reason] if reason else []))
+        slug = "run-interrupted" if interrupted else "run-failed"
 
         with self._store.transaction():
             if state == "failed":
                 self._store.execute(
                     "UPDATE jobs SET error_type = ? WHERE id = ?",
-                    (f"{TYPE_BASE}/run-failed", job["id"]))
+                    (f"{TYPE_BASE}/{slug}", job["id"]))
             self._store.execute(
                 "UPDATE jobs SET finished_at = ? WHERE id = ?",
                 (progress.get("finished_at") or now(), job["id"]))

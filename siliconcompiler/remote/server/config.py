@@ -533,6 +533,15 @@ def _check_policy(values: Dict[str, Any]) -> None:
         raise ValueError("features lists python.env, and nodes here run in "
                          "containers with no env_builder to build them an image")
 
+    # 🔴 A reuse hit compares the host's tools among the inputs it was built
+    # from (surface §13), and a job run on the host records none: until this
+    # server records them, reuse waits for containers (profile §5).
+    if "jobs.reuse" in features and not values["containers"]:
+        raise ValueError("features lists jobs.reuse, and nodes here run on the host, "
+                         "whose tools this server does not record, so a reused job's "
+                         "inputs could not be compared; turn on containers, or leave "
+                         "jobs.reuse out")
+
     private = values["private_dataroots"] or {}
     if not isinstance(private, dict) or not all(
             isinstance(roots, dict) and all(

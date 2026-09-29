@@ -379,6 +379,22 @@ def test_the_same_key_with_a_different_body_is_refused(server_client, key, token
     assert slug(response) == "idempotency-key-reuse"
 
 
+def test_a_refused_create_binds_no_key(server, server_client, key, token):
+    '''A refused create has no side effect, so a retry with the same key and
+    body is evaluated afresh: once the cause is gone, it is `201` (surface §6,
+    *Idempotency*; database D144).'''
+    server.config["SC_CONFIG"].limits["pending_uploads"] = 1
+    held = create(server_client, key, token, jobname="held").get_json()
+
+    refused = create(server_client, key, token, idempotency_key="k1")
+    assert (refused.status_code, slug(refused)) == (429, "limit-exceeded")
+
+    call(server_client, key, "POST", f"/v1/jobs/{held['id']}/cancel", token, json={})
+    again = create(server_client, key, token, idempotency_key="k1")
+
+    assert again.status_code == 201, again.get_json()
+
+
 def test_one_users_key_does_not_collide_with_anothers(server_client, key, token):
     from siliconcompiler.remote import dpop
 
@@ -2622,12 +2638,18 @@ def test_a_key_older_than_a_day_is_forgotten(server, server_client, key, token):
     assert again.get_json()["id"] != first["id"]
 
 
+@pytest.mark.parametrize("member,named", [
+    ("sc-server-progress.json", "sc-server-progress.json"),
+    ("sc_configs/sc_slurm_stepone_0.sh", "sc_configs"),
+])
 def test_a_member_the_first_archive_does_not_carry_is_unrequested(
-        server_client, key, token, job_archive, dispatcher):
-    '''🔴 And a planted `sc-server-progress.json` is one: the server's own
-    files live above the tree an upload expands into.'''
+        server_client, key, token, job_archive, dispatcher, member, named):
+    '''🔴 A planted `sc-server-progress.json` is one, and so is the old
+    client's `sc_configs/`, where SiliconCompiler's Slurm scheduler writes a
+    job's scripts: the server's own files live above the tree an upload
+    expands into.'''
     archive, digest, size = job_archive(extra={
-        "sc-server-progress.json": b'{"state": "completed", "nodes": {}}'})
+        member: b'{"state": "completed", "nodes": {}}'})
     job = stage(server_client, key, token, archive, size)
 
     read = job_after(server_client, key, token,
@@ -2635,7 +2657,7 @@ def test_a_member_the_first_archive_does_not_carry_is_unrequested(
 
     assert read["state"] == "rejected"
     assert read["error"]["reason"] == "unrequested_member"
-    assert "sc-server-progress.json" in read["error"]["detail"]
+    assert named in read["error"]["detail"]
     assert not dispatcher.submitted
 
 
@@ -2794,6 +2816,43 @@ def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
     assert nodes["stepone"]["exit_code"] == 137
     assert nodes["stepone"]["error_type"].startswith("https://")
     assert nodes["steptwo"]["state"] == "cancelled"
+
+
+def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    from siliconcompiler.remote.server import runspec
+
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"])
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:01:00.000Z",
+        "nodes": {"stepone/0": {"state": "failed", "exit_code": 125, "interrupted": {
+            "image": "ghcr.io/x/sc@sha256:aa", "error": "pull access denied"}},
+            "steptwo/0": {"state": "pending"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["error"]["type"].endswith("/run-interrupted")
+    assert "its image ghcr.io/x/sc@sha256:aa could not be pulled" in read["error"]["detail"]
+    nodes = {node["step"]: node for node in read["nodes"]}
+    assert nodes["stepone"]["error_type"].endswith("/run-interrupted")
+
+
+def test_a_memory_limit_is_run_failed_naming_it(server, server_client, key, token,
+                                                job_archive, dispatcher, me):
+    from siliconcompiler.remote.server import runspec
+
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"])
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:01:00.000Z",
+        "nodes": {"stepone/0": {"state": "failed", "exit_code": 137, "limit": "memory"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["error"]["type"].endswith("/run-failed")
+    assert "stepone/0 exceeded its memory limit" in read["error"]["detail"]
 
 
 def test_repeated_filters_or_within_a_key_and_terminal_filters(

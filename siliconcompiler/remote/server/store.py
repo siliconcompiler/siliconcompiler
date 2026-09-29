@@ -406,11 +406,21 @@ class Store:
 
 
 class _Transaction:
+    '''One transaction, holding the write lock from its first statement.
+
+    🔴 **`BEGIN IMMEDIATE`, never a deferred `BEGIN`.** In WAL mode a
+    deferred transaction that has read and then writes, after another
+    connection committed, is refused at once -- `SQLITE_BUSY_SNAPSHOT`, which
+    the busy timeout never waits out -- so a cancel racing a staging thread's
+    write failed with *database is locked* under load. Taking the lock at
+    `BEGIN` is the one place the busy timeout applies.
+    '''
+
     def __init__(self, con: sqlite3.Connection):
         self._con = con
 
     def __enter__(self) -> sqlite3.Connection:
-        self._con.execute("BEGIN")
+        self._con.execute("BEGIN IMMEDIATE")
         return self._con
 
     def __exit__(self, exc_type, exc, tb) -> bool:

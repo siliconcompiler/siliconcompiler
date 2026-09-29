@@ -163,3 +163,19 @@ def test_the_poll_loop_waits_what_the_server_said(logged_in, fake_v1, nop_projec
     RemoteRun(nop_project, logged_in)._poll("j1")
 
     assert slept[:2] == [1, 1]
+
+
+def test_the_stream_url_is_opaque_to_the_client(logged_in, fake_v1, no_wait):
+    """The host's own nonce `n` and unsigned `ended=1` are its business: the
+    client follows the URL `/logs` handed it exactly as given, and reads
+    neither."""
+    target = f"{ORIGIN}/stream/logs/j1/place/0?expires=9&n=abc&sig=S&ended=1"
+    fake_v1.route(responses.GET, "jobs/j1/logs", "", status=303,
+                  headers={"Location": target})
+    fake_v1.elsewhere(responses.GET, f"{ORIGIN}/stream/logs/j1/place/0",
+                      sse(log("1", "done\n"), end("terminal")),
+                      content_type="text/event-stream")
+
+    assert LogTail(logged_in, "j1", "place", "0").follow() == "done\n"
+    followed, = streams(fake_v1)
+    assert followed.request.url == target
