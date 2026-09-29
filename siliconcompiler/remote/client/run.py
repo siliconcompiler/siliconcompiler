@@ -130,6 +130,8 @@ class RemoteRun:
         # The job's Python, worked out once: `_python`.
         self._python_worked = None
         self._wheel_dir: Optional[str] = None
+        # Each node's place in the flow, for listing nodes: `_flow_order`.
+        self._order: Optional[Dict[Tuple[str, str], int]] = None
         self._python_pins = None
         self._software = None
 
@@ -1276,6 +1278,13 @@ class RemoteRun:
         every node's state, so repeating the whole table each poll is noise
         over the top of it.
 
+        ⚠️ **In the order they moved, not the order the server lists them.**
+        A poll often carries a node finishing and the one it unblocked
+        starting, and the server lists nodes by name: printed as listed, a
+        node would start before the one it waits on finished. So each is
+        placed by when it reached its state, where the server says -- its
+        finish, or its start -- and by its place in the flow otherwise.
+
         Tolerant on purpose: a body that is not the documented shape must not
         end a run that is still going. What cannot be read is skipped, and the
         loop is driven by `terminal` alone.
@@ -1294,10 +1303,31 @@ class RemoteRun:
                 continue
 
             if seen.get((step, index)) != status:
-                changed.append((step, index, node.get("state")))
+                changed.append((_moved_at(node), step, index, node.get("state")))
             seen[(step, index)] = status
 
-        return changed
+        order = self._flow_order()
+
+        def moved(item):
+            when, step, index, _ = item
+            place = order.get((step, index), len(order))
+            return (0, when, place) if when else (1, place)
+
+        return [(step, index, state) for _, step, index, state in sorted(changed, key=moved)]
+
+    def _flow_order(self) -> Dict[Tuple[str, str], int]:
+        '''Each node's place in the flow's execution order, worked out once:
+        how nodes are listed where nothing says when they moved.'''
+        if self._order is None:
+            order: Dict[Tuple[str, str], int] = {}
+            try:
+                for layer in self.project.get_flow().get_execution_order():
+                    for step, index in layer:
+                        order.setdefault((step, index), len(order))
+            except Exception as e:                               # noqa: BLE001
+                logger.debug(f"no flow order to list nodes in: {e}")
+            self._order = order
+        return self._order
 
     def _report(self, job: Dict[str, Any], changed=None) -> None:
         with self.output_lock:
@@ -1312,8 +1342,11 @@ class RemoteRun:
                 self.logger.info(f"  {step}/{index} -> {state}")
             return
 
+        # In the flow's order, not the server's, which is by name.
+        order = self._flow_order()
         by_state: Dict[str, list] = {}
-        for node in job.get("nodes") or []:
+        for node in sorted(job.get("nodes") or [], key=lambda node: order.get(
+                (node.get("step"), node.get("index")), len(order))):
             by_state.setdefault(node.get("state", "unknown"), []).append(node)
 
         progress = job.get("progress") or {}
@@ -1978,6 +2011,28 @@ def _pin(version: str) -> str:
     if parsed.is_devrelease:
         return f"=={parsed.base_version}.*"
     return f"=={version}"
+
+
+def _moved_at(node: Dict[str, Any]):
+    '''When a node reached the state it is in, where the job object says: a
+    finished node's finish, a running one's start; None otherwise, or where
+    the time cannot be read.'''
+    from datetime import datetime, timezone
+
+    if node.get("terminal"):
+        when = node.get("finished_at")
+    elif node.get("state") == "running":
+        when = node.get("started_at")
+    else:
+        return None
+    if not isinstance(when, str):
+        return None
+    try:
+        # `fromisoformat` takes a trailing Z only from 3.11.
+        parsed = datetime.fromisoformat(when[:-1] + "+00:00" if when.endswith("Z") else when)
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _named(asked) -> str:

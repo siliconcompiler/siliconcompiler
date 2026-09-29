@@ -921,6 +921,56 @@ def test_without_a_dashboard_the_whole_table_is_printed(fake_v1, run, caplog):
     assert "Job is still running" in caplog.text
 
 
+@pytest.fixture
+def floorplan(logged_in, nop_project):
+    '''A flow whose order is not its names' order, as a floorplan's is.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    flow = Flowgraph("fp")
+    for step in ("tapcell", "power_grid", "pin_placement"):
+        flow.node(step, NOPTask())
+    flow.edge("tapcell", "power_grid")
+    flow.edge("power_grid", "pin_placement")
+    nop_project.set_flow(flow)
+    return RemoteRun(nop_project, logged_in)
+
+
+def test_what_moved_in_one_poll_is_listed_in_the_order_it_moved(floorplan):
+    '''🔴 A poll carries a node finishing and the one it unblocked starting,
+    and the server lists nodes by name: listed so, a node would start before
+    the one it waits on finished.'''
+    seen = {("tapcell", "0"): "running", ("power_grid", "0"): "pending",
+            ("pin_placement", "0"): "pending"}
+    job = job_body("running", nodes=[
+        _node("pin_placement", "queued"),
+        _node("power_grid", "running", started_at="2026-09-22T10:00:05.200Z"),
+        _node("tapcell", "completed", started_at="2026-09-22T10:00:01.000Z",
+              finished_at="2026-09-22T10:00:05.100Z")])
+
+    assert floorplan._record(job, seen) == [("tapcell", "0", "completed"),
+                                            ("power_grid", "0", "running"),
+                                            ("pin_placement", "0", "queued")]
+
+
+def test_where_nothing_says_when_the_flows_order_decides(floorplan):
+    job = job_body("running", nodes=[_node(step, "pending") for step in
+                                     ("pin_placement", "power_grid", "tapcell")])
+
+    assert [step for step, _, _ in floorplan._record(job, {})] == \
+        ["tapcell", "power_grid", "pin_placement"]
+
+
+def test_the_whole_table_lists_each_state_in_the_flows_order(fake_v1, floorplan, caplog):
+    job = job_body("running", nodes=[_node(step, "pending") for step in
+                                     ("pin_placement", "power_grid", "tapcell")])
+
+    with caplog.at_level("INFO"):
+        floorplan._report(job, changed=[])
+
+    assert "Pending (3): tapcell/0, power_grid/0, pin_placement/0" in caplog.text
+
+
 def test_a_server_with_no_live_tail_simply_does_not_tail(fake_v1, run,
                                                          capabilities):
     '''Point 2: if the logs cannot be streamed, what we already print is fine.
