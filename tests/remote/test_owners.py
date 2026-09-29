@@ -235,6 +235,23 @@ def test_sources_names_what_is_not_uploaded_and_strips_credentials(project, tmp_
     assert not any(name == "gcd" for name, _ in listed)
 
 
+def test_a_token_in_a_query_never_leaves_this_machine(project):
+    '''🔴 What is sent is SiliconCompiler's own `safe_source`: no userinfo,
+    and every query value masked, its name kept so the source still says what
+    it is (#5454).'''
+    project.set_pdk(resource(
+        PDK, "lambda",
+        "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
+        "?access_token=SECRET&lfs=true", create=False))
+
+    sent, = [item for item in owners.sources(project) if item["name"] == "lambda"]
+
+    assert sent["source"] == ("https://github.com/siliconcompiler/x/archive/v1.tar.gz"
+                              "?access_token=***&lfs=***")
+    assert owners.is_masked(sent["source"])
+    assert not owners.is_masked("https://github.com/siliconcompiler/x/archive/")
+
+
 ###########################
 # collect(), told what to take: a parameter at a time
 ###########################

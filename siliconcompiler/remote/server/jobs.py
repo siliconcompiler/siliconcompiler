@@ -3901,6 +3901,11 @@ class _Supply:
         return self._sources.held(source, ref)
 
     def allowlisted(self, source, ref) -> bool:
+        # 🔴 A source whose query values were masked on the way here
+        # (`?token=***`) says what it is, not enough to be fetched from: it is
+        # never fetched, so the client is asked for it instead.
+        if owners.is_masked(source):
+            return False
         return self._sources.allowlisted(source, ref)
 
 
@@ -4129,9 +4134,15 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
                        "source and no ref: its path never leaves the client")
         entry = {"name": item["name"], "dataroot": item["dataroot"], "private": private}
         if isinstance(item.get("source"), str):
-            # 🔴 Stripped again: a client that sent `user:token@` anyway has
+            # 🔴 Masked again, as the client masks it (`Resolver.safe_source`):
+            # a client that sent `user:token@` or a query's token anyway has
             # its secret neither stored nor logged here.
-            entry["source"] = owners.strip_userinfo(item["source"])
+            try:
+                entry["source"] = owners.masked(item["source"])
+            except ValueError:
+                raise ProblemError("invalid-request",
+                                   detail=f"{item['name']} ({item['dataroot']}): source "
+                                          "is not a URL") from None
         if isinstance(item.get("ref"), str):
             entry["ref"] = item["ref"]
         checked.append(entry)

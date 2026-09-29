@@ -125,6 +125,31 @@ def test_credentials_in_a_source_are_never_stored(server, server_client, key, to
     assert "gitlab.com/acme/ip" in stored
 
 
+def test_a_token_in_a_sources_query_is_masked_here_too(server, server_client, key, token):
+    '''A client that sent a query's token anyway: masked as the client masks
+    it, before anything is stored or logged.'''
+    job = create(server_client, key, token, sources=[
+        {"name": "ip", "dataroot": "ip",
+         "source": "https://gitlab.com/acme/ip/archive/v1.tar.gz?private_token=glpat-x",
+         "ref": "v1", "private": False}]).get_json()
+
+    stored = server.config["SC_STORE"].one(
+        "SELECT descriptor FROM jobs WHERE id = ?", (job["id"],))["descriptor"]
+    assert "glpat-x" not in stored and "private_token=***" in stored
+
+
+def test_a_masked_source_is_asked_for_never_fetched(server_client, key, token):
+    '''🔴 On the allowlist, and still never fetched: a masked query value
+    says what the source is and not enough to fetch it from, so the client,
+    which has the real one, is asked.'''
+    job = create(server_client, key, token, sources=[
+        {"name": "lambda", "dataroot": "lambda",
+         "source": f"{LAMBDA}?lfs=***", "ref": "v0.2.22", "private": False}]).get_json()
+
+    assert job["upload_sources"] == [
+        {"kind": "dataroot", "name": "lambda", "dataroot": "lambda"}]
+
+
 ###########################
 # After submit: fetched while staging
 ###########################

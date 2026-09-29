@@ -51,14 +51,16 @@ rather than sent: keep private files in a fileset of their own.
 '''
 
 import os
+import re
 
 from typing import Any, Callable, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLED",
            "REMOTE", "PRIVATE", "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
-           "strip_userinfo", "account", "Entry", "confined", "upload_report", "required",
+           "safe_source", "masked", "is_masked", "account", "Entry", "confined",
+           "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
            "private_holders", "collection_keys", "collected_path", "PrivateBeside",
            "value_records", "account_records"]
@@ -190,19 +192,36 @@ def uploads(project, key, dataroot: Optional[str], resolvers,
     return kind in (LOCAL, EDITABLE)
 
 
-def strip_userinfo(url: Optional[str]) -> Optional[str]:
-    '''A URL with any `user:secret@` removed. `https://user:token@...` is
-    common, and a token must never leave the client or be stored.'''
-    if not url or "@" not in url:
-        return url
+def safe_source(resolver) -> Optional[str]:
+    '''A dataroot's source as it may leave this machine: SiliconCompiler's
+    own `Resolver.safe_source` -- no `user:secret@`, every query value masked
+    as ``***`` -- the one definition, so what is sent and what is logged agree.
+    None where there is no resolver, or its source cannot be read as a URL.'''
+    if resolver is None:
+        return None
     try:
-        parts = urlsplit(url)
-    except ValueError:
-        return url
-    if not parts.netloc or "@" not in parts.netloc:
-        return url
-    host = parts.netloc.rsplit("@", 1)[1]
-    return urlunsplit((parts.scheme, host, parts.path, parts.query, parts.fragment))
+        return resolver.safe_source
+    except (AttributeError, ValueError):
+        return None
+
+
+def masked(url: Optional[str]) -> str:
+    '''A source URL the way `safe_source` would send it, for a URL that
+    arrived as text rather than from a resolver.'''
+    from siliconcompiler.package import Resolver
+
+    return Resolver._masked_uri(url or "", show_userinfo=False)
+
+
+def is_masked(url: Optional[str]) -> bool:
+    '''Whether a source carries a masked query value -- ``?token=***`` or a
+    bare ``?***`` -- and so says what it is without saying enough to be
+    fetched from.'''
+    if not url:
+        return False
+    query = urlsplit(url).query
+    return any(field.partition("=")[2] == "***" or field == "***"
+               for field in re.split(r"[&;]", query) if field)
 
 
 class _Value(NamedTuple):
@@ -329,8 +348,10 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
     `sources`. One entry per (kind, name, dataroot) not uploaded -- and, given
     the flow's ``required`` keys, only one holding a value the flow reads.
 
-    🔴 Credentials are stripped from every URL, and a private dataroot's source
-    is ABSENT -- its path is never sent.
+    🔴 Every URL is its resolver's `safe_source`: no `user:secret@`, and every
+    query value masked as ``***`` -- which says what the source is and not
+    enough to fetch it from, so the server asks for it rather than fetch it.
+    A private dataroot's source is ABSENT -- its path is never sent.
 
     Each names its dataroot by ``name``, the object that owns it, and
     ``dataroot``, its own name, and no kind: a resource's name is unique across
@@ -349,7 +370,7 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
         item = {"name": one.name, "dataroot": one.dataroot,
                 "private": one.origin == PRIVATE}
         if one.origin != PRIVATE:
-            item["source"] = strip_userinfo(getattr(resolver, "source", None))
+            item["source"] = safe_source(resolver)
             ref = getattr(resolver, "reference", None)
             if ref:
                 item["ref"] = ref
@@ -467,7 +488,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
         if one.origin == INSTALLED and resolver is not None:
             record["package"] = resolver.urlpath
         elif one.origin == REMOTE and resolver is not None:
-            record["source"] = strip_userinfo(getattr(resolver, "source", None))
+            record["source"] = safe_source(resolver)
             record["ref"] = getattr(resolver, "reference", None)
         records.append(record)
     return records
