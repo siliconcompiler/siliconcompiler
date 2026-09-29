@@ -544,6 +544,35 @@ def test_a_private_pdk_the_server_has_no_copy_of_is_refused(
     assert read["state"] == "rejected"
 
 
+def test_a_private_design_file_is_refused_while_staging_without_a_kind(
+        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
+    '''The backstop for a private source the descriptor never listed: the
+    manifest's read finds it, and `resource_kind` is given only for a
+    resource's kind -- never the design (surface D285).'''
+    from conftest import call, outcome, slug
+    from test_server_jobs import stage, submit
+
+    project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
+    (tmp_path / "secret").mkdir()
+    (tmp_path / "secret" / "top.v").write_text("module top; endmodule\n")
+    design = project.get("library", "gcd", field="schema")
+    design.set_dataroot("mine", f"file+private://{tmp_path / 'secret'}")
+    with design.active_dataroot("mine"), design.active_fileset("secret"):
+        design.add_file("top.v")
+    project.add_fileset("secret")
+    archive, digest, size = job_archive(project)
+    job = stage(server_client, key, token, archive, size)
+    response = outcome(server_client, key, token,
+                       submit(server_client, key, token, job["id"], digest, size))
+
+    assert slug(response) == "resource-unavailable"
+    body = response.get_json()
+    assert body["resource"] == "gcd"
+    assert "resource_kind" not in body
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["state"] == "rejected"
+
+
 def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
         server, server_client, key, token, job_archive, dispatcher, gcd_design,
         tmp_path):

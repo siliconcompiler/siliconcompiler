@@ -93,18 +93,23 @@ def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
                                           sources=[]).get_json()
 
 
-def test_a_private_source_with_no_copy_here_waits_for_the_manifests_read(
+def test_a_private_source_with_no_copy_here_is_refused_at_create_by_name(
         server_client, key, token):
-    '''⚠️ Not refused at create: a source names no kind, and this server has
-    no catalogue to find a name's kind in, which the refusal names. The
-    manifest's read does, while staging, where it is refused
-    (`test_owners`: a private PDK this server has no copy of). Never asked
-    for, either: it is never uploaded.'''
+    '''🔴 Before a byte moves (surface D285). A source carries no kind and
+    this server has no catalogue, so the refusal names the resource alone --
+    names are unique across kinds -- and says who can supply it. Never asked
+    for: a private source is never uploaded.'''
     response = create(server_client, key, token, sources=[
-        {"name": "secret", "dataroot": "secret", "private": True}])
+        {"name": "secret", "dataroot": "secretroot", "private": True}])
 
-    assert response.status_code == 201
-    assert "upload_sources" not in response.get_json()
+    assert response.status_code == 422
+    body = response.get_json()
+    assert slug(response) == "resource-unavailable"
+    assert body["resource"] == "secret"
+    assert "resource_kind" not in body
+    assert "secret (secretroot)" in body["detail"] and "operator" in body["detail"]
+    listed = call(server_client, key, "GET", "/v1/jobs", token).get_json()
+    assert listed["items"] == []
 
 
 def test_credentials_in_a_source_are_never_stored(server, server_client, key, token):

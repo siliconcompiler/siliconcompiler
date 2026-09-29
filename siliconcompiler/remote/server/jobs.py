@@ -711,9 +711,8 @@ class JobService:
         =================================  =================================
         A source that is                   Answer
         =================================  =================================
-        private                            not listed: in the private map,
-                                           supplied; not, `resource-unavailable`
-                                           while staging, which knows its kind
+        private, and not in the map        `resource-unavailable`, by name
+        private, and in the map            supplied -- not listed
         held                               supplied -- not listed
         an installed package held here     supplied -- not listed
         on the allowlist, not held         assumed fetchable -- not listed
@@ -728,10 +727,18 @@ class JobService:
         for item in declared:
             name, dataroot = item["name"], item["dataroot"]
             if item["private"]:
-                # ⚠️ Not refused here: this server has no catalogue to find a
-                # name's kind in (entitlements D75), and the refusal names it.
-                # The manifest's read, while staging, does -- and refuses
-                # there, `resource-unavailable` with its kind.
+                # 🔴 Refused before a byte moves, by name alone (surface D285):
+                # `sources` carries no kind, this server has no catalogue to
+                # find one in, and a name is unique across kinds, so `resource`
+                # says which and `resource_kind` is left out. The manifest's
+                # read refuses one the descriptor never listed, while staging.
+                if not self._supply.private_root(name, dataroot):
+                    raise ProblemError(
+                        "resource-unavailable", resource=name,
+                        detail=f"{name} ({dataroot}) is marked private, and this "
+                               "server holds no copy of it: a private source is "
+                               "never uploaded, and only this server's operator can "
+                               "supply one, by name")
                 continue
             source, ref = item.get("source"), item.get("ref")
             if self._supply.held(source, ref) or self._supply.allowlisted(source, ref):
@@ -1317,11 +1324,14 @@ class JobService:
         for entry in entries:
             if entry.status != owners.UNAVAILABLE:
                 continue
+            # `resource_kind` only where the read names a resource kind: never
+            # the design, which is no resource (surface D285).
+            kind = entry.kind if entry.kind in _RESOURCE_KINDS else None
             raise self._refuse(session, job, ProblemError(
-                "resource-unavailable", resource_kind=entry.kind,
-                resource=entry.name or "",
-                detail=f"this flow needs a {entry.kind} this server cannot "
-                       f"supply: {entry.why}"))
+                "resource-unavailable", resource=entry.name or "",
+                **({"resource_kind": kind} if kind else {}),
+                detail=f"this flow needs {f'a {kind}' if kind else 'a file'} this "
+                       f"server cannot supply: {entry.why}"))
         for entry in entries:
             if entry.status == owners.UPLOADED:
                 continue
@@ -1355,8 +1365,10 @@ class JobService:
         if top.is_symlink() or not top.is_dir():
             raise refuse(f"{environment.wheels_path()} is not a directory of wheels")
 
-        listed = environment.parse(json.loads(job["python_packages"])).names() \
-            if job["python_packages"] else set()
+        packages = environment.parse(json.loads(job["python_packages"])) \
+            if job["python_packages"] else environment.Packages()
+        listed = {environment.canonical(pin.name): pin.version
+                  for pin in packages.requirements + packages.constraints}
         answered = set(json.loads(job["python_answered"] or "[]"))
         framework = {environment.canonical(name) for name in _python_names(job)}
         seen: Dict[str, str] = {}
@@ -1378,6 +1390,12 @@ class JobService:
             if wheel.name in listed and wheel.name not in answered:
                 raise refuse(f"{name} is {wheel.name}, which python_packages also lists: "
                              "a distribution travels as a wheel or in the lists, not both")
+            if wheel.name in listed and not _same_version(wheel.version, listed[wheel.name]):
+                # 🔴 The wheel the job was sent back for replaces its entry,
+                # and so is at the entry's version (surface D286).
+                raise refuse(f"{name} is {wheel.name} {wheel.version}, sent for an entry "
+                             f"python_packages lists at {listed[wheel.name]}: the wheel "
+                             "that answers an entry is at its version")
 
     def _check_owed(self, session, job, summary, asked) -> None:
         '''Refuse a required value the client should have sent and did not.
@@ -4104,6 +4122,20 @@ def _python_names(job) -> List[str]:
 
     return sorted(requirements(json.loads(job["descriptor"] or "{}") or {})
                   [BUCKETS["python"]])
+
+
+def _same_version(one: str, other: str) -> bool:
+    '''Whether two versions are one, as PEP 440 compares them.'''
+    from packaging.version import InvalidVersion, Version
+
+    try:
+        return Version(one) == Version(other)
+    except InvalidVersion:
+        return one == other
+
+
+# The contract's closed `resource_kinds`.
+_RESOURCE_KINDS = ("pdk", "library", "tool", "fpga")
 
 
 class _NoLongerStaging(Exception):

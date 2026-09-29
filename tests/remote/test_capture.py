@@ -605,4 +605,6 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
         RemoteRun(project, logged_in)._send_asked(
             "01J9-job", [{"kind": "python", "name": "scfakec"}])
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
-    assert "scfakec, which cannot be sent as a wheel" in json.loads(cancel.request.body)["reason"]
+    assert "the Python package scfakec: it holds a compiled file, scfakec/_c.so" in \
+        json.loads(cancel.request.body)["reason"]
+    assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]

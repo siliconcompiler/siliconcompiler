@@ -453,6 +453,29 @@ def test_the_wheel_that_answers_is_installed_in_place_of_its_entry(
     assert dispatcher.submitted
 
 
+def test_the_wheel_that_answers_is_at_its_entrys_version(
+        server, server_client, key, token, job_archive, python_project, tmp_path,
+        installed, dispatcher):
+    '''🔴 It replaces the entry, so it is at the entry's version (surface
+    D286): another is `python_package`, naming both.'''
+    from test_server_sources_flow import send
+
+    offers_python_env(server)
+    installed.absent = [["scfake-private"]]
+    response = submitted(server_client, key, token, job_archive(python_project),
+                         python_packages={"requirements": ["scfake-private==1.2.0"]})
+    job_id = response.get_json()["id"]
+
+    other = make_wheel(tmp_path, "scfake-private", "1.3.0")
+    refused = send(server_client, key, token, job_id, {
+        f"{environment.wheels_path()}/{os.path.basename(other)}": open(other, "rb").read()})
+
+    assert (slug(refused), refused.get_json()["reason"]) == \
+        ("archive-rejected", "python_package")
+    assert "1.3.0" in refused.get_json()["detail"] and "1.2.0" in refused.get_json()["detail"]
+    assert not dispatcher.submitted
+
+
 @pytest.mark.parametrize("result,expected", [
     ({"returncode": 1, "python": "cpython-test", "version": "3", "platform": "test-platform",
       "unresolved": ["numpy==1.26.4"], "network": False,

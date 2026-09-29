@@ -47,7 +47,12 @@ COMPILED = environment.COMPILED
 
 
 class CannotForward(ValueError):
-    '''What the client cannot send, or cannot read.'''
+    '''What the client cannot send, or cannot read. ``compiled`` is the
+    compiled file that stops it, where that is why.'''
+
+    def __init__(self, message: str, compiled: Optional[str] = None):
+        super().__init__(message)
+        self.compiled = compiled
 
 
 class Reach(NamedTuple):

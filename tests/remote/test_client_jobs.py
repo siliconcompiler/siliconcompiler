@@ -668,6 +668,25 @@ def test_every_create_refusal_renders(fake_v1, logged_in, slug, status, members,
     assert f"server-errors/{slug}" in rendered
 
 
+def test_a_resource_named_without_its_kind_prints_cleanly(fake_v1, logged_in):
+    '''A deployment with no catalogue names the resource alone (surface
+    D285): printed by name, and never as `resource_kind: None`.'''
+    from siliconcompiler.remote import ServerProblem
+
+    fake_v1.route(responses.POST, "jobs",
+                  problem("resource-unavailable", 422, resource="secret",
+                          detail="secret (secret) is marked private, and this server "
+                                 "holds no copy of it"),
+                  status=422, content_type="application/problem+json")
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.create_job("gcd", "job0")
+
+    rendered = str(raised.value)
+    assert "resource: secret" in rendered
+    assert "resource_kind" not in rendered and "None" not in rendered
+
+
 def test_a_refusal_carrying_a_trace_id_shows_it(fake_v1, logged_in):
     '''What an operator asks for when a user reports it.'''
     from siliconcompiler.remote import ServerProblem
@@ -1506,7 +1525,8 @@ def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
 
 def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
         fake_v1, run, nop_project, caplog):
-    '''🔴 Fail locally, naming it -- and upload nothing.'''
+    '''🔴 Fail locally, naming it -- upload nothing, and cancel the job with a
+    reason saying which and why (surface D287).'''
     from siliconcompiler import PDK
 
     pdk = PDK("acme")
@@ -1526,12 +1546,18 @@ def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
     try:
         _routes_for_a_submit(fake_v1, created={"upload_sources": [
             {"kind": "dataroot", "name": "acme", "dataroot": "acme"}]})
-        with pytest.raises(RemoteError, match="acme .acme.*cannot reach it either"):
+        fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
+                      job_body("cancelled"), status=202)
+        with pytest.raises(RemoteError, match="acme .acme.: it cannot be fetched here "
+                                              "either: 404 from gitlab.example"):
             run._start()
     finally:
         HTTPResolver.resolve_remote = real
 
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
+    cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+    assert "acme (acme): it cannot be fetched here either: 404 from gitlab.example" in \
+        json.loads(cancel.request.body)["reason"]
 
 
 def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,

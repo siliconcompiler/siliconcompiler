@@ -75,9 +75,11 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # 🆕 D105, widened by D116: the job needs a resource -- any kind, a tool
     # included -- this deployment does not hold and cannot supply. It retired
     # `unsatisfiable-request`, which meant the same with the same members. Not
-    # `resource-unresolved`, which is not knowing WHICH.
+    # `resource-unresolved`, which is not knowing WHICH. `resource_kind` only
+    # where the deployment can name the kind (surface D285), so it is not
+    # required.
     _e("resource-unavailable", 422, "This server does not hold that resource",
-       ("resource_kind", "resource")),
+       ("resource",)),
     # 🆕 D105, D115: crucible's, raised while staging for restricted material
     # the caller may not upload. `detected` is "content", found during
     # extraction, or "attribution", once the manifest's read reports what each

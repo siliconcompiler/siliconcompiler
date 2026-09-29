@@ -67,7 +67,8 @@ def build(dist: metadata.Distribution, directory: str) -> str:
         raise CannotForward(
             f"{name} {version} is installed here from {source or 'a local source'}, "
             f"and no index can supply it, so it is sent as a wheel; but {e}. Publish "
-            "it to an index, as a wheel for the server's platform") from None
+            "it to an index, as a wheel for the server's platform",
+            compiled=e.compiled) from None
     return path
 
 
@@ -104,7 +105,7 @@ def repack(dist: metadata.Distribution, directory: str) -> str:
                 f"{what} is installed here from a local source, and no index can supply "
                 f"it; it holds a compiled file, {arcname}, built for this machine, which "
                 "will not import on the server. Publish it to an index, as a wheel for "
-                "the server's platform")
+                "the server's platform", compiled=arcname)
         located = str(dist.locate_file(entry))
         if os.path.isfile(located) and not os.path.islink(located):
             members[arcname] = located

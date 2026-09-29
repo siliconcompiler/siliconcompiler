@@ -92,7 +92,12 @@ class PackagesError(ValueError):
 
 
 class WheelError(ValueError):
-    '''A file that is not a pure, well-formed wheel.'''
+    '''A file that is not a pure, well-formed wheel. ``compiled`` is the
+    compiled file that makes it impure, where that is why.'''
+
+    def __init__(self, message: str, compiled: Optional[str] = None):
+        super().__init__(message)
+        self.compiled = compiled
 
 
 class Pin(NamedTuple):
@@ -260,7 +265,7 @@ def check_wheel(path) -> Wheel:
                 raise WheelError(f"{filename} holds a link, {member}")
             if member.lower().endswith(COMPILED):
                 raise WheelError(f"{filename} holds a compiled file, {member}, which "
-                                 "will not import on another machine")
+                                 "will not import on another machine", compiled=member)
             if parts[0].endswith(".dist-info"):
                 metadata_dirs.add(parts[0])
 

@@ -130,6 +130,8 @@ class RemoteRun:
         # The job's Python, worked out once: `_python`.
         self._python_worked = None
         self._wheel_dir: Optional[str] = None
+        # The upload report's rows for what the server asked for at create.
+        self._asked_rows: list = []
         # Each node's place in the flow, for listing nodes: `_flow_order`.
         self._order: Optional[Dict[Tuple[str, str], int]] = None
         self._python_pins = None
@@ -226,9 +228,9 @@ class RemoteRun:
                 if asked:
                     # 🔴 What the server cannot supply, it asks for (D114):
                     # this machine resolves those with its OWN credentials and
-                    # puts them in the archive -- or fails here.
+                    # puts them in the archive -- or cancels, naming each.
                     self.logger.info(f"The server asked for {_named(asked)}")
-                    self._collect(asked)
+                    self._asked_rows = self._answer(asked, collectiondir(self.project))
 
                 upload = Path(tmpdir) / "upload.tar.gz"
                 digest, size = self._pack(upload)
@@ -240,7 +242,7 @@ class RemoteRun:
                 # `202` in `staging`: what staging finds arrives on the job.
                 self.client.submit_job(job_id, idempotency_key=_key())
         except BaseException as e:
-            self._abandon(job_id, e)
+            self._abandon(job_id, e, why=e.reason if isinstance(e, _CannotSupply) else None)
             raise
         finally:
             self._drop_wheels()
@@ -255,8 +257,12 @@ class RemoteRun:
         if why is None:
             why = "interrupted before it was submitted" \
                 if isinstance(error, KeyboardInterrupt) else "its upload or submit failed"
+        reason = f"cancelled from sc-remote: {why}"
+        if len(reason) > _MAX_REASON:
+            # The server refuses a longer one, and the job would stay.
+            reason = reason[:_MAX_REASON - 3] + "..."
         try:
-            self.client.cancel_job(job_id, reason=f"cancelled from sc-remote: {why}")
+            self.client.cancel_job(job_id, reason=reason)
             self.logger.info(f"Cancelled job {job_id}: {why}")
         except Exception as e:                                   # noqa: BLE001
             self.logger.warning(f"Could not cancel job {job_id}, which was not "
@@ -490,9 +496,11 @@ class RemoteRun:
         self.logger.info(f"The server could not supply {_named(asked)}; sending it")
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
             collection = Path(tmpdir) / "sc_collected_files"
-            if any(item.get("kind") == "dataroot" for item in asked):
-                self._collect(asked, directory=str(collection), only_asked=True)
-            report = self._wheels_asked(job_id, asked, collection)
+            try:
+                report = self._answer(asked, str(collection), only_asked=True)
+            except _CannotSupply as e:
+                self._abandon(job_id, e, why=e.reason)
+                raise
 
             upload = Path(tmpdir) / "follow-up.tar.gz"
             with tarfile.open(upload, mode="w:gz") as tar:
@@ -965,7 +973,8 @@ class RemoteRun:
 
         from siliconcompiler.remote import owners
         self._uploading = (owners.upload_report(self.project, collected)
-                           if collected and os.path.isdir(collected) else []) + placed
+                           if collected and os.path.isdir(collected) else []) + placed \
+            + self._asked_rows
         if collected and os.path.isdir(collected):
             # It is in the archive now, and it is the largest thing in the build
             # directory. Keeping a second copy on this machine is what the old
@@ -1014,42 +1023,99 @@ class RemoteRun:
                          os.path.getsize(target), 1))
         return rows
 
-    def _wheels_asked(self, job_id: str, asked, collection: Path):
-        '''The wheel of each Python package the server asked for (surface
-        *How it is built*: a package no configured index has), repacked from
-        what is installed here, into ``collection``. Returns the upload
-        report's rows.
+    def _answer(self, asked, collection: str, only_asked: bool = False) -> list:
+        '''Everything the server asked for, into ``collection``, or nothing
+        (surface D287): each dataroot fetched with this machine's own
+        credentials, and each Python package's wheel repacked from what is
+        installed here. Returns the upload report's rows for the wheels.
 
-        🔴 One holding a compiled file cannot be sent: the run stops, and the
-        job, which would wait for it, is cancelled.'''
+        🔴 **Never a partial answer.** Every item is tried before anything is
+        collected, and one that cannot be had -- a source this machine cannot
+        reach either, a package that is not installed here or holds a compiled
+        file -- raises _CannotSupply naming every one that failed, which the
+        caller cancels the job with. Nothing is uploaded.
+        '''
         from siliconcompiler.remote import environment
+
+        failures = []
+        for item in asked:
+            if item.get("kind") == "dataroot":
+                why = self._unreachable(item)
+                if why:
+                    failures.append(f"{item.get('name')} ({item.get('dataroot')}): {why}")
+
+        wheel_dir = tempfile.mkdtemp(prefix="sc-remote-asked-")
+        try:
+            built = []
+            for item in asked:
+                if item.get("kind") == "python":
+                    try:
+                        built.append((item.get("name"), self._wheel_asked(item, wheel_dir)))
+                    except _Unsupplied as e:
+                        failures.append(str(e))
+            if failures:
+                raise _CannotSupply(failures)
+
+            if any(item.get("kind") == "dataroot" for item in asked):
+                try:
+                    self._collect(asked, directory=collection, only_asked=only_asked)
+                except (FileNotFoundError, OSError, RuntimeError, ValueError,
+                        RemoteError) as e:
+                    raise _CannotSupply([_scrubbed(str(e) or type(e).__name__)]) from None
+
+            rows = []
+            for name, path in built:
+                target = os.path.join(collection, environment.WHEELS, os.path.basename(path))
+                os.makedirs(os.path.dirname(target), exist_ok=True)
+                shutil.copyfile(path, target)
+                rows.append(("python package", name, None, os.path.getsize(target), 1))
+            return rows
+        finally:
+            shutil.rmtree(wheel_dir, ignore_errors=True)
+
+    def _unreachable(self, item) -> Optional[str]:
+        '''Why an asked-for dataroot cannot be had here either, with any
+        credential taken out of it; None where it can.'''
+        from siliconcompiler.remote import owners
+
+        wanted = (item.get("name"), item.get("dataroot"))
+        resolver = None
+        for one in owners._values(self.project):
+            if (one.name, one.dataroot) == wanted:
+                resolver = one.resolvers.get(one.dataroot)
+                break
+        else:
+            return "this project names no such dataroot"
+        if resolver is None:
+            return None
+        try:
+            path = resolver.get_path()
+        except Exception as e:                                   # noqa: BLE001
+            return f"it cannot be fetched here either: {_scrubbed(str(e) or type(e).__name__)}"
+        if not path or not os.path.exists(str(path)):
+            return "it is not on this machine either"
+        return None
+
+    def _wheel_asked(self, item, folder: str) -> str:
+        '''The wheel of a Python package the server asked for (surface *How
+        it is built*: a package no configured index has), repacked from what
+        is installed here. Raises _Unsupplied.'''
         from siliconcompiler.remote.client import capture, wheels
 
-        rows = []
-        for item in asked:
-            if item.get("kind") != "python":
-                continue
-            name = item.get("name") or ""
-            try:
-                dist = metadata.distribution(name)
-            except metadata.PackageNotFoundError:
-                self._abandon(job_id, RuntimeError(name),
-                              why=f"the server asked for the Python package {name}, "
-                                  "which is not installed here")
-                raise RemoteError(
-                    f"the server has no index offering the Python package {name}, and it "
-                    "is not installed here either, so no wheel of it can be sent") from None
-            folder = collection / environment.WHEELS
-            folder.mkdir(parents=True, exist_ok=True)
-            try:
-                path = wheels.build(dist, str(folder))
-            except capture.CannotForward as e:
-                self._abandon(job_id, e, why=f"the server asked for the Python package "
-                                             f"{name}, which cannot be sent as a wheel")
-                raise RemoteError(f"the server has no index offering the Python package "
-                                  f"{name}, so it asked for its wheel: {e}") from None
-            rows.append(("python package", name, None, os.path.getsize(path), 1))
-        return rows
+        name = item.get("name") or ""
+        try:
+            dist = metadata.distribution(name)
+        except metadata.PackageNotFoundError:
+            raise _Unsupplied(f"the Python package {name}: it is not installed here "
+                              "either") from None
+        try:
+            return wheels.build(dist, folder)
+        except capture.CannotForward as e:
+            if e.compiled:
+                raise _Unsupplied(f"the Python package {name}: it holds a compiled file, "
+                                  f"{e.compiled}, built for this machine") from None
+            raise _Unsupplied(f"the Python package {name}: "
+                              f"{str(e).splitlines()[0]}") from None
 
     def _run_hash(self) -> Optional[str]:
         '''This run's hash for job reuse, or None -- which it always is today.
@@ -2010,6 +2076,34 @@ def _pin(version: str) -> str:
     if parsed.is_devrelease:
         return f"=={parsed.base_version}.*"
     return f"=={version}"
+
+
+# What the server takes as a cancel's reason, at most (surface §16).
+_MAX_REASON = 500
+
+# A URL's `user:secret@`, wherever it sits in a message.
+_USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@]+@")
+
+
+def _scrubbed(text: str) -> str:
+    '''A message with every URL's credentials taken out: what is said to the
+    server, and to whoever reads the job, never carries one.'''
+    return _USERINFO.sub(r"\1", text)
+
+
+class _Unsupplied(Exception):
+    '''One asked-for item this machine cannot supply, and why.'''
+
+
+class _CannotSupply(RemoteError):
+    '''What the server asked for and this machine cannot supply, each item
+    and why. ``reason`` is what the job is cancelled with (surface D287).'''
+
+    def __init__(self, failures):
+        self.failures = list(failures)
+        self.reason = "it cannot supply what the server asked for: " + "; ".join(failures)
+        super().__init__("the server asked for what this machine cannot supply, so the "
+                         "job is cancelled:\n" + "\n".join(f"  {one}" for one in failures))
 
 
 def _moved_at(node: Dict[str, Any]):
