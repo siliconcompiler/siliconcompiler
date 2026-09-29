@@ -332,3 +332,27 @@ def test_tail_defaults_the_index(monkeypatch, capsys, submitted):
     assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "stepone") == 0
 
     assert "stepone" in capsys.readouterr().out
+
+
+def test_a_rotated_key_logs_in_again_as_a_new_device(live_server, tmp_path):
+    '''🔴 `sc-remote -rotate_key` against `sc-server`, whose subject is bound
+    to the first key it saw: the old key revokes its own device first, so the
+    new one enrols as a new device rather than being refused `invalid_client`
+    until an operator steps in.'''
+    from siliconcompiler.remote import Client
+
+    path = tmp_path / "sc-home" / "credentials"
+    credentials = Credentials(path)
+    credentials.update(address=live_server)
+    client = Client(credentials)
+    user = client.me()["id"]
+    old, = [device["id"] for device in client.devices() if device["current"]]
+
+    client.rotate_key()
+
+    again = Client(Credentials(path))
+    assert again.me()["id"] == user
+    devices = again.devices()
+    new, = [device["id"] for device in devices if device["current"]]
+    assert new != old
+    assert old not in [device["id"] for device in devices]

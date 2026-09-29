@@ -347,6 +347,74 @@ def test_the_store_is_written_private(tmp_credentials):
         assert stat.S_IMODE(os.stat(entry).st_mode) & 0o077 == 0, entry
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
+def test_the_store_is_private_from_creation_whatever_the_umask(tmp_path, monkeypatch):
+    '''Each file created with its mode set, never `open()` then `chmod()`:
+    a permissive umask opens no window.'''
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    previous = os.umask(0)
+    try:
+        credentials = Credentials(tmp_path / "home" / ".sc" / "credentials")
+        credentials.key()
+        credentials.update_session(refresh_token="r1")
+    finally:
+        os.umask(previous)
+
+    assert credentials.key_path == tmp_path / "home" / ".sc" / "auth" / "dpop-key.pem"
+    assert stat.S_IMODE(os.stat(credentials.auth_dir).st_mode) == 0o700
+    for entry in credentials.auth_dir.iterdir():
+        assert stat.S_IMODE(os.stat(entry).st_mode) == 0o600, entry
+
+
+def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, monkeypatch):
+    '''The Windows equivalent of 0700, applied as the directory is made:
+    inheritance off, and full control to the user alone, inherited by every
+    file created in it.'''
+    import subprocess
+
+    from siliconcompiler.remote.client import credentials as module
+
+    ran = []
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setattr(subprocess, "run", lambda command, **kwargs: ran.append(command))
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+
+    credentials = Credentials(tmp_path / ".sc" / "credentials")
+    credentials.key()
+
+    (command,) = [entry for entry in ran if entry and entry[0] == "icacls"]
+    assert command[1] == str(credentials.auth_dir)
+    assert command[2:4] == ["/inheritance:r", "/grant:r"]
+    assert command[4].endswith(":(OI)(CI)F")
+
+
+@pytest.mark.parametrize("refusal", [
+    ("auth/token", {"error": "invalid_client"}, 401, "application/json"),
+    ("auth/token", {"error": "invalid_dpop_proof"}, 400, "application/json"),
+    ("me", problem("invalid-dpop-proof", 401), 401, "application/problem+json"),
+])
+def test_no_refusal_replaces_the_key(fake_v1, tmp_credentials, client_credentials, refusal):
+    '''🔴 The key is the device pin: only `rotate_key` replaces it, and no
+    authentication error does.'''
+    path, body, status, content_type = refusal
+    before = tmp_credentials.thumbprint
+    stored = tmp_credentials.key_path.read_bytes()
+    if path == "me":
+        fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET if path == "me" else responses.POST, path, body,
+                  status=status, content_type=content_type)
+    fake_v1.route(responses.GET if path == "me" else responses.POST, path, body,
+                  status=status, content_type=content_type)
+
+    with pytest.raises(RemoteError):
+        client = Client(tmp_credentials)
+        client.me() if path == "me" else client.login()
+
+    assert tmp_credentials.thumbprint == before
+    assert tmp_credentials.key_path.read_bytes() == stored
+    assert Credentials(tmp_credentials.path).thumbprint == before
+
+
 def test_the_auth_dir_can_be_moved(monkeypatch, tmp_path):
     monkeypatch.setenv("SC_AUTH_DIR", str(tmp_path / "elsewhere"))
     creds = Credentials(tmp_path / "home" / "credentials")
@@ -569,3 +637,43 @@ def test_a_header_value_is_read_from_a_pipe(tmp_credentials, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("piped-value\n"))
 
     assert read_secret("CF-Access-Client-Secret") == "piped-value"
+
+
+def test_a_rotation_revokes_the_old_device_with_the_old_key(
+        logged_in, fake_v1, tmp_credentials, client_credentials):
+    '''The old key proves possession one last time, then the new key logs in.'''
+    old = tmp_credentials.thumbprint
+    fake_v1.route(responses.GET, "devices",
+                  {"items": [{"id": "d-old", "name": "laptop", "current": True}]})
+    fake_v1.route(responses.DELETE, "devices/d-old", "", status=204)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    logged_in.rotate_key()
+
+    import jwt
+
+    from siliconcompiler.remote import dpop
+
+    revoke, = [c.request for c in fake_v1.calls if c.request.method == "DELETE"]
+    login = _posts(fake_v1)[-1]
+
+    def signer(request):
+        return dpop.jwk_thumbprint(jwt.get_unverified_header(request.headers["DPoP"])["jwk"])
+
+    assert signer(revoke) == old
+    assert signer(login) == tmp_credentials.thumbprint != old
+    assert fake_v1.calls.index(next(c for c in fake_v1.calls if c.request is revoke)) < \
+        fake_v1.calls.index(next(c for c in fake_v1.calls if c.request is login))
+
+
+def test_a_rotation_the_server_cannot_hear_still_rotates(
+        logged_in, fake_v1, tmp_credentials, client_credentials, caplog):
+    old = tmp_credentials.thumbprint
+    fake_v1.route(responses.GET, "devices", "<html>502</html>", status=502,
+                  content_type="text/html")
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    logged_in.rotate_key()
+
+    assert tmp_credentials.thumbprint != old
+    assert "releases the binding" in caplog.text

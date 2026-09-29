@@ -471,14 +471,13 @@ class Client:
     def _relogin(self, reason: Optional[str]) -> None:
         '''The session is over: re-authenticate, and never refresh.'''
         if reason == "reused":
-            message = ("This session was ended because its refresh token was used twice: "
-                       "your credentials were used elsewhere. Replace this machine's key "
-                       f"with `{ROTATE_COMMAND}`, then log in again")
-            if GRANT_CLIENT_CREDENTIALS in (self.credentials.session_value(
-                    "grant_types_supported") or []):
-                message += (". On this server a new key meets your binding, so an "
-                            "operator must then release it")
-            self.logger.warning(message + ".")
+            # The rotation revokes the old device with the old key first, so a
+            # server that binds a subject to one key takes the new one too.
+            self.logger.warning(
+                "This session was ended because its refresh token was used twice: your "
+                "credentials were used elsewhere. Replace this machine's key with "
+                f"`{ROTATE_COMMAND}`, which also revokes the device the old key is bound "
+                "to, ending every session it holds.")
         elif reason:
             self.logger.info(f"This session has ended ({reason}); starting a new one.")
         self.login()
@@ -520,8 +519,19 @@ class Client:
         '''Replace this machine's DPoP key, and enrol again as a new device.
 
         The one deliberate act that changes the key; no error ever does.
+
+        🔴 **The old key ends its own device first.** It is still here, so it
+        can prove possession one last time: revoking the device it is bound to
+        ends every session that device holds -- whoever else is using them --
+        and, on a server that binds a subject to the key it first saw, frees
+        the subject for the new one. Without it `sc-server` refuses the new key
+        `invalid_client` until an operator releases the binding. Where the old
+        device cannot be revoked -- the server is unreachable -- the key is
+        replaced anyway, and the login below says what the server answered.
         '''
         old = self.credentials.thumbprint
+        if self._transport is not None:
+            self._retire_this_device()
         self.credentials.rotate_key()
         if self._transport is not None:
             self._transport = self._make_transport(self._transport.base_url)
@@ -530,6 +540,25 @@ class Client:
         if self._transport is not None:
             self.login()
             self.logger.info("Logged in again as a new device.")
+
+    def _retire_this_device(self) -> None:
+        '''Revoke the device the current key is bound to, with that key, and
+        forget its session here.'''
+        try:
+            self.ensure_session()
+            current = next((device for device in self.devices() if device.get("current")),
+                           None)
+            if current is not None:
+                self.revoke_device(current["id"])
+                self.logger.info(f"Revoked this machine's device under the old key "
+                                 f"({clean(str(current.get('name') or current['id']))}).")
+        except RemoteError as e:
+            self.logger.warning(
+                f"Could not revoke this machine's device under the old key ({e}); the "
+                "server may refuse the new key until its operator releases the binding.")
+        finally:
+            self.credentials.forget_tokens()
+            self.transport.set_tokens(None, None)
 
     def logout(self) -> None:
         '''End this session on the server, then forget it here.

@@ -408,7 +408,9 @@ Troubleshooting
   value from standard input.
 * **"Your credentials were used elsewhere":** A session token was spent twice,
   so the server ended the session. Replace this machine's key with
-  ``sc-remote -rotate_key``.
+  ``sc-remote -rotate_key``. It revokes the device the old key is bound to
+  first, with that key, which ends every session it holds, and then enrols this
+  machine again as a new device.
 * **Local Changes Not Reflected:** Any modifications you make to local, built-in tool scripts, PDKs, or libraries will not be used in a remote job. The remote server uses its own pre-configured environment.
 * **Network and Filesystem Issues:** Jobs run in isolated environments on the server. Code that relies on specific network or local filesystem calls may not work as expected.
 * **Reporting Issues:** If you encounter problems with the remote workflow, please open an issue on the `SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.
