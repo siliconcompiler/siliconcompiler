@@ -368,7 +368,7 @@ def test_http_resolver_signed_url_not_logged():
     get.assert_called_once()
     assert get.call_args.args[0] == source
     logged = info.call_args.args[0]
-    assert "X-Amz-Signature=%2A%2A%2A&token=%2A%2A%2A" in logged
+    assert "X-Amz-Signature=***&token=***" in logged
     assert "secret" not in logged + str(error.value)
     assert "another" not in logged + str(error.value)
 
@@ -384,7 +384,7 @@ def test_extract_archive_masks_signed_url(zstd_header, error_type):
         with pytest.raises(error_type) as error:
             _extract_archive(BytesIO(b"invalid archive"), ".", source)
 
-    assert "X-Amz-Signature=%2A%2A%2A" in str(error.value)
+    assert "X-Amz-Signature=***" in str(error.value)
     assert "secret" not in str(error.value)
 
 

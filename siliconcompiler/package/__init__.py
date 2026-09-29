@@ -103,6 +103,8 @@ class Resolver:
         self.__cacheid = None
         self.__private = False
 
+        # The marker comes off the source, which is then fetched by its plain
+        # scheme; is_private is all that keeps it, and says what it means.
         scheme = self.urlscheme
         if scheme.endswith("+private"):
             self.__private = True
@@ -219,8 +221,23 @@ class Resolver:
     @property
     def is_private(self) -> bool:
         """
-        True if the source requires private access
-        (e.g., private repository or private network location).
+        True if the source was registered with a ``+private`` scheme:
+        ``file+private://``, ``git+ssh+private://``, ``github+private://`` and
+        the rest.
+
+        The marker says two things:
+
+        * Fetching the source needs the user's own access, so a resolver goes
+          straight to its authenticated route: ``github://`` skips its public
+          lookup.
+        * The source must never leave this machine. A remote run is not to
+          upload it, so the server has to supply its own copy under the same
+          names, or refuse the job.
+
+        The second is the one to decide by. A private repository that this
+        machine can fetch needs no marker: unmarked, a remote run can fetch it
+        here and send it, while marked, the run depends on the server already
+        holding it.
         """
         return self.__private
 
@@ -301,19 +318,54 @@ class Resolver:
         return self.__source
 
     @staticmethod
-    def _masked_uri(url: str) -> str:
+    def _masked_query(query: str) -> str:
+        """
+        A URL query with every value replaced by ``***`` and every name kept.
+
+        A field with no ``=`` is masked whole: it may be a flag, but a bare token
+        (``?<token>``) looks the same. ``;`` separates fields as ``&`` does, since
+        some servers read it that way, and a token ahead of one would otherwise
+        pass as part of a name.
+        """
+        fields = re.split(r"([&;])", query)
+        for n, field in enumerate(fields):
+            if field in ("", "&", ";"):
+                continue
+            name, separator, _ = field.partition("=")
+            fields[n] = f"{name}=***" if separator else "***"
+        return "".join(fields)
+
+    @staticmethod
+    def _masked_uri(url: str, show_userinfo: bool = True) -> str:
+        """
+        ``url`` with its credentials masked and everything else as written: the
+        userinfo shown as ``***``, or dropped if ``show_userinfo`` is False, and
+        every query value as ``***`` (see :meth:`_masked_query`).
+        """
         from urllib import parse as url_parse
-        parsed = url_parse.urlparse(url)
-        if not parsed.username and not parsed.password and not parsed.query:
+        parts = url_parse.urlsplit(url)
+        if "@" not in parts.netloc and not parts.query:
             return url
-        user = "***" if parsed.username else ""
-        pwd = ":***" if parsed.password else ""
-        auth = f"{user}{pwd}@" if (user or pwd) else ""
-        host = parsed.netloc.rpartition("@")[2]
-        netloc = f"{auth}{host}"
-        query = url_parse.urlencode([(key, "***") for key, _ in
-                                     url_parse.parse_qsl(parsed.query, keep_blank_values=True)])
-        return parsed._replace(netloc=netloc, query=query).geturl()
+
+        auth = ""
+        if show_userinfo and (parts.username or parts.password):
+            user = "***" if parts.username else ""
+            pwd = ":***" if parts.password else ""
+            auth = f"{user}{pwd}@"
+        host = parts.netloc.rpartition("@")[2]
+
+        # Joined by hand: urlunsplit drops the '//' ahead of an empty host under
+        # a scheme it does not know, so 'source:///x' would come back 'source:/x'.
+        masked = f"{parts.scheme}:" if parts.scheme else ""
+        after_scheme = url.lstrip().partition(":")[2] if parts.scheme else url.lstrip()
+        if after_scheme.startswith("//"):
+            masked += f"//{auth}{host}"
+        masked += parts.path
+        if parts.query:
+            masked += f"?{Resolver._masked_query(parts.query)}"
+        if parts.fragment:
+            masked += f"#{parts.fragment}"
+        return masked
 
     @property
     def source_print(self) -> str:
@@ -322,7 +374,29 @@ class Resolver:
 
     @property
     def safe_source(self) -> str:
-        """The source URI with sensitive information removed (e.g., tokens)."""
+        """
+        The source URI as it is safe to send off this machine: without its
+        userinfo (``user:token@``), and with every query value masked as ``***``.
+
+        A query's values are where a presigned or tokened URL keeps its
+        credential (``?X-Amz-Signature=...``, ``?access_token=...``). Its names
+        stay, masked as :attr:`source_print` masks them for a log, so the source
+        still says what it is. It no longer says enough to be fetched from.
+
+        It is built from :attr:`source` as written, so an environment variable
+        stays a name: its value could be a secret wherever in the URL it lands.
+        """
+        return Resolver._masked_uri(self.source, show_userinfo=False)
+
+    @property
+    def _cache_source(self) -> str:
+        """
+        The source as :attr:`cache_id` identifies it: expanded, and without its
+        userinfo, which says who fetches the data rather than which data it is.
+
+        Unlike :attr:`safe_source` it keeps the query's values, so two sources
+        that differ only there keep separate caches.
+        """
         url = self.urlparse
         netloc = url.hostname
         if netloc and ":" in netloc:
@@ -374,7 +448,7 @@ class Resolver:
             import hashlib
 
             hash_obj = hashlib.sha1()
-            hash_obj.update(self.safe_source.encode())
+            hash_obj.update(self._cache_source.encode())
             if self.__reference:
                 hash_obj.update(self.__reference.encode())
             else:
@@ -899,6 +973,12 @@ class FileResolver(Resolver):
 
     @property
     def safe_source(self) -> str:
+        # A path has no userinfo or query: an '@' or a '?' in it is part of a
+        # name, and a Windows drive would read as a host.
+        return self.source
+
+    @property
+    def _cache_source(self) -> str:
         return self.urlparse.geturl()
 
     def resolve(self) -> str:
