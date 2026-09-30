@@ -15,6 +15,7 @@ packed.
 '''
 
 import hashlib
+import json
 import logging
 import os
 import posixpath
@@ -130,6 +131,9 @@ class RemoteRun:
         self._owner: Optional[str] = None
         # The job's Python, worked out once: `_python`.
         self._python_worked = None
+        # Whether what the job's images hold in place of a listed version was
+        # said: `_say_substituted`.
+        self._substituted_said = False
         self._wheel_dir: Optional[str] = None
         # The upload report's rows for what the server asked for at create.
         self._asked_rows: list = []
@@ -315,15 +319,50 @@ class RemoteRun:
         # two sources for one path among the user's code, and a package to
         # install where the server installs none -- all before create.
         self._check_python_env()
-        self._remind_terms()
+        self._check_account()
 
-    def _remind_terms(self) -> None:
-        '''An upcoming terms version not yet accepted, named before the
-        submit it would refuse. Advisory: the server decides.'''
+    def _check_account(self) -> None:
+        '''What `GET /v1/me` says of this account, before create: an upcoming
+        terms version not yet accepted, named before the submit it would
+        refuse -- advisory, the server decides -- and a capability the job's
+        Python needs and the account is not granted, which stops the run.'''
         try:
-            self.client.me()
+            me = self.client.me()
         except RemoteError:
             return
+        self._check_capabilities(me)
+
+    def _check_capabilities(self, me: Dict[str, Any]) -> None:
+        '''Stop where the job's Python needs a capability this account does
+        not hold (surface *Who may use it: three capabilities*): `python-env`
+        to list packages, `python-wheels` to upload wheels.
+
+        Only where `authorized.capabilities` is published: a deployment that
+        grants nothing -- sc-server, which has no `authorized` at all -- gates
+        nothing, and `python.env` alone decides there. A grant blocked on an
+        agreement is not one the job can use yet.'''
+        authorized = me.get("authorized") if isinstance(me, dict) else None
+        granted = authorized.get("capabilities") if isinstance(authorized, dict) else None
+        if not isinstance(granted, list):
+            return
+        member, built, _ = self._python()
+        needed = [name for name, needs in (("python-env", bool(member)),
+                                           ("python-wheels", bool(built))) if needs]
+        held = {entry.get("name"): entry for entry in granted if isinstance(entry, dict)}
+        missing = [name for name in needed if name not in held]
+        blocked = [name for name in needed if name in held and held[name].get("blocked_by")]
+        if not missing and not blocked:
+            return
+        what = {"python-env": "to install its Python packages",
+                "python-wheels": f"to upload {', '.join(sorted(built))}"}
+        said = [f"{name} {what[name]}" for name in missing + blocked]
+        raise RemoteError(
+            f"this run's Python needs {' and '.join(said)}, and this account "
+            + ("is not granted " + " or ".join(missing) if missing else "")
+            + (" and " if missing and blocked else "")
+            + (f"holds {' and '.join(blocked)} blocked on an agreement it has not accepted"
+               if blocked else "")
+            + ". Ask the deployment for the grant, or accept the agreement in the portal")
 
     def _check_upstream_files(self) -> None:
         '''A `-from` run whose upstream outputs, on this machine, lack a file
@@ -745,10 +784,10 @@ class RemoteRun:
 
         🔴 The client always builds the lists and the user never does: each
         distribution the run's Python imports, or a task loads by name, at the
-        version installed here, and every other distribution installed here as
-        a constraint -- less every `requested_versions.python` name, which the image
-        holds, and every distribution no index can supply, which goes up as a
-        wheel built here. The user's own modules go up as files, in their
+        version installed here, and each distribution those and the wheels
+        depend on as a constraint -- less every `requested_versions.python`
+        name, which the image holds, and every distribution no index can
+        supply, which goes up as a wheel built here. The user's own modules go up as files, in their
         test's collected folder. No index is named, and no pip configuration
         is read.
 
@@ -817,7 +856,7 @@ class RemoteRun:
             self._wheel_dir = tempfile.mkdtemp(prefix="sc-remote-wheels-")
             for dist in listed.wheels:
                 try:
-                    path = wheels.build(dist, self._wheel_dir)
+                    path = wheels.build(dist, self._wheel_dir, warn=self.logger.warning)
                 except capture.CannotForward as e:
                     self._drop_wheels()
                     raise RemoteError(str(e)) from None
@@ -1135,7 +1174,7 @@ class RemoteRun:
             raise _Unsupplied(f"the Python package {name}: it is not installed here "
                               "either") from None
         try:
-            return wheels.build(dist, folder)
+            return wheels.build(dist, folder, warn=self.logger.warning)
         except capture.CannotForward as e:
             if e.compiled:
                 raise _Unsupplied(f"the Python package {name}: it holds a compiled file, "
@@ -1167,7 +1206,26 @@ class RemoteRun:
             features = self.client.capabilities().get("features") or []
         except RemoteError:
             return None
-        return run_hash if "jobs.reuse" in features else None
+        if "jobs.reuse" not in features:
+            return None
+        built = self._python()[1]
+        if not built:
+            return run_hash
+        # 🔴 Each uploaded wheel's digest, which a hash of the work cannot
+        # know: a wheel is built here from whatever its source holds now, and
+        # the same version is often different code.
+
+        def digest(path) -> str:
+            found = hashlib.sha256()
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                    found.update(chunk)
+            return found.hexdigest()
+
+        return hashlib.sha256(json.dumps(
+            {"run_hash": run_hash,
+             "wheels": sorted(digest(path) for path in built.values())},
+            sort_keys=True).encode()).hexdigest()
 
     def _flow_descriptor(self) -> Tuple[Optional[str], Optional[int]]:
         '''The flowgraph's name and how many nodes the run has: what the
@@ -1351,6 +1409,7 @@ class RemoteRun:
             changed = self._record(job, seen)
             results.take(job_id, job)
             self._paint(job)
+            self._say_substituted(job)
             tails.follow(job_id, job)
 
             if job.get("terminal"):
@@ -1361,6 +1420,42 @@ class RemoteRun:
 
         tails.finish()
         self._finish(job, results)
+
+    def _say_substituted(self, job: Dict[str, Any]) -> None:
+        '''Once the job has staged, each Python package this machine listed
+        that the job's images hold at another version -- the newest of its
+        release line, where the listed one does not install there or is
+        yanked, or the image's own copy -- beside the version listed here.
+
+        Said once, from `resolved_versions`, and only by the process that
+        listed them: the job object does not echo `python_packages`. Where
+        nodes run on the host there are no images, and the staging record says
+        it (`remote-staging.log`).'''
+        from packaging.version import InvalidVersion, Version
+
+        if self._substituted_said or job.get("state") in _NOT_YET_SUBMITTED:
+            return
+        member = self._python_worked[0] if self._python_worked else None
+        held = (job.get("resolved_versions") or {}).get("python")
+        if not member or not isinstance(held, dict):
+            return
+        self._substituted_said = True
+        held = {_canonical(name): versions for name, versions in held.items()
+                if isinstance(versions, list) and versions}
+
+        def same(one, other) -> bool:
+            try:
+                return Version(one) == Version(other)
+            except InvalidVersion:
+                return one == other
+
+        for entry in member["requirements"] + member["constraints"]:
+            name, _, listed = entry.partition("==")
+            versions = held.get(_canonical(name))
+            if versions and not any(same(listed, str(version)) for version in versions):
+                self.logger.warning(
+                    f"This job runs {name} {', '.join(str(one) for one in versions)}, "
+                    f"in place of {listed} as installed here")
 
     def _record(self, job: Dict[str, Any], seen) -> list:
         '''Write what the server says into this project's record.

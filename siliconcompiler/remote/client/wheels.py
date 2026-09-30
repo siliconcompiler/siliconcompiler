@@ -31,7 +31,7 @@ import tempfile
 import zipfile
 
 from importlib import metadata
-from typing import Dict
+from typing import Callable, Dict, List, Optional
 from urllib.parse import urlsplit
 from urllib.request import url2pathname
 
@@ -51,11 +51,17 @@ _EPOCH = (1980, 1, 1, 0, 0, 0)
 _INSTALL_RECORDS = {"RECORD", "INSTALLER", "REQUESTED", "direct_url.json", "WHEEL"}
 
 
-def build(dist: metadata.Distribution, directory: str) -> str:
+def build(dist: metadata.Distribution, directory: str,
+          warn: Optional[Callable[[str], None]] = None) -> str:
     '''A pure wheel of ``dist`` in ``directory``, as its path. Raises
-    CannotForward, naming the distribution and why.'''
+    CannotForward, naming the distribution and why.
+
+    ``warn`` is told of each file an editable install's module directory
+    holds and its wheel leaves out: the run here imports it from that
+    directory, and the node has only the wheel.'''
     name, version = _identity(dist)
-    source = _source_directory(direct_url(dist) or {})
+    info = direct_url(dist) or {}
+    source = _source_directory(info)
     if source is not None:
         path = _pip_wheel(name, version, source, directory)
     else:
@@ -73,7 +79,43 @@ def build(dist: metadata.Distribution, directory: str) -> str:
             f"{name} {version} is installed here from {source or 'a local source'}, "
             f"and no index can supply it, so it is sent as a wheel; but {e}. {fix}",
             compiled=e.compiled) from None
+    if warn is not None and source is not None and (info.get("dir_info") or {}).get("editable"):
+        missing = _left_out(path, source)
+        if missing:
+            warn(f"{name} {version} is installed editable from {source}, and the wheel "
+                 f"its packaging builds leaves out {', '.join(missing)}, which its module "
+                 "directory holds: the node will not have them. Add them to the "
+                 "project's package data")
     return path
+
+
+def _left_out(wheel: str, source: str) -> List[str]:
+    '''Each file in the module directories of ``source`` -- at its top, or
+    under ``src/`` -- that the wheel built from it does not hold, as a path
+    under ``source``. Bytecode, dotfiles and links are not the package's.'''
+    with zipfile.ZipFile(wheel) as archive:
+        held = set(archive.namelist())
+    tops = {member.split("/", 1)[0] for member in held if "/" in member}
+    tops = {top for top in tops if not top.endswith((".dist-info", ".data"))}
+
+    missing = []
+    for top in sorted(tops):
+        for base in (source, os.path.join(source, "src")):
+            where = os.path.join(base, top)
+            if not os.path.isdir(where):
+                continue
+            for root, dirs, files in os.walk(where):
+                dirs[:] = sorted(entry for entry in dirs if entry != "__pycache__"
+                                 and not entry.startswith("."))
+                for entry in sorted(files):
+                    full = os.path.join(root, entry)
+                    if entry.startswith(".") or entry.endswith((".pyc", ".pyo")) or \
+                            os.path.islink(full):
+                        continue
+                    if os.path.relpath(full, base).replace(os.sep, "/") not in held:
+                        missing.append(os.path.relpath(full, source).replace(os.sep, "/"))
+            break
+    return missing
 
 
 def repack(dist: metadata.Distribution, directory: str) -> str:

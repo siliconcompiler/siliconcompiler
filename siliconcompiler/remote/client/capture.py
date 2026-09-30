@@ -10,7 +10,8 @@ while staging*):
 - **a distribution an index can supply** -- listed in the create body's
   `python_packages` at the version installed here: in ``requirements`` where
   the run's code imports it or a task loads it by name, and in
-  ``constraints`` for every other distribution installed here;
+  ``constraints`` for each distribution those and the wheels depend on,
+  followed through ``Requires-Dist``;
 - **a distribution no index can supply** -- installed editable, from a local
   path or file, or from git, which pip records in a ``direct_url.json`` (PEP
   610) -- built into a wheel (`siliconcompiler.remote.client.wheels`), and in
@@ -25,7 +26,9 @@ cocotb task, come with the image the job resolves to, and listing any of them
 would put a second copy on the tool's path.
 
 ⚠️ **An import made dynamically -- through `importlib`, or a plugin entry
-point -- is not followed.** The fix is a plain import in a test module.
+point -- is not followed.** The fix is a plain import in a test module. Nor is
+one under a platform check, ``if sys.platform == "win32":``, which is for a
+platform the server's may not be.
 '''
 
 import ast
@@ -74,22 +77,44 @@ class Lists(NamedTuple):
     warnings: List[str]
 
 
-def _imports(path: str) -> Set[str]:
-    '''The top-level names one source imports absolutely. Raises
-    CannotForward where it cannot be read or parsed.'''
+# What names the platform in a test: `sys.platform`, `os.name`, `os.uname()`
+# and the `platform` module's answers.
+_PLATFORM = {("sys", "platform"), ("os", "name"), ("os", "uname"),
+             ("platform", "system"), ("platform", "machine"), ("platform", "platform"),
+             ("platform", "uname")}
+
+
+def _platform_check(test: ast.AST) -> bool:
+    '''Whether an ``if``'s test asks which platform this is.'''
+    return any(isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
+               and (node.value.id, node.attr) in _PLATFORM for node in ast.walk(test))
+
+
+def _imports(path: str) -> Tuple[Set[str], Set[str]]:
+    '''The top-level names one source imports absolutely, and those it
+    imports only under a platform check -- in either branch, since which one
+    the server's platform takes is not known here. Raises CannotForward
+    where it cannot be read or parsed.'''
     try:
         with open(path, encoding="utf-8") as f:
             tree = ast.parse(f.read(), filename=str(path))
     except (OSError, SyntaxError, ValueError) as e:
         raise CannotForward(f"{path} cannot be read as Python ({e}), so what it "
                             "imports cannot be worked out") from None
-    names = set()
-    for node in ast.walk(tree):
+    names, guarded = set(), set()
+    todo = [(tree, False)]
+    while todo:
+        node, under = todo.pop()
+        if isinstance(node, ast.If) and _platform_check(node.test):
+            todo.extend((child, True) for child in node.body + node.orelse)
+            continue
+        found = guarded if under else names
         if isinstance(node, ast.Import):
-            names.update(alias.name.split(".")[0] for alias in node.names)
+            found.update(alias.name.split(".")[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
-            names.add(node.module.split(".")[0])
-    return names
+            found.add(node.module.split(".")[0])
+        todo.extend((child, under) for child in ast.iter_child_nodes(node))
+    return names, guarded - names
 
 
 def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
@@ -125,12 +150,16 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
         folder = os.path.dirname(test)
         found: Dict[str, str] = {}
         todo, seen, named = [test], set(), set()
+        platform_only: Dict[str, str] = {}
         while todo:
             path = todo.pop()
             if path in seen:
                 continue
             seen.add(path)
-            for name in sorted(_imports(path)):
+            imported, guarded = _imports(path)
+            for name in sorted(guarded - stdlib):
+                platform_only.setdefault(name, path)
+            for name in sorted(imported):
                 if name in stdlib or name in named:
                     continue
                 named.add(name)
@@ -147,6 +176,13 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
                 warnings.append(f"{os.path.basename(path)} imports {name}, which no "
                                 "installed distribution provides and is not beside "
                                 f"{os.path.basename(test)}; it is not sent")
+        for name, path in sorted(platform_only.items()):
+            # Said only of what would otherwise have gone: an import for a
+            # platform this machine is not names nothing installed here.
+            if name not in named and (name in owned or _helper(name, folder)):
+                warnings.append(f"{os.path.basename(path)} imports {name} only under a "
+                                "platform check, so it is not sent; import it outside "
+                                "the check if the server needs it")
         if found:
             helpers[test] = found
 
@@ -211,20 +247,24 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
     from what the run's Python reaches (``roots``, as :func:`reach` gives
     them) and this machine's installed distributions.
 
-    - **requirements**: each of ``roots`` installed here, no index can
-      supply, and ``provided`` does not name;
+    - **requirements**: each of ``roots`` installed here that an index can
+      supply and ``provided`` does not name;
     - **wheels**: each distribution with a ``direct_url.json`` among
       ``roots`` and what they depend on, ``provided`` left out and not
       followed;
-    - **constraints**: every other distribution installed here, at its
-      version.
+    - **constraints**: each other distribution those depend on, followed
+      through ``Requires-Dist``, at the version installed here.
+
+    🔴 **Only what the install needs, always** -- never everything installed
+    here: a constraint on a distribution the job never installs changes
+    nothing, and one this machine happens to hold can only stop an install
+    for a reason the job has nothing to do with.
 
     ``provided`` is the job's `requested_versions.python` names -- SiliconCompiler among
     them -- which the image holds. Every version is in its canonical form, so
     each entry is one the server's grammar takes; a constraint whose version
     is not PEP 440 is left out, and a requirement whose version is not stops
-    the run. Where the lists would pass the server's bounds, the constraints
-    shrink to what the requirements and wheels depend on.
+    the run. A listed distribution that installs a ``.pth`` file is warned of.
     '''
     from packaging.version import InvalidVersion, Version
 
@@ -259,35 +299,41 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
                 "version, so the server cannot be told which to install")
         requirements.append((key, version))
 
+    # The closure of the requirements already runs through each wheel and
+    # what it depends on: the wheels are among what the roots reach.
     listed = {name for name, _ in requirements}
     constraints = []
-    for key, dist in sorted(installed.items()):
-        if key in image or key in listed or direct_url(dist) is not None:
+    for key in sorted(reached):
+        dist = installed.get(key)
+        if key in image or key in listed or key in carried or dist is None:
             continue
         version = version_of(dist)
         if version is not None:
             constraints.append((key, version))
 
-    def fits(constraints) -> bool:
-        entries = [f"{name}=={version}" for name, version in requirements + constraints]
-        member = {"requirements": entries[:len(requirements)],
-                  "constraints": entries[len(requirements):]}
-        return len(entries) <= environment.MAX_ENTRIES and \
-            len(json.dumps(member, separators=(",", ":")).encode()) <= environment.MAX_BYTES
+    entries = [f"{name}=={version}" for name, version in requirements + constraints]
+    member = {"requirements": entries[:len(requirements)],
+              "constraints": entries[len(requirements):]}
+    if len(entries) > environment.MAX_ENTRIES or \
+            len(json.dumps(member, separators=(",", ":")).encode()) > environment.MAX_BYTES:
+        raise CannotForward(
+            f"this run's Python reaches {len(entries)} installed distributions, and a "
+            f"job lists at most {environment.MAX_ENTRIES}")
 
-    if not fits(constraints):
-        # A constraint applies only to a package the install needs, so the
-        # ones nothing here depends on can go without changing it.
-        needed = set(_closure({**roots, **{_canonical(dist.metadata["Name"]): set()
-                                           for dist in wheels}}, image))
-        constraints = [(name, version) for name, version in constraints if name in needed]
-        if not fits(constraints):
-            raise CannotForward(
-                f"this run's Python reaches {len(requirements) + len(constraints)} "
-                f"installed distributions, and a job lists at most "
-                f"{environment.MAX_ENTRIES}")
+    for name, _ in requirements + constraints:
+        for file in _startup_files(installed[name]):
+            warnings.append(
+                f"{name} installs {file}, a .pth file, which runs in every Python that "
+                "starts with it on its path -- the node's among them")
 
     return Lists(requirements, constraints, wheels, warnings)
+
+
+def _startup_files(dist: metadata.Distribution) -> List[str]:
+    '''The ``.pth`` files a distribution installs beside its packages, where
+    any Python that starts with them on its path runs them.'''
+    return sorted(str(entry) for entry in dist.files or ()
+                  if len(entry.parts) == 1 and entry.suffix == ".pth")
 
 
 def place(files: Dict[str, str], path: str, source: str, what: str) -> None:

@@ -254,6 +254,17 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     return "\n".join(lines)
 
 
+# A capability refused (surface *Who may use it: three capabilities*): each is
+# a step up in whose code the deployment runs, and each has a way round short
+# of the grant.
+_CAPABILITY_STEP = {
+    "python-env": "Ask the deployment for the python-env grant. A job whose only "
+                  "Python is its own modules needs none.",
+    "python-wheels": "Ask the deployment for the python-wheels grant, or publish the "
+                     "package to one of its indexes.",
+}
+
+
 def _advice(slug: Optional[str], problem: Dict[str, Any],
             status: Optional[int] = None) -> Optional[str]:
     '''The registry's client action for this type, refined by `reason`.
@@ -277,6 +288,9 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
         return ("No image here runs the Python this machine does. The server's "
                 "operator would have to add one; until then, run the job from a "
                 "Python it has.")
+    if slug == "entitlement-denied" and problem.get("resource_kind") == "capability":
+        return _CAPABILITY_STEP.get(problem.get("resource")) or \
+            "Ask the deployment for that grant; waiting will not help."
     if slug == "session-ended" and problem.get("reason") == "reused":
         return ("Your credentials were used elsewhere. Rotate this machine's key "
                 "with `sc-remote -rotate_key`, then log in again.")

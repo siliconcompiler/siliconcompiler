@@ -65,6 +65,7 @@ import os
 import zipfile
 
 NAME, VERSION, TAG, REQUIRES = {name!r}, {version!r}, {tag!r}, {requires!r}
+LEAVE_OUT = {leave_out!r}
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
@@ -74,6 +75,8 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     members = {{}}
     for root, dirs, files in os.walk(os.path.join(here, NAME)):
         for entry in files:
+            if LEAVE_OUT and entry.endswith(LEAVE_OUT):
+                continue
             full = os.path.join(root, entry)
             members[os.path.relpath(full, here).replace(os.sep, "/")] = open(full, "rb").read()
     members[f"{{info}}/METADATA"] = (f"Metadata-Version: 2.1\\nName: {{NAME}}\\n"
@@ -90,15 +93,16 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 '''
 
 
-def editable_source(where, name, version, requires=(), tag="py3-none-any"):
+def editable_source(where, name, version, requires=(), tag="py3-none-any", leave_out=()):
     '''A project a user installed editable: its package, and packaging of
-    its own.'''
+    its own -- which builds no file ending in one of ``leave_out``.'''
     os.makedirs(os.path.join(where, name), exist_ok=True)
     with open(os.path.join(where, "pyproject.toml"), "w") as f:
         f.write('[build-system]\nrequires = []\nbuild-backend = "backend"\n'
                 'backend-path = ["."]\n')
     with open(os.path.join(where, "backend.py"), "w") as f:
-        f.write(_BACKEND.format(name=name, version=version, tag=tag, requires=list(requires)))
+        f.write(_BACKEND.format(name=name, version=version, tag=tag, requires=list(requires),
+                                leave_out=tuple(leave_out)))
     return where
 
 
@@ -173,6 +177,28 @@ def test_a_helper_beside_the_test_is_the_users_own_before_any_distribution(site)
     assert any("linked.txt is a link" in warning for warning in found.warnings)
 
 
+def test_an_import_under_a_platform_check_is_not_followed(site):
+    '''Either branch is for a platform the server's may not be, so neither
+    is listed -- and said, where it names something installed here, unless
+    an unconditional import lists it anyway.'''
+    for name in ("scfakewin", "scfakeposix", "scfakeboth"):
+        _distribution(site, name, "1.0")
+    open("tb.py", "w").write(
+        "import sys\nimport platform\nimport scfakeboth\n"
+        "if sys.platform == 'win32':\n    import scfakewin\n"
+        "else:\n    from scfakeposix import thing\n"
+        "def later():\n"
+        "    if platform.system() == 'Linux':\n        import scfakeboth\n"
+        "        import scfakenowhere\n")
+
+    found = capture.reach([os.path.abspath("tb.py")])
+
+    assert found.distributions == {"scfakeboth": set()}
+    assert [warning.split(" imports ")[1].split()[0] for warning in found.warnings] == \
+        ["scfakeposix", "scfakewin"]
+    assert all("only under a platform check" in warning for warning in found.warnings)
+
+
 def test_a_test_module_that_cannot_be_read_stops_the_work(site):
     open("tb.py", "w").write("def broken(:\n")
 
@@ -184,24 +210,49 @@ def test_a_test_module_that_cannot_be_read_stops_the_work(site):
 # The lists
 ###########################
 
-def test_the_lists_are_what_the_code_reaches_and_everything_else_installed(site):
+def test_the_lists_are_what_the_code_reaches_and_what_that_depends_on(site):
     '''🔴 Canonical names at canonical versions -- what the server's grammar
-    takes -- and never a `requested_versions.python` name.'''
-    from importlib import metadata
-
+    takes -- never a `requested_versions.python` name, and a constraint only
+    on what the install needs, followed through `Requires-Dist`: never on
+    everything else this machine holds.'''
     _distribution(site, "SCFake_Umi", "0.3.1", requires=["scfakebits"])
-    _distribution(site, "scfakebits", "1.2.0")
+    _distribution(site, "scfakebits", "1.2.0", requires=["scfakedeep>=1"])
+    _distribution(site, "scfakedeep", "4.0")
+    _distribution(site, "scfakeunrelated", "9.0")
 
     listed = capture.lists({"scfake-umi": set(), "pytest": set()}, ["pytest"])
 
     assert listed.requirements == [("scfake-umi", "0.3.1")]
-    constraints = dict(listed.constraints)
-    assert constraints["scfakebits"] == "1.2.0"
-    assert constraints["packaging"] == metadata.version("packaging")
-    assert "pytest" not in constraints and "siliconcompiler" not in constraints
-    assert "scfake-umi" not in constraints
+    assert listed.constraints == [("scfakebits", "1.2.0"), ("scfakedeep", "4.0")]
     for name, version in listed.requirements + listed.constraints:
         environment.parse_entry(f"{name}=={version}")
+
+
+def test_what_a_wheel_depends_on_is_constrained_too(site):
+    _distribution(site, "scfakeedit", "2.0.0", editable_source=os.path.abspath("checkout"),
+                  requires=["scfakeidx"])
+    _distribution(site, "scfakeidx", "1.1")
+
+    listed = capture.lists({"scfakeedit": set()}, [])
+
+    assert [one.metadata["Name"] for one in listed.wheels] == ["scfakeedit"]
+    assert (listed.requirements, listed.constraints) == ([], [("scfakeidx", "1.1")])
+
+
+def test_a_listed_distribution_installing_a_pth_file_is_warned_of(site):
+    '''Warned, and not stopped: an index's package the server installs with
+    the rest, whose `.pth` then runs in the node's Python.'''
+    info = _distribution(site, "scfakehooked", "1.0")
+    open(os.path.join(site, "scfakehooked.pth"), "w").write("import scfakehooked\n")
+    with open(os.path.join(info, "RECORD"), "a") as f:
+        f.write("scfakehooked.pth,,\n")
+
+    listed = capture.lists({"scfakehooked": set()}, [])
+
+    assert listed.requirements == [("scfakehooked", "1.0")]
+    assert listed.warnings == [
+        "scfakehooked installs scfakehooked.pth, a .pth file, which runs in every "
+        "Python that starts with it on its path -- the node's among them"]
 
 
 def test_what_no_index_can_supply_is_a_wheel_and_in_neither_list(site):
@@ -219,15 +270,14 @@ def test_what_no_index_can_supply_is_a_wheel_and_in_neither_list(site):
     assert not names & {"scfakeedit", "scfakedep", "scfakeloose"}
 
 
-def test_too_many_constraints_shrink_to_what_the_run_depends_on(site, monkeypatch):
+def test_a_closure_past_the_servers_bounds_stops_the_run(site, monkeypatch):
     _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
     _distribution(site, "scfakebits", "1.2.0")
-    monkeypatch.setattr(environment, "MAX_ENTRIES", 3)
+    monkeypatch.setattr(environment, "MAX_ENTRIES", 1)
 
-    listed = capture.lists({"scfakeumi": set()}, [])
-
-    assert listed.requirements == [("scfakeumi", "0.3.1")]
-    assert listed.constraints == [("scfakebits", "1.2.0")]
+    with pytest.raises(capture.CannotForward,
+                       match="reaches 2 installed distributions.*at most 1"):
+        capture.lists({"scfakeumi": set()}, [])
 
 
 ###########################
@@ -293,6 +343,25 @@ def test_an_editable_install_is_built_from_its_source(site, monkeypatch):
 
     assert os.path.basename(path) == "scfakeedit-2.0.0-py3-none-any.whl"
     assert environment.check_wheel(path).version == "2.0.0"
+
+
+def test_an_editable_build_leaving_out_what_its_module_holds_is_warned_of(site):
+    '''The run here imports from the module directory, and the node has
+    only the wheel: each file the packaging leaves out, named -- and the
+    wheel still goes.'''
+    pytest.importorskip("pip")
+    source = editable_source(os.path.abspath("checkout"), "scfakeedit", "2.0.0",
+                             leave_out=(".dat",))
+    _distribution(site, "scfakeedit", "2.0.0", editable_source=source,
+                  files={"table.dat": "1 2 3\n", "more.dat": "4\n"})
+    open(os.path.join(source, "scfakeedit", ".hidden"), "w").write("")
+    warned = []
+
+    path = wheels.build(dist("scfakeedit"), ".", warn=warned.append)
+
+    assert os.path.isfile(path)
+    assert len(warned) == 1
+    assert "leaves out scfakeedit/more.dat, scfakeedit/table.dat, which" in warned[0]
 
 
 def test_an_editable_build_that_is_not_pure_is_refused(site):
@@ -628,3 +697,138 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     assert "the Python package scfakec: it holds a compiled file, scfakec/_c.so" in \
         json.loads(cancel.request.body)["reason"]
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
+
+
+###########################
+# What the account may do, and what the job ran
+###########################
+
+@pytest.mark.parametrize("granted,wheel,stops", [
+    # No `authorized`, as sc-server's: a deployment that grants nothing gates
+    # nothing, and `python.env` alone decides.
+    (None, False, None),
+    ([{"name": "python-env", "via": ["self"]}], False, None),
+    ([], False, "is not granted python-env"),
+    ([{"name": "python-env", "via": ["self"]}], True,
+     "python-wheels to upload scfakeloose-3.0.0-py3-none-any.whl.*not granted python-wheels"),
+    ([{"name": "python-env", "via": ["self"],
+       "blocked_by": {"py-terms": {"url": "https://portal.test/terms"}}}], False,
+     "holds python-env blocked on an agreement"),
+])
+def test_a_capability_the_account_lacks_stops_the_run_before_create(
+        site, fake_v1, logged_in, granted, wheel, stops):
+    '''surface *Who may use it: three capabilities*: checked against
+    `GET /v1/me`'s `authorized.capabilities` before create -- packages need
+    `python-env`, wheels `python-wheels`.'''
+    import responses
+
+    from siliconcompiler.remote import RemoteError
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    _distribution(site, "scfakeumi", "0.3.1")
+    _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"))
+    project = cocotb_project("import scfakeumi\n" + ("import scfakeloose\n" if wheel else ""))
+    me = {"id": "u-1"}
+    if granted is not None:
+        me["authorized"] = {"pdks": [], "capabilities": granted}
+    fake_v1.route(responses.GET, "me", me)
+    run = RemoteRun(project, logged_in)
+
+    if stops is None:
+        run._check_account()
+    else:
+        with pytest.raises(RemoteError, match=stops):
+            run._check_account()
+    assert not [c for c in fake_v1.calls if c.request.method == "POST"
+                and c.request.url.endswith("/v1/jobs")]
+
+
+@pytest.mark.parametrize("resource,advice", [
+    ("python-env", "Ask the deployment for the python-env grant. A job whose only "
+                   "Python is its own modules needs none."),
+    ("python-wheels", "Ask the deployment for the python-wheels grant, or publish the "
+                      "package to one of its indexes."),
+])
+def test_a_capability_refused_at_create_says_which_and_what_to_do(
+        site, fake_v1, logged_in, offers_python_env, resource, advice):
+    '''sc-server grants nothing and never says this; a deployment that grants
+    capabilities does, at create for `python-env` and on the job for
+    `python-wheels` -- the same refusal either way.'''
+    import responses
+
+    from conftest import problem
+    from siliconcompiler.remote.client.errors import ServerProblem, describe
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    refusal = problem("entitlement-denied", 403, resource_kind="capability",
+                      resource=resource, detail=f"this account holds no {resource}")
+    _distribution(site, "scfakeumi", "0.3.1")
+    project = cocotb_project("import scfakeumi\n")
+    fake_v1.route(responses.GET, "me", {"id": "u-1"})
+    fake_v1.route(responses.POST, "jobs", refusal, status=403,
+                  content_type="application/problem+json")
+
+    with pytest.raises(ServerProblem) as raised:
+        RemoteRun(project, logged_in)._start()
+
+    said = str(raised.value)
+    assert f"resource: {resource}" in said and "resource_kind: capability" in said
+    assert advice in said
+    assert advice in describe(refusal)
+    assert not [c for c in fake_v1.calls if "upload-grant" in c.request.url]
+
+
+def test_what_the_job_ran_in_place_of_a_listed_version_is_said_once(
+        site, fake_v1, logged_in, caplog):
+    '''Once the job has staged: each listed version its images hold another
+    of -- a release line's newest, where the listed one does not install or is
+    yanked -- beside the one listed here. What matches is not said.'''
+    import logging
+
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
+    _distribution(site, "scfakebits", "1.2.0")
+    run = RemoteRun(cocotb_project("import scfakeumi\n"), logged_in)
+    run._python()
+    ran = {"state": "running",
+           "resolved_versions": {"python": {"scfakeumi": ["0.3.4"], "SCFakeBits": ["1.2"],
+                                            "siliconcompiler": ["0.38.9"]}}}
+
+    with caplog.at_level(logging.WARNING):
+        run._say_substituted({"state": "staging"})
+        run._say_substituted(ran)
+        run._say_substituted(ran)
+
+    said = [record.getMessage() for record in caplog.records
+            if "in place of" in record.getMessage()]
+    assert said == ["This job runs scfakeumi 0.3.4, in place of 0.3.1 as installed here"]
+
+
+def test_the_reuse_hash_carries_each_uploaded_wheels_digest(
+        site, fake_v1, logged_in, capabilities):
+    '''A wheel is built from whatever its source holds now, and the same
+    version is often different code: two runs alike in all but the wheel's
+    bytes are different jobs.'''
+    import responses
+
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    fake_v1.replace(responses.GET, "", dict(
+        capabilities, features=capabilities["features"] + ["jobs.reuse", "python.env"]))
+    _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"),
+                  files={"data.txt": "one\n"})
+    project = cocotb_project("import scfakeloose\n")
+
+    def sent(run):
+        run._run_hash = lambda: "h-1"
+        return run._reuse_hash()
+
+    first = sent(RemoteRun(project, logged_in))
+    again = sent(RemoteRun(project, logged_in))
+    open(os.path.join(site, "scfakeloose", "data.txt"), "w").write("two\n")
+    changed = sent(RemoteRun(project, logged_in))
+
+    assert first == again != "h-1"
+    assert changed != first
+    assert sent(RemoteRun(cocotb_project("import cocotb\n"), logged_in)) == "h-1"
