@@ -4,7 +4,7 @@ import pytest
 from siliconcompiler.utils.units import \
     convert, \
     get_si_prefix, get_si_power, is_base_si_unit_power, \
-    format_si, format_time
+    format_si, format_time, format_duration
 
 
 @pytest.mark.parametrize("value,unit,expect", [
@@ -21,6 +21,108 @@ def test_binary_default_digits(value, unit, expect):
 ])
 def test_binary_with_digits(value, unit, digits, expect):
     assert units.format_binary(value, unit, digits=digits) == expect
+
+
+@pytest.mark.parametrize("value,unit,expect", [
+    (0, "B", (0.0, "")),
+    (1023, "B", (1023.0, "")),
+    (1024, "B", (1.0, "k")),
+    (1536, "B", (1.5, "k")),
+    (2**20, "B", (1.0, "M")),
+    (2**30, "B", (1.0, "G")),
+    (2**80, "B", (1.0, "Y")),
+    (2**90, "B", (1024.0, "Y")),
+    (-1536, "B", (-1.5, "k")),
+    (-2**30, "B", (-1.0, "G")),
+    (2048, "b", (2.0, "k")),
+    (2048, "MB", (2048.0, "")),
+    (2048, None, (2048.0, "")),
+])
+def test_scale_binary(value, unit, expect):
+    assert units.scale_binary(value, unit) == expect
+
+
+@pytest.mark.parametrize("value,expect", [
+    (1024, "1.000k"),
+    (2**30, "1.000G"),
+    (-5000, "-4.883k"),
+    (2**80, "1.000Y"),
+    (2**90, "1024.000Y"),
+])
+def test_binary_boundaries(value, expect):
+    assert units.format_binary(value, "B") == expect
+
+
+@pytest.mark.parametrize("value,unit,expect", [
+    (12, "B", "12.000 B"),
+    (1536, "B", "1.500 KiB"),
+    (1.5 * 2**30, "B", "1.500 GiB"),
+    (2**80, "B", "1.000 YiB"),
+    (-1536, "B", "-1.500 KiB"),
+    (2048, "b", "2.000 Kib"),
+    (1.5, "GB", "1.500 GB"),
+    (1.5, None, "1.500"),
+])
+def test_binary_show_unit(value, unit, expect):
+    assert units.format_binary(value, unit, show_unit=True) == expect
+
+
+@pytest.mark.parametrize("value,unit,expect", [
+    (12, "B", "12"),
+    (1023, "B", "1023"),
+    (1536, "B", "1.5k"),
+    (99.94 * 2**20, "B", "99.9M"),
+    (100 * 2**20, "B", "100M"),
+    (1004.7 * 2**20, "B", "1005M"),
+    (-200 * 2**10, "B", "-200k"),
+    (1.5, "GB", "1.5"),
+    (150.4, "GB", "150"),
+])
+def test_binary_compact(value, unit, expect):
+    assert units.format_binary(value, unit, digits=1, compact=True) == expect
+
+
+@pytest.mark.parametrize("value", [
+    None,
+    "",
+    "abc",
+    [],
+    float("nan"),
+    float("inf"),
+    float("-inf"),
+])
+def test_binary_default(value):
+    assert units.format_binary(value, "B", default="—") == "—"
+
+
+@pytest.mark.parametrize("value,error", [
+    (None, TypeError),
+    ("abc", ValueError),
+])
+def test_binary_invalid_raises_without_default(value, error):
+    with pytest.raises(error):
+        units.format_binary(value, "B")
+
+
+@pytest.mark.parametrize("value,expect", [
+    (None, "—"),
+    ("nonsense", "—"),
+    (0, "0 B"),
+    (12, "12 B"),
+    (1023, "1023 B"),
+    (1024, "1.0 KiB"),
+    (1536, "1.5 KiB"),
+    (-5000, "-4.9 KiB"),
+    (104857600, "100 MiB"),
+    (1073741824, "1.0 GiB"),
+    (10737418240, "10.0 GiB"),
+    (1053818880, "1005 MiB"),
+    (2**80, "1.0 YiB"),
+])
+def test_binary_readable(value, expect):
+    '''All the flags together: a size as a person reads it.'''
+    assert units.format_binary(value, "B", digits=1, show_unit=True, compact=True,
+                               default="—") == expect
 
 
 @pytest.mark.parametrize("sec,expect", [
@@ -209,3 +311,54 @@ def test_format_time(value, expect):
 def test_format_time_rounding_carry(sec, milliseconds_digits, expect):
     """Test that rounding properly propagates carries across time units."""
     assert format_time(sec, milliseconds_digits=milliseconds_digits) == expect
+
+
+@pytest.mark.parametrize("sec,expect", [
+    (0, "0s"),
+    (42, "42s"),
+    (59, "59s"),
+    (60, "1m 00s"),
+    (7 * 60 + 12, "7m 12s"),
+    (59 * 60 + 59, "59m 59s"),
+    (3600, "1h 00m"),
+    (3 * 3600 + 5 * 60 + 59, "3h 05m"),
+    (23 * 3600 + 59 * 60 + 59, "23h 59m"),
+    (24 * 3600, "1d 00h"),
+    (2 * 86400 + 6 * 3600 + 59 * 60, "2d 06h"),
+    (400 * 86400, "400d 00h"),
+])
+def test_format_duration(sec, expect):
+    assert format_duration(sec) == expect
+
+
+@pytest.mark.parametrize("sec,expect", [
+    (59.9, "59s"),
+    (60.999, "1m 00s"),
+    (3599.9, "59m 59s"),
+])
+def test_format_duration_truncates(sec, expect):
+    assert format_duration(sec) == expect
+
+
+@pytest.mark.parametrize("sec,expect", [
+    ("42", "42s"),
+    ("90.5", "1m 30s"),
+])
+def test_format_duration_numeric_string(sec, expect):
+    assert format_duration(sec) == expect
+
+
+@pytest.mark.parametrize("sec", [
+    None,
+    -1,
+    -3600,
+    "",
+    "abc",
+    float("nan"),
+    float("inf"),
+    float("-inf"),
+    [],
+    object(),
+])
+def test_format_duration_invalid(sec):
+    assert format_duration(sec) == "—"

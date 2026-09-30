@@ -90,12 +90,13 @@ Next, you define what the specific task needs to run and what it will produce.
 .. important::
 
    **Require every file the task reads, not only the settings it cannot do
-   without.** The required keys are also what a node's rerun check hashes and
-   what a remote run uploads: a client sends only the files whose keys some
-   running node requires. A file the task reads without requiring it -- a view
-   reached through ``asic,asiclib`` and a fileset, say -- is not sent, and the
-   node fails on the server. Where the task reads a library's files, require
-   those filesets' files, as the OpenROAD and Yosys tasks do.
+   without.** The required keys are also what a node's rerun check compares,
+   what ``sc-issue`` packages and what a remote run uploads: a file the task
+   reads without requiring it -- a view reached through ``asic,asiclib`` and a
+   fileset, say -- can change without the node running again, is missing from
+   an issue built to reproduce it, and is not sent to a remote server, where the
+   node then fails. Where the task reads a library's files, require those
+   filesets' files, as the OpenROAD and Yosys tasks do.
 
 .. note::
 
@@ -117,10 +118,14 @@ Next, you define what the specific task needs to run and what it will produce.
 .. important::
 
    ``setup()`` **SHOULD NOT call** ``find_files`` **(or anything else that
-   resolves a path)**. A remote run sets up every node on the client, before
-   anything is uploaded, to learn what the flow reads -- and resolving a path
-   there fetches a remote PDK onto the user's machine just to answer that. Declare
-   keys in ``setup()``; resolve the files they name in
+   resolves a path)**. ``setup()`` runs for every node in the flow, before the
+   rerun check decides which of them will run -- nodes outside ``-from``/``-to``
+   and nodes whose previous result is reused included -- and resolving a path
+   there fetches a remote PDK just to answer it for a node that does nothing. It
+   also runs on the client of a remote run, for every node and before anything
+   is uploaded, to learn what the flow reads; and to build the task's page in
+   the reference manual, against a placeholder design with nothing to find.
+   Declare keys in ``setup()``; resolve the files they name in
    :meth:`.Task.runtime_options` or later, where the task actually runs.
 
 Execution Lifecycle Methods
