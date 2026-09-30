@@ -349,3 +349,24 @@ def test_a_probe_that_printed_too_much_is_not_believed():
     reads as a tool that is absent.'''
     with pytest.raises(ValueError, match="more than"):
         probe.read_output([("x", "python", None)], "x" * (probe.MAX_OUTPUT + 1))
+
+
+def test_the_interpreter_is_asked_by_running_it(tmp_path):
+    '''surface D293: an image's own Python, the one name `python` of kind
+    `interpreter`, is asked by running it -- present means it answered -- and
+    read back as `X.Y.Z`.'''
+    import subprocess
+    import sys
+
+    wanted = [(probe.INTERPRETER, "interpreter", None)]
+    output = subprocess.run(["sh", "-c", probe.script(wanted)], capture_output=True,
+                            text=True, check=True).stdout
+    found = probe.read_output(wanted, output)[probe.INTERPRETER]
+
+    here = subprocess.run(["python3", "-c", "import sys; print('%d.%d.%d' % "
+                                            "sys.version_info[:3])"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+    assert found["kind"] == "interpreter"
+    assert found["present"] is True
+    assert found["version"] == here
+    assert sys.version_info  # the check ran under a real interpreter

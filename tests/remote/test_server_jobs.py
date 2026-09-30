@@ -1400,8 +1400,11 @@ def registry(runs_test_version):
         images.register_software(store, "siliconcompiler", "SiliconCompiler", actor, "python")
         images.register_version(store, "siliconcompiler", "0.38.0", actor,
                                 preference=10)
+        # Its own Python, as the probe records every image's (surface D293).
+        images.register_software(store, "python", "Python", actor, "interpreter")
+        images.register_version(store, "python", "3.11.9", actor)
         images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("a"),
-                              [("siliconcompiler", "0.38.0")], actor)
+                              [("siliconcompiler", "0.38.0"), ("python", "3.11.9")], actor)
 
 
 @pytest.fixture
@@ -1530,6 +1533,46 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     assert read["error"]["reason"] == "unavailable"
     assert read["error"]["unresolved"] == [
         {"name": "openroad", "requirement": [], "available": []}]
+
+
+def test_a_python_no_image_runs_is_refused_at_create_naming_what_there_is(
+        container_client, key, container_token):
+    '''surface D293: a job whose node runs the user's own Python names the
+    Python it was written for, and one no live image runs is refused before
+    anything uploads -- naming the versions there are, and that the operator
+    would have to add one.'''
+    response = create(container_client, key, container_token, requested_versions={
+        "python": {}, "tools": {}, "interpreter": {"python": ["==3.12.*"]}})
+
+    assert (response.status_code, slug(response)) == (422, "software-unavailable")
+    body = response.get_json()
+    assert body["unresolved"] == [{"name": "python", "requirement": ["==3.12.*"],
+                                   "available": ["3.11.9"]}]
+    assert "operator would have to add" in body["detail"]
+
+
+def test_a_python_an_image_runs_is_accepted(container_client, key, container_token):
+    response = create(container_client, key, container_token, requested_versions={
+        "python": {}, "tools": {}, "interpreter": {"python": ["==3.11.*"]}})
+
+    assert response.status_code == 201, response.get_json()
+
+
+def test_a_job_that_names_no_python_is_not_held_to_one(
+        container_client, key, container_token):
+    '''A job with no node running the user's Python sends none, and whatever
+    the images run is fine.'''
+    response = create(container_client, key, container_token,
+                      requested_versions={"python": {}, "tools": {}})
+
+    assert response.status_code == 201, response.get_json()
+
+
+def test_the_interpreter_bucket_has_one_name(container_client, key, container_token):
+    response = create(container_client, key, container_token, requested_versions={
+        "interpreter": {"pypy": ["==3.10.*"]}})
+
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
 
 
 def test_the_job_publishes_the_versions_the_server_resolved(

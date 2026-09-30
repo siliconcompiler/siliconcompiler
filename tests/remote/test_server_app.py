@@ -14,6 +14,13 @@ from siliconcompiler.remote.server.state.store import now
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 
+def host_python() -> str:
+    '''This process's Python, as `GET /v1` publishes a host's interpreter.'''
+    import sys
+
+    return "%d.%d.%d" % sys.version_info[:3]
+
+
 # These run against app.test_client(): an in-process WSGI client with no port,
 # no event loop and no teardown. Seventeen of this profile's eighteen endpoints
 # are request-in, response-out, so this is the shape almost every server test
@@ -170,8 +177,10 @@ def test_terms_url_is_absent_rather_than_null(client):
 def test_software_falls_back_to_this_server_when_no_image_is_registered(client):
     '''A deployment that runs no containers is conforming, and what it runs is
     the SiliconCompiler this process was installed with.'''
+    # And the Python a node running the user's runs in: this server's own.
     assert client.get("/v1").get_json()["software"] == {
-        "python": {"siliconcompiler": [sc_version]}, "tools": {}}
+        "python": {"siliconcompiler": [sc_version]}, "tools": {},
+        "interpreter": {"python": [host_python()]}}
 
 
 def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
@@ -198,7 +207,8 @@ def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
     from siliconcompiler import __version__
 
     assert client.get("/v1").get_json()["software"] == {
-        "python": {"siliconcompiler": [__version__]}, "tools": {}}
+        "python": {"siliconcompiler": [__version__]}, "tools": {},
+        "interpreter": {"python": [host_python()]}}
 
 
 ###########################

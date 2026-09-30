@@ -75,7 +75,8 @@ class DispatchMixin:
         try:
             plan = images.plan_for_job(self._store, requires,
                                        summary["node_tools"], summary["inherits"],
-                                       job_image_id=job["image_id"])
+                                       job_image_id=job["image_id"],
+                                       python_nodes=summary["python"])
         except ProblemError as problem:
             # Its own slug, not a guessed one: `plan_for_job` refuses for more
             # than one reason and the job must record the one the caller was

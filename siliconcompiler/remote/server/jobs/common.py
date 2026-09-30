@@ -151,7 +151,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     shares an interpreter and must be held by ONE image, while a tool is
     satisfied per node; accepting a flat map would mean guessing which.
     """
-    from siliconcompiler.remote.server.software.images import BUCKETS
+    from siliconcompiler.remote.server.software.images import BUCKETS, INTERPRETER
 
     buckets = tuple(BUCKETS.values())
     found: Dict[str, Dict[str, Any]] = {bucket: {} for bucket in buckets}
@@ -178,6 +178,10 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
                 "invalid-request",
                 detail=f"requested_versions.{bucket} must be an object of name to "
                        "requirement")
+        if bucket == BUCKETS["interpreter"] and set(inner) - {INTERPRETER}:
+            raise ProblemError(
+                "invalid-request",
+                detail=f"requested_versions.interpreter has one name, {INTERPRETER}")
         for name, wanted in inner.items():
             if not isinstance(wanted, list) or not all(isinstance(one, str) for one in wanted):
                 raise ProblemError(

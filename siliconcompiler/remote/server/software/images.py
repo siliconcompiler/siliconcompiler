@@ -60,7 +60,10 @@ _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 # ⚠️ The kind is singular and the bucket is a collection, which is why the two
 # are spelled differently and why the mapping is written down rather than
 # derived by adding an "s".
-BUCKETS = {"python": "python", "tool": "tools"}
+BUCKETS = {"python": "python", "tool": "tools", "interpreter": "interpreter"}
+
+# The interpreter bucket's one name: the image's own Python (surface D293).
+INTERPRETER = "python"
 
 
 class Requirement(NamedTuple):
@@ -389,7 +392,7 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
     *present but reports no version* rather than *no image matches* -- see
     `_unsatisfiable`.
     '''
-    tracked: Dict[str, Dict[str, List[str]]] = {"python": {}, "tools": {}}
+    tracked: Dict[str, Dict[str, List[str]]] = {bucket: {} for bucket in BUCKETS.values()}
 
     for row in store.all("SELECT name, kind FROM software WHERE retired_at IS NULL"):
         tracked[BUCKETS[row["kind"]]][row["name"]] = []
@@ -495,7 +498,9 @@ def _rank(image, requirements: Sequence[Requirement] = ()):
     # requirement set which never mentioned the framework.
     return (-preference if preference is not None else 1,
             tuple(chosen),
-            len(image["contents"]),
+            # Every image has its own Python, so that says nothing about how
+            # much an image holds.
+            sum(1 for entry in image["contents"] if entry.kind != "interpreter"),
             _newest_first(image["built_at"]),
             _newest_first(image["resolved_at"]),
             image["registry_ref"])
@@ -517,7 +522,8 @@ def _newest_first(built_at: Optional[str]) -> str:
 
 def plan_for_job(store, requires: Dict[str, Any],
                  node_tools: Dict[Tuple[str, str], Optional[str]],
-                 inherits=None, job_image_id: Optional[str] = None) -> Plan:
+                 inherits=None, job_image_id: Optional[str] = None,
+                 python_nodes=()) -> Plan:
     '''Which image every node of this job runs in.
 
     🔴 **N images, not one.** A forty-node flow over six tools resolves six, and
@@ -531,9 +537,16 @@ def plan_for_job(store, requires: Dict[str, Any],
     never reaches this function. A server whose last image was retired under it
     refuses submits rather than quietly running them on the host, which is what
     the operator turned the switch off to get.
+
+    🔴 **A node that runs the user's Python -- ``python_nodes`` -- is also
+    matched on `requested_versions.interpreter`** (surface D293): its tests
+    run in its image's own Python, so that is the version that has to be the
+    one the user's modules were written against.
     '''
     images = live_images(store)
     software = live_software(store)
+    python_nodes = set(python_nodes)
+    interpreter = interpreter_requirement(requires)
 
     # 🔴 The python set alone decides the JOB image, because those names share
     # one interpreter and one container therefore has to hold all of them --
@@ -564,6 +577,16 @@ def plan_for_job(store, requires: Dict[str, Any],
             after = inherits.get(node)
             nodes[node] = (nodes.get(after) if node in inherits else None) \
                 or job_image["id"]
+            if interpreter and node in python_nodes:
+                # Where it would run, if that has the Python it needs; the
+                # image the python set and that Python resolve to, if not.
+                here = next(image for image in images if image["id"] == nodes[node])
+                if not _satisfies(here, [interpreter]):
+                    found = resolve(images, list(pinned) + [interpreter])
+                    if found is None:
+                        failed.setdefault(interpreter, list(pinned) + [interpreter])
+                        continue
+                    nodes[node] = found["id"]
             continue
 
         if tool not in held:
@@ -595,7 +618,8 @@ def plan_for_job(store, requires: Dict[str, Any],
         # `siliconcompiler==0.38.9` in the python set, `built_at` chooses the
         # newest OpenROAD *among images holding that SC*, not the newest image.
         asked = ((requires or {}).get("tools") or {}).get(tool)
-        wants = list(pinned) + [Requirement(tool, specifiers(asked), "tool")]
+        wants = list(pinned) + ([interpreter] if interpreter and node in python_nodes
+                                else []) + [Requirement(tool, specifiers(asked), "tool")]
         found = resolve(images, wants)
         if found is None:
             # 🔴 Kept and not raised: a job missing two tools reports both,
@@ -608,6 +632,16 @@ def plan_for_job(store, requires: Dict[str, Any],
         raise _unsatisfiable_tools(list(failed.values()), images)
 
     return Plan(job_image["id"], nodes, refs)
+
+
+def interpreter_requirement(requires: Dict[str, Any]) -> Optional[Requirement]:
+    '''`requested_versions.interpreter`, as the requirement each image a node
+    running the user's Python resolves to must meet; None where the job sent
+    none, and is not constrained by it.'''
+    asked = ((requires or {}).get(BUCKETS["interpreter"]) or {}).get(INTERPRETER)
+    if asked is None:
+        return None
+    return Requirement(INTERPRETER, specifiers(asked), "interpreter")
 
 
 def declared_requirements(software, requires: Dict[str, Any]) -> List[Requirement]:
@@ -682,8 +716,12 @@ def digests_for(store, requires: Dict[str, Any]) -> List[str]:
     return [resolve_declared(images, requirements)["digest"]]
 
 
-def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str]]:
-    '''Every version the given images declare, keyed by distribution.
+def contents_of(store, image_ids: Sequence[Optional[str]],
+                interpreter_ids: Sequence[Optional[str]] = ()) -> Dict[str, List[str]]:
+    '''Every version the given images declare, keyed by distribution -- and,
+    in the `interpreter` bucket, the Python of ``interpreter_ids`` alone: the
+    images a node running the user's Python ran in, the only ones whose Python
+    the job depends on (surface D293).
 
     🔴 **What a job ran, once a request can carry a range.** Nothing else can
     answer it: the descriptor says what was asked for and the answer is
@@ -695,10 +733,11 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
     same distribution -- so a single value would have to pick one and be wrong.
     '''
     wanted = {image_id for image_id in image_ids if image_id}
+    interpreted = {image_id for image_id in interpreter_ids if image_id}
     if not wanted:
         return {}
 
-    found: Dict[str, Dict[str, List[str]]] = {"python": {}, "tools": {}}
+    found: Dict[str, Dict[str, List[str]]] = {bucket: {} for bucket in BUCKETS.values()}
 
     def add(bucket, name, version):
         versions = found[bucket].setdefault(name, [])
@@ -711,6 +750,9 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
             f"SELECT id, derived_from, installed FROM images WHERE derived_from IS NOT NULL "
             f"AND id IN ({', '.join('?' * len(wanted))})", tuple(wanted)):
         wanted.add(row["derived_from"])
+        if row["id"] in interpreted:
+            # A derived image runs its base's Python.
+            interpreted.add(row["derived_from"])
         for name, version in json.loads(row["installed"] or "[]"):
             add("python", canonical_python(name), version)
 
@@ -719,13 +761,18 @@ def contents_of(store, image_ids: Sequence[Optional[str]]) -> Dict[str, List[str
             continue
         for entry in image["contents"]:
             bucket = BUCKETS.get(entry.kind, "tools")
+            if bucket == BUCKETS["interpreter"] and image["id"] not in interpreted:
+                continue
             add(bucket, canonical_python(entry.name) if bucket == "python"
                 else entry.name.lower(), entry.version)
 
     if not any(found.values()):
         return {}
+    # `python` and `tools` always, as `software` has them; `interpreter` where
+    # a node ran the user's Python (surface §17).
     return {bucket: {name: sorted(versions) for name, versions in sorted(held.items())}
-            for bucket, held in found.items()}
+            for bucket, held in found.items()
+            if bucket != BUCKETS["interpreter"] or held}
 
 
 def canonical_python(name: str) -> str:
@@ -770,8 +817,13 @@ def _unsatisfiable_tools(failures: Sequence[Sequence[Requirement]],
     exist, beside a python set that also exists, and never in the same image as
     it, is a ``combination`` -- and names both halves.
     '''
-    unavailable = [wants[-1] for wants in failures
-                   if resolve(images, [wants[-1]]) is None]
+    unavailable = []
+    for wants in failures:
+        # The node's tool, and the Python it asked for where it runs the
+        # user's: whichever no image holds at all is what is missing.
+        for want in [want for want in wants if want.kind == "interpreter"] + [wants[-1]]:
+            if resolve(images, [want]) is None and want not in unavailable:
+                unavailable.append(want)
     if unavailable:
         return _software_unavailable("unavailable", unavailable, images)
 
@@ -1403,6 +1455,10 @@ def register_software(store, name: str, display_name: str, actor: str,
         raise ValueError(
             f"{kind!r} is not a software kind; try "
             f"{' or '.join(probe.KINDS)}")
+    if kind == "interpreter" and name != INTERPRETER:
+        raise ValueError(
+            f"the interpreter kind has one name, {INTERPRETER}: the image's own "
+            f"Python. {name} is not it")
     if driver and kind != "tool":
         raise ValueError(
             f"{name} is {kind} and names a task driver; a driver is what makes "

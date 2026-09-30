@@ -58,7 +58,8 @@ def advertised_reported(store, config=None):
 
 
 def _advertised(store, config, read):
-    from siliconcompiler.remote.server.software.images import PRIMARY, own_version
+    from siliconcompiler.remote.server.software.images import (
+        BUCKETS, INTERPRETER, PRIMARY, own_version)
 
     containers = bool(config["containers"]) if config is not None else True
 
@@ -68,7 +69,7 @@ def _advertised(store, config, read):
         # installed with. `tools` stays empty -- which is the true answer for
         # a deployment that runs no containers and therefore advertises no
         # tool image.
-        software = {"python": {}, "tools": {}}
+        software = {bucket: {} for bucket in BUCKETS.values()}
 
     # 🔴 **One SiliconCompiler: the one this server runs**, whatever the
     # registry tracks and in both modes (profile §5). The manifest's read is
@@ -76,7 +77,18 @@ def _advertised(store, config, read):
     # resolve to; with containers on, the startup check holds a live image to
     # it.
     software["python"][PRIMARY] = [own_version()]
+    if not containers:
+        # Where nodes run on this host, the user's Python runs in this one.
+        software[BUCKETS["interpreter"]] = {INTERPRETER: [host_interpreter()]}
     return software
+
+
+def host_interpreter() -> str:
+    '''This server's own Python, as `X.Y.Z`: what a node running the user's
+    Python runs in where nodes run on this host.'''
+    import sys
+
+    return "%d.%d.%d" % sys.version_info[:3]
 
 
 @blueprint.route("/v1", methods=["GET"])

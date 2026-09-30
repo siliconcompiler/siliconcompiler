@@ -6,11 +6,14 @@ typed what an image held and nothing ever opened it to check, so a wrong row
 meant a job ran in a container without what it asked for and failed at run time
 rather than at submit. This is the other half: ask the image.
 
-**Two mechanisms, and the registry says which applies to which name:**
+**Three mechanisms, and the registry says which applies to which name:**
 
-``python``  ``importlib.metadata.version(<name>)``
-``tool``    the driver's ``exe`` and ``vswitch``, read back through its
-            ``parse_version`` and ``normalize_version``
+``python``       ``importlib.metadata.version(<name>)``
+``tool``         the driver's ``exe`` and ``vswitch``, read back through its
+                 ``parse_version`` and ``normalize_version``
+``interpreter``  the image's own ``python3``, as ``X.Y.Z`` -- the one name
+                 ``python``, which a node running the user's Python is matched
+                 on (surface D293)
 
 🔴 **The command runs in the image and the PARSING happens here, and that split
 is the whole design.** An earlier version ran this module inside the image,
@@ -45,13 +48,16 @@ import sys
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-__all__ = ["ANSWER_BYTES", "KINDS", "MARKER", "MAX_OUTPUT", "command_for",
+__all__ = ["ANSWER_BYTES", "INTERPRETER", "KINDS", "MARKER", "MAX_OUTPUT", "command_for",
            "exe_and_switch", "executable_for", "probe", "read_answer",
            "read_output", "script"]
 
 
-# The closed set, and each half is a mechanism rather than a label.
-KINDS = ("python", "tool")
+# The closed set, and each is a mechanism rather than a label.
+KINDS = ("python", "tool", "interpreter")
+
+# The one name of the interpreter kind: the image's own Python.
+INTERPRETER = "python"
 
 # What a caller greps for when it wants only the answer. One line, JSON after.
 MARKER = "sc-probe:"
@@ -89,6 +95,13 @@ _PYTHON_CHECK = (
     "print(v)\n"
 )
 
+# The image's own Python, which says PRESENT by running at all.
+_INTERPRETER_CHECK = (
+    "import sys\n"
+    "print({here!r})\n"
+    "print('%d.%d.%d' % sys.version_info[:3])\n"
+)
+
 # 🔴 How much of a probe's output is read, and it is bounded because it comes out
 # of somebody else's image and is read on the server. A version check RUNS the
 # tool; a tool can print anything on its way, and an image can print anything
@@ -123,6 +136,9 @@ def command_for(name: str, kind: str, driver: Optional[str] = None,
     '''
     if kind not in KINDS:
         raise ValueError(f"{kind} is not a software kind")
+
+    if kind == "interpreter":
+        return ["python3", "-c", _INTERPRETER_CHECK.format(here=_HERE + name)]
 
     # 🔴 A tool can have no executable at all -- slang drives pyslang in this
     # process -- and its version is then the distribution's. The marker still
@@ -164,7 +180,7 @@ def executable_for(name: str, kind: str, driver: Optional[str] = None,
     None where presence is decided some other way -- a python distribution
     answers for itself -- or cannot be decided at all.
     '''
-    if kind == "python" or version_package:
+    if kind in ("python", "interpreter") or version_package:
         return None
     return exe_and_switch(name, driver)[0]
 
@@ -188,7 +204,7 @@ def read_answer(name: str, kind: str, output: str,
     if not text.strip():
         return None
 
-    if kind == "python":
+    if kind in ("python", "interpreter"):
         # The LAST line, because anything the interpreter warned about on its
         # way comes first. A distribution's version needs no normalising: it
         # is PEP 440 already, by the packaging that declared it.
@@ -225,7 +241,7 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
         exe = executable_for(name, kind, driver, package)
         lines.append(f"echo {shlex.quote(_BEGIN + name)}")
 
-        if kind == "python" or package:
+        if kind in ("python", "interpreter") or package:
             # The python check reports its own presence: it prints the marker
             # only once `importlib.metadata` has answered, so absence is
             # `PackageNotFoundError` and nothing else.
@@ -339,7 +355,7 @@ def _testable(name: str, kind: str, driver: Optional[str],
     and no version switch is testable and mute; one naming neither cannot be
     tested, and untestable is not absent.
     """
-    if kind == "python" or package:
+    if kind in ("python", "interpreter") or package:
         return command_for(name, kind, driver, package) is not None
     return executable_for(name, kind, driver, package) is not None
 

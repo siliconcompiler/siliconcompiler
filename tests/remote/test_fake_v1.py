@@ -34,7 +34,7 @@ def test_capabilities_carry_every_required_member(capabilities):
     # 🔴 Two buckets, a closed set, both always present -- a client branches
     # on them. `siliconcompiler` is REQUIRED and it lives in `python`, because
     # the bucket a name is published under is part of what the key means.
-    assert set(capabilities["software"]) == {"python", "tools"}
+    assert set(capabilities["software"]) == {"python", "tools", "interpreter"}
     assert "siliconcompiler" in capabilities["software"]["python"]
 
     # The device grant is not served by this profile, so it must not be

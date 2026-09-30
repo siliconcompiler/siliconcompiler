@@ -194,7 +194,8 @@ class RemoteRun:
             python_packages=self._python()[0],
             needs=["python.env"] if self._python()[0] or self._python()[1] else None,
             requested_versions={"python": self._requested_python(),
-                                "tools": self._tool_requirements()},
+                                "tools": self._tool_requirements(),
+                                **self._requested_interpreter()},
             # What this machine expects the server to supply. A lookup at the
             # other end, never a fetch, and credentials stripped -- and only
             # what the flow reads.
@@ -381,11 +382,20 @@ class RemoteRun:
             software = self.client.capabilities().get("software") or {}
         except RemoteError:
             return
-        wanted = {"python": self._requested_python(), "tools": self._tool_requirements()}
+        wanted = {"python": self._requested_python(), "tools": self._tool_requirements(),
+                  **self._requested_interpreter()}
         for bucket, requirements in wanted.items():
             held = software.get(bucket) or {}
             for name, alternatives in (requirements or {}).items():
                 versions = held.get(name)
+                if bucket == "interpreter" and versions is not None and not any(
+                        _satisfied(versions, spec) for spec in alternatives):
+                    self.logger.warning(
+                        f"This server's images run Python {', '.join(versions)}, and "
+                        f"this job's own Python modules were written for "
+                        f"{' or '.join(alternatives)}: the job will be refused until "
+                        "the server's operator adds an image with that Python")
+                    continue
                 if versions is None:
                     self.logger.warning(f"This server advertises no {name}; the job "
                                         "may be refused")
@@ -632,6 +642,17 @@ class RemoteRun:
                 carried = owners.with_required(self.project, worked.required)
                 self._needed = (carried, owners.required(carried))
         return self._needed
+
+    def _requested_interpreter(self) -> Dict[str, Dict[str, List[str]]]:
+        '''`requested_versions.interpreter`: the major and minor version of
+        the Python running here, `==3.12.*`, for a job with a node that runs
+        the user's own Python -- whose modules were written and checked against
+        it -- and nothing for any other job (surface D293).'''
+        self._needs()
+        if not self._environments:
+            return {}
+        return {"interpreter": {"python": [f"=={sys.version_info[0]}."
+                                           f"{sys.version_info[1]}.*"]}}
 
     def _requested_python(self) -> Dict[str, List[str]]:
         '''`requested_versions.python`, the fixed list (surface *The descriptor*):
@@ -1906,6 +1927,16 @@ def _normalize_spec(task, declared: str) -> Optional[str]:
         logger.debug(f"dropping a requirement that is not PEP 440: {joined!r}")
         return None
     return joined
+
+
+def _satisfied(versions, spec: str) -> bool:
+    '''Whether any of ``versions`` meets one PEP 440 specifier set.'''
+    from packaging.specifiers import InvalidSpecifier, SpecifierSet
+
+    try:
+        return any(SpecifierSet(spec).filter(versions, prereleases=True))
+    except InvalidSpecifier:
+        return True
 
 
 class _LinkPacker:

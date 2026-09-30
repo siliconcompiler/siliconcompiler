@@ -469,10 +469,11 @@ def _parser() -> argparse.ArgumentParser:
         help="declare that this deployment curates images for a distribution")
     software.add_argument("name", help="the distribution name: siliconcompiler, openroad")
     software.add_argument(
-        "-kind", choices=("python", "tool"),
-        help="python or tool. Derived by probing this process when omitted, "
-             "which is the right answer unless you are describing an image "
-             "this process is not")
+        "-kind", choices=("python", "tool", "interpreter"),
+        help="python, tool, or interpreter for the one name python -- an image's "
+             "own Python, which a node running the user's Python is matched on. "
+             "Derived by probing this process when omitted, which is the right "
+             "answer unless you are describing an image this process is not")
     software.add_argument(
         "-driver", metavar="<module>",
         help="the module carrying this tool's Task driver. 🔴 Spelled out and "

@@ -380,6 +380,9 @@ def ask_image(image: str, python_names, tools) -> dict:
     from siliconcompiler.remote.server.software import probe
 
     wanted = [(name, "python", None, None) for name in python_names]
+    # The image's own Python, which a node running the user's Python is
+    # matched on (surface D293).
+    wanted.append((probe.INTERPRETER, "interpreter", None, None))
     # ⚠️ A tool whose version is a distribution is asked the python way, and
     # the answer comes back under the TOOL's name -- `slang` is registered as
     # slang and read as pyslang. The probe does that itself, given the package.
@@ -749,6 +752,16 @@ def register(version: str, tools_digest: str, runtime_digest: str,
     registry("add-version", "siliconcompiler", version)
 
     contains, runtime_contains = [], []
+
+    # 🔴 Each image's own Python, as the probe read it: what a cocotb node's
+    # `requested_versions.interpreter` is matched against. Declared only where
+    # it answered, since it always reports a version when it runs at all.
+    from siliconcompiler.remote.server.software import probe
+    registry("add-software", probe.INTERPRETER, "-kind", "interpreter")
+    for answer, into in ((held, contains), (runtime_held, runtime_contains)):
+        said = answer.get(probe.INTERPRETER) or {}
+        if said.get("present") and said.get("version"):
+            into += _declare(probe.INTERPRETER, said, published)
 
     # 🔴 A framework distribution -- cocotb -- is named in a cocotb node's
     # `requested_versions.python` at SiliconCompiler's range, and the image's version

@@ -185,6 +185,9 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     # Nothing computes a run hash yet, so nothing claims one -- at the top,
     # where it would go, or in the descriptor.
     assert "run_hash" not in body and "run_hash" not in descriptor
+    # No node runs the user's own Python, so no interpreter is named: the
+    # images' Pythons do not matter to it (surface D293).
+    assert "interpreter" not in descriptor["requested_versions"]
 
     submitted = [call for call in fake_v1.calls
                  if call.request.path_url.endswith("/submit")][0]

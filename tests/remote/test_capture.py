@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 import os
+import sys
 import tarfile
 
 import pytest
@@ -442,6 +443,10 @@ def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
     assert not listed & {"cocotb", "siliconcompiler", "scfake-helper", "scfakebits"}
     assert "python.env" in body["descriptor"]["needs"]
     assert "cocotb" in body["descriptor"]["requested_versions"]["python"]
+    # A node runs the user's Python, so the job names the Python its modules
+    # were written for: this one's major and minor (surface D293).
+    assert body["descriptor"]["requested_versions"]["interpreter"] == {
+        "python": [f"=={sys.version_info[0]}.{sys.version_info[1]}.*"]}
 
     members = _uploaded(fake_v1)
     wheel = f"sc_collected_files/{environment.WHEELS}/scfake_helper-0.1.0-py3-none-any.whl"

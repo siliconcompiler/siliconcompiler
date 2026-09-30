@@ -447,6 +447,16 @@ class CreateMixin:
                     # here tracks is checked against what jobs would run in.
                     if bucket == images.BUCKETS["python"]:
                         self._check_untracked_python(name, asked)
+                    elif bucket == images.BUCKETS["interpreter"]:
+                        # No image records its Python, so none can be shown to
+                        # have the one the user's modules were written for.
+                        raise ProblemError(
+                            "software-unavailable", reason="unavailable",
+                            detail=f"the job's own Python needs {', '.join(asked)}, and "
+                                   "no image this server runs records its Python: the "
+                                   "operator would have to register one",
+                            unresolved=[{"name": name, "requirement": list(asked or ()),
+                                         "available": []}])
                     continue
 
                 spec = images.specifiers(asked)
@@ -456,7 +466,14 @@ class CreateMixin:
 
                 # Software no image holds, SiliconCompiler's own version
                 # included (surface §7), whose answer names what is available.
-                if here[name] and not said.get(name):
+                if bucket == images.BUCKETS["interpreter"]:
+                    # 🔴 The friction is the point (surface D293): it tells the
+                    # user, before anything uploads, that the operator has to
+                    # add an image, rather than failing a test later.
+                    detail = (f"the job's own Python needs {', '.join(asked)}, and this "
+                              f"server's images run Python {', '.join(here[name])}: the "
+                              "operator would have to add an image with that Python")
+                elif here[name] and not said.get(name):
                     detail = (f"this server has {name}, and reports no version for "
                               "it -- so nothing here can be matched against a "
                               f"version requirement. Ask for {name} without one")

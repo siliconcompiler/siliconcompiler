@@ -48,11 +48,26 @@ class RowsMixin:
         what they hold.
         """
         rows = self._store.all(
-            "SELECT DISTINCT image_id FROM job_nodes WHERE job_id = ? "
+            'SELECT step, "index", image_id FROM job_nodes WHERE job_id = ? '
             "  AND image_id IS NOT NULL", (job["id"],))
+        runs_python = self._runs_user_python(job)
 
         return images.contents_of(
-            self._store, [job["image_id"], *(row["image_id"] for row in rows)])
+            self._store, [job["image_id"], *(row["image_id"] for row in rows)],
+            [row["image_id"] for row in rows if (row["step"], row["index"]) in runs_python])
+
+    def _runs_user_python(self, job):
+        '''Each node whose task runs the user's Python, as the manifest's read
+        found it -- the summary stored in the job root, which it validated.'''
+        from siliconcompiler.remote.server.running import runspec
+
+        path = self.job_root(job["user_id"], job["id"]) / runspec.SUMMARY_FILENAME
+        try:
+            nodes = json.loads(path.read_text()).get("nodes") or []
+        except (OSError, ValueError, AttributeError):
+            return set()
+        return {(entry.get("step"), entry.get("index")) for entry in nodes
+                if isinstance(entry, dict) and entry.get("python")}
 
     def web_url(self, job_id: str) -> Optional[str]:
         """This job's page for a person, where this deployment has one."""

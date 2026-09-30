@@ -294,7 +294,7 @@ def test_a_version_is_advertised_only_where_an_image_holds_it(registry, store):
 
     assert store.advertised_software(containers=True) == {
         "python": {"siliconcompiler": ["0.39.1"]},
-        "tools": {"openroad": ["2.0"]}}
+        "tools": {"openroad": ["2.0"]}, "interpreter": {}}
 
 
 def test_without_containers_the_join_is_the_wrong_answer(registry, store):
@@ -985,7 +985,7 @@ def test_a_tool_range_nothing_holds_is_refused(registry, store):
 def test_the_buckets_are_a_closed_set_and_both_are_always_there(store):
     images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
 
-    assert set(images.live_software(store)) == {"python", "tools"}
+    assert set(images.live_software(store)) == {"python", "tools", "interpreter"}
     assert images.live_software(store)["tools"] == {}
 
 
@@ -1188,3 +1188,83 @@ def test_a_python_requirement_may_be_a_list_too(registry, store):
                                {("import", "0"): None})
 
     assert plan.ref(plan.job).startswith("ghcr.io/x/sc-python@")
+
+
+###########################
+# The interpreter a node running the user's Python needs (surface D293)
+###########################
+
+@pytest.fixture
+def pythons(store):
+    '''Two tool images that differ in their own Python, and nothing else.'''
+    images.register_software(store, "siliconcompiler", "SC", store.actor, "python")
+    images.register_version(store, "siliconcompiler", "0.39.1", store.actor)
+    images.register_software(store, "icarus", "Icarus", store.actor, "tool")
+    images.register_version(store, "icarus", "12.0", store.actor)
+    images.register_software(store, "python", "Python", store.actor, "interpreter")
+    images.register_version(store, "python", "3.11.9", store.actor)
+    images.register_version(store, "python", "3.12.4", store.actor)
+
+    images.register_image(store, "ghcr.io/x/sim-311:1", digest("d"),
+                          [("siliconcompiler", "0.39.1"), ("icarus", "12.0"),
+                           ("python", "3.11.9")], store.actor)
+    images.register_image(store, "ghcr.io/x/sim-312:1", digest("e"),
+                          [("siliconcompiler", "0.39.1"), ("icarus", "12.0"),
+                           ("python", "3.12.4")], store.actor)
+    return store
+
+
+def interpreted(version, tools=None):
+    requires = py(tools=tools)
+    requires["interpreter"] = {"python": [version]}
+    return requires
+
+
+def test_a_node_running_the_users_python_lands_where_its_python_is(pythons, store):
+    '''The one node that runs the user's Python is matched on the interpreter;
+    a node that does not is not constrained by it.'''
+    plan = images.plan_for_job(store, interpreted("==3.12.*"),
+                               {("sim", "0"): "icarus", ("lint", "0"): "icarus"},
+                               python_nodes=[("sim", "0")])
+
+    assert plan.refs[plan.nodes[("sim", "0")]].startswith("ghcr.io/x/sim-312@")
+
+
+def test_a_python_no_image_has_is_refused_naming_what_there_is(pythons, store):
+    from siliconcompiler.remote.server.errors import ProblemError
+
+    with pytest.raises(ProblemError) as refused:
+        images.plan_for_job(store, interpreted("==3.10.*"), {("sim", "0"): "icarus"},
+                            python_nodes=[("sim", "0")])
+
+    body = refused.value.body()
+    assert body["type"].endswith("/software-unavailable")
+    assert {"name": "python", "requirement": ["==3.10.*"],
+            "available": ["3.12.4", "3.11.9"]} in body["unresolved"] \
+        or {"name": "python", "requirement": ["==3.10.*"],
+            "available": ["3.11.9", "3.12.4"]} in body["unresolved"]
+
+
+def test_only_the_users_python_nodes_are_held_to_it(pythons, store):
+    '''A job that sends an interpreter and has no node running the user's
+    Python is placed as any job is.'''
+    plan = images.plan_for_job(store, interpreted("==3.10.*"), {("lint", "0"): "icarus"},
+                               python_nodes=[])
+
+    assert plan.nodes[("lint", "0")]
+
+
+def test_an_interpreter_is_one_name(store):
+    with pytest.raises(ValueError, match="one name"):
+        images.register_software(store, "pypy", "PyPy", store.actor, "interpreter")
+
+
+def test_what_ran_names_a_python_only_where_a_node_ran_the_users(pythons, store):
+    '''`resolved_versions.interpreter` is the Python of the images a node
+    running the user's Python ran in, and absent where none did.'''
+    plan = images.plan_for_job(store, interpreted("==3.12.*"), {("sim", "0"): "icarus"},
+                               python_nodes=[("sim", "0")])
+    ran = plan.nodes[("sim", "0")]
+
+    assert images.contents_of(store, [ran], [ran])["interpreter"] == {"python": ["3.12.4"]}
+    assert "interpreter" not in images.contents_of(store, [ran])

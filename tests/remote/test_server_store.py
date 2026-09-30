@@ -306,7 +306,7 @@ def test_software_is_advertised_only_where_a_live_image_holds_it():
                       "VALUES ('siliconcompiler', '0.39.0', 5, ?)", (user["id"],))
 
         # Declared, but nothing provides it yet.
-        assert store.advertised_software() == {"python": {}, "tools": {}}
+        assert store.advertised_software() == {"python": {}, "tools": {}, "interpreter": {}}
 
         image = str(uuid.uuid4())
         store.execute(
@@ -317,7 +317,7 @@ def test_software_is_advertised_only_where_a_live_image_holds_it():
                       "VALUES (?, 'siliconcompiler', '0.39.1')", (image,))
 
         assert store.advertised_software() == {
-            "python": {"siliconcompiler": ["0.39.1"]}, "tools": {}}
+            "python": {"siliconcompiler": ["0.39.1"]}, "tools": {}, "interpreter": {}}
 
 
 def test_a_retired_image_stops_advertising_its_contents():
@@ -338,12 +338,12 @@ def test_a_retired_image_stops_advertising_its_contents():
                       "VALUES (?, 'openroad', '2.0.1')", (image,))
 
         assert store.advertised_software() == {
-            "python": {}, "tools": {"openroad": ["2.0.1"]}}
+            "python": {}, "tools": {"openroad": ["2.0.1"]}, "interpreter": {}}
 
         store.execute("UPDATE images SET retired_at = ?, retired_by = ? WHERE id = ?",
                       (now(), user["id"], image))
 
-        assert store.advertised_software() == {"python": {}, "tools": {}}
+        assert store.advertised_software() == {"python": {}, "tools": {}, "interpreter": {}}
 
 
 def test_versions_are_ordered_most_preferred_first():
@@ -370,7 +370,7 @@ def test_versions_are_ordered_most_preferred_first():
 
         assert store.advertised_software() == {
             "python": {"siliconcompiler": ["0.39.1", "0.39.0", "0.38.4"]},
-            "tools": {}}
+            "tools": {}, "interpreter": {}}
 
 
 ###########################

@@ -269,6 +269,14 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
         if _LIMIT_IN_DETAIL.search(detail):
             return ("It hit a limit the server sets, and will fail the same way: "
                     "change what the detail names before you resubmit.")
+    if slug == "software-unavailable" and any(
+            isinstance(entry, dict) and entry.get("name") == "python"
+            for entry in problem.get("unresolved") or []):
+        # The interpreter: nothing the user chooses in the job changes it
+        # (surface D293).
+        return ("No image here runs the Python this machine does. The server's "
+                "operator would have to add one; until then, run the job from a "
+                "Python it has.")
     if slug == "session-ended" and problem.get("reason") == "reused":
         return ("Your credentials were used elsewhere. Rotate this machine's key "
                 "with `sc-remote -rotate_key`, then log in again.")
