@@ -1292,6 +1292,47 @@ def test_a_job_that_finished_while_we_looked_is_not_lost(
 
     assert read["state"] == "completed"
     assert read["error"] is None
+    # 🔴 And its nodes as the settled file has them. The first reading had
+    # stepone running and no steptwo, and a job that ends settles what it
+    # never finished as `cancelled`: both nodes, which had completed, went
+    # that way.
+    assert {node["step"]: node["state"] for node in read["nodes"]} == \
+        {"stepone": "completed", "steptwo": "completed"}
+
+
+def test_a_cancel_still_wins_when_the_run_finished_while_we_looked(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''A run that finished between the two readings, of a job being
+    cancelled, ends `cancelled`, as it does when the first reading already
+    had the result: what it managed before it died does not change what was
+    asked for.'''
+    from siliconcompiler.remote.server.running import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
+    progress = root.parents[1] / runspec.PROGRESS_FILENAME
+    runspec.write_progress(progress, {
+        "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "running"}}})
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})
+
+    def gone(scheduler_job_id):
+        runspec.write_progress(progress, {
+            "state": "completed",
+            "started_at": "2026-09-22T10:00:00.000Z",
+            "finished_at": "2026-09-22T10:01:00.000Z",
+            "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
+                      "steptwo/0": {"state": "completed", "exit_code": 0}}})
+        return False
+    dispatcher.is_alive = gone
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "cancelled"
 
 
 def test_a_job_that_really_is_gone_is_still_reported_lost(

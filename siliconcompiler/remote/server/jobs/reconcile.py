@@ -57,6 +57,55 @@ class ReconcileMixin:
                 self._start_preparing(job["id"])
             return
 
+        self._record_nodes(job, progress)
+        self._record_node_jobs(job)
+
+        reported = progress.get("state")
+        started_at = progress.get("started_at")
+
+        if job["state"] == "queued" and started_at:
+            with self._store.transaction():
+                self._store.execute(
+                    "UPDATE jobs SET started_at = ? WHERE id = ?", (started_at, job["id"]))
+                self._transition(job["id"], "queued", "running")
+            job = self._row(job["id"])
+
+        if reported in ("completed", "failed"):
+            self._finish(job, self._final(job, reported), progress)
+        elif reported == "running" and self._silent(progress):
+            # 🔴 The run has stopped saying anything, and that is evidence the
+            # scheduler cannot give. See `_silent`.
+            logger.warning(f"{job['id']} has not reported since "
+                           f"{progress.get('heartbeat')}")
+            self._lost(job)
+        elif reported == "running" and job["scheduler_job_id"] and not self._alive(job):
+            # 🔴 Look again before declaring it lost. "The run says it is
+            # going" and "the scheduler has never heard of it" are read at two
+            # different moments, and a run that finished in between satisfies
+            # both -- the progress file in hand is stale and the scheduler's
+            # answer is fresh. Everything between the two readings widens that
+            # window, and indexing a node's results is not cheap.
+            #
+            # A job that really is gone reads the same file twice and is still
+            # `running`, which costs one stat to be sure of.
+            job_root = self.job_root(job["user_id"], job["id"])
+            settled = runspec.read_progress(
+                job_root / runspec.PROGRESS_FILENAME,
+                job_root)
+
+            if settled and settled.get("state") in ("completed", "failed"):
+                # 🔴 Its nodes as the settled file has them, before the job
+                # ends: the ones recorded above are from the stale file, and a
+                # node that finished between the two readings would otherwise
+                # end `cancelled` with the job, as if it had never run.
+                self._record_nodes(job, settled)
+                self._finish(job, self._final(job, settled["state"]), settled)
+            else:
+                self._lost(job)
+
+    def _record_nodes(self, job, progress) -> None:
+        '''Each node's state as ``progress`` has it, into the store. A node
+        that already reached a terminal state keeps it.'''
         for key, node in (progress.get("nodes") or {}).items():
             step, _, index = key.partition("/")
             state = node.get("state", "pending")
@@ -94,50 +143,14 @@ class ReconcileMixin:
                 # moment somebody tailing it asks.
                 self._index_node(job, step, index)
 
-        self._record_node_jobs(job)
-
-        reported = progress.get("state")
-        started_at = progress.get("started_at")
-
-        if job["state"] == "queued" and started_at:
-            with self._store.transaction():
-                self._store.execute(
-                    "UPDATE jobs SET started_at = ? WHERE id = ?", (started_at, job["id"]))
-                self._transition(job["id"], "queued", "running")
-            job = self._row(job["id"])
-
-        if reported in ("completed", "failed"):
-            final = reported
-            if job["state"] == "cancelling":
-                # The cancel won the race to the scheduler; what the run managed
-                # to finish before it died does not change what was asked for.
-                final = "cancelled"
-            self._finish(job, final, progress)
-        elif reported == "running" and self._silent(progress):
-            # 🔴 The run has stopped saying anything, and that is evidence the
-            # scheduler cannot give. See `_silent`.
-            logger.warning(f"{job['id']} has not reported since "
-                           f"{progress.get('heartbeat')}")
-            self._lost(job)
-        elif reported == "running" and job["scheduler_job_id"] and not self._alive(job):
-            # 🔴 Look again before declaring it lost. "The run says it is
-            # going" and "the scheduler has never heard of it" are read at two
-            # different moments, and a run that finished in between satisfies
-            # both -- the progress file in hand is stale and the scheduler's
-            # answer is fresh. Everything between the two readings widens that
-            # window, and indexing a node's results is not cheap.
-            #
-            # A job that really is gone reads the same file twice and is still
-            # `running`, which costs one stat to be sure of.
-            job_root = self.job_root(job["user_id"], job["id"])
-            settled = runspec.read_progress(
-                job_root / runspec.PROGRESS_FILENAME,
-                job_root)
-
-            if settled and settled.get("state") in ("completed", "failed"):
-                self._finish(job, settled["state"], settled)
-            else:
-                self._lost(job)
+    @staticmethod
+    def _final(job, reported: str) -> str:
+        '''The state a job ends in, for a run that reported ``reported``.'''
+        if job["state"] == "cancelling":
+            # The cancel won the race to the scheduler; what the run managed
+            # to finish before it died does not change what was asked for.
+            return "cancelled"
+        return reported
 
     def _silent(self, progress) -> bool:
         '''Whether a run that claims to be going has stopped saying so.
