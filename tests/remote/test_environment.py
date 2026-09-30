@@ -119,8 +119,10 @@ def test_the_builder_writes_its_own_files_from_what_parsed():
 def test_a_pure_wheel_is_taken(tmp_path):
     path = make_wheel(tmp_path, "scfake-helper", "0.1.0")
 
-    assert environment.check_wheel(path) == environment.Wheel(
-        "scfake-helper", "0.1.0", os.path.basename(path))
+    wheel = environment.check_wheel(path)
+    assert wheel[:3] == ("scfake-helper", "0.1.0", os.path.basename(path))
+    # What it holds, for the extraction limits: the module and its dist-info.
+    assert wheel.members == 4 and wheel.expanded > 0
     assert environment.wheel_name(path) == "scfake-helper"
 
 
@@ -132,6 +134,14 @@ def test_a_pure_wheel_is_taken(tmp_path):
     (dict(files={"/abs.py": ""}), "does not stay inside"),
     (dict(purelib=False), "Root-Is-Purelib"),
     (dict(wheel_tags=["py3-none-manylinux1_x86_64"]), "tags it for a platform"),
+    # surface D292: nothing that runs by itself, and no dependency by URL.
+    (dict(files={"scfake_hook.pth": "import os\n"}), "a .pth file"),
+    (dict(files={"scfake/nested.pth": "import os\n"}), "a .pth file"),
+    (dict(files={"sitecustomize.py": "print('hello')\n"}), "runs in any Python"),
+    (dict(files={"usercustomize.py": "print('hello')\n"}), "runs in any Python"),
+    (dict(files={"scfake-1.0.data/scripts/run": "#!/bin/sh\n"}), "installs outside"),
+    (dict(requires=["scfake-bits @ https://example.test/bits.whl"]), "dependency by URL"),
+    (dict(requires=["scfake-bits @ file:///home/someone/bits"]), "dependency by URL"),
 ])
 def test_a_wheel_that_is_not_pure_or_is_malformed_is_refused(tmp_path, change, why):
     path = make_wheel(tmp_path, "scfake", "1.0", **change)
@@ -153,6 +163,16 @@ def test_a_wheel_must_say_inside_what_its_name_says(tmp_path):
 
     with pytest.raises(environment.WheelError, match="not named as a wheel"):
         environment.check_wheel(tmp_path / "scfake.zip")
+
+
+def test_a_wheel_whose_own_module_is_called_sitecustomize_inside_a_package_is_taken(
+        tmp_path):
+    '''Only a TOP-LEVEL sitecustomize runs by itself; one inside a package is
+    that package's module.'''
+    path = make_wheel(tmp_path, "scfake", "1.0",
+                      files={"scfake/sitecustomize.py": "VALUE = 1\n"})
+
+    assert environment.check_wheel(path).name == "scfake"
 
 
 def test_a_link_in_a_wheel_is_refused(tmp_path):
@@ -304,6 +324,11 @@ def test_a_wheel_where_the_deployment_installs_none_is_refused(
      {"python_packages": {"requirements": ["numpy==1.26.4"],
                           "constraints": ["scfake==0.9"]}}, "also lists"),
     ([("scfake", "1.0", {}), ("scfake", "1.1", {})], {}, "both wheels for scfake"),
+    # surface D292, named by the file in the wheel.
+    ([("scfake", "1.0", {"files": {"scfake_hook.pth": "import os\n"}})], {},
+     "scfake_hook.pth"),
+    ([("scfake", "1.0", {"requires": ["bits @ https://example.test/bits.whl"]})], {},
+     "dependency by URL"),
 ])
 def test_a_wheel_that_is_impure_or_overlaps_is_refused(
         server, server_client, key, token, job_archive, python_project, tmp_path,
@@ -319,6 +344,29 @@ def test_a_wheel_that_is_impure_or_overlaps_is_refused(
     assert (slug(response), response.get_json()["reason"]) == \
         ("archive-rejected", "python_package")
     assert why in response.get_json()["detail"]
+
+
+def test_a_wheels_own_members_are_held_to_the_extraction_limits(
+        server, server_client, key, token, job_archive, python_project, tmp_path):
+    '''A wheel's members are held as any member is, counted together with the
+    archive's own (surface D292): a small wheel that expands past what the
+    archive may is refused as the archive would be, naming it.'''
+    import tarfile
+
+    offers_python_env(server)
+    big = make_wheel(tmp_path, "scfake", "1.0", files={
+        "scfake/__init__.py": "", "scfake/data.txt": "0" * (4 << 20)})
+    archive = with_wheels(job_archive, python_project, big)
+    with tarfile.open(archive[0]) as tar:
+        own = sum(member.size for member in tar.getmembers())
+    server.config["SC_CONFIG"].limits["max_archive_expanded_bytes"] = own + (1 << 20)
+
+    response = submitted(server_client, key, token, archive)
+
+    assert response.status_code == 422, response.get_json()
+    assert (slug(response), response.get_json()["reason"]) == \
+        ("archive-rejected", "expanded_bytes")
+    assert "scfake-1.0-py3-none-any.whl" in response.get_json()["detail"]
 
 
 def test_a_wheel_for_what_requested_versions_python_names_is_refused(

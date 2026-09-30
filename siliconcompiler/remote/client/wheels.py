@@ -64,10 +64,14 @@ def build(dist: metadata.Distribution, directory: str) -> str:
         environment.check_wheel(path)
     except environment.WheelError as e:
         os.unlink(path)
+        # A compiled file is fixed where the platform is known: a wheel built
+        # for the server's, on its index. Anything else is the package's own
+        # packaging, which the server would reject after the upload.
+        fix = ("Publish it to an index, as a wheel for the server's platform"
+               if e.compiled else "Change its packaging so its wheel holds no such file")
         raise CannotForward(
             f"{name} {version} is installed here from {source or 'a local source'}, "
-            f"and no index can supply it, so it is sent as a wheel; but {e}. Publish "
-            "it to an index, as a wheel for the server's platform",
+            f"and no index can supply it, so it is sent as a wheel; but {e}. {fix}",
             compiled=e.compiled) from None
     return path
 

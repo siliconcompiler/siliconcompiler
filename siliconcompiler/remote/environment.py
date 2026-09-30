@@ -132,6 +132,8 @@ class Wheel(NamedTuple):
     name: str                   # canonical
     version: str
     filename: str
+    members: int = 0            # what it holds, held to the extraction limits
+    expanded: int = 0           # its members' bytes, uncompressed
 
 
 def canonical(name: str) -> str:
@@ -225,8 +227,17 @@ def wheel_name(filename: str) -> Optional[str]:
 def check_wheel(path) -> Wheel:
     '''The wheel at ``path``, held to what an upload may carry: named as a
     wheel is, tagged ``none-any``, a zip whose members stay inside it and are
-    no link and no compiled file, with one ``.dist-info`` that says the same
-    name and version as the file name. Raises WheelError.
+    no link, no device and no compiled file, with one ``.dist-info`` that says
+    the same name and version as the file name. Raises WheelError.
+
+    🔴 **Nothing that runs by itself, and no dependency by URL** (surface
+    D292): installing a wheel runs none of its code only while the files that
+    would run on their own are refused -- a ``.pth``, a top-level
+    ``sitecustomize.py`` or ``usercustomize.py``, which run in any Python that
+    merely starts with the wheel on its path -- and a ``<name>.data/``
+    directory, which installs outside the package. A ``Requires-Dist`` that is
+    a direct reference, ``name @ url``, would have the install fetch from, or
+    build, wherever it points.
 
     Reads the zip's directory and its two metadata files, and runs nothing.
     '''
@@ -261,8 +272,21 @@ def check_wheel(path) -> Wheel:
                     any(part in ("", ".", "..") for part in parts):
                 raise WheelError(f"{filename} holds {member!r}, which does not stay "
                                  "inside it")
-            if stat.S_ISLNK(info.external_attr >> 16):
+            mode = info.external_attr >> 16
+            if stat.S_ISLNK(mode):
                 raise WheelError(f"{filename} holds a link, {member}")
+            if stat.S_ISCHR(mode) or stat.S_ISBLK(mode) or stat.S_ISFIFO(mode) \
+                    or stat.S_ISSOCK(mode):
+                raise WheelError(f"{filename} holds a device, {member}")
+            if member.lower().endswith(".pth"):
+                raise WheelError(f"{filename} holds {member}, a .pth file, which runs "
+                                 "in any Python that starts with it on its path")
+            if len(parts) == 1 and parts[0] in _RUNS_AT_START:
+                raise WheelError(f"{filename} holds {member}, which runs in any Python "
+                                 "that starts with it on its path")
+            if parts[0].endswith(".data"):
+                raise WheelError(f"{filename} holds {parts[0]}/, which installs outside "
+                                 "the package")
             if member.lower().endswith(COMPILED):
                 raise WheelError(f"{filename} holds a compiled file, {member}, which "
                                  "will not import on another machine", compiled=member)
@@ -304,6 +328,11 @@ def check_wheel(path) -> Wheel:
         if not same:
             raise WheelError(f"{filename}'s METADATA names another distribution or "
                              "version")
+        for requirement in metadata.get_all("Requires-Dist") or []:
+            if _direct_reference(requirement):
+                raise WheelError(f"{filename} depends on {requirement.strip()}, a "
+                                 "dependency by URL, which the install would fetch from "
+                                 "wherever it points")
 
         wheel = email.parser.Parser().parsestr(read("WHEEL"), headersonly=True)
         if (wheel.get("Root-Is-Purelib") or "").strip().lower() != "true":
@@ -314,4 +343,21 @@ def check_wheel(path) -> Wheel:
             raise WheelError(f"{filename}'s WHEEL tags it for a platform: "
                              f"{', '.join(tag.strip() for tag in tags) or 'no tag'}")
 
-    return Wheel(name, str(version), filename)
+    return Wheel(name, str(version), filename, len(infos),
+                 sum(info.file_size for info in infos))
+
+
+# What runs in any Python that merely starts with a wheel on its path.
+_RUNS_AT_START = ("sitecustomize.py", "usercustomize.py")
+
+
+def _direct_reference(requirement: str) -> bool:
+    '''Whether a `Requires-Dist` entry names a URL -- `name @ url`, a `file:`
+    one among them -- rather than a distribution. One that cannot be parsed
+    counts as one: the install could not be told what it depends on.'''
+    from packaging.requirements import InvalidRequirement, Requirement
+
+    try:
+        return Requirement(requirement).url is not None
+    except InvalidRequirement:
+        return True

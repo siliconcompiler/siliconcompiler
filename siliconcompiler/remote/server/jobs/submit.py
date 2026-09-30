@@ -247,9 +247,10 @@ class SubmitMixin:
         # the server checked it -- decided from the last read, before this
         # archive is opened.
         allowed = self._requested_members(job, root) if follow_up else None
+        tally: Dict[str, Any] = {}
         try:
             archive.extract(self._storage.artifact_path(latest["storage_key"]),
-                            unpacked, self._config.limits, allowed=allowed)
+                            unpacked, self._config.limits, allowed=allowed, tally=tally)
         except archive.ArchiveRejected as rejected:
             if not follow_up:
                 shutil.rmtree(root, ignore_errors=True)
@@ -269,7 +270,7 @@ class SubmitMixin:
         summary = self._read(job, root)
         if not follow_up:
             self._check_members(job, summary, unpacked)
-        self._check_wheels(None, job, unpacked)
+        self._check_wheels(None, job, unpacked, tally)
         self._check_denied(None, job, summary)
         entries = self._account(None, job, summary, unpacked)
         asked = [entry for entry in entries if entry.status == owners.ASK]
@@ -370,7 +371,7 @@ class SubmitMixin:
                             f"({entry.dataroot}) from this server")
         return entries
 
-    def _check_wheels(self, session, job, unpacked: Path) -> None:
+    def _check_wheels(self, session, job, unpacked: Path, tally=None) -> None:
         '''The job's wheels, under `sc_collected_files/python/`, every archive
         (surface *Uploaded wheels*): each pure and well formed, one per
         distribution, none for a distribution `python_packages` or
@@ -380,6 +381,10 @@ class SubmitMixin:
 
         `archive-rejected`, `reason: "python_package"`: the client builds every
         wheel, so each of these is a client bug.
+
+        🔴 **A wheel's own members are held as any member is** (surface D292),
+        and to the same limits, counted together with the archive's own: the
+        ``tally`` its extraction filled, for each wheel this archive wrote.
         '''
         top = unpacked / environment.wheels_path()
         if not top.exists() and not top.is_symlink():
@@ -410,6 +415,14 @@ class SubmitMixin:
                 wheel = environment.check_wheel(path)
             except environment.WheelError as e:
                 raise refuse(f"{name}: {e}") from None
+            if tally is not None and name in (tally.get("wheels") or ()):
+                try:
+                    archive.check_inside(tally, self._config.limits, name,
+                                         wheel.members, wheel.expanded)
+                except archive.ArchiveRejected as rejected:
+                    raise self._refuse(session, job, ProblemError(
+                        "archive-rejected", reason=rejected.reason,
+                        detail=rejected.detail)) from None
             if wheel.name in seen:
                 raise refuse(f"{seen[wheel.name]} and {path.name} are both wheels for "
                              f"{wheel.name}, and a job uploads one per distribution")

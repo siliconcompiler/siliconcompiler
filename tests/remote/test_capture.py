@@ -267,6 +267,21 @@ def test_a_compiled_file_is_refused_before_anything_is_built(site):
         wheels.build(dist("scfakec"), ".")
 
 
+@pytest.mark.parametrize("change,why", [
+    (dict(files={"_hook.pth": "import os\n"}), r"_hook\.pth, a \.pth file"),
+    (dict(requires=["scfakebits @ file:///home/someone/bits"]), "dependency by URL"),
+])
+def test_a_wheel_the_server_would_reject_is_refused_before_create(site, change, why):
+    '''surface D292: the client refuses what the server rejects after the upload
+    -- a file that runs by itself, a dependency by URL -- naming it, and
+    before anything is created.'''
+    _distribution(site, "scfakehook", "1.0.0", archive=os.path.abspath("h.tar.gz"),
+                  **change)
+
+    with pytest.raises(capture.CannotForward, match=why):
+        wheels.build(dist("scfakehook"), ".")
+
+
 def test_an_editable_install_is_built_from_its_source(site, monkeypatch):
     '''`pip wheel --no-deps`, for real: the project's own packaging.'''
     pytest.importorskip("pip")

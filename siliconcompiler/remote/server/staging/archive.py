@@ -29,7 +29,8 @@ import tarfile
 from pathlib import Path
 from typing import Dict, Optional
 
-__all__ = ["ArchiveRejected", "extract", "VIOLATIONS", "MAX_EXPANSION_RATIO"]
+__all__ = ["ArchiveRejected", "check_inside", "extract", "VIOLATIONS",
+           "MAX_EXPANSION_RATIO"]
 
 
 # The vocabulary, and it is closed. `member_count` and `expanded_bytes` are the
@@ -63,7 +64,7 @@ class ArchiveRejected(Exception):
 
 
 def extract(archive: Path, dest: Path, limits: Dict[str, int],
-            allowed=None, prefix: str = "", select=None) -> int:
+            allowed=None, prefix: str = "", select=None, tally=None) -> int:
     '''Unpack ``archive`` into ``dest``, or refuse.
 
     ``allowed``, where given, is asked of every member's normalised name
@@ -81,6 +82,11 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
     on what has been written rather than on what the headers promised. A tar
     header is a claim by whoever built the archive; the bytes are the fact.
 
+    ``tally``, where given, is filled with what the limits were spent on --
+    ``members``, ``expanded`` and ``compressed``, and ``wheels``, each wheel
+    this archive wrote -- so what is inside a wheel can be held to the same
+    limits, counted together with the archive's own members.
+
     Returns the expanded size in bytes.
     '''
     archive = Path(archive)
@@ -95,7 +101,8 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
     # Every link planted, so a refusal can take them all away again.
     symlinks = []
     try:
-        return _extract(archive, dest, root, limits, allowed, prefix, select, symlinks)
+        return _extract(archive, dest, root, limits, allowed, prefix, select, symlinks,
+                        tally)
     except ArchiveRejected:
         # 🔴 No link this archive planted outlives its refusal.
         for planted in symlinks:
@@ -108,7 +115,7 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
 
 
 def _extract(archive: Path, dest: Path, root: Path, limits, allowed, prefix, select,
-             symlinks) -> int:
+             symlinks, tally=None) -> int:
     compressed = archive.stat().st_size
     max_members = limits["max_archive_members"]
     max_expanded = limits["max_archive_expanded_bytes"]
@@ -221,6 +228,8 @@ def _extract(archive: Path, dest: Path, root: Path, limits, allowed, prefix, sel
             _write(tar, member, dest / name)
             written.add(name)
             regular.add(name)
+            if tally is not None and name.endswith(".whl"):
+                tally.setdefault("wheels", []).append(name)
 
     # 🔴 Once every member is in place: a link written early can be made to
     # leave the root by one written after it, so each is resolved again.
@@ -229,7 +238,32 @@ def _extract(archive: Path, dest: Path, root: Path, limits, allowed, prefix, sel
             raise ArchiveRejected(
                 "link_member", f"the archive holds a link that resolves outside it: {name}")
 
+    if tally is not None:
+        tally.update(members=members, expanded=expanded, compressed=compressed)
     return expanded
+
+
+def check_inside(tally, limits: Dict[str, int], name: str, members: int,
+                 expanded: int) -> None:
+    '''Hold what an archive member holds in turn -- a wheel's own members --
+    to the limits the archive was held to, counted together with the archive's
+    own and added to ``tally``. Raises ArchiveRejected, naming ``name``.'''
+    tally["members"] = tally.get("members", 0) + members
+    tally["expanded"] = tally.get("expanded", 0) + expanded
+    compressed = tally.get("compressed", 0)
+    if tally["members"] > limits["max_archive_members"]:
+        raise ArchiveRejected(
+            "member_count", f"the archive holds more than {limits['max_archive_members']} "
+                            f"members, counting those inside {name}")
+    if tally["expanded"] > limits["max_archive_expanded_bytes"]:
+        raise ArchiveRejected(
+            "expanded_bytes", f"the archive expands past "
+                              f"{limits['max_archive_expanded_bytes']} bytes, counting "
+                              f"what is inside {name}")
+    if compressed >= _RATIO_FLOOR and tally["expanded"] > compressed * MAX_EXPANSION_RATIO:
+        raise ArchiveRejected(
+            "ratio", f"the archive expands more than {MAX_EXPANSION_RATIO}:1, counting "
+                     f"what is inside {name}")
 
 
 def _normalized(name: str) -> str:
