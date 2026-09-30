@@ -108,7 +108,8 @@ class Flowgraph(NamedSchema, DocsSchema):
             if bad in name:
                 raise ValueError(f"{name} is not a valid {what}, it cannot contain {bad!r}")
 
-    def node(self, step: str, task: Union[str, "Task"], index: Optional[Union[str, int]] = 0) -> None:
+    def node(self, step: str, task: Union[str, "Task"],
+             index: Optional[Union[str, int]] = 0) -> None:
         '''
         Creates or updates a flowgraph node.
 
