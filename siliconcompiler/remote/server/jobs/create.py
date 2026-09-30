@@ -248,8 +248,8 @@ class CreateMixin:
 
     def _identity(self, run_hash: Optional[str], requires,
                   packages: Optional[str] = None) -> Optional[str]:
-        '''``H(client hash || the digests it resolved to || python_packages)``,
-        or None.
+        '''``H(client hash, the digests it resolved to, python_packages, the
+        interpreter it asked for, the index configuration)``, or None.
 
         🔴 **The client's hash alone is not the job's identity, and treating it
         as one hands back a result produced by different code.** The client
@@ -276,9 +276,19 @@ class CreateMixin:
         if self._config["containers"]:
             digests = images.digests_for(self._store, requires)
 
-        # The job's Python packages decide what the install gives the run,
-        # and the client's hash may not cover them.
-        payload = "\n".join([run_hash, *sorted(digests), *([packages] if packages else [])])
+        # 🔴 What else decides what the install gives the run, which the
+        # client's hash may not cover (job-reuse D23): the job's Python
+        # packages, the Python its own modules were written for -- held apart
+        # from the digests, which one image with that Python can match either
+        # way -- and where this deployment installs the packages from, which
+        # matters only to a job that lists some.
+        indexes = {"indexes": list(self._config["package_indexes"] or []),
+                   "source_builds": bool(self._config["python_source_builds"])} \
+            if packages else None
+        payload = json.dumps({"run_hash": run_hash, "digests": sorted(digests),
+                              "python_packages": packages,
+                              "interpreter": requires.get("interpreter") or {},
+                              "indexes": indexes}, sort_keys=True)
         return hashlib.sha256(payload.encode()).hexdigest()
 
     def _reuse(self, user_id: str, identity: str):

@@ -1694,6 +1694,54 @@ def test_the_job_identity_folds_in_what_the_server_chose(
     assert after.get_json()["id"] != existing
 
 
+def test_a_hit_needs_the_python_its_own_modules_were_written_for(
+        container_server, container_client, key, container_token, container_reuses):
+    """Job-reuse D23: one image with Python 3.11 serves a job that names none
+    and one written for it alike, so the digests cannot tell them apart -- the
+    requirement itself is part of what the job is."""
+    store = container_server.config["SC_STORE"]
+    jobs = container_server.config["SC_JOBS"]
+    mine = call(container_client, key, "GET", "/v1/me",
+                container_token).get_json()["id"]
+    written_for = {"python": {}, "tools": {}, "interpreter": {"python": ["==3.11.*"]}}
+    existing = reuse_job(jobs, store, mine, "h-1", "completed", declared=written_for)
+
+    assert create(container_client, key, container_token,
+                  run_hash="h-1").status_code == 201
+
+    again = create(container_client, key, container_token, run_hash="h-1",
+                   requested_versions=written_for)
+    assert again.status_code == 200
+    assert again.get_json()["id"] == existing
+
+
+def test_a_hit_needs_the_same_packages_from_the_same_indexes(container_server,
+                                                             container_reuses):
+    """Job-reuse D23: the job's `python_packages`, and where this deployment
+    takes them from -- a mirror swapped in, or source builds turned on, may
+    install something else under the same names. A job listing none does not
+    depend on the indexes."""
+    jobs = container_server.config["SC_JOBS"]
+    config = container_server.config["SC_CONFIG"]
+    requires = {"python": {}, "tools": {}, "interpreter": {}}
+    listed = '{"requirements":["numpy==2.0.1"],"constraints":[]}'
+
+    before = jobs._identity("h-1", requires, listed)
+    nothing = jobs._identity("h-1", requires)
+    assert before == jobs._identity("h-1", requires, listed)
+    assert before != jobs._identity(
+        "h-1", requires, '{"requirements":["numpy==2.0.2"],"constraints":[]}')
+    assert before != nothing
+
+    config._values["package_indexes"] = ["https://mirror.example/simple/"]
+    mirrored = jobs._identity("h-1", requires, listed)
+    config._values["python_source_builds"] = True
+    built = jobs._identity("h-1", requires, listed)
+
+    assert len({before, mirrored, built}) == 3
+    assert jobs._identity("h-1", requires) == nothing
+
+
 def test_a_candidate_whose_images_were_superseded_is_not_returned(
         container_server, container_client, key, container_token, container_reuses):
     """🔴 What the identity cannot catch. It folds in the digests the DECLARED
