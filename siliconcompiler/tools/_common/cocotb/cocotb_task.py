@@ -5,6 +5,7 @@ from typing import Optional, Union, Dict
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
+from siliconcompiler.tool import TaskExecutableNotFound
 
 try:
     import cocotb_tools.config
@@ -180,10 +181,8 @@ class CocotbTask(Task):
 
         test_modules, _ = self._get_test_modules()
 
-        # GPI_USERS: libraries the GPI layer loads to bootstrap Python inside
-        # the simulator (libpython followed by the PyGPI entry point).
-        self.set_environmentalvariable("GPI_USERS", get_gpi_users())
-        self.add_required_key("env", "GPI_USERS")
+        # GPI_USERS is the node's, in get_runtime_environmental_variables():
+        # absolute paths into whichever Python and cocotb run the node.
 
         # COCOTB_TOPLEVEL: the HDL toplevel module name
         self.set_environmentalvariable("COCOTB_TOPLEVEL", self.design_topmodule)
@@ -210,8 +209,10 @@ class CocotbTask(Task):
     def setup(self):
         super().setup()
 
+        # Only running the test needs cocotb, and get_exe() stops the run
+        # there, so setting it up without cocotb is only worth a warning.
         if not _has_cocotb:
-            raise RuntimeError("Cocotb is not installed; cannot run test.")
+            self.logger.warning("Cocotb is not installed; this test will not be able to run.")
 
         # Output: xUnit XML results file
         self.add_output_file(file="results.xml")
@@ -240,8 +241,9 @@ class CocotbTask(Task):
 
         Extends the base environment with the cocotb library directory on
         PATH, the test-module and user library directories on PYTHONPATH,
-        and the Python executable used by the GPI bridge. PATH and PYTHONPATH
-        entries are added idempotently so repeated calls do not duplicate them.
+        and the GPI bootstrap -- ``GPI_USERS`` and ``PYGPI_PYTHON_BIN`` -- for
+        the Python running this node. PATH and PYTHONPATH entries are added
+        idempotently so repeated calls do not duplicate them.
 
         Args:
             include_path (bool): If True, includes the PATH variable.
@@ -251,10 +253,14 @@ class CocotbTask(Task):
         """
         envs = super().get_runtime_environmental_variables(include_path)
 
+        # The executable is looked up in this environment, and get_exe() is
+        # what reports a missing cocotb, so without cocotb it is built without
+        # cocotb's parts.
+
         ##########################################
         # PATH: add cocotb libs directory
         ##########################################
-        if include_path:
+        if include_path and _has_cocotb:
             libs_dir = str(cocotb_tools.config.libs_dir)
             path_parts = envs.get("PATH", "").split(os.pathsep)
             if libs_dir not in path_parts:
@@ -279,11 +285,37 @@ class CocotbTask(Task):
         envs["PYTHONPATH"] = os.pathsep.join(python_path)
 
         ##########################################
-        # PYGPI_PYTHON_BIN: set python executable
+        # GPI_USERS / PYGPI_PYTHON_BIN: the Python this node runs on
         ##########################################
+        # Resolved here rather than in setup(): these are absolute paths into
+        # whichever Python and cocotb execute the node. GPI_USERS lists the
+        # libraries the GPI layer loads to bring Python up inside the
+        # simulator: libpython, then the PyGPI entry point.
+        if _has_cocotb:
+            envs["GPI_USERS"] = get_gpi_users()
         envs["PYGPI_PYTHON_BIN"] = sys.executable
 
         return envs
+
+    def get_exe(self) -> Optional[str]:
+        """
+        Determines the absolute path for the task's executable.
+
+        The simulator runs cocotb's VPI library and Python, so without cocotb
+        it has nothing to run: the scheduler's tool check stops the run before
+        any node starts.
+
+        Raises:
+            TaskExecutableNotFound: If cocotb is not installed, or the
+                executable cannot be found in the system PATH.
+
+        Returns:
+            str: The absolute path to the executable, or None if not specified.
+        """
+        if not _has_cocotb:
+            self.logger.error("Cocotb is not installed; cannot run test.")
+            raise TaskExecutableNotFound("cocotb is not installed")
+        return super().get_exe()
 
     def _parse_cocotb_results(self, results_file: Path):
         """

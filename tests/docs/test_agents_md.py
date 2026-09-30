@@ -217,11 +217,12 @@ def test_install_command_extras_exist(agents):
 def test_install_command_covers_the_docs_build(agents):
     """The install line has to be enough to run the gates listed under it.
 
-    The docs build is the gate this keeps getting wrong, because its dependencies
-    are split across two extras and only one of them is named ``docs``. AGENTS.md
-    claimed for a while that the ``docs`` extra pulled ``cocotb`` in; it never did,
-    so a contributor following the file exactly could not build the docs on any
-    Python version. ``docs.yml`` is the authority on what the build needs.
+    The docs build is the gate this has got wrong, because for a while its
+    dependencies were split across two extras and only one of them was named
+    ``docs``. AGENTS.md claimed then that the ``docs`` extra pulled ``cocotb`` in;
+    it never did, so a contributor following the file exactly could not build the
+    docs on any Python version. ``docs.yml`` is the authority on what the build
+    needs.
     """
     workflow = _read(DOCS_WORKFLOW)
     needed = set()
