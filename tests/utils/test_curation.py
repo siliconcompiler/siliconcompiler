@@ -1,16 +1,22 @@
 import logging
 import pytest
+import shutil
+import sys
 
 import os.path
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from siliconcompiler import Project, Design, Flowgraph, Task
 from siliconcompiler.utils.curation import (
     collect, archive, filter_collection_keys, never_collected)
 from siliconcompiler.utils.paths import collectiondir
 from siliconcompiler.schema.parametervalue import PathNodeValue
+
+
+needs_symlinks = pytest.mark.skipif(
+    sys.platform == "win32", reason="Making a symbolic link needs a privilege on Windows")
 
 
 class FauxTask0(Task):
@@ -252,9 +258,10 @@ def test_collect_subdirectory(path_keys):
 
 
 def test_collect_script_inside_refdir_not_duplicated(path_keys):
-    """A script that lives inside a refdir should be collected only via the refdir,
-    not also as a separate hashed file. Regression test for sc-issue duplicating
-    OpenROAD scripts that are already part of the collected refdir.
+    """A script that lives inside a refdir should be stored only via the refdir;
+    its own hashed path names that copy rather than holding a second one.
+    Regression test for sc-issue duplicating OpenROAD scripts that are already
+    part of the collected refdir.
 
     Mimics the sc-issue path: collect() is called with an explicit ``directory``
     that differs from ``collectiondir(project)``, so the script's refdir search
@@ -289,14 +296,16 @@ def test_collect_script_inside_refdir_not_duplicated(path_keys):
     collect(proj, keys=path_keys(proj), directory=custom_collect_dir)
 
     new_refdir = PathNodeValue.generate_hashed_collection_path("scripts", None)
-    assert os.listdir(custom_collect_dir) == [new_refdir.split('/')[0]]
+    script_collected = PathNodeValue.generate_hashed_collection_path("apr/sc_test.tcl", None)
+    assert sorted(os.listdir(custom_collect_dir)) == \
+        sorted([new_refdir.split('/')[0], script_collected.split('/')[0]])
     refdir_collected = os.path.join(custom_collect_dir, new_refdir)
     assert os.path.isdir(refdir_collected)
     assert os.path.isfile(os.path.join(refdir_collected, "apr", "sc_test.tcl"))
 
-    # The script's standalone hashed name must NOT have been copied separately.
-    script_collected = PathNodeValue.generate_hashed_collection_path("apr/sc_test.tcl", None)
-    assert not os.path.exists(os.path.join(custom_collect_dir, script_collected)), \
+    # The script's standalone hashed name must NOT be a second copy.
+    assert os.path.samefile(os.path.join(custom_collect_dir, script_collected),
+                            os.path.join(refdir_collected, "apr", "sc_test.tcl")), \
         "Script was copied separately even though it lives inside the collected refdir"
 
 
@@ -333,6 +342,321 @@ def test_collect_overlapping_refdirs_dedup_across_keys(path_keys):
     child_collected = PathNodeValue.generate_hashed_collection_path("parent/child", None)
     assert not os.path.exists(os.path.join(collectiondir(proj), child_collected)), \
         "Child refdir was copied separately even though parent already covers it"
+
+
+@pytest.fixture
+def two_dataroots():
+    """A design where proj/ is dataroot 'top' and proj/rtl/ is dataroot 'rtl', so
+    one file is both rtl/a.v under top and a.v under rtl."""
+    os.makedirs('proj/rtl/inc')
+    with open('proj/rtl/a.v', 'w') as f:
+        f.write('a')
+    with open('proj/rtl/inc/i.vh', 'w') as f:
+        f.write('i')
+
+    design = Design("testdesign")
+    design.set_dataroot("top", os.path.abspath("proj"))
+    design.set_dataroot("rtl", os.path.abspath("proj/rtl"))
+    return design
+
+
+def _in_collection(proj, paths):
+    return all(path.startswith(collectiondir(proj) + os.sep) for path in paths)
+
+
+def test_collect_file_under_two_dataroots_stored_once(two_dataroots, path_keys):
+    design = two_dataroots
+    design.add_file("rtl/a.v", dataroot="top", fileset="rtl")
+    design.add_file("a.v", dataroot="rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
+    assert os.path.samefile(files[0], files[1])
+
+
+def test_collect_file_inside_directory_under_other_dataroot(two_dataroots, path_keys):
+    """A file inside a collected directory, but named from another dataroot, is not
+    reachable through the directory's collected path, so it must not be skipped."""
+    design = two_dataroots
+    design.add_idir("rtl", dataroot="top", fileset="rtl")
+    design.add_file("a.v", dataroot="rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+
+    idir = design.get_idir(fileset="rtl")[0]
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, [idir, *files])
+    assert os.path.samefile(files[0], os.path.join(idir, "a.v"))
+
+
+def test_collect_directory_inside_directory_under_other_dataroot(two_dataroots, path_keys):
+    design = two_dataroots
+    design.add_idir("rtl", dataroot="top", fileset="rtl")
+    design.add_idir("inc", dataroot="rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+
+    idirs = design.get_idir(fileset="rtl")
+    assert _in_collection(proj, idirs)
+    assert os.listdir(idirs[1]) == ["i.vh"]
+
+
+def test_collect_absolute_file_inside_collected_directory(two_dataroots, path_keys):
+    design = two_dataroots
+    design.add_idir("rtl", dataroot="top", fileset="rtl")
+    design.add_file(os.path.abspath("proj/rtl/a.v"), fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+
+    idir = design.get_idir(fileset="rtl")[0]
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
+    assert os.path.samefile(files[0], os.path.join(idir, "a.v"))
+
+
+@needs_symlinks
+def test_collect_directory_under_two_dataroots_linked(two_dataroots, path_keys):
+    design = two_dataroots
+    design.add_idir("rtl", dataroot="top", fileset="rtl")
+    design.add_idir(".", dataroot="rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    first, second = design.get_idir(fileset="rtl")
+    assert not os.path.islink(first)
+    assert os.path.islink(second)
+    assert os.path.samefile(first, second)
+
+
+def test_collect_source_beside_collection_with_same_prefix(path_keys):
+    """A source whose path starts with the collection's, but is not inside it, is
+    still collected."""
+    os.makedirs('collected_src')
+    with open('collected_src/a.v', 'w') as f:
+        f.write('a')
+
+    design = Design("testdesign")
+    design.add_file("collected_src/a.v", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj), directory=os.path.abspath("collected"))
+
+    assert os.path.isfile(os.path.join(
+        "collected", PathNodeValue.generate_hashed_collection_path("collected_src/a.v", None)))
+
+
+def test_collect_link_falls_back_to_hard_link(two_dataroots, path_keys, monkeypatch):
+    """Without symbolic links, a file named twice is hard-linked and a directory
+    named twice is copied, and symbolic links are tried once."""
+    symlink = Mock(side_effect=OSError("privilege not held"))
+    monkeypatch.setattr(os, "symlink", symlink)
+
+    design = two_dataroots
+    design.add_idir("rtl/inc", dataroot="top", fileset="rtl")
+    design.add_idir("inc", dataroot="rtl", fileset="rtl")
+    design.add_file("rtl/a.v", dataroot="top", fileset="rtl")
+    design.add_file("a.v", dataroot="rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+
+    symlink.assert_called_once()
+    idirs = design.get_idir(fileset="rtl")
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, [*idirs, *files])
+    assert not os.path.samefile(idirs[0], idirs[1])
+    assert os.listdir(idirs[1]) == os.listdir(idirs[0])
+    assert not os.path.islink(files[1])
+    assert os.path.samefile(files[0], files[1])
+
+
+def test_collect_link_falls_back_to_copy(two_dataroots, path_keys, monkeypatch):
+    monkeypatch.setattr(os, "symlink", Mock(side_effect=OSError("privilege not held")))
+    monkeypatch.setattr(os, "link", Mock(side_effect=OSError("not supported")))
+
+    design = two_dataroots
+    design.add_file("rtl/a.v", dataroot="top", fileset="rtl")
+    design.add_file("a.v", dataroot="rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
+    assert not os.path.samefile(files[0], files[1])
+    for path in files:
+        with open(path) as f:
+            assert f.read() == 'a'
+
+
+@needs_symlinks
+def test_collect_link_inside_directory_kept(path_keys):
+    os.makedirs('rtl')
+    with open('rtl/defs.vh', 'w') as f:
+        f.write('defs')
+    os.symlink('defs.vh', 'rtl/alias.vh')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.readlink(os.path.join(idir, "alias.vh")) == "defs.vh"
+
+
+@needs_symlinks
+def test_collect_link_out_of_directory_stored_once(path_keys):
+    """A link's target outside the collection is stored at its first appearance,
+    and a later link to it points there, relative, whatever the source link said."""
+    os.makedirs('outside')
+    with open('outside/ext.vh', 'w') as f:
+        f.write('ext')
+    os.makedirs('first')
+    os.makedirs('second')
+    os.symlink(os.path.join('..', 'outside', 'ext.vh'), 'first/ext.vh')
+    os.symlink(os.path.abspath('outside/ext.vh'), 'second/ext.vh')
+
+    design = Design("testdesign")
+    design.add_idir("first", fileset="rtl")
+    design.add_idir("second", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree('outside')
+
+    first, second = design.get_idir(fileset="rtl")
+    assert not os.path.islink(os.path.join(first, "ext.vh"))
+    assert not os.path.isabs(os.readlink(os.path.join(second, "ext.vh")))
+    with open(os.path.join(second, "ext.vh")) as f:
+        assert f.read() == 'ext'
+
+
+@needs_symlinks
+def test_collect_link_to_collected_directory_points_at_its_home(path_keys):
+    os.makedirs('a')
+    os.makedirs('b')
+    with open('b/x.v', 'w') as f:
+        f.write('x')
+    os.symlink(os.path.join('..', 'b'), 'a/b')
+
+    design = Design("testdesign")
+    design.add_idir("a", fileset="rtl")
+    design.add_idir("b", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    a, b = design.get_idir(fileset="rtl")
+    assert not os.path.islink(b)
+    assert os.path.islink(os.path.join(a, "b"))
+    assert os.path.samefile(os.path.join(a, "b"), b)
+
+
+@needs_symlinks
+def test_collect_link_to_own_directory_kept(path_keys):
+    os.makedirs('rtl/inc')
+    with open('rtl/inc/i.vh', 'w') as f:
+        f.write('i')
+    os.symlink('..', 'rtl/inc/up')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.readlink(os.path.join(idir, "inc", "up")) == ".."
+
+
+@needs_symlinks
+def test_collect_link_to_hidden_file_stored(path_keys):
+    """A hidden file is left out of a directory, but a link naming it still gets it."""
+    os.makedirs('rtl')
+    with open('rtl/.defs.vh', 'w') as f:
+        f.write('defs')
+    os.symlink('.defs.vh', 'rtl/defs.vh')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(idir) == ["defs.vh"]
+    assert not os.path.islink(os.path.join(idir, "defs.vh"))
+
+
+@needs_symlinks
+def test_collect_dangling_link_left_out(project_logger, caplog, path_keys):
+    os.makedirs('rtl')
+    with open('rtl/a.v', 'w') as f:
+        f.write('a')
+    os.symlink('missing.vh', 'rtl/broken.vh')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+    project_logger(proj)
+
+    collect(proj, keys=path_keys(proj), verbose=False)
+
+    idir = design.get_idir(fileset="rtl")[0]
+    assert os.listdir(idir) == ["a.v"]
+    assert f"Leaving out {os.path.abspath('rtl/broken.vh')}: its target missing.vh does " \
+        "not exist" in caplog.text
+
+
+@needs_symlinks
+def test_collect_links_in_directory_without_symlinks(project_logger, caplog, path_keys,
+                                                     monkeypatch):
+    """Without symbolic links, a link to a file is a hard link to its copy, a link to
+    a directory is a copy made of hard links, and a link to a directory that holds
+    it is left out, since the copy would never end."""
+    os.makedirs('rtl/inc')
+    with open('rtl/defs.vh', 'w') as f:
+        f.write('defs')
+    with open('rtl/inc/i.vh', 'w') as f:
+        f.write('i')
+    os.symlink('defs.vh', 'rtl/alias.vh')
+    os.symlink('inc', 'rtl/inc_alias')
+    os.symlink('..', 'rtl/inc/up')
+
+    design = Design("testdesign")
+    design.add_idir("rtl", fileset="rtl")
+    proj = Project(design)
+    project_logger(proj)
+
+    monkeypatch.setattr(os, "symlink", Mock(side_effect=OSError("privilege not held")))
+    collect(proj, keys=path_keys(proj), verbose=False)
+
+    idir = design.get_idir(fileset="rtl")[0]
+    alias = os.path.join(idir, "alias.vh")
+    assert not os.path.islink(alias)
+    assert os.path.samefile(alias, os.path.join(idir, "defs.vh"))
+    inc_alias = os.path.join(idir, "inc_alias")
+    assert not os.path.islink(inc_alias)
+    assert os.path.samefile(os.path.join(inc_alias, "i.vh"),
+                            os.path.join(idir, "inc", "i.vh"))
+    assert not os.path.lexists(os.path.join(idir, "inc", "up"))
+    assert f"Leaving out {os.path.abspath('rtl/inc/up')}: it links to a directory " \
+        "that holds it" in caplog.text
 
 
 def test_collect_file_with_false():
@@ -475,6 +799,38 @@ def test_collect_file_whitelist_pass(path_keys):
     collect(proj, keys=path_keys(proj), whitelist=[os.path.abspath('test')])
 
     assert len(os.listdir(collectiondir(proj))) == 1
+
+
+@needs_symlinks
+@pytest.mark.parametrize("target_approved", [True, False])
+def test_collect_link_to_directory_whitelist(project_logger, caplog, path_keys,
+                                             target_approved):
+    """A directory a link brings in must be on the whitelist too, or inside a
+    directory on it; one that is not is left out."""
+    os.makedirs('test')
+    os.makedirs('outside/sub')
+    with open('outside/sub/ext.v', 'w') as f:
+        f.write('ext')
+    os.symlink(os.path.join('..', 'outside', 'sub'), 'test/ext')
+
+    design = Design("testdesign")
+    design.add_idir("test", fileset="rtl")
+    proj = Project(design)
+    project_logger(proj)
+
+    whitelist = [os.path.abspath('test')]
+    if target_approved:
+        whitelist.append(os.path.abspath('outside'))
+    collect(proj, keys=path_keys(proj), verbose=False, whitelist=whitelist)
+
+    idir = design.get_idir(fileset="rtl")[0]
+    if target_approved:
+        assert os.listdir(os.path.join(idir, "ext")) == ["ext.v"]
+    else:
+        assert os.listdir(idir) == []
+        assert f"Leaving out {os.path.abspath('test/ext')}: " \
+            f"{os.path.realpath('outside/sub')} is not on the approved collection list" \
+            in caplog.text
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
