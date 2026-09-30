@@ -10,7 +10,8 @@ from unittest.mock import Mock, patch
 
 from siliconcompiler import Project, Design, Flowgraph, Task
 from siliconcompiler.package import Resolver
-from siliconcompiler.utils.curation import collect, archive, filter_collection_keys
+from siliconcompiler.utils.curation import (
+    collect, archive, filter_collection_keys, never_collected)
 from siliconcompiler.utils.paths import collectiondir
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
@@ -1000,3 +1001,23 @@ def test_archive(project_logger, caplog):
 
     assert "Creating archive testdesign_job0.tgz..." in caplog.text
     assert os.path.isfile("testdesign_job0.tgz")
+
+
+@pytest.mark.parametrize("key,never", [
+    (("library", "default", "fileset", "rtl", "file", "verilog"), True),
+    (("history", "job0", "option", "builddir"), True),
+    (("option", "builddir"), True),
+    (("option", "cachedir"), True),
+    (("option", "credentials"), True),
+    (("tool", "openroad", "task", "place", "input", "place", "0"), True),
+    (("tool", "openroad", "task", "place", "output", "place", "0"), True),
+    (("tool", "openroad", "task", "place", "report", "place", "0"), True),
+    (("tool", "openroad", "task", "place", "script"), False),
+    (("library", "gcd", "fileset", "rtl", "file", "verilog"), False),
+    (("option", "dir", "rtl"), False),
+])
+def test_never_collected_is_the_one_rule(key, never):
+    """The predicate every caller shares, and what filter_collection_keys
+    applies."""
+    assert never_collected(key) is never
+    assert (filter_collection_keys([(key, None, None)]) == []) is never

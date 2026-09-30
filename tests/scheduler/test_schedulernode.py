@@ -2858,14 +2858,15 @@ def test_get_required_path_keys(project):
                                              ("tool", "builtin", "task", "nop", "refdir")}
 
 
-def test_mark_copy(project):
+def test_collect_keys(project):
+    '''A node that runs where its files are needs nothing collected.'''
     project.set("tool", "builtin", "task", "nop", "require",
                 ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
                 step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
     with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
-        assert node.mark_copy() is False
+        assert node.collect_keys() == set()
         sc_set.assert_not_called()
 
 

@@ -20,20 +20,27 @@ if TYPE_CHECKING:
 CollectionKey = Tuple[Tuple[str, ...], Optional[str], Optional[str]]
 
 
+def never_collected(key: Tuple[str, ...]) -> bool:
+    """Whether a keypath is one a collection never includes, whatever asks.
+
+    A schema template (a ``default`` component), the run history, where the
+    build and the cache are and the credentials file, and a task's own
+    ``input``, ``report`` and ``output``, which a run produces rather than
+    reads.
+    """
+    key = tuple(key)
+    if 'default' in key or key[0] == 'history':
+        return True
+    if key in (('option', 'builddir'), ('option', 'cachedir'),
+               ('option', 'credentials')):
+        return True
+    return (len(key) >= 5 and key[0] == 'tool' and key[2] == 'task'
+            and key[4] in ('input', 'report', 'output'))
+
+
 def filter_collection_keys(keys: List[CollectionKey]) -> List[CollectionKey]:
     """Remove schema entries that must never be included in a collection."""
-    filtered_keys = []
-    for key, step, index in keys:
-        if 'default' in key or key[0] == 'history':
-            continue
-        if key in (('option', 'builddir'), ('option', 'cachedir'),
-                   ('option', 'credentials')):
-            continue
-        if (len(key) >= 5 and key[0] == 'tool' and key[2] == 'task'
-                and key[4] in ('input', 'report', 'output')):
-            continue
-        filtered_keys.append((key, step, index))
-    return filtered_keys
+    return [(key, step, index) for key, step, index in keys if not never_collected(key)]
 
 
 def _is_within(path: str, root: str) -> bool:

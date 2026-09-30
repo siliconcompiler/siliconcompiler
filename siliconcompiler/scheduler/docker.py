@@ -8,6 +8,7 @@ import tarfile
 import docker.errors
 
 from pathlib import Path
+from typing import Set, Tuple
 
 import siliconcompiler
 
@@ -173,15 +174,12 @@ class DockerSchedulerNode(SchedulerNode):
         except (docker.errors.DockerException, docker.errors.APIError):
             raise RuntimeError('docker is not available or installed on this machine')
 
-    def mark_copy(self) -> bool:
+    def collect_keys(self) -> Set[Tuple[str, ...]]:
+        """Every required path key on Windows, where the container cannot
+        mount the host's paths as they are; none elsewhere."""
         if sys.platform != 'win32':
-            return False
-
-        do_collect = False
-        for key in self.get_required_path_keys():
-            self.project.set(*key, True, field='copy')
-            do_collect = True
-        return do_collect
+            return set()
+        return set(self.get_required_path_keys())
 
     def run(self):
         """
