@@ -12,6 +12,10 @@ docker compose up --build          # after you change the source
 docker compose down -v             # -v also drops the munge key and job files
 ```
 
+**What the server serves of the `v1` contract**, endpoint by endpoint, and what
+it decides where the contract leaves the choice, is its profile:
+[PROFILE.md](PROFILE.md). This file is how to run it.
+
 🔴 **There is no second command and no order to get right.** A one-shot
 `bootstrap` service pushes the images compose just built into this stack's
 registry, registers them, stages their bundles and writes `config.json`, and
@@ -699,7 +703,7 @@ anything ran.
 
 `sc-server`'s own configuration and deployment rules: what the API contract
 leaves to each implementation, which crucible's `implementation-notes.md` §O
-keeps for this one. `config.json` in the data directory holds them, beside the
+keeps for this one. What a client sees of them is in [PROFILE.md](PROFILE.md). `config.json` in the data directory holds them, beside the
 contract's `limits`, `features` and `notices`, and every key has a working
 default in `siliconcompiler/remote/server/config.py`, which says what each is
 for. Nothing in it is required.
@@ -724,7 +728,7 @@ for. Nothing in it is required.
 - `manifest_read_timeout_seconds`, `manifest_read_cpu_seconds` and
   `manifest_read_memory_bytes`: the manifest's read while a job stages (below),
   300 seconds, 300 CPU seconds and 4 GiB by default. A read past any of them
-  has not read the manifest, and the job is rejected `manifest_invalid`.
+  has not read the manifest, and the job is rejected `invalid_manifest`.
 - `public_origins`, `web_url_base`: where this server is reached, and the
   origin a job's page is published under. `portal_plaintext_peers` is no longer
   read, and a `config.json` that still sets it starts with a warning.
@@ -791,7 +795,7 @@ name, and nothing else of the server's:
   There is no filesystem boundary here: the read could open a path on the
   machine, which is within this server's lack of a security claim;
 - with `containers` on, it runs in the job's own image instead, the one create
-  picked from `requires.python`: on Slurm a batch job in a bundle of that
+  picked from `requested_versions.python`: on Slurm a batch job in a bundle of that
   image with the extracted tree mounted read-only, nothing else bound and a
   network namespace of its own; with the docker scheduler a container with no
   network and the tree read-only.

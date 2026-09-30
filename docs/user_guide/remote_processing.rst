@@ -273,7 +273,9 @@ rather than a clock that never stops.
    **Results are retrieved whether the run succeeded or failed.** A failed run
    is the one whose log you want, so the client fetches first and reports the
    failure afterwards, in a few lines that say what to do next without opening
-   a URL.
+   a URL. Each failed node follows on a line of its own, with what the server
+   knows of why: the time or memory limit it ran into, or the image that would
+   not pull.
 
 Versions, and being told before you upload
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -573,7 +575,7 @@ own can name a set no single image contains, with every version published,
 every one satisfiable, and nothing to run them in. What is stored is still
 exact; only the wire carries ranges.
 
-**The job's ``requires`` is keyed the same two ways, and names every Python
+**The job's ``requested_versions`` is keyed the same two ways, and names every Python
 distribution the job imports.** ``sc-remote`` pins each exactly, as installed
 on your machine -- SiliconCompiler itself, and the distribution every class in
 the manifest comes from, such as ``lambdapdk`` for its PDKs -- because a name

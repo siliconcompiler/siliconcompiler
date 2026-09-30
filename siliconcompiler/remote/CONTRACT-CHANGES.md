@@ -9,9 +9,10 @@ separate piece of work.
 **Where it goes:**
 [`api/surface.md`](../../../plans/crucible/orchestration/api/surface.md) for
 endpoints and payloads, [`api/database.md`](../../../plans/crucible/orchestration/api/database.md)
-for tables and vocabularies, [`api/sc-server-profile.md`](../../../plans/crucible/orchestration/api/sc-server-profile.md)
-for what this profile serves. Changes to SiliconCompiler's own code that the
-remote work turns up go in [CORE-FOLLOWUPS.md](CORE-FOLLOWUPS.md) instead.
+for tables and vocabularies. What this profile serves is `sc-server`'s own, in
+[`setup/server/PROFILE.md`](../../setup/server/PROFILE.md): a change there needs
+no port. Changes to SiliconCompiler's own code that the remote work turns up go
+in [CORE-FOLLOWUPS.md](CORE-FOLLOWUPS.md) instead.
 
 🔴 **The freeze is declared by the contract's owner once `v1` has been
 exercised**, by crucible's own work and by users. No release, merge or date
@@ -59,14 +60,19 @@ below says.
 
 The seven of follow-on 15's list — a private source refused at create by name,
 the profile's gap narrowed to Slurm, the four columns, the wheel that answers a
-`python` entry, a wheel for a `requires.python` name, a client cancelling what it
-cannot supply, and telling an absent package from one that will not install
+`python` entry, a wheel for a `requested_versions.python` name, a client
+cancelling what it cannot supply, and telling an absent package from one that
+will not install
 (surface D285–D287, profile D64, database D148, implementation-notes §L) — were
 decided too, and removed the same way. Follow-on 16 brings the code up to them.
 
 The two of follow-on 16's list — a cancelled job's reason on its transition, and
 a cancel's reason at most 300 characters and served whole (surface D288) — were
 decided too, and removed the same way. Follow-on 17 brings the code up to them.
+
+The contract's own consistency pass (surface D289–D290, entitlements D76,
+database D149–D150) came from no list here. Follow-on 18 brings the code up to
+it, and moves the profile into this repository.
 
 ---
 
