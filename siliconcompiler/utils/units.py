@@ -31,7 +31,8 @@ BINARY_UNITS = (
     ('T', 40),
     ('P', 50),
     ('E', 60),
-    ('Z', 70)
+    ('Z', 70),
+    ('Y', 80)
 )
 
 SI_TYPES = (
@@ -204,18 +205,51 @@ def scale_si(value: float, unit: str, margin: int = 3, digits: int = 3) -> Tuple
     return (float(f'{value:.{digits}f}'), '')
 
 
-def format_binary(value: float, unit: Optional[str], digits: int = 3) -> str:
+def format_binary(value: Optional[float], unit: Optional[str], digits: int = 3,
+                  show_unit: bool = False, compact: bool = False,
+                  default: Optional[str] = None) -> str:
     '''
     Format a number as a binary number. Returns a string.
+
+    For example:
+    format_binary(1536, 'B') -> '1.500k'
+    format_binary(1536, 'B', digits=1, show_unit=True) -> '1.5 KiB'
 
     Args:
         value (float): value to convert
         unit (str): unit of the value
         digits (int): number of digits to print after .
+        show_unit (bool): follow the number with its unit, with an IEC prefix
+            as in ``4.2 MiB``, rather than a bare prefix as in ``4.2M``
+        compact (bool): print no digits after . where they carry nothing: for
+            a count of bytes or bits, which is whole, and for a value of 100
+            or more
+        default (str): returned for a value that is None or not a finite
+            number; if not given, such a value raises
     '''
-    scaled_value, prefix = scale_binary(value, unit, digits=digits)
-    # need to do this in case float shortens scaled_value
-    return f'{scaled_value:.{digits}f}{prefix}'
+    try:
+        if value is None:
+            raise TypeError("value must be a number, not None")
+        value = float(value)
+    except (TypeError, ValueError, OverflowError):
+        if default is None:
+            raise
+        return default
+
+    if default is not None and not math.isfinite(value):
+        return default
+
+    scaled_value, prefix = _scale_binary(value, unit)
+
+    if compact and (abs(scaled_value) >= 100 or (not prefix and is_base_binary_unit(unit))):
+        digits = 0
+
+    formatted = f'{scaled_value:.{digits}f}'
+    if show_unit and unit:
+        if prefix:
+            prefix = f'{prefix.upper()}i'
+        return f'{formatted} {prefix}{unit}'
+    return f'{formatted}{prefix}'
 
 
 def scale_binary(value: float, unit: Optional[str], digits: int = 3) -> Tuple[float, str]:
@@ -227,20 +261,21 @@ def scale_binary(value: float, unit: Optional[str], digits: int = 3) -> Tuple[fl
         unit (str): unit of the value
         digits (int): number of digits to print after .
     '''
-    value = float(value)
+    scaled_value, prefix = _scale_binary(float(value), unit)
+    return (float(f'{scaled_value:.{digits}f}'), prefix)
 
-    fvalue = (int(value), '')
+
+def _scale_binary(value: float, unit: Optional[str]) -> Tuple[float, str]:
+    '''
+    Scale a value to the largest binary prefix its magnitude reaches, without
+    rounding it.
+    '''
     if is_base_binary_unit(unit):
-        for prefix, scale in BINARY_UNITS:
-            new_value = value / 2**scale
+        for prefix, scale in reversed(BINARY_UNITS):
+            if abs(value) >= 2**scale:
+                return (value / 2**scale, prefix)
 
-            if new_value > 1:
-                fvalue = (float(f'{new_value:.{digits}f}'), prefix)
-                continue
-
-            return fvalue
-
-    return (float(f'{value:.{digits}f}'), '')
+    return (value, '')
 
 
 def format_time(value: float, milliseconds_digits: int = 3) -> str:
