@@ -46,6 +46,11 @@ last write rather than overwritten, and the five most recent are kept.
 ``sc_collected_files/`` holds copies of input files that were marked for
 collection, so the job directory contains everything needed to rebuild even if
 the original sources move. It only appears when a run actually collects files.
+A file or directory that more than one value names is copied once, and its other
+names are links to that copy. A link inside a collected directory stays a link,
+pointed at its target's copy; a target from outside the collection is copied once,
+where a link to it is first met, and a link whose target does not exist is left
+out with a warning.
 
 Inside a node directory
 -----------------------
