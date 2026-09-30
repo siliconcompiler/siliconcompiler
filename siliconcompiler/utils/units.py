@@ -295,3 +295,35 @@ def format_time(value: float, milliseconds_digits: int = 3) -> str:
     if milliseconds_digits > 0:
         ftime += f'.{int(milliseconds):0{milliseconds_digits}}'
     return ftime
+
+
+def format_duration(seconds: Optional[float]) -> str:
+    '''Seconds as ``42s``, ``7m 12s``, ``3h 05m``, ``2d 06h``.
+
+    Two units, never three: the third one is never what the question was. A
+    number of seconds is what the API publishes and what anything summing them
+    must keep using -- this is only for reading.
+    '''
+    if seconds is None:
+        return "—"
+
+    try:
+        total = int(float(seconds))
+    except (TypeError, ValueError, OverflowError):
+        return "—"
+
+    if total < 0:
+        return "—"
+    if total < 60:
+        return f"{total}s"
+
+    minutes, second = divmod(total, 60)
+    if minutes < 60:
+        return f"{minutes}m {second:02d}s"
+
+    hours, minute = divmod(minutes, 60)
+    if hours < 24:
+        return f"{hours}h {minute:02d}m"
+
+    days, hour = divmod(hours, 24)
+    return f"{days}d {hour:02d}h"

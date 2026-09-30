@@ -4,7 +4,7 @@ import pytest
 from siliconcompiler.utils.units import \
     convert, \
     get_si_prefix, get_si_power, is_base_si_unit_power, \
-    format_si, format_time
+    format_si, format_time, format_duration
 
 
 @pytest.mark.parametrize("value,unit,expect", [
@@ -209,3 +209,54 @@ def test_format_time(value, expect):
 def test_format_time_rounding_carry(sec, milliseconds_digits, expect):
     """Test that rounding properly propagates carries across time units."""
     assert format_time(sec, milliseconds_digits=milliseconds_digits) == expect
+
+
+@pytest.mark.parametrize("sec,expect", [
+    (0, "0s"),
+    (42, "42s"),
+    (59, "59s"),
+    (60, "1m 00s"),
+    (7 * 60 + 12, "7m 12s"),
+    (59 * 60 + 59, "59m 59s"),
+    (3600, "1h 00m"),
+    (3 * 3600 + 5 * 60 + 59, "3h 05m"),
+    (23 * 3600 + 59 * 60 + 59, "23h 59m"),
+    (24 * 3600, "1d 00h"),
+    (2 * 86400 + 6 * 3600 + 59 * 60, "2d 06h"),
+    (400 * 86400, "400d 00h"),
+])
+def test_format_duration(sec, expect):
+    assert format_duration(sec) == expect
+
+
+@pytest.mark.parametrize("sec,expect", [
+    (59.9, "59s"),
+    (60.999, "1m 00s"),
+    (3599.9, "59m 59s"),
+])
+def test_format_duration_truncates(sec, expect):
+    assert format_duration(sec) == expect
+
+
+@pytest.mark.parametrize("sec,expect", [
+    ("42", "42s"),
+    ("90.5", "1m 30s"),
+])
+def test_format_duration_numeric_string(sec, expect):
+    assert format_duration(sec) == expect
+
+
+@pytest.mark.parametrize("sec", [
+    None,
+    -1,
+    -3600,
+    "",
+    "abc",
+    float("nan"),
+    float("inf"),
+    float("-inf"),
+    [],
+    object(),
+])
+def test_format_duration_invalid(sec):
+    assert format_duration(sec) == "—"
