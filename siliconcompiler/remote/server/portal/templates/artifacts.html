@@ -16,7 +16,7 @@
       tell "the server did what it said" from "somebody removed this".
     #}
     <span class="muted">gone {{ item.deleted_at | when }}{%
-      if item.delete_reason %} — {{ item.delete_reason }}{% endif %}</span>
+      if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
   {% elif item.blocked_by %}
     {#
       A map of each document in the way, by its terms id, to its signing link

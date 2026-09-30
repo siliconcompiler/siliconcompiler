@@ -14,7 +14,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler.flowgraph import Flowgraph
 from siliconcompiler.remote import environment, owners
-from siliconcompiler.remote.server.errors import bound, ERRORS, ProblemError
+from siliconcompiler.remote.server.errors import bound, ERRORS, ProblemError, TYPE_BASE
+from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.staging import archive, manifestread
 
 logger = logging.getLogger("sc-server")
@@ -132,12 +133,13 @@ class _Supply:
 ######################################################################
 
 def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    """What a job needs from its image, in the two buckets: `descriptor.requires`.
+    """What a job needs from its image, in the two buckets:
+    `descriptor.requested_versions`.
 
     🔴 **The one member, and it names every Python distribution the job
-    imports**, pinned exactly -- a name not in `requires` is not required, and
-    the job may land in an image without it. `versions` is gone; so is the
-    fallback to it (D126, superseded).
+    imports**, pinned exactly -- a name not in `requested_versions` is not
+    required, and the job may land in an image without it. `versions` is
+    gone; so is the fallback to it (D126, superseded).
 
     🔴 **Each value is a LIST of PEP 440 specifier sets, any one of which
     satisfies**, and a bare string is refused: that is what SiliconCompiler
@@ -154,17 +156,17 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     buckets = tuple(BUCKETS.values())
     found: Dict[str, Dict[str, Any]] = {bucket: {} for bucket in buckets}
 
-    given = descriptor.get("requires")
+    given = descriptor.get("requested_versions")
     if given is None:
         return found
     if not isinstance(given, dict):
-        raise ProblemError("invalid-request", detail="requires must be an object")
+        raise ProblemError("invalid-request", detail="requested_versions must be an object")
 
     unknown = set(given) - set(buckets)
     if unknown:
         raise ProblemError(
             "invalid-request",
-            detail=f"requires is keyed on {' and '.join(buckets)}; "
+            detail=f"requested_versions is keyed on {' and '.join(buckets)}; "
                    f"{', '.join(sorted(unknown))} is neither")
 
     for bucket in buckets:
@@ -174,13 +176,14 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         if not isinstance(inner, dict):
             raise ProblemError(
                 "invalid-request",
-                detail=f"requires.{bucket} must be an object of name to requirement")
+                detail=f"requested_versions.{bucket} must be an object of name to "
+                       "requirement")
         for name, wanted in inner.items():
             if not isinstance(wanted, list) or not all(isinstance(one, str) for one in wanted):
                 raise ProblemError(
                     "invalid-request",
-                    detail=f"requires.{bucket}.{name} is a list of specifier sets, "
-                           "even with one entry; a bare string is not")
+                    detail=f"requested_versions.{bucket}.{name} is a list of specifier "
+                           "sets, even with one entry; a bare string is not")
         found[bucket] = dict(inner)
 
     return found
@@ -190,7 +193,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 # job reuse's, and top level: the descriptor is what submit re-derives.
 CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from",
                   "python_packages")
-DESCRIPTOR_MEMBERS = ("flow", "needs", "requires", "sources")
+DESCRIPTOR_MEMBERS = ("flow", "node_count", "needs", "requested_versions", "sources")
 SOURCE_MEMBERS = ("name", "dataroot", "source", "ref", "private")
 
 
@@ -368,7 +371,7 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
 
 
 def _python_names(job) -> List[str]:
-    '''What the job's `requires.python` names: the image holds each, and
+    '''What the job's `requested_versions.python` names: the image holds each, and
     none is ever installed. Part of what a derived image is keyed on.'''
     from siliconcompiler.remote.server.software.images import BUCKETS
 
@@ -593,12 +596,19 @@ def _error(error_type: Optional[str],
     most: a run's reason can be a tool's own exception text, which carries
     whatever paths the client's design named. It does not pass through
     `problem()`, so the bound is applied here rather than inherited.
+
+    A node's error has the same shape (surface §17, *A node's `error`*). A
+    node has no transitions to carry its `detail`, so it arrives in
+    ``members`` beside the type's own, and is bounded the same way.
     '''
     if not error_type:
         return None
     slug = error_type.rsplit("/", 1)[-1]
     registered = ERRORS.get(slug)
     title = registered.title if registered else "The job failed"
+
+    extra = json.loads(members) if members else {}
+    detail = detail or extra.pop("detail", None)
 
     body = {"type": error_type, "title": title}
     # The registry's status, and none for a type that is never a response.
@@ -608,10 +618,37 @@ def _error(error_type: Optional[str],
     # `type`, and a client branches on that.
     if detail and detail != slug:
         body["detail"] = bound(detail)
-    if members:
-        for name, value in json.loads(members).items():
-            body.setdefault(name, value)
+    for name, value in extra.items():
+        body.setdefault(name, value)
     return body
+
+
+def _node_error(state: str, node: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    '''A node's error, as its `type` URI and the members beside it, from what
+    the runner reported of it: ``(None, None)`` unless it failed.
+
+    🔴 **`run-interrupted` where the environment ended it** -- an image that
+    would not pull, before the flow started -- so resubmitting unchanged may
+    work; **`run-failed` otherwise**, a time or memory limit included, with
+    `detail` naming the limit (surface §17). A plain failure names its exit
+    status and points at the node's log, which is where the tool said why.
+    '''
+    if state != "failed":
+        return None, None
+    interrupted = node.get("interrupted")
+    if isinstance(interrupted, dict):
+        slug = "run-interrupted"
+        detail = (f"the node could not start: its image {interrupted.get('image')} "
+                  "could not be pulled")
+    elif node.get("limit"):
+        slug = "run-failed"
+        detail = f"the node exceeded its {node['limit']} limit"
+    else:
+        slug = "run-failed"
+        code = runspec.exit_code(node.get("exit_code"))
+        detail = (f"the node's task exited with status {code}; its log says why"
+                  if code else "the node's task failed; its log says why")
+    return f"{TYPE_BASE}/{slug}", _members_json({"detail": detail})
 
 
 def _members_json(members: Dict[str, Any]) -> Optional[str]:
@@ -665,9 +702,3 @@ def _from_epoch(value: float) -> str:
     from datetime import datetime, timezone
     return datetime.fromtimestamp(value, timezone.utc).strftime(
         "%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-
-def _retention(days: int) -> str:
-    from datetime import datetime, timedelta, timezone
-    when = datetime.now(timezone.utc) + timedelta(days=days)
-    return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"

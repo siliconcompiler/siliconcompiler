@@ -89,7 +89,7 @@ def test_an_image_that_will_not_unpack_is_staging_failed(  # noqa: F811
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     read = job_read(container_client, key, container_token, job["id"])

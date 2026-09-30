@@ -26,7 +26,7 @@ def artifact(kind="manifest", step=None, index=None, fetchable=True, **extra):
         "retained_until": "2031-09-22T10:00:00.000Z",
         "deleted_at": None,
         "deleted_cause": None,
-        "delete_reason": None,
+        "deleted_reason": None,
         "fetchable": fetchable,
         **extra,
     }
@@ -142,7 +142,7 @@ def test_deleted_is_never_reported_as_expired(fake_v1, results, caplog):
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
-                 deleted_cause="removed", delete_reason=None,
+                 deleted_cause="removed", deleted_reason=None,
                  expires_at="2020-01-01T00:00:00.000Z")]})
 
     with caplog.at_level("WARNING"):
@@ -161,7 +161,7 @@ def test_the_reaper_taking_it_is_aged_out_and_not_deleted(fake_v1, results,
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
-                 deleted_cause="expired", delete_reason=None)]})
+                 deleted_cause="expired", deleted_reason=None)]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -175,7 +175,7 @@ def test_a_cause_this_client_does_not_know_is_somebody_deciding(
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
-                 deleted_cause="legal", delete_reason=None)]})
+                 deleted_cause="legal", deleted_reason=None)]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -188,7 +188,7 @@ def test_the_reason_is_repeated_rather_than_interpreted(fake_v1, results,
     '''🔴 A reaper sets `deleted_at` when retention lapses -- it has to,
     because `fetchable` asks first whether the bytes are there -- so the column
     alone no longer separates *the system did what it said* from *somebody
-    removed this*. `deleted_cause` is what does, and `delete_reason` is the
+    removed this*. `deleted_cause` is what does, and `deleted_reason` is the
     prose that says why.
 
     Repeated verbatim and never matched against a vocabulary this client
@@ -199,7 +199,7 @@ def test_the_reason_is_repeated_rather_than_interpreted(fake_v1, results,
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
                  deleted_cause="removed",
-                 delete_reason="superseded by the rerun")]})
+                 deleted_reason="superseded by the rerun")]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -209,11 +209,11 @@ def test_the_reason_is_repeated_rather_than_interpreted(fake_v1, results,
 
 def test_a_server_that_gives_no_reason_still_gets_a_sentence(fake_v1, results,
                                                              caplog):
-    '''`delete_reason` may be null, and a missing one is not a blank line.'''
+    '''`deleted_reason` may be null, and a missing one is not a blank line.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
         artifact("outputs", "stepone", "0", fetchable=False,
                  deleted_at="2026-09-20T00:00:00.000Z",
-                 deleted_cause="removed", delete_reason=None)]})
+                 deleted_cause="removed", deleted_reason=None)]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
@@ -680,7 +680,7 @@ def _ceiling(fake_v1, capabilities, limit):
     '''
     limits = {"concurrent_jobs": 4, "concurrent_nodes": None,
               "pending_uploads": 8, "max_job_nodes": 1000, "devices": None,
-              "job_retention_days": 30}
+              "artifact_retention_seconds": 2592000}
     if limit is not None:
         limits["max_download_bytes"] = limit
 
@@ -691,7 +691,7 @@ def _ceiling(fake_v1, capabilities, limit):
                                       "window": "calendar_month",
                                       "resets_at": "2026-10-01T00:00:00.000Z"},
                   "licence_seconds": {}, "storage_bytes": {"used": 0, "limit": None},
-                  "jobs_active": 0}})
+                  "concurrent_jobs": 0}})
 
 
 def test_an_object_over_the_servers_ceiling_is_listed_and_not_pulled(
@@ -955,7 +955,7 @@ def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
         for step in ("stepone", "steptwo") for kind in ("logs", "reports", "node")
     ] + [artifact("outputs", "stepone", "0", fetchable=False,
                   deleted_at="2026-09-20T00:00:00.000Z",
-                  deleted_cause="removed", delete_reason=None)]})
+                  deleted_cause="removed", deleted_reason=None)]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")

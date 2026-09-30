@@ -200,7 +200,7 @@ class TokenIssuer:
                     posix_account=subject,
                     display_name=display_name)
 
-                if not user["is_active"]:
+                if user["deactivated_at"] is not None:
                     raise OAuthError("invalid_grant", "this account is not active",
                                      reason="deactivated")
 
@@ -302,7 +302,7 @@ class TokenIssuer:
         row = self._store.one(
             "SELECT rt.*, tf.user_id, tf.device_id, tf.scope, tf.dpop_jkt, "
             "       tf.revoked_at AS family_revoked_at, "
-            "       tf.revoked_reason, tf.absolute_expires_at "
+            "       tf.revoked_reason, tf.expires_at AS family_expires_at "
             "FROM refresh_tokens rt JOIN token_families tf ON tf.id = rt.family_id "
             "WHERE rt.jti = ?", (claims["jti"],))
 
@@ -331,13 +331,13 @@ class TokenIssuer:
             # gets the replacement already issued, never a second live one.
             return self._replay_refresh(row)
 
-        if timestamp >= row["absolute_expires_at"]:
+        if timestamp >= row["family_expires_at"]:
             # Not revoked: nothing decided this, the session cap simply passed.
             # The column stays NULL and the client is told to log in again.
             raise self._grant_ended("expired")
 
         user = self._store.one("SELECT * FROM users WHERE id = ?", (row["user_id"],))
-        if not user["is_active"]:
+        if user["deactivated_at"] is not None:
             # Re-read on every refresh, so deactivating an account ends its
             # sessions within one access-token lifetime.
             self._revoke_family(row["family_id"], "account_inactive")
@@ -374,14 +374,14 @@ class TokenIssuer:
         return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
                             row["scope"], row["family_id"],
                             replacement["jti"], replacement["issued_at"],
-                            replacement["expires_at"], row["absolute_expires_at"])
+                            replacement["expires_at"], row["family_expires_at"])
 
     def _rotate(self, row) -> dict:
         timestamp = now()
         new_jti = str(uuid.uuid4())
         expires = _plus(timestamp, min(
             REFRESH_TOKEN_SECONDS,
-            max(0, _seconds_since(timestamp, row["absolute_expires_at"]))))
+            max(0, _seconds_since(timestamp, row["family_expires_at"]))))
 
         with self._store.transaction():
             self._store.execute(
@@ -408,7 +408,7 @@ class TokenIssuer:
 
         return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
                             row["scope"], row["family_id"], new_jti, timestamp, expires,
-                            row["absolute_expires_at"])
+                            row["family_expires_at"])
 
     def _issue(self, user_id: str, device_id: Optional[str], jkt: str,
                scope: str) -> dict:
@@ -421,7 +421,7 @@ class TokenIssuer:
 
         self._store.execute(
             "INSERT INTO token_families "
-            "(id, user_id, device_id, kind, dpop_jkt, scope, absolute_expires_at) "
+            "(id, user_id, device_id, kind, dpop_jkt, scope, expires_at) "
             "VALUES (?, ?, ?, 'interactive', ?, ?, ?)",
             (family_id, user_id, device_id, jkt, scope, session_end))
         self._store.execute(

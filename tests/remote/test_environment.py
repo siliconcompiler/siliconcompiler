@@ -321,7 +321,7 @@ def test_a_wheel_that_is_impure_or_overlaps_is_refused(
     assert why in response.get_json()["detail"]
 
 
-def test_a_wheel_for_what_requires_python_names_is_refused(
+def test_a_wheel_for_what_requested_versions_python_names_is_refused(
         server, server_client, key, token, job_archive, python_project, tmp_path):
     '''The image holds it, and a second copy would be the one the tool loads.'''
     from importlib.metadata import version
@@ -331,11 +331,11 @@ def test_a_wheel_for_what_requires_python_names_is_refused(
     response = submitted(
         server_client, key, token,
         with_wheels(job_archive, python_project, make_wheel(tmp_path, "packaging", held)),
-        requires={"python": {"packaging": [f"=={held}"]}})
+        requested_versions={"python": {"packaging": [f"=={held}"]}})
 
     assert (slug(response), response.get_json()["reason"]) == \
         ("archive-rejected", "python_package")
-    assert "requires.python" in response.get_json()["detail"]
+    assert "requested_versions.python" in response.get_json()["detail"]
 
 
 def test_the_old_python_tree_is_not_where_anything_goes(
@@ -653,7 +653,7 @@ def test_a_python_name_nothing_here_holds_is_refused_at_create(
     server.config["SC_CONFIG"]._values["containers"] = containers
     response = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0",
-        "descriptor": {"requires": {"python": {"scnosuchdistribution": ["==1.0"]}}}})
+        "descriptor": {"requested_versions": {"python": {"scnosuchdistribution": ["==1.0"]}}}})
 
     assert response.status_code == 422, response.get_json()
     body = response.get_json()
@@ -669,11 +669,12 @@ def test_host_mode_answers_from_its_own_python(server, server_client, key, token
 
     ok = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0",
-        "descriptor": {"requires": {"python": {"packaging": [f"=={version('packaging')}"]}}}})
+        "descriptor": {"requested_versions": {
+            "python": {"packaging": [f"=={version('packaging')}"]}}}})
     assert ok.status_code == 201, ok.get_json()
 
     other = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job1",
-        "descriptor": {"requires": {"python": {"packaging": ["==0.0.1"]}}}})
+        "descriptor": {"requested_versions": {"python": {"packaging": ["==0.0.1"]}}}})
     assert other.status_code == 422
     assert other.get_json()["unresolved"][0]["available"] == [version("packaging")]

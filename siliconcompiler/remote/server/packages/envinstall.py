@@ -79,7 +79,7 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
     and what its install added (:func:`recorded`). Raises InstallFailed.
 
     Keyed by this Python, this platform, what it holds, the indexes, the job's
-    `requires.python` names, the files this server writes and each wheel's
+    `requested_versions.python` names, the files this server writes and each wheel's
     digest -- the install adds to what this Python holds and comes from where
     the indexes say, so all of it is part of what the result means. Built
     under a lock beside it and moved into place whole, so a directory that

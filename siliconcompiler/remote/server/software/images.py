@@ -655,9 +655,9 @@ def resolve_declared(images, requirements: Sequence[Requirement]):
 
 
 def job_image_for(store, requires: Dict[str, Any]) -> Dict[str, Any]:
-    '''The image a job's own process runs in, from its `requires.python`
+    '''The image a job's own process runs in, from its `requested_versions.python`
     alone: picked at create, before anything is uploaded (surface §13, *Create
-    picks the job's image from `requires.python` alone*; database D145).
+    picks the job's image from `requested_versions.python` alone*; database D145).
     Raises the refusal create answers with where nothing fits.'''
     return resolve_declared(live_images(store),
                             declared_requirements(live_software(store), requires))
@@ -1221,7 +1221,7 @@ def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
     '''The cache key of a derived image (implementation-notes §L, *What it
     caches*): its base, the requirements and constraints files the server
     wrote, each uploaded wheel's digest, and the job's sorted
-    `requires.python` names.
+    `requested_versions.python` names.
 
     The base's Python tag, and the versions of what it holds, are functions of
     its digest, so neither is asked for separately: each could only be learned

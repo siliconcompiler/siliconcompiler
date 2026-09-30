@@ -68,7 +68,7 @@ def test_every_violation_is_in_the_vocabulary():
     slug cannot.'''
     assert set(VIOLATIONS) == {"member_count", "expanded_bytes", "ratio",
                                "link_member", "device_member", "traversal",
-                               "manifest_missing", "manifest_invalid",
+                               "missing_manifest", "invalid_manifest",
                                # D124: a follow-up carrying what was not asked for.
                                "unrequested_member",
                                # D129: a value the flow reads, left out.

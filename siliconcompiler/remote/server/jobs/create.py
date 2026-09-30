@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
     CREATE_MEMBERS, DESCRIPTOR_MEMBERS, REUSABLE_STATES, _continuations, _declared_sources,
-    _expired_key, _name, _only, _python_packages, _retention, _run_hash, logger, requirements)
+    _expired_key, _name, _only, _python_packages, _run_hash, logger, requirements)
 from siliconcompiler.remote.server.software import images
 
 
@@ -93,12 +93,12 @@ class CreateMixin:
 
         if idempotency_key is not None:
             existing = self._store.one(
-                "SELECT * FROM jobs WHERE user_id = ? AND idempotency_key = ?",
+                "SELECT * FROM jobs WHERE user_id = ? AND create_idempotency_key = ?",
                 (session.user_id, idempotency_key))
             if existing is not None and _expired_key(existing["created_at"]):
                 # Forgetting a key clears its column, so the index accepts it again.
                 with self._store.transaction():
-                    self._store.execute("UPDATE jobs SET idempotency_key = NULL "
+                    self._store.execute("UPDATE jobs SET create_idempotency_key = NULL "
                                         "WHERE id = ?", (existing["id"],))
                 existing = None
             if existing is not None:
@@ -142,7 +142,7 @@ class CreateMixin:
 
         asked = self._look_up(declared) if declared is not None else None
 
-        # 🔴 The job's own image, from `requires.python` alone, before anything
+        # 🔴 The job's own image, from `requested_versions.python` alone, before anything
         # is uploaded (surface §13; database D145): whether ONE image holds the
         # python set together is only the join's to say. Node images wait for
         # the manifest's read, which is what says which tools the nodes run.
@@ -160,13 +160,11 @@ class CreateMixin:
             self._check_pending_uploads(session.user_id)
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
-                "                  descriptor, idempotency_key, run_hash, "
-                "                  job_identity, retention_until, upload_sources, image_id, "
-                "                  python_packages) "
-                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "                  descriptor, create_idempotency_key, run_hash, "
+                "                  job_identity, upload_sources, image_id, python_packages) "
+                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
                  json.dumps(descriptor), idempotency_key, run_hash, identity,
-                 _retention(self._config.limits["job_retention_days"]),
                  json.dumps(asked) if asked else None, image_id, stored_packages))
             for step, index, from_job in continuations:
                 self._store.execute(
@@ -375,19 +373,21 @@ class CreateMixin:
         limits = self._config.limits
 
         flow = descriptor.get("flow")
-        if flow is not None:
-            if not isinstance(flow, dict):
-                raise ProblemError("invalid-request", detail="descriptor.flow must be an object")
-            _only(flow, ("name", "nodes"), "descriptor.flow")
-        flow = flow or {}
-        if isinstance(flow.get("nodes"), int):
-            if flow["nodes"] > limits["max_job_nodes"]:
+        if flow is not None and not isinstance(flow, str):
+            raise ProblemError("invalid-request",
+                               detail="descriptor.flow is the flowgraph's name, a string")
+        count = descriptor.get("node_count")
+        if count is not None:
+            if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                raise ProblemError("invalid-request",
+                                   detail="descriptor.node_count is a whole number of nodes")
+            if count > limits["max_job_nodes"]:
                 raise ProblemError(
                     "node-limit-exceeded", limit="max_job_nodes",
-                    detail=f"{flow['nodes']} nodes, and this server runs at most "
+                    detail=f"{count} nodes, and this server runs at most "
                            f"{limits['max_job_nodes']}")
 
-        # The early entitlement check: the tools `requires` names and the
+        # The early entitlement check: the tools `requested_versions` names and the
         # resources `sources` names, against what nobody here may use.
         # Re-derived at submit, where the manifest is the answer.
         # A source names no kind: the name finds it (entitlements D75).
@@ -469,7 +469,7 @@ class CreateMixin:
                                  "available": sorted(said.get(name, ()))}])
 
     def _check_untracked_python(self, name: str, asked) -> None:
-        '''A `requires.python` name the registry does not track: refused where
+        '''A `requested_versions.python` name the registry does not track: refused where
         nodes run in containers, since no live image holds it, and answered
         from this server's own Python where they run on the host.'''
         from importlib import metadata

@@ -125,11 +125,11 @@ def test_every_required_member_is_published(server_client, key, token, finished)
                        # column alone cannot say whether the system or a
                        # person took the bytes. One is a closed enum a client
                        # branches on; the other is prose a person reads.
-                       "deleted_cause", "delete_reason",
+                       "deleted_cause", "deleted_reason",
                        "fetchable"):
             assert member in item, member
         assert item["digest"].startswith("sha256:")
-        assert "content_hash" not in item and "expires_at" not in item
+        assert "storage_key" not in item and "expires_at" not in item
         # An unauthenticated deployment never emits these: nothing here is
         # approval-gated, and an endpoint that always refuses is worse than an
         # absent one.
@@ -376,7 +376,7 @@ def test_a_deleted_artifact_is_a_404_not_a_403(server, server_client, key,
     item = listing(server_client, key, token, finished["id"])[0]
     server.config["SC_STORE"].execute(
         "UPDATE artifacts SET deleted_at = '2026-09-22T00:00:00.000Z', "
-        "deleted_by = ?, delete_reason = 'test' WHERE id = ?",
+        "deleted_by = ?, deleted_reason = 'test' WHERE id = ?",
         (call(server_client, key, "GET", "/v1/me", token).get_json()["id"],
          item["id"]))
 
@@ -398,7 +398,7 @@ def test_past_its_retention_and_not_yet_swept_is_still_fetchable(
     after it -- this used to answer *not fetchable* the moment the date passed.'''
     item = listing(server_client, key, token, finished["id"])[0]
     server.config["SC_STORE"].execute(
-        "UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+        "UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z' "
         "WHERE id = ?", (item["id"],))
 
     assert next(i for i in listing(server_client, key, token, finished["id"])
@@ -787,7 +787,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
     # Exactly what a second thread would attempt, having passed _exists.
     with pytest.raises(sqlite3.IntegrityError):
         store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
             "  location_id, storage_key, size_bytes, media_type, kind, "
             "  provenance) "
             "VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, 'application/gzip', "
@@ -811,7 +811,7 @@ def test_the_job_level_rows_are_protected_too(server, finished):
 
     with pytest.raises(sqlite3.IntegrityError):
         store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
             "  location_id, storage_key, size_bytes, media_type, kind, "
             "  provenance) "
             "VALUES (?, ?, NULL, NULL, 'sha256:x', ?, 'k', 1, 'text/plain', "
@@ -835,7 +835,7 @@ def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
 
     def insert(kind, seq, step=None):
         store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
             "  location_id, storage_key, size_bytes, media_type, kind, upload_seq, "
             "  provenance) VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, "
             "  'application/gzip', ?, ?, 'declared')",
@@ -1075,7 +1075,7 @@ def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
     put(server_client, grant, open(archive, "rb").read())
     submit(server_client, key, token, job["id"])
     kept, = _uploads(server, job["id"])
-    assert kept["content_hash"] == digest and kept["upload_seq"] == 1
+    assert kept["digest"] == digest and kept["upload_seq"] == 1
 
 
 def test_an_upload_refused_as_restricted_is_deleted_and_the_reason_kept(
@@ -1257,8 +1257,8 @@ def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
     here -- and never the device or an id (surface §17, §19).'''
     call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
 
-    reasons = {row["delete_reason"] for row in server.config["SC_STORE"].all(
-        "SELECT delete_reason FROM artifacts WHERE job_id = ?",
+    reasons = {row["deleted_reason"] for row in server.config["SC_STORE"].all(
+        "SELECT deleted_reason FROM artifacts WHERE job_id = ?",
         (finished["id"],))}
 
     assert len(reasons) == 1
@@ -1266,7 +1266,7 @@ def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
     assert said == "deleted by its owner"
     read = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}", token).get_json()
     # Set exactly when deleted_at is, and no deleted_cause on a job (D279).
-    assert read["delete_reason"] == said and "deleted_cause" not in read
+    assert read["deleted_reason"] == said and "deleted_cause" not in read
     # And never the account it acted as.
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     assert me not in said

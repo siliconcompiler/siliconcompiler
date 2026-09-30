@@ -185,7 +185,7 @@ def test_a_test_module_that_cannot_be_read_stops_the_work(site):
 
 def test_the_lists_are_what_the_code_reaches_and_everything_else_installed(site):
     '''🔴 Canonical names at canonical versions -- what the server's grammar
-    takes -- and never a `requires.python` name.'''
+    takes -- and never a `requested_versions.python` name.'''
     from importlib import metadata
 
     _distribution(site, "SCFake_Umi", "0.3.1", requires=["scfakebits"])
@@ -441,7 +441,7 @@ def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
     listed = {entry.split("==")[0] for entry in member["constraints"]}
     assert not listed & {"cocotb", "siliconcompiler", "scfake-helper", "scfakebits"}
     assert "python.env" in body["descriptor"]["needs"]
-    assert "cocotb" in body["descriptor"]["requires"]["python"]
+    assert "cocotb" in body["descriptor"]["requested_versions"]["python"]
 
     members = _uploaded(fake_v1)
     wheel = f"sc_collected_files/{environment.WHEELS}/scfake_helper-0.1.0-py3-none-any.whl"

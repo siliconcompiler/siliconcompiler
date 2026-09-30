@@ -151,11 +151,13 @@ def test_every_limit_is_a_base_unit(client):
     limits = client.get("/v1").get_json()["limits"]
 
     assert set(limits) == {
-        "max_job_nodes", "max_upload_bytes", "job_retention_days",
+        "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_archive_members", "max_archive_expanded_bytes",
         "max_download_bytes", "abandon_after_seconds"}
     assert all(isinstance(value, int) for value in limits.values())
+    # Seconds, like every other duration: thirty days.
+    assert limits["artifact_retention_seconds"] == 2592000
 
 
 def test_terms_url_is_absent_rather_than_null(client):

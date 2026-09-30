@@ -268,16 +268,16 @@ def _size(num_bytes) -> str:
 
 
 @blueprint.app_template_filter("digest")
-def _digest(content_hash) -> markupsafe.Markup:
-    """A content hash, short enough for a table and whole on hover.
+def _digest(digest) -> markupsafe.Markup:
+    """A digest, short enough for a table and whole on hover.
 
     The prefix and twelve hex digits tell two objects apart at a glance; the
     whole value is what a person compares against a file they hold, so it is
     one hover away -- and on the page that looks inside the object, in full.
     """
-    if not content_hash:
+    if not digest:
         return markupsafe.Markup('<span class="muted">\u2014</span>')
-    text = str(content_hash)
+    text = str(digest)
     algorithm, _, hexdigest = text.partition(":")
     short = f"{algorithm}:{hexdigest[:12]}\u2026" if hexdigest else text
     return markupsafe.Markup(

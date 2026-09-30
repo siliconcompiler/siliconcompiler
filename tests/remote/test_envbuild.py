@@ -949,7 +949,7 @@ def builder(server, answer):
 def submitted(client, key, token, job_archive, project,
               packages=("numpy==2.0.1",), jobname=None):
     archive, upload_digest, size = job_archive(project)
-    job = stage(client, key, token, archive, size, requires=wants("0.38.0"),
+    job = stage(client, key, token, archive, size, requested_versions=wants("0.38.0"),
                 python_packages={"requirements": list(packages),
                                  "constraints": ["scapy==2.5.0"]},
                 **({"jobname": jobname} if jobname else {}))
@@ -1064,7 +1064,7 @@ def test_the_jobs_wheels_are_handed_to_the_build(
     helper = make_wheel(tmp_path, "scfake-helper", "0.1.0")
     archive, upload_digest, size = job_archive(python_project, extra={
         f"{environment.wheels_path()}/{os.path.basename(helper)}": open(helper, "rb").read()})
-    job = stage(client, key, token, archive, size, requires=wants("0.38.0"))
+    job = stage(client, key, token, archive, size, requested_versions=wants("0.38.0"))
     assert submit(client, key, token, job["id"], upload_digest, size).status_code == 202
 
     assert until(lambda: fake.submitted)

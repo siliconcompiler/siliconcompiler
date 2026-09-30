@@ -128,7 +128,7 @@ class DispatchMixin:
             if self._row(job["id"])["state"] != "staging":
                 return False
             self._store.execute(
-                "UPDATE jobs SET manifest_flow = ?, manifest_nodes = ?, "
+                "UPDATE jobs SET manifest_flow = ?, manifest_node_count = ?, "
                 "  manifest_tools = ?, manifest_pdk = ?, "
                 "  scheduler_job_id = ?, image_id = ?, submitted_at = ? "
                 "WHERE id = ?",

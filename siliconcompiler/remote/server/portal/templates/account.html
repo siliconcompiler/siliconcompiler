@@ -20,7 +20,7 @@
 <h3>This month</h3>
 <div class="panel grid">
   <div><b>Compute</b><br>{{ usage.compute_seconds.used | duration }}</div>
-  <div><b>Jobs running now</b><br>{{ usage.jobs_active }}</div>
+  <div><b>Jobs running now</b><br>{{ usage.concurrent_jobs }}</div>
   <div><b>Stored</b><br>{{ usage.storage_bytes.used | size }}</div>
   <div><b>Resets</b><br><span class="muted">{{ usage.compute_seconds.resets_at | when }}</span></div>
 </div>

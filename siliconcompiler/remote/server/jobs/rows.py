@@ -91,7 +91,7 @@ class RowsMixin:
              job_id))
         self._store.execute(
             "INSERT INTO job_state_transitions "
-            "(job_id, from_state, to_state, actor_user_id, reason) VALUES (?, ?, ?, ?, ?)",
+            "(job_id, from_state, to_state, actor_id, reason) VALUES (?, ?, ?, ?, ?)",
             (job_id, from_state, to_state, actor, reason))
 
     def _phase(self, job_id: str, what: str) -> None:
@@ -129,7 +129,7 @@ class RowsMixin:
             "deleted_at": job["deleted_at"],
             # Set exactly when deleted_at is: every job deletion is a person's,
             # so a job carries no deleted_cause (D279).
-            "delete_reason": job["delete_reason"] if job["deleted_at"] else None,
+            "deleted_reason": job["deleted_reason"] if job["deleted_at"] else None,
             "error": _error(job["error_type"], self._why(job), job["error_members"])
             if job["state"] in ("failed", "rejected") else None,
         }
@@ -175,7 +175,8 @@ class RowsMixin:
 
         rows = self._store.all(
             'SELECT step, "index", state, started_at, finished_at, exit_code, error_type, '
-            'state_reason FROM job_nodes WHERE job_id = ? ORDER BY step, "index"',
+            'error_members, state_reason FROM job_nodes WHERE job_id = ? '
+            'ORDER BY step, "index"',
             (job["id"],))
 
         if nodes:
@@ -189,7 +190,9 @@ class RowsMixin:
                     "started_at": row["started_at"],
                     "finished_at": row["finished_at"],
                     "exit_code": row["exit_code"],
-                    "error_type": row["error_type"],
+                    # The job's error's shape: null unless the node failed
+                    # (surface §17, *A node's `error`*).
+                    "error": _error(row["error_type"], members=row["error_members"]),
                 }
                 if row["state_reason"] and not row["error_type"]:
                     # Only a cancel writes a node's `state_reason`: the

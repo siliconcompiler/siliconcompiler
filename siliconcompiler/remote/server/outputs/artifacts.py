@@ -130,7 +130,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
         return 0
 
     location = config["storage_location_id"]
-    floor = config.limits["job_retention_days"]
+    floor = config.limits["artifact_retention_seconds"]
     written = 0
 
     # 🔴 Every read below is confined to the job's own tree (see `confine`):
@@ -205,15 +205,15 @@ def record_upload(store, storage, config, job, upload: Path, digest: str,
     os.replace(upload, target)
 
     store.execute(
-        'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+        'INSERT INTO artifacts (id, job_id, step, "index", digest, '
         "  location_id, storage_key, size_bytes, media_type, kind, upload_seq, "
-        "  retention_until, provenance) "
+        "  retained_until, provenance) "
         "VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, 'application/gzip', 'input', "
         "  (SELECT coalesce(max(upload_seq), 0) + 1 FROM artifacts WHERE job_id = ?), "
         "  ?, 'declared')",
         (artifact_id, job["id"], digest, config["storage_location_id"],
          f"{job['id']}/{artifact_id}", size, job["id"],
-         _retention(store, "input", config.limits["job_retention_days"])))
+         _retention(store, "input", config.limits["artifact_retention_seconds"])))
     return artifact_id
 
 
@@ -264,7 +264,7 @@ def collect(store, storage, config, job, build_root) -> int:
     root = Path(build_root) / job["design"] / job["jobname"]
 
     location = config["storage_location_id"]
-    floor = config.limits["job_retention_days"]
+    floor = config.limits["artifact_retention_seconds"]
     written = 0
 
     # 🔴 Before the build directory is checked for, and that ordering is the
@@ -304,7 +304,7 @@ def collect_run_log(store, storage, config, job, build_root) -> int:
     if account is None:
         return 0
     return _index(store, storage, job, config["storage_location_id"],
-                  config.limits["job_retention_days"], "logs", None, None, account,
+                  config.limits["artifact_retention_seconds"], "logs", None, None, account,
                   "text/plain", build_root)
 
 
@@ -503,9 +503,9 @@ def _record(store, job, artifact_id, location, floor, kind, step, index,
     '''
     try:
         store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", content_hash, '
+            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
             "  location_id, storage_key, size_bytes, media_type, kind, "
-            "  retention_until, provenance) "
+            "  retained_until, provenance) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'declared')",
             (artifact_id, job["id"], step, index, _digest(stored), location,
              f"{job['id']}/{artifact_id}", stored.stat().st_size, media_type,
@@ -530,19 +530,21 @@ def _digest(path: Path) -> str:
     return f"sha256:{digest.hexdigest()}"
 
 
-def _retention(store, kind: str, floor_days: int) -> str:
+def _retention(store, kind: str, floor_seconds: int) -> str:
     '''When this object ages out.
 
-    `limits.job_retention_days` is the floor EVERY artifact gets and not the
-    whole answer: retention is per kind, so a manifest and the outputs beside it
-    go at different times. A kind with no number of its own takes the floor.
+    `limits.artifact_retention_seconds` is the floor EVERY artifact gets and
+    not the whole answer: retention is per kind, so a manifest and the outputs
+    beside it go at different times. A kind with no number of its own takes the
+    floor.
     '''
     from datetime import datetime, timedelta, timezone
 
-    row = store.one("SELECT retention_days FROM artifact_kinds WHERE kind = ?", (kind,))
-    days = max(floor_days, (row["retention_days"] or 0) if row else 0)
+    row = store.one("SELECT retention_seconds FROM artifact_kinds WHERE kind = ?",
+                    (kind,))
+    seconds = max(floor_seconds, (row["retention_seconds"] or 0) if row else 0)
 
-    when = datetime.now(timezone.utc) + timedelta(days=days)
+    when = datetime.now(timezone.utc) + timedelta(seconds=seconds)
     return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
@@ -643,11 +645,11 @@ def wire(row, surface_allows: bool = True,
         "kind": row["kind"],
         "media_type": row["media_type"],
         "size_bytes": row["size_bytes"],
-        "digest": row["content_hash"],
+        "digest": row["digest"],
         "created_at": row["created_at"],
         # Kept at least until then; null means no scheduled expiry, which is
         # what a legal hold is.
-        "retained_until": None if row["legal_hold_at"] else row["retention_until"],
+        "retained_until": None if row["legal_hold_at"] else row["retained_until"],
         # non-null means the bytes are gone and the row is not.
         "deleted_at": row["deleted_at"],
         # 🔴 **Two members, because they are two kinds of thing.** Without
@@ -658,10 +660,10 @@ def wire(row, surface_allows: bool = True,
         # this*.
         #
         # `deleted_cause` is a CLOSED enum and is what a client branches on.
-        # `delete_reason` is prose and is what a person reads; it is named for
+        # `deleted_reason` is prose and is what a person reads; it is named for
         # the column it comes from, because it is the same thing.
         "deleted_cause": cause(row),
-        "delete_reason": row["delete_reason"],
+        "deleted_reason": row["deleted_reason"],
         "fetchable": fetchable(row, surface_allows, members),
         # This profile takes no access requests, so there is never an
         # undecided one to name -- but the member is REQUIRED (surface D177).

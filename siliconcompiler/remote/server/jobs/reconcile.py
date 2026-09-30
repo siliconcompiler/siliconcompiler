@@ -9,7 +9,8 @@ import json
 
 from siliconcompiler.remote.server.errors import TYPE_BASE
 from siliconcompiler.remote.server.jobs.common import (
-    SCHEDULER_QUERY_FLOOR, TERMINAL_NODE_STATES, _after, _ago, _node_metrics, logger)
+    SCHEDULER_QUERY_FLOOR, TERMINAL_NODE_STATES, _after, _ago, _members_json, _node_error,
+    _node_metrics, logger)
 from siliconcompiler.remote.server.outputs import artifacts
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.state.store import now
@@ -65,7 +66,7 @@ class ReconcileMixin:
                 self._index_node(job, step, index)
 
             # 🔴 A published field with no writer is a published field that
-            # lies. `error_type` was null on every node this server has ever
+            # lies. A node's error was null on every node this server had ever
             # run, including the ones that failed, so a client could not tell
             # *this node is why* from *this node is fine* without re-deriving
             # it from the state it already had. `run-failed` is registered
@@ -73,18 +74,18 @@ class ReconcileMixin:
             # an HTTP response and only ever a `type` on an error object.
             # A node whose image would not pull was interrupted, not failed
             # (implementation-notes §10): the runner says so from the
-            # runtime's own pull error.
-            error_type = (f"{TYPE_BASE}/run-interrupted" if node.get("interrupted")
-                          else f"{TYPE_BASE}/run-failed") if state == "failed" else None
+            # runtime's own pull error, and `detail` names the image, or the
+            # limit a node ran into.
+            error_type, error_members = _node_error(state, node)
 
             self._store.execute(
                 'UPDATE job_nodes SET state = ?, started_at = ?, finished_at = ?, '
-                '  exit_code = ?, error_type = ? '
+                '  exit_code = ?, error_type = ?, error_members = ? '
                 'WHERE job_id = ? AND step = ? AND "index" = ? '
                 "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
                 (state, node.get("started_at"), node.get("finished_at"),
                  None if state == "cancelled" else runspec.exit_code(node.get("exit_code")),
-                 error_type, job["id"], step, index))
+                 error_type, error_members, job["id"], step, index))
 
             if state in TERMINAL_NODE_STATES and state != "completed":
                 # Indexed as the node finishes rather than as the job does, so
@@ -382,9 +383,11 @@ class ReconcileMixin:
             # where the work stopped. `failed` is what *started and did not
             # finish* means, and the environment ended it: `run-interrupted`.
             self._store.execute(
-                "UPDATE job_nodes SET state = 'failed', error_type = ? "
+                "UPDATE job_nodes SET state = 'failed', error_type = ?, error_members = ? "
                 "WHERE job_id = ? AND state = 'running'",
-                (f"{TYPE_BASE}/run-interrupted", job["id"]))
+                (f"{TYPE_BASE}/run-interrupted",
+                 _members_json({"detail": "the run ended while this node was running, "
+                                          "and never recorded how"}), job["id"]))
 
             # Everything the run never reached. These really did end before
             # they started.

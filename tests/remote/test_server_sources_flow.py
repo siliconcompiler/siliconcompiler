@@ -424,10 +424,10 @@ def test_each_upload_is_kept_as_its_own_input(
     submit(server_client, key, token, job["id"], digest, size)
 
     uploads = server.config["SC_STORE"].all(
-        "SELECT content_hash, size_bytes FROM artifacts WHERE job_id = ? "
+        "SELECT digest, size_bytes FROM artifacts WHERE job_id = ? "
         "AND kind = 'input' AND step IS NULL ORDER BY created_at, id", (job["id"],))
     assert len(uploads) == 2
-    assert (uploads[1]["content_hash"], uploads[1]["size_bytes"]) == (digest, size)
+    assert (uploads[1]["digest"], uploads[1]["size_bytes"]) == (digest, size)
 
 
 ###########################

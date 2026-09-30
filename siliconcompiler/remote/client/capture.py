@@ -19,7 +19,7 @@ while staging*):
   beside it -- sent as collected files in the test's collected folder, keeping
   their names. Never installed, so none of it runs at build time.
 
-🔴 **What the job's `requires.python` names is left out of both lists.**
+🔴 **What the job's `requested_versions.python` names is left out of both lists.**
 SiliconCompiler and what its own process needs for the node, cocotb for a
 cocotb task, come with the image the job resolves to, and listing any of them
 would put a second copy on the tool's path.
@@ -219,7 +219,7 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
     - **constraints**: every other distribution installed here, at its
       version.
 
-    ``provided`` is the job's `requires.python` names -- SiliconCompiler among
+    ``provided`` is the job's `requested_versions.python` names -- SiliconCompiler among
     them -- which the image holds. Every version is in its canonical form, so
     each entry is one the server's grammar takes; a constraint whose version
     is not PEP 440 is left out, and a requirement whose version is not stops

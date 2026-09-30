@@ -64,7 +64,7 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
 
     rows = artifact_rows(server, job["id"])
     assert rows
-    store.execute("UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+    store.execute("UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z' "
                   "WHERE job_id = ?", (job["id"],))
 
     assert sweep(server)["artifacts"] > 0
@@ -77,7 +77,7 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
         # half that never reaches a client: it names a user.
         assert row["deleted_by"] is None
         # Prose, and only where a person deleted it: the cause says expired.
-        assert row["delete_reason"] is None
+        assert row["deleted_reason"] is None
         assert not storage.artifact_path(row["storage_key"]).exists()
 
     # And the endpoint still answers, with fetchable false rather than a 404.
@@ -87,7 +87,7 @@ def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
     # 🔴 What a client BRANCHES on is the enum; the prose is what a person
     # reads. NULL deleted_by is the reaper, which is `expired`.
     assert all(item["deleted_cause"] == "expired" for item in listing)
-    assert all(item["delete_reason"] is None for item in listing)
+    assert all(item["deleted_reason"] is None for item in listing)
     assert all(item["retained_until"] < "2021" for item in listing)
 
 
@@ -102,7 +102,7 @@ def test_the_reaper_runs_twice_and_takes_nothing_the_second_time(
     '''
     job = ran(server, server_client, key, token, job_archive)
     server.config["SC_STORE"].execute(
-        "UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+        "UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z' "
         "WHERE job_id = ?", (job["id"],))
 
     assert sweep(server)["artifacts"] > 0
@@ -115,7 +115,7 @@ def _second_row_for(store, row, location=None):
     import uuid
 
     values = dict(row)
-    values.update(id=str(uuid.uuid4()), upload_seq=2, retention_until=None,
+    values.update(id=str(uuid.uuid4()), upload_seq=2, retained_until=None,
                   location_id=location or row["location_id"])
     columns = ", ".join(f'"{name}"' for name in values)
     store.execute(f"INSERT INTO artifacts ({columns}) VALUES "
@@ -136,7 +136,7 @@ def test_bytes_go_only_when_no_live_row_names_the_object(
         store.execute("INSERT INTO storage_locations (id, uri_base, writable) "
                       "VALUES ('archive-2026', 'file:///elsewhere/', 0)")
     _second_row_for(store, upload, "archive-2026" if elsewhere else None)
-    store.execute("UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+    store.execute("UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z' "
                   "WHERE id = ?", (upload["id"],))
 
     sweep(server)
@@ -154,7 +154,7 @@ def test_an_artifact_on_legal_hold_is_never_reaped(
     store = server.config["SC_STORE"]
 
     store.execute(
-        "UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z', "
+        "UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z', "
         "  legal_hold_at = '2026-01-01T00:00:00.000Z', legal_hold_by = "
         "  (SELECT user_id FROM jobs WHERE id = ?), legal_hold_reason = 'a case' "
         "WHERE job_id = ?", (job["id"], job["id"]))
@@ -195,7 +195,7 @@ def test_a_build_tree_goes_only_after_everything_it_produced(
     assert root.is_dir()
 
     server.config["SC_STORE"].execute(
-        "UPDATE artifacts SET retention_until = '2020-01-01T00:00:00.000Z' "
+        "UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z' "
         "WHERE job_id = ?", (job["id"],))
     sweep(server)
 

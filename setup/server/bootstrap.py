@@ -150,7 +150,7 @@ AS_DISTRIBUTION = {"slang": "pyslang", "graphviz": "graphviz"}
 
 # Python distributions SiliconCompiler's own process on a node needs for a
 # task, which the images carry at SiliconCompiler's range -- both install its
-# `cocotb` extra -- so a cocotb node's `requires.python` resolves.
+# `cocotb` extra -- so a cocotb node's `requested_versions.python` resolves.
 FRAMEWORK = ("cocotb",)
 
 # 🔴 What the tools image MUST hold. Everything in the catalogue is probed
@@ -751,7 +751,7 @@ def register(version: str, tools_digest: str, runtime_digest: str,
     contains, runtime_contains = [], []
 
     # 🔴 A framework distribution -- cocotb -- is named in a cocotb node's
-    # `requires.python` at SiliconCompiler's range, and the image's version
+    # `requested_versions.python` at SiliconCompiler's range, and the image's version
     # runs. Each image declares it where the probe found it.
     for name in FRAMEWORK:
         registry("add-software", name, "-kind", "python")

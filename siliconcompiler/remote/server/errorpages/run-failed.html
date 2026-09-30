@@ -28,7 +28,7 @@
 <ol>
   <li>It will fail the same way: change something before you resubmit.</li>
   <li>Where <code>detail</code> names a time or memory limit, the fix is a smaller run or a larger limit.</li>
-  <li>Otherwise look at the nodes: the one whose <code>error_type</code> is this, and whose <code>exit_code</code> is non-zero, is where it happened. Read that node&rsquo;s log. Where no node failed, the job&rsquo;s own log says why the run stopped.</li>
+  <li>Otherwise look at the nodes: the one whose <code>error.type</code> is this, and whose <code>exit_code</code> is non-zero, is where it happened. Its own <code>error.detail</code> says what the server knows, and its log says the rest. Where no node failed, the job&rsquo;s own log says why the run stopped.</li>
 </ol>
 </div>
 
@@ -51,7 +51,7 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
-    <td>As the job&rsquo;s <code>error.type</code>, and as <code>error_type</code> on each failed node.</td></tr>
+    <td>As the job&rsquo;s <code>error.type</code>, and as the <code>error.type</code> of each failed node, whose <code>detail</code> names the limit it ran into.</td></tr>
 </tbody>
 </table>
 

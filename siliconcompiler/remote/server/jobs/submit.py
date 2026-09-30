@@ -80,7 +80,7 @@ class SubmitMixin:
 
         with self._store.transaction():
             self._store.execute(
-                "UPDATE jobs SET upload_key = ?, upload_location_id = ?, grant_bytes = ?, "
+                "UPDATE jobs SET upload_storage_key = ?, upload_location_id = ?, grant_bytes = ?, "
                 "  grant_digest = ?, upload_grant_expires_at = ?, upload_revoked_at = NULL "
                 "WHERE id = ?",
                 (job["id"], self._config["storage_location_id"], size, digest,
@@ -204,7 +204,7 @@ class SubmitMixin:
                 self._storage.upload_path(job["id"]), reported_digest, size)
             self._store.execute(
                 "UPDATE jobs SET archives_bytes = archives_bytes + ?, grant_bytes = NULL, "
-                "  grant_digest = NULL, upload_digest = ?, upload_bytes = ?, "
+                "  grant_digest = NULL, upload_digest = ?, upload_size_bytes = ?, "
                 "  unpack_pending = 1, submit_idempotency_key = ?, submit_key_at = ?, "
                 "  submit_reply = NULL WHERE id = ?",
                 (size, digest, size, idempotency_key,
@@ -374,7 +374,7 @@ class SubmitMixin:
         '''The job's wheels, under `sc_collected_files/python/`, every archive
         (surface *Uploaded wheels*): each pure and well formed, one per
         distribution, none for a distribution `python_packages` or
-        `requires.python` names -- but the one this job was sent back for,
+        `requested_versions.python` names -- but the one this job was sent back for,
         which replaces its listed entry -- and none at all where this
         deployment does not install a job's Python packages.
 
@@ -415,7 +415,7 @@ class SubmitMixin:
                              f"{wheel.name}, and a job uploads one per distribution")
             seen[wheel.name] = path.name
             if wheel.name in framework:
-                raise refuse(f"{name} is {wheel.name}, which the job's requires.python "
+                raise refuse(f"{name} is {wheel.name}, which the job's requested_versions.python "
                              "names: the image holds it, and it is never installed")
             if wheel.name in listed and wheel.name not in answered:
                 raise refuse(f"{name} is {wheel.name}, which python_packages also lists: "

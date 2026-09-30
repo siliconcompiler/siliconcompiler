@@ -155,7 +155,7 @@ def test_a_compiled_package_asked_for_cancels_naming_its_file(rig, site, monkeyp
 
     monkeypatch.setattr(envinstall, "install", absent)
     _distribution(site, "scfakec", "1.0.0", files={"_c.so": "\x7fELF"})
-    # What the job's `requires.python` names for a cocotb task, held by the
+    # What the job's `requested_versions.python` names for a cocotb task, held by the
     # server's own Python as it is by this one: the server runs nodes here.
     _distribution(site, "cocotb", "2.1.0")
     url, app, client = rig

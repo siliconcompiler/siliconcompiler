@@ -22,10 +22,10 @@ def job_body(state="running", nodes=None, terminal=None, **extra):
     nodes = nodes if nodes is not None else [
         {"step": "stepone", "index": "0", "state": "running", "terminal": False,
          "started_at": None, "finished_at": None, "exit_code": None,
-         "error_type": None},
+         "error": None},
         {"step": "steptwo", "index": "0", "state": "pending", "terminal": False,
          "started_at": None, "finished_at": None, "exit_code": None,
-         "error_type": None},
+         "error": None},
     ]
     if terminal is None:
         terminal = state in ("completed", "failed", "cancelled", "rejected",
@@ -156,8 +156,8 @@ def test_both_posts_carry_an_idempotency_key(fake_v1, run):
 
 def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     '''🔴 Authoritative at the top, advisory under `descriptor` -- and no
-    `versions` and no `resources`: `requires` pins what this machine runs, and
-    the grant carries the size.'''
+    `versions` and no `resources`: `requested_versions` pins what this machine runs,
+    and the grant carries the size.'''
     fake_v1.route(responses.POST, "jobs", job_body("created"), status=201)
     fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
                   {"method": "PUT", "url": "https://storage.test/put",
@@ -176,9 +176,12 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     descriptor = body["descriptor"]
     assert "versions" not in descriptor and "resources" not in descriptor
     # Every value a list, and the framework pinned exactly.
-    pins = descriptor["requires"]["python"]["siliconcompiler"]
+    pins = descriptor["requested_versions"]["python"]["siliconcompiler"]
     assert isinstance(pins, list) and pins[0].startswith("==")
-    assert descriptor["flow"]["nodes"] == 2
+    # The flowgraph's name, as the job object carries it, and its node count
+    # beside it (surface D289).
+    assert isinstance(descriptor["flow"], str) and descriptor["flow"]
+    assert descriptor["node_count"] == 2
     # Nothing computes a run hash yet, so nothing claims one -- at the top,
     # where it would go, or in the descriptor.
     assert "run_hash" not in body and "run_hash" not in descriptor
@@ -218,7 +221,7 @@ def test_a_hash_goes_only_to_a_server_that_reuses_jobs(fake_v1, run, capabilitie
     assert not [call for call in fake_v1.calls if "upload-grant" in call.request.path_url]
 
 
-def test_requires_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
+def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     '''🔴 Exactly: `siliconcompiler`, the distribution behind each executed
     node's task class, and -- where they apply -- a framework distribution,
     an installed-package dataroot the server supplies at this version, and a
@@ -233,7 +236,7 @@ def test_requires_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     project = ASIC(gcd_design)
     skywater130_demo(project)
 
-    pins = RemoteRun(project, logged_in)._requires_python()
+    pins = RemoteRun(project, logged_in)._requested_python()
 
     assert list(pins) == ["siliconcompiler"]
     assert version("lambdapdk")          # there to be left out
@@ -265,7 +268,7 @@ def test_an_installed_package_the_server_lists_at_this_version_is_named(
 
     run = RemoteRun(nop_project, logged_in)
 
-    assert run._requires_python()["scfakedata"] == ["==1.0.0"]
+    assert run._requested_python()["scfakedata"] == ["==1.0.0"]
     assert not run._uploaded_packages()
 
 
@@ -281,7 +284,7 @@ def test_an_installed_package_the_server_does_not_list_here_uploads(
 
     run = RemoteRun(nop_project, logged_in)
 
-    assert "scfakedata" not in run._requires_python()
+    assert "scfakedata" not in run._requested_python()
     assert run._uploaded_packages() == {installed_data}
 
 
@@ -307,7 +310,7 @@ def test_a_framework_distribution_carries_the_range_siliconcompiler_declares(
     declared = next((str(Requirement(line).specifier)
                      for line in metadata.requires("siliconcompiler") or []
                      if Requirement(line).name == "scfakebits"), None)
-    pins = RemoteRun(project, logged_in)._requires_python()
+    pins = RemoteRun(project, logged_in)._requested_python()
 
     # scfakebits is RunsATestbench's framework distribution; nothing declares
     # a range for it, so it is pinned where installed and left out where not.
@@ -338,7 +341,7 @@ def test_a_cocotb_node_names_cocotb_even_where_its_setup_cannot_run(
     declared = [str(Requirement(line).specifier)
                 for line in metadata.requires("siliconcompiler") or []
                 if Requirement(line).name == "cocotb"]
-    assert RemoteRun(project, logged_in)._requires_python()["cocotb"] == declared
+    assert RemoteRun(project, logged_in)._requested_python()["cocotb"] == declared
 
 
 def test_cocotbs_range_is_siliconcompilers():
@@ -416,10 +419,10 @@ def test_node_states_are_recorded(fake_v1, run, nop_project):
         "completed",
         nodes=[{"step": "stepone", "index": "0", "state": "completed",
                 "terminal": True, "started_at": None, "finished_at": None,
-                "exit_code": 0, "error_type": None},
+                "exit_code": 0, "error": None},
                {"step": "steptwo", "index": "0", "state": "skipped",
                 "terminal": True, "started_at": None, "finished_at": None,
-                "exit_code": None, "error_type": None}]))
+                "exit_code": None, "error": None}]))
 
     run._poll("01J9-job")
 
@@ -757,7 +760,7 @@ def _node(step, state, **extra):
     node = {"step": step, "index": "0", "state": state,
             "terminal": state in ("completed", "failed", "skipped", "cancelled"),
             "started_at": None, "finished_at": None, "exit_code": None,
-            "error_type": None}
+            "error": None}
     node.update(extra)
     return node
 
@@ -785,6 +788,29 @@ def test_a_failed_run_explains_itself_and_still_fetches(fake_v1, run, caplog):
     assert "Read the failing node's log" in caplog.text
     # It asked for the results rather than giving up on them.
     assert any("artifacts" in call.request.path_url for call in fake_v1.calls)
+
+
+def test_a_failed_node_says_why(fake_v1, run, caplog):
+    '''A node's `error` has the job's shape (surface §17): its `detail` names
+    the limit it ran into, or the image that would not pull, and is printed
+    beside the node, where nothing was before.'''
+    run_failed = "https://siliconcompiler.com/server-errors/run-failed"
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "failed",
+        nodes=[_node("stepone", "failed",
+                     error={"type": run_failed, "title": "The run failed",
+                            "detail": "the node exceeded its time limit"}),
+               _node("steptwo", "cancelled")],
+        error={"type": run_failed, "title": "The run failed",
+               "detail": "stepone/0 exceeded its time limit"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+
+    with caplog.at_level("INFO"):
+        with pytest.raises(RemoteError):
+            run._poll("01J9-job")
+
+    assert "stepone/0 failed: the node exceeded its time limit" in caplog.text
+    assert "steptwo/0 failed" not in caplog.text
 
 
 def test_a_run_that_failed_with_no_failed_node_says_so(fake_v1, run, caplog):
@@ -1961,7 +1987,7 @@ def test_the_session_is_shown_from_me_and_nothing_is_refreshed(logged_in, fake_v
                     "device_id": "dev-1", "access_expires_at": "2026-09-29T10:15:00.000Z",
                     "refresh_expires_at": "2026-10-06T10:00:00.000Z",
                     "session_expires_at": "2026-10-11T10:00:00.000Z"},
-        "usage": {"jobs_active": 2,
+        "usage": {"concurrent_jobs": 2,
                   "compute_seconds": {"used": 3600, "total": 7200, "limit": None,
                                       "window": "calendar_month", "resets_at": "x"},
                   "storage_bytes": {"used": 2048, "total": None, "limit": None,
@@ -1986,7 +2012,7 @@ def test_a_ci_session_says_it_cannot_refresh(logged_in, caplog):
         "session": {"kind": "ci", "scope": "jobs:read", "device_id": None,
                     "access_expires_at": "a", "refresh_expires_at": None,
                     "session_expires_at": "s"},
-        "usage": {"jobs_active": 0}})
+        "usage": {"concurrent_jobs": 0}})
 
     assert "Session: ci\n" in caplog.text or caplog.text.count("Session: ci") == 1
     assert "on device" not in caplog.text

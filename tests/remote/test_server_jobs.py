@@ -73,7 +73,7 @@ def jobs(server):
 
 
 def wants(sc=None, tools=None):
-    """A bucketed `requires`, as the descriptor carries it: every value a list.
+    """A bucketed `requested_versions`, as the descriptor carries it: every value a list.
 
     🔴 Two buckets because they resolve differently: the whole python set has
     to be held by ONE image, and a tool is satisfied per node.
@@ -87,7 +87,7 @@ def wants(sc=None, tools=None):
 
 
 # What goes under `descriptor`; anything else is a top-level member.
-DESCRIPTOR = ("flow", "needs", "requires", "sources")
+DESCRIPTOR = ("flow", "node_count", "needs", "requested_versions", "sources")
 
 
 def create(client, key, token, **body):
@@ -232,7 +232,7 @@ def test_a_project_is_refused_rather_than_ignored(server_client, key, token):
 
 
 def test_the_descriptor_refuses_before_the_bytes_move(server_client, key, token):
-    response = create(server_client, key, token, flow={"nodes": 10 ** 9})
+    response = create(server_client, key, token, flow="asicflow", node_count=10 ** 9)
 
     assert response.status_code == 403
     assert slug(response) == "node-limit-exceeded"
@@ -253,15 +253,21 @@ def test_an_upload_larger_than_the_ceiling_is_refused_at_the_grant(
 
 
 @pytest.mark.parametrize("member", [
-    {"versions": {"python": {}}},                      # gone: `requires` pins instead
+    {"versions": {"python": {}}},                      # gone: `requested_versions` pins
     {"resources": {"upload_bytes": 10}},               # gone: the grant's `bytes`
     {"descriptor": {"resources": {"upload_bytes": 10}}},
-    {"descriptor": {"flow": {"name": "f", "tools": ["yosys"]}}},   # gone: requires.tools
+    {"descriptor": {"flow": {"name": "f", "tools": ["yosys"]}}},   # gone: a flow object
+    # The names before the consistency pass (surface D289): no old name is taken
+    # beside its new one, since that would be a second spelling kept for ever.
+    {"descriptor": {"requires": {"python": {}}}},      # now `requested_versions`
+    {"descriptor": {"flow": {"name": "asicflow", "nodes": 3}}},   # now `flow`, `node_count`
+    {"descriptor": {"node_count": "3"}},
     {"extra": 1},
 ])
 def test_an_unknown_member_is_refused_never_ignored(server_client, key, token, member):
     '''🔴 Strict on requests: a misspelled optional member would otherwise be
-    a check the caller believes they asked for.'''
+    a check the caller believes they asked for, and a member of the wrong shape
+    one it cannot have.'''
     response = create(server_client, key, token, **member)
 
     assert response.status_code == 400
@@ -310,9 +316,9 @@ def test_a_requirement_is_always_a_list(server_client, key, token):
     '''A bare string is refused: SiliconCompiler's own requirement is a list
     of alternatives, one per task.'''
     bare = create(server_client, key, token,
-                  requires={"python": {"siliconcompiler": "==0.38.0"}, "tools": {}})
+                  requested_versions={"python": {"siliconcompiler": "==0.38.0"}, "tools": {}})
     listed = create(server_client, key, token, jobname="job1",
-                    requires={"python": {}, "tools": {"yosys": []}})
+                    requested_versions={"python": {}, "tools": {"yosys": []}})
 
     assert bare.status_code == 400 and "list" in bare.get_json()["detail"]
     assert listed.status_code == 201
@@ -365,7 +371,7 @@ def test_submit_takes_the_digest_and_nothing_else(server_client, key, token, job
 def test_a_sparse_descriptor_is_never_refused_for_being_sparse(server_client, key, token):
     '''No field is required. The server checks whatever is present and skips
     the check a missing field would have answered.'''
-    assert create(server_client, key, token, flow={}).status_code == 201
+    assert create(server_client, key, token, descriptor={}).status_code == 201
 
 
 def test_pending_uploads_is_a_ceiling(server_client, key, token, server):
@@ -887,7 +893,7 @@ def test_the_job_object_carries_every_required_member(server_client, key, token)
     for member in ("id", "state", "terminal", "transitions", "design",
                    "jobname", "flow", "owner", "project", "created_at",
                    "submitted_at", "started_at", "finished_at", "archived_at",
-                   "deleted_at", "delete_reason", "error", "nodes", "progress"):
+                   "deleted_at", "deleted_reason", "error", "nodes", "progress"):
         assert member in body, member
     # 🔴 `transitions` in place of `state_changed_at` (D278), never empty, and
     # no `deleted_cause`: every job deletion is a person's (D279).
@@ -1410,7 +1416,7 @@ def test_submit_records_the_image_each_node_ran_in(
         job_archive, container_dispatcher):
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
 
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
@@ -1430,7 +1436,7 @@ def test_the_node_is_told_a_digest_and_never_a_tag(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = container_dispatcher.submitted[0][2]
@@ -1490,7 +1496,7 @@ def test_the_job_publishes_the_versions_the_server_resolved(
     server chose."""
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants(">=0.38,<0.39"))
+                requested_versions=wants(">=0.38,<0.39"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
@@ -1520,7 +1526,7 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
     """✅ Resolution needs the declared versions and the registry, not the
     uploaded bytes -- so it happens before the upload, where it is free."""
     response = create(container_client, key, container_token,
-                      requires=wants(">=0.40"))
+                      requested_versions=wants(">=0.40"))
 
     assert response.status_code == 422
     assert slug(response) == "software-unavailable"
@@ -1530,7 +1536,7 @@ def test_a_range_no_image_satisfies_is_refused_at_create(
 def test_a_range_the_registry_can_serve_is_accepted_at_create(
         container_server, container_client, key, container_token):
     assert create(container_client, key, container_token,
-                  requires=wants(">=0.38,<0.39")).status_code == 201
+                  requested_versions=wants(">=0.38,<0.39")).status_code == 201
 
 
 def test_a_bare_version_is_still_an_exact_pin(container_server,
@@ -1538,9 +1544,9 @@ def test_a_bare_version_is_still_an_exact_pin(container_server,
                                               container_token):
     """⚠️ It is what every client sent before the wire carried ranges."""
     assert create(container_client, key, container_token,
-                  requires=wants("0.38.0")).status_code == 201
+                  requested_versions=wants("0.38.0")).status_code == 201
     assert create(container_client, key, container_token,
-                  requires=wants("0.38.1")).status_code == 422
+                  requested_versions=wants("0.38.1")).status_code == 422
 
 
 def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
@@ -1560,7 +1566,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
                           operator(store))
 
     response = create(container_client, key, container_token,
-                      requires=wants(tools={"magic": ">=8.0"}))
+                      requested_versions=wants(tools={"magic": ">=8.0"}))
 
     # 🔴 Software no image holds, not skew: `version-skew` is the client's own
     # SiliconCompiler, which cannot run here (surface §7).
@@ -1763,7 +1769,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = fake.submitted[0][2]
@@ -1849,7 +1855,7 @@ def test_a_container_job_cannot_read_the_signing_key_or_the_store(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     manifest = fake.submitted[0][2]
@@ -1902,7 +1908,7 @@ def test_every_directory_a_job_bundle_binds_exists(
 
     archive, upload_digest, size = job_archive()
     job = stage(container_client, key, container_token, archive, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], upload_digest, size)
 
     import json
@@ -2008,7 +2014,7 @@ def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
     assert client.get("/v1").get_json()["software"]["python"]["siliconcompiler"] == \
         [images.own_version()]
 
-    refused = create(client, key, token, requires=wants("99.0.0"))
+    refused = create(client, key, token, requested_versions=wants("99.0.0"))
     assert (refused.status_code, slug(refused)) == (422, "software-unavailable")
     assert refused.get_json()["unresolved"][0]["name"] == "siliconcompiler"
 
@@ -2334,8 +2340,8 @@ def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
 
 def test_a_failed_node_carries_the_type_that_says_so(
         server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 `error_type` is published on every node and was null on every node
-    this server had ever run, the failed ones included -- so a client could not
+    '''🔴 A node's `error` is published on every node and was null on every
+    node this server had ever run, the failed ones included -- so a client could not
     tell *this node is why* from *this node is fine* except by re-deriving it
     from the state it already had.'''
     from siliconcompiler.remote.server.running import runspec
@@ -2354,10 +2360,14 @@ def test_a_failed_node_carries_the_type_that_says_so(
     nodes = {(n["step"], n["index"]): n for n in call(
         server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()["nodes"]}
 
-    assert nodes[("stepone", "0")]["error_type"].endswith("run-failed")
+    error = nodes[("stepone", "0")]["error"]
+    assert error["type"].endswith("run-failed")
+    # The job's shape, `detail` included: what a plain failure can say is its
+    # exit status, and where the tool said why.
+    assert error["detail"] == "the node's task exited with status 1; its log says why"
     # And nothing on the node that never ran: it did not fail, the job ended
     # before it started.
-    assert nodes[("steptwo", "0")]["error_type"] is None
+    assert nodes[("steptwo", "0")]["error"] is None
 
 
 ###########################
@@ -2918,7 +2928,8 @@ def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
     assert "stepone/0 exceeded its time limit" in read["error"]["detail"]
     nodes = {node["step"]: node for node in read["nodes"]}
     assert nodes["stepone"]["exit_code"] == 137
-    assert nodes["stepone"]["error_type"].startswith("https://")
+    assert nodes["stepone"]["error"]["type"].startswith("https://")
+    assert nodes["stepone"]["error"]["detail"]
     assert nodes["steptwo"]["state"] == "cancelled"
 
 
@@ -2939,7 +2950,11 @@ def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
     assert read["error"]["type"].endswith("/run-interrupted")
     assert "its image ghcr.io/x/sc@sha256:aa could not be pulled" in read["error"]["detail"]
     nodes = {node["step"]: node for node in read["nodes"]}
-    assert nodes["stepone"]["error_type"].endswith("/run-interrupted")
+    # The node's own error says the same of it, as the job's shape.
+    assert nodes["stepone"]["error"]["type"].endswith("/run-interrupted")
+    assert nodes["stepone"]["error"]["detail"] == \
+        "the node could not start: its image ghcr.io/x/sc@sha256:aa could not be pulled"
+    assert nodes["steptwo"]["error"] is None
 
 
 def test_a_memory_limit_is_run_failed_naming_it(server, server_client, key, token,
@@ -2957,6 +2972,33 @@ def test_a_memory_limit_is_run_failed_naming_it(server, server_client, key, toke
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["error"]["type"].endswith("/run-failed")
     assert "stepone/0 exceeded its memory limit" in read["error"]["detail"]
+    node = {node["step"]: node for node in read["nodes"]}["stepone"]
+    assert node["error"]["type"].endswith("/run-failed")
+    assert node["error"]["detail"] == "the node exceeded its memory limit"
+
+
+def test_a_time_limit_is_run_failed_and_the_node_names_it(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''A `run-failed` names its time or memory limit in `detail`, on the job and
+    on the node that ran into it (surface §17, *A node's `error`*).'''
+    from siliconcompiler.remote.server.running import runspec
+
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"])
+    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:01:00.000Z",
+        "nodes": {"stepone/0": {"state": "failed", "exit_code": None, "limit": "time"},
+                  "steptwo/0": {"state": "pending"}}})
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    assert read["error"]["type"].endswith("/run-failed")
+    assert "stepone/0 exceeded its time limit" in read["error"]["detail"]
+    node = {node["step"]: node for node in read["nodes"]}["stepone"]
+    assert node["error"] == {
+        "type": "https://siliconcompiler.com/server-errors/run-failed",
+        "title": node["error"]["title"],
+        "detail": "the node exceeded its time limit"}
 
 
 def test_repeated_filters_or_within_a_key_and_terminal_filters(

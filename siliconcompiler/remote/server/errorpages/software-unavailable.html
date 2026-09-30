@@ -66,7 +66,7 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td>The descriptor&rsquo;s <code>requires</code> cannot be met, a <code>requires.python</code> name no live image holds included.</td></tr>
+    <td>The descriptor&rsquo;s <code>requested_versions</code> cannot be met, a <code>requested_versions.python</code> name no live image holds included.</td></tr>
 <tr><td class="wrap">while <code>staging</code></td>
     <td>The flow the manifest&rsquo;s read reports cannot be placed &mdash; a job missing two tools lists both &mdash; <code>unknown_class</code>, and <code>uninstallable</code> when the job&rsquo;s Python packages are installed. The job is rejected, and this is the <code>type</code> of its <code>error</code> on <code>GET /v1/jobs/{id}</code>.</td></tr>
 </tbody>
@@ -94,7 +94,7 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 
 <p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the same answer for data rather than images: a PDK, library or FPGA device this deployment does not hold and cannot supply.</p>
 
-<p><a href="declared-mismatch.html"><code>declared-mismatch</code></a> is a manifest whose SiliconCompiler version does not satisfy the job&rsquo;s own <code>requires.python.siliconcompiler</code>: the job asked for one version and sent another.</p>
+<p><a href="declared-mismatch.html"><code>declared-mismatch</code></a> is a manifest whose SiliconCompiler version does not satisfy the job&rsquo;s own <code>requested_versions.python.siliconcompiler</code>: the job asked for one version and sent another.</p>
 </main>
 
 <footer>

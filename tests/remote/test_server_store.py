@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from siliconcompiler.remote.server.state.store import Store, StoreVersionError, now
+from siliconcompiler.remote.server.state.store import (
+    STORE_VERSION, Store, StoreVersionError, now)
 
 
 ###########################
@@ -114,12 +115,12 @@ def test_node_states_are_a_different_closed_set():
 def test_artifact_kinds_carry_retention():
     '''NULL is the floor and nothing more; a number is a longer promise.'''
     with Store("server.db") as store:
-        kinds = {row["kind"]: row["retention_days"] for row in
-                 store.all("SELECT kind, retention_days FROM artifact_kinds")}
+        kinds = {row["kind"]: row["retention_seconds"] for row in
+                 store.all("SELECT kind, retention_seconds FROM artifact_kinds")}
 
     assert set(kinds) == {"manifest", "logs", "reports", "issue", "final",
                           "outputs", "input", "node"}
-    assert kinds["manifest"] == 1825
+    assert kinds["manifest"] == 157680000   # five years
     assert kinds["outputs"] is None
 
 
@@ -258,7 +259,9 @@ def test_a_store_from_another_schema_version_is_refused():
     assert "Upgrade this server" in str(raised.value)
 
 
-def test_a_store_from_an_older_schema_version_says_there_is_no_migration():
+# 1, and the store written before the v1 consistency pass renamed its columns.
+@pytest.mark.parametrize("older", [1, STORE_VERSION - 1])
+def test_a_store_from_an_older_schema_version_says_there_is_no_migration(older):
     """There is none, deliberately -- and the refusal has to say so rather than
     leave an operator waiting for one."""
     path = Path("older.db")
@@ -266,15 +269,17 @@ def test_a_store_from_an_older_schema_version_says_there_is_no_migration():
         pass
 
     con = sqlite3.connect(str(path))
-    con.execute("PRAGMA user_version = 1")
+    con.execute(f"PRAGMA user_version = {older}")
     con.commit()
     con.close()
 
-    with pytest.raises(StoreVersionError, match="schema version 1") as raised:
+    with pytest.raises(StoreVersionError,
+                       match=f"schema version {older}, and this server speaks "
+                             f"version {STORE_VERSION}") as raised:
         Store(path)
 
     assert "no migration" in str(raised.value)
-    assert "Move" in str(raised.value)
+    assert f"Move {path} aside" in str(raised.value)
 
 
 ###########################

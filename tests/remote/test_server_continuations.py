@@ -151,7 +151,7 @@ def test_a_node_the_job_did_not_run_is_not_completed(server, server_client, key,
 
 
 @pytest.mark.parametrize("column,value", [
-    ("deleted_at = '2026-09-01T00:00:00.000Z', delete_reason = 'retention lapsed'", "expired"),
+    ("deleted_at = '2026-09-01T00:00:00.000Z', deleted_reason = 'retention lapsed'", "expired"),
     ("withheld_at = '2026-09-01T00:00:00.000Z', withheld_by = ?", "withheld"),
 ])
 def test_results_gone_or_withheld_cannot_be_used(server, server_client, key, token, me,

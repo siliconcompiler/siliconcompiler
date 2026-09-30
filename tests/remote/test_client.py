@@ -353,7 +353,7 @@ def terms_entry(accepted_at=None, decision_url="https://portal.test/terms/tos"):
 
 def me_body(*terms):
     return {"id": "u1", "issuer": "local", "projects": [], "can_submit": True,
-            "limits": {}, "usage": {"jobs_active": 0}, "terms": list(terms)}
+            "limits": {}, "usage": {"concurrent_jobs": 0}, "terms": list(terms)}
 
 
 def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(

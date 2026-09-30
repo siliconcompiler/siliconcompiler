@@ -10,7 +10,7 @@ Four things accumulate, and they go in this order because each one makes the
 next cheaper to decide:
 
 ``bundles``    an image unpacked onto the filesystem. The largest by far
-``artifacts``  bytes whose ``retention_until`` has passed. The row stays --
+``artifacts``  bytes whose ``retained_until`` has passed. The row stays --
                *where did my results go* has to stay answerable -- and records
                that retention was what took them
 ``builds``     a job's working tree, once nothing it produced is left. It is
@@ -111,7 +111,7 @@ def _artifacts(store, storage, config, datadir) -> int:
     `deleted_by` stays NULL, which the listing publishes as `deleted_cause:
     "expired"`, so *aged out on 24 Sep* and *deleted on 24 Sep* are two
     different answers -- without `fetchable` having to lie for it. No
-    `delete_reason`: that is prose, and only where a person deleted it.
+    `deleted_reason`: that is prose, and only where a person deleted it.
 
     A legal hold is skipped. It is not only policy -- the table would refuse
     the write, since an artifact cannot be both held and deleted.
@@ -121,7 +121,7 @@ def _artifacts(store, storage, config, datadir) -> int:
     rows = store.all(
         "SELECT id, location_id, storage_key, size_bytes FROM artifacts "
         "WHERE deleted_at IS NULL AND legal_hold_at IS NULL "
-        "  AND retention_until IS NOT NULL AND retention_until <= ?", (now(),))
+        "  AND retained_until IS NOT NULL AND retained_until <= ?", (now(),))
 
     freed = 0
     gone = 0
@@ -142,7 +142,7 @@ def _artifacts(store, storage, config, datadir) -> int:
         # claim that these bytes are unavailable, and an artifact whose file
         # had already vanished is the case where that claim matters most.
         # `deleted_by` stays NULL, which is how the table says *the reaper*,
-        # and so does `delete_reason`: it is prose, and only where a person
+        # and so does `deleted_reason`: it is prose, and only where a person
         # deleted it (surface §21). `deleted_cause` says `expired`.
         store.execute(
             "UPDATE artifacts SET deleted_at = ? WHERE id = ?", (now(), row["id"]))
@@ -179,8 +179,8 @@ def _builds(store, storage, config, datadir) -> int:
         # either past its retention or was deleted outright.
         "  AND NOT EXISTS (SELECT 1 FROM artifacts a WHERE a.job_id = j.id "
         f"                  AND {produced} AND a.deleted_at IS NULL "
-        "                  AND (a.retention_until IS NULL "
-        "                       OR a.retention_until > ?))",
+        "                  AND (a.retained_until IS NULL "
+        "                       OR a.retained_until > ?))",
         _TERMINAL + (now(),))
 
     freed = 0

@@ -62,7 +62,7 @@ MAX_KEY_PARTS = 32
 
 # What a read may refuse a job for, and the reasons each may carry.
 OUTCOMES = {
-    "archive-rejected": ("manifest_invalid", "breakpoint", "interactive_task"),
+    "archive-rejected": ("invalid_manifest", "breakpoint", "interactive_task"),
     "declared-mismatch": (None,),
     "software-unavailable": ("unknown_class",),
     "resource-unresolved": (None,),
@@ -240,7 +240,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
             except Exception as e:                               # noqa: BLE001
                 return refuse("archive-rejected",
                               f"the uploaded manifest could not be read: {e}",
-                              reason="manifest_invalid")
+                              reason="invalid_manifest")
 
         newer = [str(warning.message) for warning in raised
                  if issubclass(warning.category, SchemaVersionWarning)]
@@ -263,10 +263,10 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
             nodes = list(runtime.get_nodes())
         except Exception as e:                                   # noqa: BLE001
             return refuse("archive-rejected", f"the manifest names no runnable flow: {e}",
-                          reason="manifest_invalid")
+                          reason="invalid_manifest")
         if not nodes:
             return refuse("archive-rejected", "the manifest's flow has no nodes to run",
-                          reason="manifest_invalid")
+                          reason="invalid_manifest")
 
         flow = project.get_flow()
         summary["flow"] = flow.name
@@ -320,7 +320,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
         except ValueError as e:
             return refuse("archive-rejected",
                           f"the manifest's flow names a node that is not one: {e}",
-                          reason="manifest_invalid")
+                          reason="invalid_manifest")
 
         summary["upstream"] = [list(node) for node in runflow.upstream_nodes(
             project, {tuple(node) for node in asked.get("skipped") or []})]

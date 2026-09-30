@@ -25,7 +25,7 @@ reaper sets it when retention lapses -- it has to, because ``fetchable`` asks
 first whether the bytes are there -- so the column covers *the system did what
 it said it would* as well as *somebody removed this*. ``deleted_cause`` is what
 tells them apart -- a closed enum, ``expired`` or ``removed`` -- and
-``delete_reason`` is the prose a person wrote, which this client repeats rather
+``deleted_reason`` is the prose a person wrote, which this client repeats rather
 than interprets.
 '''
 
@@ -422,9 +422,9 @@ class Results:
                 return (f"aged out on {day}. Retention on this server "
                         "passed for that kind and the bytes were reclaimed.")
 
-            # Repeated, never interpreted. `delete_reason` is prose a person
+            # Repeated, never interpreted. `deleted_reason` is prose a person
             # wrote and this client has no vocabulary to match it against.
-            reason = item.get("delete_reason")
+            reason = item.get("deleted_reason")
             if reason:
                 return f"deleted on {day} -- {reason}."
             return f"deleted on {day}."

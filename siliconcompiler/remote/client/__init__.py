@@ -273,7 +273,7 @@ class Client:
                              "and is never extended")
 
         usage = identity.get("usage") or {}
-        self.logger.info(f"Jobs running: {usage.get('jobs_active', 0)}")
+        self.logger.info(f"Jobs running: {usage.get('concurrent_jobs', 0)}")
         compute = usage.get("compute_seconds") or {}
         if compute:
             total = compute.get("total")
@@ -790,9 +790,10 @@ class Client:
     ######################################################################
 
     def create_job(self, design: str, jobname: str, *,
-                   flow: Optional[Dict[str, Any]] = None,
+                   flow: Optional[str] = None,
+                   node_count: Optional[int] = None,
                    needs: Optional[List[str]] = None,
-                   requires: Optional[Dict[str, Any]] = None,
+                   requested_versions: Optional[Dict[str, Any]] = None,
                    sources: Optional[List[Dict[str, Any]]] = None,
                    run_hash: Optional[str] = None,
                    continues_from: Optional[List[Dict[str, str]]] = None,
@@ -806,7 +807,10 @@ class Client:
         in the ``descriptor``: advisory, re-derived at submit, and present only
         to let the server refuse before the archive uploads.
 
-        ``requires`` is what the image must HOLD, keyed on ``python`` and
+        ``flow`` and ``node_count`` are the flowgraph's name and how many nodes
+        it has, so a flow over ``max_job_nodes`` is refused before it uploads.
+
+        ``requested_versions`` is what the image must HOLD, keyed on ``python`` and
         ``tools``, every value a list of PEP 440 specifier sets. 🔴 It names
         every Python distribution the job imports, pinned exactly: a name left
         out is not required, and the job may land in an image without it. The
@@ -832,10 +836,13 @@ class Client:
         self.ensure_session()
 
         descriptor: Dict[str, Any] = {}
-        for name, value in (("flow", flow), ("needs", needs), ("requires", requires),
+        for name, value in (("flow", flow), ("needs", needs),
+                            ("requested_versions", requested_versions),
                             ("sources", sources)):
             if value:
                 descriptor[name] = value
+        if node_count is not None:
+            descriptor["node_count"] = node_count
 
         body: Dict[str, Any] = {"design": design, "jobname": jobname}
         if descriptor:

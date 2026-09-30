@@ -661,7 +661,7 @@ def test_me_omits_authorized_and_sends_empty_projects(client, key):
     assert body["projects"] == []
     assert body["terms"] == []
     assert body["can_submit"] is True
-    assert "blocked_reason" not in body
+    assert "blocked_type" not in body
 
 
 def test_me_carries_the_account_limits(client, key):
@@ -677,7 +677,8 @@ def test_me_carries_the_account_limits(client, key):
 
     assert set(limits) == {"concurrent_jobs", "concurrent_nodes",
                            "pending_uploads", "max_job_nodes", "devices",
-                           "job_retention_days", "max_download_bytes"}
+                           "artifact_retention_seconds", "max_download_bytes"}
+    assert limits["artifact_retention_seconds"] == 2592000
 
 
 def test_me_usage_is_derived_and_reported_only(client, key):
@@ -687,8 +688,8 @@ def test_me_usage_is_derived_and_reported_only(client, key):
     usage = call(client, key, "GET", "/v1/me", token).get_json()["usage"]
 
     assert set(usage) == {"compute_seconds", "license_seconds",
-                          "storage_bytes", "jobs_active"}
-    assert usage["jobs_active"] == 0
+                          "storage_bytes", "concurrent_jobs"}
+    assert usage["concurrent_jobs"] == 0
     assert usage["compute_seconds"]["limit"] is None
     # No license is metered here, and there is no per-tool row to report.
     assert usage["license_seconds"] == {}
@@ -742,7 +743,7 @@ def test_a_ci_session_has_no_device_and_no_refresh(server):
     user = store.upsert_user("ci", "pipeline")
     store.execute(
         "INSERT INTO token_families (id, user_id, device_id, kind, dpop_jkt, scope, "
-        "  absolute_expires_at) VALUES ('fam-ci', ?, NULL, 'ci', 'jkt', "
+        "  expires_at) VALUES ('fam-ci', ?, NULL, 'ci', 'jkt', "
         "  'jobs:read jobs:write', '2026-12-01T00:00:00.000Z')", (user["id"],))
 
     view = accounts.session_view(store, Session(

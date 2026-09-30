@@ -260,7 +260,7 @@ def test_a_tool_whose_version_is_a_distribution_is_still_a_tool(bootstrap):
 
 
 def test_cocotb_is_registered_and_declared_where_it_was_found(bootstrap):
-    """🔴 A cocotb node's `requires.python` names cocotb at SiliconCompiler's
+    """🔴 A cocotb node's `requested_versions.python` names cocotb at SiliconCompiler's
     range, so an image holding it says so -- and one the probe found without
     it declares nothing."""
     bootstrap.register(

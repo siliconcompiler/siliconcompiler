@@ -46,7 +46,7 @@ def test_capabilities_carry_every_required_member(capabilities):
     # server publishes -- this fixture file is the conformance rig's copy of a
     # real GET /v1, so the two drifting is the defect it exists to catch.
     assert set(capabilities["limits"]) == {
-        "max_job_nodes", "max_upload_bytes", "job_retention_days",
+        "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_archive_members", "max_archive_expanded_bytes",
         "max_download_bytes", "abandon_after_seconds"}

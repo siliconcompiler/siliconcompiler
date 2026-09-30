@@ -338,7 +338,7 @@ class StagingMixin:
         unpacked = root / job["design"] / job["jobname"]
         if not (unpacked / f"{job['design']}.pkg.json").is_file():
             raise self._refuse_staging(job, ProblemError(
-                "archive-rejected", reason="manifest_missing",
+                "archive-rejected", reason="missing_manifest",
                 detail=f"the archive holds no {job['design']}.pkg.json at its root"))
 
         declared = requirements(json.loads(job["descriptor"]) or {})
@@ -352,7 +352,7 @@ class StagingMixin:
             raise _NoLongerStaging(job["id"]) from None
         except sandbox.ReadFailed as e:
             raise self._refuse_staging(job, ProblemError(
-                "archive-rejected", reason="manifest_invalid",
+                "archive-rejected", reason="invalid_manifest",
                 detail=_bounded(f"the manifest has not been read: {e}"))) from None
         except OSError as e:
             raise _ServerFailure(f"this server could not start the manifest's read: "
@@ -362,7 +362,7 @@ class StagingMixin:
             raw = manifestread.validate(raw)
         except manifestread.Invalid as e:
             raise self._refuse_staging(job, ProblemError(
-                "archive-rejected", reason="manifest_invalid",
+                "archive-rejected", reason="invalid_manifest",
                 detail=_bounded(f"the manifest's read returned a summary this server "
                                 f"cannot use: {e}"))) from None
 

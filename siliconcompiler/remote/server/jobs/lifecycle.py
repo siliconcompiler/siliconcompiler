@@ -218,11 +218,11 @@ class LifecycleMixin:
         with self._store.transaction():
             who = f"deleted by {self.whodunnit(session, job)}"
             self._store.execute(
-                "UPDATE jobs SET deleted_at = ?, deleted_by = ?, delete_reason = ? "
+                "UPDATE jobs SET deleted_at = ?, deleted_by = ?, deleted_reason = ? "
                 "WHERE id = ?", (now(), session.user_id, who, job["id"]))
             self._store.execute(
                 "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
-                "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
+                "  deleted_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
                 "  AND legal_hold_at IS NULL",
                 (now(), session.user_id, who, job["id"]))
 
@@ -262,7 +262,7 @@ class LifecycleMixin:
         if rows:
             self._store.execute(
                 "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
-                '  delete_reason = ? WHERE job_id = ? AND step = ? AND "index" = ? '
+                '  deleted_reason = ? WHERE job_id = ? AND step = ? AND "index" = ? '
                 "  AND deleted_at IS NULL AND legal_hold_at IS NULL",
                 (now(), session.user_id, reason, job_id, step, index))
 
@@ -324,7 +324,7 @@ class LifecycleMixin:
         if rows:
             self._store.execute(
                 "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
-                "  delete_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
+                "  deleted_reason = ? WHERE job_id = ? AND deleted_at IS NULL "
                 "  AND legal_hold_at IS NULL",
                 (now(), session.user_id, reason, job_id))
 

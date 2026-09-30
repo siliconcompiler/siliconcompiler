@@ -177,6 +177,16 @@ def test_the_account_screen_says_the_identity_is_not_verified(signed_in):
     assert "self_asserted" in page
 
 
+def test_the_account_screen_counts_the_jobs_running_now(signed_in):
+    '''`usage.concurrent_jobs`, as `GET /v1/me` publishes it: a template naming
+    a member the object does not have renders nothing, and says nothing.'''
+    import re
+
+    page = signed_in.get("/portal/account").get_data(as_text=True)
+
+    assert re.search(r"<b>Jobs running now</b><br>0</div>", page)
+
+
 def test_the_images_screen_says_what_registering_one_means(signed_in):
     '''🔴 The most dangerous write this server has, and the screen says so.'''
     page = signed_in.get("/portal/images").get_data(as_text=True)
@@ -320,14 +330,14 @@ def test_the_uploads_are_shown_apart_with_their_hashes(server, signed_in, finish
     page = signed_in.get(f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
 
     assert "What was uploaded" in page and "the first" in page
-    short = upload["content_hash"][:len("sha256:") + 12]
-    assert short in page and f'title="{upload["content_hash"]}"' in page
+    short = upload["digest"][:len("sha256:") + 12]
+    assert short in page and f'title="{upload["digest"]}"' in page
 
     inside = signed_in.get(
         f"/portal/jobs/{finished['id']}/artifacts/{upload['id']}/inside")
     text = inside.get_data(as_text=True)
     assert inside.status_code == 200
-    assert upload["content_hash"] in text
+    assert upload["digest"] in text
     assert "gcd.pkg.json" in text             # the manifest the client sent
 
 
@@ -1038,16 +1048,16 @@ def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
     # The rows stay and say the bytes are gone, so "where did my results go"
     # still has an answer.
     rows = server.config["SC_STORE"].all(
-        "SELECT deleted_at, delete_reason FROM artifacts WHERE job_id = ?",
+        "SELECT deleted_at, deleted_reason FROM artifacts WHERE job_id = ?",
         (finished["id"],))
     assert rows and all(r["deleted_at"] for r in rows)
-    assert all(r["delete_reason"].startswith("discarded by ")
+    assert all(r["deleted_reason"].startswith("discarded by ")
                for r in rows)
 
 
 def test_a_typed_discard_reason_is_labelled_visible_to_everyone(
         signed_in, finished, server):
-    '''🔴 `delete_reason` is read by everyone who can list the job, so the
+    '''🔴 `deleted_reason` is read by everyone who can list the job, so the
     form says so where it is typed.'''
     page = signed_in.get(f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
     assert "visible to everyone who can list this job" in page
@@ -1058,8 +1068,8 @@ def test_a_typed_discard_reason_is_labelled_visible_to_everyone(
                          "reason": "  freeing space\nbefore the tapeout  "})
 
     rows = server.config["SC_STORE"].all(
-        "SELECT delete_reason FROM artifacts WHERE job_id = ?", (finished["id"],))
-    assert rows and all(r["delete_reason"] == "freeing space before the tapeout"
+        "SELECT deleted_reason FROM artifacts WHERE job_id = ?", (finished["id"],))
+    assert rows and all(r["deleted_reason"] == "freeing space before the tapeout"
                         for r in rows)
 
 
@@ -1076,12 +1086,12 @@ def test_the_node_is_the_unit_of_deletion(signed_in, finished, server):
     assert done.status_code == 302
 
     gone = store.all(
-        'SELECT kind, deleted_at, delete_reason FROM artifacts '
+        'SELECT kind, deleted_at, deleted_reason FROM artifacts '
         'WHERE job_id = ? AND step = ? AND "index" = ?',
         (finished["id"], "stepone", "0"))
     assert {row["kind"] for row in gone} == {"logs", "node"}
     assert all(row["deleted_at"] for row in gone)
-    assert all(row["delete_reason"].startswith("discarded by ")
+    assert all(row["deleted_reason"].startswith("discarded by ")
                for row in gone)
 
     # And nothing else. The other node is untouched, and so is the job.

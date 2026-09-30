@@ -1,4 +1,4 @@
--- The v1 store: 18 tables of the contract's 41.
+-- The v1 store: 20 tables of the contract's 42.
 --
 -- The shape of every table here is the contract's. What differs is the engine
 -- and the subset: sc-server is the unauthenticated profile plus the image
@@ -43,10 +43,9 @@ CREATE TABLE users (
                                                     -- everyone is an admin on this deployment, so
                                                     -- nothing reads this. It stays for one shape
                                                     -- with crucible
-    is_active       integer NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
     created_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     last_seen_at    text,
-    deactivated_at  text,
+    deactivated_at  text,                           -- active is deactivated_at IS NULL
     UNIQUE (issuer, subject)
 );
 CREATE UNIQUE INDEX users_email_key ON users (lower(email)) WHERE email IS NOT NULL;
@@ -112,8 +111,8 @@ CREATE TABLE token_families (
                                                     -- 'jobs:read jobs:write'. A rotation may
                                                     -- narrow inside it, never widen
     created_at          text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-    absolute_expires_at text NOT NULL,              -- set at creation, NEVER extended by a
-                                                    -- refresh or by activity
+    expires_at          text NOT NULL,              -- the session's end: set at creation, NEVER
+                                                    -- extended by a refresh or by activity
     revoked_at          text,
     revoked_reason      text CHECK (revoked_reason IN
                           ('user_logout', 'reuse_detected', 'device_revoked',
@@ -128,7 +127,7 @@ CREATE TABLE refresh_tokens (
     family_id    text NOT NULL REFERENCES token_families(id),
     issued_at    text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     expires_at   text NOT NULL,                     -- CLAMPED to the family's
-                                                    -- absolute_expires_at; never past it
+                                                    -- expires_at; never past it
     revoked_at   text,
     replaced_by  text REFERENCES refresh_tokens(jti),
     replaced_at  text
@@ -185,7 +184,7 @@ CREATE TABLE jobs (
     manifest_flow     text,                         -- which flowgraph ran, re-derived at submit
 
     descriptor        text NOT NULL,                -- JSON: POST /v1/jobs exactly as asserted
-    manifest_nodes    integer,                      -- re-derived at submit
+    manifest_node_count integer,                    -- re-derived at submit
     manifest_tools    text,                         -- JSON, re-derived at submit
     manifest_pdk      text,                         -- re-derived at submit: a PDK name, or the
                                                     -- literal 'none' = this flow requires no PDK
@@ -194,11 +193,11 @@ CREATE TABLE jobs (
                                                     -- submit. What a job continuing from this one
                                                     -- takes on with its results (surface D175)
 
-    upload_key              text,                   -- the object key the grant was issued for
+    upload_storage_key      text,                   -- the object key the grant was issued for
     upload_location_id      text REFERENCES storage_locations(id),
     upload_digest           text,                   -- 'sha256:<hex>', asserted at submit and
                                                     -- verified against what storage reports
-    upload_bytes            integer,
+    upload_size_bytes       integer,
     upload_grant_expires_at text,                   -- also the reaper's trigger
     upload_revoked_at       text,
     grant_bytes             integer,                -- the size the FIRST grant of the archive
@@ -221,7 +220,8 @@ CREATE TABLE jobs (
                                                     -- replaces the listed entry, and is the one
                                                     -- wheel that may overlap the lists
 
-    idempotency_key        text,
+    create_idempotency_key text,                   -- written with the row, so a refused create,
+                                                    -- which writes none, binds no key
     submit_idempotency_key text,
     create_reply      text,                         -- JSON: the create's original body, replayed
     submit_reply      text,                         -- JSON: the submit's original body, replayed
@@ -244,7 +244,8 @@ CREATE TABLE jobs (
                                                     -- because a new digest is precisely
                                                     -- "the code changed"
     image_id          text REFERENCES images(id),   -- the container this job's own process runs
-                                                    -- in, picked at create from requires.python
+                                                    -- in, picked at create from
+                                                    -- requested_versions.python
                                                     -- alone (D145). NULL on a deployment that
                                                     -- runs no containers
     scheduler_job_id  text,                         -- set only where the JOB is the unit of
@@ -252,8 +253,10 @@ CREATE TABLE jobs (
                                                     -- job_nodes instead. At most one level
     submit_trace_id   text CHECK (submit_trace_id IS NULL OR length(submit_trace_id) = 32),
     error_type        text,                         -- the RFC 9457 `type` URI
-    error_members     text,                         -- JSON: the type's extension members, as
-                                                    -- the refusal carried them
+    error_members     text,                         -- JSON: the rest of the job's `error`:
+                                                    -- `detail` and the type's own members, as
+                                                    -- the refusal carried them. NULL when
+                                                    -- error_type is NULL
     state_reason      text,                         -- display only: the staging phase, or a
                                                     -- cancel's reason. Bounded and scrubbed
 
@@ -262,7 +265,6 @@ CREATE TABLE jobs (
     started_at        text,
     finished_at       text,
     cancel_requested_at text,
-    retention_until   text,
     archived_at       text,                         -- VIEW ONLY: the job leaves the default list
                                                     -- and is unchanged in every other respect
     archived_by       text REFERENCES users(id),
@@ -271,7 +273,7 @@ CREATE TABLE jobs (
                                                     -- refused because it would erase whether the
                                                     -- job had completed, failed or been rejected
     deleted_by        text REFERENCES users(id),
-    delete_reason     text,                         -- prose naming who acted, never the device
+    deleted_reason    text,                         -- prose naming who acted, never the device
 
     -- A job that was queued has a resolved PDK. Staging re-derives the
     -- manifest, so a staging, cancelling or failed job can lack one (database
@@ -287,8 +289,8 @@ CREATE TABLE jobs (
     CHECK ((archived_at IS NULL) = (archived_by IS NULL)),
     CHECK ((deleted_at IS NULL) = (deleted_by IS NULL))
 );
-CREATE UNIQUE INDEX jobs_idempotency_idx ON jobs (user_id, idempotency_key)
-    WHERE idempotency_key IS NOT NULL;
+CREATE UNIQUE INDEX jobs_create_idempotency_idx ON jobs (user_id, create_idempotency_key)
+    WHERE create_idempotency_key IS NOT NULL;
 CREATE UNIQUE INDEX jobs_submit_idempotency_idx ON jobs (user_id, submit_idempotency_key)
     WHERE submit_idempotency_key IS NOT NULL;
 -- This index IS the published collection ordering. GET /v1/jobs is ordered
@@ -306,7 +308,7 @@ CREATE INDEX jobs_design_idx ON jobs (user_id, design, created_at DESC)
     WHERE deleted_at IS NULL AND archived_at IS NULL;
 CREATE INDEX jobs_jobname_idx ON jobs (user_id, jobname, created_at DESC)
     WHERE deleted_at IS NULL AND archived_at IS NULL;
-CREATE INDEX jobs_active_idx ON jobs (user_id)
+CREATE INDEX jobs_concurrent_idx ON jobs (user_id)
     WHERE state IN ('staging', 'queued', 'running', 'cancelling');   -- staging too:
                                                     -- fetches are work
 CREATE INDEX jobs_pending_idx ON jobs (user_id) WHERE state IN ('created', 'awaiting_input');
@@ -321,7 +323,7 @@ CREATE TABLE job_state_transitions (                -- append-only
     job_id        text NOT NULL REFERENCES jobs(id),
     from_state    text REFERENCES job_states(state),
     to_state      text NOT NULL REFERENCES job_states(state),
-    actor_user_id text REFERENCES users(id),        -- the person who caused it, where a person
+    actor_id      text REFERENCES users(id),        -- the person who caused it, where a person
                                                     -- did. NULL = the scheduler, the worker or
                                                     -- the reaper
                                                     -- elevation_id is absent: there is no
@@ -348,6 +350,9 @@ CREATE TABLE job_nodes (
     finished_at text,
     exit_code   integer,
     error_type  text,                               -- the same taxonomy as jobs.error_type
+    error_members text,                             -- JSON: the rest of the node's `error`:
+                                                    -- `detail` and the type's own members, as
+                                                    -- for jobs. NULL when error_type is NULL
     state_reason text,                              -- display only: a cancel's reason
     metrics     text,                               -- what the node's portal panel shows, as JSON:
     records     text,                               -- the run's final manifest read ONCE as plain
@@ -387,16 +392,17 @@ CREATE TABLE job_continuations (                    -- a run that starts part-wa
 --------------------------------------------------------------------------
 
 CREATE TABLE artifact_kinds (                       -- the vocabulary, and how long each kind is
-    kind           text PRIMARY KEY,                -- kept. retention_days is a floor that is READ
-    retention_days integer
-                     CHECK (retention_days IS NULL OR retention_days > 0)
+    kind              text PRIMARY KEY,             -- kept. retention_seconds is a floor that is
+    retention_seconds integer                       -- READ. NULL = the floor and nothing more
+                        CHECK (retention_seconds IS NULL OR retention_seconds > 0)
 );
-INSERT INTO artifact_kinds (kind, retention_days) VALUES
-    ('manifest', 1825),      -- what the run WAS: small, and the thing you want years later
-    ('logs',     1825),
-    ('reports',  1825),
-    ('issue',    1825),      -- a failure is what you come back to
-    ('final',    1825),      -- the deliverables. Re-making one is a re-run
+INSERT INTO artifact_kinds (kind, retention_seconds) VALUES
+    ('manifest', 157680000), -- five years. What the run WAS: small, and the thing you want
+                             -- later
+    ('logs',     157680000),
+    ('reports',  157680000),
+    ('issue',    157680000), -- a failure is what you come back to
+    ('final',    157680000), -- the deliverables. Re-making one is a re-run
     ('outputs',  NULL),      -- large, regenerable, and the most sensitive: the floor, no more
     ('input',    NULL),      -- what went IN: each uploaded archive, job-level, and
                              -- a node's inputs/ bound to the node
@@ -421,8 +427,9 @@ CREATE TABLE artifacts (
     job_id        text NOT NULL REFERENCES jobs(id),
     step          text,                             -- 'place'; NULL for job-level artifacts
     "index"       text,                             -- '0'; NULL for job-level artifacts
-    content_hash  text NOT NULL,                    -- WHAT the bytes are: 'sha256:<hex>'.
-                                                    -- Integrity, and the dedup identity
+    digest        text NOT NULL,                    -- WHAT the bytes are: 'sha256:<hex>'.
+                                                    -- Integrity, and the dedup identity.
+                                                    -- Published as `digest`
     location_id   text NOT NULL REFERENCES storage_locations(id),
     storage_key   text NOT NULL,                    -- WHERE in it. Never on the wire, and MAY be
                                                     -- shared between rows
@@ -432,7 +439,8 @@ CREATE TABLE artifacts (
     upload_seq    integer,                          -- 1, 2, ... for a job-level 'input': which
                                                     -- upload it was. NULL on every other row
     created_at    text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-    retention_until text,
+    retained_until text,                            -- published under the same name: a floor,
+                                                    -- not a deletion time
     provenance    text NOT NULL DEFAULT 'unknown'
                     CHECK (provenance IN
                       ('pending',                   -- being described -- NEVER fetchable
@@ -446,7 +454,7 @@ CREATE TABLE artifacts (
     withheld_reason text,
     deleted_at    text,                             -- THE BYTES ARE GONE. The row stays.
     deleted_by    text REFERENCES users(id),        -- NULL deleted_by = the reaper; set = a
-    delete_reason text,                             -- person deleted it on purpose, and owes a
+    deleted_reason text,                            -- person deleted it on purpose, and owes a
                                                     -- reason
     CHECK (("index" IS NULL) = (step IS NULL)),     -- both, or neither. Deliberately NOT a
                                                     -- foreign key into job_nodes
@@ -456,13 +464,13 @@ CREATE TABLE artifacts (
         OR (legal_hold_by IS NOT NULL AND legal_hold_reason IS NOT NULL)),
     CHECK ((withheld_at IS NULL) = (withheld_by IS NULL)),
     CHECK (NOT (legal_hold_at IS NOT NULL AND deleted_at IS NOT NULL)),
-    CHECK (deleted_at IS NOT NULL OR (deleted_by IS NULL AND delete_reason IS NULL)),
-    CHECK (deleted_by IS NULL OR delete_reason IS NOT NULL)
+    CHECK (deleted_at IS NOT NULL OR (deleted_by IS NULL AND deleted_reason IS NULL)),
+    CHECK (deleted_by IS NULL OR deleted_reason IS NOT NULL)
 );
-CREATE INDEX artifacts_live_hash_idx ON artifacts (content_hash) WHERE deleted_at IS NULL;
+CREATE INDEX artifacts_live_digest_idx ON artifacts (digest) WHERE deleted_at IS NULL;
 CREATE INDEX artifacts_job_idx ON artifacts (job_id);
 CREATE INDEX artifacts_node_idx ON artifacts (job_id, step, "index");
-CREATE INDEX artifacts_hash_idx ON artifacts (content_hash);
+CREATE INDEX artifacts_digest_idx ON artifacts (digest);
 -- What reclaiming bytes counts: an object is its location and its key, and it
 -- is only unlinked when no live row names the pair.
 CREATE INDEX artifacts_live_object_idx ON artifacts (location_id, storage_key)
@@ -599,8 +607,10 @@ CREATE TABLE images (                               -- a container this deployme
                                                     -- here it is only ever 'derived'
     derived_from  text REFERENCES images(id),       -- the image a node's Python layer was built
                                                     -- on. NULL for a registered image
-    derivation    text,                             -- hash of (base digest, the environment
-                                                    -- file the server wrote): the cache key
+    derivation    text,                             -- the cache key: a hash of the base digest,
+                                                    -- the requirements and constraints the
+                                                    -- server wrote, the wheels' digests and the
+                                                    -- requested_versions.python names
     installed     text,                             -- what the layer holds, as JSON
                                                     -- [[name, version]]: what `resolved_versions`
                                                     -- adds for a node that ran in it. A derived

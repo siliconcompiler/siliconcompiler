@@ -179,21 +179,22 @@ class RemoteRun:
 
         # 🔴 Created before anything is packed: a refusal at create costs
         # nothing, and the job then names what else to put in the archive.
+        flow, node_count = self._flow_descriptor()
         job = self.client.create_job(
             design=design, jobname=jobname,
             run_hash=self._reuse_hash(),
             # Every node this run reads and does not run, whose results are
             # not here and are held by the job that ran it.
             continues_from=self._upstream()[1] or None,
-            flow=self._flow_descriptor(),
+            flow=flow, node_count=node_count,
             # The job's Python packages: what an index can supply, listed here
             # and authoritative; what none can, uploaded as wheels. Either
             # relies on `python.env`, and says so for the refusal before the
             # upload.
             python_packages=self._python()[0],
             needs=["python.env"] if self._python()[0] or self._python()[1] else None,
-            requires={"python": self._requires_python(),
-                      "tools": self._tool_requirements()},
+            requested_versions={"python": self._requested_python(),
+                                "tools": self._tool_requirements()},
             # What this machine expects the server to supply. A lookup at the
             # other end, never a fetch, and credentials stripped -- and only
             # what the flow reads.
@@ -380,7 +381,7 @@ class RemoteRun:
             software = self.client.capabilities().get("software") or {}
         except RemoteError:
             return
-        wanted = {"python": self._requires_python(), "tools": self._tool_requirements()}
+        wanted = {"python": self._requested_python(), "tools": self._tool_requirements()}
         for bucket, requirements in wanted.items():
             held = software.get(bucket) or {}
             for name, alternatives in (requirements or {}).items():
@@ -632,8 +633,8 @@ class RemoteRun:
                 self._needed = (carried, owners.required(carried))
         return self._needed
 
-    def _requires_python(self) -> Dict[str, List[str]]:
-        '''`requires.python`, the fixed list (surface *The descriptor*):
+    def _requested_python(self) -> Dict[str, List[str]]:
+        '''`requested_versions.python`, the fixed list (surface *The descriptor*):
         `siliconcompiler`; the distribution behind each executed node's task
         class; each framework distribution a task declares, at the range
         SiliconCompiler declares for it; a distribution whose installed-package
@@ -724,7 +725,7 @@ class RemoteRun:
         🔴 The client always builds the lists and the user never does: each
         distribution the run's Python imports, or a task loads by name, at the
         version installed here, and every other distribution installed here as
-        a constraint -- less every `requires.python` name, which the image
+        a constraint -- less every `requested_versions.python` name, which the image
         holds, and every distribution no index can supply, which goes up as a
         wheel built here. The user's own modules go up as files, in their
         test's collected folder. No index is named, and no pip configuration
@@ -782,7 +783,7 @@ class RemoteRun:
                         raise RemoteError(f"{step}/{index}: {e}") from None
 
         try:
-            listed = capture.lists(roots, self._requires_python())
+            listed = capture.lists(roots, self._requested_python())
         except capture.CannotForward as e:
             raise RemoteError(str(e)) from None
         for warning in listed.warnings:
@@ -1147,8 +1148,9 @@ class RemoteRun:
             return None
         return run_hash if "jobs.reuse" in features else None
 
-    def _flow_descriptor(self) -> Optional[Dict[str, Any]]:
-        '''What the server can refuse us on before the upload moves.
+    def _flow_descriptor(self) -> Tuple[Optional[str], Optional[int]]:
+        '''The flowgraph's name and how many nodes the run has: what the
+        server can refuse us on before the upload moves.
 
         Advisory, re-derived at submit, and refusing to build it is never worth
         failing the run over -- a sparse descriptor is legal and costs only the
@@ -1158,10 +1160,10 @@ class RemoteRun:
             from siliconcompiler.remote.runflow import runtime_nodes
 
             flow = self.project.get_flow()
-            return {"name": flow.name, "nodes": len(runtime_nodes(self.project))}
+            return flow.name, len(runtime_nodes(self.project))
         except Exception as e:                                   # noqa: BLE001
             logger.debug(f"no flow descriptor: {e}")
-            return None
+            return None, None
 
     def _tool_requirements(self) -> Dict[str, Any]:
         """What this flow will reach for, so the server can refuse early.
@@ -1406,9 +1408,11 @@ class RemoteRun:
         if self._dashboard():
             # 🔴 The dashboard is already rendering every node's state, so the
             # full table underneath it is the same information twice. What it
-            # cannot show is the moment something moved.
+            # cannot show is the moment something moved, and why a node failed.
+            details = _node_details(job)
             for step, index, state in changed or []:
-                self.logger.info(f"  {step}/{index} -> {state}")
+                said = details.get((step, index)) if state == "failed" else None
+                self.logger.info(f"  {step}/{index} -> {state}" + (f": {said}" if said else ""))
             return
 
         # In the flow's order, not the server's, which is by name.
@@ -1483,6 +1487,16 @@ class RemoteRun:
                               f"{_why_it_failed(job, self.client.transport.help_pages)}")
         else:
             self.logger.error(f"Remote job {state}")
+
+        # Each failed node, and why, where the server said: the limit it ran
+        # into, or the image that would not pull (surface §17, *A node's
+        # `error`*). In the flow's order, since the last poll's moves are never
+        # reported on their own.
+        order = self._flow_order()
+        for (step, index), said in sorted(
+                _node_details(job).items(),
+                key=lambda item: order.get(item[0], len(order))):
+            self.logger.error(f"  {step}/{index} failed: {said}")
 
         # 🔴 Retrieved on EVERY terminal state, not only on success. A failed
         # run is the one whose log and manifest a user most wants, and a client
@@ -1795,6 +1809,17 @@ def _epoch(timestamp: str) -> Optional[float]:
         # The contract says UTC; a server that omits the offset meant it.
         moment = moment.replace(tzinfo=timezone.utc)
     return moment.timestamp()
+
+
+def _node_details(job: Dict[str, Any]) -> Dict[Tuple[str, str], str]:
+    '''Each failed node's `error.detail`, as a person reads it: display only,
+    and never branched on.'''
+    found = {}
+    for node in job.get("nodes") or []:
+        error = node.get("error")
+        if node.get("state") == "failed" and isinstance(error, dict) and error.get("detail"):
+            found[(node.get("step"), node.get("index"))] = clean(str(error["detail"]))
+    return found
 
 
 def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str:

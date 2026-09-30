@@ -65,8 +65,8 @@ def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[s
     so a client reads the account's limits from `GET /v1/me` alone
     (entitlements *Combining the two `limits` blocks*). Five keys appear in
     both blocks -- `max_job_nodes`, `pending_uploads`, `concurrent_jobs`,
-    `job_retention_days` and `max_download_bytes` -- and they differ only where
-    a `user_limits` row overrides one for this account.
+    `artifact_retention_seconds` and `max_download_bytes` -- and they differ
+    only where a `user_limits` row overrides one for this account.
 
     `max_download_bytes` is the one that can differ per account today.
     `GET /v1` carries no credential and cannot vary by caller, so a per-user
@@ -82,7 +82,7 @@ def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[s
         "pending_uploads": ceiling["pending_uploads"],
         "max_job_nodes": ceiling["max_job_nodes"],
         "devices": None,                    # null = unlimited, not zero
-        "job_retention_days": ceiling["job_retention_days"],
+        "artifact_retention_seconds": ceiling["artifact_retention_seconds"],
         # null here means UNLIMITED, which is the wire's meaning everywhere.
         "max_download_bytes": ceiling["max_download_bytes"],
     }
@@ -117,7 +117,7 @@ def usage(store, user_id: str) -> Dict[str, Any]:
     All four numbers come from `jobs` and `artifacts` directly. A metering
     table would buy a billing history nobody on this deployment bills against.
     Every `limit` is null, because nothing here enforces one -- except
-    `jobs_active`, which mirrors a counter that create does enforce.
+    `concurrent_jobs`, the live count create and submit refuse over.
     '''
     active = store.one(
         "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
@@ -156,7 +156,7 @@ def usage(store, user_id: str) -> Dict[str, Any]:
         # neither has a window nor resets.
         "storage_bytes": {"used": int(stored), "total": None, "limit": None,
                           "window": None, "resets_at": None},
-        "jobs_active": active,
+        "concurrent_jobs": active,
     }
 
 
@@ -168,7 +168,7 @@ def session_view(store, session) -> Dict[str, Any]:
 
     from siliconcompiler.remote.server.identity.auth import SCOPES
 
-    family = store.one("SELECT kind, absolute_expires_at FROM token_families WHERE id = ?",
+    family = store.one("SELECT kind, expires_at FROM token_families WHERE id = ?",
                        (session.family_id,))
     refresh = store.one(
         "SELECT expires_at FROM refresh_tokens WHERE family_id = ? AND replaced_at IS NULL "
@@ -185,7 +185,7 @@ def session_view(store, session) -> Dict[str, Any]:
         "device_id": session.device_id if kind == "interactive" else None,
         "access_expires_at": access,
         "refresh_expires_at": refresh["expires_at"] if refresh else None,
-        "session_expires_at": family["absolute_expires_at"] if family else access,
+        "session_expires_at": family["expires_at"] if family else access,
     }
 
 

@@ -175,7 +175,7 @@ def test_a_summary_that_fails_its_shape_has_not_read_the_manifest(
                               lambda asked: damage(manifestread.read(asked)))
 
     assert (response.status_code, slug(response)) == (422, "archive-rejected")
-    assert response.get_json()["reason"] == "manifest_invalid"
+    assert response.get_json()["reason"] == "invalid_manifest"
     assert not dispatcher.submitted
 
 
@@ -190,7 +190,7 @@ def test_a_node_name_the_node_name_check_refuses_never_reaches_a_column(
     job, response = refused_for(server, server_client, key, token, job_archive,
                                 monkeypatch, lying)
 
-    assert response.get_json()["reason"] == "manifest_invalid"
+    assert response.get_json()["reason"] == "invalid_manifest"
     assert not server.config["SC_STORE"].all(
         "SELECT step FROM job_nodes WHERE job_id = ?", (job["id"],))
 
@@ -221,7 +221,7 @@ def test_an_oversized_summary_has_not_read_the_manifest(
 
     _, response = submitted(server_client, key, token, job_archive())
 
-    assert response.get_json()["reason"] == "manifest_invalid"
+    assert response.get_json()["reason"] == "invalid_manifest"
     assert "more than 100 bytes" in response.get_json()["detail"]
 
 
@@ -235,7 +235,7 @@ def test_a_read_past_its_time_limit_has_not_read_the_manifest(
     _, response = submitted(server_client, key, token, job_archive())
 
     assert (response.status_code, slug(response)) == (422, "archive-rejected")
-    assert response.get_json()["reason"] == "manifest_invalid"
+    assert response.get_json()["reason"] == "invalid_manifest"
     assert "past its 1s limit" in response.get_json()["detail"]
 
 
@@ -382,7 +382,7 @@ def test_with_containers_the_read_runs_in_a_bundle_of_the_jobs_own_image(  # noq
 
     path, digest, size = job_archive()
     job = stage(container_client, key, container_token, path, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], digest, size)
 
     assert len(fake.reads) == 1 and fake.submitted
@@ -429,7 +429,7 @@ def test_with_containers_on_docker_the_read_runs_with_no_network(  # noqa: F811
 
     path, digest, size = job_archive()
     job = stage(container_client, key, container_token, path, size,
-                requires=wants("0.38.0"))
+                requested_versions=wants("0.38.0"))
     submit(container_client, key, container_token, job["id"], digest, size)
 
     assert ran["network_mode"] == "none" and ran["read_only"] is True

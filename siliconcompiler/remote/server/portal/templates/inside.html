@@ -13,7 +13,7 @@
      >all {{ item.kind }} files</a>{% endif %}
 </p>
 {# In full here, where somebody compares it against a file they hold. #}
-<p class="mono muted" style="word-break:break-all">{{ item.content_hash }}</p>
+<p class="mono muted" style="word-break:break-all">{{ item.digest }}</p>
 
 {% if refused is defined %}
   {#

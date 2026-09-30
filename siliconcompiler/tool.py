@@ -471,7 +471,7 @@ class PythonEnvironment(NamedTuple):
             rather than by import: a plugin.
         framework: distributions SiliconCompiler's own process needs for this
             task -- cocotb, for a cocotb task. A remote run pins them in the
-            job's ``requires`` so the image holds them, and leaves them out of
+            job's ``requested_versions`` so the image holds them, and leaves them out of
             the job's Python packages, so the tool and SiliconCompiler load one
             copy.
     """
@@ -1083,7 +1083,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         SiliconCompiler must load one installation.
 
         Declared on the class, so a remote run names each in its
-        ``requires.python``, at the range SiliconCompiler declares for it,
+        ``requested_versions.python``, at the range SiliconCompiler declares for it,
         without running setup on the submitting machine: the node's image then
         holds it, and the job's Python packages leave it out.
 

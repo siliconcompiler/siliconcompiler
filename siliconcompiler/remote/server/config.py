@@ -31,7 +31,7 @@ CONFIG_FILENAME = "config.json"
 DEFAULT_LIMITS: Dict[str, int] = {
     "max_job_nodes": 1000,                  # nodes in one flow
     "max_upload_bytes": 1073741824,         # bytes
-    "job_retention_days": 30,               # days
+    "artifact_retention_seconds": 2592000,  # seconds: the least any artifact is kept
     "pending_uploads": 8,                   # jobs held in created or awaiting_input
     "concurrent_jobs": 4,                   # jobs staging, queued, running or cancelling
     # Open /logs streams per caller, and the number is chosen rather than
@@ -351,7 +351,7 @@ DEFAULTS: Dict[str, Any] = {
     # The manifest's read, while the job stages (`manifestread`): how long it
     # may take, wall clock, and the CPU time and memory it holds itself to. A
     # read past any of them has not read the manifest, and the job is
-    # rejected `manifest_invalid`.
+    # rejected `invalid_manifest`.
     "manifest_read_timeout_seconds": 300,
     "manifest_read_cpu_seconds": 300,
     "manifest_read_memory_bytes": 4 * 1024 ** 3,
