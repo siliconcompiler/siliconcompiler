@@ -1164,7 +1164,8 @@ class BaseSchema:
                     step: Optional[str] = None, index: Optional[Union[int, str]] = None,
                     dataroots: Optional[Dict[str, Union[str, Callable]]] = None,
                     collection_dir: Optional[str] = None,
-                    cwd: Optional[str] = None) \
+                    cwd: Optional[str] = None,
+                    select: Optional[Callable[[NodeValue], bool]] = None) \
             -> Union[Optional[str], List[Optional[str]], Set[Optional[str]]]:
         """
         Returns absolute paths to files or directories based on the keypath
@@ -1186,6 +1187,9 @@ class BaseSchema:
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
+            select (callable): optional filter, called with each
+                :class:`PathNodeValue` of the parameter. A value it rejects is left
+                out of the result, and its dataroot is not resolved.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1203,14 +1207,16 @@ class BaseSchema:
             step=step, index=index,
             dataroots=dataroots,
             collection_dir=collection_dir,
-            cwd=cwd, hash=False)
+            cwd=cwd, hash=False,
+            select=select)
 
     def __find_files_or_hash(self, *keypath: str, missing_ok: bool = False,
                              step: Optional[str] = None, index: Optional[Union[int, str]] = None,
                              dataroots: Optional[Dict[str, Union[str, Callable]]] = None,
                              collection_dir: Optional[str] = None,
                              cwd: Optional[str] = None,
-                             hash: bool = False) \
+                             hash: bool = False,
+                             select: Optional[Callable[[NodeValue], bool]] = None) \
             -> Union[Optional[str], List[Optional[str]], Set[Optional[str]]]:
         """
         Returns absolute paths to files or directories based on the keypath
@@ -1233,6 +1239,9 @@ class BaseSchema:
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
             hash (bool): hash the files insteasd of getting the paths
+            select (callable): optional filter, called with each
+                :class:`PathNodeValue` of the parameter. A value it rejects is left
+                out of the result, and its dataroot is not resolved.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -1266,6 +1275,9 @@ class BaseSchema:
                 paths = [paths]
             else:
                 paths = []
+
+        if select is not None:
+            paths = [path for path in paths if select(path)]
 
         # Ignore collection directory if it does not exist
         if collection_dir and not os.path.exists(collection_dir):

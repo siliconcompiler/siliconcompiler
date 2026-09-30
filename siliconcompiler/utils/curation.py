@@ -4,10 +4,10 @@ import tarfile
 import os.path
 
 from collections import deque
-from typing import List, Optional, TYPE_CHECKING, Tuple
+from typing import Callable, List, Optional, TYPE_CHECKING, Tuple
 
 from siliconcompiler.schema import BaseSchema, Parameter
-from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
+from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue, PathNodeValue
 from siliconcompiler.utils import FilterDirectories
 from siliconcompiler.utils.paths import collectiondir, cwdir
 from siliconcompiler.scheduler import SchedulerNode
@@ -45,7 +45,10 @@ def collect(project: "Project",
             keys: List[CollectionKey],
             directory: Optional[str] = None,
             verbose: bool = True,
-            whitelist: Optional[List[str]] = None) -> None:
+            whitelist: Optional[List[str]] = None,
+            select: Optional[Callable[
+                [Tuple[str, ...], Optional[str], Optional[str], PathNodeValue], bool]] = None) \
+        -> None:
     '''
     Collects the specified files and directories into a collection directory.
 
@@ -68,6 +71,13 @@ def collect(project: "Project",
         whitelist (List[str], optional): A list of absolute paths that are
             allowed to be collected. If an item to be collected is not on this list,
             a `RuntimeError` is raised. Defaults to None.
+        select (Callable, optional): Called as ``select(key, step, index, value)``
+            for each value of the parameters in ``keys``, with ``value`` the
+            :class:`PathNodeValue` the project holds. Only the values it returns True
+            for are collected, and the others are not resolved, so a dataroot only
+            they use is not fetched. Resolving a value still resolves what its search
+            depends on, such as a task's ``refdir`` for a ``script``, and a directory
+            collected brings everything in it. Defaults to every value.
 
     Raises:
         RuntimeError: If a file or directory to be collected is not in the `whitelist`.
@@ -96,7 +106,8 @@ def collect(project: "Project",
 
     cwd = cwdir(project)
 
-    def find_files(*key, step: Optional[str] = None, index: Optional[str] = None):
+    def find_files(*key, step: Optional[str] = None, index: Optional[str] = None,
+                   select: Optional[Callable[[PathNodeValue], bool]] = None):
         """
         Find the files in the filesystem, otherwise look in previous collection
         """
@@ -104,14 +115,16 @@ def collect(project: "Project",
         try:
             return BaseSchema._find_files(project, *key, step=step, index=index,
                                           cwd=cwd,
-                                          collection_dir=directory)
+                                          collection_dir=directory,
+                                          select=select)
         except FileNotFoundError as err:
             e = err
         if prev_dir:
             # Try previous location next
             return BaseSchema._find_files(project, *key, step=step, index=index,
                                           cwd=cwd,
-                                          collection_dir=prev_dir)
+                                          collection_dir=prev_dir,
+                                          select=select)
         if e:
             raise e
 
@@ -137,6 +150,13 @@ def collect(project: "Project",
         else:
             values = [values]
 
+        if select is not None:
+            # Before anything is resolved, so a value left out is never fetched,
+            # and never stands in for a directory that holds another value
+            values = [value for value in values if select(key, step, index, value)]
+            if not values:
+                continue
+
         if param.is_directory:
             dirs[(key, step, index)] = values
         else:
@@ -149,12 +169,16 @@ def collect(project: "Project",
         """
         found = []
         for key, step, index in sorted(params.keys()):
-            abs_paths = find_files(*key, step=step, index=index)
+            values = params[(key, step, index)]
+            # Only the values gathered, so the others are never resolved
+            gathered = {id(value) for value in values}
+            abs_paths = find_files(*key, step=step, index=index,
+                                   select=lambda value: id(value) in gathered)
 
             if not isinstance(abs_paths, (list, tuple, set)):
                 abs_paths = [abs_paths]
 
-            for abs_path, value in zip(abs_paths, params[(key, step, index)]):
+            for abs_path, value in zip(abs_paths, values):
                 if not abs_path:
                     raise FileNotFoundError(f"{value.get()} could not be copied")
                 found.append((os.path.realpath(abs_path), abs_path, value))

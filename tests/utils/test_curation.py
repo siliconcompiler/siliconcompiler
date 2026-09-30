@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from siliconcompiler import Project, Design, Flowgraph, Task
+from siliconcompiler.package import Resolver
 from siliconcompiler.utils.curation import collect, archive, filter_collection_keys
 from siliconcompiler.utils.paths import collectiondir
 from siliconcompiler.schema.parametervalue import PathNodeValue
@@ -436,6 +437,102 @@ def test_collect_directory_under_two_dataroots_linked(two_dataroots, path_keys):
     assert not os.path.islink(first)
     assert os.path.islink(second)
     assert os.path.samefile(first, second)
+
+
+def test_collect_select_values(path_keys):
+    for name in ("a.v", "b.v"):
+        with open(name, 'w') as f:
+            f.write(name)
+
+    design = Design("testdesign")
+    design.add_file(["a.v", "b.v"], fileset="rtl")
+    proj = Project(design)
+
+    calls = []
+
+    def select(key, step, index, value):
+        calls.append((key, step, index, value))
+        return value.get() == "b.v"
+
+    collect(proj, keys=path_keys(proj), select=select)
+
+    key = ('library', 'testdesign', 'fileset', 'rtl', 'file', 'verilog')
+    assert [(step, index, value.get()) for called, step, index, value in calls
+            if called == key] == [(None, None, "a.v"), (None, None, "b.v")]
+    assert all(isinstance(value, PathNodeValue) for *_, value in calls)
+
+    def collected(name):
+        return os.path.join(collectiondir(proj),
+                            PathNodeValue.generate_hashed_collection_path(name, None))
+    assert not os.path.exists(collected("a.v"))
+    assert os.path.isfile(collected("b.v"))
+
+
+def test_collect_select_nothing(path_keys):
+    with open('a.v', 'w') as f:
+        f.write('a')
+
+    design = Design("testdesign")
+    design.add_file("a.v", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj), select=lambda key, step, index, value: False)
+
+    assert os.listdir(collectiondir(proj)) == []
+
+
+def test_collect_select_leaves_dataroot_unresolved(path_keys, monkeypatch):
+    """A value left out is not resolved, so its dataroot is never fetched."""
+    os.makedirs('local')
+    with open('local/a.v', 'w') as f:
+        f.write('a')
+
+    design = Design("testdesign")
+    design.set_dataroot("local", os.path.abspath("local"))
+    design.set_dataroot("pdk", os.path.abspath("pdk"))
+    design.add_file("a.v", dataroot="local", fileset="rtl")
+    design.add_file("b.v", dataroot="pdk", fileset="rtl")
+    proj = Project(design)
+
+    # Without select, the value under pdk is looked for, and pdk does not exist
+    with pytest.raises(FileNotFoundError):
+        collect(proj, keys=path_keys(proj))
+
+    resolved = []
+    get_path = Resolver.get_path
+
+    def record(self):
+        resolved.append(self.name)
+        return get_path(self)
+    monkeypatch.setattr(Resolver, "get_path", record)
+
+    collect(proj, keys=path_keys(proj),
+            select=lambda key, step, index, value: value.get(field="dataroot") != "pdk")
+
+    assert "local" in resolved
+    assert "pdk" not in resolved
+    assert os.path.isfile(os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("a.v", "local")))
+
+
+@pytest.mark.parametrize("path,dataroot", [("rtl/a.v", "top"), ("a.v", "rtl")])
+def test_collect_select_file_inside_unselected_directory(two_dataroots, path_keys,
+                                                         path, dataroot):
+    """A directory left out does not hold a file selected inside it, so the file is
+    stored at its own collected path."""
+    design = two_dataroots
+    design.add_idir("rtl", dataroot="top", fileset="rtl")
+    design.add_file(path, dataroot=dataroot, fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj),
+            select=lambda key, step, index, value: key[-1] != "idir")
+    shutil.rmtree("proj")
+
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
+    assert not os.path.exists(os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("rtl", "top")))
 
 
 def test_collect_source_beside_collection_with_same_prefix(path_keys):
