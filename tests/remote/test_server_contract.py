@@ -107,11 +107,11 @@ def test_a_stream_ends_when_its_capability_does(server, server_client, key, toke
     than the access token's: the client asks `/logs` again.'''
     from test_logs import frames
 
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     store = server.config["SC_STORE"]
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-    job_id = str(uuid7())
+    job_id = str(uuid.uuid4())
     store.execute("INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
                   "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
                   (job_id, me))
@@ -143,7 +143,7 @@ def test_the_log_redirect_is_built_on_the_configured_origin(tmp_path):
     origin and never the `Host` a proxy wrote.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     datadir = tmp_path / "proxied"
     datadir.mkdir()
@@ -170,7 +170,7 @@ def test_the_log_redirect_is_built_on_the_configured_origin(tmp_path):
 
     me = authed("GET", "/v1/me").get_json()["id"]
     store = app.config["SC_STORE"]
-    job_id = str(uuid7())
+    job_id = str(uuid.uuid4())
     store.execute("INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
                   "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
                   (job_id, me))

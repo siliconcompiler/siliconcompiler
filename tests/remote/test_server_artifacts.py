@@ -711,7 +711,7 @@ def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypa
 
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     datadir = tmp_path / "quiet"
     datadir.mkdir()
@@ -726,7 +726,7 @@ def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypa
 
     store = app.config["SC_STORE"]
     me = call(client, quiet_key, "GET", "/v1/me", quiet_token).get_json()["id"]
-    job_id = str(uuid7())
+    job_id = str(uuid.uuid4())
     store.execute(
         "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
         "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
@@ -776,7 +776,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
     '''
     import sqlite3
 
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     store = server.config["SC_STORE"]
     existing = store.one(
@@ -792,7 +792,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
             "  provenance) "
             "VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, 'application/gzip', "
             "        'node', 'declared')",
-            (str(uuid7()), finished["id"], existing["step"], existing["index"],
+            (str(uuid.uuid4()), finished["id"], existing["step"], existing["index"],
              existing["location_id"]))
 
 
@@ -801,7 +801,7 @@ def test_the_job_level_rows_are_protected_too(server, finished):
     exactly the rows with no node unprotected -- hence the coalesce.'''
     import sqlite3
 
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     store = server.config["SC_STORE"]
     existing = store.one(
@@ -816,7 +816,7 @@ def test_the_job_level_rows_are_protected_too(server, finished):
             "  provenance) "
             "VALUES (?, ?, NULL, NULL, 'sha256:x', ?, 'k', 1, 'text/plain', "
             "        ?, 'declared')",
-            (str(uuid7()), finished["id"], existing["location_id"],
+            (str(uuid.uuid4()), finished["id"], existing["location_id"],
              existing["kind"]))
 
 
@@ -826,7 +826,7 @@ def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
     anyway -- and a CHECK ties the ordinal to job-level `input` exactly.'''
     import sqlite3
 
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     store = server.config["SC_STORE"]
     first = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
@@ -839,7 +839,7 @@ def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
             "  location_id, storage_key, size_bytes, media_type, kind, upload_seq, "
             "  provenance) VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, "
             "  'application/gzip', ?, ?, 'declared')",
-            (str(uuid7()), finished["id"], step, step and "0", first["location_id"],
+            (str(uuid.uuid4()), finished["id"], step, step and "0", first["location_id"],
              kind, seq))
 
     insert("input", 2)

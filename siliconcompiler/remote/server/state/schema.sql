@@ -8,7 +8,7 @@
 --
 -- Translating Postgres to SQLite, once, here:
 --
---   uuid          -> text, the canonical hyphenated form of a UUIDv7
+--   uuid          -> text, the canonical hyphenated form of a UUIDv4
 --   timestamptz   -> text, RFC 3339 in UTC ('2026-09-22T11:22:33.456Z')
 --   jsonb         -> text holding JSON; the JSON1 functions read it in place
 --   boolean       -> integer constrained to 0 or 1

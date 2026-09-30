@@ -18,12 +18,12 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 @pytest.fixture
 def running(server, server_client, key, token):
     '''A job with one running node and a log being written under it.'''
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     store = server.config["SC_STORE"]
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
 
-    job_id = str(uuid7())
+    job_id = str(uuid.uuid4())
     store.execute(
         "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
         "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
@@ -381,7 +381,7 @@ def live(tmp_path):
 
     from siliconcompiler.remote import Client, Credentials
     from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     app = create_app(tmp_path / "datadir", cluster="local")
     server = make_server("127.0.0.1", 0, app, threaded=True)
@@ -396,7 +396,7 @@ def live(tmp_path):
     store = app.config["SC_STORE"]
     me = client.me()["id"]
 
-    job_id = str(uuid7())
+    job_id = str(uuid.uuid4())
     store.execute(
         "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
         "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",

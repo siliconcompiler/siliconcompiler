@@ -102,6 +102,20 @@ def create(client, key, token, **body):
     return call(client, key, "POST", "/v1/jobs", token, json=body, headers=headers)
 
 
+def created_in_order(client, key, token, count):
+    '''The ids of ``count`` jobs, each created a few milliseconds after the
+    last. The listing orders by `created_at`, which holds milliseconds, and
+    breaks a tie by the id, which is a UUIDv4 and sorts at random.'''
+    import time
+
+    ids = []
+    for n in range(count):
+        if ids:
+            time.sleep(0.002)
+        ids.append(create(client, key, token, jobname=f"job{n}").get_json()["id"])
+    return ids
+
+
 def put(client, grant, data):
     return client.put(grant["url"].split("http://localhost", 1)[1], data=data)
 
@@ -163,13 +177,24 @@ def test_create_returns_an_id_and_a_location(server_client, key, token):
     assert "upload" not in body
 
 
-def test_ids_sort_by_when_they_were_minted(server_client, key, token):
-    '''UUIDv7, and it is not decoration: the collection is ordered by creation
-    and the cursor is a keyset over it, so the id IS the tiebreaker.'''
-    first = create(server_client, key, token).get_json()["id"]
-    second = create(server_client, key, token, jobname="job1").get_json()["id"]
+def test_the_listing_is_ordered_by_creation_never_by_id(
+        server_client, key, token, monkeypatch):
+    '''A collection is ordered by `created_at`, and the id only breaks a tie
+    (surface §6), so no id need sort by when it was minted: here each job's
+    id sorts below the one before it.'''
+    import types
+    import uuid
 
-    assert first < second
+    from siliconcompiler.remote.server.jobs import create as creating
+
+    minted = iter([uuid.UUID(int=n << 64) for n in (3, 2, 1)])
+    monkeypatch.setattr(creating, "uuid", types.SimpleNamespace(uuid4=lambda: next(minted)))
+
+    ids = created_in_order(server_client, key, token, 3)
+    assert ids == sorted(ids, reverse=True)
+
+    body = call(server_client, key, "GET", "/v1/jobs", token).get_json()
+    assert [item["id"] for item in body["items"]] == list(reversed(ids))
 
 
 @pytest.mark.parametrize("missing", ["design", "jobname"])
@@ -435,9 +460,9 @@ def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
     what the lookup is keyed on: the client's hash is only half of it and the
     server's resolved digests are the other half.
     '''
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
-    job_id = str(uuid7())
+    job_id = str(uuid.uuid4())
     store.execute(
         "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
         "                  run_hash, job_identity, manifest_pdk) "
@@ -886,8 +911,7 @@ def test_an_authenticated_response_is_never_cacheable(server_client, key, token)
 ###########################
 
 def test_the_listing_is_newest_first(server_client, key, token):
-    ids = [create(server_client, key, token, jobname=f"job{n}").get_json()["id"]
-           for n in range(3)]
+    ids = created_in_order(server_client, key, token, 3)
 
     body = call(server_client, key, "GET", "/v1/jobs", token).get_json()
 
@@ -910,8 +934,7 @@ def test_the_listing_is_mine_only(server_client, key, token):
 
 
 def test_paging_is_a_keyset_over_the_published_ordering(server_client, key, token):
-    ids = [create(server_client, key, token, jobname=f"job{n}").get_json()["id"]
-           for n in range(5)]
+    ids = created_in_order(server_client, key, token, 5)
 
     first = call(server_client, key, "GET", "/v1/jobs?limit=2", token)
     assert len(first.get_json()["items"]) == 2

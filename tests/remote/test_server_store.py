@@ -1,38 +1,12 @@
 import json
 import sqlite3
+import uuid
 
 from pathlib import Path
 
 import pytest
 
-from siliconcompiler.remote.server.state.ids import uuid7, _uuid7_fallback
 from siliconcompiler.remote.server.state.store import Store, StoreVersionError, now
-
-
-###########################
-# Identifiers
-###########################
-
-@pytest.mark.parametrize("mint", [uuid7, _uuid7_fallback])
-def test_ids_are_uuid7(mint):
-    '''Both the stdlib path and the fallback mint the same kind of id.'''
-    value = mint()
-
-    assert value.version == 7
-    assert value.variant == "specified in RFC 4122"
-
-
-@pytest.mark.parametrize("mint", [uuid7, _uuid7_fallback])
-def test_ids_sort_by_when_they_were_minted(mint):
-    '''The keyset cursor over GET /v1/jobs is a keyset over this ordering.'''
-    import time
-
-    ids = []
-    for _ in range(5):
-        ids.append(str(mint()))
-        time.sleep(0.002)
-
-    assert ids == sorted(ids)
 
 
 ###########################
@@ -170,7 +144,7 @@ def test_a_job_cannot_be_admitted_without_a_resolved_pdk():
             store.execute(
                 "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor) "
                 "VALUES (?, ?, 'running', 'gcd', 'job0', '{}')",
-                (str(uuid7()), user["id"]))
+                (str(uuid.uuid4()), user["id"]))
 
 
 def test_an_unknown_job_state_is_refused():
@@ -183,7 +157,7 @@ def test_an_unknown_job_state_is_refused():
             store.execute(
                 "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor) "
                 "VALUES (?, ?, 'sideways', 'gcd', 'job0', '{}')",
-                (str(uuid7()), user["id"]))
+                (str(uuid.uuid4()), user["id"]))
 
 
 def test_run_hash_lookup_is_owner_scoped():
@@ -194,7 +168,7 @@ def test_run_hash_lookup_is_owner_scoped():
         mine = store.upsert_user("local", "machine:1000")
         theirs = store.upsert_user("local", "machine:1001")
 
-        job_id = str(uuid7())
+        job_id = str(uuid.uuid4())
         store.execute(
             "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, run_hash) "
             "VALUES (?, ?, 'created', 'gcd', 'job0', '{}', 'sha256:abc')",
@@ -326,7 +300,7 @@ def test_software_is_advertised_only_where_a_live_image_holds_it():
         # Declared, but nothing provides it yet.
         assert store.advertised_software() == {"python": {}, "tools": {}}
 
-        image = str(uuid7())
+        image = str(uuid.uuid4())
         store.execute(
             "INSERT INTO images (id, registry_ref, digest, resolved_at, registered_by) "
             "VALUES (?, 'ghcr.io/x/y:0.39.1', 'sha256:aa', ?, ?)",
@@ -347,7 +321,7 @@ def test_a_retired_image_stops_advertising_its_contents():
                       "(software_name, version, added_by) "
                       "VALUES ('openroad', '2.0.1', ?)", (user["id"],))
 
-        image = str(uuid7())
+        image = str(uuid.uuid4())
         store.execute(
             "INSERT INTO images (id, registry_ref, digest, resolved_at, registered_by) "
             "VALUES (?, 'ghcr.io/x/y:2.0.1', 'sha256:bb', ?, ?)",
@@ -371,7 +345,7 @@ def test_versions_are_ordered_most_preferred_first():
         store.execute("INSERT INTO software (name, display_name, kind, added_by) "
                       "VALUES ('siliconcompiler', 'SiliconCompiler', 'python', ?)", (user["id"],))
 
-        image = str(uuid7())
+        image = str(uuid.uuid4())
         store.execute(
             "INSERT INTO images (id, registry_ref, digest, resolved_at, registered_by) "
             "VALUES (?, 'ghcr.io/x/y:latest', 'sha256:cc', ?, ?)",
@@ -404,7 +378,7 @@ def test_a_failed_transaction_leaves_nothing_behind():
                 con.execute(
                     "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor) "
                     "VALUES (?, ?, 'created', 'gcd', 'job0', ?)",
-                    (str(uuid7()), user["id"], json.dumps({})))
+                    (str(uuid.uuid4()), user["id"], json.dumps({})))
                 con.execute(
                     "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor) "
                     "VALUES ('x', 'nosuchuser', 'created', 'gcd', 'job1', '{}')")

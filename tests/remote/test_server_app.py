@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import uuid
 
 from pathlib import Path
 
@@ -7,7 +8,6 @@ import pytest
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler.remote.server.errors import ERRORS, TYPE_BASE, problem, ProblemError
-from siliconcompiler.remote.server.state.ids import uuid7
 from siliconcompiler.remote.server.state.store import now
 
 
@@ -184,7 +184,7 @@ def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
                   "(software_name, version, added_by) "
                   "VALUES ('siliconcompiler', '9.9.9', ?)", (user["id"],))
 
-    image = str(uuid7())
+    image = str(uuid.uuid4())
     store.execute(
         "INSERT INTO images (id, registry_ref, digest, resolved_at, registered_by) "
         "VALUES (?, 'ghcr.io/x/y:9.9.9', 'sha256:dd', ?, ?)",

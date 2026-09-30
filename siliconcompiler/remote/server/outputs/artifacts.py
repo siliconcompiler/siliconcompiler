@@ -89,6 +89,7 @@ import os
 import shutil
 import sqlite3
 import tarfile
+import uuid
 
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -96,7 +97,6 @@ from typing import Any, Dict, Optional
 from siliconcompiler.remote import links
 from siliconcompiler.remote.server.outputs import confine
 from siliconcompiler.remote.server.running.dispatch import RUN_LOG
-from siliconcompiler.remote.server.state.ids import uuid7
 
 __all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS", "log_text",
            "referenced_elsewhere"]
@@ -199,7 +199,7 @@ def record_upload(store, storage, config, job, upload: Path, digest: str,
     are the artifact. The hash is what storage reports for them, which submit
     compares with the declared digest.
     '''
-    artifact_id = str(uuid7())
+    artifact_id = str(uuid.uuid4())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
     os.replace(upload, target)
@@ -399,7 +399,7 @@ def _index(store, storage, job, location, floor, kind, step, index,
             logger.warning(f"{job['id']}: not indexing {source}: {e}")
         return 0
 
-    artifact_id = str(uuid7())
+    artifact_id = str(uuid.uuid4())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -422,7 +422,7 @@ def _log_archive(store, storage, job, location, floor, step, index, workdir: Pat
     except OSError:
         return 0
 
-    artifact_id = str(uuid7())
+    artifact_id = str(uuid.uuid4())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
     added = 0
@@ -474,7 +474,7 @@ def _archive(store, storage, job, location, floor, kind, step, index,
     if _exists(store, job, kind, step, index):
         return 0
 
-    artifact_id = str(uuid7())
+    artifact_id = str(uuid.uuid4())
     target = storage.artifact_dir(job["id"]) / artifact_id
     target.parent.mkdir(parents=True, exist_ok=True)
 

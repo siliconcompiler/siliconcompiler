@@ -112,10 +112,10 @@ def test_the_reaper_runs_twice_and_takes_nothing_the_second_time(
 def _second_row_for(store, row, location=None):
     '''Another live row naming ``row``'s bytes -- the next upload's slot, so
     the one-per-node index allows it -- in ``location`` or the same one.'''
-    from siliconcompiler.remote.server.state.ids import uuid7
+    import uuid
 
     values = dict(row)
-    values.update(id=str(uuid7()), upload_seq=2, retention_until=None,
+    values.update(id=str(uuid.uuid4()), upload_seq=2, retention_until=None,
                   location_id=location or row["location_id"])
     columns = ", ".join(f'"{name}"' for name in values)
     store.execute(f"INSERT INTO artifacts ({columns}) VALUES "

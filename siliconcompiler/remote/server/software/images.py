@@ -24,12 +24,12 @@ than at submit. Saying so is what keeps the row from being read as a guarantee.
 import json
 import logging
 import re
+import uuid
 
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
 
 from siliconcompiler.remote.environment import IMAGE_SITE
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.state.ids import uuid7
 from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
@@ -1260,7 +1260,7 @@ def register_derived(store, base_id: str, registry_ref: str, digest: str, key: s
     if existing is not None:
         return existing["id"]
 
-    image_id = str(uuid7())
+    image_id = str(uuid.uuid4())
     with store.transaction():
         store.execute(
             "INSERT INTO images (id, registry_ref, digest, resolved_at, built_at, "
@@ -1519,7 +1519,7 @@ def register_image(store, registry_ref: str, digest: str,
             raise ValueError(f"{name}=={version} is not a registered version")
 
     existing = store.one("SELECT id FROM images WHERE digest = ?", (digest,))
-    image_id = existing["id"] if existing else str(uuid7())
+    image_id = existing["id"] if existing else str(uuid.uuid4())
 
     # 🔴 One live image per reference. The digest identifies the BYTES and the
     # reference identifies the thing an operator curates, so re-registering a

@@ -219,7 +219,7 @@ archive limits bind.**
 | G5 | `option.set_nodisplay(True)` | no display on a compute node |
 | G6 | ~~`option.set_quiet(True)`~~ | 🔴 **struck.** See below |
 | G7 | `scheduler.set_name(cluster)` **when it is not `local`** | `local` already means *unset*; any other value names the per-node scheduler |
-| G8 | `set('record', 'remoteid', <hash>)` | 🆕 **now the server-owned job id, and a UUIDv7** rather than `uuid.uuid4().hex`, so a user's ids sort by when they ran |
+| G8 | `set('record', 'remoteid', <hash>)` | 🆕 **now the server-owned job id**, in hyphenated form rather than the old server's `uuid.uuid4().hex` |
 
 ## I. The server's own entry point degrades without its extra
 

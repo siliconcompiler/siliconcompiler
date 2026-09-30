@@ -29,9 +29,9 @@ class LifecycleMixin:
         '''The caller's jobs, newest first, over a keyset cursor.
 
         Ordered by `(created_at, id)` descending, which is the ordering the
-        partial indexes carry -- and the reason the ids are UUIDv7: the
-        tiebreaker sorts the same way the timestamp does, so the cursor needs no
-        second column.
+        partial indexes carry, and the cursor is a keyset over both. The id is
+        only the tiebreaker, so any unique id pages correctly; a UUIDv4 orders
+        two jobs created in the same millisecond at random.
         '''
         where = ["user_id = ?", "deleted_at IS NULL"]
         params: List[Any] = [session.user_id]

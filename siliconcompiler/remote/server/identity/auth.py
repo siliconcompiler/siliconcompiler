@@ -16,13 +16,13 @@ import logging
 import os
 import secrets
 import time
+import uuid
 
 from pathlib import Path
 from typing import Dict, Optional
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.server.errors import OAuthError, ProblemError
-from siliconcompiler.remote.server.state.ids import uuid7
 from siliconcompiler.remote.server.state.store import Store, now
 
 __all__ = [
@@ -243,7 +243,7 @@ class TokenIssuer:
         if existing is None:
             self._retire_elsewhere(user_id, jkt)
 
-            device_id = str(uuid7())
+            device_id = str(uuid.uuid4())
             self._store.execute(
                 "INSERT INTO devices "
                 "(id, user_id, name, dpop_jkt, machine_id_hash, "
@@ -378,7 +378,7 @@ class TokenIssuer:
 
     def _rotate(self, row) -> dict:
         timestamp = now()
-        new_jti = str(uuid7())
+        new_jti = str(uuid.uuid4())
         expires = _plus(timestamp, min(
             REFRESH_TOKEN_SECONDS,
             max(0, _seconds_since(timestamp, row["absolute_expires_at"]))))
@@ -413,8 +413,8 @@ class TokenIssuer:
     def _issue(self, user_id: str, device_id: Optional[str], jkt: str,
                scope: str) -> dict:
         timestamp = now()
-        family_id = str(uuid7())
-        jti = str(uuid7())
+        family_id = str(uuid.uuid4())
+        jti = str(uuid.uuid4())
 
         session_end = _plus(timestamp, SESSION_SECONDS)
         refresh_end = _plus(timestamp, REFRESH_TOKEN_SECONDS)
@@ -439,7 +439,7 @@ class TokenIssuer:
 
         access = jwt.encode(
             {"iss": "sc-server", "sub": user_id, "iat": issued,
-             "exp": issued + ACCESS_TOKEN_SECONDS, "jti": str(uuid7()),
+             "exp": issued + ACCESS_TOKEN_SECONDS, "jti": str(uuid.uuid4()),
              "scope": scope, "family": family_id, "device": device_id,
              # The confirmation claim: this token is only usable by something
              # that can prove it holds the key.

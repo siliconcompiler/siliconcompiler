@@ -10,12 +10,12 @@ the compose rig sufficient on its own.
 
 import sqlite3
 import threading
+import uuid
 
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from siliconcompiler.remote.server.state.ids import uuid7
 
 __all__ = ["Store", "STORE_VERSION", "now"]
 
@@ -300,7 +300,7 @@ class Store:
             return found
 
         columns = ["id", "issuer", "subject"] + list(fields)
-        values = [str(uuid7()), issuer, subject] + list(fields.values())
+        values = [str(uuid.uuid4()), issuer, subject] + list(fields.values())
         self.execute(
             f"INSERT INTO users ({', '.join(columns)}) "
             f"VALUES ({', '.join('?' * len(columns))})",

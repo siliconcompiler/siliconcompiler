@@ -7,6 +7,7 @@ A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which
 
 import hashlib
 import json
+import uuid
 
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,7 +16,6 @@ from siliconcompiler.remote.server.jobs.common import (
     CREATE_MEMBERS, DESCRIPTOR_MEMBERS, REUSABLE_STATES, _continuations, _declared_sources,
     _expired_key, _name, _only, _python_packages, _retention, _run_hash, logger, requirements)
 from siliconcompiler.remote.server.software import images
-from siliconcompiler.remote.server.state.ids import uuid7
 
 
 class CreateMixin:
@@ -149,7 +149,7 @@ class CreateMixin:
         image_id = images.job_image_for(self._store, requires)["id"] \
             if self._config["containers"] else None
 
-        job_id = str(uuid7())
+        job_id = str(uuid.uuid4())
         device_id = session.device_id
 
         def admit():
