@@ -93,23 +93,37 @@ def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
                                           sources=[]).get_json()
 
 
-def test_a_private_source_with_no_copy_here_is_refused_at_create_by_name(
+def test_a_private_source_none_of_the_three_can_supply_is_refused_at_create(
         server_client, key, token):
-    '''🔴 Before a byte moves (surface D285). A source carries no kind and
-    this server has no catalogue, so the refusal names the resource alone --
-    names are unique across kinds -- and says who can supply it. Never asked
-    for: a private source is never uploaded.'''
+    '''🔴 Before a byte moves (surface D285, D299): not the operator's, not
+    held, not on the allowlist. A source carries no kind and this server has
+    no catalogue, so the refusal names the resource alone -- names are unique
+    across kinds. Never asked for: a private source is never uploaded.'''
     response = create(server_client, key, token, sources=[
-        {"keypath": ["library", "secret", "dataroot", "secretroot"], "private": True}])
+        {"keypath": ["library", "secret", "dataroot", "secretroot"], "private": True,
+         "source": "git+ssh://git.internal.example.com/secret.git", "ref": "v1"}])
 
     assert response.status_code == 422
     body = response.get_json()
     assert slug(response) == "resource-unavailable"
     assert body["resource"] == "secret"
     assert "resource_kind" not in body
-    assert "library,secret,dataroot,secretroot" in body["detail"] and "operator" in body["detail"]
+    assert "library,secret,dataroot,secretroot" in body["detail"]
+    assert "cannot fetch it either" in body["detail"]
     listed = call(server_client, key, "GET", "/v1/jobs", token).get_json()
     assert listed["items"] == []
+
+
+def test_a_private_source_without_its_source_is_decided_while_staging(
+        server_client, key, token):
+    '''The `sc-server` client sends a private entry no source -- the
+    manifest carries it -- so create cannot tell a held or fetchable one from
+    neither: it is left to staging, and never asked for.'''
+    response = create(server_client, key, token, sources=[
+        {"keypath": ["library", "secret", "dataroot", "secretroot"], "private": True}])
+
+    assert response.status_code == 201
+    assert not response.get_json().get("upload_sources")
 
 
 def test_credentials_in_a_source_are_never_stored(server, server_client, key, token):
@@ -655,8 +669,9 @@ def test_a_private_task_root_this_server_lacks_is_refused_with_its_keypath(
     '''The owner's name as `resource`, and which of its dataroots as
     `keypath`: a tool's `root` would otherwise read as *the tool is
     unavailable*.'''
-    response = create(server_client, key, token,
-                      sources=[{"keypath": TASK_RUN, "private": True}])
+    response = create(server_client, key, token, sources=[
+        {"keypath": TASK_RUN, "private": True,
+         "source": "git+ssh://git.internal.example.com/acme.git", "ref": "v1"}])
 
     assert response.status_code == 422
     body = response.get_json()
@@ -774,3 +789,148 @@ def test_a_member_under_another_tasks_dataroot_of_that_name_was_not_asked_for(
 
     assert response.status_code == 422
     assert response.get_json()["reason"] == "unrequested_member"
+
+
+###########################
+# A private dataroot may be fetched, never uploaded or asked for (surface D299)
+###########################
+
+SECRET = "https+private://github.com/siliconcompiler/secret/archive/refs/tags/"
+SECRET_KEYPATH = ["library", "secret", "dataroot", "secret"]
+
+
+def remote_private(source):
+    '''A private PDK fetched from ``source`` at `v1`.'''
+    pdk = PDK("secret")
+    pdk.set_dataroot("secret", source, tag="v1")
+    with pdk.active_dataroot("secret"):
+        pdk.set(*DATASHEET, "datasheet.pdf")
+    return pdk
+
+
+@pytest.fixture
+def private_project(gcd_design, tmp_path):
+    '''A run on a private PDK whose source is on the allowlist: the source the
+    manifest carries, and never the create body.'''
+    return _nop_asic(gcd_design, tmp_path, remote_private(SECRET))
+
+
+def staged(server_client, key, token, archive, digest, size):
+    job = stage(server_client, key, token, archive, size)
+    return job, outcome(server_client, key, token,
+                        submit(server_client, key, token, job["id"], digest, size))
+
+
+def test_a_private_dataroot_on_the_allowlist_is_fetched_and_the_job_runs(
+        server, server_client, key, token, job_archive, private_project, dispatcher):
+    '''Neither in the operator's map nor held: fetched from the manifest's own
+    source while the job stages -- and the run reads that copy.'''
+    from conftest import run_manifest
+
+    fake_fetch(server)
+    archive, digest, size = job_archive(private_project)
+    job, response = staged(server_client, key, token, archive, digest, size)
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+    held = server.config["SC_JOBS"]._sources.held(
+        "https://github.com/siliconcompiler/secret/archive/refs/tags/", "v1")
+    assert held and held in json.dumps(
+        run_manifest(dispatcher.submitted[0][2]).getdict()["library"]["secret"]["dataroot"])
+
+
+def test_a_private_dataroot_already_held_is_supplied_without_a_fetch(
+        server, server_client, key, token, job_archive, private_project, dispatcher):
+    fake_fetch(server)
+    first_archive, digest, size = job_archive(private_project)
+    staged(server_client, key, token, first_archive, digest, size)
+    assert wait_for(lambda: dispatcher.submitted)
+
+    # A second job, and any fetch now would fail for good.
+    fake_fetch(server, fail=Permanent("a fetch was not needed"))
+    archive, digest, size = job_archive(private_project)
+    job, response = staged(server_client, key, token, archive, digest, size)
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: len(dispatcher.submitted) == 2)
+
+
+def test_the_operators_copy_wins_and_needs_no_source(
+        server, server_client, key, token, job_archive, gcd_design, tmp_path, dispatcher):
+    '''A `file+private` source is on the submitter's machine, where no server
+    fetches: the operator's copy, by keypath, is the one way it arrives.'''
+    from conftest import run_manifest
+
+    root = tmp_path / "operator-copy"
+    root.mkdir()
+    (root / "datasheet.pdf").write_text("x")
+    server.config["SC_CONFIG"]._values["private_dataroots"] = {
+        "library": {"secret": {"secret": str(root)}}}
+    fake_fetch(server, fail=Permanent("nothing is fetched"))
+    project = _nop_asic(gcd_design, tmp_path, private(PDK, "secret", tmp_path / "mine"))
+
+    archive, digest, size = job_archive(project)
+    job, response = staged(server_client, key, token, archive, digest, size)
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+    assert str(root) in run_manifest(dispatcher.submitted[0][2]).get(
+        "library", "secret", "dataroot", "secret", "path")
+
+
+@pytest.mark.parametrize("source,fails", [
+    # Not on the allowlist, and not held: no route.
+    ("git+ssh+private://git.internal.example.com/secret.git", None),
+    # On it, and its fetch fails for good.
+    (SECRET, Permanent("the source answered 404")),
+])
+def test_a_private_dataroot_no_route_supplies_is_refused_and_never_asked_for(
+        server, server_client, key, token, job_archive, gcd_design, tmp_path, dispatcher,
+        source, fails):
+    '''🔴 Never `awaiting_input`: nothing the client can send may stand in for a
+    private dataroot, so the job ends `rejected`, `resource-unavailable` with
+    its keypath.'''
+    fake_fetch(server, fail=fails)
+    project = _nop_asic(gcd_design, tmp_path, remote_private(source))
+    archive, digest, size = job_archive(project)
+    job, response = staged(server_client, key, token, archive, digest, size)
+
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    in ("rejected", "awaiting_input"))
+    job = read(server_client, key, token, job["id"])
+    assert job["state"] == "rejected", job
+    assert job["error"]["type"].endswith("/resource-unavailable")
+    assert job["error"]["keypath"] == SECRET_KEYPATH
+    assert not job.get("upload_sources")
+    assert not dispatcher.submitted
+
+
+def test_an_archive_carrying_a_private_value_is_refused_naming_it(
+        server, server_client, key, token, job_archive, private_project, dispatcher,
+        tmp_path):
+    '''It must never have been sent, so it is not used in place of the server's
+    own: `archive-rejected`, `unrequested_member`, naming the dataroot and the
+    member.'''
+    fake_fetch(server)
+    archive, _, _ = job_archive(private_project)
+    member = "sc_collected_files/" + collected_path(
+        first(private_project, ("library", "secret", *DATASHEET)))
+    carrying = tmp_path / "carrying.tar.gz"
+    with tarfile.open(archive) as source, tarfile.open(carrying, "w:gz") as out:
+        for item in source.getmembers():
+            out.addfile(item, source.extractfile(item) if item.isfile() else None)
+        info = tarfile.TarInfo(member)
+        body = b"the private datasheet, sent anyway\n"
+        info.size = len(body)
+        out.addfile(info, io.BytesIO(body))
+    data = carrying.read_bytes()
+
+    job, response = staged(server_client, key, token, str(carrying),
+                           "sha256:" + hashlib.sha256(data).hexdigest(), len(data))
+
+    assert response.status_code == 422
+    assert slug(response) == "archive-rejected"
+    assert response.get_json()["reason"] == "unrequested_member"
+    assert member in response.get_json()["detail"]
+    assert "library,secret,dataroot,secret" in response.get_json()["detail"]
+    assert not dispatcher.submitted

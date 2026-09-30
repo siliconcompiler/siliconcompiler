@@ -21,9 +21,18 @@ a ``$``-rooted path             uploaded         -- the CLIENT expands it
 an editable Python package      uploaded         --
 an installed Python package     supplied         by package name
 git / https / any remote        supplied         by source and ref, allowlist only
-marked private                  supplied, never  its keypath, to a root the
-                                uploaded         operator configured
+marked private                  supplied, never  the operator's copy, by its
+                                uploaded, never  keypath; else a copy held, or a
+                                asked for        fetch, of its remote source
 ==============================  ===============  =================================
+
+🔴 **`+private` is a rule about the bytes leaving the submitter's machine, not
+about where the server may get them** (surface D299). A private dataroot is
+never uploaded -- one that arrives in an archive anyway is refused -- and never
+asked for; the server supplies it from the first of three that answers: the
+operator's copy (`private_dataroots`), a copy of its source it already holds,
+or a fetch of that source from the allowlist. The source is the manifest's own,
+read while the job stages; the create body does not carry it.
 
 🔴 **A dataroot is named by its keypath** (surface D298), where the schema that
 defines it keeps it: a library's ``library,<name>,dataroot,<root>`` or a task's
@@ -35,8 +44,8 @@ for a grant, is the keypath's second part.
 
 ⚠️ **The design is uploaded whatever its source**, and a PDK's, library's, FPGA
 device's or tool's files are uploaded only when local or editable. **Private
-wins over both**: a private file is never uploaded, and a private design --
-which no server supplies -- is refused.
+wins over both**: a private file is never uploaded, the design's included, and
+is supplied the same three ways as any other's.
 
 🔴 **"Local" is the dataroot's registered SOURCE, never where the file is
 now.** Every resolved file is on local disk -- a lambdapdk PDK is fetched into
@@ -73,7 +82,7 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLE
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
            "private_holders", "collection_keys", "collected_path", "PrivateBeside",
-           "value_records", "account_records"]
+           "value_records", "account_records", "uploaded_private"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -89,7 +98,8 @@ LOCAL = "local"            # a path on this machine, `$`-rooted included
 EDITABLE = "editable"      # a Python package installed editable
 INSTALLED = "installed"    # a Python package installed normally
 REMOTE = "remote"          # git, https, or anything fetched -- cached or not
-PRIVATE = "private"        # never leaves the machine; supplied by name
+PRIVATE = "private"        # never leaves the machine: the operator's copy, a held one,
+#                            or a fetch of its source
 
 
 def is_private(resolver) -> bool:
@@ -571,11 +581,41 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
         resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
         if one.origin == INSTALLED and resolver is not None:
             record["package"] = resolver.urlpath
-        elif one.origin == REMOTE and resolver is not None:
+        elif one.origin in (REMOTE, PRIVATE) and _remote(resolver):
+            # 🔴 A private dataroot's source too, from the manifest itself: a
+            # copy of it this server holds, or a fetch, is two of the three
+            # ways one is supplied (surface D299). Masked as any source is.
             record["source"] = safe_source(resolver)
             record["ref"] = getattr(resolver, "reference", None)
         records.append(record)
     return records
+
+
+def _remote(resolver) -> bool:
+    '''Whether a dataroot's files are fetched from a remote source -- asked
+    of the resolver, whatever else it is: a private one can be remote too, and
+    `source` classifies it PRIVATE, which is what decides that it never
+    uploads.'''
+    from siliconcompiler.package import RemoteResolver
+
+    return isinstance(resolver, RemoteResolver)
+
+
+def uploaded_private(records, collection_dir) -> List[Tuple[Tuple[str, ...], str]]:
+    '''Each private value the archive carries anyway, as ``(keypath, member)``:
+    the server's own finding, confined to ``collection_dir``, as an uploaded
+    value's always is. It must never have been sent, so the archive is refused
+    (surface D299); it is never used in place of the server's own copy.'''
+    found = []
+    for record in records:
+        where = record.get("collected")
+        if record.get("origin") != PRIVATE or not where or not collection_dir:
+            continue
+        full = confined(collection_dir, where)
+        if full is not None and os.path.exists(full):
+            found.append((tuple(record.get("keypath") or record["key"]),
+                          f"sc_collected_files/{where}"))
+    return found
 
 
 def account(project, collection_dir, supply, required=None) -> List[Entry]:
@@ -637,17 +677,29 @@ def _one(record, collection_dir, supply, present: bool = False) -> Entry:
                 origin=record["origin"], key=tuple(record["key"]), path=path,
                 keypath=keypath)
 
-    # Private wins over everything, the archive included: it must never have
-    # been sent, and a copy that arrived anyway is not used.
+    # 🔴 Private wins over everything, the archive included: it must never
+    # have been sent, and an archive carrying it is refused before this runs
+    # (`uploaded_private`). It is supplied from the first of three that answers
+    # -- the operator's copy, a held copy of its source, a fetch -- the
+    # design's like any other, and NEVER asked for: no branch here is ASK.
     if record["origin"] == PRIVATE:
-        if record["kind"] == DESIGN:
-            return Entry(**base, status=UNAVAILABLE,
-                         why="a private design cannot be supplied by a server")
         root = supply.private_root(keypath) if keypath else None
-        if not root:
-            return Entry(**base, status=UNAVAILABLE,
-                         why="a private dataroot this server has no copy of")
-        return _supplied(base, root, path, present)
+        if root:
+            return _supplied(base, root, path, present)
+        remote, ref = record.get("source"), record.get("ref")
+        if remote:
+            if not _relative_and_inside(path):
+                return Entry(**base, status=UNAVAILABLE,
+                             why="a path that escapes its dataroot")
+            held = supply.held(remote, ref)
+            if held:
+                return _supplied(base, held, path, present)
+            if supply.allowlisted(remote, ref):
+                return Entry(**base, status=FETCH, source=remote, ref=ref)
+        return Entry(**base, status=UNAVAILABLE,
+                     why="a private dataroot this server has no copy of, and cannot "
+                         "fetch either" + ("" if remote else
+                                           ": its source is on the submitter's machine"))
 
     found = record.get("collected")
     if found and collection_dir and confined(collection_dir, found) is not None \

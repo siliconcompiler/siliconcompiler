@@ -369,10 +369,14 @@ DEFAULTS: Dict[str, Any] = {
     # tool's private root is normally the same for all of them -- and `task`,
     # for one (tool, task), overrides it.
     #
-    # 🔴 A dataroot marked private never leaves the submitter's machine, so this
-    # is the only way its files reach a run -- and a path under a root is
-    # confined to it. Mounted read-only into every job; a change needs the
-    # bundles re-staged, as `container_mounts` does.
+    # 🔴 A dataroot marked private never leaves the submitter's machine, so its
+    # files reach a run from this server alone: from here first, then a copy of
+    # its source this server holds, then a fetch of it from `fetch_allowlist`
+    # (surface D299). This is the one of the three that needs no source -- the
+    # way for a `file+private` root, and for anything the allowlist does not
+    # admit -- and a path under a root is confined to it. Mounted read-only
+    # into every job; a change needs the bundles re-staged, as
+    # `container_mounts` does.
     "private_dataroots": {},
 
     # How long one source may take to fetch, and how long a job may wait for

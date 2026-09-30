@@ -209,8 +209,12 @@ class CreateMixin:
         =================================  =================================
         A source that is                   Answer
         =================================  =================================
-        private, and not in the map        `resource-unavailable`, by keypath
-        private, and in the map            supplied -- not listed
+        private, in the map                supplied -- not listed
+        private, its source held or        supplied, or fetched while staging --
+          allowlisted                        not listed
+        private, and no source given       decided while staging, from the
+                                             manifest's own source -- not listed
+        private, and none of those         `resource-unavailable`, by keypath
         held                               supplied -- not listed
         an installed package held here     supplied -- not listed
         on the allowlist, not held         assumed fetchable -- not listed
@@ -224,23 +228,25 @@ class CreateMixin:
         asked = []
         for item in declared:
             keypath = item["keypath"]
-            if item["private"]:
-                # 🔴 Refused before a byte moves (surface D285, D298): the owner's
-                # name as `resource`, and the keypath saying which of its
-                # dataroots, since `root` is on most of them. `sources` carries
-                # no kind and this server has no catalogue to find one in, so
-                # `resource_kind` is left out. The manifest's read refuses one
-                # the descriptor never listed, while staging.
-                if not self._supply.private_root(keypath):
-                    raise ProblemError(
-                        "resource-unavailable", resource=owners.keypath_owner(keypath),
-                        keypath=list(keypath),
-                        detail=f"the private dataroot {owners.shown(keypath)} is not "
-                               "held by this server: a private source is never "
-                               "uploaded, and only this server's operator can supply "
-                               "one")
-                continue
             source, ref = item.get("source"), item.get("ref")
+            if item["private"]:
+                # 🔴 Never asked for (surface D299): the operator's copy, a held
+                # copy of its source, or a fetch of it while staging. An entry
+                # with no source -- which this server's own client never sends,
+                # since the manifest carries it -- is decided while staging, from
+                # the manifest's read; one whose source none of them can use is
+                # refused before a byte moves, the owner's name as `resource` and
+                # the keypath saying which of its dataroots (D285, D298).
+                if self._supply.private_root(keypath) or not source or \
+                        self._supply.held(source, ref) or \
+                        self._supply.allowlisted(source, ref):
+                    continue
+                raise ProblemError(
+                    "resource-unavailable", resource=owners.keypath_owner(keypath),
+                    keypath=list(keypath),
+                    detail=f"the private dataroot {owners.shown(keypath)} is not held "
+                           "by this server, and it cannot fetch it either: a private "
+                           "source is never uploaded or asked for")
             if self._supply.held(source, ref) or self._supply.allowlisted(source, ref):
                 continue
             if source and source.startswith("python://") and \

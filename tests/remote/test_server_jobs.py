@@ -327,18 +327,24 @@ def test_a_requirement_is_always_a_list(server_client, key, token):
     assert listed.status_code == 201
 
 
-def test_a_private_source_carries_no_source_and_no_ref(server_client, key, token):
-    '''`private` defaults to false; when true, its path never leaves the
-    client, so a `source` or `ref` beside it is refused rather than trusted.'''
+def test_a_private_source_may_carry_its_source(server_client, key, token):
+    '''Surface D299: `private` defaults to false, and a private entry may
+    carry `source` and `ref`, which a held copy or a fetch supplies it from.
+    One this server can use neither way is refused before a byte moves.'''
     defaulted = create(server_client, key, token, sources=[
         {"keypath": ["library", "ip", "dataroot", "ip"],
          "source": "git+ssh://git@example.com/ip.git", "ref": "v1"}])
-    leaked = create(server_client, key, token, jobname="job1", sources=[
+    fetchable = create(server_client, key, token, jobname="job1", sources=[
+        {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
+         "source": "https://github.com/siliconcompiler/gf180/archive/", "ref": "v1"}])
+    neither = create(server_client, key, token, jobname="job2", sources=[
         {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
          "source": "file:///opt/pdks/gf180"}])
 
     assert defaulted.status_code == 201
-    assert leaked.status_code == 400
+    # 🔴 Never asked for: fetched while staging, or refused.
+    assert fetchable.status_code == 201 and not fetchable.get_json().get("upload_sources")
+    assert neither.status_code == 422
 
 
 def test_a_need_the_server_lacks_is_refused_at_create_naming_it(server_client, key, token):

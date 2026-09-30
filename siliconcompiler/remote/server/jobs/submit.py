@@ -347,10 +347,25 @@ class SubmitMixin:
 
         🔴 **No path the job names is read** (D112) -- see `owners.account`.
         `resource-unavailable` is raised only for what the caller could not
-        send either (D127): a private dataroot this server has no copy of, a
-        private design, or a path that escapes the root it is supplied under.
+        send either (D127): a private dataroot this server has no copy of and
+        cannot fetch, or a path that escapes the root it is supplied under.
+
+        🔴 **A private value the archive carries is refused first**, not used
+        (surface D299): `archive-rejected`, `unrequested_member`, its `detail`
+        naming the dataroot and the member -- the first archive's rule, since it may not
+        carry it, and the one a follow-up is held to already.
         '''
-        entries = owners.account_records(summary["values"], unpacked / "sc_collected_files",
+        collection = unpacked / "sc_collected_files"
+        carried = owners.uploaded_private(summary["values"], collection)
+        if carried:
+            keypath, member = carried[0]
+            more = len(carried) - 1
+            raise self._refuse(session, job, ProblemError(
+                "archive-rejected", reason="unrequested_member",
+                detail=f"{member} is under the private dataroot {owners.shown(keypath)}, "
+                       "which never leaves the submitter's machine: this server "
+                       "supplies it itself" + (f", and {more} more" if more else "")))
+        entries = owners.account_records(summary["values"], collection,
                                          self._supply, summary["required"])
         for entry in entries:
             if entry.status != owners.UNAVAILABLE:

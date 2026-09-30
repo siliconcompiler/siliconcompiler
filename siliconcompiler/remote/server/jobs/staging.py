@@ -138,6 +138,18 @@ class StagingMixin:
             if job["state"] != "staging":
                 raise _NoLongerStaging(job_id)
 
+            # 🔴 A private dataroot whose fetch failed is never asked for
+            # (surface D299): nothing the client can send may stand in for it,
+            # so the job is rejected with the refusal create would have given.
+            private = [(entry, why) for entry, why in failed
+                       if entry.origin == owners.PRIVATE]
+            if private:
+                entry, why = private[0]
+                raise self._refuse_staging(job, ProblemError(
+                    "resource-unavailable", resource=owners.keypath_owner(entry.keypath),
+                    keypath=list(entry.keypath),
+                    detail=f"the private dataroot {owners.shown(entry.keypath)} is not "
+                           f"held by this server, and its fetch failed: {why}"))
             if failed:
                 self._send_back(job, failed)
                 return

@@ -343,9 +343,9 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
     '''The descriptor's `sources`, checked, with credentials stripped -- or
     None where there are none.
 
-    `private` is OPTIONAL and defaults to false; 🔴 when true, `source` and
-    `ref` are forbidden -- a private dataroot's path is never sent, and a
-    client that sends one anyway is refused rather than trusted to be harmless.
+    `private` is OPTIONAL and defaults to false. A private entry may carry
+    `source` and `ref` (surface D299), masked here as any other's; the
+    `sc-server` client sends neither, since the manifest carries the source.
     '''
     declared = descriptor.get("sources")
     if declared is None:
@@ -376,12 +376,10 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         if tuple(keypath) in seen:
             raise ProblemError("invalid-request", detail=f"sources names {where} twice")
         seen.add(tuple(keypath))
+        # A private entry may carry its source and ref (surface D299): a copy
+        # this server holds, or a fetch, supplies it as well as the operator's
+        # copy does. `private` is what says it is never uploaded or asked for.
         private = item.get("private", False)
-        if private and ("source" in item or "ref" in item):
-            raise ProblemError(
-                "invalid-request",
-                detail=f"{where} is private, so it carries no source and no ref: its "
-                       "path never leaves the client")
         entry = {"keypath": list(keypath), "private": private}
         if isinstance(item.get("source"), str):
             # 🔴 Masked again, as the client masks it (`Resolver.safe_source`):

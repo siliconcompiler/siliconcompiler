@@ -470,16 +470,29 @@ def test_a_private_dataroot_is_supplied_by_name_or_not_at_all(project, tmp_path)
     assert status(project, "secret", Supply()).status == owners.UNAVAILABLE
 
 
-def test_a_private_design_is_refused(project, tmp_path):
+def test_a_private_design_is_supplied_like_any_other(project, tmp_path):
+    '''Surface D299: *designs can have private data for the same reason* --
+    supplied from the operator's copy, and refused in the same words as any
+    other private dataroot where the server has none.'''
+    (tmp_path / "top.v").write_text("module top; endmodule\n")
     design = project.get("library", "gcd", field="schema")
     design.set_dataroot("mine", f"file+private://{tmp_path}")
     with design.active_dataroot("mine"), design.active_fileset("rtl"):
         design.add_file("top.v")
+    mine = ("library", "gcd", "dataroot", "mine")
 
-    entries = [entry for entry in owners.account(
-        project, "none", Supply(private={("library", "gcd", "dataroot", "mine"): str(tmp_path)}))
-        if entry.dataroot == "mine"]
-    assert [entry.status for entry in entries] == [owners.UNAVAILABLE]
+    def entry(supply):
+        found, = [one for one in owners.account(project, "none", supply)
+                  if one.dataroot == "mine"]
+        return found
+
+    assert entry(Supply(private={mine: str(tmp_path)})).status == owners.SUPPLIED
+    missing = entry(Supply())
+    assert missing.status == owners.UNAVAILABLE
+    assert missing.why.startswith("a private dataroot this server has no copy of, and "
+                                  "cannot fetch either")
+    assert decide(project, ("library", "gcd", "fileset", "rtl", "file", "verilog")) != \
+        (owners.PRIVATE, True)
 
 
 def test_a_path_escaping_a_supplied_root_is_refused(project, tmp_path):
@@ -806,3 +819,37 @@ def test_the_run_points_each_tasks_dataroot_at_its_own_copy(gcd_design, tmp_path
     assert runspec.point_dataroots(project, targets) == 2
     assert project.get(*RUN, "path") == str(tmp_path / "run")
     assert project.get(*CHECK, "path") == str(tmp_path / "check")
+
+
+def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
+        project, tmp_path):
+    '''Surface D299: the operator's copy, then a copy of its source this
+    server holds, then a fetch from the allowlist -- and UNAVAILABLE where none
+    answers, never ASK.'''
+    source = "https://github.com/siliconcompiler/secret/archive/"
+    pdk = PDK("secret")
+    pdk.set_dataroot("secret", source.replace("https", "https+private", 1), tag="v1")
+    with pdk.active_dataroot("secret"):
+        pdk.set(*DATASHEET, "datasheet.pdf")
+    project.set_pdk(pdk)
+    keypath = ("library", "secret", "dataroot", "secret")
+    (tmp_path / "datasheet.pdf").write_text("x")
+    record, = [one for one in owners.value_records(project, "none")
+               if one["key"][:2] == ["library", "secret"]]
+
+    # The manifest's own source, masked as any source is, and never uploaded.
+    assert (record["origin"], record["source"], record["ref"]) == \
+        (owners.PRIVATE, source, "v1")
+    assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
+
+    def status(supply):
+        entry, = [one for one in owners.account(project, "none", supply)
+                  if one.keypath == keypath]
+        return entry.status
+
+    held = Supply(held={(source, "v1"): str(tmp_path)})
+    assert status(Supply(private={keypath: str(tmp_path)}, allowed=[source])) == \
+        owners.SUPPLIED
+    assert status(held) == owners.SUPPLIED
+    assert status(Supply(allowed=[source])) == owners.FETCH
+    assert status(Supply()) == owners.UNAVAILABLE
