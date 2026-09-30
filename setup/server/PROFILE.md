@@ -82,13 +82,13 @@ are unassigned.
 | 11 | `GET /v1/devices/{id}` | one of the caller's devices |
 | 12 | `DELETE /v1/devices/{id}` | revokes it, ending every session it holds. See [§0](#0-the-one-sentence) for what it does not do |
 | 13 | `POST /v1/jobs` | every descriptor check that has its input: `node_count` against `max_job_nodes`; `requested_versions` against `software`, the one SiliconCompiler included ([§5](#5-images-and-software)); `needs` against `features`; `sources` against what this server holds and fetches ([§3](#what-it-supplies-by-identity-and-what-it-fetches)). `project` is `501 feature-unsupported`, `feature: "projects"`. A `run_hash` is accepted; reuse is offered only where `jobs.reuse` is advertised ([§5](#5-images-and-software)) |
-| 14 | `POST /v1/jobs/{id}/upload-grant` | a `PUT` to a signed route on this host, since `file://` storage cannot presign ([§2's divergence](#the-one-divergence-the-stream-host-is-this-host)) |
+| 14 | `POST /v1/jobs/{id}/upload-grant` | a `PUT` to a signed route on this host, since `file://` storage cannot presign ([§2](#the-stream-host-and-storage-are-this-host)) |
 | 15 | `POST /v1/jobs/{id}/submit` | the contract's staging: the digest checked before anything is opened, then the archive, then the manifest, read by this server's own SiliconCompiler in a subprocess of its own ([§5](#5-images-and-software)), and the job's Python packages installed ([§3](#pythonenv-only-where-there-is-somewhere-safe-to-build)) |
 | 16 | `GET /v1/jobs` | the caller's jobs, newest first, over a keyset cursor; `?project=` is `501 feature-unsupported` |
 | 17 | `GET /v1/jobs/{id}` | the whole job object. `web_url` is served, since this profile has a portal. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#one-gap-some-slurm-interruptions-read-as-run-failed) says it can |
 | 18 | `POST /v1/jobs/{id}/cancel` | a `reason` of at most 300 characters, served whole on the transitions and on each node it stopped |
 | 19 | `DELETE /v1/jobs/{id}` | deletes the job's data; the job object stays readable |
-| 20 | `GET /v1/jobs/{id}/logs` | `logs.stream` and `logs.stream.job` are advertised, so a running node or job gets a `303` to a stream on this host; a finished one a `303` to its archived log |
+| 20 | `GET /v1/jobs/{id}/logs` | `logs.stream` and `logs.stream.job` are advertised, so a node or job gets a `303` to a stream on this host: live while it runs, and for a finished one a stream that ends at once, naming its archived `logs` artifact |
 | 21 | `GET /v1/jobs/{id}/artifacts` | [the kinds this profile produces](#what-it-produces) |
 | 22 | `GET /v1/jobs/{id}/artifacts/{artifact_id}` | a `303` to a signed route on this host. `max_download_bytes` refuses, as `download-too-large`; a test mode may withhold kinds ([README](README.md#test-modes-serving-less-on-purpose)) |
 
@@ -136,13 +136,18 @@ are unassigned.
 | `can_submit` | always `true`, with no `blocked_type`: no service-scoped terms document exists to block it |
 | `projects`, `terms` | `[]` |
 
-### The one divergence: the stream host is this host
+### The stream host and storage are this host
 
-The contract serves `logs.stream` from a stream host on an origin of its own.
 `sc-server` has one origin, so the stream is served from this host: a
 capability URL with its own short lifetime, reached through a `303` like every
 other. A `file://` store answers the artifact `303` and the upload grant the
 same way, with a signed route here.
+
+- **That is what the contract asks of a stream host behind an edge** (surface
+  D304): operator headers go to the API's origin, its signed routes included,
+  and nowhere else, so a stream behind an edge that requires them is served on
+  the API's origin. A client configures them once, for the server, and a live
+  log reaches it through them.
 
 - Nothing on the wire changes. A client following the `303` attaches no token
   and no proof; after it, `text/event-stream` is the stream and any error

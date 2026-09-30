@@ -165,6 +165,7 @@ def _dispatch(remote):
     if any([remote.get("cmdarg", arg) for arg in cfg_only]) and remote.get("cmdarg", 'server'):
         remote.logger.error('Error: -server cannot be specified with '
                             f'{", ".join(["-"+e for e in cfg_only])}')
+        return 2
 
     client = Client(_credentials(remote), logger=remote.logger,
                     open_browser=not remote.get("cmdarg", "no_browser"))

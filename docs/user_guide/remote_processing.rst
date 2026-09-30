@@ -63,6 +63,14 @@ secret is in the session store beside it, ``$HOME/.sc/auth/`` -- or wherever
 
 ``headers.json``
   Headers an operator's access layer requires, if any (``sc-remote -header``).
+  They are configured once, for the server, and sent to its address and
+  nowhere else: a live log or a download arrives through the server's own
+  address, or from somewhere that needs none.
+
+Nothing else goes with a request. The client never sends a credential it did
+not put there itself, so an entry for the server in ``~/.netrc``, a credential
+helper or a keychain is not used, while ``HTTPS_PROXY``, ``NO_PROXY`` and
+``REQUESTS_CA_BUNDLE`` still apply.
 
 .. warning::
 

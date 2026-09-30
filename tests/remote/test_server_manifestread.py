@@ -99,6 +99,83 @@ def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
 
 
 ###########################
+# No credential in the manifest (surface D302)
+###########################
+
+def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere_else(
+        server, server_client, key, token, job_archive, nop_project, dispatcher, caplog):
+    '''🔴 A hand-built archive, as a client that did not strip it would send
+    one: `archive-rejected`, `credential`, naming the keypath and never the
+    value -- which is in no response, row, log line or file this server wrote.
+    Only the upload is kept, as it arrived, as the job's `input`.'''
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    design = nop_project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+
+    job, response = submitted(server_client, key, token, job_archive())
+
+    body = response.get_json()
+    assert (response.status_code, slug(response), body["reason"]) == \
+        (422, "archive-rejected", "credential")
+    assert "library,gcd,dataroot,ip" in body["detail"]
+    assert not dispatcher.submitted
+
+    assert "TOKEN" not in json.dumps(body)
+    assert "TOKEN" not in json.dumps(read(server_client, key, token, job["id"]))
+    assert "TOKEN" not in caplog.text
+    store = server.config["SC_STORE"]
+    for table in store.all("SELECT name FROM sqlite_master WHERE type = 'table'"):
+        rows = [dict(row) for row in store.all(f'SELECT * FROM "{table["name"]}"')]
+        assert "TOKEN" not in json.dumps(rows, default=str), table["name"]
+
+    # The extracted tree was a second copy of it, and is gone; the upload is
+    # kept, compressed, as the job's `input`, and is the one place it is.
+    user = store.one("SELECT user_id FROM jobs WHERE id = ?", (job["id"],))["user_id"]
+    assert not server.config["SC_JOBS"].job_root(user, job["id"]).exists()
+    kept = server.config["SC_STORE"].all(
+        "SELECT storage_key FROM artifacts WHERE job_id = ? AND kind = 'input'", (job["id"],))
+    assert len(kept) == 1
+    stored = server.config["SC_JOBS"]._storage.artifact_path(kept[0]["storage_key"])
+    for where, _, files in os.walk("datadir"):
+        for name in files:
+            path = os.path.join(where, name)
+            if os.path.samefile(path, stored):
+                continue
+            with open(path, "rb") as f:
+                assert b"TOKEN" not in f.read(), path
+
+
+def test_a_credential_is_refused_after_what_the_read_itself_refuses(
+        server_client, key, token, job_archive, nop_project, dispatcher):
+    '''The surface's staging table: what the read itself refuses comes
+    first, and the credential is the first check against what it reports.'''
+    design = nop_project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    nop_project.option.set_breakpoint(True, step="stepone", index="0")
+
+    _, response = submitted(server_client, key, token, job_archive())
+
+    assert response.get_json()["reason"] == "breakpoint"
+
+
+def test_a_masked_manifest_is_read_as_sent(server_client, key, token, job_archive,
+                                           nop_project, dispatcher):
+    '''What a client sends -- the path without its userinfo -- reads, and
+    the job is not refused for it.'''
+    from siliconcompiler.remote import owners
+
+    design = nop_project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+
+    _, response = submitted(server_client, key, token,
+                            job_archive(owners.without_credentials(nop_project)))
+
+    assert response.status_code == 202, response.get_json()
+
+
+###########################
 # What the read is given, and what it is not
 ###########################
 

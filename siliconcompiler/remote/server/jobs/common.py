@@ -713,8 +713,15 @@ def _members_json(members: Dict[str, Any]) -> Optional[str]:
     return json.dumps(members, sort_keys=True) if members else None
 
 
-def _flag(value) -> bool:
-    return str(value).lower() in ("1", "true", "yes")
+def _flag(value, name: str) -> bool:
+    '''A boolean query parameter: `true` or `false`, as S §16 defines one,
+    and anything else `invalid-request` (S §6) -- never read as false, which
+    would answer a filter the caller did not ask for.'''
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    raise ProblemError("invalid-request", detail=f"{name} is true or false")
 
 
 def _limit(value) -> int:

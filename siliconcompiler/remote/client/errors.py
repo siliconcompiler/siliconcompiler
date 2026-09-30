@@ -153,6 +153,9 @@ _NEXT_STEP_BY_REASON = {
                           "that is a client bug.",
     "python_package": "An uploaded wheel was refused; the client builds every "
                       "wheel, so that is a client bug.",
+    "credential": "A dataroot's path went up with a user name or secret in it; the "
+                  "client removes them, so that is a client bug. Give the credential "
+                  "through the environment instead.",
     "breakpoint": "Clear option,breakpoint: nobody is at a remote run.",
     "interactive_task": "Remove the task that opens a window: nobody is at a "
                         "remote run.",

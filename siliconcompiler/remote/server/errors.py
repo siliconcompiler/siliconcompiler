@@ -155,6 +155,9 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       "link_member", "device_member", "traversal",
                       # No manifest at the root, or one that cannot be read.
                       "missing_manifest", "invalid_manifest",
+                      # A dataroot's path in the manifest carrying userinfo,
+                      # which no client sends (surface D302).
+                      "credential",
                       # A follow-up archive carrying anything but what was
                       # asked for (D124): it may not replace what the first
                       # archive carried after the server checked it.

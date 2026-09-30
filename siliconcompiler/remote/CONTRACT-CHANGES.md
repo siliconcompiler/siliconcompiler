@@ -90,6 +90,21 @@ one name collect a file of one path to one place (CORE-FOLLOWUPS item 13), so a
 follow-up archive's member under another task's dataroot of that name is told
 apart only where its path differs.
 
+Follow-on 21's two -- a private entry with no source decided while staging, and
+no credential in the uploaded manifest (surface D301, D302) -- were decided too,
+and removed the same way. D301 is what follow-on 21 built. **D302 overturned
+this file's earlier note that the owner left credentials in the manifest "for
+now"**; the owner, 2026-09-30: *"the contract is right and I was lazy, lets
+honor it correctly."* Follow-on 22 builds both halves: the client strips
+userinfo and masks query values in every dataroot's path of every manifest it
+packs, and `sc-server` refuses an archive whose manifest carries userinfo,
+`archive-rejected`, `reason: "credential"`, naming the keypath.
+
+The client review's two, operator headers for a stream host and a credential
+from the environment (surface D304–D305, identity D90, client-v1-migration
+D15), were decided too, and removed the same way. Follow-on 22 brings the code
+up to them.
+
 ---
 
 ## Open — not yet in the contract docs
@@ -112,60 +127,51 @@ Nothing to port: it goes when its plan lands on `main` and is merged here.
   (CORE-FOLLOWUPS item 10).
   **Tracked in:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
 
-### From follow-on 21 (2026-09-30)
+### From building follow-on 22 (2026-09-30)
 
-#### 3. A private entry with no source is decided while staging, not refused at create
+#### 7. 🔴 An upload refused for a credential is kept, and keeps it
 
-Surface D299 says *an entry with no source can be supplied only the first way*
-and *create refuses a private dataroot none of the three can supply*. The owner,
-on whether the client should send a private dataroot's source: *"it's in the
-manifest so no need to force it on the wire."* So the `sc-server` client still
-sends a private entry as `{keypath, private: true}`, and the server takes its
-source from the manifest's read while the job stages, where routes 2 and 3 --
-a held copy, a fetch -- are then open to it.
+`archive-rejected`, `reason: "credential"` exists because the archive is kept as
+the job's `input`, which anyone who can read the job can fetch (D302). But the
+surface keeps an upload refused as `archive-rejected` as an `input` row
+(*`input` is one per upload*), and excepts only `upload-forbidden`. So the
+refusal keeps exactly what it refused. `sc-server` keeps it, as the text says,
+and removes the extracted tree, which is a second copy of the same bytes.
 
-**What changes in the text:** create cannot tell a held or fetchable source from
-neither when the entry carries none, so it refuses a private entry only where
-the operator's copy is absent and a source it was given can be used neither way.
-An entry with no source is left to staging, and never asked for; one no route
-supplies ends the job `rejected`, `resource-unavailable` with its `keypath` --
-the refusal create would have given, one step later, after the upload. An entry
-that does carry its source is decided at create, as D299 has it.
+**Proposed:** an upload refused for `credential` is not kept, as one refused
+`upload-forbidden` is not: only the record of why remains.
 
-**Where it goes:** `api/surface.md`, *13. POST /v1/jobs* and the three-routes
-table; client-v1-migration's policy for when the client sends the source.
+**Where it goes:** `api/surface.md`, *`input` is one per upload*.
 
-#### 4. 🔴 The manifest carries every dataroot's source as registered, credentials included
+#### 8. A `-from` run's archive carries more manifests than the one D302 names
 
-**Checked, by running it:** a PDK whose dataroot is
-`git+https+private://alice:ghp_TOKEN@git.internal.example.com/pdk/secret.git`
-writes exactly that string into the manifest the client uploads
-(`Project.write_manifest`), `alice:ghp_TOKEN@` and all. Private or not, every
-dataroot's `path` goes up verbatim.
+Each upstream node's `outputs/` carries that node's own manifest, and it
+records every dataroot's path as the root manifest does. D302 has the client
+send *each dataroot's path in the manifest it uploads* without its userinfo,
+and the server refuse *an archive whose manifest carries userinfo*: the root
+manifest. `sc-server`'s client masks every manifest it packs, the upstream ones
+included, and its server checks the root manifest only.
 
-**Why it matters:** the surface's rule -- *the client MUST strip credentials from
-every URL before sending it* -- is written for the descriptor's `sources`, and
-the client keeps it there (`safe_source`). The same URL, unstripped, is in the
-archive beside it, and the server keeps that archive as a job-level `input`. So
-the descriptor's stripping protects nothing while the manifest carries the
-original, and item 3 now relies on the manifest's source.
+**For the contract to say:** whether the rule and the refusal cover every
+manifest an archive carries, or the root one alone.
 
-**Options:**
+**Where it goes:** `api/surface.md`, D302's bullet under *Every file is
+uploaded or supplied by identity*.
 
-- The client strips userinfo, and masks query values, in every dataroot's
-  `path` of the manifest it packs -- its own copy, as `safe_source` does for the
-  descriptor. The server fetches with its own credentials and never uses the
-  client's, and a supplied or uploaded dataroot is pointed at the server's copy
-  before the run anyway (`runspec.point_dataroots`).
-- Widen the rule to the manifest, so it binds every client, and say what a
-  server does with a manifest that breaks it.
+#### 9. Two small things in D302's text
 
-**Where it goes:** `api/surface.md`, the credential rule; the client's
-`RemoteRun._pack`.
+- **The `sources` example keeps userinfo.** §13 shows `"source":
+  "git+ssh://git@github.com/acme/ip.git"` marked *credentials stripped*, but
+  the rule removes all userinfo, `git@` included, as `safe_source` does, and
+  the server refuses a manifest path carrying any. The example should read
+  `git+ssh://github.com/acme/ip.git`.
+- **"Naming the keypath" does not say where.** `sc-server` names each
+  dataroot's keypath in `detail`. `resource-unavailable` carries a `keypath`
+  member for the same purpose (D298), and `archive-rejected`'s registry row
+  lists none; a client that wants to act on it has only prose.
 
-**Decided 2026-09-30: left as it is, for now.** The owner: *"it's fine in the
-manifest, for now."* Neither option is written; the manifest keeps each source
-as registered.
+**Where it goes:** `api/surface.md` §13 (the example) and the registry row for
+`archive-rejected`.
 
 ---
 

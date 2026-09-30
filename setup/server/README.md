@@ -851,6 +851,15 @@ cookie is a third, for twelve hours. The server warns at startup where any
 origin it is reached at is plain http beyond this machine. Serve it through a
 reverse proxy with https wherever it is reached from elsewhere.
 
+### Behind an access layer
+
+An edge in front of this server that requires headers of its own, Cloudflare
+Access's service token for one, is configured on the client once, for the
+server, with `sc-remote -header <name>`. The stream a log's `303` leads to and
+the signed storage routes are on this host too, so they reach the edge with
+those headers, and a live log works through it. A client sends them to the
+server's origin and nowhere else (surface D304).
+
 ### What it checks at startup
 
 It refuses to start, naming the reason, when:

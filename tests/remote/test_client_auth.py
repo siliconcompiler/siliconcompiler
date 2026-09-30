@@ -218,8 +218,11 @@ def test_storage_on_another_origin_gets_no_credential_of_any_kind(
         assert name not in storage.headers
 
 
-def test_a_stream_host_gets_only_the_headers_configured_for_it(
+def test_a_stream_host_on_another_origin_gets_no_operator_header(
         logged_in, fake_v1, tmp_credentials):
+    '''🔴 Surface D304: operator headers go to the API's origin and nowhere
+    else -- not even one stored for the stream's own origin, which nothing
+    configures any more.'''
     tmp_credentials.set_header("https://sc-server.test", "CF-Access-Client-Id", "id")
     tmp_credentials.set_header("https://stream.test", "X-Stream", "s")
 
@@ -230,10 +233,127 @@ def test_a_stream_host_gets_only_the_headers_configured_for_it(
 
     logged_in.follow_log("J", "syn", "0")
 
+    api, stream = fake_v1.calls[-2].request, fake_v1.calls[-1].request
+    assert api.headers["CF-Access-Client-Id"] == "id"
+    for name in ("X-Stream", "CF-Access-Client-Id", "Authorization", "DPoP"):
+        assert name not in stream.headers
+
+
+def test_a_stream_on_the_servers_own_origin_carries_the_headers_set_once(
+        logged_in, fake_v1):
+    '''As `sc-server` serves a live log behind an edge: its stream is on the
+    API's origin, so the headers configured once, for the server, reach it --
+    and no token or proof does.'''
+    logged_in.set_header("CF-Access-Client-Id", "id")
+
+    fake_v1.route(responses.GET, "jobs/J/logs", "", status=303,
+                  headers={"Location": "https://sc-server.test/v1/streams/abc"})
+    fake_v1.route(responses.GET, "streams/abc", "line\n", content_type="text/plain")
+
+    logged_in.follow_log("J", "syn", "0")
+
     stream = fake_v1.calls[-1].request
-    assert stream.headers["X-Stream"] == "s"
-    assert "CF-Access-Client-Id" not in stream.headers
-    assert "Authorization" not in stream.headers
+    assert stream.headers["CF-Access-Client-Id"] == "id"
+    assert "Authorization" not in stream.headers and "DPoP" not in stream.headers
+
+
+###########################
+# No credential from the environment (surface D305)
+###########################
+
+@pytest.fixture
+def netrc_everywhere(tmp_path, monkeypatch):
+    '''A `~/.netrc` with an entry for the API's host, storage's and the
+    stream's: what requests fills a missing `auth` from.'''
+    netrc = tmp_path / "netrc"
+    netrc.write_text("machine sc-server.test login alice password api-secret\n"
+                     "machine storage.test login alice password storage-secret\n"
+                     "machine stream.test login alice password stream-secret\n")
+    netrc.chmod(0o600)
+    monkeypatch.setenv("NETRC", str(netrc))
+    return netrc
+
+
+def test_no_request_carries_a_credential_from_netrc(
+        fake_v1, client_credentials, tmp_credentials, netrc_everywhere, tmp_path):
+    '''🔴 With a netrc entry for every host, every API request still carries
+    `Authorization: DPoP`, storage and the stream get nothing, and no Basic
+    credential goes anywhere. Without the session's own `auth`, requests
+    replaces `DPoP <token>` with the netrc login.'''
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    client = Client(tmp_credentials)
+    client.login()
+
+    fake_v1.route(responses.GET, "me", {"user_id": "u"})
+    fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
+                  headers={"Location": "https://storage.test/object?sig=1"})
+    fake_v1.elsewhere(responses.GET, "https://storage.test/object", "bytes",
+                      content_type="application/octet-stream")
+    fake_v1.route(responses.GET, "jobs/J/logs", "", status=303,
+                  headers={"Location": "https://stream.test/log"})
+    fake_v1.elsewhere(responses.GET, "https://stream.test/log", "line\n",
+                      content_type="text/plain")
+
+    client.me()
+    client.fetch_artifact("J", "A", tmp_path / "a.bin")
+    client.follow_log("J", "syn", "0")
+
+    sent = [call.request for call in fake_v1.calls]
+    assert not any("Basic" in (r.headers.get("Authorization") or "") for r in sent)
+    for request in sent:
+        if request.url.startswith("https://sc-server.test/v1/"):
+            # A token's own endpoint carries a proof and no token.
+            if not request.url.startswith("https://sc-server.test/v1/auth/"):
+                assert request.headers["Authorization"].startswith("DPoP "), request.url
+        else:
+            # `GET /v1` takes no credential; storage and the stream, none either.
+            assert "Authorization" not in request.headers, request.url
+
+
+def test_the_environment_still_says_where_the_proxy_is(tmp_credentials, monkeypatch, tmp_path):
+    '''Not `trust_env = False`, which would drop the proxy and the CA bundle
+    with netrc.'''
+    from siliconcompiler.remote import dpop
+    from siliconcompiler.remote.client.transport import Transport
+
+    bundle = tmp_path / "ca.pem"
+    bundle.write_text("")
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.test:3128")
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(bundle))
+    transport = Transport("https://sc-server.test/v1", dpop.generate_key(), tmp_credentials)
+
+    settings = transport._session.merge_environment_settings(
+        "https://sc-server.test/v1/me", {}, None, None, None)
+
+    assert transport._session.trust_env
+    assert settings["proxies"]["https"] == "http://proxy.test:3128"
+    assert settings["verify"] == str(bundle)
+
+
+def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywhere,
+                                             monkeypatch, tmp_path):
+    '''🔴 requests' `rebuild_auth` reads netrc again for a redirect's target,
+    whatever the session's `auth` says, so no request lets requests follow
+    one: a redirect is followed by hand, once, and a second is not chased.'''
+    asked = []
+    real = requests.Session.send
+
+    def send(self, request, **kwargs):
+        asked.append(kwargs.get("allow_redirects", True))
+        return real(self, request, **kwargs)
+
+    monkeypatch.setattr(requests.Session, "send", send)
+    fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
+                  headers={"Location": "https://storage.test/object"})
+    fake_v1.elsewhere(responses.GET, "https://storage.test/object", "", status=302,
+                      headers={"Location": "https://elsewhere.test/object"})
+
+    with pytest.raises(RemoteError):
+        logged_in.fetch_artifact("J", "A", tmp_path / "a.bin")
+
+    assert asked and not any(asked)
+    assert not any("elsewhere.test" in call.request.url for call in fake_v1.calls)
+    assert not (tmp_path / "a.bin").exists()
 
 
 def test_https_is_never_followed_to_plain_http(logged_in, fake_v1, tmp_path):

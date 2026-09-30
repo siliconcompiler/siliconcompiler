@@ -1022,12 +1022,19 @@ class RemoteRun:
         from it. A four-file design uploaded three quarters of a megabyte, most
         of it the previous run's logs -- and `job.log` itself, which this very
         run has open and is appending to.
+
+        🔴 **No manifest in it carries a credential** (surface D302): every
+        dataroot's path, the history's included, goes without its userinfo and
+        with every query value masked -- in the manifest at its root and in
+        each upstream node's own. The archive is kept on the server as the
+        job's `input`, and anyone who can read the job can read that. Each is a
+        masked copy, written aside: the user's own manifests keep what they
+        registered.
         '''
+        from siliconcompiler.remote import owners
+
         root = jobdir(self.project)
         manifest = f"{self.project.name}.pkg.json"
-        # The copy carrying every node's `require`, so the server reads the
-        # set this archive was filtered by out of the manifest it came with.
-        self._needs()[0].write_manifest(os.path.join(root, manifest))
 
         # The job's wheels and the user's helper modules go where the server
         # looks for them: in the collection, beside what `collect` put there.
@@ -1038,15 +1045,22 @@ class RemoteRun:
             placed = self._place_python(collected)
 
         packed = self._upstream()[0]
-        with tarfile.open(upload, mode="w:gz") as tar:
-            outputs = _LinkPacker(tar, root, packed, self.logger)
-            for name in [manifest, *self._needed_from(root)]:
-                if name in packed:
-                    outputs.add(name)
-                else:
-                    tar.add(os.path.join(root, name), arcname=name)
+        with tempfile.TemporaryDirectory(prefix="sc-remote-") as scratch:
+            # The copy carrying every node's `require`, so the server reads the
+            # set this archive was filtered by out of the manifest it came with.
+            sent = os.path.join(scratch, manifest)
+            _uploadable(self._needs()[0]).write_manifest(sent)
+            replaced = self._upstream_manifests(root, packed, scratch)
 
-        from siliconcompiler.remote import owners
+            with tarfile.open(upload, mode="w:gz") as tar:
+                tar.add(sent, arcname=manifest)
+                outputs = _LinkPacker(tar, root, packed, self.logger, replaced=replaced)
+                for name in self._needed_from(root):
+                    if name in packed:
+                        outputs.add(name)
+                    else:
+                        tar.add(os.path.join(root, name), arcname=name)
+
         self._uploading = (owners.upload_report(self.project, collected)
                            if collected and os.path.isdir(collected) else []) + placed \
             + self._asked_rows
@@ -1067,6 +1081,33 @@ class RemoteRun:
                 digest.update(chunk)
 
         return f"sha256:{digest.hexdigest()}", size
+
+    def _upstream_manifests(self, root: str, packed, scratch: str) -> Dict[str, str]:
+        '''Each upstream node's manifest the archive carries that holds a
+        credential, as ``{its real path: a masked copy under scratch}``, for
+        `_LinkPacker` to send in its place. One that holds none goes as it is.'''
+        from siliconcompiler import Project
+
+        replaced = {}
+        for n, name in enumerate(packed):
+            path = os.path.join(root, name, f"{self.project.name}.pkg.json")
+            if not os.path.isfile(path):
+                continue
+            try:
+                held = Project.from_manifest(filepath=path)
+            except Exception as e:                               # noqa: BLE001
+                # 🔴 Fails closed: what cannot be read cannot be told free of
+                # a credential.
+                raise RemoteError(
+                    f"{name}/{self.project.name}.pkg.json could not be read, so this "
+                    f"client cannot tell that it carries no credential: {e}") from None
+            cleaned = _uploadable(held)
+            if cleaned is held:
+                continue
+            copy = os.path.join(scratch, f"upstream-{n}.pkg.json")
+            cleaned.write_manifest(copy)
+            replaced[os.path.realpath(path)] = copy
+        return replaced
 
     def _place_python(self, collection: str):
         '''The job's wheels and the user's helper modules, into the
@@ -2062,10 +2103,13 @@ class _LinkPacker:
     databases, and copying their targets could upload terabytes.
     '''
 
-    def __init__(self, tar, root: str, packed, logger):
+    def __init__(self, tar, root: str, packed, logger, replaced=None):
         from siliconcompiler.remote import links
 
         self.tar, self.root, self.logger = tar, root, logger
+        # A file sent as another's bytes, by its real path: an upstream
+        # manifest, masked (`RemoteRun._upstream_manifests`).
+        self.replaced: Dict[str, str] = dict(replaced or {})
         self.real_root = os.path.realpath(root)
         # Each hard-linked file's home, so a chain ending at a node's
         # `inputs/x` -- the same inode as the upstream `outputs/x` -- points
@@ -2102,6 +2146,18 @@ class _LinkPacker:
 
     def _add_file(self, path: str, arcname: str, held) -> None:
         import stat
+
+        instead = self.replaced.get(os.path.realpath(path))
+        if instead is not None:
+            # Its own bytes, never a link to another name for the same inode:
+            # that would send what was masked here.
+            info = tarfile.TarInfo(arcname)
+            info.size, info.mtime = os.path.getsize(instead), held.st_mtime
+            info.mode = stat.S_IMODE(held.st_mode)
+            with open(instead, "rb") as handle:
+                self.tar.addfile(info, handle)
+            self.stored.setdefault(os.path.realpath(path), arcname)
+            return
 
         key = (held.st_dev, held.st_ino)
         if held.st_nlink > 1 and key in self.inodes:
@@ -2151,6 +2207,16 @@ class _LinkPacker:
         info = tarfile.TarInfo(arcname)
         info.type, info.linkname = tarfile.SYMTYPE, target
         self.tar.addfile(info)
+
+
+def _uploadable(project):
+    '''`owners.without_credentials`, or a refusal the user reads.'''
+    from siliconcompiler.remote import owners
+
+    try:
+        return owners.without_credentials(project)
+    except ValueError as e:
+        raise RemoteError(str(e)) from None
 
 
 # A job the server may still need this machine for.

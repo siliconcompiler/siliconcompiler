@@ -553,6 +553,23 @@ def test_listing_follows_the_link_header(fake_v1, logged_in):
     assert len(logged_in.jobs()) == 2
 
 
+def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
+    '''S §16's spelling, never Python's `True`, which a strict server refuses
+    and a lax one reads as false.'''
+    from urllib.parse import parse_qs, urlsplit
+
+    fake_v1.route(responses.GET, "jobs", {"items": []})
+    fake_v1.route(responses.GET, "jobs", {"items": []})
+
+    logged_in.jobs(archived=True, terminal=False)
+    logged_in.jobs(archived=[True, False])
+
+    first, second = [parse_qs(urlsplit(call.request.url).query)
+                     for call in fake_v1.calls if urlsplit(call.request.url).path == "/v1/jobs"]
+    assert (first["archived"], first["terminal"]) == (["true"], ["false"])
+    assert second["archived"] == ["true", "false"]
+
+
 def test_a_cancel_with_nothing_to_add_says_where_it_came_from(fake_v1, logged_in):
     """🔴 `reason` is optional on the wire -- requiring it would make a Ctrl-C
     inexpressible -- and this client always sends one anyway. It names the
@@ -1341,6 +1358,97 @@ def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_pa
     assert not {n for n in names if n.startswith(("stepone", "steptwo"))}
 
 
+def _sent(run, tmp_path, member="gcd.pkg.json"):
+    '''A manifest the archive carries, read back, and every member's bytes.'''
+    import tarfile
+
+    from siliconcompiler import Project
+
+    upload = tmp_path / "upload.tar.gz"
+    run._pack(upload)
+    with tarfile.open(upload) as tar:
+        blobs = {info.name: tar.extractfile(info).read()
+                 for info in tar.getmembers() if info.isfile()}
+    (tmp_path / "sent.pkg.json").write_bytes(blobs[member])
+    return Project.from_manifest(filepath=str(tmp_path / "sent.pkg.json")), blobs
+
+
+def _registered_with_credentials(project):
+    design = project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
+                        "v1")
+    project.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
+                "https://example.com/scripts.tar.gz?token=TOKEN")
+
+
+def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path):
+    '''🔴 Surface D302: every dataroot's path goes up without its userinfo and
+    with every query value masked -- a library's, a private one, a task's and
+    the history's -- and the user's own project and manifest keep what they
+    registered.'''
+    from siliconcompiler.remote import owners
+    from siliconcompiler.utils.paths import jobdir
+
+    _registered_with_credentials(nop_project)
+    nop_project._record_history()
+    _leftovers(nop_project)
+    own = os.path.join(jobdir(nop_project), "gcd.pkg.json")
+    nop_project.write_manifest(own)
+
+    sent, blobs = _sent(run, tmp_path)
+
+    paths = dict(owners.dataroot_paths(sent))
+    assert paths[("library", "gcd", "dataroot", "ip")] == "git+https://example.com/ip.git"
+    assert paths[("library", "gcd", "dataroot", "secret")] == \
+        "git+https+private://example.com/secret.git"
+    assert paths[("tool", "builtin", "task", "nop", "dataroot", "scripts")] == \
+        "https://example.com/scripts.tar.gz?token=***"
+    assert ("history", "job0", "library", "gcd", "dataroot", "ip") in paths
+    assert not [name for name, body in blobs.items() if b"TOKEN" in body]
+
+    # The manifest still carries the set the archive was filtered by.
+    assert owners.required(sent) == owners.required(run._needs()[0])
+    assert nop_project.get("library", "gcd", "dataroot", "ip", "path") == \
+        "git+https://alice:TOKEN@example.com/ip.git"
+    with open(own) as f:
+        assert "alice:TOKEN" in f.read()
+
+
+def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
+        run, nop_project, tmp_path):
+    '''A `-from` run carries each upstream node's own manifest in its
+    `outputs/`, and it records every dataroot's path as the root one does.'''
+    from siliconcompiler.remote import owners
+
+    _registered_with_credentials(nop_project)
+    _leftovers(nop_project)
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    nop_project.write_manifest(os.path.join(outputs, "gcd.pkg.json"))
+    nop_project.option.add_from("steptwo")
+
+    upstream, blobs = _sent(run, tmp_path, member="stepone/0/outputs/gcd.pkg.json")
+
+    assert dict(owners.dataroot_paths(upstream))[("library", "gcd", "dataroot", "ip")] == \
+        "git+https://example.com/ip.git"
+    assert blobs["stepone/0/outputs/gcd.vg"] == b"module gcd; endmodule\n"
+    assert not [name for name, body in blobs.items() if b"TOKEN" in body]
+    with open(os.path.join(outputs, "gcd.pkg.json")) as f:
+        assert "alice:TOKEN" in f.read()
+
+
+def test_an_upstream_manifest_that_holds_none_goes_as_it_is(run, nop_project, tmp_path):
+    _leftovers(nop_project)
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    nop_project.option.add_from("steptwo")
+    with open(os.path.join(outputs, "gcd.pkg.json"), "rb") as f:
+        written = f.read()
+
+    _, blobs = _sent(run, tmp_path)
+
+    assert blobs["stepone/0/outputs/gcd.pkg.json"] == written
+
+
 def _upstream_node(project, step, *, output=None, fetched_from=None, remoteid=None):
     from siliconcompiler.remote.client.results import record_job
     from siliconcompiler.utils.paths import workdir
@@ -1759,6 +1867,32 @@ def test_a_202_then_a_rejected_job_reads_the_refusal_from_the_poll(
         run.run()
 
     assert "stray.txt" in caplog.text
+
+
+def test_a_manifest_refused_for_a_credential_says_what_to_do(
+        fake_v1, run, monkeypatch, caplog):
+    '''The conformance rig serves the refusal `sc-server` raises for a
+    manifest carrying userinfo: the keypath, and never a value, and the next
+    step for a client bug.'''
+    monkeypatch.setattr("time.sleep", lambda *_: None)
+    _created(fake_v1)
+    _granted(fake_v1)
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", nodes=[]),
+                  status=202)
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "rejected", nodes=[], error={
+            "type": "https://siliconcompiler.com/server-errors/archive-rejected",
+            "title": "Archive rejected", "status": 422, "reason": "credential",
+            "detail": "the manifest carries userinfo in the path of 1 dataroot(s): "
+                      "library,gcd,dataroot,ip"}))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+
+    with pytest.raises(RemoteError, match="rejected"):
+        run.run()
+
+    assert "library,gcd,dataroot,ip" in caplog.text
+    assert "reason: credential" in caplog.text
+    assert "through the environment" in caplog.text
 
 
 def test_in_progress_and_a_slot_limit_are_waited_out_with_the_same_key(

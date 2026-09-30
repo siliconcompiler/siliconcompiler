@@ -227,9 +227,6 @@ class Credentials:
         '''The operator-configured headers for one origin. Secret values.'''
         return dict(self._read_json(HEADERS_FILENAME).get(_origin(origin)) or {})
 
-    def configured_origins(self):
-        return set(self._read_json(HEADERS_FILENAME))
-
     def set_header(self, origin: str, name: str, value: Optional[str]) -> None:
         import re
 

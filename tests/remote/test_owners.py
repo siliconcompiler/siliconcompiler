@@ -256,6 +256,123 @@ def test_a_token_in_a_query_never_leaves_this_machine(project):
 
 
 ###########################
+# No credential in the manifest (surface D302)
+###########################
+
+def with_credentials(project):
+    '''Dataroots registered with a credential -- the design's, a private one,
+    and a task's with a token in its query -- and the same again in the history
+    an earlier run left, which the manifest carries too.'''
+    design = project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
+                        "v1")
+    project.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
+                "https://example.com/scripts.tar.gz?token=TOKEN")
+    project._record_history()
+    return project
+
+
+def test_every_dataroot_path_leaves_without_its_credential(gcd_nop_project):
+    project = with_credentials(gcd_nop_project)
+
+    paths = dict(owners.dataroot_paths(owners.without_credentials(project)))
+
+    assert paths[("library", "gcd", "dataroot", "ip")] == "git+https://example.com/ip.git"
+    assert paths[("library", "gcd", "dataroot", "secret")] == \
+        "git+https+private://example.com/secret.git"
+    assert paths[("tool", "builtin", "task", "nop", "dataroot", "scripts")] == \
+        "https://example.com/scripts.tar.gz?token=***"
+    assert paths[("history", "job0", "library", "gcd", "dataroot", "ip")] == \
+        "git+https://example.com/ip.git"
+    assert not any("TOKEN" in path or owners.has_userinfo(path) for path in paths.values())
+
+
+def test_the_users_own_project_keeps_what_they_registered(gcd_nop_project):
+    project = with_credentials(gcd_nop_project)
+
+    owners.without_credentials(project)
+
+    assert project.get("library", "gcd", "dataroot", "ip", "path") == \
+        "git+https://alice:TOKEN@example.com/ip.git"
+
+
+def test_a_project_with_no_credential_is_not_copied(gcd_nop_project):
+    assert owners.without_credentials(gcd_nop_project) is gcd_nop_project
+
+
+def test_userinfo_is_read_as_the_mask_reads_it():
+    '''What the client strips and what the server refuses are one thing:
+    anything ahead of the host, `git@` included, and nothing in the path.'''
+    for url in ("git+https://alice:TOKEN@example.com/ip.git",
+                "git+ssh://git@github.com/acme/ip.git", "https://TOKEN@example.com/x"):
+        assert owners.has_userinfo(url)
+        assert not owners.has_userinfo(owners.masked(url))
+    for url in ("git+https://example.com/ip.git@v1", "/home/me@corp/ip", "", None):
+        assert not owners.has_userinfo(url)
+
+
+def test_both_ends_read_one_masked_source(project):
+    '''What the descriptor says -- the client's `sources`, from the user's own
+    project -- and what the server accounts by -- `value_records` of the
+    manifest the client sent -- are one string, so a held copy stored under
+    one is found under the other.'''
+    project.set_pdk(resource(
+        PDK, "lambda",
+        "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
+        "?access_token=SECRET&lfs=true", create=False))
+
+    sent, = [item for item in owners.sources(project) if item["keypath"][1] == "lambda"]
+    record, = [one for one in owners.value_records(owners.without_credentials(project), "none")
+               if one["key"][:2] == ["library", "lambda"]]
+
+    assert record["source"] == sent["source"]
+    assert "SECRET" not in record["source"] and "ghp_x" not in record["source"]
+
+
+def test_a_masked_source_is_never_fetched(project, tmp_path):
+    '''🔴 With the server's own supply, and a source on its allowlist: a
+    public one whose query was masked is asked for, and a private one is
+    supplied only from the operator's copy or a held copy.'''
+    from siliconcompiler.remote.server.jobs.common import _Supply
+
+    class Sources:
+        def __init__(self, held=None):
+            self._held = held or {}
+
+        def held(self, source, ref):
+            return self._held.get((source, ref))
+
+        def allowlisted(self, source, ref):
+            return True
+
+    def supply(private=None, held=None):
+        return _Supply({"private_dataroots": private or {}, "fetch_fails": False},
+                       Sources(held))
+
+    public = "https://github.com/siliconcompiler/x/archive/?token=SECRET"
+    project.set_pdk(resource(PDK, "lambda", public, create=False))
+    sent = owners.without_credentials(project)
+    assert status(sent, "lambda", supply()).status == owners.ASK
+
+    secret = PDK("secret")
+    secret.set_dataroot("secret", "https+private://github.com/siliconcompiler/s/?token=SECRET",
+                        tag="v1")
+    with secret.active_dataroot("secret"):
+        secret.set(*DATASHEET, "datasheet.pdf")
+    project.set_pdk(secret)
+    sent = owners.without_credentials(project)
+    masked = "https://github.com/siliconcompiler/s/?token=***"
+    (tmp_path / "datasheet.pdf").write_text("x")
+
+    assert status(sent, "secret", supply()).status == owners.UNAVAILABLE
+    assert status(sent, "secret", supply(held={(masked, "v1"): str(tmp_path)})).status == \
+        owners.SUPPLIED
+    library = {"library": {"secret": {"secret": str(tmp_path)}}}
+    assert status(sent, "secret", supply(private=library)).status == owners.SUPPLIED
+
+
+###########################
 # collect(), told what to take: a value at a time
 ###########################
 

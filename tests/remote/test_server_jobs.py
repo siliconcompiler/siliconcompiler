@@ -3168,6 +3168,17 @@ def test_repeated_filters_or_within_a_key_and_terminal_filters(
         {kept["id"], gone["id"]}
 
 
+@pytest.mark.parametrize("query", ["archived=yes", "archived=True", "archived=1",
+                                   "terminal=no", "archived=true&archived=maybe"])
+def test_a_boolean_filter_is_true_or_false_and_nothing_else(server_client, key, token,
+                                                            query):
+    '''S §16 defines a boolean as `true` or `false`, and S §6 refuses the rest:
+    read as false, `?archived=yes` would answer the unarchived list.'''
+    response = call(server_client, key, "GET", f"/v1/jobs?{query}", token)
+
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
+
+
 def test_the_next_page_keeps_every_repeat(server_client, key, token):
     for n in range(3):
         create(server_client, key, token, jobname=f"job{n}")

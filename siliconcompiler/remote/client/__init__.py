@@ -121,10 +121,13 @@ class Client:
         if self.credentials.user_id:
             self.logger.info(f"Identity on this server: {self.credentials.user_id}")
 
-        # Names only: a header's value is a secret, and never printed.
-        for origin in sorted(self.credentials.configured_origins()):
-            names = ", ".join(sorted(self.credentials.headers_for(origin)))
-            self.logger.info(f"Operator headers for {origin}: {names}")
+        # Names only: a header's value is a secret, and never printed. The
+        # server's own origin is the only one sent any (surface D304).
+        if self._transport is not None:
+            names = ", ".join(sorted(self.credentials.headers_for(
+                self._transport.api_origin)))
+            if names:
+                self.logger.info(f"Operator headers: {names}")
         if self.credentials.ci_secret():
             self.logger.info("CI credential: present")
 
@@ -672,10 +675,11 @@ class Client:
                 return
             self.set_header(name.strip(), read_secret(name.strip()))
 
-    def set_header(self, name: str, value: Optional[str], origin: Optional[str] = None) -> None:
-        '''An operator-configured header for an origin, the API's by default.
-        Its value is a secret, kept in the store and never printed.'''
-        origin = origin or self.transport.api_origin
+    def set_header(self, name: str, value: Optional[str]) -> None:
+        '''An operator-configured header, for the server's own origin: the one
+        origin a client sends any to (surface D304). Its value is a secret,
+        kept in the store and never printed.'''
+        origin = self.transport.api_origin
         self.credentials.set_header(origin, name, value)
         self.logger.info(f"{'Set' if value is not None else 'Removed'} the {name} header "
                          f"for {origin}")
@@ -1012,7 +1016,7 @@ class Client:
         '''
         self.ensure_session()
 
-        params = {k: v for k, v in filters.items() if v is not None}
+        params = _filters(filters)
         items = []
         path = "jobs"
 
@@ -1068,7 +1072,7 @@ class Client:
         '''
         self.ensure_session()
 
-        params = {k: v for k, v in filters.items() if v is not None}
+        params = _filters(filters)
         items = []
         path = f"jobs/{job_id}/artifacts"
 
@@ -1352,6 +1356,17 @@ def _is_stream(response) -> bool:
     the time it is used. What was actually served cannot be.
     '''
     return response.headers.get("Content-Type", "").startswith("text/event-stream")
+
+
+def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
+    '''A listing's keyword filters as query parameters: a boolean as `true`
+    or `false`, as S §16 defines one -- requests would send Python's `True` --
+    a list as its values repeated, and None left out.'''
+    def one(value):
+        return ("true" if value else "false") if isinstance(value, bool) else value
+
+    return {name: [one(v) for v in value] if isinstance(value, (list, tuple)) else one(value)
+            for name, value in filters.items() if value is not None}
 
 
 def _next_cursor(link: Optional[str]) -> Optional[str]:

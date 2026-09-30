@@ -52,7 +52,7 @@ class LifecycleMixin:
             where.append("(" + " OR ".join(sql_for for _ in choices) + ")")
             params.extend(choices)
 
-        archived = {_flag(value) for value in values("archived")} or {False}
+        archived = {_flag(value, "archived") for value in values("archived")} or {False}
         if archived == {True}:
             where.append("archived_at IS NOT NULL")
         elif archived == {False}:
@@ -65,7 +65,7 @@ class LifecycleMixin:
                 raise ProblemError("invalid-request", detail=f"no such job state: {state}")
         any_of("state = ?", states)
 
-        terminal = {_flag(value) for value in values("terminal")}
+        terminal = {_flag(value, "terminal") for value in values("terminal")}
         if terminal == {True}:
             where.append(f"state IN ({', '.join('?' * len(TERMINAL_STATES))})")
             params.extend(sorted(TERMINAL_STATES))

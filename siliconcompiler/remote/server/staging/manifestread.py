@@ -47,7 +47,8 @@ __all__ = ["SUMMARY_VERSION", "Invalid", "request", "validate", "read", "contain
 
 # The summary's own version: a shape change is a new number, and the server
 # refuses a number it does not know as it refuses any other malformed summary.
-SUMMARY_VERSION = 2
+# 3 added `credentials`.
+SUMMARY_VERSION = 3
 
 # 🔴 Bounds on what the read may say. A summary is written by whatever the
 # manifest makes this process do, so it is capped as it is read back, whole and
@@ -173,6 +174,10 @@ def validate(summary: Any) -> Dict[str, Any]:
         for key in listed(required, "required", MAX_VALUES):
             _key(key, fail, text)
 
+    # Keypaths only: the read never reports the value (surface D302).
+    for key in listed(summary.get("credentials") or [], "credentials", MAX_VALUES):
+        _key(key, fail, text)
+
     for record in listed(summary.get("values") or [], "values", MAX_VALUES):
         if not isinstance(record, dict):
             fail("a value is not an object")
@@ -226,7 +231,8 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     summary: Dict[str, Any] = {
         "summary": SUMMARY_VERSION, "outcome": None, "design": None, "jobname": None,
         "flow": None, "nodes": None, "edges": [], "upstream": [], "pdk": None,
-        "libraries": [], "fpga": None, "tools": [], "required": None, "values": []}
+        "libraries": [], "fpga": None, "tools": [], "required": None, "values": [],
+        "credentials": []}
 
     def refuse(slug, detail, reason=None, **members):
         summary["outcome"] = {"type": slug, "reason": reason, "detail": detail,
@@ -264,6 +270,13 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
             return refuse("declared-mismatch",
                           f"the manifest is {project.name}/{project.option.get_jobname()} "
                           f"and the job is {design}/{jobname}")
+
+        # 🔴 Each dataroot whose path carries userinfo, by its keypath and
+        # never its value (surface D302): the server refuses the archive for
+        # it, against this report, and nothing here records the path.
+        summary["credentials"] = [list(keypath)
+                                  for keypath, path in owners.dataroot_paths(project)
+                                  if owners.has_userinfo(path)]
 
         try:
             runtime = runflow.runtime_flow(project)

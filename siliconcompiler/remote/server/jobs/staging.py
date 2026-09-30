@@ -6,6 +6,7 @@ A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which
 '''
 
 import json
+import shutil
 
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -472,7 +473,15 @@ class StagingMixin:
         # upload can write it: a resumed staging and a follow-up's allowed set
         # read it back.
         runspec.write_json(root / runspec.SUMMARY_FILENAME, raw)
-        return self._act_on(job, raw)
+        try:
+            return self._act_on(job, raw)
+        except BaseException:
+            if raw.get("credentials"):
+                # 🔴 The extracted tree is a second copy of a credential, and
+                # a job refused goes no further: only the upload itself is
+                # kept, as it arrived, as the job's `input`.
+                shutil.rmtree(root, ignore_errors=True)
+            raise
 
     def _run_read(self, job, root: Path, asked) -> Any:
         '''The read: in the job's own image where this deployment runs jobs in
@@ -552,6 +561,21 @@ class StagingMixin:
                 "declared-mismatch",
                 detail=f"the manifest is {raw['design']}/{raw['jobname']} and the job "
                        f"is {job['design']}/{job['jobname']}"))
+
+        # 🔴 The first check against what the read reports (surface D302): a
+        # dataroot's path carrying userinfo, named by keypath and never by
+        # value. Before anything is fetched or accounted for, and never
+        # stripped here -- the archive is kept as it was uploaded.
+        found = raw.get("credentials") or []
+        if found:
+            named = ", ".join(owners.shown(keypath) for keypath in found)
+            raise self._refuse_staging(job, ProblemError(
+                "archive-rejected", reason="credential",
+                detail=_bounded(
+                    f"the manifest carries userinfo -- a user name, or a user name and "
+                    f"a secret -- in the path of {len(found)} dataroot(s): {named}. A "
+                    "client sends every dataroot's path without it, and this server "
+                    "never uses one")))
         return self._summary(raw)
 
     @staticmethod

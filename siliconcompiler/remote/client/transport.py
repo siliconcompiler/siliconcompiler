@@ -31,6 +31,7 @@ from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
+import requests.auth
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
@@ -66,6 +67,28 @@ def _user_agent() -> str:
 # Stable and product-named, never randomised and never the library's default:
 # an edge in front of the API allowlists it rather than challenging it.
 USER_AGENT = _user_agent()
+
+
+class _NoEnvironmentCredential(requests.auth.AuthBase):
+    '''The session's own `auth`, which adds nothing: a request goes out with
+    only what this client put on it (surface D305).
+
+    🔴 **requests fills a missing `auth` from `~/.netrc`** while `trust_env` is
+    on, and its `HTTPBasicAuth` then replaces whatever `Authorization` the
+    request carried -- the API's `DPoP <token>` included -- with the netrc
+    login, which would go to the API, to storage and to a stream host alike.
+    An `auth` of the session's own is never replaced. `trust_env` stays on,
+    because it is also what applies `HTTPS_PROXY`, `NO_PROXY` and
+    `REQUESTS_CA_BUNDLE`.
+
+    ⚠️ **It holds only while requests follows no redirect itself**: its
+    `rebuild_auth` reads netrc again for the new URL, whatever `auth` says.
+    Every request here sends `allow_redirects=False`, and a redirect is
+    followed by hand (:meth:`Transport.follow`).
+    '''
+
+    def __call__(self, r):
+        return r
 
 
 class EdgeRefused(RemoteError):
@@ -149,6 +172,8 @@ class Transport:
         self._key = key
         self._credentials = credentials
         self._session = session or requests.Session()
+        # Never netrc, never a credential from the environment (surface D305).
+        self._session.auth = _NoEnvironmentCredential()
 
         self._access_token: Optional[str] = None
         self._refresh_token: Optional[str] = None
@@ -215,21 +240,17 @@ class Transport:
     # Headers
     ######################################################################
 
-    def operator_headers(self, url: str, kind: str = "api") -> Dict[str, str]:
+    def operator_headers(self, url: str) -> Dict[str, str]:
         '''The operator-configured headers a request to ``url`` carries.
 
-        🔴 To the API's origin, its signed routes included; to another host,
-        such as a stream host, only where configured for it; and never to a
-        storage URL on another origin, whatever is configured.
+        🔴 To the API's origin, its signed routes included, and nowhere else
+        (surface D304): a server sends a client to no other origin that
+        requires one, so a stream or storage URL elsewhere gets none, whatever
+        a redirect names.
         '''
-        if self._credentials is None:
+        if self._credentials is None or origin_of(url) != self.api_origin:
             return {}
-        target = origin_of(url)
-        if target == self.api_origin:
-            return self._credentials.headers_for(target)
-        if kind == "storage":
-            return {}
-        return self._credentials.headers_for(target)
+        return self._credentials.headers_for(self.api_origin)
 
     def _proof(self, method: str, url: str, token: Optional[str]) -> str:
         return dpop.sign_proof(
@@ -491,7 +512,7 @@ class Transport:
         presigned URL carries its own credential in its signature, so it gets no
         `Authorization`, no proof, and no operator header on another origin.
         '''
-        sent = {"User-Agent": USER_AGENT, **self.operator_headers(url, "storage"),
+        sent = {"User-Agent": USER_AGENT, **self.operator_headers(url),
                 **dict(headers or {})}
         with open(path, "rb") as f:
             try:
@@ -510,8 +531,9 @@ class Transport:
         '''Follow a 303 by hand, with this session left behind.
 
         No `Authorization` and no proof, whatever the target's origin; never
-        from an `https` API to plain `http`; operator headers only as
-        :meth:`operator_headers` allows. `kind` is `storage` or `stream`.
+        from an `https` API to plain `http`; operator headers only to the API's
+        own origin (:meth:`operator_headers`). `kind` is `storage` or `stream`,
+        and names it in a failure.
         '''
         if response.status_code not in (301, 302, 303, 307, 308):
             return response
@@ -526,7 +548,7 @@ class Transport:
             raise RemoteError("the server redirected an https request to plain http, "
                               "which this client does not follow")
 
-        sent = {"User-Agent": USER_AGENT, **self.operator_headers(target, kind),
+        sent = {"User-Agent": USER_AGENT, **self.operator_headers(target),
                 **dict(headers or {})}
         try:
             return self._session.get(
@@ -538,9 +560,19 @@ class Transport:
 
     def save(self, response, dest) -> str:
         '''Stream a response body to a file, through a temporary name, so an
-        interrupted download never leaves something that looks complete.'''
+        interrupted download never leaves something that looks complete.
+
+        🔴 **Only the bytes are written.** A refusal from storage, or a
+        redirect it answered with -- which nothing here follows -- is never
+        saved as the object.'''
         import os
         import shutil
+
+        if 300 <= response.status_code < 400:
+            raise RemoteError("the storage the server named redirected again, which "
+                              "this client does not follow")
+        if response.status_code >= 400:
+            raise ServerProblem(_problem_body(response), response.status_code)
 
         dest = str(dest)
         os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)

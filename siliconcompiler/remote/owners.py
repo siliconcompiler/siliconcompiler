@@ -77,7 +77,8 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLE
            "is_private", "skipped", "owner", "source", "uploads", "sources",
            "dataroot_keypath", "is_dataroot_keypath", "keypath_owner", "shown",
            "Unnamed",
-           "safe_source", "masked", "is_masked", "account", "Entry", "confined",
+           "safe_source", "masked", "is_masked", "has_userinfo", "dataroot_paths",
+           "without_credentials", "account", "Entry", "confined",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
            "private_holders", "collection", "Collection", "collected_path",
@@ -307,6 +308,51 @@ def is_masked(url: Optional[str]) -> bool:
     query = urlsplit(url).query
     return any(field.partition("=")[2] == "***" or field == "***"
                for field in re.split(r"[&;]", query) if field)
+
+
+def has_userinfo(url: Optional[str]) -> bool:
+    '''Whether a URL carries userinfo -- ``user@`` or ``user:secret@`` ahead
+    of its host -- read as `Resolver._masked_uri` reads one, so what a client
+    strips and what a server refuses are one thing (surface D302).'''
+    if not url or not isinstance(url, str):
+        return False
+    return "@" in urlsplit(url).netloc
+
+
+def dataroot_paths(schema) -> Iterator[Tuple[Tuple[str, ...], str]]:
+    '''Every dataroot's path ``schema`` holds, as ``(keypath, path)``: a
+    library's and a task's alike, and those an earlier run left in its
+    history, which the manifest carries too. The keypath is the dataroot's,
+    without its ``path``.'''
+    for key in sorted(schema.allkeys(include_default=False)):
+        if len(key) < 3 or key[-1] != "path" or key[-3] != "dataroot":
+            continue
+        path = schema.get(*key)
+        if isinstance(path, str) and path:
+            yield tuple(key[:-1]), path
+
+
+def without_credentials(project):
+    '''``project`` as its manifest may leave this machine: every dataroot's
+    path as :func:`masked` sends a source -- no userinfo, and every query value
+    masked (surface D302). A copy where anything changes, and ``project``
+    itself, untouched, where nothing does.
+
+    🔴 **Nothing reads a masked path back to resolve it.** A collected file is
+    found by its dataroot's name, never its path, and a server points every
+    dataroot it supplies at its own copy by keypath.'''
+    import copy
+
+    changed = [(keypath, masked(path)) for keypath, path in dataroot_paths(project)
+               if masked(path) != path]
+    if not changed:
+        return project
+    cleaned = copy.deepcopy(project)
+    for keypath, path in changed:
+        if not cleaned.set(*keypath, "path", path):
+            raise ValueError(f"[{shown(keypath)}] could not have its credentials "
+                             "removed, so the manifest cannot be sent")
+    return cleaned
 
 
 class _Value(NamedTuple):

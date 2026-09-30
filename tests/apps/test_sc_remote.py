@@ -38,6 +38,20 @@ def test_require_cfg(arg, monkeypatch):
     assert sc_remote.main() == 2
 
 
+@pytest.mark.parametrize("arg", ['reconnect', 'cancel', 'delete'])
+def test_server_beside_a_job_command_stops_there(arg, monkeypatch):
+    '''Refused, and nothing after it runs: the job's own manifest says which
+    server it went to.'''
+    def reached(*args, **kwargs):
+        raise AssertionError("a client was made after the refusal")
+
+    monkeypatch.setattr(sc_remote, "Client", reached)
+    monkeypatch.setattr('sys.argv', ['sc-remote', f'-{arg}', '-cfg', 'job.pkg.json',
+                                     '-server', 'https://sc-server.test'])
+
+    assert sc_remote.main() == 2
+
+
 def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
     '''A refusal is a message and an exit code, never a traceback.'''
     monkeypatch.setattr('sys.argv', ['sc-remote',
