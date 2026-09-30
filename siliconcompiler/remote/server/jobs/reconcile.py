@@ -9,8 +9,8 @@ import json
 
 from siliconcompiler.remote.server.errors import TYPE_BASE
 from siliconcompiler.remote.server.jobs.common import (
-    SCHEDULER_QUERY_FLOOR, TERMINAL_NODE_STATES, _after, _ago, _members_json, _node_error,
-    _node_metrics, logger)
+    SCHEDULER_QUERY_FLOOR, TERMINAL_NODE_STATES, TERMINAL_STATES, _after, _ago,
+    _members_json, _node_error, _node_metrics, logger)
 from siliconcompiler.remote.server.outputs import artifacts, record
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.state.store import now
@@ -320,12 +320,50 @@ class ReconcileMixin:
         if not found:
             return
 
+        # Each node claimed once: two reads backfilling at the same moment
+        # both find it missing, and only the one whose write lands keeps its
+        # record.
+        claimed = []
         with self._store.transaction():
             for (step, index), scheduler_id in found.items():
-                self._store.execute(
+                done = self._store.execute(
                     "UPDATE job_nodes SET scheduler_job_id = ? "
-                    'WHERE job_id = ? AND step = ? AND "index" = ?',
+                    'WHERE job_id = ? AND step = ? AND "index" = ? '
+                    "  AND scheduler_job_id IS NULL",
                     (scheduler_id, job["id"], step, index))
+                if done.rowcount:
+                    claimed.append((step, index, scheduler_id))
+        self._keep_late_records(job, claimed)
+
+    def _keep_late_records(self, job, nodes) -> None:
+        '''The scheduler's record of each node whose id arrived after its job
+        was indexed, kept in its `diagnostics` as every other node's was.
+
+        ⚠️ Most often the last node to finish: it ends a moment before its job
+        does, accounting lags the scheduler by seconds, and the look `_finish`
+        takes before indexing can come back without it -- so the id arrives on
+        a read afterwards (`node_placements`), and the record the job's end
+        takes for every node with an id had nothing to ask for. A job still
+        going is left alone: its end takes them all.'''
+        if not nodes:
+            return
+        row = self._row(job["id"])
+        if row is None or row["state"] not in TERMINAL_STATES or row["deleted_at"]:
+            return
+        root = self.job_root(row["user_id"], row["id"])
+        if not root.is_dir():
+            return
+        for step, index, scheduler_id in nodes:
+            try:
+                said = self._dispatcher.describe(scheduler_id)
+                if said:
+                    record.keep(root, "slurm.txt", said, step=step, index=index,
+                                logger=logger)
+                artifacts.collect_diagnostics(self._store, self._storage, self._config,
+                                              row, root, step, index)
+            except Exception as e:                               # noqa: BLE001
+                logger.error(f"could not keep the scheduler's record of {row['id']} "
+                             f"{step}/{index}: {e}")
 
     def _node_job_ids(self, job):
         '''Every node job this run has, as far as the store knows.

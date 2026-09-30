@@ -650,6 +650,53 @@ def test_the_portal_shows_the_operators_diagnostics(signed_in, finished, server)
     assert "the scheduler&#39;s record of" in page or "the scheduler's record of" in page
 
 
+def test_a_node_whose_scheduler_id_arrives_late_still_gets_its_diagnostics(
+        server, server_client, key, token, job_archive, dispatcher, me, signed_in):
+    '''Accounting lags the scheduler by seconds, so the last node to finish can
+    have no id when its job ends and is indexed -- `simulate/0` on the rig. The
+    job page's backfill finds it later, and its scheduler record is then kept
+    and indexed as every other node's was: once, however often it is read.'''
+    from test_server_jobs import stage, submit
+    from siliconcompiler.remote.server.running import runspec
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    for step in ("stepone", "steptwo"):
+        (root / step / "0").mkdir(parents=True, exist_ok=True)
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
+        "finished_at": "2026-09-23T10:00:05.000Z",
+        "nodes": {"stepone/0": {"state": "completed"},
+                  "steptwo/0": {"state": "completed"}}})
+
+    everything = dispatcher.node_jobs
+    dispatcher.node_jobs = lambda job_id, nodes: {
+        node: name for node, name in everything(job_id, nodes).items()
+        if node != ("steptwo", "0")}
+    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+
+    store = server.config["SC_STORE"]
+
+    def diagnostics(step):
+        return store.all('SELECT id FROM artifacts WHERE job_id = ? AND kind = ? '
+                         'AND step = ?', (job["id"], "diagnostics", step))
+
+    assert len(diagnostics("stepone")) == 1 and diagnostics("steptwo") == []
+
+    dispatcher.node_jobs = everything
+    server.config["SC_JOBS"]._asked.clear()           # the throttle's floor passed
+    signed_in.get(f"/portal/jobs/{job['id']}")
+    server.config["SC_JOBS"]._asked.clear()
+    signed_in.get(f"/portal/jobs/{job['id']}")
+
+    (late,) = diagnostics("steptwo")
+    page = signed_in.get(f"/portal/jobs/{job['id']}/artifacts/{late['id']}/inside"
+                         "?file=slurm.txt").get_data(as_text=True)
+    assert f"record of {job['id']}_steptwo_0" in page
+
+
 def test_one_file_out_of_an_archive_renders_as_text(signed_in, finished, server):
     store = server.config["SC_STORE"]
     row = store.one(
