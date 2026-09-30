@@ -8,7 +8,7 @@ A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from siliconcompiler.remote import units
+from siliconcompiler.utils.units import format_binary
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
     SURFACES, TERMINAL_NODE_STATES, TERMINAL_STATES, _ALERTED, _WITHOUT, _decode_cursor,
@@ -196,11 +196,13 @@ class ResultsMixin:
         if stored <= allowed:
             return
 
+        stored = format_binary(stored, "B", digits=1, show_unit=True, compact=True, default="—")
+        allowed = format_binary(allowed, "B", digits=1, show_unit=True, compact=True,
+                                default="—")
         raise ProblemError(
             "download-too-large", limit="max_download_bytes",
-            detail=f"{units.size(stored)} is larger than the "
-                   f"{units.size(allowed)} this account may download over the "
-                   "API; open it from the web portal instead")
+            detail=f"{stored} is larger than the {allowed} this account may download over "
+                   "the API; open it from the web portal instead")
 
     def node_log(self, session, job_id: str, step: str, index: str,
                  surface: str = "api"):

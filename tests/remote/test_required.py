@@ -162,23 +162,24 @@ def test_only_what_the_flow_reads_goes_up(gcd_design, tmp_path, logged_in):
         collected, collected_path(first(project, ("library", "mylib", *QUICKSTART)))))
 
 
-def test_a_private_file_beside_a_sent_one_stops_the_run_here(
+def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
         gcd_design, tmp_path, logged_in):
-    '''🔴 A parameter goes up whole, so one holding a private file beside a
-    local one is refused on this machine, naming it -- before anything is
-    collected.'''
-    from siliconcompiler.remote.client.errors import RemoteError
+    '''🔴 Per value: the local file of the parameter the flow reads goes up,
+    and the private one beside it stays here -- the run is not stopped for
+    it.'''
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
     from test_owners import two_sources
 
     (tmp_path / "secret").mkdir()
+    (tmp_path / "secret" / "other.pdf").write_text("private\n")
     pdk = two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}")
     project = reading(gcd_design, tmp_path, ("library", "mixed", *DATASHEET), pdk=pdk)
 
-    with pytest.raises(RemoteError, match=r"library,mixed,package,doc,datasheet"):
-        RemoteRun(project, logged_in)._collect()
-    assert not os.path.exists(collectiondir(project))
+    RemoteRun(project, logged_in)._collect()
+
+    taken = [name for _, _, names in os.walk(collectiondir(project)) for name in names]
+    assert "datasheet.pdf" in taken and "other.pdf" not in taken
 
 
 def test_a_setup_that_cannot_run_here_uploads_by_owner_alone(

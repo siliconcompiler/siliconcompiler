@@ -256,13 +256,20 @@ def test_a_token_in_a_query_never_leaves_this_machine(project):
 
 
 ###########################
-# collect(), told what to take: a parameter at a time
+# collect(), told what to take: a value at a time
 ###########################
 
 def uploaded_by_owner(project):
     '''What a remote run hands `collect`, by the owner rule alone.'''
-    return owners.collection_keys(project, lambda one: owners.uploads(
+    return owners.collection(project, lambda one: owners.uploads(
         project, one.key, one.dataroot, one.resolvers, one.value.get()))
+
+
+def collect_by_owner(project):
+    from siliconcompiler.utils.curation import collect
+
+    chosen = uploaded_by_owner(project)
+    collect(project, keys=chosen.keys, select=chosen.select, verbose=False)
 
 
 def collected_names(project):
@@ -273,14 +280,12 @@ def collected_names(project):
 
 def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
         project, tmp_path):
-    from siliconcompiler.utils.curation import collect
-
     project.option.set_builddir(str(tmp_path / "build"))
     project.set_pdk(resource(PDK, "local", tmp_path / "pdk"))
     project.add_asiclib(resource(StdCellLibrary, "remote",
                                  "https://example.test/lib.tar.gz", create=False))
 
-    collect(project, keys=uploaded_by_owner(project), verbose=False)
+    collect_by_owner(project)
 
     taken = collected_names(project)
     assert "gcd.v" in taken
@@ -299,7 +304,6 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
     carries no bytes. The report says what the archive holds, and the server
     finds each value at its own collected path once the sources are gone.'''
     from siliconcompiler import Design, Lint
-    from siliconcompiler.utils.curation import collect
     from siliconcompiler.utils.paths import collectiondir
 
     os.makedirs("proj/rtl")
@@ -319,7 +323,7 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
     project = Lint(design)
     project.add_fileset("rtl")
 
-    collect(project, keys=uploaded_by_owner(project), verbose=False)
+    collect_by_owner(project)
     collection = collectiondir(project)
 
     report = owners.upload_report(project, collection)
@@ -349,35 +353,39 @@ def two_sources(tmp_path, second, *, create=True):
     return pdk
 
 
-def test_a_parameter_goes_up_whole(project, tmp_path):
-    '''⚠️ `collect` takes a parameter's values together, so a value the
-    server could supply goes with a local one beside it.'''
+def test_a_value_goes_up_on_its_own(project, tmp_path):
+    '''Surface *A parameter may go up in part*: the local value goes up, and
+    the remote one beside it in the same parameter stays behind -- never
+    resolved, so its source is never fetched here.'''
+    project.option.set_builddir(str(tmp_path / "build"))
     project.set_pdk(two_sources(tmp_path, "https://example.test/pdk.tar.gz"))
     key = ("library", "mixed", *DATASHEET)
     assert [decide_value(project, key, n)[0] for n in (0, 1)] == [owners.LOCAL, owners.REMOTE]
 
-    assert [where[0] for where in uploaded_by_owner(project)
-            if where[0][:2] == ("library", "mixed")] == [key]
+    collect_by_owner(project)
+
+    taken = collected_names(project)
+    assert "datasheet.pdf" in taken and "other.pdf" not in taken
 
 
-def test_a_private_value_beside_an_uploaded_one_is_refused(project, tmp_path):
-    '''🔴 Whole would send the private file too: refused, naming the key.'''
+def test_a_private_value_beside_an_uploaded_one_stays_behind(project, tmp_path):
+    '''🔴 It must not leave this machine, and nothing is refused: the rest of
+    its parameter goes up without it.'''
+    project.option.set_builddir(str(tmp_path / "build"))
     (tmp_path / "secret").mkdir()
+    (tmp_path / "secret" / "other.pdf").write_text("private\n")
     project.set_pdk(two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}"))
 
-    with pytest.raises(owners.PrivateBeside, match=r"library,mixed,package,doc,datasheet"):
-        uploaded_by_owner(project)
+    collect_by_owner(project)
 
-    # The server's half leaves the parameter out rather than refusing.
-    assert not [where for where in owners.collection_keys(
-        project, lambda one: owners.uploads(project, one.key, one.dataroot, one.resolvers),
-        refuse_private=False) if where[0][:2] == ("library", "mixed")]
+    taken = collected_names(project)
+    assert "datasheet.pdf" in taken and "other.pdf" not in taken
 
 
 def test_a_private_parameter_alone_is_left_out_without_a_refusal(project, tmp_path):
     project.set_pdk(private(PDK, "secret", tmp_path / "secret"))
 
-    assert not [where for where in uploaded_by_owner(project)
+    assert not [where for where in uploaded_by_owner(project).keys
                 if where[0][:2] == ("library", "secret")]
 
 
@@ -766,8 +774,8 @@ def test_two_tasks_of_one_tool_are_two_dataroots(gcd_design):
     listed = {tuple(item["keypath"]): item["source"] for item in owners.sources(project)}
     assert listed == {RUN: AcmeRun.SOURCE, CHECK: AcmeCheck.SOURCE}
 
-    picked = owners.collection_keys(project, lambda one: one.keypath == RUN)
-    assert [key for key, _, _ in picked] == [("tool", "acme_sim", "task", "run", "refdir")]
+    picked = owners.collection(project, lambda one: one.keypath == RUN)
+    assert [key for key, _, _ in picked.keys] == [("tool", "acme_sim", "task", "run", "refdir")]
 
 
 def test_a_library_and_a_tool_of_one_name_do_not_collide(gcd_design):

@@ -71,7 +71,11 @@ def sweep(store, storage, config, datadir) -> Dict[str, Any]:
     # on its own rather than summed into a figure that would then be wrong.
     freed = sum(value for name, value in taken.items() if name != "abandoned")
     if freed:
-        from siliconcompiler.remote.units import size
+        from siliconcompiler.utils.units import format_binary
+
+        def size(value) -> str:
+            return format_binary(value, "B", digits=1, show_unit=True, compact=True,
+                                 default="—")
 
         logger.info(f"reclaimed {size(freed)}: " + ", ".join(
             f"{units_of(name)} {size(value)}"

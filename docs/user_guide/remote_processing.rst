@@ -247,9 +247,8 @@ dataroot is named by where the manifest keeps it: a library's as
 ``tool,<tool>,task,<task>,dataroot,<root>``, so two tasks of one tool with a
 dataroot of the same name are two dataroots, and a refusal says which one --
 *the private dataroot tool,acme_sim,task,run,dataroot,scripts is not held by
-this server*. Files go up a parameter at a time -- a fileset's files together --
-so keep private files in a fileset of their own: one holding a private file
-beside a file that goes up stops the run here, naming it.
+this server*. Files go up a value at a time, so a private file stays here
+beside a file of the same fileset that goes up.
 
 **What the server cannot supply, it asks for.** A source the server does not
 hold and will not fetch itself -- a private git repository behind your own key,

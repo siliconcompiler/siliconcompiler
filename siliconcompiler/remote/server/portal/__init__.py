@@ -32,7 +32,7 @@ from typing import Optional
 import flask
 import markupsafe
 
-from siliconcompiler.remote import units
+from siliconcompiler.utils.units import format_binary, format_duration
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.identity import accounts
 from siliconcompiler.remote.server.identity.auth import SCOPES, Session
@@ -252,7 +252,7 @@ def _runtime(node) -> str:
     if end is None or begin is None:
         return "\u2014"
 
-    return units.duration(max(0, int(end - begin)))
+    return format_duration(max(0, int(end - begin)))
 
 
 @blueprint.app_context_processor
@@ -263,8 +263,9 @@ def _limits():
 
 @blueprint.app_template_filter("size")
 def _size(num_bytes) -> str:
-    """Bytes as a person reads them. Shared with the CLI -- see remote.units."""
-    return units.size(num_bytes)
+    """Bytes as a person reads them, in binary units, as the CLI shows them."""
+    return format_binary(num_bytes, "B", digits=1, show_unit=True, compact=True,
+                         default="—")
 
 
 @blueprint.app_template_filter("digest")
@@ -287,7 +288,7 @@ def _digest(digest) -> markupsafe.Markup:
 
 @blueprint.app_template_filter("duration")
 def _duration(seconds) -> str:
-    return units.duration(seconds)
+    return format_duration(seconds)
 
 
 @blueprint.app_template_filter("when")
@@ -961,7 +962,7 @@ def inside(session, job_id, artifact_id):
     if (row["size_bytes"] or 0) > MAX_BROWSE_BYTES:
         raise ProblemError(
             "invalid-request",
-            detail=f"this {row['kind']} is {units.size(row['size_bytes'])} and "
+            detail=f"this {row['kind']} is {_size(row['size_bytes'])} and "
                    "a gzipped archive has no index, so opening it means "
                    "decompressing all of it. Download it instead")
 

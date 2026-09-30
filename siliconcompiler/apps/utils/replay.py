@@ -142,20 +142,17 @@ def main():
 
     # 🔴 What another machine needs to run this job: the files its nodes
     # required, of those this machine must send -- the rule a remote run
-    # uploads by, a parameter at a time. Not the `copy` fields, which nothing
-    # reads any more.
+    # uploads by, a value at a time, a private one never. Not the `copy`
+    # fields, which nothing reads any more.
     from siliconcompiler.remote import owners
     required = owners.required(job)
-    try:
-        collect_keys = owners.collection_keys(
-            job, lambda one: owners.needed(one.key, required) and owners.uploads(
-                job, one.key, one.dataroot, one.resolvers, one.value.get()))
-    except owners.PrivateBeside as e:
-        proj.logger.error(str(e))
-        return 1
+    chosen = owners.collection(
+        job, lambda one: owners.needed(one.key, required) and owners.uploads(
+            job, one.key, one.dataroot, one.resolvers, one.value.get()))
 
     with tempfile.TemporaryDirectory() as collectdir:
-        collect(job, keys=collect_keys, directory=collectdir, verbose=True)
+        collect(job, keys=chosen.keys, select=chosen.select, directory=collectdir,
+                verbose=True)
 
         with io.BytesIO() as fd:
             with tarfile.open(fileobj=fd, mode='w:gz') as tar:

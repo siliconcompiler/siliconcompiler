@@ -24,33 +24,7 @@ fixes it says so.
 
 Found while bringing the branch up to the `v1` changes of 2026-09-29. Each is
 SiliconCompiler's to make on `main`, and the branch takes it by merging `main`
-once it lands (CONTRACT-CHANGES items 1 and 2 name what waits on each).
-
-#### 8. `collect()` cannot pick values within a parameter
-
-The contract keeps an upload per value (surface *A parameter may go up in
-part*; client-v1-migration D7): each value goes up where its own dataroot says
-it does. `collect(project, keys=[(key, step, index)])` takes a parameter whole,
-and resolves it with `BaseSchema._find_files` over every value, so a value that
-should stay behind -- a remote PDK not yet in the cache -- is fetched only to be
-skipped. Until it can pick, the branch sends a parameter whole and refuses a
-private value beside one that goes up (CONTRACT-CHANGES item 1).
-
-**Options:** a keyword-only `select(key, step, index, value) -> bool` that
-defaults to every value, which keeps every caller, `sc-issue`'s included,
-unchanged. It resolves only the selected values, one at a time as
-SiliconCompiler already resolves each (`PathNodeValue.resolve_path`: the
-collection directory first, then its own dataroot), and each lands at its own
-collected path, as now. It is additive, and leaves `collect(project, keys, ...)`
-as #5450 merged it: that signature is settled, since no compatibility path is
-coming for it.
-
-**Where it goes:** `siliconcompiler/utils/curation.py` and
-`tests/utils/test_curation.py`, as a pull request of its own. Then, on the
-branch: `owners.collection_keys` per value, `PrivateBeside` removed, and
-`_requested_members` per value.
-
-**Planned:** [`collect/select-values.md`](../../../plans/siliconcompiler/collect/select-values.md).
+once it lands (CONTRACT-CHANGES item 2 names what waits on each).
 
 #### 9. 🔴 A server-side run rebuilds the collection it was uploaded with
 

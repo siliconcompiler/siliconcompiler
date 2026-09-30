@@ -203,7 +203,7 @@ class Client:
         ⚠️ Unauthenticated, both of them, so this works before enrolment and
         says the same thing to everybody.
         '''
-        from siliconcompiler.remote.units import duration, size
+        from siliconcompiler.utils.units import format_binary, format_duration
 
         health = self.health()
         published = self.capabilities(notices=False)
@@ -242,9 +242,10 @@ class Client:
             if value is None:
                 shown = "unlimited"
             elif name.endswith("_bytes"):
-                shown = size(value)
+                shown = format_binary(value, "B", digits=1, show_unit=True, compact=True,
+                                      default="—")
             elif name.endswith("_seconds"):
-                shown = duration(value)
+                shown = format_duration(value)
             else:
                 shown = str(value)
             self.logger.info(f"  {name}: {shown}")
@@ -256,7 +257,7 @@ class Client:
         '''Who the server says you are, the session this machine holds, and
         what you have used -- all from one `GET /v1/me`, which rotates
         nothing, so showing a session never refreshes it (surface §5).'''
-        from siliconcompiler.remote.units import duration, size
+        from siliconcompiler.utils.units import format_binary, format_duration
 
         self.logger.info(f"Server reports you as {identity['id']} "
                          f"(issuer {identity['issuer']})")
@@ -277,11 +278,13 @@ class Client:
         compute = usage.get("compute_seconds") or {}
         if compute:
             total = compute.get("total")
-            self.logger.info(f"Compute: {duration(compute.get('used') or 0)} this month"
-                             + (f", {duration(total)} in all" if total is not None else ""))
+            self.logger.info(f"Compute: {format_duration(compute.get('used') or 0)} this month"
+                             + (f", {format_duration(total)} in all" if total is not None else ""))
         stored = usage.get("storage_bytes") or {}
         if stored:
-            self.logger.info(f"Storage: {size(stored.get('used') or 0)}")
+            used = format_binary(stored.get("used") or 0, "B", digits=1, show_unit=True,
+                                 compact=True, default="—")
+            self.logger.info(f"Storage: {used}")
 
     ######################################################################
     # Sessions

@@ -934,3 +934,38 @@ def test_an_archive_carrying_a_private_value_is_refused_naming_it(
     assert member in response.get_json()["detail"]
     assert "library,secret,dataroot,secret" in response.get_json()["detail"]
     assert not dispatcher.submitted
+
+
+###########################
+# A follow-up holds only the values asked for (surface *A parameter may go up in part*)
+###########################
+
+@pytest.mark.parametrize("answer,accepted", [("there", True), ("here", False)])
+def test_a_follow_up_holds_the_asked_value_and_no_other_of_its_parameter(
+        server, server_client, key, token, job_archive, gcd_design, tmp_path, dispatcher,
+        answer, accepted):
+    '''🔴 Per value: asked for the dataroot `there`, the follow-up carries its
+    value alone; the local value beside it in the same parameter went up
+    already, and sending it again is `unrequested_member`.'''
+    from test_owners import two_sources
+
+    fake_fetch(server, fail=Permanent("the source answered 404"))
+    project = _nop_asic(gcd_design, tmp_path, two_sources(tmp_path, LAMBDA))
+    archive, digest, size = job_archive(project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "awaiting_input")
+    assert read(server_client, key, token, job["id"])["upload_sources"] == [
+        {"kind": "dataroot", "keypath": ["library", "mixed", "dataroot", "there"]}]
+
+    value = first(project, ("library", "mixed", *DATASHEET), n=0 if answer == "here" else 1)
+    response = send(server_client, key, token, job["id"], {
+        f"sc_collected_files/{collected_path(value)}": b"sent by the client\n"})
+
+    if accepted:
+        assert response.status_code == 202, response.get_json()
+        assert wait_for(lambda: dispatcher.submitted)
+    else:
+        assert response.status_code == 422
+        assert response.get_json()["reason"] == "unrequested_member"

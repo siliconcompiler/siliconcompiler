@@ -42,7 +42,7 @@ from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, clean, describe)
 from siliconcompiler.remote.client import MAX_CANCEL_REASON
 from siliconcompiler.remote.client.results import Results, record_job, recorded_job
-from siliconcompiler.remote.units import size as _size
+from siliconcompiler.utils.units import format_binary, format_duration
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
 
@@ -537,10 +537,13 @@ class RemoteRun:
         proprietary one, a disclosure.
         '''
         report = self._uploading if report is None else report
-        self.logger.info(f"Uploading {_size(size)}")
+        total = format_binary(size, "B", digits=1, show_unit=True, compact=True, default="—")
+        self.logger.info(f"Uploading {total}")
         for kind, name, dataroot, weight, files in report:
             where = f" ({dataroot})" if dataroot else ""
-            self.logger.info(f"  {kind} {name}{where}: {_size(weight)}, "
+            shown = format_binary(weight, "B", digits=1, show_unit=True, compact=True,
+                                  default="—")
+            self.logger.info(f"  {kind} {name}{where}: {shown}, "
                              f"{files} file{'s' if files != 1 else ''}")
 
     def _send_asked(self, job_id: str, asked) -> None:
@@ -964,9 +967,9 @@ class RemoteRun:
         dataroot is never collected, asked or not: it must not leave this
         machine.
 
-        ⚠️ **A parameter goes up whole**, as `collect` takes it: a selected
-        value brings the rest of its ``(key, step, index)`` with it, and one
-        holding a private value too is refused (`owners.collection_keys`).
+        🔴 **Per value** (`owners.collection`): the rest of a selected value's
+        parameter stays behind, and a private value beside it stays on this
+        machine.
         '''
         from siliconcompiler.remote import owners
 
@@ -989,14 +992,10 @@ class RemoteRun:
                 return True
             return one.keypath in wanted
 
+        chosen = owners.collection(self.project, pick)
         try:
-            keys = owners.collection_keys(self.project, pick)
-        except owners.PrivateBeside as e:
-            raise RemoteError(str(e)) from None
-
-        try:
-            collect(self.project, keys=keys, directory=directory,
-                    verbose=directory is None,
+            collect(self.project, keys=chosen.keys, directory=directory,
+                    verbose=directory is None, select=chosen.select,
                     whitelist=list(self.client.credentials.directory_whitelist))
         except (FileNotFoundError, RuntimeError, ValueError) as e:
             if not asked:
@@ -1907,13 +1906,11 @@ def _state_line(job: Dict[str, Any]) -> str:
     the last entry of `transitions` (surface §17), and why -- the live
     staging phase, or the reason the job entered its state, such as a
     cancel's.'''
-    from siliconcompiler.remote.units import duration
-
     state = str(job.get("state"))
     last = (job.get("transitions") or [{}])[-1]
     entered = _epoch(last.get("at")) if last.get("state") == job.get("state") else None
     if entered is not None:
-        state += f" for {duration(max(0, time.time() - entered))}"
+        state += f" for {format_duration(max(0, time.time() - entered))}"
     reason = job.get("state_reason") or (last.get("reason")
                                          if last.get("state") == job.get("state") else None)
     return state + (f", {clean(str(reason))}" if reason else "")

@@ -496,9 +496,9 @@ class SubmitMixin:
         Python package it asked for, and nothing else -- a dataroot asked for
         selects its required values, never all of it.
 
-        ⚠️ **Each with the rest of its parameter**, as the client collects it
-        (`owners.collection_keys`): a value asked for brings the others in its
-        ``(key, step, index)``, whatever their dataroot.'''
+        🔴 **Per value**, as the client collects it (`owners.collection`): a
+        value asked for brings nothing else of its ``(key, step, index)``, so
+        another value of that parameter is `unrequested_member`.'''
         entries = json.loads(job["upload_sources"] or "[]")
         # 🔴 By keypath: a member under another task's dataroot of the same
         # name was not asked for (surface D298).
@@ -507,16 +507,10 @@ class SubmitMixin:
         packages = {environment.canonical(item.get("name") or "")
                     for item in entries if item.get("kind") == "python"}
         summary = self._stored_summary(job, root)
-        records = summary["values"]
-        where = [(tuple(record["key"]), record["step"], record["index"])
-                 for record in records]
-        private = {at for at, record in zip(where, records)
-                   if record["origin"] == owners.PRIVATE}
-        keys = {at for at, record in zip(where, records)
-                if tuple(record.get("keypath") or ()) in asked
-                and owners.needed(at[0], summary["required"]) and at not in private}
-        paths = {record["collected_path"] for at, record in zip(where, records)
-                 if at in keys and record["origin"] != owners.PRIVATE}
+        paths = {record["collected_path"] for record in summary["values"]
+                 if tuple(record.get("keypath") or ()) in asked
+                 and record["origin"] != owners.PRIVATE
+                 and owners.needed(tuple(record["key"]), summary["required"])}
         paths.discard(None)
 
         def allowed(member: str) -> bool:

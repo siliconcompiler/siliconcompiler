@@ -39,7 +39,7 @@ from typing import Any, Dict, List, Optional
 
 from siliconcompiler import utils
 from siliconcompiler.remote.client.errors import RemoteError, clean
-from siliconcompiler.remote.units import size
+from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
 
 __all__ = ["Results", "REMOTE_JOB_LOG", "REMOTE_STAGING_LOG", "JOB_FILE", "record_job",
@@ -229,9 +229,12 @@ class Results:
         if len(items) > 6:
             names += ", ..."
 
+        left = format_binary(total, "B", digits=1, show_unit=True, compact=True, default="—")
+        ceiling = format_binary(self.ceiling, "B", digits=1, show_unit=True, compact=True,
+                                default="—")
         self.logger.warning(
-            f"{len(items)} object(s) were left on the server ({size(total)}), "
-            f"each larger than the {size(self.ceiling)} this account may "
+            f"{len(items)} object(s) were left on the server ({left}), "
+            f"each larger than the {ceiling} this account may "
             f"download over the API: {names}. The web portal is the way to "
             "get them -- sc-remote -portal opens it.")
 

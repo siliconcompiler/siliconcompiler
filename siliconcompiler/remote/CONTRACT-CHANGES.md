@@ -78,6 +78,11 @@ The Python packages review (surface D291–D296, entitlements D77, job-reuse D23
 came from no list here either. Follow-on 19 brings the code up to it, and found
 nothing in it that `sc-server` could not serve as written.
 
+What was item 1 here, *a parameter still goes up whole*, closed with `main`'s
+#5459: `collect()` selects values, so the client sends each value on its own
+and the server holds a follow-up to the values it asked for; `PrivateBeside` is
+gone.
+
 A dataroot named by its keypath (surface D298, implementation-notes §K,
 client-v1-migration D13) came from no list here. Follow-on 20 brings the code
 up to it. What it found is SiliconCompiler's, not the wire's: two dataroots of
@@ -91,23 +96,7 @@ apart only where its path differs.
 
 ### Waiting on SiliconCompiler's own code
 
-Nothing to port for either: each goes when its plan lands on `main` and is
-merged here.
-
-#### 1. A parameter still goes up whole, until `collect()` selects values
-
-The contract keeps the upload per value (surface *A parameter may go up in
-part*; client-v1-migration D7): each value goes up where its own dataroot says
-it does, and the rest of its parameter stays behind. ⚠️ **The code is behind
-it.** SiliconCompiler's `collect()` takes a whole `(key, step, index)`, so the
-client still sends a parameter whole and refuses one holding a private value
-beside one that goes up (`owners.PrivateBeside`), and the server still admits a
-follow-up's other values of each parameter it asked into. Both ends move to the
-per-value rule, and `PrivateBeside` goes, once the selecting argument is merged
-here.
-
-**Tracked in:** [`siliconcompiler/collect/select-values.md`](../../../plans/siliconcompiler/collect/select-values.md)
-(CORE-FOLLOWUPS item 8).
+Nothing to port: it goes when its plan lands on `main` and is merged here.
 
 #### 2. SiliconCompiler's side of the upload is short of the contract in two places
 
@@ -172,7 +161,11 @@ original, and item 3 now relies on the manifest's source.
   server does with a manifest that breaks it.
 
 **Where it goes:** `api/surface.md`, the credential rule; the client's
-`RemoteRun._pack`. A decision for the owner before either is written.
+`RemoteRun._pack`.
+
+**Decided 2026-09-30: left as it is, for now.** The owner: *"it's fine in the
+manifest, for now."* Neither option is written; the manifest keeps each source
+as registered.
 
 ---
 

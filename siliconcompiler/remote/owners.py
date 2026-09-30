@@ -60,11 +60,10 @@ flow that runs three. Both ends read the set from the same manifest; the client
 works it out by running each node's setup on a copy (:func:`work_out`)
 and carries it there.
 
-⚠️ **A parameter goes up whole.** What the table decides for each value,
-`collect` carries out per parameter -- one ``(key, step, index)`` -- so a value
-the server could have supplied travels with a local one beside it
-(:func:`collection_keys`). A private value beside an uploaded one is refused
-rather than sent: keep private files in a fileset of their own.
+🔴 **A value goes up on its own.** What the table decides for each value,
+`collect` carries out for that value alone (:func:`collection`): a value the
+server can supply stays behind while a local one beside it in the same
+parameter goes up, and a private value stays behind beside one that is sent.
 '''
 
 import os
@@ -81,7 +80,7 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLE
            "safe_source", "masked", "is_masked", "account", "Entry", "confined",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
-           "private_holders", "collection_keys", "collected_path", "PrivateBeside",
+           "private_holders", "collection", "Collection", "collected_path",
            "value_records", "account_records", "uploaded_private"]
 
 
@@ -359,47 +358,38 @@ def _values(project) -> Iterator[_Value]:
                              step, index, keypaths[dataroot])
 
 
-class PrivateBeside(ValueError):
-    '''A parameter that would go up holds a private value too.'''
-
-    def __init__(self, mixed: List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]):
-        self.mixed = mixed
-        named = "; ".join(f"[{','.join(key)}]" + (f" ({step}/{index})" if step else "")
-                          for key, step, index in mixed)
-        super().__init__(
-            f"{named} holds files marked private beside files this run sends. A "
-            "parameter's files go up together, so the private ones would too: put "
-            "them in a fileset of their own.")
+class Collection(NamedTuple):
+    '''What `collect` is handed: each ``(key, step, index)`` holding a value
+    to send, and ``select``, which takes exactly those values.'''
+    keys: List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]
+    select: Callable[[Tuple[str, ...], Optional[str], Optional[str], Any], bool]
 
 
-def collection_keys(project, pick: Callable[[_Value], bool],
-                    refuse_private: bool = True) \
-        -> List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]:
-    '''What `collect` is handed: every ``(key, step, index)`` one of whose
-    values ``pick`` takes -- and then all of its values, since `collect` takes
-    a parameter whole.
+def collection(project, pick: Callable[[_Value], bool]) -> Collection:
+    '''Every value ``pick`` takes, and no other -- per value, never per
+    parameter (surface *A parameter may go up in part*): the rest of its
+    parameter stays behind, whatever its dataroot, and is never resolved, so a
+    remote dataroot only it uses is not fetched here.
 
-    🔴 **Both ends call this**, the client to collect and the server to know
-    what a follow-up archive may carry, so they agree on what "whole" includes.
+    🔴 **A private value is never picked**, whatever ``pick`` says: it must not
+    leave this machine, and it stays behind beside a value that is sent.
 
-    A private value is never picked, and one beside a picked value is
-    :class:`PrivateBeside` -- raised, unless ``refuse_private`` is off, where
-    the parameter is left out.
+    ``select`` knows a value by its object, which `collect` is handed from the
+    same project; call it on the project this was built from.
     '''
     from siliconcompiler.utils.curation import filter_collection_keys
 
-    picked: Dict[Tuple[Tuple[str, ...], Optional[str], Optional[str]], None] = {}
-    private = set()
+    keys: Dict[Tuple[Tuple[str, ...], Optional[str], Optional[str]], None] = {}
+    picked = set()
     for one in _values(project):
-        where = (one.key, one.step, one.index)
-        if one.origin == PRIVATE:
-            private.add(where)
-        elif pick(one):
-            picked[where] = None
-    mixed = [where for where in picked if where in private]
-    if mixed and refuse_private:
-        raise PrivateBeside(mixed)
-    return filter_collection_keys([where for where in picked if where not in private])
+        if one.origin != PRIVATE and pick(one):
+            keys[(one.key, one.step, one.index)] = None
+            picked.add(id(one.value))
+
+    def select(key, step, index, value) -> bool:
+        return id(value) in picked
+
+    return Collection(filter_collection_keys(list(keys)), select)
 
 
 def collected_path(one: _Value) -> Optional[str]:
