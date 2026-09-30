@@ -79,9 +79,9 @@ class Flowgraph(NamedSchema, DocsSchema):
             ValueError: If ``step`` is a reserved name or is not a single
                 path segment.
         '''
+        Flowgraph.__assert_valid_node_name(step, "step")
         if step in (Parameter.GLOBAL_KEY, 'default') or step.startswith("sc_"):
             raise ValueError(f"{step} is a reserved name")
-        Flowgraph.__assert_valid_node_name(step, "step")
 
     @staticmethod
     def _assert_valid_index(index: str) -> None:
@@ -95,9 +95,9 @@ class Flowgraph(NamedSchema, DocsSchema):
             ValueError: If ``index`` is a reserved name or is not a single
                 path segment.
         '''
+        Flowgraph.__assert_valid_node_name(index, "index")
         if index in (Parameter.GLOBAL_KEY, 'default'):
             raise ValueError(f"{index} is a reserved name")
-        Flowgraph.__assert_valid_node_name(index, "index")
 
     @staticmethod
     def __assert_valid_node_name(name: str, what: str) -> None:
