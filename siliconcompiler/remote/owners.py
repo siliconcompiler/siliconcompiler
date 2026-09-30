@@ -652,17 +652,21 @@ def confined(root, path) -> Optional[str]:
 def upload_report(project, collection_dir) \
         -> List[Tuple[str, Optional[str], Optional[str], int, int]]:
     '''What is in an archive's collection, by (kind, name, dataroot): bytes and
-    files. What a user is shown before anything moves.'''
+    files. What a user is shown before anything moves.
+
+    Each stored file is counted once, under the first value that reaches it:
+    `collect` stores a file once, and a second value naming it, or a link
+    inside a collected directory, is a link to that copy, which carries no
+    bytes.'''
     totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
-    counted: List[str] = []
+    counted: Set[Tuple[int, int]] = set()
     for one in _values(project):
         if not _collected(one.value, collection_dir):
             continue
         path = str(one.value.resolve_path(search=[], collection_dir=str(collection_dir)))
-        if any(path == seen or path.startswith(seen + os.sep) for seen in counted):
+        size, files = _weigh(path, counted)
+        if not files:
             continue
-        counted.append(path)
-        size, files = _weigh(path)
         group = (one.kind, one.name, one.dataroot)
         have = totals.get(group, (0, 0))
         totals[group] = (have[0] + size, have[1] + files)
@@ -671,17 +675,26 @@ def upload_report(project, collection_dir) \
             in sorted(totals.items(), key=lambda item: str(item[0]))]
 
 
-def _weigh(path: str) -> Tuple[int, int]:
-    if os.path.isfile(path):
-        return os.path.getsize(path), 1
+def _weigh(path: str, counted: Set[Tuple[int, int]]) -> Tuple[int, int]:
+    '''The bytes and files under ``path`` that ``counted`` does not hold yet,
+    by inode, each added to it: a link, and a hard link a collection made where
+    it could not make a link, name a file already counted.'''
+    if os.path.isdir(path):
+        found = (os.path.join(folder, name)
+                 for folder, _, names in os.walk(path) for name in names)
+    else:
+        found = iter([path])
     size = files = 0
-    for folder, _, names in os.walk(path):
-        for name in names:
-            try:
-                size += os.path.getsize(os.path.join(folder, name))
-                files += 1
-            except OSError:
-                pass
+    for full in found:
+        try:
+            info = os.stat(full)
+        except OSError:
+            continue
+        if (info.st_dev, info.st_ino) in counted:
+            continue
+        counted.add((info.st_dev, info.st_ino))
+        size += info.st_size
+        files += 1
     return size, files
 
 

@@ -24,7 +24,7 @@ fixes it says so.
 
 Found while bringing the branch up to the `v1` changes of 2026-09-29. Each is
 SiliconCompiler's to make on `main`, and the branch takes it by merging `main`
-once it lands (CONTRACT-CHANGES item 2 names what waits on each).
+once it lands (CONTRACT-CHANGES items 1 and 2 name what waits on each).
 
 #### 8. `collect()` cannot pick values within a parameter
 
@@ -126,50 +126,3 @@ package whose dataroot resolves to the uploaded copy on the node, with the
 network off -- waits for it.
 
 **Planned:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
-
-#### 11. `collect()` follows links, and stores a file once per value that names it
-
-**Checked:** a directory value holding `alias.vh -> defs.vh` is collected as
-two regular files, and a file that two values name under two dataroots
-(`rtl/a.v` under `top`, `a.v` under `rtl`, one file) is collected twice, once in
-each value's folder. `shutil.copytree` follows links by default, so a link out
-of the directory brings its target's bytes in too.
-
-**Why it matters:** contract.md says an upload keeps links, and stores a
-linked file once. A remote run uploads the collection, so the same bytes go up
-twice, and a link out of a design's own directory -- into a PDK, say -- sends
-what it points at.
-
-**Options:** copy directories with `symlinks=True`, keeping a link whose target
-is in the collection as a link to the target's collected copy; store a file
-whose home is outside the collection once, at its first appearance, as
-contract.md does for an upload, rather than leaving out or refusing a link that
-leaves its directory -- only an archive the server produces drops one; and store
-a file two values name once, the second as a link to the first.
-
-**Where it goes:** `siliconcompiler/utils/curation.py`.
-
-**Planned:** [`collect/store-once.md`](../../../plans/siliconcompiler/collect/store-once.md).
-
-#### 12. 🔴 A file inside an already-collected directory is skipped, and then resolves nowhere
-
-**Checked, reproduced on `main` at `e86772186e`:** a file whose value sits
-inside a directory already collected is skipped (`utils/curation.py:193-201`),
-because it is *"reachable via the collected directory's search path"* -- even
-when the file's value is under another dataroot. Resolution goes by the value's
-own dataroot, so once the sources are gone the file resolves nowhere. With
-dataroot `top` at `proj/`, dataroot `rtl` at `proj/rtl/`, an `idir` of `rtl`
-under `top` and a file `a.v` under `rtl`, `a.v` is not in the collection.
-
-**Why it matters:** `collect()` reports no error, and the run fails on
-whichever machine does not have the original: the server, or an `sc-issue`
-testcase opened elsewhere. It predates the rework: `v0.38.9` has the same skip.
-
-**Options:** give such a value a link at its own collected path to the copy
-already stored, never a skip -- the same step as storing a file once for item
-11.
-
-**Where it goes:** `siliconcompiler/utils/curation.py`.
-
-**Planned:** [`collect/store-once.md`](../../../plans/siliconcompiler/collect/store-once.md), with item 11.
-

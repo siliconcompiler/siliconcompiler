@@ -1,4 +1,6 @@
 import os
+import shutil
+import sys
 
 import pytest
 
@@ -286,6 +288,48 @@ def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
 
     # 🔴 The caller's project is not rewritten to get there.
     assert not project.get("library", "local", *DATASHEET, field="copy")
+
+
+@pytest.mark.skipif(sys.platform == "win32",
+                    reason="Making a symbolic link needs a privilege on Windows")
+def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
+    '''`collect` stores a file once, and every other name for it -- a second
+    value, a link in a collected directory -- is a link to that copy, which
+    carries no bytes. The report says what the archive holds, and the server
+    finds each value at its own collected path once the sources are gone.'''
+    from siliconcompiler import Design, Lint
+    from siliconcompiler.utils.curation import collect
+    from siliconcompiler.utils.paths import collectiondir
+
+    os.makedirs("proj/rtl")
+    with open("proj/rtl/a.v", "w") as f:
+        f.write("module a; endmodule\n")
+    with open("proj/rtl/defs.vh", "w") as f:
+        f.write("`define WIDTH 8\n")
+    os.symlink("defs.vh", "proj/rtl/alias.vh")
+
+    # `a.v` twice: in `top`'s `rtl` directory, and as a file under `rtl`.
+    design = Design("top")
+    design.set_dataroot("top", os.path.abspath("proj"))
+    design.set_dataroot("rtl", os.path.abspath("proj/rtl"))
+    design.set_topmodule("a", fileset="rtl")
+    design.add_idir("rtl", dataroot="top", fileset="rtl")
+    design.add_file("a.v", dataroot="rtl", fileset="rtl")
+    project = Lint(design)
+    project.add_fileset("rtl")
+
+    collect(project, keys=uploaded_by_owner(project), verbose=False)
+    collection = collectiondir(project)
+
+    report = owners.upload_report(project, collection)
+    assert sum(row[3] for row in report) == \
+        os.path.getsize("proj/rtl/a.v") + os.path.getsize("proj/rtl/defs.vh")
+    assert sum(row[4] for row in report) == 2
+
+    shutil.move("proj", "moved")
+    assert {(entry.dataroot, entry.status) for entry in
+            owners.account(project, collection, Supply())} == \
+        {("top", owners.UPLOADED), ("rtl", owners.UPLOADED)}
 
 
 def two_sources(tmp_path, second, *, create=True):

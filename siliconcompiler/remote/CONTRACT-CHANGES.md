@@ -92,13 +92,8 @@ here.
 **Tracked in:** [`siliconcompiler/collect/select-values.md`](../../../plans/siliconcompiler/collect/select-values.md)
 (CORE-FOLLOWUPS item 8).
 
-#### 2. SiliconCompiler's side of the upload is short of the contract in three places
+#### 2. SiliconCompiler's side of the upload is short of the contract in two places
 
-- **An upload keeps links, and stores a linked file once** (contract.md).
-  `collect()` follows links, so a link in a collected directory goes up as a
-  copy of its target, and a file two values name under different dataroots
-  goes up twice, once in each value's folder (CORE-FOLLOWUPS item 11).
-  **Tracked in:** [`collect/store-once.md`](../../../plans/siliconcompiler/collect/store-once.md).
 - **The user's own modules go on the tool's path** (surface *A node's own
   Python packages*). Where a Slurm-dispatched run collects before it starts,
   `collect()` moves the uploaded collection aside and rebuilds it from the
