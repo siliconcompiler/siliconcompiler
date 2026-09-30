@@ -245,6 +245,17 @@ DEFAULTS: Dict[str, Any] = {
     # deployment that has not made a partition for it.
     "batch_queue": None,
 
+    # Whether every job's nodes record where they ran: SiliconCompiler's
+    # `option,track`, which puts each node's machine name, IP and MAC
+    # address, OS, kernel, user and region into its `record` -- in the manifest
+    # the submitter downloads.
+    #
+    # ⚠️ Off by default because that is this deployment's layout, published:
+    # the host names and addresses `detail` is scrubbed of. A test rig wants
+    # it, to see which compute node ran what. Off leaves a job's own setting
+    # as it was sent.
+    "track_provenance": False,
+
     # Host paths every container must be able to see, whoever's job it is.
     # Never the data directory, which holds the signing key and the store: what
     # one job sees -- its own tree and cache, and the supplied roots read-only

@@ -572,3 +572,19 @@ def test_the_classic_store_pushes_the_whole_image(bootstrap, monkeypatch):
     bootstrap.push(bootstrap.RUNTIME_IMAGE, "sc-runtime", "0.38.9")
 
     assert not any("platform=" in path for path in posted)
+
+
+def test_the_rig_records_which_compute_node_ran_what(bootstrap, monkeypatch, tmp_path):
+    """A test rig turns on `track_provenance`, which a real deployment keeps
+    off -- and the file it writes is one the server starts with."""
+    import json
+
+    from siliconcompiler.remote.server.config import Config
+
+    monkeypatch.setattr(bootstrap, "DATADIR", tmp_path)
+
+    bootstrap.write_config()
+
+    assert json.loads((tmp_path / "config.json").read_text())["track_provenance"] is True
+    assert Config.load(tmp_path)["track_provenance"] is True
+    assert Config.load(tmp_path / "nowhere")["track_provenance"] is False

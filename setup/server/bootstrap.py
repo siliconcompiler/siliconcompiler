@@ -592,6 +592,10 @@ def write_config() -> None:
     # its own; turning the builder on is what advertises `python.env`.
     config["env_builder"] = True
     config["build_queue"] = BUILD_QUEUE
+    # A test rig: each node records which compute node ran it, and the rest of
+    # its `record`, in the manifest -- this deployment's layout, which a real
+    # one keeps to itself.
+    config["track_provenance"] = True
     # The portal is served wherever the API is, and compose publishes both on
     # the host's loopback only. A key an older bootstrap wrote is left out.
     config.pop("portal_plaintext_peers", None)

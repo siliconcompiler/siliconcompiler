@@ -201,7 +201,8 @@ class DispatchMixin:
         runspec.write_run(
             root / runspec.RUN_FILENAME, job_id=job["id"], builddir=root, cachedir=cache,
             cluster=self._dispatcher.name, placements=placements,
-            dataroots=runspec.dataroot_targets(entries, unpacked / "sc_collected_files"))
+            dataroots=runspec.dataroot_targets(entries, unpacked / "sc_collected_files"),
+            track=self._config["track_provenance"])
 
         # Only the bundles need a source: a digest the docker scheduler pulls
         # already says where it comes from.

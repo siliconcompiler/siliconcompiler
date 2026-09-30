@@ -766,6 +766,11 @@ for. Nothing in it is required.
 
 - `containers`, `container_mounts`, `batch_queue`: where jobs run, what their
   containers see, and the orchestrator's own partition.
+- `track_provenance`: SiliconCompiler's `option,track` on every job, so each
+  node records the machine it ran on -- host name, IP and MAC address, OS,
+  kernel, user and region -- in the manifest the submitter downloads. Off by
+  default, since that publishes this deployment's layout; off, a job's own
+  setting stands. `bootstrap` turns it on for this rig.
 - `env_builder`, `build_queue`, `python_source_builds`, `package_indexes`
   and `index_allowlist`: the environment builder (above). `env_builder` needs
   `containers`, is what advertises `python.env`, and false is the switch.

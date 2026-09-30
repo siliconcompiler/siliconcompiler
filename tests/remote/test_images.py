@@ -329,6 +329,24 @@ def test_retiring_the_software_retracts_the_claim(registry, store):
 # What the compute node does with it
 ###########################
 
+def test_tracking_is_the_deployments_to_turn_on(nop_project, tmp_path):
+    """`track_provenance` (config.py): each node records the machine it ran
+    on, through the run file the runner applies. Off, the job's own setting
+    stands -- it is not switched off under the user."""
+    from siliconcompiler.remote.server.running import runspec
+
+    runspec.normalize(nop_project, "job-id", "build", "cache")
+    assert not nop_project.option.get_track()
+
+    run = tmp_path / runspec.RUN_FILENAME
+    runspec.write_run(run, "job-id", "build", "cache", "local", track=True)
+    runspec.apply_run(nop_project, runspec.read_run(run))
+    assert nop_project.option.get_track() is True
+
+    runspec.normalize(nop_project, "job-id", "build", "cache")
+    assert nop_project.option.get_track() is True
+
+
 def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
     """🔴 `option,scheduler,name` holds ONE value, so a node handed to the
     docker scheduler is a node Slurm never sees -- and on a cluster Slurm is

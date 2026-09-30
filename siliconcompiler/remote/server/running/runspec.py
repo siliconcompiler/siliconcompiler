@@ -113,7 +113,7 @@ def node_state(status: Optional[str]) -> str:
 
 
 def normalize(project, job_id: str, builddir, cachedir, images=None,
-              cluster: str = "local") -> None:
+              cluster: str = "local", track: bool = False) -> None:
     '''Everything the server decides about how a submitted run executes.
 
     Applied once, at submit, after the digest has been verified and after the
@@ -150,6 +150,8 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     node's output, and leaves the caller's `quiet` meaning what they set it to.
     - **the remote id** -- the server-owned job id, which is what a user pastes
       back into ``sc-remote``
+    - **tracking**, where ``track`` -- the deployment's ``track_provenance``:
+      each node records the machine it ran on. Only ever turned on here
 
     🔴 **On a cluster every node is its own Slurm job, and that is set here.**
     The API process still submits exactly one thing and polls one id -- the
@@ -191,6 +193,10 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     # The run is this job: incrementing would run it under another name.
     project.option.set_jobincr(False)
     project.set('record', 'remoteid', job_id)
+    if track:
+        # Where each node ran, in its record: the deployment's
+        # `track_provenance`. Off, the job's own setting stands.
+        project.option.set_track(True)
     for key in SCHEDULER_KEYS:
         project.get('option', 'scheduler', key, field=None).reset()
 
@@ -311,11 +317,11 @@ def point_dataroots(project, targets) -> int:
 
 
 def write_run(path, job_id: str, builddir, cachedir, cluster: str,
-              placements=None, dataroots=()) -> None:
+              placements=None, dataroots=(), track: bool = False) -> None:
     '''What the run needs from the server: see `RUN_FILENAME`.'''
     write_json(path, {
         "job_id": job_id, "builddir": str(builddir), "cachedir": str(cachedir),
-        "cluster": cluster,
+        "cluster": cluster, "track": bool(track),
         "placements": [[step, index, str(where)]
                        for (step, index), where in sorted((placements or {}).items())],
         "dataroots": [list(entry) for entry in dataroots]})
@@ -341,7 +347,7 @@ def apply_run(project, run: Dict[str, Any]) -> None:
     '''
     normalize(project, run["job_id"], run["builddir"], run["cachedir"],
               images={(step, index): where for step, index, where in run["placements"]},
-              cluster=run["cluster"])
+              cluster=run["cluster"], track=run.get("track", False))
     point_dataroots(project, run["dataroots"])
 
 
