@@ -2133,6 +2133,59 @@ def test_find_files_with_package():
     assert resolve1.called == 0
 
 
+def test_find_files_with_select():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("package_path", exist_ok=True)
+    with open("package_path/test1.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", ["test0.txt", "test1.txt"])
+    assert schema.set("package", "file", ["that_package", "this_package"], field="dataroot")
+
+    class Resolver:
+        called = 0
+
+        def resolve(self):
+            self.called += 1
+            return os.path.abspath("package_path")
+
+    resolve0 = Resolver()
+    resolve1 = Resolver()
+    package_map = {
+        "this_package": resolve0.resolve,
+        "that_package": resolve1.resolve,
+    }
+
+    assert schema._find_files(
+        "package", "file", dataroots=package_map,
+        select=lambda value: value.get(field="dataroot") == "this_package") == [
+        os.path.abspath("package_path/test1.txt"),
+    ]
+
+    assert resolve0.called == 1
+    assert resolve1.called == 0
+
+
+def test_find_files_scalar_with_select():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", "test.txt")
+
+    assert schema._find_files("file", select=lambda value: True) == \
+        os.path.abspath("test.txt")
+    assert schema._find_files("file", select=lambda value: False) is None
+
+
 def test_find_files_with_package_not_found():
     schema = BaseSchema()
     edit = EditableSchema(schema)
