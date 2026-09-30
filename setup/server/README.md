@@ -179,7 +179,7 @@ of the upload is asked for, not supplied from this host.
 | an installed package | from the job's image, by name |
 | a remote source on `fetch_allowlist` | fetched by this server after submit, held under `<datadir>/sources/`, and mounted read-only |
 | a remote source not on the list | asked of the client, which sends it with its own credentials |
-| marked private | from `private_dataroots` in `config.json`, by (object name, dataroot name) &mdash; or the job is refused |
+| marked private | from `private_dataroots` in `config.json`, by its keypath (below) &mdash; or the job is refused |
 
 `fetch_allowlist` defaults to SiliconCompiler's GitHub organisation &mdash;
 `https://github.com/siliconcompiler/` and
@@ -199,6 +199,27 @@ forward.
 ⚠️ **This changed.** An environment-variable PDK was, for a while, resolved from
 this server's own environment; it is uploaded again. To keep a proprietary PDK
 off the wire, the operator supplies it through `private_dataroots`.
+
+**A dataroot is named by its keypath**, where the manifest keeps it: a
+library's `library,<name>,dataroot,<root>`, and a task's own
+`tool,<tool>,task,<task>,dataroot,<root>` -- so two tasks of one tool that each
+register a `scripts`, or a library and a tool of one name, are different
+dataroots, asked for and supplied apart. `private_dataroots` keeps a library's
+and a tool's apart the same way:
+
+```json
+{"private_dataroots": {
+  "library": {"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}},
+  "tool":    {"acme_sim": {"scripts": "/opt/acme/scripts"}},
+  "task":    {"acme_sim": {"run": {"scripts": "/opt/acme/run-scripts"}}}}}
+```
+
+`library` supplies a library's root. `tool` supplies that root on every task of
+the tool -- a tool's private root is normally the same for all of them -- and
+`task`, for one (tool, task), overrides it. Every path is absolute, and each is
+mounted read-only into every job. The shape before keypaths,
+`{name: {root: path}}`, is `library`'s now, and a `config.json` still using it
+is refused at startup, saying where to move it.
 
 ### A job's own Python packages
 

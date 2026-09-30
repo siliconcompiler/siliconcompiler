@@ -78,6 +78,13 @@ The Python packages review (surface D291–D296, entitlements D77, job-reuse D23
 came from no list here either. Follow-on 19 brings the code up to it, and found
 nothing in it that `sc-server` could not serve as written.
 
+A dataroot named by its keypath (surface D298, implementation-notes §K,
+client-v1-migration D13) came from no list here. Follow-on 20 brings the code
+up to it. What it found is SiliconCompiler's, not the wire's: two dataroots of
+one name collect a file of one path to one place (CORE-FOLLOWUPS item 13), so a
+follow-up archive's member under another task's dataroot of that name is told
+apart only where its path differs.
+
 ---
 
 ## Open — not yet in the contract docs

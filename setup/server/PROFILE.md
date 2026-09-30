@@ -259,7 +259,7 @@ the server's environment.
 
 | Source | Here |
 |---|---|
-| **marked private** | supplied only from roots the operator configures, never outside them, or `resource-unavailable`. Never uploaded |
+| **marked private** | supplied only from roots the operator configures, by the dataroot's keypath, never outside them, or `resource-unavailable` with that `keypath`. Never uploaded |
 | **remote** | fetched only from the allowlist, whose default is the SiliconCompiler GitHub organisation: `github.com/siliconcompiler/` and `codeload.github.com/siliconcompiler/`, which is what lambdapdk needs |
 | **not on the allowlist, and not held** | asked for at create, in `upload_sources`. A private repository behind the user's own key is the common case |
 | **allowlisted, and the fetch fails for good** | fetched after submit, while `staging`; on failure the job goes back to `awaiting_input`, asking for that source alone |

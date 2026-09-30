@@ -126,3 +126,46 @@ package whose dataroot resolves to the uploaded copy on the node, with the
 network off -- waits for it.
 
 **Planned:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
+
+### From follow-on 20 (2026-09-30)
+
+#### 13. 🔴 Two dataroots of one name collect a file of one path to one place
+
+**Checked, by running it:** two libraries, `a` and `b`, each with a dataroot
+called `root` at a directory of its own and a file `rtl/top.v` in it, different
+in each. `collect()` stores one file, `rtl_<hash>/top.v`, holding `a`'s, and
+`b`'s value resolves in the collection to that same file. The collected path is
+`PathNodeValue.generate_hashed_collection_path(path, dataroot)`, and the hash is
+of the dataroot's NAME and the path's parent parts
+(`__generate_collection_hash`) -- never of the owner, nor of the dataroot's
+source.
+
+**Why it matters:** silently, a run reads another owner's file. Many owners
+use SiliconCompiler's default name, `root`, and a tool's tasks may each
+register a dataroot of one name (`scripts`, `refdir`), so two of them with one
+relative path is ordinary. Wherever the collection is what a run reads -- a
+remote run's upload, a Slurm or Docker run that collects first, `sc-issue` --
+the second owner's file is the first's. It also caps what the server can tell
+apart in a follow-up archive: surface D298 asks it to refuse a member under
+another task's dataroot of the same name, which it does where the two paths
+differ, and cannot where they are the same path, since then they are one
+member.
+
+**Options:**
+
+- Hash the owner in: the dataroot's keypath (`library,<name>` or
+  `tool,<tool>,task,<task>`) beside its name. It changes every collected path,
+  so a collection written before is not read after -- acceptable, since a
+  collection is rebuilt for each run.
+- Hash the dataroot's resolved source, so two owners with one source share the
+  copy, as the store-once rule wants, and two with different sources do not.
+  Needs the resolver where the path is computed, which the static method has
+  not got.
+
+**Where it goes:** `siliconcompiler/schema/parametervalue.py`
+(`generate_hashed_collection_path`), its callers in
+`siliconcompiler/utils/curation.py`, and `owners.collected_path`, which follows
+it. The branch's test task gives each task's `refdir` its own path until then
+(`tests/remote/pytasks.py`).
+
+**Planned:** not yet; nothing in the plans repository covers it.

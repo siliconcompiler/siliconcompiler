@@ -26,8 +26,8 @@
 
 <div class="do">
 <ol>
-  <li>Read <code>resource</code> to see which, and <code>resource_kind</code> where the deployment names it.</li>
-  <li>For a private resource, ask this deployment&rsquo;s operator to hold a copy of it under that name. Private data is never uploaded, so nothing you send can satisfy it.</li>
+  <li>Read <code>resource</code> to see which, <code>keypath</code> for which of its dataroots, and <code>resource_kind</code> where the deployment names it.</li>
+  <li>For a private dataroot, ask this deployment&rsquo;s operator to hold a copy of it under that keypath. Private data is never uploaded, so nothing you send can satisfy it.</li>
   <li>Or run against a deployment that holds it.</li>
   <li>Retrying the same job returns the same answer.</li>
 </ol>
@@ -43,6 +43,7 @@
   "detail":   "...",
   "instance": "/v1/jobs/01J9...",
   "resource": "mypdk",  <span class="c">// REQUIRED on this type</span>
+  "keypath":  ["library", "mypdk", "dataroot", "mypdk"],  <span class="c">// where it is a dataroot</span>
   "resource_kind": "pdk",  <span class="c">// where the deployment can name it</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
@@ -51,7 +52,9 @@
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
-    <td>Its name. Names are unique across kinds, so it alone says which.</td></tr>
+    <td>Its name, or for a dataroot its owner&rsquo;s: the library&rsquo;s, or the task&rsquo;s tool. Names are unique across kinds, so it alone says which resource.</td></tr>
+<tr><td><code>keypath</code></td><td>optional</td>
+    <td>Where it is a dataroot, which one, as <code>sources</code> names it: <code>["library", name, "dataroot", root]</code>, or <code>["tool", tool, "task", task, "dataroot", root]</code> for a task&rsquo;s own. Most owners have a dataroot called <code>root</code>, so the owner alone does not say which.</td></tr>
 <tr><td><code>resource_kind</code></td><td>optional</td>
     <td><code>pdk</code>, <code>library</code>, <code>fpga</code> or <code>tool</code>, where the deployment can name the kind. One without a catalogue of resources &mdash; the reference <code>sc-server</code> is one &mdash; leaves it out at create, where a source carries no kind, and names the resource alone. It is never the design.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>

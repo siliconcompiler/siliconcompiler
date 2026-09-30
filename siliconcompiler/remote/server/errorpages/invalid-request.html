@@ -63,6 +63,14 @@ at all. Treat a non-<code>problem+json</code> <code>400</code> exactly as you wo
 <tbody>
 <tr><td class="wrap">any endpoint</td>
     <td>Request validation.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>A <code>descriptor.sources</code> entry whose <code>keypath</code> is not a
+    dataroot in one of the two places SiliconCompiler keeps one:
+    <code>["library", name, "dataroot", root]</code>, or a task&rsquo;s own,
+    <code>["tool", tool, "task", task, "dataroot", root]</code>. The server does not
+    guess what owns a dataroot. An entry carrying <code>name</code> or
+    <code>dataroot</code>, the members <code>keypath</code> replaced, is refused as any
+    unknown member is.</td></tr>
 </tbody>
 </table>
 

@@ -236,11 +236,15 @@ moves.
 
 **Files marked private never go up.** A dataroot registered with a ``+private``
 scheme -- ``file+private://``, ``git+ssh+private://`` and the rest -- is data
-that must not leave your machine: the server supplies its own copy of it, under
-the names of the object and the dataroot, or refuses the job. Files go up a
-parameter at a time -- a fileset's files together -- so keep private files in a
-fileset of their own: one holding a private file beside a file that goes up
-stops the run here, naming it.
+that must not leave your machine: the server supplies its own copy of it, or
+refuses the job. It is named by where the manifest keeps it: a library's as
+``library,<name>,dataroot,<root>``, and a task's own as
+``tool,<tool>,task,<task>,dataroot,<root>``, so two tasks of one tool with a
+dataroot of the same name are two dataroots, and a refusal says which one --
+*the private dataroot tool,acme_sim,task,run,dataroot,scripts is not held by
+this server*. Files go up a parameter at a time -- a fileset's files together --
+so keep private files in a fileset of their own: one holding a private file
+beside a file that goes up stops the run here, naming it.
 
 **What the server cannot supply, it asks for.** A source the server does not
 hold and will not fetch itself -- a private git repository behind your own key,
