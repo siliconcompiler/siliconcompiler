@@ -8,7 +8,6 @@ import sys
 import tarfile
 import threading
 import time
-import warnings
 
 import os.path
 
@@ -1634,19 +1633,6 @@ class SchedulerNode:
             set of tuple of str: keypaths to collect.
         """
         return set()
-
-    def mark_copy(self) -> bool:
-        """Deprecated: use :meth:`collect_keys`.
-
-        Sets the ``copy`` field on every key :meth:`collect_keys` names, which
-        nothing reads any more, and says whether there were any.
-        """
-        warnings.warn("mark_copy is deprecated, use collect_keys",
-                      DeprecationWarning, stacklevel=2)
-        keys = self.collect_keys()
-        for key in keys:
-            self.__project.set(*key, True, field='copy')
-        return bool(keys)
 
     def check_required_values(self) -> bool:
         requires = self.get_required_keys()

@@ -9,6 +9,7 @@ import time
 
 import os.path
 
+from pathlib import PurePath
 from typing import List, Set, Tuple, Union, Final
 
 from siliconcompiler import utils, sc_open
@@ -329,7 +330,11 @@ class SlurmSchedulerNode(SchedulerNode):
     def collect_keys(self) -> Set[Tuple[str, ...]]:
         """The required path keys with a file outside the cluster's shared
         paths: those have to be collected, since the compute node cannot reach
-        them. None where the whole filesystem is shared."""
+        them. None where the whole filesystem is shared.
+
+        A file an earlier run collected counts as outside them, even when the
+        collection is on a shared path: a collection is rebuilt from the keys
+        it is given, so it only keeps that file if its key is named again."""
         sharedprefix: List[str] = MPManager.get_settings().get(
             SlurmSchedulerNode.__OPTIONS, "sharedpaths", default=[])
 
@@ -337,12 +342,19 @@ class SlurmSchedulerNode(SchedulerNode):
             # Entire filesystem is shared so no need to check
             return set()
 
+        if not sharedprefix:
+            # Nothing is shared, so everything has to be copied
+            return self.get_required_path_keys()
+
+        def is_shared(path: str) -> bool:
+            # By directory, so /nfs covers /nfs/tools and not /nfsdata
+            path = PurePath(path)
+            if self.collection_dir and path.is_relative_to(self.collection_dir):
+                return False
+            return any(path.is_relative_to(shared) for shared in sharedprefix)
+
         keys = set()
         for key in self.get_required_path_keys():
-            if not sharedprefix:
-                keys.add(key)
-                continue
-
             check_step, check_index = self.step, self.index
             if self.project.get(*key, field='pernode').is_never():
                 check_step, check_index = None, None
@@ -353,8 +365,7 @@ class SlurmSchedulerNode(SchedulerNode):
                 paths = [paths]
             paths = [str(path) for path in paths if path]
 
-            if any(not any(path.startswith(shared) for shared in sharedprefix)
-                   for path in paths):
+            if not all(is_shared(path) for path in paths):
                 # A file outside the shared paths has to be copied.
                 keys.add(key)
         return keys

@@ -249,20 +249,6 @@ def test_collect_keys_non_win32(project):
     assert node.collect_keys() == set()
 
 
-@patch('sys.platform', 'win32')
-def test_mark_copy_still_works_and_warns(project):
-    '''The old hook keeps working for a caller written against it, and says
-    why it should change.'''
-    project.set("tool", "builtin", "task", "nop", "require",
-                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
-                step="steptwo", index="0")
-
-    node = DockerSchedulerNode(project, "steptwo", "0")
-    with pytest.warns(DeprecationWarning, match="collect_keys"):
-        assert node.mark_copy() is True
-    assert project.get(*PRESCRIPT, field="copy") is True
-
-
 def test_check_required_paths(project):
     project.set("tool", "builtin", "task", "nop", "require",
                 ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],

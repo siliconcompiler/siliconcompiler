@@ -6,7 +6,6 @@ import shutil
 import sys
 import tempfile
 import threading
-import warnings
 
 import os.path
 
@@ -348,17 +347,12 @@ class Scheduler:
                 raise SCRuntimeError("Flowgraph file IO constrains errors")
 
             # Collect what the nodes that run elsewhere cannot reach
-            keys, legacy = self.__collect_keys()
-            if keys or legacy:
-                collect_keys = []
-                for key in self.project.allkeys():
-                    param = self.project.get(*key, field=None)
-                    if not param.is_path:
-                        continue
-                    if tuple(key) in keys or (legacy and param.get(field='copy')):
-                        collect_keys.extend((key, step, index)
-                                            for _, step, index in
-                                            param.getvalues(return_values=False))
+            keys = set().union(*(task.collect_keys() for task in self.__tasks.values()))
+            if keys:
+                collect_keys = [(key, step, index)
+                                for key in sorted(keys)
+                                for _, step, index in self.project.get(
+                                    *key, field=None).getvalues(return_values=False)]
                 collect(self.project, keys=filter_collection_keys(collect_keys))
 
             try:
@@ -1351,29 +1345,6 @@ class Scheduler:
                         self.__logger.error(f"Unable to process version for {step}/{index}")
 
         return not error
-
-    def __collect_keys(self) -> Tuple[Set[Tuple[str, ...]], bool]:
-        """The keys every node needs collected, and whether an out-of-tree
-        node marked its own through the old ``mark_copy`` hook.
-
-        🔴 **Nothing reads ``copy`` for an in-tree node**: each says which
-        required keys it needs through :meth:`.SchedulerNode.collect_keys`,
-        and exactly those are collected. A node class that overrides only
-        ``mark_copy`` is still honoured -- it sets ``copy`` itself -- so a
-        scheduler written against the old hook keeps working.
-        """
-        keys: Set[Tuple[str, ...]] = set()
-        legacy = False
-        for task in self.__tasks.values():
-            node_class = type(task)
-            if node_class.mark_copy is not SchedulerNode.mark_copy \
-                    and node_class.collect_keys is SchedulerNode.collect_keys:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", DeprecationWarning)
-                    legacy = task.mark_copy() or legacy
-            else:
-                keys |= task.collect_keys()
-        return keys, legacy
 
     def __init_schedulers(self) -> None:
         """

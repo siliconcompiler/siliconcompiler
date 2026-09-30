@@ -3250,20 +3250,3 @@ def test_nothing_is_collected_where_no_node_asks(gcd_nop_project):
         Scheduler(gcd_nop_project).run()
 
     collect.assert_not_called()
-
-
-def test_a_node_on_the_old_hook_is_still_collected_for(gcd_nop_project):
-    '''An out-of-tree node that overrides only `mark_copy` sets `copy`
-    itself, and the scheduler still honours it.'''
-    class Legacy(SchedulerNode):
-        def mark_copy(self):
-            self.project.set(*SDC, True, field="copy")
-            return True
-
-    scheduler = Scheduler(gcd_nop_project)
-    tasks = scheduler._Scheduler__tasks
-    tasks[("stepone", "0")] = Legacy(gcd_nop_project, "stepone", "0")
-
-    keys, legacy = scheduler._Scheduler__collect_keys()
-
-    assert keys == set() and legacy is True

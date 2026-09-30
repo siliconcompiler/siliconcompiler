@@ -159,6 +159,33 @@ def test_node_index_name():
         flow.node("teststep", NOPTask(), index="index/")
 
 
+@pytest.mark.parametrize("name,message", [
+    ("", "'' is not a valid {what}"),
+    (".", "'.' is not a valid {what}"),
+    ("..", "'..' is not a valid {what}"),
+    ("a\\b", "a\\b is not a valid {what}, it cannot contain '\\\\'"),
+    ("a\0b", "a\0b is not a valid {what}, it cannot contain '\\x00'"),
+], ids=["empty", "dot", "dotdot", "backslash", "nul"])
+@pytest.mark.parametrize("what", ["step", "index"])
+def test_node_name_not_path_segment(what, name, message):
+    # A step and an index each name one directory of the build.
+    names = {"step": "teststep", "index": "0"}
+    names[what] = name
+
+    with pytest.raises(ValueError, match=rf"^{re.escape(message.format(what=what))}$"):
+        Flowgraph("testflow").node(names["step"], NOPTask(), index=names["index"])
+
+
+@pytest.mark.parametrize("what", ["step", "index"])
+def test_node_name_with_dot(what):
+    flow = Flowgraph("testflow")
+    names = {"step": "teststep", "index": "0"}
+    names[what] = "synthesis.timing"
+
+    flow.node(names["step"], NOPTask(), index=names["index"])
+    assert flow.get(names["step"], names["index"], "task") == "nop"
+
+
 def test_node_index():
     flow = Flowgraph("testflow")
     flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
