@@ -152,6 +152,7 @@ def test_every_limit_is_a_base_unit(client):
 
     assert set(limits) == {
         "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
+        "max_staging_seconds",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
         "max_archive_members", "max_archive_expanded_bytes",
         "max_download_bytes", "abandon_after_seconds"}
@@ -409,20 +410,20 @@ def test_storage_is_a_file_uri_under_the_datadir(server):
 # Errors
 ###########################
 
-def test_the_registry_is_the_contracts_thirty_seven():
+def test_the_registry_is_the_contracts_thirty_eight():
     '''Frozen at v1, and the namespace is SiliconCompiler's rather than any one
     deployment's: both implementations must return the same URI or a client
     cannot branch across them.'''
-    assert len(ERRORS) == 37
+    assert len(ERRORS) == 38
     assert {"software-unavailable", "resource-unavailable",
             "upload-forbidden"} <= set(ERRORS)
     assert all(err.uri == f"{TYPE_BASE}/{slug}" for slug, err in ERRORS.items())
 
 
-def test_the_three_that_are_never_http_responses():
+def test_the_four_that_are_never_http_responses():
     '''These are `type` values on a job's or a node's error object.'''
     assert {slug for slug, err in ERRORS.items() if err.status is None} == {
-        "run-interrupted", "run-failed", "staging-failed"}
+        "run-interrupted", "run-failed", "staging-failed", "staging-timed-out"}
 
     with pytest.raises(ValueError, match="never an HTTP response"):
         ProblemError("run-failed")

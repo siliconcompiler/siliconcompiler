@@ -99,6 +99,14 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # setting this below the grant's own lifetime would abandon uploads that
     # were still legitimately in flight.
     "abandon_after_seconds": 900,           # seconds
+
+    # How long a job may spend staging, each time it stages: fetching its
+    # sources, reading its manifest and installing its Python packages,
+    # together (surface D294). Past it the job ends `failed`,
+    # `staging-timed-out` -- its own limit, not this server's failure -- so one
+    # user's oversized package set cannot hold the build queue for everyone.
+    # A job sent back and submitted again gets it afresh.
+    "max_staging_seconds": 3600,            # seconds
 }
 
 DEFAULTS: Dict[str, Any] = {
@@ -329,10 +337,6 @@ DEFAULTS: Dict[str, Any] = {
     # holding the node slots flows are waiting on.
     "build_queue": None,
 
-    # How long one environment build may take, queueing included, before the
-    # job waiting on it is refused.
-    "env_build_timeout_seconds": 1800,
-
     # Private dataroots this server supplies, by the owning object's name and
     # the dataroot's name: `{"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}`.
     #
@@ -377,6 +381,8 @@ RETIRED_KEYS = {
     "portal_plaintext_peers": "the portal is served wherever the API is, and this "
                               "server warns at startup where that is plain http "
                               "beyond this machine",
+    "env_build_timeout_seconds": "a build is bounded by the job's limits."
+                                 "max_staging_seconds, with the rest of staging",
 }
 
 # A notice's shape (surface §1). `starts_at` and `ends_at` are REQUIRED on the
@@ -418,7 +424,7 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
     # over the API and the node archives only through the portal.
     2: {
         "features": ["logs.stream"],
-        "api_fetchable_kinds": ["manifest", "logs", "reports"],
+        "api_fetchable_kinds": ["manifest", "logs", "staging", "reports"],
         "limits": {
             "concurrent_jobs": 2,
             "pending_uploads": 4,

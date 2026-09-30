@@ -11,7 +11,7 @@ from siliconcompiler.remote.server.errors import TYPE_BASE
 from siliconcompiler.remote.server.jobs.common import (
     SCHEDULER_QUERY_FLOOR, TERMINAL_NODE_STATES, _after, _ago, _members_json, _node_error,
     _node_metrics, logger)
-from siliconcompiler.remote.server.outputs import artifacts
+from siliconcompiler.remote.server.outputs import artifacts, record
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.state.store import now
 
@@ -411,6 +411,9 @@ class ReconcileMixin:
                 job["id"], job["state"], "failed",
                 reason="the scheduler no longer has this job and the run never "
                        "recorded how it ended")
+        # What it did leave, the operators' record above all: a run the
+        # scheduler lost is the one somebody has to explain.
+        self._index(self._row(job["id"]))
 
     def _settle_cancelled(self, job) -> None:
         '''A cancel that has taken effect: `cancelling` to `cancelled`, and
@@ -531,10 +534,28 @@ class ReconcileMixin:
         a legal answer, and the log says why.
         '''
         try:
+            self._keep_scheduler_record(job)
             artifacts.collect(self._store, self._storage, self._config, job,
                               self.job_root(job["user_id"], job["id"]))
         except Exception as e:                                   # noqa: BLE001
             logger.error(f"could not index the results of {job['id']}: {e}")
+
+    def _keep_scheduler_record(self, job) -> None:
+        '''What the scheduler says of the job's run, and of each node it ran,
+        into the operators' `diagnostics` as `slurm.txt` (surface D295) --
+        taken as the job ends, while the scheduler still remembers it.'''
+        root = self.job_root(job["user_id"], job["id"])
+        if job["scheduler_job_id"]:
+            said = self._dispatcher.describe(job["scheduler_job_id"])
+            if said:
+                record.keep(root, "slurm.txt", said, logger=logger)
+        for row in self._store.all(
+                'SELECT step, "index", scheduler_job_id FROM job_nodes '
+                "WHERE job_id = ? AND scheduler_job_id IS NOT NULL", (job["id"],)):
+            said = self._dispatcher.describe(row["scheduler_job_id"])
+            if said:
+                record.keep(root, "slurm.txt", said, step=row["step"],
+                            index=row["index"], logger=logger)
 
     def _index_node(self, job, step: str, index: str) -> None:
         """Index one node's log, reports and archive, as it finishes."""

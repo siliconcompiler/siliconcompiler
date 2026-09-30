@@ -56,6 +56,10 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         # restart can tell one still in hand from one it has to pick up again.
         self._preparing = set()
         self._preparing_lock = threading.Lock()
+        # When each pass of staging in hand runs out of its
+        # `max_staging_seconds`, by `time.monotonic()`: set as the pass starts,
+        # so every phase runs against what is left (surface D294).
+        self._staging_deadlines: Dict[str, float] = {}
 
         # One environment build per key at a time in this process: two jobs
         # asking for the same set wait for one build, and the second reuses it.

@@ -119,8 +119,11 @@ def test_artifact_kinds_carry_retention():
                  store.all("SELECT kind, retention_seconds FROM artifact_kinds")}
 
     assert set(kinds) == {"manifest", "logs", "reports", "issue", "final",
-                          "outputs", "input", "node"}
+                          "outputs", "input", "node", "staging", "diagnostics"}
     assert kinds["manifest"] == 157680000   # five years
+    # The server's record, kept as the run's log is; the operators', 90 days.
+    assert kinds["staging"] == kinds["logs"]
+    assert kinds["diagnostics"] == 90 * 86400
     assert kinds["outputs"] is None
 
 

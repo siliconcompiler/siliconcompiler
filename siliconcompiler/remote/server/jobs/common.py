@@ -433,6 +433,12 @@ class _ServerFailure(Exception):
     the `detail`.'''
 
 
+class _StagingTimedOut(Exception):
+    '''This pass of staging ran past the caller's `max_staging_seconds`:
+    `staging-timed-out`, the job's own limit (surface D294). Its message says
+    what staging was doing when the time ran out.'''
+
+
 # The run's final manifest, read once as plain JSON for its metrics: larger
 # than this is left unread, since the panel is not worth parsing gigabytes.
 METRICS_MANIFEST_BYTES = 256 * 1024 * 1024

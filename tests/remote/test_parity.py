@@ -139,8 +139,10 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
     extra = here - local_tree
     assert "sc_remote.pkg.json" in extra
     assert "remote-job.log" in extra
+    # The server's record of the job, beside the run's own log and never in it.
+    assert "remote-staging.log" in extra
     assert "sc_remote_job.json" in extra
-    assert all(name in ("sc_remote.pkg.json", "remote-job.log")
+    assert all(name in ("sc_remote.pkg.json", "remote-job.log", "remote-staging.log")
                or os.path.basename(name) == "sc_remote_job.json"
                or name.startswith("job.")
                for name in extra), sorted(extra)

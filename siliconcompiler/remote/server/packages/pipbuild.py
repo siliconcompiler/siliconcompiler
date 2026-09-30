@@ -224,14 +224,18 @@ def on_index(name, indexes, proxy=None):
 
 
 def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=None,
-            indexes=(), allow_source=False, probe=None):
+            indexes=(), allow_source=False, probe=None, timeout=None):
     '''Install ``requirements`` and ``wheels`` into ``site``, under
     ``constraints``, against this interpreter, from ``indexes`` -- the primary
     first -- and from source only where ``allow_source``. Returns the result
     record; ``echo`` is handed pip's output, whole. ``probe`` answers
-    :func:`on_index`, for tests.'''
+    :func:`on_index`, for tests. ``timeout`` bounds the whole install, every
+    pip run within it; past it the record says ``timed_out``.'''
     import glob
+    import time
     import venv
+
+    ends = None if timeout is None else time.monotonic() + timeout
 
     held = provided()
     wheel_names = {wheel_name(path) for path in wheels}
@@ -322,9 +326,17 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                 f.write("".join(f"{line}\n" for line in held_pins))
                 f.write("".join(f"{name}=={version}\n"
                                 for name, version in lists["constraints"]))
-            done = subprocess.run(command + ["-c", limited, "-r", listed, *wheels], env=env,
-                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                  stderr=subprocess.STDOUT, text=True)
+            left = None if ends is None else max(1, ends - time.monotonic())
+            try:
+                done = subprocess.run(command + ["-c", limited, "-r", listed, *wheels],
+                                      env=env, stdin=subprocess.DEVNULL,
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                      text=True, timeout=left)
+            except subprocess.TimeoutExpired as e:
+                said = e.output or ""
+                if isinstance(said, bytes):
+                    said = said.decode(errors="replace")
+                raise _OutOfTime(said) from None
             if echo is not None:
                 echo(done.stdout)
             return done
@@ -341,7 +353,10 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
         # Each round changes one entry, and each entry changes at most twice:
         # relaxed once, or found absent once.
         rounds = 2 * (len(lists["requirements"]) + len(lists["constraints"])) + 2
-        done = run()
+        try:
+            done = run()
+        except _OutOfTime as e:
+            return _timed_out(result, e, echo)
         while done.returncode != 0 and rounds > 0:
             rounds -= 1
             if _NETWORK.search(done.stdout):
@@ -375,7 +390,10 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                 break
             if not lists["requirements"] and not wheels:
                 break
-            done = run()
+            try:
+                done = run()
+            except _OutOfTime as e:
+                return _timed_out(result, e, echo)
 
         if absent:
             # 🔴 Sent back for its wheel, whatever else installed: what the
@@ -405,6 +423,20 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
         return result
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+class _OutOfTime(Exception):
+    '''A pip run past what was left of the install's time; its output so far.'''
+
+
+def _timed_out(result, error, echo):
+    '''The record of an install that ran out of time.'''
+    said = str(error)
+    if echo is not None:
+        echo(said)
+    result.update({"returncode": -1, "timed_out": True, "unresolved": [],
+                   "tail": "\n".join(said.strip().splitlines()[-20:])})
+    return result
 
 
 def site_directories():

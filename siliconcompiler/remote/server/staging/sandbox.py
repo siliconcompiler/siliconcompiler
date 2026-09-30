@@ -49,7 +49,12 @@ _TAIL_BYTES = 4000
 
 
 class ReadFailed(Exception):
-    '''The read ran and returned no summary: it has not read the manifest.'''
+    '''The read did not produce a summary. ``timed_out`` where it ran past the
+    time it was given, which may be what was left of the job's staging.'''
+
+    def __init__(self, message: str, timed_out: bool = False):
+        super().__init__(message)
+        self.timed_out = timed_out
 
 
 class Cancelled(Exception):
@@ -85,7 +90,8 @@ def run_read(asked: Dict[str, Any], workdir, timeout: float,
         while process.poll() is None:
             if time.monotonic() >= deadline:
                 _kill(process)
-                raise ReadFailed(f"the manifest's read ran past its {int(timeout)}s limit")
+                raise ReadFailed(f"the manifest's read ran past its {int(timeout)}s limit",
+                                 timed_out=True)
             if alive is not None and not alive():
                 _kill(process)
                 raise Cancelled()
@@ -122,7 +128,8 @@ def run_read_in_bundle(dispatcher, asked: Dict[str, Any], workdir, bundle: str,
     while dispatcher.is_alive(read_id):
         if time.monotonic() >= deadline:
             dispatcher.cancel(read_id)
-            raise ReadFailed(f"the manifest's read ran past its {int(timeout)}s limit")
+            raise ReadFailed(f"the manifest's read ran past its {int(timeout)}s limit",
+                             timed_out=True)
         if alive is not None and not alive():
             dispatcher.cancel(read_id)
             raise Cancelled()
@@ -170,7 +177,8 @@ def run_read_in_image(asked: Dict[str, Any], workdir, image: str, timeout: float
             if container.status in ("exited", "dead"):
                 break
             if time.monotonic() >= deadline:
-                raise ReadFailed(f"the manifest's read ran past its {int(timeout)}s limit")
+                raise ReadFailed(f"the manifest's read ran past its {int(timeout)}s limit",
+                                 timed_out=True)
             if alive is not None and not alive():
                 raise Cancelled()
             time.sleep(_POLL_SECONDS)

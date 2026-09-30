@@ -14,8 +14,9 @@ from typing import Any, Dict, List, Tuple
 
 from siliconcompiler.remote import environment
 from siliconcompiler.remote.server.jobs.common import (
-    _Absent, _NoLongerStaging, _ServerFailure, _bounded, _build_refusal, _install_lines,
-    _python_names, logger)
+    _Absent, _NoLongerStaging, _ServerFailure, _StagingTimedOut, _bounded, _build_refusal,
+    _install_lines, _python_names, logger)
+from siliconcompiler.remote.server.outputs import record
 from siliconcompiler.remote.server.running.dispatch import DispatchError
 from siliconcompiler.remote.server.software import images
 
@@ -68,12 +69,18 @@ class PythonEnvMixin:
         packages, wheels = wanted
 
         self._phase(job["id"], "installing the job's Python packages")
+        root = self.job_root(job["user_id"], job["id"])
         try:
-            target, record = envinstall.install(
+            target, installed = envinstall.install(
                 packages, wheels, self.cache_dir(job["user_id"]) / "python-env", logger,
                 constrain=_python_names(job),
-                indexes=list(self._config["package_indexes"] or []))
+                indexes=list(self._config["package_indexes"] or []),
+                timeout=max(1, self._staging_left(job["id"])),
+                # pip's own output, whole, for the operators.
+                echo=lambda said: record.keep(root, "builder.log", said, logger=logger))
         except envinstall.InstallFailed as e:
+            if e.result.get("timed_out"):
+                raise _StagingTimedOut("installing the job's Python packages") from None
             if e.result.get("absent"):
                 return list(e.result["absent"])
             if e.result.get("network") or e.result.get("returncode") == -1:
@@ -90,9 +97,9 @@ class PythonEnvMixin:
         link.symlink_to(target, target_is_directory=True)
 
         # 🔴 Where nodes run on the host there is no image, so no
-        # `resolved_versions`: the job-level `logs` is the record of what the
-        # install added (profile §5; database D143), fresh or cached alike.
-        self._record_in_job_log(job, _install_lines(record, "this host"))
+        # `resolved_versions`: the job's `staging` record is the record of what
+        # the install added (profile §5; surface D295), fresh or cached alike.
+        self._note(job, _install_lines(installed, "this host"))
         if self._row(job["id"])["state"] != "staging":
             raise _NoLongerStaging(job["id"])
         return []
@@ -171,7 +178,7 @@ class PythonEnvMixin:
                      f"{result.get('python')} ({result.get('platform')})")
             logger.info(f"{job['id']}: built its Python packages on {base_ref} as "
                         f"{result['ref']}")
-            self._record_in_job_log(job, _install_lines(result, base_ref))
+            self._note(job, _install_lines(result, base_ref))
             return image_id, images.pinned_ref(result["ref"], result["digest"])
 
     def _run_build(self, job, node, base_ref, key, inputs) -> Dict[str, Any]:
@@ -191,7 +198,9 @@ class PythonEnvMixin:
                 (workspace / envbuild.WHEELS).mkdir()
                 for wheel in inputs["wheels"]:
                     shutil.copy(wheel, workspace / envbuild.WHEELS / os.path.basename(wheel))
-            timeout = int(self._config["env_build_timeout_seconds"])
+            # 🔴 What is left of this pass of staging: the build is one of its
+            # phases, and is cancelled when that runs out (surface D294).
+            timeout = max(1, int(self._staging_left(job["id"])))
             (workspace / envbuild.SPEC).write_text(json.dumps({
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
                 "bundles_root": str(self.bundles_root()), "mounts": self.container_mounts(),
@@ -224,12 +233,17 @@ class PythonEnvMixin:
                 raise _NoLongerStaging(job["id"])
             if result is None:
                 self._dispatcher.cancel(build_id)
+                if self._staging_left(job["id"]) <= 1:
+                    raise _StagingTimedOut(
+                        f"building the job's Python packages on {base_ref}")
+                # Time to spare, and the build job gone without a result:
+                # lost, which is this server's failure (surface D294).
                 log = workspace / envbuild.LOG
                 tail = "\n".join(log.read_text(errors="replace").strip().splitlines()[-10:]) \
                     if log.is_file() else ""
                 raise _ServerFailure(_bounded(
-                    f"the build of the job's Python packages on {base_ref} did not "
-                    f"finish within {timeout}s" + (f":\n{tail}" if tail else "")))
+                    f"the build of the job's Python packages on {base_ref} was lost "
+                    "before it finished" + (f":\n{tail}" if tail else "")))
             if not result.get("ok") and result.get("reason") == "absent":
                 raise _Absent(list(result.get("absent") or []))
             if not result.get("ok") and result.get("reason") != "uninstallable":
@@ -242,4 +256,10 @@ class PythonEnvMixin:
                                         where=f" on {node[0]}/{node[1]}'s image"))
             return result
         finally:
+            # The builder's own output, whole, for the operators.
+            log = workspace / envbuild.LOG
+            if log.is_file():
+                record.keep(self.job_root(job["user_id"], job["id"]), "builder.log",
+                            f"==> the build on {base_ref} <==\n"
+                            + log.read_text(errors="replace"), logger=logger)
             shutil.rmtree(workspace, ignore_errors=True)

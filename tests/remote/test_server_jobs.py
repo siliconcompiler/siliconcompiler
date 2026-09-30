@@ -59,6 +59,9 @@ class FakeDispatcher:
         return [f"{job_id}_{step}_{index}" for step, index in nodes
                 if (step, index) in self.still_running]
 
+    def describe(self, scheduler_job_id):
+        return f"the scheduler's record of {scheduler_job_id}"
+
 
 @pytest.fixture
 def dispatcher(server):
@@ -2373,10 +2376,12 @@ def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
     assert "status" not in read["error"]
     assert "slurmctld is not answering" in read["error"]["detail"]
 
-    # And the job-level `logs` says so, for a job that never ran.
+    # And the job's `staging` record says so, for a job that never ran: never
+    # the run's own log, which it has none of.
     listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
                   token).get_json()["items"]
-    assert any(item["kind"] == "logs" and item["step"] is None for item in listed)
+    assert any(item["kind"] == "staging" for item in listed)
+    assert not any(item["kind"] == "logs" for item in listed)
 
 
 def test_a_failed_node_carries_the_type_that_says_so(

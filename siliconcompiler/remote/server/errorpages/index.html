@@ -57,7 +57,7 @@ transport-level refusals there, raised before any OAuth processing, are <code>pr
 
 <h2>Every type</h2>
 
-<p>All 37, grouped by kind. Each links to its page. A refusal is retryable by waiting if and only
+<p>All 38, grouped by kind. Each links to its page. A refusal is retryable by waiting if and only
 if it carries <code>Retry-After</code>.</p>
 
 <table>
@@ -138,6 +138,9 @@ if it carries <code>Retry-After</code>.</p>
 <tr><td><a href="staging-failed.html"><code>staging-failed</code></a></td><td>&mdash;</td>
     <td><strong>Never an HTTP response.</strong> The server could not get the job ready, for its own reasons.</td>
     <td>Submits again later.</td></tr>
+<tr><td><a href="staging-timed-out.html"><code>staging-timed-out</code></a></td><td>&mdash;</td>
+    <td><strong>Never an HTTP response.</strong> Staging ran past the caller&rsquo;s <code>max_staging_seconds</code>. <code>limit</code> names it.</td>
+    <td>Reports the limit, and sends a smaller package set or asks the operator: unchanged, it times out again.</td></tr>
 <tr><td><a href="run-failed.html"><code>run-failed</code></a></td><td>&mdash;</td>
     <td><strong>Never an HTTP response.</strong> The run failed in a way resubmitting unchanged repeats.</td>
     <td>Changes something before it resubmits.</td></tr>

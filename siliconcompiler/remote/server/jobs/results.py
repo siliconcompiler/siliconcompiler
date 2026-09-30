@@ -42,12 +42,14 @@ class ResultsMixin:
         not. Returns the WORST member's refusal (D120), or None.'''
         if row["kind"] != "node":
             return None
-        # `input` is not a member either: the node archive leaves `inputs/` out.
+        # `input` is not a member either: the node archive leaves `inputs/`
+        # out. Nor the server's own records, which are never in a node's tree.
         members = self._store.all(
             'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
-            "AND kind NOT IN ('node', 'issue', 'input')",
+            "AND kind NOT IN ('node', 'issue', 'input', 'staging', 'diagnostics')",
             (row["job_id"], row["step"], row["index"]))
-        refusals = [artifacts.ladder(member, self._surface_allows(surface, member["kind"]))
+        refusals = [artifacts.ladder(member, self._surface_allows(surface, member["kind"]),
+                                     admin=surface == "portal")
                     for member in members]
         if "not-found" in refusals and not row["deleted_at"]:
             # 🔴 A member deleted on its own, under a live node archive
@@ -67,7 +69,8 @@ class ResultsMixin:
     def _refuse_by_ladder(self, row, surface: str) -> None:
         '''Raise the refusal the ladder's deciding row names, if any.'''
         refusal = artifacts.ladder(row, self._surface_allows(surface, row["kind"]),
-                                   self._members_refusal(row, surface))
+                                   self._members_refusal(row, surface),
+                                   admin=surface == "portal")
         if refusal is None:
             return
         if refusal == "not-found":
@@ -125,7 +128,8 @@ class ResultsMixin:
         rows = rows[:limit]
 
         items = [artifacts.wire(row, self._surface_allows(surface, row["kind"]),
-                                self._members_refusal(row, surface))
+                                self._members_refusal(row, surface),
+                                admin=surface == "portal")
                  for row in rows]
         return items, (_encode_cursor(rows[-1]) if more and rows else None)
 

@@ -96,6 +96,12 @@ class Dispatcher:
         scheduler jobs.'''
         return []
 
+    def describe(self, scheduler_job_id: str) -> Optional[str]:
+        '''What the scheduler says of one of its jobs, as text for the
+        operators' `diagnostics` record, or None where it keeps nothing worth
+        reading.'''
+        return None
+
 
 class LocalDispatcher(Dispatcher):
     '''Run it here, in a process of its own.
@@ -345,6 +351,19 @@ class SlurmDispatcher(Dispatcher):
             return True
         return bool(states & {"PENDING", "RUNNING", "CONFIGURING", "COMPLETING",
                               "RESIZING", "SUSPENDED", "REQUEUED"})
+
+    def describe(self, scheduler_job_id: str) -> Optional[str]:
+        '''`sacct` and `scontrol show job` for one job, whole: the
+        accounting record, which survives the job, and the controller's view,
+        which lasts as long as `MinJobAge` keeps it.'''
+        said = []
+        for command in (["sacct", "-j", scheduler_job_id, "--parsable2",
+                         "--format=JobID,JobName,Partition,State,ExitCode,Start,End,"
+                         "Elapsed,NodeList,MaxRSS,Reason"],
+                        ["scontrol", "show", "job", scheduler_job_id]):
+            done = _run(command)
+            said.append(f"$ {' '.join(command)}\n{done.stdout}{done.stderr}")
+        return "\n".join(said)
 
     def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
         '''Stop the run, and stop the work it started.

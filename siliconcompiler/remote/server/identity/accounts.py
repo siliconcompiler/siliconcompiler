@@ -60,13 +60,14 @@ def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
 def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     '''The account's allowance, as `GET /v1/me` publishes it.
 
-    🔴 **Seven members, every one REQUIRED, and the caller's effective
+    🔴 **Eight members, every one REQUIRED, and the caller's effective
     values**: the server combines the two blocks and publishes the result here,
     so a client reads the account's limits from `GET /v1/me` alone
-    (entitlements *Combining the two `limits` blocks*). Five keys appear in
+    (entitlements *Combining the two `limits` blocks*). Six keys appear in
     both blocks -- `max_job_nodes`, `pending_uploads`, `concurrent_jobs`,
-    `artifact_retention_seconds` and `max_download_bytes` -- and they differ
-    only where a `user_limits` row overrides one for this account.
+    `max_staging_seconds`, `artifact_retention_seconds` and
+    `max_download_bytes` -- and they differ only where a `user_limits` row
+    overrides one for this account.
 
     `max_download_bytes` is the one that can differ per account today.
     `GET /v1` carries no credential and cannot vary by caller, so a per-user
@@ -82,6 +83,7 @@ def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[s
         "pending_uploads": ceiling["pending_uploads"],
         "max_job_nodes": ceiling["max_job_nodes"],
         "devices": None,                    # null = unlimited, not zero
+        "max_staging_seconds": ceiling["max_staging_seconds"],
         "artifact_retention_seconds": ceiling["artifact_retention_seconds"],
         # null here means UNLIMITED, which is the wire's meaning everywhere.
         "max_download_bytes": ceiling["max_download_bytes"],

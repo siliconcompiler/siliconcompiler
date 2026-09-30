@@ -632,6 +632,24 @@ def test_a_node_archive_can_be_browsed_without_downloading_it(
     assert "sc_stepone_0.log" in page
 
 
+def test_the_portal_shows_the_operators_diagnostics(signed_in, finished, server):
+    '''`diagnostics` is never fetchable through the API, and an administrator
+    reads it in the portal -- where everyone is one on this deployment
+    (surface D295): the scheduler's view of a node, by name, inside it.'''
+    store = server.config["SC_STORE"]
+    row = store.one(
+        'SELECT id FROM artifacts WHERE job_id = ? AND kind = ? AND step = ?',
+        (finished["id"], "diagnostics", "stepone"))
+
+    listing = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts").get_data(as_text=True)
+    assert "diagnostics" in listing
+    page = signed_in.get(
+        f"/portal/jobs/{finished['id']}/artifacts/{row['id']}/inside"
+        "?file=slurm.txt").get_data(as_text=True)
+    assert "the scheduler&#39;s record of" in page or "the scheduler's record of" in page
+
+
 def test_one_file_out_of_an_archive_renders_as_text(signed_in, finished, server):
     store = server.config["SC_STORE"]
     row = store.one(
@@ -753,11 +771,16 @@ def test_the_delete_button_is_on_the_artifacts_page_and_not_the_job_page(
     assert "/delete" in page
 
 
-def test_the_job_page_offers_the_runs_own_log(signed_in, died):
+def test_the_job_page_offers_the_servers_records(signed_in, died):
     '''The first thing anybody wants on a job that failed outside a node, and
-    it was three clicks away at the bottom of a table.'''
+    it was three clicks away at the bottom of a table. This one died before
+    SiliconCompiler wrote a `job.log`: the page offers the staging record, and
+    the runner's own log in the job's diagnostics, the operators' record, which
+    the portal shows.'''
     page = signed_in.get(f"/portal/jobs/{died['id']}").get_data(as_text=True)
-    assert ">Job log</a>" in page
+    assert ">Staging record</a>" in page
+    assert ">diagnostics</a>" in page
+    assert ">Job log</a>" not in page
 
 
 def test_the_job_page_opens_an_archive_rather_than_downloading_it(
@@ -1089,10 +1112,14 @@ def test_the_node_is_the_unit_of_deletion(signed_in, finished, server):
         'SELECT kind, deleted_at, deleted_reason FROM artifacts '
         'WHERE job_id = ? AND step = ? AND "index" = ?',
         (finished["id"], "stepone", "0"))
+    # The operators' record of how it ran stays: it is not the node's results.
+    kept = [row for row in gone if row["kind"] == "diagnostics"]
+    gone = [row for row in gone if row["kind"] != "diagnostics"]
     assert {row["kind"] for row in gone} == {"logs", "node"}
     assert all(row["deleted_at"] for row in gone)
     assert all(row["deleted_reason"].startswith("discarded by ")
                for row in gone)
+    assert kept and not any(row["deleted_at"] for row in kept)
 
     # And nothing else. The other node is untouched, and so is the job.
     other = store.all(

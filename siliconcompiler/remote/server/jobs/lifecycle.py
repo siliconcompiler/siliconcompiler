@@ -253,17 +253,20 @@ class LifecycleMixin:
             raise ProblemError(
                 "not-found", detail=f"no node {step}/{index} in this job")
 
+        # The node's results, and not the operators' record of how it ran
+        # (surface D295): that goes with the job, or with its own retention.
         rows = self._store.all(
             'SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? '
             'AND step = ? AND "index" = ? AND deleted_at IS NULL '
-            "AND legal_hold_at IS NULL", (job_id, step, index))
+            "AND legal_hold_at IS NULL AND kind <> 'diagnostics'", (job_id, step, index))
 
         self._unlink(rows)
         if rows:
             self._store.execute(
                 "UPDATE artifacts SET deleted_at = ?, deleted_by = ?, "
                 '  deleted_reason = ? WHERE job_id = ? AND step = ? AND "index" = ? '
-                "  AND deleted_at IS NULL AND legal_hold_at IS NULL",
+                "  AND deleted_at IS NULL AND legal_hold_at IS NULL "
+                "  AND kind <> 'diagnostics'",
                 (now(), session.user_id, reason, job_id, step, index))
 
         # 🔴 The node's working tree goes with them, for the same reason the

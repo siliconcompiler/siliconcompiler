@@ -17,10 +17,14 @@ Every artifact is stored and served gzipped (surface §21).
               so *what happened* is answerable with no outputs on disk at all
 ``logs``      one node's log files, as a gzip tar with paths relative to
               the node's directory. A finished node's stream names it.
-              **One more is job-level**: the run's own account of itself, which
-              is ``job.log`` where the flow got far enough to write one and the
-              server's ``sc-server-run.log`` where it did not -- see
-              ``_the_run_itself``
+              **One more is job-level**: SiliconCompiler's own ``job.log``, the
+              run's record of the flow as a whole, and nothing else -- this
+              server's record of the job is never in it
+``staging``   this server's record of the job, for its submitter, from create
+              to dispatch, scrubbed like ``detail``: job-level, one per job, a
+              section each time the job stages (`record`)
+``diagnostics`` the operators' record, not scrubbed: a gzip tar of named files,
+              job-level and per node (`record`). Never handed over the API
 ``node``      🔴 **one node's whole working directory, indexed the moment that
               node finishes.** *"The results tarball does not disappear -- it
               stops being an endpoint and becomes an artifact, assembled during
@@ -95,8 +99,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from siliconcompiler.remote import links
-from siliconcompiler.remote.server.outputs import confine
-from siliconcompiler.remote.server.running.dispatch import RUN_LOG
+from siliconcompiler.remote.server.outputs import confine, record
+from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS", "log_text",
            "referenced_elsewhere"]
@@ -105,11 +109,13 @@ __all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS", "lo
 logger = logging.getLogger("sc-server")
 
 
-# The eight are the contract's; these four are what this deployment produces.
-# Expected of the profile: manifest, logs, reports, node. Optional: input,
-# outputs, final, issue -- `input` moved there because the owner already has
-# the bytes it would hold, which is what `artifact_kinds` had said all along.
-KINDS = ("manifest", "logs", "reports", "node")
+# The ten are the contract's; these are what this deployment produces and a
+# surface may hand over. Expected of the profile: manifest, logs, staging,
+# reports, node. Optional: input, outputs, final, issue -- `input` moved there
+# because the owner already has the bytes it would hold, which is what
+# `artifact_kinds` had said all along. `diagnostics` is produced too and is not
+# here: no surface setting hands it over the API (ladder row 3).
+KINDS = ("manifest", "logs", "staging", "reports", "node")
 
 _CHUNK = 1024 * 1024
 
@@ -268,12 +274,10 @@ def collect(store, storage, config, job, build_root) -> int:
     written = 0
 
     # 🔴 Before the build directory is checked for, and that ordering is the
-    # whole point: the run that leaves no build directory is the run whose log
-    # somebody needs.
-    account = _the_run_itself(Path(build_root), root)
-    if account is not None:
-        written += _index(store, storage, job, location, floor, "logs",
-                          None, None, account, "text/plain", build_root)
+    # whole point: the run that leaves no build directory is the run whose
+    # record somebody needs.
+    written += collect_staging(store, storage, config, job, build_root)
+    written += collect_diagnostics(store, storage, config, job, build_root)
 
     if not root.is_dir():
         logger.warning(f"{job['id']} left no build directory to index")
@@ -283,6 +287,12 @@ def collect(store, storage, config, job, build_root) -> int:
     written += _index(store, storage, job, location, floor, "manifest",
                       None, None, manifest, "application/json", build_root)
 
+    # The run's own log, SiliconCompiler's `job.log`, and nothing of this
+    # server's: that is `staging` and `diagnostics` (surface D295). Read
+    # through `confine`, since the run wrote it.
+    written += _index(store, storage, job, location, floor, "logs",
+                      None, None, root / "job.log", "text/plain", build_root)
+
     # Every node again, because a node whose archive was missed while the run
     # was going still has to be indexed -- the nodes that were caught cost one
     # SELECT each and write nothing.
@@ -291,74 +301,88 @@ def collect(store, storage, config, job, build_root) -> int:
             (job["id"],)):
         written += collect_node(store, storage, config, job, build_root,
                                 node["step"], node["index"])
+        written += collect_diagnostics(store, storage, config, job, build_root,
+                                       node["step"], node["index"])
 
     logger.info(f"indexed {written} artifacts for {job['id']}")
     return written
 
 
-def collect_run_log(store, storage, config, job, build_root) -> int:
-    '''Index the job-level `logs` alone: for a job that ends before it runs,
-    such as one whose staging failed.'''
-    account = _the_run_itself(Path(build_root),
-                              Path(build_root) / job["design"] / job["jobname"])
-    if account is None:
+def collect_staging(store, storage, config, job, job_root) -> int:
+    '''The job's `staging` record, indexed as it stands.
+
+    🔴 **Replaced, not added to**: one per job, and a pass of staging adds a
+    section, so the row indexed after an earlier pass is pointed at the new
+    bytes and the old ones go. Called as each pass ends, however it ends, and
+    as the job does.'''
+    source = Path(job_root) / record.STAGING_LOG
+    try:
+        handle = confine.open_inside(Path(job_root), source)
+    except OSError:
         return 0
-    return _index(store, storage, job, config["storage_location_id"],
-                  config.limits["artifact_retention_seconds"], "logs", None, None, account,
-                  "text/plain", build_root)
+
+    object_id = str(uuid.uuid4())
+    target = storage.artifact_dir(job["id"]) / object_id
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # A fixed gzip time, so the same record is the same bytes and the same
+    # digest, and a record nothing was added to is not replaced.
+    with handle, open(target, "wb") as raw, \
+            gzip.GzipFile(fileobj=raw, mode="wb", mtime=0) as out:
+        shutil.copyfileobj(handle, out)
+
+    existing = store.one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'staging' "
+        "AND step IS NULL AND deleted_at IS NULL", (job["id"],))
+    if existing is not None and existing["digest"] == _digest(target):
+        target.unlink(missing_ok=True)
+        return 0
+    if existing is None:
+        return _record(store, job, object_id, config["storage_location_id"],
+                       config.limits["artifact_retention_seconds"], "staging", None,
+                       None, target, "application/gzip")
+
+    store.execute(
+        "UPDATE artifacts SET digest = ?, storage_key = ?, size_bytes = ?, "
+        "  location_id = ?, created_at = ? WHERE id = ?",
+        (_digest(target), f"{job['id']}/{object_id}", target.stat().st_size,
+         config["storage_location_id"], now(), existing["id"]))
+    if not referenced_elsewhere(store, existing):
+        storage.artifact_path(existing["storage_key"]).unlink(missing_ok=True)
+    return 0
 
 
-# The job-level `logs`, as the server assembles it: its own record of the job,
-# then the flow's. In the job root, beside the progress file.
-JOB_LOG = "sc-server-job.log"
+def collect_diagnostics(store, storage, config, job, job_root, step=None,
+                        index=None) -> int:
+    '''The operators' record of the job, or of one node: what
+    `record.diagnostics_files` names, as one gzip tar of named files.
 
+    🔴 **Not scrubbed**, and never handed over the API (ladder row 3): the
+    builder's output, the scheduler's view and the runner's own log say what
+    a person debugging this deployment needs and a submitter need not see.
+    Indexed once, as the job ends, when everything in it is written.'''
+    if _exists(store, job, "diagnostics", step, index):
+        return 0
+    files = record.diagnostics_files(job_root, step, index)
+    if not files:
+        return 0
 
-def _the_run_itself(job_root: Path, build_dir: Path) -> Optional[Path]:
-    '''The one log that belongs to the run rather than to any node.
-
-    🔴 **Both accounts, in one file: this server's record of the job first --
-    staging, what the install added (profile §5), the run's own stdout, an
-    image that would not pull -- then the flow's `job.log`.** It used to be one
-    or the other, `job.log` wherever the flow wrote one, so anything written to
-    the run log was lost on every job whose flow started: a host install's
-    record included (database D143).
-
-    ⚠️ **One artifact, never two**, and the constraint is the contract's: an
-    artifact is identified by `(job, kind, step, index)` and carries no name on
-    the wire, so two job-level `logs` rows reach a client as two objects it
-    cannot tell apart. The two files are nearly disjoint by design --
-    `_silence_console` keeps the flow's output out of the run log -- so
-    together they are the whole account, and nothing is said twice.
-
-    🔴 Both are reached through the JOB root and not the build directory.
-    `job.log` sits beside the nodes at `<design>/<jobname>/`, is the job's own
-    file, and is read through `confine`; the run log is one level up, beside
-    the batch script, because the scheduler wrote it before anything knew a
-    design name.
-    '''
-    parts = []
-    run_log = job_root / RUN_LOG
-    if run_log.is_file() and not run_log.is_symlink():
-        parts.append(("the server's record of this job", run_log))
-    current = build_dir / "job.log"
-    if current.is_file():
-        parts.append(("job.log", current))
-    if not parts:
-        return None
-
-    combined = job_root / JOB_LOG
-    partial = job_root / f"{JOB_LOG}.part"
-    with open(partial, "wb") as out:
-        for title, path in parts:
-            out.write(f"==> {title} <==\n".encode())
-            try:
-                with confine.open_inside(job_root, path) as source:
-                    shutil.copyfileobj(source, out)
-            except OSError:
-                out.write(b"(it could not be read)\n")
-            out.write(b"\n")
-    os.replace(partial, combined)
-    return combined
+    artifact_id = str(uuid.uuid4())
+    target = storage.artifact_dir(job["id"]) / artifact_id
+    target.parent.mkdir(parents=True, exist_ok=True)
+    added = 0
+    try:
+        with tarfile.open(target, "w:gz") as tar:
+            for name, path in files:
+                added += confine.add_file(tar, Path(job_root), path, name)
+    except BaseException:
+        target.unlink(missing_ok=True)
+        raise
+    if not added:
+        target.unlink(missing_ok=True)
+        return 0
+    return _record(store, job, artifact_id, config["storage_location_id"],
+                   config.limits["artifact_retention_seconds"], "diagnostics", step,
+                   index, target, "application/gzip")
 
 
 # What a node archive leaves out, and every one of them for the same reason:
@@ -562,17 +586,24 @@ def worst(refusals) -> Optional[str]:
     return found[0] if found else None
 
 
+# Row 3's kinds: never handed over the API, and read by an administrator in the
+# portal -- which, everyone being one here, is anybody who can see the job.
+NEVER_OVER_THE_API = ("issue", "diagnostics")
+
+
 def ladder(row, surface_allows: bool = True,
-           members: Optional[str] = None) -> Optional[str]:
+           members: Optional[str] = None, admin: bool = False) -> Optional[str]:
     '''The refusal an artifact gets, by the first row of the ladder that
-    matches -- or None when the caller may have the bytes.
+    matches -- or None when the caller may have the bytes. ``admin`` is the
+    portal asking, where row 3's kinds are read.
 
     The ladder is entitlements.md's, in its order, with this profile's rows:
 
     ===  ==========================================  ======================
     1    ``deleted_at`` set                          ``not-found``
     2    ``withheld_at`` set                         ``artifact-not-approved``
-    3    ``kind = 'issue'``                          ``artifact-not-approved``
+    3    ``kind`` is ``issue`` or ``diagnostics``,   ``artifact-not-approved``
+         over the API
     4    a ``node`` archive with a member that is    its WORST member's --
          not fetchable                               ``artifact-not-approved``,
                                                      then ``not-ready``
@@ -601,7 +632,7 @@ def ladder(row, surface_allows: bool = True,
     '''
     if row["deleted_at"]:
         return "not-found"
-    if row["withheld_at"] or row["kind"] == "issue":
+    if row["withheld_at"] or (row["kind"] in NEVER_OVER_THE_API and not admin):
         return "artifact-not-approved"
     if row["kind"] == "node" and members:
         # 🔴 Withholding a member withholds the archive, and an archive held
@@ -616,9 +647,9 @@ def ladder(row, surface_allows: bool = True,
 
 
 def fetchable(row, surface_allows: bool = True,
-              members: Optional[str] = None) -> bool:
+              members: Optional[str] = None, admin: bool = False) -> bool:
     '''Whether THIS caller may have the bytes: the ladder, with no refusal.'''
-    return ladder(row, surface_allows, members) is None
+    return ladder(row, surface_allows, members, admin) is None
 
 
 def cause(row) -> Optional[str]:
@@ -636,7 +667,7 @@ def cause(row) -> Optional[str]:
 
 
 def wire(row, surface_allows: bool = True,
-         members: Optional[str] = None) -> Dict[str, Any]:
+         members: Optional[str] = None, admin: bool = False) -> Dict[str, Any]:
     '''One artifact, as §21 publishes it.'''
     return {
         "id": row["id"],
@@ -664,7 +695,7 @@ def wire(row, surface_allows: bool = True,
         # the column it comes from, because it is the same thing.
         "deleted_cause": cause(row),
         "deleted_reason": row["deleted_reason"],
-        "fetchable": fetchable(row, surface_allows, members),
+        "fetchable": fetchable(row, surface_allows, members, admin),
         # This profile takes no access requests, so there is never an
         # undecided one to name -- but the member is REQUIRED (surface D177).
         "access_requested_at": None,

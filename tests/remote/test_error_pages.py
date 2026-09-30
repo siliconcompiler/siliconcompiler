@@ -52,7 +52,7 @@ def test_the_index_lists_every_type():
     for slug in ERRORS:
         assert f'href="{slug}.html"' in index, slug
     assert f"All {len(ERRORS)}" in index
-    assert len(ERRORS) == 37
+    assert len(ERRORS) == 38
 
 
 @pytest.mark.parametrize("slug", RETIRED)

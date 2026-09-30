@@ -481,6 +481,14 @@ def job(session, job_id):
         # on a job that failed outside a node.
         job_log=next((item for item in per_node.get((None, None), [])
                       if item["kind"] == "logs" and item["fetchable"]), None),
+        # Beside it, and never inside it: the server's record of the job from
+        # create to dispatch (surface D295).
+        staging_log=next((item for item in per_node.get((None, None), [])
+                          if item["kind"] == "staging" and item["fetchable"]), None),
+        # The operators' record, where the runner's own log is when the flow
+        # wrote none.
+        diagnostics=next((item for item in per_node.get((None, None), [])
+                          if item["kind"] == "diagnostics" and item["fetchable"]), None),
         graph=_graph(detail, edges))
 
 
@@ -884,8 +892,9 @@ MAX_BROWSE_BYTES = 1024 * 1024 * 1024
 
 
 def _stored_at(row):
-    """Where the bytes of one artifact are, or a refusal."""
-    if not fetchable(row):
+    """Where the bytes of one artifact are, or a refusal. The portal is where
+    an administrator reads what the API never hands over (ladder row 3)."""
+    if not fetchable(row, admin=True):
         raise ProblemError("not-found", detail="those bytes are not available")
 
     storage = flask.current_app.config["SC_STORAGE"]
@@ -944,7 +953,9 @@ def inside(session, job_id, artifact_id):
     # A log or a manifest is one file and has nothing to look inside. Showing
     # it is still what somebody clicked, so this is the viewer for both rather
     # than a refusal and a second screen.
-    if row["kind"] == "manifest" or (row["kind"] == "logs" and row["step"] is None):
+    one_file = row["kind"] in ("manifest", "staging") or (
+        row["kind"] == "logs" and row["step"] is None)
+    if one_file:
         return _show_one(detail, row, archive)
 
     if (row["size_bytes"] or 0) > MAX_BROWSE_BYTES:
@@ -973,7 +984,8 @@ def inside(session, job_id, artifact_id):
 
 
 def _show_one(detail, row, path):
-    """An artifact that is a single file: the run's log, or a manifest."""
+    """An artifact that is a single file: the run's log, the staging record,
+    or a manifest."""
     import gzip
 
     try:

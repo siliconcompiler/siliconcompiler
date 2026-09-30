@@ -267,7 +267,7 @@ def installed(monkeypatch, tmp_path):
 
     asked = []
 
-    def install(packages, wheels, root, logger, constrain=(), indexes=()):
+    def install(packages, wheels, root, logger, constrain=(), indexes=(), **_):
         asked.append(([str(pin) for pin in packages.requirements],
                       [str(pin) for pin in packages.constraints],
                       [os.path.basename(path) for path in wheels], list(indexes)))
@@ -370,8 +370,9 @@ def test_the_lists_and_the_wheels_are_installed_once_while_staging(
     jobs = server.config["SC_JOBS"]
     tree = jobs.job_root(job["owner"]["id"], job["id"]) / "gcd" / "job0"
     assert (tree / environment.site_path()).is_symlink()
-    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
-    log = (jobs.job_root(job["owner"]["id"], job["id"]) / RUN_LOG).read_text()
+    # What the install added is in the job's `staging` record (surface D295).
+    from siliconcompiler.remote.server.outputs import record
+    log = (jobs.job_root(job["owner"]["id"], job["id"]) / record.STAGING_LOG).read_text()
     assert "installed numpy==1.26.4" in log
     assert "packaging 25.0 (listed 1.0)" in log
 

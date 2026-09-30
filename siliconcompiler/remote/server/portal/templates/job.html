@@ -56,6 +56,9 @@
       {% if job.state == 'failed' and job.progress.failed_count == 0 %}
         No node failed &mdash; the run itself did, before or between the nodes.
         {% if job_log %}Read the <b>Job log</b> below.
+        {% elif diagnostics %}The runner&rsquo;s own log is in the job&rsquo;s
+        <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=diagnostics.id) }}"
+           >diagnostics</a>.
         {% elif job_level %}Its log is under <b>The job itself</b> below.{% endif %}<br>
       {% endif %}
       {#- The type's own page, served by this host at the same path the public
@@ -82,6 +85,12 @@
 {% if job_log %}
 <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=job_log.id) }}"
    >Job log</a>
+&middot;
+{% endif %}
+{#- What the server did before the run, beside the run's own log and never in it. #}
+{% if staging_log %}
+<a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=staging_log.id) }}"
+   >Staging record</a>
 &middot;
 {% endif %}
 <a href="{{ url_for('portal.artifacts', job_id=job.id) }}">Artifacts</a>

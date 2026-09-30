@@ -134,6 +134,9 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # server could not complete for its own reasons, after retrying -- an
     # image the manifest is read in that could not be pulled among them.
     _e("staging-failed", None, "The server could not get this job ready"),
+    # The job's own limit, not the server's failure (surface D294): staging ran
+    # past the caller's `max_staging_seconds`, counted each time it stages.
+    _e("staging-timed-out", None, "The job took too long to get ready", ("limit",)),
     _e("run-failed", None, "The run failed"),
 )}
 

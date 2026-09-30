@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from siliconcompiler.remote import owners
-from siliconcompiler.remote.server.errors import bound, ERRORS, ProblemError
+from siliconcompiler.remote.server.errors import ERRORS, ProblemError
 from siliconcompiler.remote.server.jobs.common import (
-    _NoLongerStaging, _ServerFailure, _bounded, _problem_from, _resources, logger,
-    requirements)
-from siliconcompiler.remote.server.outputs import artifacts
+    TERMINAL_STATES, _NoLongerStaging, _ServerFailure, _StagingTimedOut, _bounded,
+    _members_json, _problem_from, _resources, logger, requirements)
+from siliconcompiler.remote.server.outputs import artifacts, record
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.running.dispatch import DispatchError
 from siliconcompiler.remote.server.software import images
@@ -42,13 +42,20 @@ class StagingMixin:
         earlier results, build environments, then dispatch -- or send the job
         back asking for what could not be had.
 
-        In parallel, a timeout per source and one deadline for the job. A
-        transient failure is retried until the deadline; a permanent one --
+        In parallel, a timeout per source and one deadline for the fetch. A
+        transient failure is retried until that deadline; a permanent one --
         and whatever is still missing at the deadline -- goes back to the
         client, which has the credentials the server does not.
 
+        🔴 **Bounded as a whole by the caller's `max_staging_seconds`**, set
+        as this pass starts: the fetch, the manifest's read and the install
+        each run against what is left of it, and past it the job ends
+        `failed`, `staging-timed-out` (surface D294). A job sent back and
+        submitted again is a new pass, with a fresh deadline.
+
         🔴 A refusal found in the upload ends the job `rejected`; this server's
         own failure ends it `failed`, `staging-failed`, never `rejected`.
+        Whichever way the pass ends, what it did is the job's `staging` record.
         '''
         import time
         from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
@@ -60,12 +67,16 @@ class StagingMixin:
             if job is None or job["state"] != "staging":
                 raise _NoLongerStaging(job_id)
             root = self.job_root(job["user_id"], job_id)
+            self._staging_deadlines[job_id] = time.monotonic() + self._staging_limit(job)
+            record.begin_pass(root, logger)
+
             unpacked = root / job["design"] / job["jobname"]
             if job["unpack_pending"]:
                 summary, entries = self._unpack(job)
             else:
                 summary = self._stored_summary(job, root)
                 entries = self._account(None, job, summary, unpacked)
+            self._check_staging_time(job_id, "reading the upload")
 
             wanted = {}
             for entry in entries:
@@ -82,23 +93,31 @@ class StagingMixin:
                       for entry in entries if entry.status == owners.ASK]
             pause = 2
             while wanted:
-                # 🔴 Watched rather than waited on: a cancel stops the fetch.
+                # 🔴 Watched rather than waited on: a cancel stops the fetch,
+                # and so does the end of the staging limit.
                 pool = ThreadPoolExecutor(max_workers=4)
-                tried = {key: pool.submit(self._fetch, key[0], key[1], timeout)
+                each = max(1, int(min(timeout, self._staging_left(job_id))))
+                tried = {key: pool.submit(self._fetch, key[0], key[1], each)
                          for key in wanted}
                 while not all(future.done() for future in tried.values()):
                     futures_wait(list(tried.values()), timeout=1)
                     if self._row(job_id)["state"] != "staging":
                         pool.shutdown(wait=False, cancel_futures=True)
                         raise _NoLongerStaging(job_id)
+                    if self._staging_left(job_id) <= 0:
+                        pool.shutdown(wait=False, cancel_futures=True)
+                        raise _StagingTimedOut("fetching sources")
                 pool.shutdown(wait=False)
                 last = {}
                 for key, future in tried.items():
                     try:
                         future.result()
+                        record.note(root, [f"fetched {key[0]} at {key[1]}"], logger)
                         wanted.pop(key)
                     except Permanent as e:
                         logger.info(f"{job_id}: a source cannot be fetched: {e}")
+                        record.note(root, [f"could not fetch {key[0]} at {key[1]}: {e}"],
+                                    logger)
                         failed.extend((entry, str(e)) for entry in wanted.pop(key))
                     except Transient as e:
                         logger.info(f"{job_id}: a source did not answer, retrying: {e}")
@@ -109,6 +128,7 @@ class StagingMixin:
                         failed.extend((entry, why) for entry in entries_of)
                     wanted = {}
                 elif wanted:
+                    self._check_staging_time(job_id, "fetching sources")
                     time.sleep(pause)
                     pause = min(pause * 2, 60)
                     if self._row(job_id)["state"] != "staging":
@@ -132,6 +152,7 @@ class StagingMixin:
             if copies:
                 self._phase(job_id, "copying earlier results")
             self._copy_results(job, unpacked, copies)
+            self._check_staging_time(job_id, "copying earlier results")
 
             # The job's Python packages: installed here where nodes run on this
             # host, so one that will not install rejects the job before any
@@ -149,10 +170,12 @@ class StagingMixin:
             if absent:
                 self._send_back(self._row(job_id), [], python=absent)
                 return
+            self._check_staging_time(job_id, "resolving the job's images")
 
             # `queued` only once the scheduler holds it.
             self._phase(job_id, "handing the job to the scheduler")
             self._dispatch(None, self._row(job_id), summary, entries, plan=plan)
+            record.note(root, ["handed the job to the scheduler"], logger)
         except ProblemError:
             # Already recorded on the job by `_refuse`.
             pass
@@ -162,6 +185,8 @@ class StagingMixin:
             job = self._row(job_id)
             if job is not None and not job["scheduler_job_id"]:
                 self._settle_cancelled(job)
+        except _StagingTimedOut as e:
+            self._time_out_staging(job_id, str(e))
         except _ServerFailure as e:
             self._fail_staging(job_id, str(e))
         except Exception as e:                                   # noqa: BLE001
@@ -169,13 +194,63 @@ class StagingMixin:
             self._fail_staging(job_id, f"this server could not get the job ready: "
                                        f"{type(e).__name__}")
         finally:
+            self._staging_deadlines.pop(job_id, None)
             with self._preparing_lock:
                 self._preparing.discard(job_id)
+            self._keep_staging_record(job_id)
             self._store.release()
+
+    ######################################################################
+    # The staging limit, and the record staging leaves (surface D294, D295)
+    ######################################################################
+
+    def _staging_limit(self, job) -> int:
+        '''The caller's `max_staging_seconds`, as `GET /v1/me` publishes it.'''
+        from siliconcompiler.remote.server.identity import accounts
+
+        return int(accounts.effective_limits(
+            self._store, self._config, job["user_id"])["max_staging_seconds"])
+
+    def _staging_left(self, job_id: str) -> float:
+        '''Seconds left of this pass of staging, or infinity where no pass is
+        in hand -- a phase run outside one is bounded by its own limit alone.'''
+        import time
+
+        deadline = self._staging_deadlines.get(job_id)
+        return float("inf") if deadline is None else deadline - time.monotonic()
+
+    def _check_staging_time(self, job_id: str, doing: str) -> None:
+        '''Raise `_StagingTimedOut` where this pass has run out of time.'''
+        if self._staging_left(job_id) <= 0:
+            raise _StagingTimedOut(doing)
+
+    def _time_out_staging(self, job_id: str, doing: str) -> None:
+        '''The pass ran past `max_staging_seconds`: `failed`,
+        `staging-timed-out`, naming the limit and what it was doing -- the
+        job's own limit, not this server's failure.'''
+        job = self._row(job_id)
+        if job is not None and job["state"] == "cancelling" and not job["scheduler_job_id"]:
+            self._settle_cancelled(job)
+            return
+        limit = self._staging_limit(job) if job is not None else None
+        detail = (f"staging ran past this account's max_staging_seconds ({limit}s) "
+                  f"while {doing}")
+        with self._store.transaction():
+            job = self._row(job_id)
+            if job is None or job["state"] != "staging":
+                return
+            self._store.execute(
+                "UPDATE jobs SET error_type = ?, error_members = ?, finished_at = ? "
+                "WHERE id = ?", (ERRORS["staging-timed-out"].uri,
+                                 _members_json({"limit": "max_staging_seconds"}), now(),
+                                 job_id))
+            self._transition(job_id, "staging", "failed", reason=_bounded(detail))
+        logger.warning(f"{job_id}: {detail}")
+        self._note(self._row(job_id), [f"timed out: {detail}"])
 
     def _fail_staging(self, job_id: str, detail: str) -> None:
         '''This server's own failure while staging: `failed`, `staging-failed`,
-        with `detail` naming what failed -- and in the job-level `logs`.'''
+        with `detail` naming what failed -- and in the job's `staging` record.'''
         job = self._row(job_id)
         if job is not None and job["state"] == "cancelling" and not job["scheduler_job_id"]:
             # Cancelled while it failed: what the owner did stands.
@@ -190,38 +265,29 @@ class StagingMixin:
                 "WHERE id = ?", (ERRORS["staging-failed"].uri, now(), job_id))
             self._transition(job_id, "staging", "failed", reason=_bounded(detail))
         logger.warning(f"{job_id}: staging failed: {detail}")
-        self._log_staging(self._row(job_id), detail)
+        self._note(self._row(job_id), [f"staging failed: {detail}"])
 
-    def _record_in_job_log(self, job, lines) -> None:
-        '''Lines of the server's own record of a job, in the run log the
-        job-level `logs` carries, each scrubbed like `detail`.'''
-        from siliconcompiler.remote.server.running.dispatch import RUN_LOG
+    def _note(self, job, lines) -> None:
+        '''Lines of the job's `staging` record, each scrubbed like `detail`.'''
+        if job is not None:
+            record.note(self.job_root(job["user_id"], job["id"]), lines, logger)
 
-        root = self.job_root(job["user_id"], job["id"])
+    def _keep_staging_record(self, job_id: str) -> None:
+        '''The `staging` record as this pass leaves it, indexed -- and, for a
+        job that has ended, the operators' record beside it.'''
+        job = self._row(job_id)
+        if job is None:
+            return
+        root = self.job_root(job["user_id"], job_id)
         try:
-            root.mkdir(parents=True, exist_ok=True)
-            with open(root / RUN_LOG, "a") as f:
-                for line in lines:
-                    f.write(f"{now()} {bound(line)}\n")
-        except OSError as e:
-            logger.warning(f"{job['id']}: could not write the job's log: {e}")
-
-    def _log_staging(self, job, detail: str) -> None:
-        '''What went wrong while staging, in the job-level `logs`, scrubbed
-        like `detail`: the only account a person can reach of a job that never
-        ran.'''
-        from siliconcompiler.remote.server.running.dispatch import RUN_LOG
-
-        root = self.job_root(job["user_id"], job["id"])
-        try:
-            root.mkdir(parents=True, exist_ok=True)
-            with open(root / RUN_LOG, "a") as f:
-                f.write(f"{now()} staging failed: {bound(detail)}\n")
             with self._store.transaction():
-                artifacts.collect_run_log(self._store, self._storage, self._config,
-                                          job, root)
+                artifacts.collect_staging(self._store, self._storage, self._config, job,
+                                          root)
+                if job["state"] in TERMINAL_STATES:
+                    artifacts.collect_diagnostics(self._store, self._storage,
+                                                  self._config, job, root)
         except OSError as e:
-            logger.warning(f"{job['id']}: could not keep the staging log: {e}")
+            logger.warning(f"{job_id}: could not keep the staging record: {e}")
 
     def _fetch(self, source: str, ref: str, timeout: int) -> str:
         '''One source into this server's copy -- or, where `fetch_fails` is
@@ -261,6 +327,7 @@ class StagingMixin:
                                "installs from has it")
         reason = (f"{len(asked)} source(s) this server cannot supply, so the client "
                   "is asked to send them -- " + "; ".join(reasons))
+        self._note(job, [f"sent back for {one}" for one in reasons])
         # 🔴 Remembered: the wheel answering one replaces its listed entry, and
         # is the one wheel allowed to overlap the lists.
         answered = sorted(set(json.loads(job["python_answered"] or "[]")) | set(python))
@@ -283,6 +350,10 @@ class StagingMixin:
         current = self._row(job["id"])
         if current is None or current["state"] != "staging":
             raise _NoLongerStaging(job["id"])
+        said = problem.members.get("reason")
+        self._note(current, [f"refused: {problem.error.slug}"
+                             + (f" ({said})" if said else "")
+                             + (f": {problem.detail}" if problem.detail else "")])
         return self._refuse(None, current, problem)
 
     def _check_denied(self, session, job, summary) -> None:
@@ -351,6 +422,10 @@ class StagingMixin:
         except sandbox.Cancelled:
             raise _NoLongerStaging(job["id"]) from None
         except sandbox.ReadFailed as e:
+            # 🔴 Out of the staging limit rather than the read's own: the job's
+            # limit, `staging-timed-out`, not a manifest that could not be read.
+            if e.timed_out and self._staging_left(job["id"]) <= 1:
+                raise _StagingTimedOut("reading the manifest") from None
             raise self._refuse_staging(job, ProblemError(
                 "archive-rejected", reason="invalid_manifest",
                 detail=_bounded(f"the manifest has not been read: {e}"))) from None
@@ -370,6 +445,14 @@ class StagingMixin:
         logger.info(f"{job['id']}: read its manifest in {raw.get('seconds')}s"
                     + ("" if contained.get("network") else ", with no network namespace")
                     + ("" if contained.get("limits") else ", with no resource limits"))
+        nodes = raw.get("nodes") or []
+        self._note(job, [
+            f"read the manifest in {raw.get('seconds')}s: flow {raw.get('flow')}, "
+            f"{len(nodes)} node(s), PDK {raw.get('pdk') or 'none'}"
+            + (f", tools {', '.join(sorted({n['tool'] for n in nodes if n.get('tool')}))}"
+               if any(n.get("tool") for n in nodes) else "")
+            + (f"; it found {raw['outcome'].get('type', 'a refusal')}"
+               if isinstance(raw.get("outcome"), dict) else "")])
 
         # 🔴 In the job root, above the tree the upload expanded into, so no
         # upload can write it: a resumed staging and a follow-up's allowed set
@@ -383,7 +466,9 @@ class StagingMixin:
         server's own SiliconCompiler -- the one version it advertises, so the
         one every job resolves to (profile §5, D63).'''
         limits = dict(
-            timeout=self._config["manifest_read_timeout_seconds"],
+            # Its own limit, or what is left of this pass of staging.
+            timeout=max(1, min(self._config["manifest_read_timeout_seconds"],
+                               self._staging_left(job["id"]))),
             alive=lambda: (self._row(job["id"]) or {"state": None})["state"] == "staging",
             cpu_seconds=self._config["manifest_read_cpu_seconds"],
             memory_bytes=self._config["manifest_read_memory_bytes"])

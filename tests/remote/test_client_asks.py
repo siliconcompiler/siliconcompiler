@@ -150,7 +150,7 @@ def test_a_compiled_package_asked_for_cancels_naming_its_file(rig, site, monkeyp
     a compiled file, so it cannot be sent.'''
     from siliconcompiler.remote.server.packages import envinstall
 
-    def absent(packages, wheels, root, logger, constrain=(), indexes=()):
+    def absent(packages, wheels, root, logger, constrain=(), indexes=(), **_):
         raise envinstall.InstallFailed({"returncode": 1, "absent": ["scfakec"]})
 
     monkeypatch.setattr(envinstall, "install", absent)

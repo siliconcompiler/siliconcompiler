@@ -42,7 +42,8 @@ from siliconcompiler.remote.client.errors import RemoteError, clean
 from siliconcompiler.remote.units import size
 from siliconcompiler.utils.paths import jobdir, workdir
 
-__all__ = ["Results", "REMOTE_JOB_LOG", "JOB_FILE", "record_job", "recorded_job"]
+__all__ = ["Results", "REMOTE_JOB_LOG", "REMOTE_STAGING_LOG", "JOB_FILE", "record_job",
+           "recorded_job"]
 
 
 logger = logging.getLogger(__name__)
@@ -83,8 +84,9 @@ _ARCHIVES = ("node", "outputs", "reports", "final", "logs")
 # Kinds this client never takes, and never reports as left behind. `input` is
 # what went IN -- each upload, and a node's inputs -- and this machine has the
 # one and takes the other as its upstream's outputs. It is there to be looked
-# at, in the portal.
-_NOT_TAKEN = ("input",)
+# at, in the portal. `diagnostics` is the deployment's operators' record, never
+# handed over the API (surface D295), so it is no one's to fetch from here.
+_NOT_TAKEN = ("input", "diagnostics")
 
 
 def _takeable(items):
@@ -103,6 +105,10 @@ def _takeable(items):
 # ⚠️ And not `job.<something>.log` either: that is the pattern SiliconCompiler
 # rotates its own backups under, and it prunes all but the most recent few.
 REMOTE_JOB_LOG = "remote-job.log"
+
+# Where the server's record of the job lands (surface D295): what it did
+# between create and dispatch, never inside the run's own log.
+REMOTE_STAGING_LOG = "remote-staging.log"
 
 
 class Results:
@@ -491,6 +497,10 @@ class Results:
                 return 1
             if kind == "logs":
                 self._gunzip(job_id, item, os.path.join(jobdir(self.project), REMOTE_JOB_LOG))
+                return 1
+            if kind == "staging":
+                self._gunzip(job_id, item,
+                             os.path.join(jobdir(self.project), REMOTE_STAGING_LOG))
                 return 1
             logger.debug(f"nothing to do with a job-level {kind}")
             return 0

@@ -8,7 +8,7 @@ A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which
 import json
 
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
@@ -73,7 +73,7 @@ class DispatchMixin:
         requires = requirements(json.loads(job["descriptor"]) or {})
 
         try:
-            return images.plan_for_job(self._store, requires,
+            plan = images.plan_for_job(self._store, requires,
                                        summary["node_tools"], summary["inherits"],
                                        job_image_id=job["image_id"])
         except ProblemError as problem:
@@ -81,6 +81,14 @@ class DispatchMixin:
             # than one reason and the job must record the one the caller was
             # given.
             raise self._refuse(session, job, problem) from None
+        # Each image the job's nodes run in, in its `staging` record.
+        placed: Dict[str, list] = {}
+        for (step, index), image_id in sorted(plan.nodes.items()):
+            if image_id in plan.refs:
+                placed.setdefault(plan.refs[image_id], []).append(f"{step}/{index}")
+        self._note(job, [f"{', '.join(nodes)} run(s) in {ref}"
+                         for ref, nodes in sorted(placed.items())])
+        return plan
 
     def _framework_bundle(self, job, plan) -> Optional[str]:
         '''The container the job's own orchestrating process runs in.
@@ -109,6 +117,7 @@ class DispatchMixin:
         try:
             common = images.stage_bundle(self.bundles_root(), ref, ref.split("@", 1)[1],
                                          mounts=self.container_mounts())
+            self._note(job, [f"unpacked {ref} for the job's own process"])
             # This job's own view of it, beside its nodes' bundles.
             return str(images.job_bundle(
                 common, self.job_bundles(job["id"]) / Path(common).name,

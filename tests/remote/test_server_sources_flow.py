@@ -410,6 +410,105 @@ def test_the_asked_for_sources_arrive_and_the_job_runs(
     assert wait_for(lambda: dispatcher.submitted)
 
 
+def test_the_staging_record_gains_a_section_each_pass_and_is_scrubbed(
+        server, server_client, key, token, job_archive, remote_project, dispatcher):
+    '''The job's `staging` artifact is the server's record for its submitter
+    (surface D295): what each pass did, a section per pass, one artifact for
+    the job, and scrubbed like `detail`, since everyone who reads the job reads
+    it -- a credential in a fetch's error included.'''
+    import gzip
+
+    fake_fetch(server, fail=Permanent("the source answered 404 for "
+                                      "https://ci:hunter2@example.test/pdk.tar.gz"))
+    archive, digest, size = job_archive(remote_project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "awaiting_input")
+    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
+    assert send(server_client, key, token, job["id"], {
+        f"sc_collected_files/{hashed}": b"sent by the client\n"}).status_code == 202
+    store = server.config["SC_STORE"]
+
+    def staging():
+        rows = store.all("SELECT storage_key FROM artifacts WHERE job_id = ? "
+                         "AND kind = 'staging'", (job["id"],))
+        assert len(rows) == 1
+        with gzip.open(server.config["SC_STORAGE"].artifact_path(rows[0]["storage_key"]),
+                       "rt") as f:
+            return f.read()
+
+    # Indexed as each pass ends, so it is replaced, never added to.
+    assert wait_for(lambda: "handed the job to the scheduler" in staging())
+    text = staging()
+
+    assert text.count("==> staging, pass ") == 2
+    first_pass, second_pass = text.split("==> staging, pass 2")
+    assert "sent back for" in first_pass
+    assert "handed the job to the scheduler" in second_pass
+    assert "hunter2" not in text
+
+
+def test_staging_past_its_limit_ends_the_job_staging_timed_out(
+        server, server_client, key, token, job_archive, remote_project, dispatcher):
+    '''surface D294: staging is bounded as a whole by the caller's
+    `max_staging_seconds`, whatever phase the time goes on -- a fetch here --
+    and past it the job ends `failed`, `staging-timed-out`, naming the limit:
+    the job's own, not this server's failure.'''
+    server.config["SC_CONFIG"].limits["max_staging_seconds"] = 1
+    store = fake_fetch(server)
+
+    def slow(source, ref, into, timeout):
+        time.sleep(3)
+
+    store._resolve = slow
+    archive, digest, size = job_archive(remote_project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"] == "failed")
+    error = read(server_client, key, token, job["id"])["error"]
+    assert error["type"].endswith("/staging-timed-out")
+    assert error["limit"] == "max_staging_seconds"
+    assert "while fetching sources" in error["detail"]
+    assert not dispatcher.submitted
+
+
+def test_a_job_sent_back_gets_a_fresh_staging_limit(
+        server, server_client, key, token, job_archive, remote_project, dispatcher,
+        monkeypatch):
+    '''The limit counts one pass: a job sent back and submitted again stages
+    with all of it again, so two passes that each take most of it both
+    finish.'''
+    from siliconcompiler.remote.server.jobs.pythonenv import PythonEnvMixin
+
+    server.config["SC_CONFIG"].limits["max_staging_seconds"] = 2
+    store = fake_fetch(server)
+
+    def slow_then_gone(source, ref, into, timeout):
+        time.sleep(1.2)
+        raise Permanent("the source answered 404")
+
+    store._resolve = slow_then_gone
+    archive, digest, size = job_archive(remote_project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "awaiting_input")
+
+    def slow_install(self, job, summary):
+        time.sleep(1.2)
+        return []
+
+    monkeypatch.setattr(PythonEnvMixin, "_install_on_host", slow_install)
+    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
+    assert send(server_client, key, token, job["id"], {
+        f"sc_collected_files/{hashed}": b"sent by the client\n"}).status_code == 202
+
+    assert wait_for(lambda: dispatcher.submitted)
+    assert read(server_client, key, token, job["id"])["state"] != "failed"
+
+
 def test_each_upload_is_kept_as_its_own_input(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     '''The first archive and the follow-up, separately and in order, each

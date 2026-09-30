@@ -406,9 +406,13 @@ INSERT INTO artifact_kinds (kind, retention_seconds) VALUES
     ('outputs',  NULL),      -- large, regenerable, and the most sensitive: the floor, no more
     ('input',    NULL),      -- what went IN: each uploaded archive, job-level, and
                              -- a node's inputs/ bound to the node
-    ('node',     NULL);      -- one node's whole working directory, and it may never outlive
+    ('node',     NULL),      -- one node's whole working directory, and it may never outlive
                              -- its contents. ALWAYS bound to a step and an index: there is no
                              -- job-level tarball, because the kind is named for what it is
+    ('staging',  157680000), -- the server's record of the job, for its submitter, from create
+                             -- to dispatch: a section each time it stages. Kept as logs are
+    ('diagnostics', 7776000); -- 90 days. The operators' record, unscrubbed: read when
+                             -- something went wrong recently, and never over the API
 -- Starting values. The numbers are the deployment's; the SHAPE is the contract.
 -- The set is CLOSED and PUBLISHED, so a new value is a version bump.
 
@@ -508,8 +512,11 @@ CREATE TABLE software (                             -- what this deployment know
                       ('python',                    -- a distribution in the interpreter. The whole
                                                     -- python set has to be satisfied by ONE image,
                                                     -- because they share a process
-                       'tool')),                    -- an executable. Satisfied PER NODE, by an
+                       'tool',                      -- an executable. Satisfied PER NODE, by an
                                                     -- image holding the python set and this tool
+                       'interpreter')),             -- 'python': the image's own Python, which
+                                                    -- the probe reads. Satisfied by each image a
+                                                    -- node running the user's Python resolves to
                                                     -- 🔴 Derived and never typed: the mechanism
                                                     -- that reads the version IS the
                                                     -- classification. importlib.metadata answers

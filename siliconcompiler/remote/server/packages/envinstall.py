@@ -73,7 +73,7 @@ def recorded(target) -> Dict[str, Any]:
 
 
 def install(packages: environment.Packages, wheels: Sequence[str], root: Path, logger,
-            constrain=(), indexes=()) -> Tuple[str, Dict[str, Any]]:
+            constrain=(), indexes=(), timeout=None, echo=None) -> Tuple[str, Dict[str, Any]]:
     '''A job's packages into a directory of their own, built once and shared
     by every job of this user asking for the same set. Returns the directory
     and what its install added (:func:`recorded`). Raises InstallFailed.
@@ -83,7 +83,8 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
     digest -- the install adds to what this Python holds and comes from where
     the indexes say, so all of it is part of what the result means. Built
     under a lock beside it and moved into place whole, so a directory that
-    exists is one that is finished.
+    exists is one that is finished. ``timeout`` bounds the install, and
+    ``echo`` is handed pip's output, whole.
     '''
     from fasteners import InterProcessLock
 
@@ -121,7 +122,8 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
                     f"{', '.join(named) or 'nothing beyond what this host holds'}")
         try:
             result = pipbuild.install(str(listed), str(limited), str(staging),
-                                      wheels=wheels, indexes=indexes)
+                                      wheels=wheels, indexes=indexes, timeout=timeout,
+                                      echo=echo)
         finally:
             listed.unlink(missing_ok=True)
             limited.unlink(missing_ok=True)

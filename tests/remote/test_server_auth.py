@@ -677,8 +677,10 @@ def test_me_carries_the_account_limits(client, key):
 
     assert set(limits) == {"concurrent_jobs", "concurrent_nodes",
                            "pending_uploads", "max_job_nodes", "devices",
-                           "artifact_retention_seconds", "max_download_bytes"}
+                           "artifact_retention_seconds", "max_download_bytes",
+                           "max_staging_seconds"}
     assert limits["artifact_retention_seconds"] == 2592000
+    assert limits["max_staging_seconds"] == 3600
 
 
 def test_me_usage_is_derived_and_reported_only(client, key):

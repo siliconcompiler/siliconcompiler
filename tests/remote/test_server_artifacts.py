@@ -220,7 +220,9 @@ def test_a_job_that_ran_nothing_lists_only_what_was_sent(server_client, key, tok
     call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
 
     items = listing(server_client, key, token, job["id"])
-    assert [(item["kind"], item["step"]) for item in items] == [("input", None)]
+    # What was sent, and the server's record of what it did with it.
+    assert [(item["kind"], item["step"]) for item in items] == [("input", None),
+                                                                ("staging", None)]
     # The digest the submit checked, as the hash of the bytes it kept.
     assert items[0]["digest"] == digest and items[0]["size_bytes"] == size
 
@@ -271,8 +273,10 @@ def test_the_listing_pages(server_client, key, token, finished):
                         link.split(">", 1)[0].lstrip("<"), token)
 
     # The job's manifest and its upload, plus a log, a manifest, a reports, a
-    # node archive and its inputs for each of the two nodes.
-    assert len(seen) == len(set(seen)) == 12
+    # node archive and its inputs for each of the two nodes; and the server's
+    # records -- the job's staging, and the operators' diagnostics for the job
+    # and each node the scheduler ran.
+    assert len(seen) == len(set(seen)) == 16
 
 
 def test_a_strangers_listing_is_a_404(server_client, key, token, finished):
@@ -322,9 +326,11 @@ def test_every_artifact_is_stored_and_served_gzipped(server_client, key, token, 
     '''Every kind, the manifest and a node's logs included, and the bytes
     served are the gzip itself.'''
     items = listing(server_client, key, token, finished["id"])
-    assert {item["kind"] for item in items} >= {"manifest", "logs", "reports", "node"}
+    assert {item["kind"] for item in items} >= {"manifest", "logs", "staging", "reports",
+                                                "node"}
 
-    for item in items:
+    # `diagnostics` is gzipped too, and read in the portal, never over the API.
+    for item in [item for item in items if item["fetchable"]]:
         response = call(server_client, key, "GET",
                         f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
         body = server_client.get(response.headers["Location"].split("http://localhost", 1)[1])
@@ -1200,23 +1206,31 @@ def test_a_stale_backup_log_is_not_mistaken_for_this_run(
     assert not _only(listing(server_client, key, token, job["id"]), "logs")
 
 
-def test_the_server_run_log_stands_in_when_the_flow_wrote_none(
+def test_the_runners_own_log_is_the_operators_and_never_the_jobs_log(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 The case somebody is most likely to be looking at: the run died
-    before SiliconCompiler installed its file handler, so there is no
-    `job.log`, and the server's own run log is the only account there is.'''
+    '''🔴 The run died before SiliconCompiler wrote its `job.log`, and the
+    runner's own log is the only account there is. It is the operators'
+    record, `diagnostics` (surface D295): listed, never fetchable over the API,
+    and refused when asked for. Job-level `logs` is `job.log` alone.'''
     from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     def prepare(job_root, build_dir):
         (job_root / RUN_LOG).write_text("Traceback (most recent call last):\n")
 
     job = ran(server, server_client, key, token, job_archive, prepare)
-    items = _only(listing(server_client, key, token, job["id"]), "logs")
+    items = listing(server_client, key, token, job["id"])
 
-    assert len(items) == 1
+    assert not [item for item in _only(items, "logs") if item["step"] is None]
+    held, = [item for item in _only(items, "diagnostics") if item["step"] is None]
+    assert held["fetchable"] is False
     got = call(server_client, key, "GET",
-               f"/v1/jobs/{job['id']}/artifacts/{items[0]['id']}", token)
-    assert got.status_code == 303
+               f"/v1/jobs/{job['id']}/artifacts/{held['id']}", token)
+    assert got.status_code == 403
+    assert slug(got) == "artifact-not-approved"
+
+    members = _members(server, server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE id = ?", (held["id"],)))
+    assert "run.log" in members
 
 
 def test_only_one_job_level_log_is_ever_indexed(
@@ -1235,27 +1249,26 @@ def test_only_one_job_level_log_is_ever_indexed(
     assert len(_only(listing(server_client, key, token, job["id"]), "logs")) == 1
 
 
-def test_the_job_level_log_carries_both_records_in_one_file(
+def test_the_job_level_log_is_the_runs_job_log_alone(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 The server's record first -- staging, what an install added, the run's
-    own stdout -- then `job.log`: preferring one lost the other on every job
-    whose flow started (database D143).'''
+    '''🔴 SiliconCompiler's `job.log`, and nothing of this server's: its record
+    of the job is `staging` and `diagnostics`, never inside the run's own log,
+    where the two read as one confusing file (surface D295).'''
     import gzip
 
     from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     def prepare(job_root, build_dir):
         (build_dir / "job.log").write_text("the flow ran\n")
-        (job_root / RUN_LOG).write_text("sim/0's Python environment installed numpy==2.0.1\n")
+        (job_root / RUN_LOG).write_text("and the batch job said this\n")
 
     job = ran(server, server_client, key, token, job_archive, prepare)
-    item, = _only(listing(server_client, key, token, job["id"]), "logs")
+    item, = [item for item in _only(listing(server_client, key, token, job["id"]), "logs")
+             if item["step"] is None]
     row = server.config["SC_STORE"].one("SELECT storage_key FROM artifacts WHERE id = ?",
                                         (item["id"],))
     with gzip.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"]), "rt") as f:
-        text = f.read()
-
-    assert text.index("numpy==2.0.1") < text.index("the flow ran")
+        assert f.read() == "the flow ran\n"
 
 
 def test_the_job_level_log_is_named_for_the_job(

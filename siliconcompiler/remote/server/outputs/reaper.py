@@ -167,9 +167,12 @@ def _builds(store, storage, config, datadir) -> int:
 
     ⚠️ **An upload is not something the job produced**, and is counted on
     neither side: a job-level `input` is written at submit, before anything
-    runs, and is its own file rather than one read out of this tree.
+    runs, and is its own file rather than one read out of this tree. Nor is
+    this server's own record of the job, `staging` and `diagnostics`, which
+    is not read out of the tree either.
     '''
-    produced = "NOT (a.kind = 'input' AND a.step IS NULL)"
+    produced = ("NOT (a.kind = 'input' AND a.step IS NULL) "
+                "AND a.kind NOT IN ('staging', 'diagnostics')")
     rows = store.all(
         "SELECT j.id, j.user_id FROM jobs j "
         f"WHERE j.state IN ({', '.join('?' * len(_TERMINAL))}) "
