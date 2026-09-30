@@ -123,6 +123,57 @@ here.
   (CORE-FOLLOWUPS item 10).
   **Tracked in:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
 
+### From follow-on 21 (2026-09-30)
+
+#### 3. A private entry with no source is decided while staging, not refused at create
+
+Surface D299 says *an entry with no source can be supplied only the first way*
+and *create refuses a private dataroot none of the three can supply*. The owner,
+on whether the client should send a private dataroot's source: *"it's in the
+manifest so no need to force it on the wire."* So the `sc-server` client still
+sends a private entry as `{keypath, private: true}`, and the server takes its
+source from the manifest's read while the job stages, where routes 2 and 3 --
+a held copy, a fetch -- are then open to it.
+
+**What changes in the text:** create cannot tell a held or fetchable source from
+neither when the entry carries none, so it refuses a private entry only where
+the operator's copy is absent and a source it was given can be used neither way.
+An entry with no source is left to staging, and never asked for; one no route
+supplies ends the job `rejected`, `resource-unavailable` with its `keypath` --
+the refusal create would have given, one step later, after the upload. An entry
+that does carry its source is decided at create, as D299 has it.
+
+**Where it goes:** `api/surface.md`, *13. POST /v1/jobs* and the three-routes
+table; client-v1-migration's policy for when the client sends the source.
+
+#### 4. 🔴 The manifest carries every dataroot's source as registered, credentials included
+
+**Checked, by running it:** a PDK whose dataroot is
+`git+https+private://alice:ghp_TOKEN@git.internal.example.com/pdk/secret.git`
+writes exactly that string into the manifest the client uploads
+(`Project.write_manifest`), `alice:ghp_TOKEN@` and all. Private or not, every
+dataroot's `path` goes up verbatim.
+
+**Why it matters:** the surface's rule -- *the client MUST strip credentials from
+every URL before sending it* -- is written for the descriptor's `sources`, and
+the client keeps it there (`safe_source`). The same URL, unstripped, is in the
+archive beside it, and the server keeps that archive as a job-level `input`. So
+the descriptor's stripping protects nothing while the manifest carries the
+original, and item 3 now relies on the manifest's source.
+
+**Options:**
+
+- The client strips userinfo, and masks query values, in every dataroot's
+  `path` of the manifest it packs -- its own copy, as `safe_source` does for the
+  descriptor. The server fetches with its own credentials and never uses the
+  client's, and a supplied or uploaded dataroot is pointed at the server's copy
+  before the run anyway (`runspec.point_dataroots`).
+- Widen the rule to the manifest, so it binds every client, and say what a
+  server does with a manifest that breaks it.
+
+**Where it goes:** `api/surface.md`, the credential rule; the client's
+`RemoteRun._pack`. A decision for the owner before either is written.
+
 ---
 
 ## Not ported, deliberately

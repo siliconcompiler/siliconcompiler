@@ -236,8 +236,13 @@ moves.
 
 **Files marked private never go up.** A dataroot registered with a ``+private``
 scheme -- ``file+private://``, ``git+ssh+private://`` and the rest -- is data
-that must not leave your machine: the server supplies its own copy of it, or
-refuses the job. It is named by where the manifest keeps it: a library's as
+whose bytes must not leave your machine, the design's included. The server
+supplies it itself: from its operator's copy, from a copy of its source it
+already holds, or by fetching that source where its allowlist admits it --
+never by asking you -- or refuses the job, and it refuses a job whose upload
+carries one anyway. A ``file+private://`` source is on your machine, where no
+server can fetch it, so only an operator's copy can supply it. A private
+dataroot is named by where the manifest keeps it: a library's as
 ``library,<name>,dataroot,<root>``, and a task's own as
 ``tool,<tool>,task,<task>,dataroot,<root>``, so two tasks of one tool with a
 dataroot of the same name are two dataroots, and a refusal says which one --

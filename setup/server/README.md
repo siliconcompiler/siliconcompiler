@@ -179,7 +179,7 @@ of the upload is asked for, not supplied from this host.
 | an installed package | from the job's image, by name |
 | a remote source on `fetch_allowlist` | fetched by this server after submit, held under `<datadir>/sources/`, and mounted read-only |
 | a remote source not on the list | asked of the client, which sends it with its own credentials |
-| marked private | from `private_dataroots` in `config.json`, by its keypath (below) &mdash; or the job is refused |
+| marked private | never uploaded and never asked for: from `private_dataroots` in `config.json`, by its keypath (below); else a copy of its source this server holds; else a fetch of it, on `fetch_allowlist`, as any source's &mdash; or the job is refused. An archive carrying one anyway is refused |
 
 `fetch_allowlist` defaults to SiliconCompiler's GitHub organisation &mdash;
 `https://github.com/siliconcompiler/` and
@@ -198,7 +198,18 @@ forward.
 
 ⚠️ **This changed.** An environment-variable PDK was, for a while, resolved from
 this server's own environment; it is uploaded again. To keep a proprietary PDK
-off the wire, the operator supplies it through `private_dataroots`.
+off the wire, mark its dataroot `+private` -- its bytes then never leave the
+submitter's machine -- and the operator supplies it through `private_dataroots`,
+or lets this server fetch it by putting its source on `fetch_allowlist`. The
+source is the manifest's own: the create body does not carry it, so a private
+dataroot the map does not hold is decided while the job stages, and one no
+route supplies ends the job `rejected`, `resource-unavailable`, never sent back
+for.
+
+⚠️ **The manifest carries every dataroot's source as it was registered**, a
+private one's included, and a `user:token@` in it with it. The server masks one
+wherever it keeps or logs it, but the upload holds it: register a source with
+no credential in it, and let the fetching side use its own.
 
 **A dataroot is named by its keypath**, where the manifest keeps it: a
 library's `library,<name>,dataroot,<root>`, and a task's own
