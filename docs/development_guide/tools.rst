@@ -87,6 +87,28 @@ Next, you define what the specific task needs to run and what it will produce.
       # 6. For script-based tools (like TCL), define the entry script.
       self.set_script('run_my_tool.tcl')
 
+.. important::
+
+   **Require every file the task reads, not only the settings it cannot do
+   without.** The required keys are also what a node's rerun check compares
+   and what ``sc-issue`` packages: a file the task reads without requiring it
+   -- a view reached through ``asic,asiclib`` and a fileset, say -- can change
+   without the node running again, and is missing from an issue built to
+   reproduce it. Where the task reads a library's files, require those
+   filesets' files, as the OpenROAD and Yosys tasks do.
+
+.. important::
+
+   ``setup()`` **SHOULD NOT call** ``find_files`` **(or anything else that
+   resolves a path)**. ``setup()`` runs for every node in the flow, before the
+   rerun check decides which of them will run -- nodes outside ``-from``/``-to``
+   and nodes whose previous result is reused included -- and resolving a path
+   there fetches a remote PDK just to answer it for a node that does nothing. It
+   also runs to build the task's page in the reference manual, against a
+   placeholder design with nothing to find. Declare keys in ``setup()``; resolve
+   the files they name in :meth:`.Task.runtime_options` or later, where the task
+   actually runs.
+
 Execution Lifecycle Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
