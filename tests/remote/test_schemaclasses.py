@@ -95,7 +95,7 @@ def test_nothing_under_the_data_directory_is_importable(tmp_path):
 
 def test_a_python_source_is_answered_without_importing_its_parent(tmp_path, monkeypatch):
     '''`find_spec` on a dotted name imports the parent first.'''
-    from siliconcompiler.remote.server.jobs import _Supply
+    from siliconcompiler.remote.server.jobs.common import _Supply
 
     marker = tmp_path / "imported"
     package = tmp_path / "sc_uploaded_pkg"

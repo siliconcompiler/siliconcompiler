@@ -9,8 +9,8 @@ part leans on; below it, one folder per part of a job's life:
                   ``<datadir>/config.json``
 ``errors.py``     the frozen error registry and its RFC 9457 bodies;
                   ``errorpages/`` holds a page for each type
-``jobs.py``       the job, from create to delete: the one service every route
-                  and the portal go through
+``jobs/``         the job, from create to delete: the one service every route
+                  and the portal go through, one module per step
 ``routes/``       the v1 endpoints, one module per group
 ``portal/``       the web UI, through the same service as the API
 

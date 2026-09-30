@@ -259,7 +259,7 @@ def test_a_node_only_copied_in_cannot_be_named_again(server, server_client, key,
 def test_results_gone_before_the_copy_reject_the_job(server, server_client, key, token, me,
                                                      job_archive, nop_project, dispatcher,
                                                      monkeypatch):
-    from siliconcompiler.remote.server import jobs
+    from siliconcompiler.remote.server.jobs import continuations as jobs
 
     earlier = ran(server, me)
 
@@ -311,7 +311,7 @@ def test_results_withheld_before_the_copy_reject_the_job(
 def test_a_store_that_does_not_answer_the_copy_is_the_servers_failure(
         server, server_client, key, token, me, job_archive, nop_project, dispatcher,
         monkeypatch):
-    from siliconcompiler.remote.server import jobs
+    from siliconcompiler.remote.server.jobs import continuations as jobs
 
     earlier = ran(server, me)
 
