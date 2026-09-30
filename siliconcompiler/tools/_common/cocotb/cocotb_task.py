@@ -180,10 +180,8 @@ class CocotbTask(Task):
 
         test_modules, _ = self._get_test_modules()
 
-        # GPI_USERS: libraries the GPI layer loads to bootstrap Python inside
-        # the simulator (libpython followed by the PyGPI entry point).
-        self.set_environmentalvariable("GPI_USERS", get_gpi_users())
-        self.add_required_key("env", "GPI_USERS")
+        # GPI_USERS is the node's, in get_runtime_environmental_variables():
+        # absolute paths into whichever Python and cocotb run the node.
 
         # COCOTB_TOPLEVEL: the HDL toplevel module name
         self.set_environmentalvariable("COCOTB_TOPLEVEL", self.design_topmodule)
@@ -210,8 +208,10 @@ class CocotbTask(Task):
     def setup(self):
         super().setup()
 
+        # Only running the test needs cocotb, and pre_process() stops the
+        # node there, so setting it up without cocotb is only worth a warning.
         if not _has_cocotb:
-            raise RuntimeError("Cocotb is not installed; cannot run test.")
+            self.logger.warning("Cocotb is not installed; this test will not be able to run.")
 
         # Output: xUnit XML results file
         self.add_output_file(file="results.xml")
@@ -240,8 +240,9 @@ class CocotbTask(Task):
 
         Extends the base environment with the cocotb library directory on
         PATH, the test-module and user library directories on PYTHONPATH,
-        and the Python executable used by the GPI bridge. PATH and PYTHONPATH
-        entries are added idempotently so repeated calls do not duplicate them.
+        and the GPI bootstrap -- ``GPI_USERS`` and ``PYGPI_PYTHON_BIN`` -- for
+        the Python running this node. PATH and PYTHONPATH entries are added
+        idempotently so repeated calls do not duplicate them.
 
         Args:
             include_path (bool): If True, includes the PATH variable.
@@ -279,11 +280,23 @@ class CocotbTask(Task):
         envs["PYTHONPATH"] = os.pathsep.join(python_path)
 
         ##########################################
-        # PYGPI_PYTHON_BIN: set python executable
+        # GPI_USERS / PYGPI_PYTHON_BIN: the Python this node runs on
         ##########################################
+        # Resolved here rather than in setup(): these are absolute paths into
+        # whichever Python and cocotb execute the node. GPI_USERS lists the
+        # libraries the GPI layer loads to bring Python up inside the
+        # simulator: libpython, then the PyGPI entry point.
+        envs["GPI_USERS"] = get_gpi_users()
         envs["PYGPI_PYTHON_BIN"] = sys.executable
 
         return envs
+
+    def pre_process(self):
+        super().pre_process()
+
+        # Before the node sets up its environment, which needs cocotb too
+        if not _has_cocotb:
+            raise RuntimeError("Cocotb is not installed; cannot run test.")
 
     def _parse_cocotb_results(self, results_file: Path):
         """
