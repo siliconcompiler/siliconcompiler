@@ -679,6 +679,29 @@ def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_
         f"sha256:{hashlib.sha256(sent).hexdigest()}"
 
 
+def test_a_python_entry_asked_at_create_goes_in_the_first_archive(site, logged_in,
+                                                                  tmp_path):
+    '''Surface D306: an ask at create is answered in the first archive, the
+    repacked wheel in the collection beside the manifest -- the moment before
+    a follow-up, which is the other.'''
+    from siliconcompiler.remote.client.run import RemoteRun
+    from siliconcompiler.utils.paths import collectiondir
+
+    _distribution(site, "scfake_private", "1.2.0")
+    project = cocotb_project("import scfake_private\n")
+    run = RemoteRun(project, logged_in)
+
+    run._asked_rows = run._answer([{"kind": "python", "name": "scfake-private"}],
+                                  collectiondir(project))
+    run._pack(tmp_path / "first.tar.gz")
+
+    with tarfile.open(tmp_path / "first.tar.gz") as tar:
+        names = tar.getnames()
+    assert f"sc_collected_files/{environment.WHEELS}/scfake_private-1.2.0-py3-none-any.whl" \
+        in names
+    assert f"{project.name}.pkg.json" in names
+
+
 def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, logged_in):
     import responses
 
@@ -711,9 +734,13 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     ([], False, "is not granted python-env"),
     ([{"name": "python-env", "via": ["self"]}], True,
      "python-wheels to upload scfakeloose-3.0.0-py3-none-any.whl.*not granted python-wheels"),
+    # Review row 29: each document in the way, with its signing link, or its
+    # title from `terms` where the entry carries none.
     ([{"name": "python-env", "via": ["self"],
        "blocked_by": {"py-terms": {"url": "https://portal.test/terms"}}}], False,
-     "holds python-env blocked on an agreement"),
+     "holds python-env blocked on an agreement.*sign py-terms: https://portal.test/terms"),
+    ([{"name": "python-env", "via": ["self"], "blocked_by": {"py-terms": {}}}], False,
+     "blocked on an agreement.*sign The Python terms \\(no link is available"),
 ])
 def test_a_capability_the_account_lacks_stops_the_run_before_create(
         site, fake_v1, logged_in, granted, wheel, stops):
@@ -728,7 +755,7 @@ def test_a_capability_the_account_lacks_stops_the_run_before_create(
     _distribution(site, "scfakeumi", "0.3.1")
     _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"))
     project = cocotb_project("import scfakeumi\n" + ("import scfakeloose\n" if wheel else ""))
-    me = {"id": "u-1"}
+    me = {"id": "u-1", "terms": [{"id": "py-terms", "title": "The Python terms"}]}
     if granted is not None:
         me["authorized"] = {"pdks": [], "capabilities": granted}
     fake_v1.route(responses.GET, "me", me)

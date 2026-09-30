@@ -70,6 +70,34 @@ def test_plain_http_beyond_this_machine_is_warned_at_startup(tmp_path, caplog, o
         assert "https through a reverse proxy" in said[0]
 
 
+@pytest.mark.parametrize("base,origins,refused", [
+    ("https://sc.example", ["http://localhost:8080"], True),
+    ("http://sc.example", ["https://sc.example"], True),
+    ("http://localhost:8080", ["http://localhost:8080"], False),
+    # Origins on both schemes are allowed, each one scheme on its own, and a
+    # page on either is on a scheme the deployment is served on.
+    ("https://sc.example", ["http://localhost:8080", "https://sc.example"], False),
+])
+def test_a_job_page_is_on_a_scheme_the_deployment_is_served_on(tmp_path, base, origins,
+                                                               refused):
+    '''Contract rule 5: every other URL is built on the origin a request
+    arrived at, and `web_url` is the one built from a setting of its own, so a
+    `web_url_base` on another scheme refuses to start.'''
+    import json
+
+    from siliconcompiler.remote.server.app import create_app
+
+    datadir = tmp_path / "datadir"
+    datadir.mkdir()
+    (datadir / "config.json").write_text(json.dumps({"web_url_base": base}))
+
+    if refused:
+        with pytest.raises(ValueError, match="one scheme throughout"):
+            create_app(datadir, public_origins=origins)
+    else:
+        create_app(datadir, public_origins=origins)
+
+
 def test_a_retired_peer_list_is_ignored_with_a_warning(tmp_path, caplog):
     '''An operator who set it did so on purpose, so it is named, and the
     server still starts.'''
@@ -124,6 +152,45 @@ def test_the_handover_needs_the_machine_key(server_client):
     '''It is the CLI proving possession of its registered key, so an
     unauthenticated caller gets nothing to open.'''
     assert server_client.post("/portal/session").status_code == 401
+
+
+def test_the_handover_lands_on_the_path_it_was_given(server_client, key, token):
+    '''`next` is the path of the job's `web_url` (ui/access D15): the browser
+    lands there once the cookie is set.'''
+    url = call(server_client, key, "POST", "/portal/session", token,
+               json={"next": "/portal/jobs/J1"}).get_json()["url"]
+
+    entered = server_client.get(url.split("http://localhost", 1)[1])
+
+    assert entered.status_code == 302
+    assert entered.headers["Location"].endswith("/portal/jobs/J1")
+
+
+@pytest.mark.parametrize("hostile", ["https://evil.example/portal/jobs/J1",
+                                     "//evil.example/portal/jobs/J1", "/v1/me",
+                                     "portal/jobs/J1", 7])
+def test_a_next_that_is_not_a_portal_path_is_dropped(server_client, key, token, hostile):
+    '''Dropped rather than followed: a redirect that follows a caller's input
+    is an open redirect. The browser lands on the jobs list instead.'''
+    response = call(server_client, key, "POST", "/portal/session", token,
+                    json={"next": hostile})
+    assert response.status_code == 200
+
+    entered = server_client.get(response.get_json()["url"].split("http://localhost", 1)[1])
+
+    assert entered.headers["Location"].endswith("/portal/")
+    assert "evil" not in entered.headers["Location"]
+
+
+def test_a_ci_session_is_refused_a_handover(server, server_client, key, token):
+    '''Nobody is at a browser in a CI run, and one never accepts an agreement.
+    This profile mints no CI session, so the family is made one here.'''
+    server.config["SC_STORE"].execute(
+        "UPDATE token_families SET kind = 'ci', device_id = NULL")
+
+    response = call(server_client, key, "POST", "/portal/session", token)
+
+    assert (response.status_code, slug(response)) == (403, "not-permitted")
 
 
 def test_a_portal_session_is_not_an_api_credential(signed_in):

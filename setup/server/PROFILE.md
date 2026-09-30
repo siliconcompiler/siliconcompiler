@@ -279,6 +279,26 @@ and not enough to fetch it from, so it is asked for rather than fetched.
 `sc-server` serves a portal, which is why it serves `web_url`. A client sees
 only the API; the portal's screens are in [README](README.md#the-portals-screens).
 
+`web_url` is `web_url_base` plus the job's portal path. `web_url_base` must be on
+a scheme this deployment is served on, or it refuses to start: a deployment is
+one scheme throughout (contract rule 5).
+
+### The handover: the route both deployments serve
+
+A client hands its browser a session at `POST /portal/session`, the one handover
+route crucible serves too (ui/access D15). It is a portal route, outside `/v1`
+and outside the `v1` contract, as the signed upload `PUT` is.
+
+| | |
+|---|---|
+| **Request** | on the API's origin, with `Authorization: DPoP <token>` and a proof, as any API request. The body is `{"next": "<path>"}`, the path of the job's `web_url`, or nothing |
+| **Response** | `{"url", "expires_in"}` and `Cache-Control: private, no-store`. `url` is on the configured public origin, never the request's `Host`, and carries a single-use token that lives 60 seconds |
+| **Who may ask** | an interactive session holding `profile:read`. A CI session is refused, `403 not-permitted`: nobody is at a browser |
+| **`next`** | a path under `/portal/` on this origin. Anything else is dropped rather than followed, since a redirect that follows a caller's input is an open redirect, and the browser lands on the jobs list |
+
+A client that is refused, or gets a `404` from a deployment with no such route,
+opens `web_url` as given and says why.
+
 ---
 
 ## 5. Images and software

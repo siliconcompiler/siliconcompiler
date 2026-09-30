@@ -322,6 +322,29 @@ def test_fetching_an_artifact_is_a_303_to_a_signed_route(server_client, key,
     assert len(bytes_response.data) == item["size_bytes"]
 
 
+def test_a_server_on_http_issues_only_http_urls(server, server_client, key, token,
+                                                finished):
+    '''🔴 Contract rule 5: a deployment is one scheme throughout. This one is
+    served on http, so every URL it issues is: the artifact `303`, the upload
+    grant, the handover and the job's page.'''
+    from test_server_jobs import create
+
+    server.config["SC_CONFIG"]._values["web_url_base"] = "http://localhost"
+    item = listing(server_client, key, token, finished["id"])[0]
+    job = create(server_client, key, token, jobname="job1").get_json()
+
+    urls = [
+        call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
+             token).headers["Location"],
+        job["web_url"],
+        call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
+             json={"size_bytes": 10, "digest": "sha256:" + "0" * 64}).get_json()["url"],
+        call(server_client, key, "POST", "/portal/session", token).get_json()["url"],
+    ]
+
+    assert all(url.startswith("http://localhost/") for url in urls), urls
+
+
 def test_every_artifact_is_stored_and_served_gzipped(server_client, key, token, finished):
     '''Every kind, the manifest and a node's logs included, and the bytes
     served are the gzip itself.'''

@@ -499,12 +499,35 @@ def test_the_machine_label_is_not_the_subject(tmp_credentials):
     assert label is None or label != subject
 
 
+def test_the_next_command_reads_with_the_stored_access_token(
+        fake_v1, tmp_credentials, client_credentials):
+    '''🔴 Identity §3: the access token is kept until it expires, so a later
+    command -- a bare `sc-remote` included -- reads `/me` with it and goes to
+    the token endpoint not at all.'''
+    import stat
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    Client(tmp_credentials).login()
+
+    # A second client, as a second process would be.
+    Client(Credentials(tmp_credentials.path)).me()
+
+    grants = [_form(c.request.body)["grant_type"]
+              for c in fake_v1.calls if c.request.method == "POST"]
+    assert grants == ["client_credentials"]
+    me = [c.request for c in fake_v1.calls if c.request.url.endswith("/v1/me")][-1]
+    assert me.headers["Authorization"] == "DPoP access-token-one"
+    # Kept under the store's own modes.
+    sessions = tmp_credentials.auth_dir / "sessions.json"
+    assert stat.S_IMODE(sessions.stat().st_mode) == 0o600
+
+
 def test_the_next_command_refreshes_rather_than_enrolling_again(
         fake_v1, tmp_credentials, client_credentials):
-    '''🔴 The property that matters is WHICH grant the second process uses.
-
-    The access token is not written down, so a later command always goes to the
-    token endpoint -- and it must go with `refresh_token`. `client_credentials`
+    '''🔴 The property that matters is WHICH grant a later process uses once
+    the stored access token has expired: `refresh_token`. `client_credentials`
     mints a NEW token family every time it is called and a family lives twelve
     days whether or not anything uses it, so enrolling per command would leave
     one live session behind per invocation.
@@ -513,8 +536,8 @@ def test_the_next_command_refreshes_rather_than_enrolling_again(
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     Client(tmp_credentials).login()
+    tmp_credentials.update_session(access_expires_at=0)
 
-    # A second client, as a second process would be.
     Client(Credentials(tmp_credentials.path)).me()
 
     grants = [_form(c.request.body)["grant_type"]

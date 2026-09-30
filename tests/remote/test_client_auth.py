@@ -17,7 +17,7 @@ import responses
 
 from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProblem
 from siliconcompiler.remote.client import (
-    GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE)
+    GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE)
 from siliconcompiler.remote.client.credentials import StoreError, parse_ci_secret
 from siliconcompiler.remote.client.transport import EdgeRefused
 
@@ -356,14 +356,27 @@ def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywher
     assert not (tmp_path / "a.bin").exists()
 
 
-def test_https_is_never_followed_to_plain_http(logged_in, fake_v1, tmp_path):
-    fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
-                  headers={"Location": "http://storage.test/object"})
+@pytest.mark.parametrize("base,target", [
+    ("https://sc-server.test/v1", "http://storage.test/object"),
+    ("http://sc-server.test/v1", "https://storage.test/object")],
+    ids=["downgrade", "upgrade"])
+def test_a_redirect_to_another_scheme_is_never_followed(
+        base, target, tmp_credentials, tmp_path):
+    '''🔴 Contract rule 5: a deployment is one scheme throughout, so a
+    redirect to the other one is followed in neither direction.'''
+    from siliconcompiler.remote import dpop
+    from siliconcompiler.remote.client.transport import Transport
 
-    with pytest.raises(RemoteError) as raised:
-        logged_in.fetch_artifact("J", "A", tmp_path / "a.bin")
+    transport = Transport(base, dpop.generate_key(), tmp_credentials)
+    with responses.RequestsMock() as mock:
+        mock.add(responses.GET, f"{base}/redirect", status=303,
+                 headers={"Location": target})
+        response = transport._session.get(f"{base}/redirect", allow_redirects=False)
 
-    assert "plain http" in str(raised.value)
+        with pytest.raises(RemoteError) as raised:
+            transport.follow(response)
+
+    assert "one scheme throughout" in str(raised.value)
 
 
 def test_a_header_value_with_a_line_break_is_refused(tmp_credentials):
@@ -667,6 +680,72 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
 
     assert "::warning::This CI credential expires in 3 days" in capsys.readouterr().out
     assert "expires in 3 days" in caplog.text
+
+
+def test_a_ci_key_with_a_stale_cache_trades_and_never_prints_a_code(
+        fake_v1, tmp_credentials, exchange, capsys, caplog):
+    '''🔴 Identity §2: token exchange first whatever the cache says -- here
+    that the deployment offers only the device grant -- and never a
+    `user_code` in a CI runner's log.'''
+    exchange()
+    tmp_credentials.update_session(grant_types_supported=[GRANT_DEVICE_CODE])
+
+    Client(tmp_credentials, open_browser=False).login()
+
+    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == [GRANT_TOKEN_EXCHANGE]
+    assert not _posts(fake_v1, "auth/device")
+    assert "code" not in capsys.readouterr().out.lower()
+
+
+def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
+        fake_v1, capabilities, tmp_credentials, ci_secret, capsys):
+    '''On `unsupported_grant_type` the client re-reads `GET /v1` once, and
+    where the deployment still offers no token exchange it fails, saying so --
+    never falling back to `client_credentials` or the device grant, though
+    this one offers both.'''
+    _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE,
+           "refresh_token")
+    tmp_credentials.update_session(grant_types_supported=[GRANT_TOKEN_EXCHANGE])
+    fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
+                  status=400)
+
+    with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
+        Client(tmp_credentials, open_browser=False).login()
+
+    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == [GRANT_TOKEN_EXCHANGE]
+    assert not _posts(fake_v1, "auth/device")
+    assert len([c for c in fake_v1.calls if c.request.method == "GET"
+                and c.request.url.rstrip("/").endswith("/v1")]) == 1
+    assert "code" not in capsys.readouterr().out.lower()
+
+
+def test_a_ci_key_trades_after_the_grants_say_it_now_can(
+        fake_v1, capabilities, tmp_credentials, ci_secret):
+    _offer(fake_v1, capabilities, GRANT_TOKEN_EXCHANGE)
+    fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
+                  status=400)
+    fake_v1.route(responses.POST, "auth/token",
+                  {"access_token": "ci", "token_type": "DPoP", "expires_in": 900})
+
+    Client(tmp_credentials, open_browser=False).login()
+
+    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == \
+        [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
+
+
+def test_insecure_transport_stops_and_is_never_sent_again(logged_in, fake_v1):
+    '''Contract rule 5: the client never switches scheme. Re-sending over
+    https would hide a mistyped address and send every later call to the
+    refusal first.'''
+    fake_v1.route(responses.GET, "me", problem("insecure-transport", 426), status=426,
+                  content_type="application/problem+json", headers={"Upgrade": "TLS/1.2"})
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert "must be https" in str(raised.value)
+    assert len([c for c in fake_v1.calls if c.request.url.endswith("/v1/me")]) == 1
+    assert all(c.request.url.startswith("https://sc-server.test") for c in fake_v1.calls)
 
 
 def test_a_ci_credential_is_never_sent_over_plain_http(tmp_path, monkeypatch, ci_secret):

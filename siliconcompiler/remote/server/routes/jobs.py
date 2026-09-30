@@ -114,7 +114,9 @@ def submit(session, job_id):
     extracted. That sequencing is the one detail in the contract that is a
     security property, and it is enforced in the job service rather than here.
     '''
-    return _private(_jobs().submit(session, job_id, _body(), _idempotency_key()), 202)
+    # `{}`: an empty body and a JSON `{}` alike (surface D306).
+    return _private(_jobs().submit(session, job_id, _body(required=False),
+                                   _idempotency_key()), 202)
 
 
 @blueprint.route("/v1/jobs", methods=["GET"])

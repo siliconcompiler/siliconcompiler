@@ -105,6 +105,11 @@ from the environment (surface D304–D305, identity D90, client-v1-migration
 D15), were decided too, and removed the same way. Follow-on 22 brings the code
 up to them.
 
+The client review's fourteen spec ambiguities (surface D306, identity D91,
+contract D68, entitlements D81, client-v1-migration D16, ui/access D14) came
+from no list here; follow-on 23 brings the code up to them, and to the one
+handover route ui/access D15 and identity D92 put on both deployments.
+
 ---
 
 ## Open — not yet in the contract docs

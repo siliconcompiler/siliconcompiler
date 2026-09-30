@@ -130,13 +130,20 @@ class LifecycleMixin:
         job = self.owned(session, job_id)
 
         if reason is not None:
-            # 🔴 Checked, never repaired (surface §6), and never echoed.
-            if not isinstance(reason, str) or len(reason) > MAX_REASON \
-                    or _CONTROL.search(reason):
+            # 🔴 Checked, never repaired (surface §6), and never echoed: at
+            # most MAX_REASON Unicode code points, and no control character
+            # (surface D306).
+            if not isinstance(reason, str):
+                raise ProblemError("invalid-request", detail="reason is a string")
+            if len(reason) > MAX_REASON:
                 raise ProblemError(
                     "invalid-request",
-                    detail=f"reason is one line of free text of at most {MAX_REASON} "
-                           "characters")
+                    detail=f"reason is at most {MAX_REASON} characters, and this one is "
+                           f"{len(reason)}")
+            if _CONTROL.search(reason):
+                raise ProblemError(
+                    "invalid-request",
+                    detail="reason is one line of free text, with no control character")
 
         if job["state"] in TERMINAL_STATES or job["state"] == "cancelling":
             # Idempotent: the caller's intent is already satisfied.

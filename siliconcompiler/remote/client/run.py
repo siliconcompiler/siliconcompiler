@@ -224,7 +224,7 @@ class RemoteRun:
         # it -- absent means the deployment has no web UI.
         if job.get("web_url"):
             self.logger.info(f"Watch it at: {job['web_url']}")
-            self._open_portal(job_id)
+            self._open_portal(job["web_url"])
 
         self._save_manifest()
 
@@ -367,13 +367,22 @@ class RemoteRun:
         what = {"python-env": "to install its Python packages",
                 "python-wheels": f"to upload {', '.join(sorted(built))}"}
         said = [f"{name} {what[name]}" for name in missing + blocked]
+        # 🔴 Each document in the way, with its own signing link, as the
+        # listing's access message says it: `blocked_by` is where to go.
+        from siliconcompiler.remote.client.errors import blocked_lines
+
+        titles = {entry.get("id"): entry.get("title")
+                  for entry in me.get("terms") or [] if isinstance(entry, dict)}
+        signing = [line for name in blocked
+                   for line in blocked_lines(held[name].get("blocked_by"), titles)]
         raise RemoteError(
             f"this run's Python needs {' and '.join(said)}, and this account "
             + ("is not granted " + " or ".join(missing) if missing else "")
             + (" and " if missing and blocked else "")
             + (f"holds {' and '.join(blocked)} blocked on an agreement it has not accepted"
                if blocked else "")
-            + ". Ask the deployment for the grant, or accept the agreement in the portal")
+            + (": " + "; ".join(signing) if signing else "")
+            + ". Ask the deployment for the grant, or accept the agreement")
 
     def _check_upstream_files(self) -> None:
         '''A `-from` run whose upstream outputs, on this machine, lack a file
@@ -426,8 +435,6 @@ class RemoteRun:
     def _check_software(self) -> None:
         '''Advisory: a requirement nothing this server advertises satisfies.
         The server decides; this only says so before the upload.'''
-        from packaging.specifiers import InvalidSpecifier, SpecifierSet
-
         try:
             software = self.client.capabilities().get("software") or {}
         except RemoteError:
@@ -452,12 +459,9 @@ class RemoteRun:
                     continue
                 if not alternatives:
                     continue
-                try:
-                    ok = any(SpecifierSet(spec).filter(versions, prereleases=True)
-                             for spec in alternatives)
-                except InvalidSpecifier:
-                    continue
-                if not ok:
+                # 🔴 Each alternative's matches, never the iterator `filter`
+                # returns, which is truthy whatever it holds.
+                if not any(_satisfied(versions, spec) for spec in alternatives):
                     self.logger.warning(
                         f"This server advertises {name} {', '.join(versions)}, which "
                         f"does not satisfy {' or '.join(alternatives)}; the job may be "
@@ -585,7 +589,7 @@ class RemoteRun:
             self.client.upload(grant, upload)
             self.client.submit_job(job_id, idempotency_key=_key())
 
-    def _open_portal(self, job_id: str) -> None:
+    def _open_portal(self, web_url: str) -> None:
         '''Open the job's page, where a person is plainly watching.
 
         ⚠️ **Provisional.** Launching a browser from a build is a convenience
@@ -612,8 +616,18 @@ class RemoteRun:
         A handover rather than the bare URL: the browser holds none of what
         this client holds, so the plain page would answer 401 and ask them to
         run a command. This mints a single-use link that both authenticates
-        and lands on the job.
+        and lands on the job (client-v1-migration D17).
+
+        🔴 **Landing on `web_url`'s own path**, never one built from the job
+        id: the route is the portal's, and only the server knows its shape. A
+        CI session never asks, since nobody is at a browser; and where the
+        handover is refused -- a `404` from a deployment with no such route
+        included -- the page opens as given, and the reason is said.
         '''
+        from urllib.parse import urlsplit
+
+        if self.client.ci_session:
+            return
         wanted = self.client.credentials.get("open_portal")
         if wanted is False:
             return
@@ -624,12 +638,13 @@ class RemoteRun:
                 return
 
         try:
-            self.client.portal(open_browser=True,
-                               landing=f"/portal/jobs/{job_id}")
+            self.client.portal(open_browser=True, landing=urlsplit(web_url).path)
         except Exception as e:                                   # noqa: BLE001
-            # A browser that will not open is not a reason to stop a run, and
-            # the URL has already been printed.
-            logger.debug(f"could not open the portal: {e}")
+            # A handover that is not given is not a reason to stop a run.
+            why = (str(e).strip().splitlines() or [type(e).__name__])[0]
+            self.logger.warning(f"The server did not hand this browser a session "
+                                f"({why}); opening the job's page as given")
+            self.client.open_url(web_url, "the job's page")
 
     def _preprocess(self) -> None:
         '''Collect what the server will need and cannot have, by what owns it.
@@ -1824,6 +1839,13 @@ class _Tails:
     def _tail(self, job_id: str, step: str, index: str) -> None:
         try:
             self._client.tail_log(job_id, step, index, write=self._write)
+        except ServerProblem as refusal:
+            if refusal.slug == "not-ready":
+                # The node had not started when `/logs` was asked. Transient:
+                # the next poll asks again.
+                self._started.discard((step, index))
+            else:
+                logger.debug(f"stopped tailing {step}/{index}: {refusal}")
         except Exception as e:                                   # noqa: BLE001
             # One node's log going away must not disturb the run or the other
             # tails. It is still fetched with the results.

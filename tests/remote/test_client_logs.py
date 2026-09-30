@@ -83,6 +83,18 @@ def test_an_ended_stream_reconnects_with_the_last_event_id(logged_in, fake_v1, n
     assert first.request.url != second.request.url
 
 
+def test_last_event_id_goes_on_the_stream_and_never_to_logs(logged_in, fake_v1, no_wait):
+    '''Surface D306: `Last-Event-ID` goes on the stream request, after
+    following the new `303`, and `/logs` never reads it.'''
+    stream(fake_v1, 1, sse(log("7", "one\n"), end("expired")))
+    stream(fake_v1, 2, sse(log("8", "two\n"), end("terminal")))
+
+    LogTail(logged_in, "j1", "place", "0").follow()
+
+    assert not [c for c in asked_logs(fake_v1) if "Last-Event-ID" in c.request.headers]
+    assert streams(fake_v1)[-1].request.headers["Last-Event-ID"] == "7"
+
+
 def test_empty_reconnects_never_give_up(logged_in, fake_v1, no_wait):
     '''A quiet node is not a broken one: however many streams expire with
     nothing on them, the tail keeps asking until the node is over.'''

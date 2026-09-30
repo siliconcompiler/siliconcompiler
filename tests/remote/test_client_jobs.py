@@ -545,12 +545,109 @@ def test_reconnect_re_enters_the_wait(fake_v1, run, nop_project):
 # The rest of the surface
 ###########################
 
+###########################
+# The portal handover (ui/access D15, client-v1-migration D17)
+###########################
+
+WEB_URL = "https://sc-server.test/portal/jobs/01J9-job"
+
+
+@pytest.fixture
+def opened(run, monkeypatch):
+    '''What the run opened in a browser, with the tty checks out of the way.'''
+    urls = []
+    run.client.credentials._values["open_portal"] = True
+    monkeypatch.setattr(run.client, "open_url",
+                        lambda url, what, require_tty=True: urls.append(url) or True)
+    return urls
+
+
+def _handovers(fake_v1):
+    return [c.request for c in fake_v1.calls if c.request.url.endswith("/portal/session")]
+
+
+def test_the_handover_lands_on_web_urls_own_path(fake_v1, run, opened):
+    '''🔴 `next` is the path of `web_url`, never one built from the job id.'''
+    fake_v1.elsewhere(responses.POST, "https://sc-server.test/portal/session",
+                      {"url": "https://sc-server.test/portal/enter?token=t",
+                       "expires_in": 60})
+
+    run._open_portal(WEB_URL)
+
+    handover, = _handovers(fake_v1)
+    assert json.loads(handover.body) == {"next": "/portal/jobs/01J9-job"}
+    assert handover.headers["Authorization"].startswith("DPoP ")
+    assert opened == ["https://sc-server.test/portal/enter?token=t"]
+
+
+@pytest.mark.parametrize("status", [404, 403])
+def test_a_refused_handover_opens_web_url_and_says_why(fake_v1, run, opened, caplog,
+                                                       status):
+    '''A deployment with no handover route answers `404`, and any refusal is
+    treated the same: the page opens as given, and the reason is said rather
+    than swallowed.'''
+    fake_v1.elsewhere(responses.POST, "https://sc-server.test/portal/session",
+                      problem("not-found" if status == 404 else "not-permitted", status),
+                      status=status, content_type="application/problem+json")
+
+    run._open_portal(WEB_URL)
+
+    assert opened == [WEB_URL]
+    assert "did not hand this browser a session" in caplog.text
+
+
+def test_a_ci_session_never_asks_for_a_handover(fake_v1, run, opened):
+    from siliconcompiler.remote.client import GRANT_TOKEN_EXCHANGE
+
+    run.client._mode = GRANT_TOKEN_EXCHANGE
+
+    run._open_portal(WEB_URL)
+
+    assert not _handovers(fake_v1)
+    assert not opened
+    with pytest.raises(RemoteError, match="CI session"):
+        run.client.portal()
+
+
 def test_listing_follows_the_link_header(fake_v1, logged_in):
     fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]},
                   headers={"Link": '</v1/jobs?limit=1&cursor=abc>; rel="next"'})
     fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
 
     assert len(logged_in.jobs()) == 2
+
+
+@pytest.mark.parametrize("link", [
+    "</v1/jobs?limit=1&cursor=abc&kept=1>; rel=next",
+    '</v1/jobs?cursor=zzz>; rel="prev", </v1/jobs?limit=1&cursor=abc&kept=1>; rel="next"',
+    '<https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1>; title="a, b"; rel="next last"',
+], ids=["unquoted", "second", "absolute"])
+def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
+    '''Surface D306 and RFC 8288: whichever link-value says `rel="next"`,
+    quoted or not, and its URL requested unchanged -- never this request
+    rebuilt around a cursor, which would drop what the server put there and
+    re-add the filters it already carries.'''
+    from urllib.parse import urlsplit
+
+    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]},
+                  headers={"Link": link})
+    fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
+
+    assert len(logged_in.jobs(archived=True)) == 2
+
+    pages = [c.request.url for c in fake_v1.calls if urlsplit(c.request.url).path == "/v1/jobs"]
+    assert pages[-1] == "https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1"
+
+
+def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
+    '''The request carries this session: only to the API's own origin.'''
+    fake_v1.route(responses.GET, "jobs", {"items": []},
+                  headers={"Link": '<https://elsewhere.test/v1/jobs?cursor=a>; rel="next"'})
+
+    with pytest.raises(RemoteError, match="another origin"):
+        logged_in.jobs()
+
+    assert not [c for c in fake_v1.calls if "elsewhere" in c.request.url]
 
 
 def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
@@ -597,6 +694,27 @@ def test_a_cancel_with_a_reason_sends_that_one(fake_v1, logged_in):
 
     assert json.loads(fake_v1.calls[-1].request.body) == {
         "reason": "wrong constraints"}
+
+
+@pytest.mark.parametrize("reason,said", [("é" * 301, "at most 300 characters"),
+                                         ("two\nlines", "control character"),
+                                         ("a\x9bb", "control character")])
+def test_a_cancel_reason_is_checked_before_it_is_sent(fake_v1, logged_in, reason, said):
+    '''Surface D306: at most 300 Unicode code points and no control
+    character, checked here, naming which, and nothing sent.'''
+    with pytest.raises(RemoteError, match=said):
+        logged_in.cancel_job("01J9-job", reason=reason)
+
+    assert not [c for c in fake_v1.calls if c.request.url.endswith("/cancel")]
+
+
+def test_a_cancel_reason_of_300_code_points_is_sent(fake_v1, logged_in):
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
+                  job_body("cancelling"), status=202)
+
+    logged_in.cancel_job("01J9-job", reason="é" * 300)
+
+    assert json.loads(fake_v1.calls[-1].request.body) == {"reason": "é" * 300}
 
 
 def test_delete_is_a_204_with_no_body(fake_v1, logged_in):
@@ -1171,9 +1289,48 @@ def test_a_job_stream_asked_too_early_is_asked_again(fake_v1, run, monkeypatch):
     assert JOB not in tails._started
 
 
+def test_a_node_log_asked_too_early_is_asked_again(fake_v1, run):
+    '''Review row 54: `409 not-ready` on a node's `/logs` is transient, as on
+    the job's: the node is followed again from the next poll, and a refusal
+    that is final is not.'''
+    from conftest import problem
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+    fake_v1.route(responses.GET, "jobs/j1/logs",
+                  problem("not-ready", 409, artifact_kind="logs"),
+                  status=409, content_type="application/problem+json")
+
+    tails = _Tails(run)
+    tails._started.add(("stepone", "0"))
+    tails._tail("j1", "stepone", "0")
+    assert ("stepone", "0") not in tails._started
+
+    fake_v1.replace(responses.GET, "jobs/j1/logs", problem("not-found", 404),
+                    status=404, content_type="application/problem+json")
+    tails._started.add(("stepone", "0"))
+    tails._tail("j1", "stepone", "0")
+    assert ("stepone", "0") in tails._started
+
+
 ###########################
 # What the flow will reach for
 ###########################
+
+def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabilities,
+                                                        monkeypatch):
+    '''Client-v1-migration D16: create decides, from a `GET /v1` this client
+    may hold stale, and its refusal costs no packing -- so a requirement
+    nothing advertised satisfies is a warning here, never a stop.'''
+    said = []
+    monkeypatch.setattr(run.logger, "warning", lambda message, *_, **__: said.append(message))
+    fake_v1.replace(responses.GET, "", dict(capabilities, software={
+        "python": {"siliconcompiler": ["0.0.1"]}, "tools": {}, "interpreter": {}}))
+
+    run._check_software()
+
+    assert any("siliconcompiler 0.0.1" in message for message in said)
+
 
 def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in,
                                                        gcd_nop_project):

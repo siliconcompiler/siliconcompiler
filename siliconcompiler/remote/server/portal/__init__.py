@@ -350,6 +350,13 @@ def offer_session():
 
     session = current_session()
     session.require("profile:read")
+    # 🔴 An interactive session only (ui/access D15): a CI session has nobody
+    # at a browser, and a CI run never accepts an agreement.
+    family = _store().one("SELECT kind FROM token_families WHERE id = ?",
+                          (session.family_id,))
+    if family is None or family["kind"] != "interactive":
+        raise ProblemError("not-permitted",
+                           detail="a CI session cannot hand a browser a session")
 
     # 🔴 Where to land, validated exactly as the cookie is -- it arrives from a
     # client, and a redirect that follows caller-supplied input is an open

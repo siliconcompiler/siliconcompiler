@@ -781,6 +781,20 @@ def test_bytes_short_of_the_grant_are_a_digest_mismatch(server_client, key, toke
     assert slug(response) == "upload-digest-mismatch"
 
 
+@pytest.mark.parametrize("body", ["empty", "json"])
+def test_submit_takes_an_empty_body_or_a_json_object(server_client, key, token,
+                                                     job_archive, dispatcher, body):
+    '''Surface D306: a `{}` body may be sent empty or as JSON `{}`, and a
+    server accepts both. This one used to refuse the empty one.'''
+    path, digest, size = job_archive()
+    job = stage(server_client, key, token, path, size)
+
+    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/submit", token,
+                    **({"json": {}} if body == "json" else {}))
+
+    assert response.status_code == 202, response.get_json()
+
+
 def test_a_submit_body_with_a_member_is_refused(server_client, key, token,
                                                 job_archive, dispatcher):
     '''Submit takes no body (surface §15; D277), and nothing is ignored: a
@@ -1084,8 +1098,24 @@ def test_a_cancel_reason_over_its_bound_is_refused_never_cut(
 
     assert response.status_code == 400
     assert slug(response) == "invalid-request"
-    assert "300" in response.get_json()["detail"]
+    # Named which rule it broke (surface D306): its length, or a control
+    # character.
+    assert ("300" if len(reason) > 300 else "control character") in \
+        response.get_json()["detail"]
     assert reason not in response.get_json()["detail"]
+
+
+@pytest.mark.parametrize("reason,status", [("é" * 300, 202), ("é" * 301, 400)])
+def test_a_cancel_reason_is_counted_in_code_points(server_client, key, token, reason,
+                                                   status):
+    '''Surface D306: 300 Unicode code points, not bytes -- 300 of them is 600
+    bytes in UTF-8, and is taken.'''
+    job = create(server_client, key, token).get_json()
+
+    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+                    json={"reason": reason})
+
+    assert response.status_code == status
 
 
 def test_cancel_is_idempotent(server_client, key, token):
@@ -2611,12 +2641,12 @@ def test_a_deployment_with_a_portal_publishes_the_page(server, server_client,
                                                        key, token):
     '''Followed, never constructed: the portal's route shape may change without
     a version bump, so a client that builds this itself breaks quietly.'''
-    server.config["SC_CONFIG"]._values["web_url_base"] = "https://sc.example/"
+    server.config["SC_CONFIG"]._values["web_url_base"] = "http://sc.example/"
 
     created = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0"}).get_json()
 
-    assert created["web_url"] == f"https://sc.example/portal/jobs/{created['id']}"
+    assert created["web_url"] == f"http://sc.example/portal/jobs/{created['id']}"
     # Both places: the create response is what a CLI has in hand at submit
     # time, and the job object is what anything reading it later sees.
     read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
@@ -2628,7 +2658,7 @@ def test_the_page_origin_never_comes_from_a_request_header(server, server_client
                                                            key, token):
     '''⚠️ The same trusted-proxy trap as a forwarded client address, with a
     worse payoff: the output is a link somebody pastes into a ticket.'''
-    server.config["SC_CONFIG"]._values["web_url_base"] = "https://sc.example"
+    server.config["SC_CONFIG"]._values["web_url_base"] = "http://sc.example"
 
     # 🔴 Only the forwarded headers, and that is not a weaker test -- it is
     # the realistic one. `Host` cannot be moved here at all: DPoP binds the
@@ -2640,7 +2670,7 @@ def test_the_page_origin_never_comes_from_a_request_header(server, server_client
                    headers={"X-Forwarded-Host": "evil.example",
                             "X-Forwarded-Proto": "https"}).get_json()
 
-    assert created["web_url"].startswith("https://sc.example/")
+    assert created["web_url"].startswith("http://sc.example/")
     assert "evil.example" not in created["web_url"]
 
 

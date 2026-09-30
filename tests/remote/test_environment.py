@@ -505,6 +505,52 @@ def test_the_wheel_that_answers_is_installed_in_place_of_its_entry(
     assert dispatcher.submitted
 
 
+def test_a_package_asked_for_at_create_is_answered_in_the_first_archive(
+        server, server_client, key, token, job_archive, python_project, tmp_path,
+        installed, dispatcher, monkeypatch):
+    '''🔴 Surface D306: the wheel exception covers an ask at create as well
+    as a job sent back. The wheel in the first archive replaces its listed
+    entry, and is not refused as an overlap. This server's create asks only
+    for dataroots, so the ask is made for it here.'''
+    from conftest import call
+    from siliconcompiler.remote.server.jobs import JobService
+
+    offers_python_env(server)
+    real = JobService._look_up
+    monkeypatch.setattr(JobService, "_look_up", lambda self, declared: real(
+        self, declared) + [{"kind": "python", "name": "scfake-private"}])
+    member = {"requirements": ["numpy==1.26.4", "scfake-private==1.2.0"]}
+    private = make_wheel(tmp_path, "scfake-private", "1.2.0")
+
+    response = submitted(server_client, key, token,
+                         with_wheels(job_archive, python_project, private),
+                         python_packages=member, sources=[])
+
+    assert response.status_code == 202, response.get_json()
+    job = call(server_client, key, "GET", f"/v1/jobs/{response.get_json()['id']}",
+               token).get_json()
+    assert job["state"] != "rejected", job
+    assert installed.asked[-1][:3] == (["numpy==1.26.4"], [], [os.path.basename(private)])
+    assert dispatcher.submitted
+
+
+def test_an_unasked_wheel_beside_its_listed_entry_is_still_an_overlap(
+        server, server_client, key, token, job_archive, python_project, tmp_path,
+        installed, dispatcher):
+    '''The exception is for what was asked: the same wheel, unasked, is a
+    distribution travelling two ways.'''
+    offers_python_env(server)
+    member = {"requirements": ["numpy==1.26.4", "scfake-private==1.2.0"]}
+    private = make_wheel(tmp_path, "scfake-private", "1.2.0")
+
+    response = submitted(server_client, key, token,
+                         with_wheels(job_archive, python_project, private),
+                         python_packages=member, sources=[])
+
+    assert (slug(response), response.get_json()["reason"]) == \
+        ("archive-rejected", "python_package")
+
+
 def test_the_wheel_that_answers_is_at_its_entrys_version(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         installed, dispatcher):

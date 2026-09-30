@@ -79,6 +79,49 @@ def test_htu_drops_the_query_and_fragment(key):
         dpop.verify_proof(proof, "GET", "https://sc-server.test/v1/me")
 
 
+def proof_with_htu(key, method, htu, access_token=None):
+    '''A proof carrying ``htu`` exactly as given, as a client that does not
+    canonicalise would sign it.'''
+    import uuid
+
+    import jwt
+
+    claims = {"jti": str(uuid.uuid4()), "htm": method, "htu": htu, "iat": int(time.time())}
+    if access_token is not None:
+        claims["ath"] = dpop.access_token_hash(access_token)
+    return jwt.encode(claims, key, algorithm=dpop.ALGORITHM,
+                      headers={"typ": "dpop+jwt", "jwk": dpop.public_jwk(key)})
+
+
+@pytest.mark.parametrize("signed", ["https://SC-SERVER.test:443/v1/jobs",
+                                    "HTTPS://Sc-Server.Test/v1/jobs",
+                                    "https://sc-server.test:443/v1/jobs?x=1"])
+def test_htu_is_compared_canonical_on_both_sides(key, signed):
+    '''Identity *The proof rules*: scheme and host lowercased and a default
+    port omitted, on the proof's side and on the server's, so `:443` or a
+    mixed-case host is accepted.'''
+    dpop.verify_proof(proof_with_htu(key, "GET", signed), "GET", URL)
+    dpop.verify_proof(proof_with_htu(key, "GET", URL), "GET", signed)
+
+
+@pytest.mark.parametrize("other", ["https://sc-server.test:8443/v1/jobs",
+                                   "http://sc-server.test/v1/jobs",
+                                   "https://sc-server.test/v1/Jobs"])
+def test_canonical_is_not_lax(key, other):
+    '''Another port, another scheme or another path is another URI: the
+    path is compared as sent.'''
+    with pytest.raises(dpop.DPoPError, match="htu"):
+        dpop.verify_proof(proof_with_htu(key, "GET", other), "GET", URL)
+
+
+def test_the_client_signs_the_canonical_form(key):
+    import jwt
+
+    proof = dpop.sign_proof(key, "GET", "https://SC-SERVER.test:443/v1/jobs?state=running")
+
+    assert jwt.decode(proof, options={"verify_signature": False})["htu"] == URL
+
+
 def test_a_proof_is_bound_to_its_method(key):
     proof = dpop.sign_proof(key, "POST", URL)
 

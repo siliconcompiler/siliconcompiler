@@ -291,6 +291,54 @@ def test_ungranted_with_no_agreement_says_asking_will_not_help(fake_v1, results,
     assert "not something asking would change" in caplog.text
 
 
+def test_an_artifact_still_being_described_is_asked_again_then_fetched(
+        fake_v1, results, nop_project, monkeypatch):
+    '''🔴 Surface D306: `fetchable: false` with neither `blocked_by` nor
+    `access_request_url` is fetched once, since a listing cannot tell *still
+    being described* from *no path to yes*. `409 not-ready` says to wait its
+    `Retry-After` and ask again.'''
+    slept = []
+    monkeypatch.setattr("siliconcompiler.remote.client.results.time.sleep", slept.append)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0", fetchable=False)]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
+                  problem("not-ready", 409, artifact_kind="node"), status=409,
+                  content_type="application/problem+json", headers={"Retry-After": "3"})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
+                  tarball(["outputs/gcd.pkg.json"]), content_type="application/gzip")
+
+    assert results.fetch("j1") == 1
+    assert slept == [3.0]
+
+
+def test_any_other_answer_to_that_one_fetch_is_final(fake_v1, results, monkeypatch, caplog):
+    slept = []
+    monkeypatch.setattr("siliconcompiler.remote.client.results.time.sleep", slept.append)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0", fetchable=False)]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
+                  problem("artifact-not-approved", 403), status=403,
+                  content_type="application/problem+json")
+
+    with caplog.at_level("WARNING"):
+        assert results.fetch("j1") == 0
+
+    assert not slept
+    assert len([c for c in fake_v1.calls
+                if c.request.url.endswith("/artifacts/art-node-stepone-0")]) == 1
+    assert "may not have this" in caplog.text
+
+
+def test_an_artifact_that_names_a_way_to_yes_is_never_fetched(fake_v1, results):
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("node", "stepone", "0", fetchable=False,
+                 access_request_url="https://sc-server.test/ask")]})
+
+    results.fetch("j1")
+
+    assert not [c for c in fake_v1.calls if "/artifacts/art-" in c.request.url]
+
+
 def test_the_cases_are_different_sentences(results):
     '''Collapsing them answers "where did my results go" with the one sentence
     that fits none of the cases.'''

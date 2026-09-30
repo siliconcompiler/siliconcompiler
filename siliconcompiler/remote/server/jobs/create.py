@@ -11,7 +11,7 @@ import uuid
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from siliconcompiler.remote import owners
+from siliconcompiler.remote import environment, owners
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
     CREATE_MEMBERS, DESCRIPTOR_MEMBERS, REUSABLE_STATES, _continuations, _declared_sources,
@@ -153,6 +153,13 @@ class CreateMixin:
         job_id = str(uuid.uuid4())
         device_id = session.device_id
 
+        # 🔴 The wheel that answers a `python` ask replaces its listed entry,
+        # asked at create as after submit (surface D306). This server's create
+        # asks only for dataroots, so none is recorded today; one that asks
+        # for a package would have its wheel accepted in the first archive.
+        answered = sorted({environment.canonical(item["name"]) for item in asked or []
+                           if item.get("kind") == "python" and item.get("name")})
+
         def admit():
             # 🔴 Counted again, inside the transaction that inserts: the
             # checks above answer early, and these are what hold the ceiling
@@ -162,11 +169,13 @@ class CreateMixin:
             self._store.execute(
                 "INSERT INTO jobs (id, user_id, device_id, state, design, jobname, "
                 "                  descriptor, create_idempotency_key, run_hash, "
-                "                  job_identity, upload_sources, image_id, python_packages) "
-                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "                  job_identity, upload_sources, image_id, python_packages, "
+                "                  python_answered) "
+                "VALUES (?, ?, ?, 'created', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (job_id, session.user_id, device_id, design, jobname,
                  json.dumps(descriptor), idempotency_key, run_hash, identity,
-                 json.dumps(asked) if asked else None, image_id, stored_packages))
+                 json.dumps(asked) if asked else None, image_id, stored_packages,
+                 json.dumps(answered) if answered else None))
             for step, index, from_job in continuations:
                 self._store.execute(
                     'INSERT INTO job_continuations (job_id, step, "index", from_job_id) '

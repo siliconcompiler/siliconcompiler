@@ -272,15 +272,17 @@ class Transport:
                 stream: bool = False,
                 on_v1: bool = True,
                 oauth: bool = False,
+                absolute: bool = False,
                 _attempt: int = 0,
                 _waits: int = 0,
                 _nonced: bool = False) -> requests.Response:
         '''Send one request, proof and all.
 
         ``expect_redirect`` says the caller expects a ``303`` and follows it
-        itself; a redirect nobody expected is the edge.
+        itself; a redirect nobody expected is the edge. ``absolute`` takes
+        ``path`` as a whole URL the server gave, such as a `Link` target.
         '''
-        url = self.url(path) if on_v1 else join_url(self.origin, path)
+        url = path if absolute else self.url(path) if on_v1 else join_url(self.origin, path)
 
         if authenticated and self.access_token is None:
             # Expired by its own `expires_in`, or never had: one refresh, or a
@@ -303,7 +305,7 @@ class Transport:
         again = dict(method=method, path=path, authenticated=authenticated, data=data,
                      json_body=json_body, params=params, headers=headers,
                      expect_redirect=expect_redirect, stream=stream, on_v1=on_v1,
-                     oauth=oauth, _nonced=_nonced)
+                     oauth=oauth, absolute=absolute, _nonced=_nonced)
 
         try:
             response = self._session.request(
@@ -387,6 +389,8 @@ class Transport:
             # is a refresh that fails, asks for a refresh, and fails again.
             if again["authenticated"] and slug == "invalid-token":
                 self._access_token = None
+                if self._credentials is not None:
+                    self._credentials.forget_access_token()
                 self._renew()
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
@@ -531,7 +535,7 @@ class Transport:
         '''Follow a 303 by hand, with this session left behind.
 
         No `Authorization` and no proof, whatever the target's origin; never
-        from an `https` API to plain `http`; operator headers only to the API's
+        to another scheme than the API's; operator headers only to the API's
         own origin (:meth:`operator_headers`). `kind` is `storage` or `stream`,
         and names it in a failure.
         '''
@@ -544,9 +548,14 @@ class Transport:
         from urllib.parse import urljoin
         target = urljoin(response.url or self.base_url, target)
 
-        if urlsplit(self.base_url).scheme == "https" and urlsplit(target).scheme != "https":
-            raise RemoteError("the server redirected an https request to plain http, "
-                              "which this client does not follow")
+        # 🔴 One scheme throughout (contract rule 5): a deployment issues every
+        # URL on its API's scheme, so a redirect to another is followed in
+        # neither direction.
+        ours, theirs = urlsplit(self.base_url).scheme, urlsplit(target).scheme
+        if theirs != ours:
+            raise RemoteError(f"the server redirected an {ours} request to {theirs}, "
+                              "and a deployment is one scheme throughout: this client "
+                              "does not follow it")
 
         sent = {"User-Agent": USER_AGENT, **self.operator_headers(target),
                 **dict(headers or {})}

@@ -6,8 +6,8 @@ Two places, and only one of them is secret:
 ``~/.sc/credentials``   which server, the upload whitelist, and the id the
                         server last knew this machine by. Not a secret.
 ``~/.sc/auth/``         the session store: the DPoP private key -- **the machine
-                        pin itself** -- each server's refresh token, and any
-                        operator header secret.
+                        pin itself** -- each server's refresh and access
+                        tokens, and any operator header secret.
 
 🔴 **The store's modes are normative** (identity §4): the directory is ``0700``
 and every file in it ``0600``, each created with its mode set, never ``open()``
@@ -15,10 +15,11 @@ then ``chmod()``. A store found wider than that stops the client rather than
 being repaired: a key that was readable by others may already be copied, so the
 user is told to fix the modes and rotate the key.
 
-🔴 **The access token is deliberately NOT written down.** It lives minutes and
-this store lives for weeks, so a stored one is stale far more often than it is
-useful. What is kept is bound to the key beside it: the server pins a session
-to a thumbprint and checks it on every refresh.
+🔴 **The access token is kept until it expires** (identity §3), in
+``sessions.json`` under the same ``0600``, so a later command reads with it
+rather than rotating the refresh token for every `/me`. Neither token is a
+bearer secret: each is bound to the key beside it, and the server checks the
+thumbprint on every request and every refresh.
 
 The store is a directory of its own for one reason: ``scheduler/docker.py``
 mounts ``~/.sc`` into task containers, and one path is something a narrower
@@ -32,7 +33,7 @@ import stat
 import sys
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import RemoteError
@@ -47,7 +48,7 @@ AUTH_DIRNAME = "auth"
 AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
 
 KEY_FILENAME = "dpop-key.pem"
-SESSIONS_FILENAME = "sessions.json"      # per server: refresh token, scope, grants
+SESSIONS_FILENAME = "sessions.json"      # per server: tokens, scope, grants
 HEADERS_FILENAME = "headers.json"        # per origin: operator header secrets
 CI_FILENAME = "ci-credential"            # the one-line CI secret, from -ci_setup
 LOCK_FILENAME = "lock"
@@ -60,6 +61,10 @@ _LEGACY_KEY_FILENAME = "credentials.key"
 
 _PRIVATE_DIR = 0o700
 _PRIVATE_FILE = 0o600
+
+# A stored access token with less left than this is not used: a command
+# starting on it would spend its first request on a refusal.
+ACCESS_TOKEN_MARGIN_SECONDS = 30
 
 
 class StoreError(RemoteError):
@@ -211,13 +216,40 @@ class Credentials:
         self._write_json(SESSIONS_FILENAME, sessions)
 
     def save_tokens(self, body: Dict[str, Any]) -> None:
-        '''Persist the half of a session that outlives this command: the
-        refresh token, and the scope it was granted.'''
+        '''Persist a session: the refresh token and the scope it was granted,
+        and the access token until it expires (identity §3), so a later
+        command -- a bare `sc-remote` included -- reads `/me` with it and
+        rotates nothing. An access token with no `expires_in` is not kept,
+        since nothing would say when to stop using it.'''
+        import time
+
+        access, expires_in = body.get("access_token"), body.get("expires_in")
+        kept = bool(access) and isinstance(expires_in, int) and expires_in > 0
         self.update_session(refresh_token=body.get("refresh_token"),
-                            scope=body.get("scope"))
+                            scope=body.get("scope"),
+                            access_token=access if kept else None,
+                            access_expires_at=time.time() + expires_in if kept else None)
+
+    def stored_access_token(self) -> Tuple[Optional[str], Optional[int]]:
+        '''The access token this store keeps for the server, and the whole
+        seconds it has left -- or ``(None, None)`` where there is none, or it
+        has under half a minute left, so no command starts on a token about
+        to lapse.'''
+        import time
+
+        token, until = self.session_value("access_token"), self.session_value(
+            "access_expires_at")
+        if not token or not isinstance(until, (int, float)):
+            return None, None
+        left = int(until - time.time())
+        return (token, left) if left > ACCESS_TOKEN_MARGIN_SECONDS else (None, None)
+
+    def forget_access_token(self) -> None:
+        self.update_session(access_token=None, access_expires_at=None)
 
     def forget_tokens(self) -> None:
-        self.update_session(refresh_token=None, scope=None)
+        self.update_session(refresh_token=None, scope=None, access_token=None,
+                            access_expires_at=None)
 
     ######################################################################
     # Operator headers and the CI secret

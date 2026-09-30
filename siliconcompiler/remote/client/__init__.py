@@ -8,6 +8,7 @@ CLI rename off the critical path.
 
 import logging
 import os
+import re
 import sys
 import time
 
@@ -18,7 +19,7 @@ from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, clean, describe)
 from siliconcompiler.remote.client.identity import local_subject, display_name
 from siliconcompiler.remote.client.transport import (
-    EdgeRefused, LoginRequired, OAuthRefusal, Transport, normalize_server)
+    EdgeRefused, LoginRequired, OAuthRefusal, Transport, normalize_server, origin_of)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
@@ -85,9 +86,11 @@ class Client:
     def _make_transport(self, base_url: str) -> Transport:
         transport = Transport(base_url, self.credentials.key(),
                               credentials=self.credentials)
-        # No access token: it is never written down, so a command starts with
-        # the refresh token and spends it once.
-        transport.set_tokens(None, self.credentials.refresh_token)
+        # 🔴 The access token the store keeps, until it expires (identity §3):
+        # a later command reads with it and rotates nothing. Without one, a
+        # command starts with the refresh token and spends it once.
+        access, left = self.credentials.stored_access_token()
+        transport.set_tokens(access, self.credentials.refresh_token, left)
         transport.relogin = self._relogin
         transport.fingerprint = self._fingerprint
         transport.warn = self.logger.warning
@@ -296,13 +299,21 @@ class Client:
     def login(self) -> Dict[str, Any]:
         '''Obtain a session, the way this deployment offers one.
 
-        🔴 **The login algorithm** (identity §3): `client_credentials` where it
-        is offered; token exchange where this caller holds a CI credential;
-        otherwise the device grant. What is offered is cached beside the
+        🔴 **The login algorithm** (identity §3): token exchange where this
+        caller holds a CI credential; otherwise `client_credentials` where it is
+        offered, and the device grant. What is offered is cached beside the
         credential, per server, and `unsupported_grant_type` -- from either
         OAuth endpoint -- is the only thing that says the cache is stale. A
         `401`, a timeout or a `503` means try again later, never switch.
+
+        🔴 **A caller holding a CI key tries token exchange first, whatever
+        the cache says, and never prints a `user_code`** (identity §2): which
+        credential it holds is something this client knows, and whether a
+        browser exists is not.
         '''
+        if self.credentials.ci_secret():
+            return self._ci_login()
+
         offered = self.credentials.session_value("grant_types_supported")
         if not offered:
             offered = self._grant_types()
@@ -324,15 +335,34 @@ class Client:
         self.credentials.update_session(grant_types_supported=offered)
         return offered
 
+    def _ci_login(self) -> Dict[str, Any]:
+        '''Token exchange, for a caller holding a CI key: tried first whatever
+        the cached grant list says, and on `unsupported_grant_type` once more
+        after re-reading `GET /v1`. A deployment that still offers none fails
+        here -- never a `user_code` nobody reads, and never another grant.'''
+        try:
+            return self._login_with(GRANT_TOKEN_EXCHANGE)
+        except OAuthRefusal as e:
+            if e.error != "unsupported_grant_type":
+                raise self._refused(e, GRANT_TOKEN_EXCHANGE) from None
+        if GRANT_TOKEN_EXCHANGE in self._grant_types():
+            try:
+                return self._login_with(GRANT_TOKEN_EXCHANGE)
+            except OAuthRefusal as e:
+                if e.error != "unsupported_grant_type":
+                    raise self._refused(e, GRANT_TOKEN_EXCHANGE) from None
+        raise RemoteError(
+            f"{self.base_url} has no non-interactive login for a CI credential: it "
+            "offers no token exchange. Run this job against a deployment that does, "
+            "or without the CI credential")
+
     def _choose(self, offered, tried) -> str:
-        '''The two non-interactive branches do not race: which credential this
-        caller holds decides. With no browser, token exchange comes before any
-        user code is printed.'''
+        '''Without a CI key: `client_credentials` first, since a
+        non-interactive grant that fails never reaches a person, then the
+        device grant.'''
         candidates = [grant for grant in offered if grant not in tried]
         if GRANT_CLIENT_CREDENTIALS in candidates:
             return GRANT_CLIENT_CREDENTIALS
-        if self.credentials.ci_secret() and GRANT_TOKEN_EXCHANGE in candidates:
-            return GRANT_TOKEN_EXCHANGE
         if GRANT_DEVICE_CODE in candidates:
             return GRANT_DEVICE_CODE
         raise RemoteError(
@@ -477,6 +507,8 @@ class Client:
             if e.error == "invalid_grant":
                 raise RemoteError(self._ci_refusal(e.reason)) from None
             raise
+        # Kept until it expires, so the next command in the job trades nothing.
+        self.credentials.save_tokens(body)
 
         left = body.get("session_expires_in")
         if isinstance(left, int) and left <= CI_EXPIRY_WARNING_SECONDS:
@@ -778,14 +810,7 @@ class Client:
         '''The machines that can act as me, following ``Link`` to the end.'''
         self.ensure_session()
 
-        items, params = [], {}
-        while True:
-            response = self.transport.request("GET", "devices", params=params)
-            items.extend(response.json().get("items") or [])
-            cursor = _next_cursor(response.headers.get("Link"))
-            if not cursor:
-                return items
-            params = {"cursor": cursor}
+        return self._pages("devices")
 
     def revoke_device(self, device_id: str) -> None:
         '''Revoke a machine, ending every session it holds.'''
@@ -1015,20 +1040,7 @@ class Client:
         never named, which silently skips rows.
         '''
         self.ensure_session()
-
-        params = _filters(filters)
-        items = []
-        path = "jobs"
-
-        while True:
-            response = self.transport.request("GET", path, params=params)
-            items.extend(response.json().get("items") or [])
-
-            link = response.headers.get("Link")
-            cursor = _next_cursor(link)
-            if not cursor:
-                return items
-            params = dict(params, cursor=cursor)
+        return self._pages("jobs", _filters(filters))
 
     def cancel_job(self, job_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/cancel``. Idempotent, and the body is optional.
@@ -1038,15 +1050,17 @@ class Client:
         client says for itself -- with no host name, since every reader of the
         job sees it.
 
-        It is at most `MAX_CANCEL_REASON` characters, one line (surface D288):
-        a longer one is refused here, naming the limit, before anything is
-        sent, as the server would refuse it rather than cut it.
+        It is at most `MAX_CANCEL_REASON` Unicode code points, with no control
+        character (surface D288, D306): either is refused here, naming which,
+        before anything is sent, as the server would refuse it rather than cut
+        it.
         '''
-        if reason is not None and (len(reason) > MAX_CANCEL_REASON or
-                                   any(ord(c) < 32 or 127 <= ord(c) < 160 for c in reason)):
-            raise RemoteError(f"a cancel's reason is one line of at most "
-                              f"{MAX_CANCEL_REASON} characters, and this one is "
-                              f"{len(reason)}")
+        if reason is not None and len(reason) > MAX_CANCEL_REASON:
+            raise RemoteError(f"a cancel's reason is at most {MAX_CANCEL_REASON} "
+                              f"characters, and this one is {len(reason)}")
+        if reason is not None and any(ord(c) < 32 or 127 <= ord(c) < 160 for c in reason):
+            raise RemoteError("a cancel's reason is one line, with no control "
+                              "character, and this one has one")
         self.ensure_session()
 
         body = {"reason": reason or "cancelled from sc-remote"}
@@ -1071,19 +1085,27 @@ class Client:
         not-fetchable cases are five different sentences to a person.
         '''
         self.ensure_session()
+        return self._pages(f"jobs/{job_id}/artifacts", _filters(filters))
 
-        params = _filters(filters)
+    def _pages(self, path: str, params: Optional[Dict[str, Any]] = None) -> list:
+        '''A listing's `items`, following `Link` to the end.
+
+        🔴 **Each next page is the `rel="next"` target, requested as given**
+        (surface D306), never this request rebuilt around its cursor: the
+        server may carry anything else it needs in that URL. Only on the API's
+        own origin, since the request carries this session.
+        '''
+        response = self.transport.request("GET", path, params=params or None)
         items = []
-        path = f"jobs/{job_id}/artifacts"
-
         while True:
-            response = self.transport.request("GET", path, params=params)
             items.extend(response.json().get("items") or [])
-
-            cursor = _next_cursor(response.headers.get("Link"))
-            if not cursor:
+            target = _next_link(response.headers.get("Link"), response.url)
+            if not target:
                 return items
-            params = dict(params, cursor=cursor)
+            if origin_of(target) != self.transport.api_origin:
+                raise RemoteError("the server's next page is on another origin, and "
+                                  "this client sends its session only to its own")
+            response = self.transport.request("GET", target, absolute=True)
 
     def fetch_artifact(self, job_id: str, artifact_id: str, dest) -> str:
         '''``GET /v1/jobs/{id}/artifacts/{artifact_id}``, followed to the bytes.
@@ -1287,6 +1309,13 @@ class Client:
                 "before anything is uploaded -- until you install a version "
                 "this server accepts or an operator adds yours.")
 
+    @property
+    def ci_session(self) -> bool:
+        '''Whether this client's session is a CI credential's: one that no
+        person is at, and so one that never asks for a portal handover.'''
+        return self._mode == GRANT_TOKEN_EXCHANGE or \
+            self.credentials.session_value("login") == GRANT_TOKEN_EXCHANGE
+
     def portal(self, open_browser: bool = True, landing: str = None) -> str:
         '''Hand this machine's browser a session, and open it there.
 
@@ -1300,8 +1329,15 @@ class Client:
         single-use is what makes both worthless. It lives under a minute,
         because it is handed to a browser on the same machine and there is no
         legitimate slow path.
+
+        One route on every deployment, `POST /portal/session` (ui/access D15),
+        and never from a CI session, which the server refuses: nobody is at a
+        browser there.
         '''
         self.ensure_session()
+        if self.ci_session:
+            raise RemoteError("a CI session cannot hand a browser a session: nobody "
+                              "is at one")
 
         # Outside /v1, because /v1 is exactly the contract's endpoints and this
         # is not one of them.
@@ -1369,16 +1405,24 @@ def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
             for name, value in filters.items() if value is not None}
 
 
-def _next_cursor(link: Optional[str]) -> Optional[str]:
-    '''The `cursor` of a `rel="next"` link, or None on the last page.'''
-    if not link or 'rel="next"' not in link:
-        return None
+# One link-value of a `Link` header (RFC 8288 §3): a target, then its
+# parameters, each `;`-separated, with a value quoted or bare.
+_LINK_VALUE = re.compile(r'<([^>]*)>((?:\s*;\s*[^;,=\s]+(?:\s*=\s*(?:"[^"]*"|[^;,\s]*))?)*)')
+_LINK_PARAM = re.compile(r';\s*([^;,=\s]+)(?:\s*=\s*(?:"([^"]*)"|([^;,\s]*)))?')
 
-    from urllib.parse import parse_qs, urlsplit
 
-    target = link.split(">", 1)[0].lstrip("<")
-    values = parse_qs(urlsplit(target).query).get("cursor")
-    return values[0] if values else None
+def _next_link(header: Optional[str], base: str) -> Optional[str]:
+    '''The `rel="next"` target of a `Link` header, resolved against the
+    request it answered, or None on the last page. Any link-value in the
+    header, `rel` quoted or bare, and one of several space-separated
+    relations.'''
+    from urllib.parse import urljoin
+
+    for target, params in _LINK_VALUE.findall(header or ""):
+        for name, quoted, bare in _LINK_PARAM.findall(params):
+            if name.lower() == "rel" and "next" in (quoted or bare).lower().split():
+                return urljoin(base, target.strip())
+    return None
 
 
 def _fresh_key() -> str:

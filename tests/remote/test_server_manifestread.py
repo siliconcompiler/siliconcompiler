@@ -175,6 +175,21 @@ def test_a_masked_manifest_is_read_as_sent(server_client, key, token, job_archiv
     assert response.status_code == 202, response.get_json()
 
 
+def test_a_run_from_part_way_counts_only_the_nodes_it_runs(nop_project, tmp_path):
+    '''Surface D306: `node_count` is the nodes this job runs. The read the
+    `node-limit-exceeded` check counts from leaves out the nodes a `-from`
+    run copies, and so does the client's descriptor.'''
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    nop_project.option.add_from("steptwo")
+    tree = a_manifest(nop_project, tmp_path / "root")
+
+    read = manifestread.read(manifestread.request(tree, "gcd", "job0"))
+
+    assert [(node["step"], node["index"]) for node in read["nodes"]] == [("steptwo", "0")]
+    assert RemoteRun(nop_project, None)._flow_descriptor() == ("nopflow", 1)
+
+
 ###########################
 # What the read is given, and what it is not
 ###########################

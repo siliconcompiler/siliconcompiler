@@ -107,7 +107,8 @@ _NEXT_STEP = {
     "insufficient-scope": "This credential may not do that.",
     "session-ended": "Log in again with sc-remote -configure.",
     "invalid-dpop-proof": "The server did not accept this machine's key.",
-    "insecure-transport": "Use an https address for this server.",
+    "insecure-transport": "This server's address must be https: change it with "
+                          "sc-remote -configure. The request is not sent again.",
     "idempotency-key-reuse": "A retry changed the request; start a new job.",
     "invalid-cursor": "Start the listing again.",
     "prior-results-unavailable": "Run from an earlier step, or name a job of your "

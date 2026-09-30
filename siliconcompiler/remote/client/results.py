@@ -34,11 +34,12 @@ import logging
 import os
 import tarfile
 import tempfile
+import time
 
 from typing import Any, Dict, List, Optional
 
 from siliconcompiler import utils
-from siliconcompiler.remote.client.errors import RemoteError, clean
+from siliconcompiler.remote.client.errors import RemoteError, ServerProblem, clean
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
 
@@ -105,6 +106,10 @@ def _takeable(items):
 # ⚠️ And not `job.<something>.log` either: that is the pattern SiliconCompiler
 # rotates its own backups under, and it prunes all but the most recent few.
 REMOTE_JOB_LOG = "remote-job.log"
+
+# How many times an artifact still being described is asked for again, each
+# after the `Retry-After` its `409 not-ready` named.
+NOT_READY_ASKS = 10
 
 # Where the server's record of the job lands (surface D295): what it did
 # between create and dispatch, never inside the run's own log.
@@ -358,7 +363,13 @@ class Results:
                 # Already taken while the run was going.
                 continue
             if not item.get("fetchable"):
-                withheld.append(item)
+                got = self._fetch_once(job_id, item) if _names_no_way(item) else None
+                if got is None:
+                    withheld.append(item)
+                else:
+                    landed += got
+                    self._fetched.add(item["id"])
+                    self._landed += 1
                 continue
             try:
                 landed += self._retrieve(job_id, item)
@@ -379,6 +390,26 @@ class Results:
         # arrived as the nodes finished, and "2 of 26" reads like 24 failures.
         self.logger.info(f"Retrieved {self._landed} objects")
         return landed
+
+    def _fetch_once(self, job_id: str, item: Dict[str, Any]) -> Optional[int]:
+        '''An artifact listed `fetchable: false` that names neither an
+        agreement nor an approval, asked for once (surface D306): the listing
+        cannot tell one still being described from one with no path to yes,
+        and the fetch can. A `409 not-ready` says to wait its `Retry-After` and
+        ask again; any other answer is final. None where it did not land --
+        a kind with no home here is never asked for at all.'''
+        for asked in range(NOT_READY_ASKS + 1):
+            try:
+                return self._retrieve(job_id, item) or None
+            except ServerProblem as e:
+                if e.slug != "not-ready" or asked == NOT_READY_ASKS:
+                    logger.debug(f"{self._name(item)}: {e}")
+                    return None
+                time.sleep(max(1.0, e.retry_after or 1.0))
+            except RemoteError as e:
+                logger.debug(f"{self._name(item)}: {e}")
+                return None
+        return None
 
     ######################################################################
     # The five sentences
@@ -743,6 +774,13 @@ def _folded(key, step, index, ran) -> bool:
     return (len(key) >= 2 and key[0] in ("record", "metric")
             and key != ("record", "remoteid")
             and step is not None and index is not None and (step, index) in ran)
+
+
+def _names_no_way(item: Dict[str, Any]) -> bool:
+    '''Whether a not-fetchable artifact says nothing about why: not deleted,
+    and neither an agreement nor an approval named.'''
+    return not (item.get("deleted_at") or item.get("blocked_by")
+                or item.get("access_request_url"))
 
 
 def _day(timestamp: str) -> str:

@@ -102,6 +102,16 @@ def test_a_running_node_is_a_stream_and_says_so_only_in_its_content_type(
     assert response.headers["X-Accel-Buffering"] == "no"
 
 
+def test_the_stream_is_on_the_apis_scheme(server_client, key, token, running):
+    '''Contract rule 5: served on http, the stream URL is http too.'''
+    job_id, _ = running
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{job_id}/logs?step=place&index=0", token)
+
+    assert response.headers["Location"].startswith("http://localhost/")
+
+
 def test_the_capability_url_needs_its_signature(server, server_client, key,
                                                 token, running):
     job_id, _ = running
@@ -186,6 +196,24 @@ def test_resuming_from_the_last_id_has_no_gap_and_no_repeat(
 
     assert read_so_far + rest == log.read_text()
     assert "one" not in rest
+
+
+def test_logs_never_reads_last_event_id(server, server_client, key, token, running):
+    '''Surface D306: the header belongs on the stream request. Sent to
+    `/logs`, it changes nothing: the stream it hands out starts where one
+    asked for without it would.'''
+    job_id, log = running
+    log.write_text("one\ntwo\n")
+
+    response = call(server_client, key, "GET",
+                    f"/v1/jobs/{job_id}/logs?step=place&index=0", token,
+                    headers={"Last-Event-ID": "4"})
+    assert response.status_code == 303
+    finish(server, job_id)
+
+    read = frames(server_client.get(response.headers["Location"].split("http://localhost", 1)[1]))
+
+    assert "".join(d["text"] for e, _, d in read if e == "log") == "one\ntwo\n"
 
 
 def test_only_log_events_carry_an_id(server, server_client, key, token, running):

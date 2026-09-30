@@ -974,3 +974,19 @@ def test_a_session_ends_for_the_registrys_reasons_and_no_other():
 
     assert set(auth._ENDED) == set(SESSION_END_REASONS)
     assert set(auth._WIRE_REASON.values()) <= set(SESSION_END_REASONS)
+
+
+@pytest.mark.parametrize("signed", ["http://LOCALHOST/v1/me", "http://localhost:80/v1/me",
+                                    "HTTP://Localhost:80/v1/me"])
+def test_a_proof_signed_for_a_canonical_equivalent_is_accepted(server_client, key, token,
+                                                               signed):
+    '''🔴 Identity *The proof rules*: this server canonicalises the proof's
+    `htu` and its configured origin with the request's path before comparing,
+    so a client that signed `:80` or a mixed-case host is still accepted.'''
+    from test_dpop import proof_with_htu
+
+    response = server_client.get("/v1/me", headers={
+        "Authorization": f"DPoP {token}",
+        "DPoP": proof_with_htu(key, "GET", signed, access_token=token)})
+
+    assert response.status_code == 200, response.get_json()

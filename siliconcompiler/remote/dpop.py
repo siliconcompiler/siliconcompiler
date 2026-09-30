@@ -157,13 +157,27 @@ def sign_proof(key, method: str, url: str,
         headers={"typ": "dpop+jwt", "jwk": public_jwk(key)})
 
 
+# The port a scheme implies, omitted from a canonical `htu`.
+_DEFAULT_PORTS = {"http": "80", "https": "443"}
+
+
 def _htu(url: str) -> str:
-    '''The `htu` value: scheme, authority and path, with query and fragment
-    removed rather than normalised away.'''
-    from urllib.parse import urlsplit, urlunsplit
+    '''The `htu` value in its canonical form (identity *The proof rules*):
+    scheme and host lowercased, a default port omitted, the path as sent, and
+    no query or fragment. The client signs it, and the server compares it on
+    both sides, so a proof signed for `https://HOST:443/v1/me` is the one for
+    `https://host/v1/me`.'''
+    from urllib.parse import urlsplit
 
     parts = urlsplit(url)
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+    scheme = parts.scheme.lower()
+    host, port = parts.netloc.rpartition("@")[2].lower(), ""
+    # An IPv6 literal keeps its brackets, and its colons are not a port's.
+    if ":" in host and not host.endswith("]"):
+        host, _, port = host.rpartition(":")
+    if port == _DEFAULT_PORTS.get(scheme):
+        port = ""
+    return f"{scheme}://{host}{':' + port if port else ''}{parts.path}"
 
 
 def verify_proof(proof: str, method: str, url: str,
@@ -214,7 +228,9 @@ def verify_proof(proof: str, method: str, url: str,
 
     if claims["htm"].upper() != method.upper():
         raise DPoPError("proof htm does not match the request method")
-    if claims["htu"] != _htu(url):
+    # Both sides canonical: a client that signed `:443`, or a mixed-case host,
+    # still names this request.
+    if not isinstance(claims["htu"], str) or _htu(claims["htu"]) != _htu(url):
         raise DPoPError("proof htu does not match the request URI")
 
     issued = claims["iat"]

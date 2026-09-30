@@ -127,6 +127,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
                       SC_STREAMS=StreamLimiter(
                           config.limits["concurrent_log_streams"]))
 
+    _check_page_scheme(config["web_url_base"], app.config["SC_PUBLIC_ORIGINS"])
     _register_error_handlers(app)
     _warn_of_plaintext(app.config["SC_PUBLIC_ORIGINS"])
 
@@ -214,6 +215,23 @@ def _warn_of_plaintext(origins) -> None:
             "the signed storage route and the stream URL cross the network in the "
             "clear there. Serve https through a reverse proxy, and set public_origins "
             "to its https origin")
+
+
+def _check_page_scheme(web_url_base, origins) -> None:
+    '''🔴 A job's page is on a scheme this deployment is served on (contract
+    rule 5): every other URL it issues is built on the origin a request
+    arrived at, and `web_url` is the one built from a setting of its own.'''
+    from urllib.parse import urlsplit
+
+    if not web_url_base:
+        return
+    schemes = sorted({urlsplit(origin).scheme for origin in origins})
+    scheme = urlsplit(str(web_url_base)).scheme
+    if scheme not in schemes:
+        raise ValueError(
+            f"web_url_base is {web_url_base}, on {scheme or 'no scheme'}, and this "
+            f"deployment is served on {' and '.join(schemes)} ({', '.join(origins)}): a "
+            "deployment is one scheme throughout, so a job's page is on its scheme too")
 
 
 def _origins(values) -> List[str]:
