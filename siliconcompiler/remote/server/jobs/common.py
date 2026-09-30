@@ -406,11 +406,12 @@ class _NoLongerStaging(Exception):
 
 
 class _Absent(Exception):
-    '''Packages no configured index has: the job is sent back for them.'''
+    '''Packages the job is sent back for, as ``(name, why)``: a version no
+    configured index lists, or one it offers only as a source.'''
 
-    def __init__(self, names):
-        super().__init__(", ".join(names))
-        self.names = list(names)
+    def __init__(self, asked):
+        self.asked = list(asked)
+        super().__init__(", ".join(name for name, _ in self.asked))
 
 
 def _install_lines(record, where: str) -> List[str]:
@@ -420,8 +421,11 @@ def _install_lines(record, where: str) -> List[str]:
     added = ", ".join(f"{name}=={version}" for name, version in record.get("installed") or [])
     lines = [f"The job's Python packages, on {where}: installed "
              f"{added or f'nothing beyond what {where} holds'}"]
-    lines += [f"{name}=={asked} does not install on {where}; {got} from its release line "
-              "was installed instead"
+    yanked = set(record.get("yanked") or [])
+    lines += [(f"{name}=={asked} is yanked on its index, so {got} from its release line was "
+               "installed instead") if name in yanked else
+              (f"{name}=={asked} does not install on {where}; {got} from its release line "
+               "was installed instead")
               for name, (asked, got) in sorted((record.get("substituted") or {}).items())]
     ignored = record.get("ignored") or {}
     if ignored:
@@ -517,6 +521,20 @@ def _problem_from(outcome: Dict[str, Any]) -> ProblemError:
                         **members)
 
 
+def _sent_back_for(result: Dict[str, Any], packages=None) -> List[Tuple[str, str]]:
+    '''What an install sends the job back for, each with the probe's finding.'''
+    listed = {}
+    for pin in (packages.requirements + packages.constraints) if packages else ():
+        listed[environment.canonical(pin.name)] = pin.version
+    asked = [(name, f"no index this server installs from lists {name}"
+              + (f" at {listed[name]}" if name in listed else ""))
+             for name in result.get("absent") or []]
+    asked += [(name, "an index this server installs from offers it only as a source "
+                     "distribution, and this deployment builds none")
+              for name in result.get("source_only") or []]
+    return asked
+
+
 def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> ProblemError:
     '''What an install that will not resolve tells the job's owner: each
     package, its version, and the target Python and platform.'''
@@ -533,12 +551,19 @@ def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> Problem
                            "requirement": [spec] if spec else [], "available": []})
 
     refused = result.get("refused") or []
+    only_source = result.get("only_source") or []
     tail = "\n".join((result.get("tail") or "").splitlines()[-5:])
     return ProblemError(
         "software-unavailable", reason="uninstallable", unresolved=unresolved,
         detail=_bounded(
             f"the job's Python packages will not install{where} for {target}: "
             f"{', '.join(named) or 'the uploaded wheels'}"
+            # 🔴 Said, because it is the one the user can act on (surface
+            # D291): a compiled package with no wheel for this platform needs
+            # one published to the deployment's index.
+            + (f"; {', '.join(only_source)} has only a source distribution for it, "
+               "and this deployment builds none: publish a wheel for this platform "
+               "to its index" if only_source else "")
             + (f"; the build was refused {', '.join(refused)}, which the index "
                "allowlist does not name" if refused else "")
             + (f"\n{tail}" if tail else "")))

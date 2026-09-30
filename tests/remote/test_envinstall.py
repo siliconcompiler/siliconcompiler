@@ -46,7 +46,23 @@ def pip(monkeypatch):
     monkeypatch.setattr(subprocess, "run", fake)
     monkeypatch.setattr(pipbuild, "on_index", lambda name, indexes, proxy=None:
                         name not in fake.absent)
+
+    def listing(name, version, indexes, proxy=None):
+        # What the index lists at exactly that version: a wheel, unless told
+        # it lists nothing, only a yanked file, or only a source.
+        if name in fake.absent:
+            return {"wheels": [], "compiled": [], "sources": [], "yanked": []}
+        kind = fake.listed.get(name, "wheels")
+        found = {"wheels": [], "compiled": [], "sources": [], "yanked": []}
+        found[kind].append(f"{name}-{version}")
+        if kind == "sources" and name in fake.compiled:
+            found["compiled"].append(f"{name}-{version}-cp312-linux")
+        return found
+
+    monkeypatch.setattr(pipbuild, "listing", listing)
     fake.absent = set()
+    fake.listed = {}
+    fake.compiled = set()
     fake.calls = calls
     return fake
 
@@ -187,6 +203,7 @@ def test_a_package_no_index_has_is_absent_and_named(pip, tmp_path):
 
 def test_an_index_that_cannot_be_asked_is_the_servers_failure(pip, tmp_path, monkeypatch):
     monkeypatch.setattr(pipbuild, "on_index", lambda name, indexes, proxy=None: None)
+    monkeypatch.setattr(pipbuild, "listing", lambda name, version, indexes, proxy=None: None)
     pip.fail = "ERROR: No matching distribution found for scfake-bits==1.0"
 
     with pytest.raises(envinstall.InstallFailed) as raised:
@@ -238,4 +255,42 @@ def test_what_an_install_added_is_kept_beside_it_for_a_cached_one(pip, tmp_path,
 
     assert first == again and len(pip.calls) == 1
     assert fresh == cached == {"installed": [["scfake-bits", "2.0.1"]], "substituted": {},
-                               "ignored": {}}
+                               "ignored": {}, "yanked": []}
+
+
+def test_two_jobs_at_once_never_share_an_environment_or_a_cache(pip, tmp_path, monkeypatch):
+    '''🔴 Host mode (implementation-notes §L): two jobs staging in one server
+    are two threads, which the file lock does not keep apart -- the second to
+    ask for a set waits and reuses what the first finished, and two sets
+    install at once, each with a pip cache of its own.'''
+    import collections
+    import threading
+    import time
+
+    fake = subprocess.run
+
+    def slow(command, **kwargs):
+        time.sleep(0.3)
+        return fake(command, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", slow)
+    got, failed = [], []
+
+    def stage(pins):
+        try:
+            got.append(envinstall.install(packages(pins), [], tmp_path, LOG)[0])
+        except Exception as e:                                  # noqa: BLE001
+            failed.append(e)
+
+    threads = [threading.Thread(target=stage, args=(pins,)) for pins in
+               (["scfake-bits==1.0"], ["scfake-bits==1.0"], ["scfake-other==2.0"])]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert failed == []
+    assert sorted(collections.Counter(got).values()) == [1, 2]
+    assert len(pip.calls) == 2
+    caches = {command[command.index("--cache-dir") + 1] for command, _, _ in pip.calls}
+    assert len(caches) == 2

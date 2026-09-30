@@ -303,9 +303,11 @@ class StagingMixin:
         '''`staging` back to `awaiting_input` -- the one backwards edge
         (surface D130) -- naming what failed, and nothing else.
 
-        ``failed`` is ``(entry, why)`` pairs for dataroots, and ``python`` each
-        Python package no configured index has, which the client answers with
-        its wheel (surface *How it is built, while the job is staging*). The
+        ``failed`` is ``(entry, why)`` pairs for dataroots, and ``python`` is
+        ``(name, why)`` for each Python package the install could not have from
+        an index -- a version none lists, or one offered only as a source --
+        which the client answers with its wheel (surface *How it is built,
+        while the job is staging*). The
         transition says why for each: a job going backwards is the one move a
         person watching it will not expect, and "a source could not be
         fetched" tells them nothing about which or what to do.
@@ -319,18 +321,18 @@ class StagingMixin:
             if entry.wire not in asked:
                 asked.append(entry.wire)
                 reasons.append(f"{entry.kind} {entry.name} ({entry.dataroot}): {why}")
-        for name in python:
+        for name, why in python:
             wire = {"kind": "python", "name": name}
             if wire not in asked:
                 asked.append(wire)
-                reasons.append(f"the Python package {name}: no index this server "
-                               "installs from has it")
+                reasons.append(f"the Python package {name}: {why}")
         reason = (f"{len(asked)} source(s) this server cannot supply, so the client "
                   "is asked to send them -- " + "; ".join(reasons))
         self._note(job, [f"sent back for {one}" for one in reasons])
         # 🔴 Remembered: the wheel answering one replaces its listed entry, and
         # is the one wheel allowed to overlap the lists.
-        answered = sorted(set(json.loads(job["python_answered"] or "[]")) | set(python))
+        answered = sorted(set(json.loads(job["python_answered"] or "[]"))
+                          | {name for name, _ in python})
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET upload_sources = ?, python_answered = ?, "

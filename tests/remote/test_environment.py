@@ -2,12 +2,15 @@ import json
 import os
 import zipfile
 
+from pathlib import Path
+
 import pytest
 
 from conftest import outcome
 
 from siliconcompiler import Flowgraph
 from siliconcompiler.remote import environment
+from siliconcompiler.remote.server.jobs import pythonenv
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 
@@ -639,7 +642,10 @@ def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
     tree = jobs.job_root(job["owner"]["id"], job_id) / "gcd" / "job0"
     site = tree / environment.site_path()
     assert site.is_symlink()
-    assert str(site.resolve()).startswith(str(jobs.cache_dir(job["owner"]["id"]).resolve()))
+    # 🔴 The environment of its key, never one in the user's cache that two
+    # of their jobs could write at once.
+    assert site.resolve().parent == (Path(server.config["SC_DATADIR"])
+                                     / pythonenv.ENVIRONMENTS).resolve()
     assert sorted(entry for entry in os.listdir(site) if not entry.endswith("-info")) == \
         ["scfake_bits", "scfake_helper", "scfake_private"]
 

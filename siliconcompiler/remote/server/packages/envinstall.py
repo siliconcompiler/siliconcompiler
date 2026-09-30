@@ -3,9 +3,15 @@ Installing a job's Python packages on the host, while the job is staging.
 
 Where nodes run on this host -- this server without containers, dispatching
 locally -- the job's `python_packages` and its uploaded wheels are installed
-here while the job is `staging`, into a cache kept per user, so a package that
-will not install rejects the job before any node runs rather than failing the
-run. A deployment that runs containers builds a derived image instead --
+here while the job is `staging`, so a package that will not install rejects
+the job before any node runs rather than failing the run.
+
+🔴 **Each install is an environment of its own, named by its key, with a pip
+cache of its own** (implementation-notes §L), so no two jobs ever write one
+environment or one cache at once: the second to ask for a key waits on the
+first and reuses what it finished, as a builder's layer is reused.
+
+A deployment that runs containers builds a derived image instead --
 `envbuild` -- with the same install, `pipbuild`.
 
 🔴 **Nothing the job wrote is handed to pip.** The lists were held to their
@@ -23,6 +29,7 @@ import os
 import shutil
 import sys
 import sysconfig
+import threading
 import uuid
 
 from pathlib import Path
@@ -35,6 +42,14 @@ __all__ = ["InstallFailed", "HEADER", "install", "recorded", "digest"]
 
 HEADER = ("Written by sc-server from the job's python_packages; nothing the job "
           "wrote is handed to pip.")
+
+
+# One lock per environment, for the threads of this process: the file lock
+# beside it keeps out another process, and is none between two threads of one
+# -- POSIX record locks belong to the process -- which is what two jobs staging
+# in one server are.
+_BUILDING: Dict[str, threading.Lock] = {}
+_BUILDING_LOCK = threading.Lock()
 
 
 class InstallFailed(RuntimeError):
@@ -66,17 +81,19 @@ def recorded(target) -> Dict[str, Any]:
         with open(f"{target}.json") as f:
             found = json.load(f)
     except (OSError, ValueError):
-        return {"installed": [], "substituted": {}, "ignored": {}}
+        return {"installed": [], "substituted": {}, "ignored": {}, "yanked": []}
     return {"installed": [list(pair) for pair in found.get("installed") or []],
             "substituted": dict(found.get("substituted") or {}),
-            "ignored": dict(found.get("ignored") or {})}
+            "ignored": dict(found.get("ignored") or {}),
+            "yanked": list(found.get("yanked") or [])}
 
 
 def install(packages: environment.Packages, wheels: Sequence[str], root: Path, logger,
             constrain=(), indexes=(), timeout=None, echo=None) -> Tuple[str, Dict[str, Any]]:
-    '''A job's packages into a directory of their own, built once and shared
-    by every job of this user asking for the same set. Returns the directory
-    and what its install added (:func:`recorded`). Raises InstallFailed.
+    '''A job's packages into a directory of their own under ``root``, built
+    once and shared by every job asking for the same set, as a builder's layer
+    is. Returns the directory and what its install added (:func:`recorded`).
+    Raises InstallFailed.
 
     Keyed by this Python, this platform, what it holds, the indexes, the job's
     `requested_versions.python` names, the files this server writes and each wheel's
@@ -107,7 +124,9 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
 
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
-    with InterProcessLock(f"{target}.lock"):
+    with _BUILDING_LOCK:
+        held = _BUILDING.setdefault(str(target), threading.Lock())
+    with held, InterProcessLock(f"{target}.lock"):
         if target.is_dir():
             return str(target), recorded(target)
 
@@ -137,7 +156,8 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
                        "substituted": {name: list(pair) for name, pair in
                                        (result.get("substituted") or {}).items()},
                        "ignored": {name: list(pair) for name, pair in
-                                   (result.get("ignored") or {}).items()}}, f)
+                                   (result.get("ignored") or {}).items()},
+                       "yanked": list(result.get("yanked") or [])}, f)
         os.rename(staging, target)
 
     return str(target), recorded(target)

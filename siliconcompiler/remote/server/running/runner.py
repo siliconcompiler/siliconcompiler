@@ -210,9 +210,9 @@ def run(manifest: Path) -> int:
     try:
         _check_task_classes(project)
         # A node's own Python environment was installed while the job staged
-        # -- on the host, into the user's cache, or into a derived image -- so
-        # nothing is installed here, where a line that will not install could
-        # only fail the run.
+        # -- on the host, into an environment of its key, or into a derived
+        # image -- so nothing is installed here, where a line that will not
+        # install could only fail the run.
         project.run()
     except Exception as e:
         # The run failing is an outcome this reports, not an error in reporting.

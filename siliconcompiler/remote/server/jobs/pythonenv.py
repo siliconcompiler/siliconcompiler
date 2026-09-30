@@ -15,10 +15,14 @@ from typing import Any, Dict, List, Tuple
 from siliconcompiler.remote import environment
 from siliconcompiler.remote.server.jobs.common import (
     _Absent, _NoLongerStaging, _ServerFailure, _StagingTimedOut, _bounded, _build_refusal,
-    _install_lines, _python_names, logger)
+    _install_lines, _python_names, _sent_back_for, logger)
 from siliconcompiler.remote.server.outputs import record
 from siliconcompiler.remote.server.running.dispatch import DispatchError
 from siliconcompiler.remote.server.software import images
+
+
+# Where host mode keeps the environments it installs, each named by its key.
+ENVIRONMENTS = "python-envs"
 
 
 class PythonEnvMixin:
@@ -49,8 +53,8 @@ class PythonEnvMixin:
 
     def _install_on_host(self, job, summary) -> List[str]:
         '''Host mode: the job's Python packages installed while it stages,
-        into its user's cache, and linked where each node that runs the user's
-        Python finds them (`Task.get_runtime_environmental_variables`). Returns
+        into the environment of its key, and linked where each node that runs
+        the user's Python finds them (`Task.get_runtime_environmental_variables`). Returns
         each package no configured index has, for which the job is sent back
         -- empty once installed.
 
@@ -71,8 +75,10 @@ class PythonEnvMixin:
         self._phase(job["id"], "installing the job's Python packages")
         root = self.job_root(job["user_id"], job["id"])
         try:
+            # 🔴 An environment per key, never one per user: two jobs never
+            # write one at once, and a finished one is reused as a layer is.
             target, installed = envinstall.install(
-                packages, wheels, self.cache_dir(job["user_id"]) / "python-env", logger,
+                packages, wheels, self._datadir / ENVIRONMENTS, logger,
                 constrain=_python_names(job),
                 indexes=list(self._config["package_indexes"] or []),
                 timeout=max(1, self._staging_left(job["id"])),
@@ -81,8 +87,8 @@ class PythonEnvMixin:
         except envinstall.InstallFailed as e:
             if e.result.get("timed_out"):
                 raise _StagingTimedOut("installing the job's Python packages") from None
-            if e.result.get("absent"):
-                return list(e.result["absent"])
+            if e.result.get("absent") or e.result.get("source_only"):
+                return _sent_back_for(e.result, packages)
             if e.result.get("network") or e.result.get("returncode") == -1:
                 raise _ServerFailure(_bounded(
                     "the install of the job's Python packages could not reach an "
@@ -140,12 +146,14 @@ class PythonEnvMixin:
                 raise _ServerFailure(f"{node[0]}/{node[1]} has no image to install the "
                                      "job's Python packages on")
             key = images.derivation(base_ref.split("@", 1)[1], inputs["requirements"],
-                                    inputs["constraints"], digests, _python_names(job))
+                                    inputs["constraints"], digests, _python_names(job),
+                                    indexes=list(self._config["package_indexes"] or []),
+                                    source_builds=self._config["python_source_builds"])
             if key not in done:
                 try:
                     done[key] = self._derived_for(job, node, base_id, base_ref, key, inputs)
                 except _Absent as e:
-                    return plan, e.names
+                    return plan, e.asked
             image_id, ref = done[key]
             nodes[node] = image_id
             refs[image_id] = ref
@@ -207,6 +215,7 @@ class PythonEnvMixin:
                 "index_allowlist": list(self._config["index_allowlist"] or []),
                 # Where pip looks: the deployment's, never the job's.
                 "indexes": list(self._config["package_indexes"] or []),
+                "source_builds": bool(self._config["python_source_builds"]),
                 "timeout": timeout,
                 "comment": f"sc-server: a job's Python packages ({key[:12]})",
             }, indent=1))
@@ -245,7 +254,7 @@ class PythonEnvMixin:
                     f"the build of the job's Python packages on {base_ref} was lost "
                     "before it finished" + (f":\n{tail}" if tail else "")))
             if not result.get("ok") and result.get("reason") == "absent":
-                raise _Absent(list(result.get("absent") or []))
+                raise _Absent(_sent_back_for(result, inputs["packages"]))
             if not result.get("ok") and result.get("reason") != "uninstallable":
                 raise _ServerFailure(_bounded(
                     f"this server could not build the job's Python packages on "

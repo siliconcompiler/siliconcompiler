@@ -26,6 +26,7 @@ import logging
 import re
 import uuid
 
+from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
 
 from siliconcompiler.remote.environment import IMAGE_SITE
@@ -1269,11 +1270,13 @@ LAYER_PATH = IMAGE_SITE
 
 
 def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
-               constrain=()) -> str:
+               constrain=(), indexes=(), source_builds: bool = False) -> str:
     '''The cache key of a derived image (implementation-notes §L, *What it
     caches*): its base, the requirements and constraints files the server
-    wrote, each uploaded wheel's digest, and the job's sorted
-    `requested_versions.python` names.
+    wrote, each uploaded wheel's digest, the job's sorted
+    `requested_versions.python` names, and the index configuration -- the
+    indexes it installed from, in order, and whether source builds were on --
+    since a package set means something different from another index.
 
     The base's Python tag, and the versions of what it holds, are functions of
     its digest, so neither is asked for separately: each could only be learned
@@ -1282,8 +1285,50 @@ def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
 
     return hashlib.sha256(json.dumps(
         {"base": base_digest, "requirements": requirements, "constraints": constraints,
-         "wheels": sorted(wheels), "constrain": sorted(set(constrain))},
+         "wheels": sorted(wheels), "constrain": sorted(set(constrain)),
+         "indexes": list(indexes), "source_builds": bool(source_builds)},
         sort_keys=True).encode()).hexdigest()
+
+
+def drop_built(store, name: str, version: Optional[str], actor: str,
+               environments=None) -> List[str]:
+    '''Stop reusing every environment built with ``name`` in it -- at
+    ``version``, where one is given -- so the next job asking for that set
+    builds it again: each derived image holding it is retired, and, where
+    ``environments`` names host mode's directory, each environment there
+    holding it is removed. Returns what went, by reference or directory.
+
+    For a package found wrong after it was built: a yanked release, a broken
+    wheel, a security fix. The rows stay, retired, so what a job ran in stays
+    answerable.'''
+    import shutil
+
+    wanted = canonical_python(name)
+
+    def holds(pairs) -> bool:
+        return any(canonical_python(held) == wanted
+                   and (version is None or normalize(found) == normalize(version))
+                   for held, found in pairs)
+
+    dropped = []
+    for row in store.all("SELECT id, registry_ref, installed FROM images "
+                         "WHERE derived_from IS NOT NULL AND retired_at IS NULL"):
+        if holds(json.loads(row["installed"] or "[]")):
+            retire_image(store, row["id"], actor)
+            dropped.append(row["registry_ref"])
+
+    root = Path(environments) if environments else None
+    if root is not None and root.is_dir():
+        for recorded in sorted(root.glob("*.json")):
+            try:
+                pairs = json.loads(recorded.read_text()).get("installed") or []
+            except (OSError, ValueError):
+                continue
+            if holds(pairs):
+                shutil.rmtree(recorded.with_suffix(""), ignore_errors=True)
+                recorded.unlink(missing_ok=True)
+                dropped.append(str(recorded.with_suffix("")))
+    return dropped
 
 
 def derived_image(store, base_id: str, key: str) -> Optional[Dict[str, Any]]:

@@ -126,11 +126,13 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                    "--proxy-socket", f"{_PROXY}/proxy.sock"]
         for wheel in wheels:
             command += ["--wheel", f"{_REQ}/{WHEELS}/{wheel.name}"]
-        # The deployment's indexes, and a source distribution may be built:
-        # this container is the one place isolated enough to run its code.
+        # The deployment's indexes; and a source distribution may be built
+        # only where the operator turned source builds on -- this container is
+        # the one place isolated enough to run its code (surface D291).
         for index in spec.get("indexes") or []:
             command += ["--index-url", index]
-        command.append("--allow-source")
+        if spec.get("source_builds"):
+            command.append("--allow-source")
         config = build_config(base_spec, base / "rootfs", req, out, sockets, command)
         with open(bundle / "config.json", "w") as f:
             json.dump(config, f, indent=1)
@@ -154,10 +156,14 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                 "detail": "the build container did not run to the end:\n" + _tail(output)}
 
     facts = {"python": pip.get("python"), "version": pip.get("version"),
-             "platform": pip.get("platform"), "ignored": pip.get("ignored") or {}}
-    if pip.get("absent"):
-        # A package no configured index has: the job is sent back for it.
-        return {"ok": False, "reason": "absent", **facts, "absent": pip["absent"],
+             "platform": pip.get("platform"), "ignored": pip.get("ignored") or {},
+             "yanked": pip.get("yanked") or []}
+    if pip.get("absent") or pip.get("source_only"):
+        # A version no configured index lists, or one it offers only as a
+        # source distribution: the job is sent back for the client's wheel.
+        return {"ok": False, "reason": "absent", **facts,
+                "absent": pip.get("absent") or [],
+                "source_only": pip.get("source_only") or [],
                 "tail": pip.get("tail", "")}
     if pip.get("returncode") != 0:
         # 🔴 A refused host is policy, and says so; a network that did not
@@ -168,6 +174,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                     "detail": "the build could not reach an index:\n" + pip.get("tail", "")}
         return {"ok": False, "reason": "uninstallable", **facts,
                 "unresolved": pip.get("unresolved") or [], "refused": proxy.refused,
+                "only_source": pip.get("only_source") or [],
                 "tail": pip.get("tail", "")}
 
     site = out / "site"

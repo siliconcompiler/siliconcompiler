@@ -11,6 +11,8 @@ import sys
 import tarfile
 import tempfile
 
+from pathlib import Path
+
 import pytest
 
 from siliconcompiler.remote import environment
@@ -261,11 +263,20 @@ def wheel(where, name, version, requires=()):
     return path
 
 
+def placeholder(where, filename):
+    '''A file an index lists that pip never fetches: a source distribution
+    under `--only-binary`, or a wheel for another platform.'''
+    open(os.path.join(where, filename), "wb").close()
+
+
 @pytest.fixture
 def image_python(tmp_path):
     '''A Python that holds cocotb 2.0 -- in a venv of its own, as
     SiliconCompiler's images hold it -- and an index of wheels on disk: a
-    cocotb 1.9, and two testbench packages depending on cocotb.'''
+    cocotb 1.9, two testbench packages depending on cocotb, a cocotb-bus
+    0.3.7 built for another platform only, two packages published only as
+    source (one of them compiled elsewhere), and a release yanked from its
+    line.'''
     import glob
     import venv
 
@@ -281,13 +292,21 @@ def image_python(tmp_path):
     index.mkdir()
     wheel(index, "cocotb", "1.9")
     wheel(index, "cocotb_bus", "0.3.0", ["cocotb>=1.6"])
+    placeholder(index, "cocotb_bus-0.3.7-cp27-cp27m-win32.whl")
     wheel(index, "pyuvm", "3.0.0", ["cocotb<2.0,>=1.6"])
-    return image / "bin" / "python", simple_index(index)
+    placeholder(index, "scfake_pure-1.0.tar.gz")
+    placeholder(index, "scfake_fast-1.0.tar.gz")
+    placeholder(index, "scfake_fast-1.0-cp27-cp27m-win32.whl")
+    wheel(index, "scfake_old", "1.0")
+    wheel(index, "scfake_old", "1.1")
+    return image / "bin" / "python", simple_index(
+        index, yanked={"scfake_old-1.1-py3-none-any.whl"})
 
 
-def simple_index(flat):
+def simple_index(flat, yanked=()):
     '''A PEP 503 index on disk over a directory of wheels: what
-    `package_indexes` names, as a file: URL.'''
+    `package_indexes` names, as a file: URL -- each of ``yanked`` marked so,
+    as PEP 592 marks it.'''
     import re
 
     root = flat.parent / "simple"
@@ -296,13 +315,16 @@ def simple_index(flat):
         (root / project).mkdir(parents=True, exist_ok=True)
         os.replace(flat / name, root / project / name)
     for project in os.listdir(root):
-        links = "".join(f'<a href="{name}">{name}</a>\n'
+        links = "".join(f'<a href="{name}"{' data-yanked=""' if name in yanked else ''}>'
+                        f'{name}</a>\n'
                         for name in sorted(os.listdir(root / project)))
         (root / project / "index.html").write_text(f"<html><body>{links}</body></html>\n")
     return root.as_uri() + "/"
 
 
-def build_in(image_python, tmp_path, text, constraints="", wheels=()):
+def build_in(image_python, tmp_path, text, constraints="", wheels=(), offline=False):
+    '''One install in the image's Python -- from the index above, or, where
+    ``offline``, from no index at all: image-only mode.'''
     python, index = image_python
     listed, limited = requirements(tmp_path, text, constraints)
     env = {key: value for key, value in os.environ.items() if not key.startswith("PIP_")}
@@ -312,7 +334,8 @@ def build_in(image_python, tmp_path, text, constraints="", wheels=()):
         pytest.importorskip("pip").__file__)))
     subprocess.run([str(python), pipbuild.__file__, "--requirements", listed,
                     "--constraints", limited, "--site", str(tmp_path / "out" / "site"),
-                    "--result", str(tmp_path / "result.json"), "--index-url", index,
+                    "--result", str(tmp_path / "result.json"),
+                    *([] if offline else ["--index-url", index]),
                     *[part for path in wheels for part in ("--wheel", str(path))]],
                    env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return json.loads((tmp_path / "result.json").read_text())
@@ -348,14 +371,62 @@ def test_a_listed_version_the_image_holds_another_of_stays_the_images(image_pyth
     assert result["ignored"] == {"cocotb": ["1.9", "2.0"]}
 
 
-def test_a_version_the_index_lacks_is_taken_from_its_release_line(image_python, tmp_path):
-    '''§L's order: the exact version, else the newest in its line -- that
-    entry relaxed alone, and recorded.'''
+def test_a_version_the_index_lists_only_others_of_is_sent_back(image_python, tmp_path):
+    '''🔴 Absent is the exact version (surface D292): an index holding the
+    name at other versions says nothing about this one, which may be another
+    project's -- sent back for, and never taken from its release line.'''
+    result = build_in(image_python, tmp_path, "cocotb-bus==0.3.5\n")
+
+    assert result["returncode"] != 0
+    assert result["absent"] == ["cocotb-bus"]
+    assert not result.get("substituted")
+    assert not (tmp_path / "out").joinpath("site").exists()
+
+
+def test_a_version_with_no_file_for_this_platform_is_taken_from_its_line(image_python,
+                                                                         tmp_path):
+    '''§L's order: the exact version, else the newest in its line where that
+    version is listed and nothing of it installs here -- that entry relaxed
+    alone, and recorded.'''
     result = build_in(image_python, tmp_path, "cocotb-bus==0.3.7\n")
 
     assert result["returncode"] == 0, result.get("tail")
     assert result["installed"] == [["cocotb-bus", "0.3.0"]]
     assert result["substituted"] == {"cocotb-bus": ["0.3.7", "0.3.0"]}
+
+
+def test_a_pure_package_with_only_a_source_is_sent_back(image_python, tmp_path):
+    '''No source builds, and nothing in its line to take instead: the
+    client's wheel of its installed copy answers it -- and what else was
+    listed still installs, so one trip asks for it.'''
+    result = build_in(image_python, tmp_path, "scfake-pure==1.0\ncocotb-bus==0.3.0\n")
+
+    assert result["returncode"] != 0
+    assert result["source_only"] == ["scfake-pure"]
+    assert result["absent"] == []
+    assert not (tmp_path / "out").joinpath("site").exists()
+
+
+def test_a_compiled_package_with_only_a_source_here_is_uninstallable(image_python, tmp_path):
+    '''🔴 Built for another platform, and no source builds: no wheel of the
+    client's could run here either, so it is not sent back for one.'''
+    result = build_in(image_python, tmp_path, "scfake-fast==1.0\n")
+
+    assert result["returncode"] != 0
+    assert result["only_source"] == ["scfake-fast"]
+    assert not result.get("absent") and not result.get("source_only")
+
+
+def test_a_yanked_release_is_never_installed_and_its_line_is_recorded(image_python,
+                                                                      tmp_path):
+    '''PEP 592: pip installs a yanked file when pinned with `==`, so it is
+    held to its release line before pip runs, and the substitution said.'''
+    result = build_in(image_python, tmp_path, "scfake-old==1.1\n")
+
+    assert result["returncode"] == 0, result.get("tail")
+    assert result["installed"] == [["scfake-old", "1.0"]]
+    assert result["substituted"] == {"scfake-old": ["1.1", "1.0"]}
+    assert result["yanked"] == ["scfake-old"]
 
 
 def test_a_package_no_index_has_is_absent_not_uninstallable(image_python, tmp_path):
@@ -383,6 +454,38 @@ def test_an_uploaded_wheel_is_installed_with_the_rest(image_python, tmp_path):
     assert result["installed"] == [["cocotb-bus", "0.3.0"], ["scfake-helper", "0.1.0"]]
 
 
+def test_with_no_index_what_the_image_lacks_is_sent_back_for(image_python, tmp_path):
+    '''Image-only mode: a listed package the image lacks, and a wheel's own
+    dependency it lacks, both go back for their wheels -- a dependency found
+    only once its wheel arrives is a second trip, which is accepted.'''
+    made = tmp_path / "made"
+    made.mkdir()
+    helper = wheel(made, "scfake_helper", "0.1.0", ["scfake-needed>=1.0"])
+
+    result = build_in(image_python, tmp_path, "scfake-listed==1.0\n", wheels=[helper],
+                      offline=True)
+
+    assert result["returncode"] != 0
+    assert result["absent"] == ["scfake-listed", "scfake-needed"]
+    assert not (tmp_path / "out").joinpath("site").exists()
+
+
+def test_with_no_index_a_wheel_against_the_images_pins_is_uninstallable(image_python,
+                                                                        tmp_path):
+    '''🔴 Image-only mode's `uninstallable`: a wheel that will not install,
+    or that conflicts with what the image pins -- never one merely lacking a
+    dependency.'''
+    made = tmp_path / "made"
+    made.mkdir()
+    helper = wheel(made, "scfake_helper", "0.1.0", ["cocotb<2.0"])
+
+    result = build_in(image_python, tmp_path, "", wheels=[helper], offline=True)
+
+    assert result["returncode"] != 0
+    assert not result.get("absent") and not result.get("source_only")
+    assert any("cocotb" in name for name in result["unresolved"]), result
+
+
 @pytest.mark.parametrize("output,named,network", [
     ("ERROR: Could not find a version that satisfies the requirement numpy==9.9 "
      "(from versions: 1.0)\nERROR: No matching distribution found for numpy==9.9",
@@ -395,14 +498,15 @@ def test_an_uploaded_wheel_is_installed_with_the_rest(image_python, tmp_path):
      "found for numpy==2.0.1", ["numpy==2.0.1"], True),
 ])
 def test_a_failed_install_says_which_and_whether_it_was_the_network(
-        pip, tmp_path, output, named, network):
+        pip, tmp_path, monkeypatch, output, named, network):
     pip.output = output
     # A name this Python does not hold, or it is never handed to pip at all.
     listed, limited = requirements(tmp_path, "scnotheld==9.9\n")
+    # Every index has numpy, a dependency nothing pinned: what failed is the
+    # version, never the name.
+    monkeypatch.setattr(pipbuild, "on_index", lambda name, indexes, proxy=None: True)
 
-    # Every index has numpy: what failed is the version, never the name.
-    result = pipbuild.install(listed, limited, str(tmp_path / "site"),
-                              probe=lambda name: True)
+    result = pipbuild.install(listed, limited, str(tmp_path / "site"))
 
     assert result["returncode"] == 1
     assert (result["unresolved"], result["network"]) == (named, network)
@@ -540,7 +644,7 @@ def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
 
     assert result == {"ok": True, "ref": f"registry:5000/sc-tools@{digest('d')}",
                       "digest": digest("d"), "installed": [["numpy", "2.0.1"]],
-                      "substituted": {}, "ignored": {},
+                      "substituted": {}, "ignored": {}, "yanked": [],
                       "python": "cpython-312", "version": "3.12.3",
                       "platform": "linux-x86_64"}
     assert base_bundle.staged == [(spec["base_ref"], digest("b"), ["/sc_server"])]
@@ -560,22 +664,26 @@ def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
     assert not (workspace / "bundle").exists() and not (workspace / "out").exists()
 
 
+@pytest.mark.parametrize("source_builds", [False, True])
 def test_the_build_installs_from_the_deployments_indexes_and_may_build_from_source(
-        tmp_path, base_bundle, pushed):
+        tmp_path, base_bundle, pushed, source_builds):
     '''🔴 The indexes are configuration and a job names none; and this
     container, with no mounts and no way out but the proxy, is the one place
-    a source distribution's code may run.'''
+    a source distribution's code may run -- where the operator's
+    `python_source_builds` says it may, and nowhere by default.'''
     run = container({"returncode": 0, "python": "cpython-312", "version": "3.12.3",
                      "platform": "linux-x86_64", "installed": []})
     workspace, spec = workspace_for(tmp_path, base_bundle.root)
     spec["indexes"] = ["https://pypi.org/simple/", "https://extra.example/simple/"]
+    if source_builds:
+        spec["source_builds"] = True
 
     envbuild.build(spec, workspace, run=run)
 
     command = run.seen["command"]
     assert [command[at + 1] for at, part in enumerate(command) if part == "--index-url"] \
         == spec["indexes"]
-    assert "--allow-source" in command
+    assert ("--allow-source" in command) is source_builds
 
 
 def test_the_wheels_go_in_beside_the_lists(tmp_path, base_bundle, pushed):
@@ -782,13 +890,53 @@ def test_a_second_build_of_the_same_key_is_the_first(store):
 def test_the_key_is_the_base_the_lists_the_wheels_and_the_framework(store):
     '''§L, *What it caches*: whatever changes what the install gives the run
     changes the key.'''
-    def key(base="a", listed="numpy==2.0.1\n", limited="", wheels=(), names=("cocotb",)):
-        return images.derivation(digest(base), listed, limited, wheels, names)
+    def key(base="a", listed="numpy==2.0.1\n", limited="", wheels=(), names=("cocotb",),
+            indexes=(), source_builds=False):
+        return images.derivation(digest(base), listed, limited, wheels, names,
+                                 indexes=indexes, source_builds=source_builds)
 
     assert len({key(), key(base="b"), key(listed="numpy==2.0.2\n"),
                 key(limited="scapy==2.5.0\n"), key(wheels=["w1"]),
-                key(names=("cocotb", "pyuvm"))}) == 6
+                key(names=("cocotb", "pyuvm")),
+                key(indexes=["https://mirror.example/simple/"]),
+                key(source_builds=True)}) == 8
     assert key(wheels=["w1", "w2"]) == key(wheels=["w2", "w1"])
+
+
+def test_a_distribution_found_wrong_after_it_was_built_is_built_again(store, capsys):
+    '''`drop-built`: every derived image holding it retired, and every host
+    environment holding it removed -- at a version, or at any -- so the next
+    job asking for that set builds it again. What holds anything else stays,
+    and the retired rows stay answerable.'''
+    from siliconcompiler.remote.server.jobs.pythonenv import ENVIRONMENTS
+    from siliconcompiler.remote.server.software import registry
+
+    images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('e')}", digest("e"),
+                            "k1", [("numpy", "2.0.1")], note="")
+    other = images.register_derived(store, store.base, f"ghcr.io/x/sc@{digest('f')}",
+                                    digest("f"), "k2", [("scapy", "2.5.0")], note="")
+    environments = Path(ENVIRONMENTS)
+    for name, installed in (("cpython-312-aaaa", [["NumPy", "2.0.1"]]),
+                            ("cpython-312-bbbb", [["numpy", "1.26.4"]])):
+        (environments / name).mkdir(parents=True)
+        (environments / f"{name}.json").write_text(json.dumps({"installed": installed}))
+
+    assert registry.main(["-datadir", ".", "drop-built", "numpy==2.0.2"]) == 0
+    assert capsys.readouterr().out == "nothing built holds numpy==2.0.2\n"
+
+    assert registry.main(["-datadir", ".", "drop-built", "numpy==2.0.1"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        f"dropped ghcr.io/x/sc@{digest('e')}",
+        f"dropped {(environments / 'cpython-312-aaaa').resolve()}"]
+    assert images.derived_image(store, store.base, "k1") is None
+    assert images.derived_image(store, store.base, "k2")["id"] == other
+    assert sorted(os.listdir(environments)) == ["cpython-312-bbbb", "cpython-312-bbbb.json"]
+    assert store.one("SELECT retired_at FROM images WHERE derivation = 'k1'")["retired_at"]
+
+    # By name alone: every version.
+    assert images.drop_built(store, "numpy", None, store.actor,
+                             environments=environments) == \
+        [str(environments / "cpython-312-bbbb")]
 
 
 def test_the_catalogue_keeps_what_the_server_built_apart(store):

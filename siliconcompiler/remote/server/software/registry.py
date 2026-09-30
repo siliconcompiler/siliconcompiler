@@ -321,6 +321,21 @@ def _cmd_retire(store, args) -> int:
     return 0
 
 
+def _cmd_drop_built(store, args) -> int:
+    '''Every built Python environment holding a distribution, dropped, so the
+    next job asking for it builds it again.'''
+    from siliconcompiler.remote.server.jobs.pythonenv import ENVIRONMENTS
+
+    name, _, version = args.distribution.partition("==")
+    dropped = images.drop_built(store, name, version or None, _operator(store),
+                                environments=Path(args.datadir).resolve() / ENVIRONMENTS)
+    for one in dropped:
+        print(f"dropped {one}")
+    if not dropped:
+        print(f"nothing built holds {args.distribution}")
+    return 0
+
+
 def _cmd_resolve(store, args) -> int:
     '''Ask what a job would be placed in, without submitting one.
 
@@ -536,6 +551,14 @@ def _parser() -> argparse.ArgumentParser:
     retire.add_argument("what", choices=("image", "version", "software"))
     retire.add_argument("name", help="an image id, name==version, or a name")
     retire.set_defaults(run=_cmd_retire)
+
+    drop = commands.add_parser(
+        "drop-built",
+        help="stop reusing every built Python environment holding a distribution, "
+             "or one at a version: derived images are retired, host environments "
+             "removed, and the next job builds its set again")
+    drop.add_argument("distribution", help="a name, or name==version")
+    drop.set_defaults(run=_cmd_drop_built)
 
     resolve = commands.add_parser(
         "resolve", help="what a job would be placed in, without submitting one")

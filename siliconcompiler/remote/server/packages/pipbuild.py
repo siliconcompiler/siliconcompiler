@@ -35,18 +35,26 @@ a ``.pth`` that adds this interpreter's own site directories.
 
 **Wheels only** (`--only-binary :all:`) unless ``--allow-source``: installing
 from source runs the package's own code, so a source distribution is built only
-in the isolated builder, whose one way out is the proxy.
+in the isolated builder, whose one way out is the proxy, and only where the
+operator turned source builds on.
 
 **From the deployment's indexes** (``--index-url``, the primary first), never
-from any configuration pip would otherwise read.
+from any configuration pip would otherwise read: ``--isolated``, and a cache of
+the install's own.
 
 **Each entry at its exact version, else within its release line** (§L's
-order): where a listed version has nothing that installs for this Python and
-platform, that one entry is tried again as ``X.*`` -- ``0.Y.*`` below 1.0 --
-and resolved again, and what was installed instead is recorded under
-``substituted``. **A package no configured index has at all** is recorded
-under ``absent`` rather than relaxed: the job is sent back for its wheel. One
-that conflicts with a pinned distribution is uninstallable as it stands.
+order): where an index lists the version and nothing of it installs for this
+Python and platform, that one entry is tried again as ``X.*`` -- ``0.Y.*``
+below 1.0 -- and resolved again, and what was installed instead is recorded
+under ``substituted``. **A version no configured index lists** is recorded
+under ``absent`` rather than relaxed, however many other versions of the name
+an index holds: the job is sent back for its wheel. **A yanked release** is
+never installed, and takes its line's fallback, recorded under ``yanked`` too.
+**Only a source distribution for the target**, with source builds off, is
+sent back for as ``source_only`` where nothing shows it compiled, and is
+uninstallable -- ``only_source`` -- where the index has a platform's wheel of
+it. One that conflicts with a pinned distribution is uninstallable as it
+stands.
 
 Usage::
 
@@ -189,37 +197,163 @@ def release_line(version: str):
     return f"0.{int(minor)}.*" if minor is not None else None
 
 
-def on_index(name, indexes, proxy=None):
-    '''Whether any of ``indexes`` has a project page for ``name`` at all
-    (PEP 503): True, False, or None where one could not be asked.
+def _opener(proxy):
+    import urllib.request
 
-    What tells *a package no index has* -- the job is sent back for its wheel
-    -- from *one no version of which installs here*, which pip's own output
-    says the same way.'''
+    return urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
+
+
+def _page(index, name, proxy):
+    '''One index's project page for ``name`` (PEP 503), as ``(files, ok)``:
+    each file it lists as ``(filename, yanked)``, and False where the index
+    could not be asked. A page it does not have lists nothing.
+
+    PEP 691's JSON where the index serves it, PEP 503's HTML otherwise, with
+    PEP 592's ``data-yanked`` read from either. A ``file:`` index is a
+    directory, read through its ``index.html`` as pip reads it, or listed
+    where it has none -- which marks nothing yanked.'''
+    import html.parser
     import urllib.error
     import urllib.request
-    from urllib.parse import urlsplit
+    from urllib.parse import unquote, urlsplit
 
-    opener = urllib.request.build_opener(
-        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
-    for index in indexes or ():
-        url = f"{index.rstrip('/')}/{canonical(name)}/"
-        if url.startswith("file:"):
-            if os.path.isdir(urllib.request.url2pathname(urlsplit(url).path)):
-                return True
-            continue
+    url = f"{index.rstrip('/')}/{canonical(name)}/"
+    if url.startswith("file:"):
+        where = urllib.request.url2pathname(urlsplit(url).path)
+        if not os.path.isdir(where):
+            return [], True
+        page = os.path.join(where, "index.html")
+        if not os.path.isfile(page):
+            return [(entry, False) for entry in sorted(os.listdir(where))
+                    if os.path.isfile(os.path.join(where, entry))], True
+        try:
+            with open(page, encoding="utf-8", errors="replace") as f:
+                kind, body = "text/html", f.read()
+        except OSError:
+            return [], False
+    else:
         request = urllib.request.Request(url, headers={
             "Accept": "application/vnd.pypi.simple.v1+json, text/html;q=0.1"})
         try:
-            with opener.open(request, timeout=30) as answer:
-                if answer.status == 200:
-                    return True
+            with _opener(proxy).open(request, timeout=30) as answer:
+                kind = answer.headers.get("Content-Type", "")
+                body = answer.read(64 * 1024 * 1024).decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
             if e.code in (404, 410):
-                continue
-            return None
+                return [], True
+            return [], False
         except (urllib.error.URLError, OSError, ValueError):
+            return [], False
+
+    if "json" in kind:
+        try:
+            listed = json.loads(body).get("files") or []
+        except ValueError:
+            return [], False
+        return [(entry.get("filename") or "", bool(entry.get("yanked")))
+                for entry in listed if isinstance(entry, dict)], True
+
+    class _Anchors(html.parser.HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.found, self._yanked, self._in = [], False, False
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "a":
+                self._in, self._text = True, ""
+                self._yanked = any(key == "data-yanked" for key, _ in attrs)
+                self._href = dict(attrs).get("href") or ""
+
+        def handle_data(self, data):
+            if self._in:
+                self._text += data
+
+        def handle_endtag(self, tag):
+            if tag == "a" and self._in:
+                self._in = False
+                named = self._text.strip() or unquote(
+                    urlsplit(self._href).path.rsplit("/", 1)[-1])
+                self.found.append((named, self._yanked))
+
+    anchors = _Anchors()
+    anchors.feed(body)
+    return anchors.found, True
+
+
+def _version_key(version: str):
+    '''A version as PEP 440 compares release segments: `1.0` is `1.0.0`.'''
+    text = (version or "").strip().lower()
+    match = re.match(r"^v?(\d+(?:\.\d+)*)(.*)$", text)
+    if not match:
+        return (text,)
+    release = [int(part) for part in match.group(1).split(".")]
+    while len(release) > 1 and release[-1] == 0:
+        release.pop()
+    return (tuple(release), re.sub(r"[-_]", ".", match.group(2)))
+
+
+# A source distribution's file name: `<name>-<version>.<one of these>`.
+_SOURCES = (".tar.gz", ".zip", ".tar.bz2", ".tar.xz", ".tgz")
+
+
+def _file_of(filename: str, name: str, version: str):
+    '''``"wheel"``, ``"compiled"`` or ``"source"`` where ``filename`` is a
+    file of ``name`` at exactly ``version``; None otherwise.'''
+    lowered = filename.lower()
+    if lowered.endswith(".whl"):
+        parts = filename[:-4].split("-")
+        if len(parts) < 5 or canonical(parts[0]) != canonical(name) or \
+                _version_key(parts[1]) != _version_key(version):
             return None
+        pure = parts[-2] == "none" and parts[-1] == "any"
+        return "wheel" if pure else "compiled"
+    for suffix in _SOURCES:
+        if lowered.endswith(suffix):
+            stem = filename[:-len(suffix)]
+            project, _, found = stem.rpartition("-")
+            if canonical(project) == canonical(name) and \
+                    _version_key(found) == _version_key(version):
+                return "source"
+    return None
+
+
+def listing(name, version, indexes, proxy=None):
+    '''What the configured indexes list of ``name`` at exactly ``version``:
+    ``{"wheels", "compiled", "sources", "yanked"}``, file names each, or None
+    where an index could not be asked.
+
+    🔴 **Exact-version matching** (surface D292): a version no index lists is
+    absent however many other versions of that name it holds, so an unrelated
+    project that happens to share the name is never installed in its place.
+    A yanked file is listed as yanked only (PEP 592), and never installed.'''
+    found = {"wheels": [], "compiled": [], "sources": [], "yanked": []}
+    for index in indexes or ():
+        files, ok = _page(index, name, proxy)
+        if not ok:
+            return None
+        for filename, yanked in files:
+            kind = _file_of(filename, name, version)
+            if kind is None:
+                continue
+            if yanked:
+                found["yanked"].append(filename)
+            else:
+                found[{"wheel": "wheels", "compiled": "compiled",
+                       "source": "sources"}[kind]].append(filename)
+    return found
+
+
+def on_index(name, indexes, proxy=None):
+    '''Whether any of ``indexes`` lists ``name`` at all (PEP 503): True,
+    False, or None where one could not be asked. For a dependency nothing
+    pinned, whose version is pip's to choose.'''
+    for index in indexes or ():
+        files, ok = _page(index, name, proxy)
+        if not ok:
+            return None
+        if files:
+            return True
     return False
 
 
@@ -229,8 +363,9 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
     ``constraints``, against this interpreter, from ``indexes`` -- the primary
     first -- and from source only where ``allow_source``. Returns the result
     record; ``echo`` is handed pip's output, whole. ``probe`` answers
-    :func:`on_index`, for tests. ``timeout`` bounds the whole install, every
-    pip run within it; past it the record says ``timed_out``.'''
+    :func:`listing` -- ``(name, version)`` -- for tests. ``timeout`` bounds the
+    whole install, every pip run within it; past it the record says
+    ``timed_out``.'''
     import glob
     import time
     import venv
@@ -303,9 +438,14 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                         "https_proxy": proxy, "PYTHONNOUSERSITE": "1", "HOME": work})
         env["TMPDIR"] = work
 
+        # 🔴 `--isolated`, and the indexes named here: neither the image's pip
+        # configuration nor the environment can change where packages come
+        # from. A cache of this install's own, inside its work directory, so no
+        # two installs ever write one.
         command = [os.path.join(environment, "bin", "python"), "-m", "pip", "install",
-                   "--no-input", "--disable-pip-version-check",
-                   "--no-cache-dir", "--no-compile", "--no-warn-script-location"]
+                   "--isolated", "--no-input", "--disable-pip-version-check",
+                   "--cache-dir", os.path.join(work, "pip-cache"),
+                   "--no-compile", "--no-warn-script-location"]
         if not allow_source:
             command += ["--only-binary", ":all:"]
         if not indexes:
@@ -348,64 +488,140 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                         return field, one
             return None, None
 
-        asked = probe or (lambda name: on_index(name, indexes, proxy))
-        relaxed, absent = {}, []
+        look = probe or (lambda name, version: listing(name, version, indexes, proxy))
+        found_at: dict = {}
+
+        def listed(key, version):
+            if (key, version) not in found_at:
+                found_at[(key, version)] = look(key, version)
+            return found_at[(key, version)]
+
+        relaxed, absent, source_only, compiled_only, yanked = {}, [], [], [], []
+
+        def relax(one) -> bool:
+            '''One entry, to its release line: once, and only where it has one.'''
+            series = release_line(one[1])
+            if one[0] in relaxed or not series:
+                return False
+            relaxed[one[0]] = one[1]
+            one[1] = series
+            return True
+
+        def cannot_ask(key):
+            # An index that could not be asked says nothing about the package:
+            # this server's failure, not the job's.
+            result.update({"returncode": -1, "network": True, "unresolved": [],
+                           "tail": f"an index could not be asked about {key}"})
+            return result
+
+        # 🔴 **Each listed entry looked up before pip runs** (surface D292): a
+        # requirement at a version no index lists is absent, whatever other
+        # versions of the name it holds, and goes back for its wheel -- never
+        # substituted; and a yanked release, which pip would install when
+        # pinned with ==, falls back to its release line instead (PEP 592). A
+        # constraint is only held back from yanked here: whether one no index
+        # lists matters is up to what the install needs.
+        if indexes:
+            for field in ("requirements", "constraints"):
+                for one in list(lists[field]):
+                    found = listed(one[0], one[1])
+                    if found is None:
+                        return cannot_ask(one[0])
+                    if field == "requirements" and not any(found.values()):
+                        absent.append(one[0])
+                        lists[field].remove(one)
+                    elif found["yanked"] and not (found["wheels"] or found["compiled"]
+                                                  or found["sources"]):
+                        if relax(one):
+                            yanked.append(one[0])
+
         # Each round changes one entry, and each entry changes at most twice:
-        # relaxed once, or found absent once.
+        # relaxed once, then sent back or given up on once.
         rounds = 2 * (len(lists["requirements"]) + len(lists["constraints"])) + 2
-        try:
-            done = run()
-        except _OutOfTime as e:
-            return _timed_out(result, e, echo)
-        while done.returncode != 0 and rounds > 0:
+        done = None
+        if lists["requirements"] or wheels:
+            try:
+                done = run()
+            except _OutOfTime as e:
+                return _timed_out(result, e, echo)
+        while done is not None and done.returncode != 0 and rounds > 0:
             rounds -= 1
             if _NETWORK.search(done.stdout):
                 break
             changed = False
             for key in [_name_of(one) for pattern in _NOT_FOUND
                         for one in pattern.findall(done.stdout)]:
-                if key in absent:
+                if key in absent or key in source_only or key in compiled_only:
                     continue
                 field, one = entry(key)
-                there = asked(key)
-                if there is None:
-                    # An index that could not be asked says nothing about
-                    # the package: this server's failure, not the job's.
-                    result["network"] = True
-                    break
-                if not there:
+                if one is None:
+                    # A dependency nothing pinned, pip's to choose: absent
+                    # where no index lists it at all -- image-only mode asks
+                    # for a wheel's own dependencies this way, a second trip.
+                    there = on_index(key, indexes, proxy)
+                    if there is None:
+                        return cannot_ask(key)
+                    if not there:
+                        absent.append(key)
+                        changed = True
+                        break
+                    continue
+                found = listed(key, relaxed.get(key, one[1]))
+                if found is None:
+                    return cannot_ask(key)
+                if not any(found.values()):
                     absent.append(key)
-                    if one is not None:
+                    lists[field].remove(one)
+                    changed = True
+                    break
+                # Listed at that version, and nothing of it installs for this
+                # Python and platform: its release line, once.
+                if relax(one):
+                    changed = True
+                    break
+                if found["sources"] and not (found["wheels"] or allow_source):
+                    # 🔴 Only a source distribution for this target, and no
+                    # source builds. A version with a platform's wheel is
+                    # compiled, and no wheel of the client's could run here;
+                    # otherwise the client's wheel of its installed copy
+                    # answers it, sent back for as a package no index has.
+                    if found["compiled"]:
+                        compiled_only.append(key)
+                    else:
+                        source_only.append(key)
                         lists[field].remove(one)
-                    changed = True
-                    break
-                series = release_line(one[1]) if one is not None and key not in relaxed \
-                    else None
-                if series:
-                    relaxed[key] = one[1]
-                    one[1] = series
-                    changed = True
-                    break
-            if not changed or result.get("network"):
+                        changed = True
+                        break
+            if not changed:
                 break
             if not lists["requirements"] and not wheels:
+                done = None
                 break
             try:
                 done = run()
             except _OutOfTime as e:
                 return _timed_out(result, e, echo)
 
-        if absent:
+        if yanked:
+            result["yanked"] = sorted(yanked)
+        if absent or source_only:
             # 🔴 Sent back for its wheel, whatever else installed: what the
             # install becomes once it arrives is decided then.
-            result.update({"returncode": 1, "absent": sorted(absent), "unresolved": [],
+            result.update({"returncode": 1, "absent": sorted(absent),
+                           "source_only": sorted(source_only), "unresolved": [],
+                           "tail": "\n".join((done.stdout if done else "").strip()
+                                             .splitlines()[-20:])})
+            return result
+        if done is not None and done.returncode != 0:
+            result.update({"returncode": done.returncode, "unresolved": named(done.stdout),
+                           "network": bool(_NETWORK.search(done.stdout)),
+                           "only_source": sorted(compiled_only),
                            "tail": "\n".join(done.stdout.strip().splitlines()[-20:])})
             return result
-        if done.returncode != 0:
-            result.update({"returncode": done.returncode, "unresolved": named(done.stdout),
-                           "network": bool(result.get("network")
-                                           or _NETWORK.search(done.stdout)),
-                           "tail": "\n".join(done.stdout.strip().splitlines()[-20:])})
+        if done is None:
+            # Nothing was left to install: the interpreter holds it all.
+            os.makedirs(site, exist_ok=True)
+            result["installed"] = []
             return result
 
         # The environment's own site-packages -- lib and lib64 where a scheme

@@ -331,6 +331,15 @@ DEFAULTS: Dict[str, Any] = {
     # runs none of its code; a source distribution is built only there.
     "env_builder": False,
 
+    # 🔴 Whether a job's Python packages may be built from source, where an
+    # index has no wheel for the target (surface D291). Off: installing from
+    # source runs the package's own build code, and this server grants no
+    # capabilities, so this is the deployment's policy in place of
+    # `python-sdist`. Built only in the isolated builder, so it needs
+    # `env_builder`; where it is off, a pure package offered only as a source
+    # is sent back for the client's wheel.
+    "python_source_builds": False,
+
     # Which Slurm partition an environment build runs in, or None for the
     # cluster's default. A queue of its own keeps a burst of builds -- the
     # first jobs after a new tool image, each asking for its own set -- from
@@ -539,6 +548,10 @@ def _check_policy(values: Dict[str, Any]) -> None:
     # 🔴 Advertised only where this server can serve it: nodes that install on
     # the host -- an operator's choice, since a node then reaches an index --
     # or, where nodes run in containers, the builder.
+    if values["python_source_builds"] and not values["env_builder"]:
+        raise ValueError("python_source_builds is on and there is no env_builder: a "
+                         "source distribution is built only in the isolated builder, "
+                         "never where nodes run on this host")
     if values["env_builder"] and not values["containers"]:
         raise ValueError("env_builder builds images, and this deployment runs no "
                          "containers; where nodes run on the host, list python.env "
