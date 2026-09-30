@@ -9,7 +9,7 @@ import time
 
 import os.path
 
-from typing import List, Tuple, Union, Final
+from typing import List, Set, Tuple, Union, Final
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler.utils.paths import jobdir, cachedir as cachedir_path
@@ -326,40 +326,38 @@ class SlurmSchedulerNode(SchedulerNode):
             # is something this process can do anything further about.
             self.logger.warning(f"Unable to cancel slurm job for {self.step}/{self.index}")
 
-    def mark_copy(self) -> bool:
+    def collect_keys(self) -> Set[Tuple[str, ...]]:
+        """The required path keys with a file outside the cluster's shared
+        paths: those have to be collected, since the compute node cannot reach
+        them. None where the whole filesystem is shared."""
         sharedprefix: List[str] = MPManager.get_settings().get(
             SlurmSchedulerNode.__OPTIONS, "sharedpaths", default=[])
 
         if "/" in sharedprefix:
             # Entire filesystem is shared so no need to check
-            return False
+            return set()
 
-        do_collect = False
+        if not sharedprefix:
+            # Nothing is shared, so everything has to be copied
+            return self.get_required_path_keys()
+
+        keys = set()
         for key in self.get_required_path_keys():
-            mark_copy = True
-            if sharedprefix:
-                mark_copy = False
+            check_step, check_index = self.step, self.index
+            if self.project.get(*key, field='pernode').is_never():
+                check_step, check_index = None, None
 
-                check_step, check_index = self.step, self.index
-                if self.project.get(*key, field='pernode').is_never():
-                    check_step, check_index = None, None
+            paths = self.project.find_files(*key, missing_ok=True,
+                                            step=check_step, index=check_index)
+            if not isinstance(paths, list):
+                paths = [paths]
+            paths = [str(path) for path in paths if path]
 
-                paths = self.project.find_files(*key, missing_ok=True,
-                                                step=check_step, index=check_index)
-                if not isinstance(paths, list):
-                    paths = [paths]
-                paths = [str(path) for path in paths if path]
-
-                for path in paths:
-                    if not any([path.startswith(shared) for shared in sharedprefix]):
-                        # File exists outside shared paths and needs to be copied
-                        mark_copy = True
-                        break
-
-            if mark_copy:
-                self.project.set(*key, True, field='copy')
-                do_collect = True
-        return do_collect
+            if any(not any(path.startswith(shared) for shared in sharedprefix)
+                   for path in paths):
+                # A file outside the shared paths has to be copied.
+                keys.add(key)
+        return keys
 
     def run(self):
         """

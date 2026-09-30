@@ -3203,3 +3203,36 @@ def test_a_builtin_join_still_dies_on_an_unexcused_arm(continue_join):
     with pytest.raises(RuntimeError,
                        match=r"Could not run final steps \(join\) due to errors in: A/0"):
         project.run()
+
+
+###########################
+# What is collected for nodes that run elsewhere
+###########################
+
+RTL = ("library", "gcd", "fileset", "rtl", "file", "verilog")
+SDC = ("library", "gcd", "fileset", "sdc", "file", "sdc")
+
+
+def test_a_node_names_what_it_needs_collected_and_nothing_else_is(gcd_nop_project):
+    '''🔴 Collected by the keys a node names, never by `copy`: nothing is
+    written into the project to say so, and a key nobody names is left out
+    whatever its `copy` field says.'''
+    gcd_nop_project.set(*SDC, True, field="copy")
+    before = gcd_nop_project.get(*RTL, field="copy")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.collect_keys",
+               autospec=True, return_value={RTL}), \
+            patch("siliconcompiler.scheduler.scheduler.collect") as collect:
+        Scheduler(gcd_nop_project).run()
+
+    collected = {key for key, _, _ in collect.call_args.kwargs["keys"]}
+    assert RTL in collected
+    assert SDC not in collected
+    assert gcd_nop_project.get(*RTL, field="copy") == before
+
+
+def test_nothing_is_collected_where_no_node_asks(gcd_nop_project):
+    with patch("siliconcompiler.scheduler.scheduler.collect") as collect:
+        Scheduler(gcd_nop_project).run()
+
+    collect.assert_not_called()

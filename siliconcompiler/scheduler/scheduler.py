@@ -340,15 +340,13 @@ class Scheduler:
             if not self.__check_flowgraph_io():
                 raise SCRuntimeError("Flowgraph file IO constrains errors")
 
-            # Collect files for remote runs
-            if self.__check_collect_files():
-                collect_keys = []
-                for key in self.project.allkeys():
-                    param = self.project.get(*key, field=None)
-                    if param.is_path and param.get(field='copy'):
-                        collect_keys.extend((key, step, index)
-                                            for _, step, index in
-                                            param.getvalues(return_values=False))
+            # Collect what the nodes that run elsewhere cannot reach
+            keys = set().union(*(task.collect_keys() for task in self.__tasks.values()))
+            if keys:
+                collect_keys = [(key, step, index)
+                                for key in sorted(keys)
+                                for _, step, index in self.project.get(
+                                    *key, field=None).getvalues(return_values=False)]
                 collect(self.project, keys=filter_collection_keys(collect_keys))
 
             try:
@@ -1335,21 +1333,6 @@ class Scheduler:
                         self.__logger.error(f"Unable to process version for {step}/{index}")
 
         return not error
-
-    def __check_collect_files(self) -> bool:
-        """
-        Iterates through all tasks in the scheduler, and checks if the there
-        are files or directories that need to be collected
-
-        Returns:
-            bool: True if there is something to be collected, False otherwise.
-        """
-        do_collect = False
-        for task in self.__tasks.values():
-            if task.mark_copy():
-                do_collect = True
-
-        return do_collect
 
     def __init_schedulers(self) -> None:
         """

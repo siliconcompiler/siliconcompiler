@@ -1620,9 +1620,19 @@ class SchedulerNode:
 
         return path_keys
 
-    def mark_copy(self) -> bool:
-        """Marks files from the 'require' path keys for copying."""
-        return False
+    def collect_keys(self) -> Set[Tuple[str, ...]]:
+        """The required path keys whose files this node needs collected before
+        it runs, where it runs -- none by default: a node that runs where the
+        files are needs nothing moved.
+
+        A scheduler that runs a node somewhere else overrides this with the
+        keys that somewhere cannot reach. The scheduler collects exactly those,
+        and nothing is written into the project to say so.
+
+        Returns:
+            set of tuple of str: keypaths to collect.
+        """
+        return set()
 
     def check_required_values(self) -> bool:
         requires = self.get_required_keys()
