@@ -15,3 +15,38 @@ class RunsPython(NOPTask):
 
     def get_python_environment(self):
         return PythonEnvironment()
+
+
+class AcmeTask(NOPTask):
+    '''One tool's task with a dataroot of its own, `scripts`, from wherever
+    ``SOURCE`` says: every task of the tool registers one of that name, from a
+    source of its own (surface D298).
+
+    ⚠️ Each task's `refdir` is its own path, `tcl/<task>`: the collection is
+    laid out by dataroot NAME and path, never by owner, so two tasks' `tcl` in
+    two `scripts` would be one directory there (CORE-FOLLOWUPS item 13).'''
+
+    SOURCE = None
+
+    def __init__(self):
+        super().__init__()
+        self.set_dataroot("scripts", self.SOURCE, tag="v1")
+        with self.active_dataroot("scripts"):
+            self.set_refdir(f"tcl/{self.task()}")
+
+    def tool(self):
+        return "acme_sim"
+
+
+class AcmeRun(AcmeTask):
+    SOURCE = "https://github.com/siliconcompiler/acme-run/archive/refs/tags/"
+
+    def task(self):
+        return "run"
+
+
+class AcmeCheck(AcmeTask):
+    SOURCE = "https://github.com/siliconcompiler/acme-check/archive/refs/tags/"
+
+    def task(self):
+        return "check"

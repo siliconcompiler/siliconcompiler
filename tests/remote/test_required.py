@@ -133,7 +133,7 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
     required = owners.required(carried(project))
 
     # The PDK holds nothing the flow reads: never sent for, never fetched.
-    assert [item["name"] for item in owners.sources(project)] == ["lambda"]
+    assert [item["keypath"][1] for item in owners.sources(project)] == ["lambda"]
     assert owners.sources(project, required) == []
 
     from test_owners import Supply
@@ -306,7 +306,7 @@ def test_a_required_file_missing_from_the_servers_copy_is_resource_unavailable(
     root = tmp_path / "operator-copy"
     root.mkdir()                                     # and no datasheet in it
     server.config["SC_CONFIG"]._values["private_dataroots"] = {
-        "secret": {"secret": str(root)}}
+        "library": {"secret": {"secret": str(root)}}}
     project = carried(reading(gcd_design, tmp_path, ("library", "secret", *DATASHEET),
                               pdk=private(PDK, "secret", tmp_path / "client-copy")))
 

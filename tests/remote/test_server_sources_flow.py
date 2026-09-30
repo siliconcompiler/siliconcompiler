@@ -72,9 +72,9 @@ def read(server_client, key, token, job_id):
 
 def test_create_asks_only_for_what_it_cannot_supply(server_client, key, token):
     job = create(server_client, key, token, sources=[
-        {"name": "lambda", "dataroot": "lambda",
+        {"keypath": ["library", "lambda", "dataroot", "lambda"],
          "source": LAMBDA, "ref": "v0.2.22", "private": False},
-        {"name": "acme_ip", "dataroot": "acme_ip",
+        {"keypath": ["library", "acme_ip", "dataroot", "acme_ip"],
          "source": "git+ssh://git@github.com/acme/ip.git", "ref": "v1.2",
          "private": False},
     ]).get_json()
@@ -82,7 +82,7 @@ def test_create_asks_only_for_what_it_cannot_supply(server_client, key, token):
     # Allowlisted and not held: assumed fetchable, not listed. Behind a key
     # this server has not got: asked for.
     assert job["upload_sources"] == [
-        {"kind": "dataroot", "name": "acme_ip", "dataroot": "acme_ip"}]
+        {"kind": "dataroot", "keypath": ["library", "acme_ip", "dataroot", "acme_ip"]}]
 
 
 def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
@@ -100,14 +100,14 @@ def test_a_private_source_with_no_copy_here_is_refused_at_create_by_name(
     names are unique across kinds -- and says who can supply it. Never asked
     for: a private source is never uploaded.'''
     response = create(server_client, key, token, sources=[
-        {"name": "secret", "dataroot": "secretroot", "private": True}])
+        {"keypath": ["library", "secret", "dataroot", "secretroot"], "private": True}])
 
     assert response.status_code == 422
     body = response.get_json()
     assert slug(response) == "resource-unavailable"
     assert body["resource"] == "secret"
     assert "resource_kind" not in body
-    assert "secret (secretroot)" in body["detail"] and "operator" in body["detail"]
+    assert "library,secret,dataroot,secretroot" in body["detail"] and "operator" in body["detail"]
     listed = call(server_client, key, "GET", "/v1/jobs", token).get_json()
     assert listed["items"] == []
 
@@ -115,7 +115,7 @@ def test_a_private_source_with_no_copy_here_is_refused_at_create_by_name(
 def test_credentials_in_a_source_are_never_stored(server, server_client, key, token):
     '''🔴 The client strips them; the server strips them again.'''
     job = create(server_client, key, token, sources=[
-        {"name": "ip", "dataroot": "ip",
+        {"keypath": ["library", "ip", "dataroot", "ip"],
          "source": "https://user:ghp_secret@gitlab.com/acme/ip/archive/",
          "ref": "v1", "private": False}]).get_json()
 
@@ -129,7 +129,7 @@ def test_a_token_in_a_sources_query_is_masked_here_too(server, server_client, ke
     '''A client that sent a query's token anyway: masked as the client masks
     it, before anything is stored or logged.'''
     job = create(server_client, key, token, sources=[
-        {"name": "ip", "dataroot": "ip",
+        {"keypath": ["library", "ip", "dataroot", "ip"],
          "source": "https://gitlab.com/acme/ip/archive/v1.tar.gz?private_token=glpat-x",
          "ref": "v1", "private": False}]).get_json()
 
@@ -143,11 +143,11 @@ def test_a_masked_source_is_asked_for_never_fetched(server_client, key, token):
     says what the source is and not enough to fetch it from, so the client,
     which has the real one, is asked.'''
     job = create(server_client, key, token, sources=[
-        {"name": "lambda", "dataroot": "lambda",
+        {"keypath": ["library", "lambda", "dataroot", "lambda"],
          "source": f"{LAMBDA}?lfs=***", "ref": "v0.2.22", "private": False}]).get_json()
 
     assert job["upload_sources"] == [
-        {"kind": "dataroot", "name": "lambda", "dataroot": "lambda"}]
+        {"kind": "dataroot", "keypath": ["library", "lambda", "dataroot", "lambda"]}]
 
 
 ###########################
@@ -191,7 +191,8 @@ def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")
     back = read(server_client, key, token, job["id"])
-    assert back["upload_sources"] == [{"kind": "dataroot", "name": "lambda", "dataroot": "lambda"}]
+    assert back["upload_sources"] == [
+        {"kind": "dataroot", "keypath": ["library", "lambda", "dataroot", "lambda"]}]
     assert back["terminal"] is False
     assert not dispatcher.submitted
 
@@ -199,7 +200,7 @@ def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
         "SELECT reason FROM job_state_transitions WHERE job_id = ? "
         "AND from_state = 'staging' AND to_state = 'awaiting_input'",
         (job["id"],))["reason"]
-    assert "pdk lambda (lambda): the source answered 404" in reason
+    assert "the dataroot library,lambda,dataroot,lambda: the source answered 404" in reason
 
     # 🔴 `transitions` lists every state entered, the send-back included, and
     # the entry says why (surface §17; D278).
@@ -213,22 +214,22 @@ def test_two_owners_of_one_dataroot_name_are_told_apart(server_client, key, toke
     use SiliconCompiler's default, `root`: `upload_sources` names both
     (surface §13; D282).'''
     job = create(server_client, key, token, sources=[
-        {"name": "acme_ip", "dataroot": "root",
+        {"keypath": ["library", "acme_ip", "dataroot", "root"],
          "source": "git+ssh://git@github.com/acme/ip.git", "ref": "v1", "private": False},
-        {"name": "beta_ip", "dataroot": "root",
+        {"keypath": ["library", "beta_ip", "dataroot", "root"],
          "source": "git+ssh://git@github.com/beta/ip.git", "ref": "v1", "private": False},
     ]).get_json()
 
     assert job["upload_sources"] == [
-        {"kind": "dataroot", "name": "acme_ip", "dataroot": "root"},
-        {"kind": "dataroot", "name": "beta_ip", "dataroot": "root"}]
+        {"kind": "dataroot", "keypath": ["library", "acme_ip", "dataroot", "root"]},
+        {"kind": "dataroot", "keypath": ["library", "beta_ip", "dataroot", "root"]}]
 
 
 def test_a_source_names_no_kind(server_client, key, token):
     '''The server finds a name's kind (entitlements D75): a `kind` is an
     unknown member, refused under the strict rule.'''
     response = create(server_client, key, token, sources=[
-        {"kind": "pdk", "name": "lambda", "dataroot": "lambda", "private": False}])
+        {"kind": "pdk", "keypath": ["library", "lambda", "dataroot", "lambda"], "private": False}])
 
     assert (response.status_code, slug(response)) == (400, "invalid-request")
 
@@ -572,10 +573,10 @@ def test_cancelling_a_job_still_fetching_stops_the_fetch(
 def test_a_private_source_mapped_here_is_supplied_at_create(server, server_client,
                                                             key, token, tmp_path):
     server.config["SC_CONFIG"]._values["private_dataroots"] = {
-        "secret": {"secret": str(tmp_path)}}
+        "library": {"secret": {"secret": str(tmp_path)}}}
 
     job = create(server_client, key, token, sources=[
-        {"name": "secret", "dataroot": "secret", "private": True}])
+        {"keypath": ["library", "secret", "dataroot", "secret"], "private": True}])
 
     assert job.status_code == 201
     assert "upload_sources" not in job.get_json()
@@ -620,3 +621,156 @@ def test_a_held_copy_records_its_commit_and_holds_no_moving_ref(tmp_path, monkey
     store._resolve = resolve(False)
     pinned = store.fetch("https://example.com/ip.git", "v1.0", 10)
     assert store.held("https://example.com/ip.git", "v1.0") == pinned
+
+
+###########################
+# A dataroot is named by its keypath (surface D298)
+###########################
+
+TASK_RUN = ["tool", "acme_sim", "task", "run", "dataroot", "scripts"]
+TASK_CHECK = ["tool", "acme_sim", "task", "check", "dataroot", "scripts"]
+
+
+@pytest.mark.parametrize("entry", [
+    {"keypath": ["library", "acme"]},
+    {"keypath": ["tool", "acme_sim", "dataroot", "scripts"]},      # a tool's, no task
+    {"keypath": ["option", "x", "dataroot", "y"]},
+    {"keypath": "library,acme,dataroot,acme"},
+    {"keypath": ["library", "acme", "dataroot", ""]},
+    # The old spelling, alone or beside the new: refused as any unknown member.
+    {"name": "acme", "dataroot": "acme"},
+    {"keypath": ["library", "acme", "dataroot", "acme"], "dataroot": "acme"},
+])
+def test_a_source_named_otherwise_than_by_its_keypath_is_refused(server_client, key,
+                                                                 token, entry):
+    response = create(server_client, key, token,
+                      sources=[dict(entry, source=LAMBDA, ref="v1")])
+
+    assert response.status_code == 400
+    assert slug(response) == "invalid-request"
+
+
+def test_a_private_task_root_this_server_lacks_is_refused_with_its_keypath(
+        server_client, key, token):
+    '''The owner's name as `resource`, and which of its dataroots as
+    `keypath`: a tool's `root` would otherwise read as *the tool is
+    unavailable*.'''
+    response = create(server_client, key, token,
+                      sources=[{"keypath": TASK_RUN, "private": True}])
+
+    assert response.status_code == 422
+    body = response.get_json()
+    assert slug(response) == "resource-unavailable"
+    assert (body["resource"], body["keypath"]) == ("acme_sim", TASK_RUN)
+    assert "resource_kind" not in body
+    assert "the private dataroot tool,acme_sim,task,run,dataroot,scripts is not held by " \
+        "this server" in body["detail"]
+
+
+def test_one_tool_entry_supplies_every_task_and_a_task_entry_overrides(
+        server, server_client, key, token, tmp_path):
+    '''`private_dataroots`: a tool's private root is normally the same for all
+    its tasks, so `tool` covers them, and `task` names one that differs.'''
+    every, check = tmp_path / "every", tmp_path / "check"
+    server.config["SC_CONFIG"]._values["private_dataroots"] = {
+        "library": {"acme_sim": {"scripts": str(tmp_path / "library")}},
+        "tool": {"acme_sim": {"scripts": str(every)}},
+        "task": {"acme_sim": {"check": {"scripts": str(check)}}}}
+    supply = server.config["SC_JOBS"]._supply
+
+    assert supply.private_root(TASK_RUN) == str(every)
+    assert supply.private_root(TASK_CHECK) == str(check)
+    assert supply.private_root(["tool", "other", "task", "run", "dataroot", "scripts"]) is None
+    # The library of the tool's name is its own entry, never the tool's.
+    assert supply.private_root(["library", "acme_sim", "dataroot", "scripts"]) == \
+        str(tmp_path / "library")
+    assert create(server_client, key, token, sources=[
+        {"keypath": TASK_RUN, "private": True},
+        {"keypath": TASK_CHECK, "private": True}]).status_code == 201
+
+
+def test_two_tasks_of_one_tool_are_asked_for_separately(server_client, key, token):
+    job = create(server_client, key, token, sources=[
+        {"keypath": TASK_RUN, "source": "https://example.com/acme/run/", "ref": "v1"},
+        {"keypath": TASK_CHECK, "source": "https://example.com/acme/check/", "ref": "v1"},
+        {"keypath": ["library", "acme_sim", "dataroot", "scripts"],
+         "source": "https://example.com/acme/lib/", "ref": "v1"}]).get_json()
+
+    assert job["upload_sources"] == [
+        {"kind": "dataroot", "keypath": TASK_RUN},
+        {"kind": "dataroot", "keypath": TASK_CHECK},
+        {"kind": "dataroot", "keypath": ["library", "acme_sim", "dataroot", "scripts"]}]
+
+
+def test_one_dataroot_named_twice_is_refused(server_client, key, token):
+    response = create(server_client, key, token, sources=[
+        {"keypath": TASK_RUN, "source": LAMBDA, "ref": "v1"},
+        {"keypath": TASK_RUN, "source": LAMBDA, "ref": "v2"}])
+
+    assert response.status_code == 400
+    assert "twice" in response.get_json()["detail"]
+
+
+@pytest.fixture
+def acme_project(gcd_design, tmp_path):
+    '''A run whose two tasks of one tool each read a `scripts` dataroot from an
+    allowlisted source of its own.'''
+    from siliconcompiler import Flowgraph
+    from pytasks import AcmeCheck, AcmeRun
+
+    project = _nop_asic(gcd_design, tmp_path, resource(PDK, "lambda", LAMBDA, create=False))
+    flow = Flowgraph("acmeflow")
+    flow.node("run", AcmeRun())
+    flow.node("check", AcmeCheck())
+    flow.edge("run", "check")
+    project.set_flow(flow)
+    return project
+
+
+def sent_back_for_run(server, server_client, key, token, job_archive, acme_project):
+    '''Staged with every source fetched but `run`'s, which fails for good: the
+    job goes back asking for that one dataroot.'''
+    store = server.config["SC_JOBS"]._sources
+
+    def resolve(source, ref, into, timeout):
+        if "acme-run" in source:
+            raise Permanent("the source answered 404")
+        for name in ("datasheet.pdf", "tcl/check/check.tcl"):
+            (into / name).parent.mkdir(parents=True, exist_ok=True)
+            (into / name).write_text("fetched\n")
+
+    store._resolve = resolve
+    archive, digest, size = job_archive(acme_project)
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "awaiting_input")
+    assert read(server_client, key, token, job["id"])["upload_sources"] == [
+        {"kind": "dataroot", "keypath": TASK_RUN}]
+    return job
+
+
+def test_a_follow_up_answers_one_tasks_dataroot_by_its_keypath(
+        server, server_client, key, token, job_archive, acme_project, dispatcher):
+    job = sent_back_for_run(server, server_client, key, token, job_archive, acme_project)
+    run = collected_path(first(acme_project, ("tool", "acme_sim", "task", "run", "refdir")))
+
+    response = send(server_client, key, token, job["id"], {
+        f"sc_collected_files/{run}/run.tcl": b"sent by the client\n"})
+
+    assert response.status_code == 202, response.get_json()
+    assert wait_for(lambda: dispatcher.submitted)
+
+
+def test_a_member_under_another_tasks_dataroot_of_that_name_was_not_asked_for(
+        server, server_client, key, token, job_archive, acme_project, dispatcher):
+    '''🔴 By keypath: `check`'s `scripts` is not `run`'s, whatever the tool.'''
+    job = sent_back_for_run(server, server_client, key, token, job_archive, acme_project)
+    check = collected_path(first(acme_project,
+                                 ("tool", "acme_sim", "task", "check", "refdir")))
+
+    response = send(server_client, key, token, job["id"], {
+        f"sc_collected_files/{check}/check.tcl": b"not asked for\n"})
+
+    assert response.status_code == 422
+    assert response.get_json()["reason"] == "unrequested_member"

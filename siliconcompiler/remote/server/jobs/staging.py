@@ -320,7 +320,7 @@ class StagingMixin:
         for entry, why in failed:
             if entry.wire not in asked:
                 asked.append(entry.wire)
-                reasons.append(f"{entry.kind} {entry.name} ({entry.dataroot}): {why}")
+                reasons.append(f"the dataroot {owners.shown(entry.keypath)}: {why}")
         for name, why in python:
             wire = {"kind": "python", "name": name}
             if wire not in asked:

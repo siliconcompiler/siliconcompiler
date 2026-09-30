@@ -189,7 +189,8 @@ def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path
     project.set_pdk(pdk)
 
     assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
-    entry, = [item for item in owners.sources(project) if item["name"] == "secret"]
+    entry, = [item for item in owners.sources(project)
+              if item["keypath"] == ["library", "secret", "dataroot", "secret"]]
     assert entry["private"] is True and "source" not in entry and "ref" not in entry
 
 
@@ -223,18 +224,18 @@ def test_sources_names_what_is_not_uploaded_and_strips_credentials(project, tmp_
                              create=False))
     project.add_asiclib(private(StdCellLibrary, "secretlib", tmp_path))
 
-    listed = {(item["name"], item["dataroot"]): item for item in owners.sources(project)}
-    # By owner and dataroot, and no kind: the server finds it from the name.
+    listed = {tuple(item["keypath"]): item for item in owners.sources(project)}
+    # By keypath, and no kind (surface D298).
     assert not any("kind" in item for item in listed.values())
 
-    remote = listed[("lambda", "lambda")]
+    remote = listed[("library", "lambda", "dataroot", "lambda")]
     assert remote["source"] == "https://github.com/siliconcompiler/x/archive/"
     assert remote["ref"] == "v1" and remote["private"] is False
 
-    hidden = listed[("secretlib", "secretlib")]
+    hidden = listed[("library", "secretlib", "dataroot", "secretlib")]
     # 🔴 A private dataroot's path is never sent.
     assert hidden["private"] is True and "source" not in hidden
-    assert not any(name == "gcd" for name, _ in listed)
+    assert not any(keypath[1] == "gcd" for keypath in listed)
 
 
 def test_a_token_in_a_query_never_leaves_this_machine(project):
@@ -246,7 +247,7 @@ def test_a_token_in_a_query_never_leaves_this_machine(project):
         "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
         "?access_token=SECRET&lfs=true", create=False))
 
-    sent, = [item for item in owners.sources(project) if item["name"] == "lambda"]
+    sent, = [item for item in owners.sources(project) if item["keypath"][1] == "lambda"]
 
     assert sent["source"] == ("https://github.com/siliconcompiler/x/archive/v1.tar.gz"
                               "?access_token=***&lfs=***")
@@ -394,8 +395,8 @@ class Supply:
     def package(self, module):
         return module in self.packages
 
-    def private_root(self, name, dataroot):
-        return self.private.get((name, dataroot))
+    def private_root(self, keypath):
+        return self.private.get(tuple(keypath))
 
     def held(self, source, ref):
         return self.held_roots.get((source, ref))
@@ -463,7 +464,8 @@ def test_a_private_dataroot_is_supplied_by_name_or_not_at_all(project, tmp_path)
     root.mkdir()
     project.set_pdk(private(PDK, "secret", "/wherever/the/client/had/it"))
 
-    mapped = status(project, "secret", Supply(private={("secret", "secret"): str(root)}))
+    secret = ("library", "secret", "dataroot", "secret")
+    mapped = status(project, "secret", Supply(private={secret: str(root)}))
     assert (mapped.status, mapped.root) == (owners.SUPPLIED, str(root))
     assert status(project, "secret", Supply()).status == owners.UNAVAILABLE
 
@@ -475,7 +477,7 @@ def test_a_private_design_is_refused(project, tmp_path):
         design.add_file("top.v")
 
     entries = [entry for entry in owners.account(
-        project, "none", Supply(private={("gcd", "mine"): str(tmp_path)}))
+        project, "none", Supply(private={("library", "gcd", "dataroot", "mine"): str(tmp_path)}))
         if entry.dataroot == "mine"]
     assert [entry.status for entry in entries] == [owners.UNAVAILABLE]
 
@@ -488,7 +490,8 @@ def test_a_path_escaping_a_supplied_root_is_refused(project, tmp_path):
         pdk.set(*DATASHEET, "../../etc/passwd")
     project.set_pdk(pdk)
 
-    entry = status(project, "secret", Supply(private={("secret", "secret"): str(root)}))
+    secret = ("library", "secret", "dataroot", "secret")
+    entry = status(project, "secret", Supply(private={secret: str(root)}))
     assert entry.status == owners.UNAVAILABLE
 
 
@@ -582,7 +585,8 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
     def read():
         return call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert wait_for(lambda: read()["state"] == "awaiting_input")
-    assert read()["upload_sources"] == [{"kind": "dataroot", "name": "mine", "dataroot": "mine"}]
+    assert read()["upload_sources"] == [
+        {"kind": "dataroot", "keypath": ["library", "mine", "dataroot", "mine"]}]
     assert not dispatcher.submitted
 
 
@@ -646,7 +650,7 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
     root.mkdir()
     (root / "datasheet.pdf").write_text("x")
     server.config["SC_CONFIG"]._values["private_dataroots"] = {
-        "secret": {"secret": str(root)}}
+        "library": {"secret": {"secret": str(root)}}}
 
     (tmp_path / "client-copy").mkdir()
     (tmp_path / "client-copy" / "datasheet.pdf").write_text("x")
@@ -681,3 +685,124 @@ def test_what_is_skipped_is_what_collect_leaves_out(key):
     from siliconcompiler.utils.curation import filter_collection_keys
 
     assert owners.skipped(key) == (filter_collection_keys([(key, None, None)]) == [])
+
+
+###########################
+# A dataroot is named by its keypath (surface D298)
+###########################
+
+RUN = ("tool", "acme_sim", "task", "run", "dataroot", "scripts")
+CHECK = ("tool", "acme_sim", "task", "check", "dataroot", "scripts")
+
+
+def acme_project(gcd_design):
+    '''Two tasks of one tool, each with a `scripts` dataroot of its own.'''
+    from siliconcompiler import Flowgraph
+    from pytasks import AcmeCheck, AcmeRun
+
+    project = ASIC(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("acmeflow")
+    flow.node("run", AcmeRun())
+    flow.node("check", AcmeCheck())
+    flow.edge("run", "check")
+    project.set_flow(flow)
+    return project
+
+
+@pytest.mark.parametrize("keypath,shaped", [
+    (["library", "gcd", "dataroot", "root"], True),
+    (["tool", "acme_sim", "task", "run", "dataroot", "scripts"], True),
+    (["tool", "acme_sim", "dataroot", "scripts"], False),     # a tool's, with no task
+    (["library", "gcd"], False),
+    (["option", "x", "dataroot", "y"], False),
+    (["library", "gcd", "dataroot", ""], False),
+    ("library,gcd,dataroot,root", False),
+    (["library", "gcd", "dataroot", 1], False),
+])
+def test_a_keypath_is_a_librarys_or_a_tasks_and_nothing_else(keypath, shaped):
+    assert owners.is_dataroot_keypath(keypath) is shaped
+
+
+def test_the_keypath_is_where_the_dataroot_is_defined(gcd_design):
+    '''Never a slice of the parameter's key: a design's fileset value is its
+    library's, however deep the fileset, and a task's `refdir` its task's.'''
+    project = acme_project(gcd_design)
+    rtl = ("library", "gcd", "fileset", "rtl", "file", "verilog")
+    dataroot = first(project, rtl).get(field="dataroot")
+
+    assert owners.dataroot_keypath(project, rtl, dataroot) == \
+        ("library", "gcd", "dataroot", dataroot)
+    assert owners.dataroot_keypath(project, ("tool", "acme_sim", "task", "run", "refdir"),
+                                   "scripts") == RUN
+    # No dataroot, or one its owner does not define: local, and uploaded.
+    assert owners.dataroot_keypath(project, rtl, None) is None
+    assert owners.dataroot_keypath(project, rtl, "nowhere") is None
+    assert {one.keypath for one in owners._values(project) if one.key == rtl} == \
+        {("library", "gcd", "dataroot", dataroot)}
+
+
+def test_two_tasks_of_one_tool_are_two_dataroots(gcd_design):
+    '''🔴 The collision `name` and `dataroot` made: a task's dataroot was named
+    by its tool, so two tasks' `scripts` were one entry. Each is its own, with
+    its own source -- and asked for one, the client collects that one alone.'''
+    from pytasks import AcmeCheck, AcmeRun
+
+    project = acme_project(gcd_design)
+
+    listed = {tuple(item["keypath"]): item["source"] for item in owners.sources(project)}
+    assert listed == {RUN: AcmeRun.SOURCE, CHECK: AcmeCheck.SOURCE}
+
+    picked = owners.collection_keys(project, lambda one: one.keypath == RUN)
+    assert [key for key, _, _ in picked] == [("tool", "acme_sim", "task", "run", "refdir")]
+
+
+def test_a_library_and_a_tool_of_one_name_do_not_collide(gcd_design):
+    project = acme_project(gcd_design)
+    project.set_pdk(resource(PDK, "acme_sim", "https://github.com/siliconcompiler/acme/",
+                             create=False))
+    library = ("library", "acme_sim", "dataroot", "acme_sim")
+
+    assert {tuple(item["keypath"]) for item in owners.sources(project)} == \
+        {library, RUN, CHECK}
+    # The server's accounting keeps them apart too: three dataroots to ask for.
+    asked = [entry.wire for entry in owners.account(project, "none", Supply())
+             if entry.origin == owners.REMOTE]
+    assert sorted(tuple(item["keypath"]) for item in asked) == sorted([library, RUN, CHECK])
+
+
+def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
+        project, monkeypatch, logged_in):
+    '''The server refuses a keypath of any other shape, so the client says so
+    first, naming the parameter.'''
+    from siliconcompiler.remote import RemoteError
+    from siliconcompiler.remote.client.run import RemoteRun
+
+    project.set_pdk(resource(PDK, "lambda", "https://github.com/siliconcompiler/x/",
+                             create=False))
+    monkeypatch.setattr(owners, "dataroot_keypath",
+                        lambda project, key, dataroot: ("elsewhere", "dataroot", dataroot))
+
+    with pytest.raises(owners.Unnamed, match=r"\[library,lambda,package,doc,datasheet\]"):
+        owners.sources(project)
+    with pytest.raises(RemoteError, match="neither a library's nor a task's"):
+        RemoteRun(project, logged_in)._check_dataroots()
+
+
+def test_the_run_points_each_tasks_dataroot_at_its_own_copy(gcd_design, tmp_path):
+    '''The runner's half (`runspec.point_dataroots`): by the dataroot's own
+    keypath, so a tool's two tasks are pointed apart -- never both at whichever
+    copy came first.'''
+    from siliconcompiler.remote.server.running import runspec
+
+    project = acme_project(gcd_design)
+    targets = runspec.dataroot_targets([
+        owners.Entry("tool", "acme_sim", "scripts", owners.SUPPLIED,
+                     root=str(tmp_path / "run"), keypath=RUN),
+        owners.Entry("tool", "acme_sim", "scripts", owners.SUPPLIED,
+                     root=str(tmp_path / "check"), keypath=CHECK),
+        owners.Entry("design", "gcd", None, owners.UPLOADED)], tmp_path / "collection")
+
+    assert runspec.point_dataroots(project, targets) == 2
+    assert project.get(*RUN, "path") == str(tmp_path / "run")
+    assert project.get(*CHECK, "path") == str(tmp_path / "check")

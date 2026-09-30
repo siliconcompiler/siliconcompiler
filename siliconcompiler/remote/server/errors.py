@@ -77,7 +77,8 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # `unsatisfiable-request`, which meant the same with the same members. Not
     # `resource-unresolved`, which is not knowing WHICH. `resource_kind` only
     # where the deployment can name the kind (surface D285), so it is not
-    # required.
+    # required; nor is `keypath`, which says which of an owner's dataroots it
+    # is, where it is one (surface D298).
     _e("resource-unavailable", 422, "This server does not hold that resource",
        ("resource",)),
     # 🆕 D105, D115: crucible's, raised while staging for restricted material

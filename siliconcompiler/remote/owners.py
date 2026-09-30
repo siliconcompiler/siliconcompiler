@@ -21,9 +21,17 @@ a ``$``-rooted path             uploaded         -- the CLIENT expands it
 an editable Python package      uploaded         --
 an installed Python package     supplied         by package name
 git / https / any remote        supplied         by source and ref, allowlist only
-marked private                  supplied, never  (object name, dataroot name) to a
-                                uploaded         root the operator configured
+marked private                  supplied, never  its keypath, to a root the
+                                uploaded         operator configured
 ==============================  ===============  =================================
+
+🔴 **A dataroot is named by its keypath** (surface D298), where the schema that
+defines it keeps it: a library's ``library,<name>,dataroot,<root>`` or a task's
+``tool,<tool>,task,<task>,dataroot,<root>`` (:func:`dataroot_keypath`). Its own
+name is unique only within its owner, many owners use `root`, a library and a
+tool may share a name, and two tasks of one tool may each register one of the
+same name -- so the whole keypath is what identifies it, and the owner's name,
+for a grant, is the keypath's second part.
 
 ⚠️ **The design is uploaded whatever its source**, and a PDK's, library's, FPGA
 device's or tool's files are uploaded only when local or editable. **Private
@@ -59,6 +67,8 @@ from urllib.parse import urlsplit
 __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLED",
            "REMOTE", "PRIVATE", "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
            "is_private", "skipped", "owner", "source", "uploads", "sources",
+           "dataroot_keypath", "is_dataroot_keypath", "keypath_owner", "shown",
+           "Unnamed",
            "safe_source", "masked", "is_masked", "account", "Entry", "confined",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
@@ -104,10 +114,76 @@ def skipped(key) -> bool:
     return never_collected(key)
 
 
+def is_dataroot_keypath(keypath) -> bool:
+    '''Whether ``keypath`` names a dataroot in one of the two places
+    SiliconCompiler keeps one: ``library,<name>,dataroot,<root>`` or
+    ``tool,<tool>,task,<task>,dataroot,<root>``. Anything else is refused by
+    the server, which does not guess what owns a dataroot (surface D298).'''
+    if not isinstance(keypath, (list, tuple)) or \
+            not all(isinstance(part, str) and part for part in keypath):
+        return False
+    return (len(keypath) == 4 and keypath[0] == "library" and keypath[2] == "dataroot") \
+        or (len(keypath) == 6 and keypath[0] == "tool" and keypath[2] == "task"
+            and keypath[4] == "dataroot")
+
+
+def keypath_owner(keypath) -> str:
+    '''The name a dataroot's grant is checked against: the library's, or the
+    task's tool.'''
+    return keypath[1]
+
+
+def shown(keypath) -> str:
+    '''A keypath as SiliconCompiler prints one, ``tool,x,task,y,dataroot,z``.'''
+    return ",".join(keypath)
+
+
+class Unnamed(ValueError):
+    '''A value whose dataroot is defined where neither shape of keypath can
+    name it, so the server could be told of it only in a way it refuses.'''
+
+    def __init__(self, key, keypath):
+        self.key, self.keypath = tuple(key), tuple(keypath)
+        super().__init__(
+            f"[{shown(key)}] reads the dataroot {shown(keypath)}, which is neither a "
+            "library's nor a task's: a server names every dataroot by one of those, "
+            "so this one cannot be supplied")
+
+
+def _dataroot_section(schema):
+    '''The schema a value's dataroot is defined in: the nearest ancestor --
+    itself included -- with a ``dataroot`` of its own, as SiliconCompiler's
+    `_find_files_dataroot_resolvers` finds it; None where none has one.'''
+    root = schema._parent(root=True)
+    while not schema.valid("dataroot"):
+        if schema is root:
+            return None
+        schema = schema._parent()
+    return schema
+
+
+def dataroot_keypath(project, key, dataroot: Optional[str]) -> Optional[Tuple[str, ...]]:
+    '''Where the manifest keeps the dataroot one value of ``key`` resolves
+    in: the defining schema's own keypath, then ``dataroot,<dataroot>`` --
+    never a slice of ``key``. A design's fileset value belongs to
+    ``library,<name>``, and a task's `script` or `refdir` to its own task.
+
+    None where the value names no dataroot, or one its section does not
+    define: such a value is local, and goes up in the archive.'''
+    if not dataroot:
+        return None
+    section = _dataroot_section(project.get(*key[:-1], field="schema"))
+    if section is None or dataroot not in section.getkeys("dataroot"):
+        return None
+    return (*section._keypath, "dataroot", dataroot)
+
+
 def owner(project, key) -> Tuple[str, Optional[str]]:
     '''``(kind, name)`` for the object a parameter belongs to.
 
-    ``kind`` is one of `RESOURCE_KINDS`, ``"tool"``, `DESIGN` or `PROJECT`.
+    ``kind`` is one of `RESOURCE_KINDS`, ``"tool"``, `DESIGN` or `PROJECT`,
+    and internal: it decides what uploads, and is never on the wire, where a
+    dataroot goes by its keypath.
 
     ⚠️ The resource classes are tested BEFORE `Design`, because `PDK` and
     `StdCellLibrary` subclass it -- tested the other way round, every PDK would
@@ -234,6 +310,7 @@ class _Value(NamedTuple):
     origin: str                 # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
     step: Optional[str] = None
     index: Optional[str] = None
+    keypath: Optional[Tuple[str, ...]] = None   # the dataroot's: `dataroot_keypath`
 
 
 def _values(project) -> Iterator[_Value]:
@@ -249,6 +326,7 @@ def _values(project) -> Iterator[_Value]:
             continue
 
         resolvers = None
+        keypaths: Dict[Optional[str], Optional[Tuple[str, ...]]] = {}
         for held, step, index in param.getvalues(return_values=False):
             if not held.has_value:
                 continue
@@ -261,12 +339,14 @@ def _values(project) -> Iterator[_Value]:
                 if one.get() is None:
                     continue
                 dataroot = one.get(field="dataroot")
+                if dataroot not in keypaths:
+                    keypaths[dataroot] = dataroot_keypath(project, key, dataroot)
                 who, name = owner(project, key)
                 yield _Value(tuple(key), one, resolvers,
                              DESIGN if who == PROJECT else who,
                              project.name if who == PROJECT else name,
                              dataroot, source(resolvers, dataroot, path=one.get()),
-                             step, index)
+                             step, index, keypaths[dataroot])
 
 
 class PrivateBeside(ValueError):
@@ -345,36 +425,36 @@ def collected_paths(project, paths) -> Dict[str, str]:
 
 def sources(project, required=None) -> List[Dict[str, Any]]:
     '''The dataroots this client expects the server to supply: the descriptor's
-    `sources`. One entry per (kind, name, dataroot) not uploaded -- and, given
-    the flow's ``required`` keys, only one holding a value the flow reads.
+    `sources`. One entry per dataroot not uploaded -- and, given the flow's
+    ``required`` keys, only one holding a value the flow reads.
 
     🔴 Every URL is its resolver's `safe_source`: no `user:secret@`, and every
     query value masked as ``***`` -- which says what the source is and not
     enough to fetch it from, so the server asks for it rather than fetch it.
     A private dataroot's source is ABSENT -- its path is never sent.
 
-    Each names its dataroot by ``name``, the object that owns it, and
-    ``dataroot``, its own name, and no kind: a resource's name is unique across
-    kinds, so the server finds the kind from it (surface D282).
+    Each names its dataroot by its ``keypath`` and no kind (surface D298).
+    Raises :class:`Unnamed` for one defined where neither shape names it,
+    which the server would refuse.
     '''
-    found: Dict[Tuple[Optional[str], str], Dict[str, Any]] = {}
+    found: Dict[Tuple[str, ...], Dict[str, Any]] = {}
     for one in _values(project):
         if one.origin not in (INSTALLED, REMOTE, PRIVATE) or not one.dataroot:
             continue
         if not needed(one.key, required):
             continue
-        entry = (one.name, one.dataroot)
-        if entry in found:
+        if one.keypath is None or not is_dataroot_keypath(one.keypath):
+            raise Unnamed(one.key, one.keypath or (*one.key[:-1], "dataroot", one.dataroot))
+        if one.keypath in found:
             continue
         resolver = one.resolvers.get(one.dataroot)
-        item = {"name": one.name, "dataroot": one.dataroot,
-                "private": one.origin == PRIVATE}
+        item = {"keypath": list(one.keypath), "private": one.origin == PRIVATE}
         if one.origin != PRIVATE:
             item["source"] = safe_source(resolver)
             ref = getattr(resolver, "reference", None)
             if ref:
                 item["ref"] = ref
-        found[entry] = item
+        found[one.keypath] = item
     return list(found.values())
 
 
@@ -389,21 +469,21 @@ def _distribution_of(module: Optional[str]) -> Optional[str]:
 
 
 def installed_dataroots(project, required=None) \
-        -> List[Tuple[Tuple[Optional[str], str], str]]:
-    '''Each ``(name, dataroot)`` the flow reads from a Python package
-    installed normally, with the distribution that provides it -- what a
+        -> List[Tuple[Tuple[str, ...], str]]:
+    '''Each dataroot the flow reads from a Python package installed
+    normally, by its keypath, with the distribution that provides it -- what a
     server may supply by that distribution's version, where it holds it.'''
-    found: Dict[Tuple[Optional[str], str], str] = {}
+    found: Dict[Tuple[str, ...], str] = {}
     for one in _values(project):
-        if one.origin != INSTALLED or not one.dataroot or not needed(one.key, required):
+        if one.origin != INSTALLED or one.keypath is None or \
+                not needed(one.key, required):
             continue
-        entry = (one.name, one.dataroot)
-        if entry in found:
+        if one.keypath in found:
             continue
         resolver = one.resolvers.get(one.dataroot)
         distribution = _distribution_of(getattr(resolver, "urlpath", None))
         if distribution:
-            found[entry] = distribution
+            found[one.keypath] = distribution
     return sorted(found.items())
 
 
@@ -425,7 +505,7 @@ def private_holders(project, required=None) -> Set[str]:
     return found
 
 
-# How the server accounts for a (kind, name, dataroot): worst first.
+# How the server accounts for a dataroot: worst first.
 UNAVAILABLE = "unavailable"   # private and not supplied, or a path that escapes
 ASK = "ask"                   # the client can send it, and has not
 FETCH = "fetch"               # allowlisted, not held: fetched after submit
@@ -436,7 +516,8 @@ _WORST = (UNAVAILABLE, ASK, FETCH, SUPPLIED, UPLOADED)
 
 
 class Entry(NamedTuple):
-    '''One (kind, name, dataroot), and how its files reach the run.'''
+    '''One dataroot -- or, for files in none, one owner's -- and how its
+    files reach the run.'''
     kind: str
     name: Optional[str]
     dataroot: Optional[str]
@@ -448,12 +529,14 @@ class Entry(NamedTuple):
     origin: Optional[str] = None    # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
     key: Optional[Tuple[str, ...]] = None   # the value that decided the status,
     path: Optional[str] = None              # for a refusal to name
+    keypath: Optional[Tuple[str, ...]] = None   # the dataroot's; None for files in none
 
     @property
     def wire(self) -> Dict[str, Any]:
-        '''As `upload_sources` spells it: a dataroot, by its owner and its own
-        name (surface D282).'''
-        return {"kind": "dataroot", "name": self.name, "dataroot": self.dataroot}
+        '''As `upload_sources` spells it: a dataroot, by its keypath (surface
+        D298). Only a dataroot is ever asked for: a file in none is the
+        client's to have sent.'''
+        return {"kind": "dataroot", "keypath": list(self.keypath)}
 
 
 def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]]:
@@ -461,7 +544,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
     :func:`account`, which runs where the manifest is read.
 
     One record per value -- its ``(key, step, index)``, the owner's kind and
-    name, the dataroot and where it comes from, the path, and where
+    name, the dataroot, its keypath and where it comes from, the path, and where
     `collect` puts it under the collection directory (:func:`collected_path`,
     computed here because the layout is the reading SiliconCompiler's) --
     with what it was found as in ``collection_dir`` (``collected``, relative),
@@ -478,6 +561,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
             continue
         record = {"key": list(one.key), "step": one.step, "index": one.index,
                   "kind": one.kind, "name": one.name, "dataroot": one.dataroot,
+                  "keypath": list(one.keypath) if one.keypath else None,
                   "origin": one.origin, "path": one.value.get(),
                   "collected_path": collected_path(one),
                   "collected": None, "source": None, "ref": None, "package": None}
@@ -506,13 +590,13 @@ def account_records(records, collection_dir, supply, required=None) -> List[Entr
     half of :func:`account`, from :func:`value_records`.
 
     ``supply`` answers for this server: ``package(module)``,
-    ``private_root(name, dataroot)``, ``held(source, ref)`` and
+    ``private_root(keypath)``, ``held(source, ref)`` and
     ``allowlisted(source, ref)``. ``required`` is :func:`required`'s set; None
     accounts for every file the manifest names, as before the set existed.
 
     🔴 **No path the job names is read.** A file is in the archive, or it is
-    supplied by identity -- a package by name, a private dataroot by (object,
-    dataroot), a remote source by (source, ref) -- and a path under a supplied
+    supplied by identity -- a package by name, a private dataroot by its
+    keypath, a remote source by (source, ref) -- and a path under a supplied
     root is confined to it. Anything else is `ASK` (the client can send it) or
     `UNAVAILABLE` (it cannot).
 
@@ -525,27 +609,33 @@ def account_records(records, collection_dir, supply, required=None) -> List[Entr
     the read found it in the collection; it counts only where that path, held
     inside ``collection_dir``, is really there.
     '''
-    groups: Dict[Tuple[str, Optional[str], Optional[str]], Entry] = {}
+    groups: Dict[Tuple[Optional[str], ...], Entry] = {}
 
     for record in records:
         key = tuple(record["key"])
         if not needed(key, required):
             continue
         entry = _one(record, collection_dir, supply, present=required is not None)
-        group = (record["kind"], record["name"], record["dataroot"])
+        # By keypath: two tasks of one tool, or a library and a tool of one
+        # name, are different dataroots. Files in no dataroot, by owner.
+        keypath = record.get("keypath")
+        group = tuple(keypath) if keypath else \
+            (record["kind"], record["name"], record["dataroot"])
         held = groups.get(group)
         if held is None or _WORST.index(entry.status) < _WORST.index(held.status):
             groups[group] = entry
 
     return sorted(groups.values(),
                   key=lambda e: (_WORST.index(e.status), e.kind, str(e.name),
-                                 str(e.dataroot)))
+                                 str(e.dataroot), e.keypath or ()))
 
 
 def _one(record, collection_dir, supply, present: bool = False) -> Entry:
     path = record["path"]
+    keypath = tuple(record["keypath"]) if record.get("keypath") else None
     base = dict(kind=record["kind"], name=record["name"], dataroot=record["dataroot"],
-                origin=record["origin"], key=tuple(record["key"]), path=path)
+                origin=record["origin"], key=tuple(record["key"]), path=path,
+                keypath=keypath)
 
     # Private wins over everything, the archive included: it must never have
     # been sent, and a copy that arrived anyway is not used.
@@ -553,7 +643,7 @@ def _one(record, collection_dir, supply, present: bool = False) -> Entry:
         if record["kind"] == DESIGN:
             return Entry(**base, status=UNAVAILABLE,
                          why="a private design cannot be supplied by a server")
-        root = supply.private_root(record["name"], record["dataroot"])
+        root = supply.private_root(keypath) if keypath else None
         if not root:
             return Entry(**base, status=UNAVAILABLE,
                          why="a private dataroot this server has no copy of")

@@ -139,14 +139,15 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
                self._datadir / "sources"]
         for path in own:
             path.mkdir(parents=True, exist_ok=True)
+        from siliconcompiler.remote.server.config import private_paths
+
         private = []
-        for roots in (self._config["private_dataroots"] or {}).values():
-            for root in roots.values():
-                if os.path.isdir(root):
-                    private.append((str(root), "ro"))
-                else:
-                    logger.warning(f"private dataroot {root} is not a directory here; "
-                                   "no container is given it")
+        for root in private_paths(self._config["private_dataroots"] or {}):
+            if os.path.isdir(root):
+                private.append((str(root), "ro"))
+            else:
+                logger.warning(f"private dataroot {root} is not a directory here; "
+                               "no container is given it")
         return [(str(own[0]), "rw"), (str(own[1]), "rw"), (str(own[2]), "ro")] + private
 
     def framework_mounts(self, job):

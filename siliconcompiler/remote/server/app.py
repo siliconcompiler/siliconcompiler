@@ -16,7 +16,7 @@ from typing import List, Optional, Union
 from pathlib import Path
 
 from siliconcompiler.remote.server import errors
-from siliconcompiler.remote.server.config import Config
+from siliconcompiler.remote.server.config import Config, private_paths
 from siliconcompiler.remote.server.errors import ERRORS, OAuthError, ProblemError, problem
 from siliconcompiler.remote.server.identity.auth import TokenIssuer
 from siliconcompiler.remote.server.jobs import JobService
@@ -171,9 +171,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # What a published `detail` must never say about this deployment (D122).
     import socket
     errors.set_internals(
-        paths=[datadir] + list(config["container_mounts"] or []) + [
-            root for roots in (config["private_dataroots"] or {}).values()
-            for root in roots.values()],
+        paths=[datadir] + list(config["container_mounts"] or [])
+        + private_paths(config["private_dataroots"] or {}),
         names=[socket.gethostname(), socket.getfqdn()])
 
     reaper.sweep(store, storage, config, datadir)

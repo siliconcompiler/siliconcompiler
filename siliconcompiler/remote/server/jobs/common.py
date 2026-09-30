@@ -109,8 +109,19 @@ class _Supply:
         except (ImportError, ValueError):
             return False
 
-    def private_root(self, name, dataroot) -> Optional[str]:
-        return ((self._config["private_dataroots"] or {}).get(name) or {}).get(dataroot)
+    def private_root(self, keypath) -> Optional[str]:
+        '''This server's own copy of a private dataroot, by its keypath: a
+        library's from `library`, and a task's from `task` for that one task,
+        else from `tool` for every task of the tool.'''
+        if not owners.is_dataroot_keypath(keypath):
+            return None
+        mapped = self._config["private_dataroots"] or {}
+        if keypath[0] == "library":
+            _, name, _, root = keypath
+            return ((mapped.get("library") or {}).get(name) or {}).get(root)
+        _, tool, _, task, _, root = keypath
+        return (((mapped.get("task") or {}).get(tool) or {}).get(task) or {}).get(root) \
+            or ((mapped.get("tool") or {}).get(tool) or {}).get(root)
 
     def held(self, source, ref) -> Optional[str]:
         # Nothing is held on a server that fetches nothing: a copy left from
@@ -198,7 +209,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from",
                   "python_packages")
 DESCRIPTOR_MEMBERS = ("flow", "node_count", "needs", "requested_versions", "sources")
-SOURCE_MEMBERS = ("name", "dataroot", "source", "ref", "private")
+SOURCE_MEMBERS = ("keypath", "source", "ref", "private")
 
 
 def _only(body: Dict[str, Any], allowed, where: str) -> None:
@@ -341,23 +352,37 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         return None
     if not isinstance(declared, list):
         raise ProblemError("invalid-request", detail="sources is a list")
-    checked = []
+    checked, seen = [], set()
     for item in declared:
-        if not isinstance(item, dict) or not isinstance(item.get("name"), str) \
-                or not isinstance(item.get("dataroot"), str) \
-                or not isinstance(item.get("private", False), bool):
+        if not isinstance(item, dict):
+            raise ProblemError("invalid-request",
+                               detail="each source is an object: {keypath}, with an "
+                                      "optional source, ref and private")
+        _only(item, SOURCE_MEMBERS, "a source")
+        keypath = item.get("keypath")
+        # 🔴 One of the two places SiliconCompiler keeps a dataroot, and
+        # nothing else: this server does not guess what owns one (surface
+        # D298).
+        if not owners.is_dataroot_keypath(keypath) or \
+                any(len(part) > MAX_NAME for part in keypath):
             raise ProblemError(
                 "invalid-request",
-                detail="each source is {name, dataroot} -- its owner and its own name -- "
-                       "with an optional source, ref and private")
-        _only(item, SOURCE_MEMBERS, "a source")
+                detail="a source's keypath is a library's dataroot, [\"library\", name, "
+                       "\"dataroot\", root], or a task's, [\"tool\", tool, \"task\", task, "
+                       "\"dataroot\", root]")
+        if not isinstance(item.get("private", False), bool):
+            raise ProblemError("invalid-request", detail="a source's private is true or false")
+        where = owners.shown(keypath)
+        if tuple(keypath) in seen:
+            raise ProblemError("invalid-request", detail=f"sources names {where} twice")
+        seen.add(tuple(keypath))
         private = item.get("private", False)
         if private and ("source" in item or "ref" in item):
             raise ProblemError(
                 "invalid-request",
-                detail=f"{item['name']} ({item['dataroot']}) is private, so it carries no "
-                       "source and no ref: its path never leaves the client")
-        entry = {"name": item["name"], "dataroot": item["dataroot"], "private": private}
+                detail=f"{where} is private, so it carries no source and no ref: its "
+                       "path never leaves the client")
+        entry = {"keypath": list(keypath), "private": private}
         if isinstance(item.get("source"), str):
             # 🔴 Masked again, as the client masks it (`Resolver.safe_source`):
             # a client that sent `user:token@` or a query's token anyway has
@@ -366,8 +391,7 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
                 entry["source"] = owners.masked(item["source"])
             except ValueError:
                 raise ProblemError("invalid-request",
-                                   detail=f"{item['name']} ({item['dataroot']}): source "
-                                          "is not a URL") from None
+                                   detail=f"{where}: source is not a URL") from None
         if isinstance(item.get("ref"), str):
             entry["ref"] = item["ref"]
         checked.append(entry)

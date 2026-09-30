@@ -331,10 +331,10 @@ def test_a_private_source_carries_no_source_and_no_ref(server_client, key, token
     '''`private` defaults to false; when true, its path never leaves the
     client, so a `source` or `ref` beside it is refused rather than trusted.'''
     defaulted = create(server_client, key, token, sources=[
-        {"name": "ip", "dataroot": "ip",
+        {"keypath": ["library", "ip", "dataroot", "ip"],
          "source": "git+ssh://git@example.com/ip.git", "ref": "v1"}])
     leaked = create(server_client, key, token, jobname="job1", sources=[
-        {"name": "gf180", "dataroot": "gf180", "private": True,
+        {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
          "source": "file:///opt/pdks/gf180"}])
 
     assert defaulted.status_code == 201
@@ -2037,7 +2037,7 @@ def test_every_directory_a_job_bundle_binds_exists(
     fake.name = "slurm"
     container_server.config["SC_JOBS"]._dispatcher = fake
     container_server.config["SC_CONFIG"]._values["private_dataroots"] = {
-        "acme": {"acme": "/nonexistent/acme-pdk"}}
+        "library": {"acme": {"acme": "/nonexistent/acme-pdk"}}}
     monkeypatch.setattr(images, "stage_bundle", fake_unpack)
     shutil.rmtree(Path("container-datadir/sources"), ignore_errors=True)
 

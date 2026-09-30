@@ -262,21 +262,23 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
 
 def dataroot_targets(entries, collection) -> List[List[Optional[str]]]:
     '''Where each dataroot the run reads is supplied, from `owners.account`'s
-    answer, as ``[kind, name, dataroot, target]``: an uploaded one at this
-    job's collection, a supplied one at this server's own copy -- a held
-    source, or an operator's private root. An installed package is left out,
-    since it is found by name.'''
+    answer, as ``[keypath, target]``: an uploaded one at this job's
+    collection, a supplied one at this server's own copy -- a held source, or
+    an operator's private root. An installed package is left out, since it is
+    found by name, and so are files in no dataroot.'''
     from siliconcompiler.remote import owners
 
     found = []
     for entry in entries:
+        if not entry.keypath:
+            continue
         if entry.status == owners.SUPPLIED and entry.root:
             target = str(entry.root)
         elif entry.status == owners.UPLOADED:
             target = str(collection)
         else:
             continue
-        found.append([entry.kind, entry.name, entry.dataroot, target])
+        found.append([list(entry.keypath), target])
     return found
 
 
@@ -297,18 +299,16 @@ def point_dataroots(project, targets) -> int:
 
     Returns how many dataroots were pointed.
     '''
-    from siliconcompiler.remote import owners
-
-    by = {(kind, name, dataroot): target for kind, name, dataroot, target in targets}
+    # 🔴 By the dataroot's own keypath -- the parameter's key less `path` --
+    # so each task's dataroot is pointed on its own, never every task of the
+    # tool at the first one's copy.
+    by = {tuple(keypath): target for keypath, target in targets}
     pointed = 0
     for key in sorted(project.allkeys(include_default=False)):
         if key[0] == "history" or len(key) < 3 or key[-1] != "path" \
                 or key[-3] != "dataroot":
             continue
-        who, name = owners.owner(project, key)
-        kind = owners.DESIGN if who == owners.PROJECT else who
-        name = project.name if who == owners.PROJECT else name
-        target = by.get((kind, name, key[-2]))
+        target = by.get(tuple(key[:-1]))
         if target is None:
             continue
         project.set(*key, target)

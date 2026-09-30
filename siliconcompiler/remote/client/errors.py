@@ -67,7 +67,7 @@ class SessionEnded(ServerProblem):
 # A slug names a kind of failure; one of these names the instance. `blocked_by`
 # has lines of its own.
 _DISCRIMINATORS = (
-    "resource", "limit", "reason", "feature", "artifact_kind", "job_ids",
+    "resource", "keypath", "limit", "reason", "feature", "artifact_kind", "job_ids",
     "resource_kind", "detected", "member", "step", "index", "job_id",
 )
 
@@ -186,6 +186,12 @@ def _member(value) -> str:
     return str(value)
 
 
+def _keypath(value) -> str:
+    if isinstance(value, (list, tuple)):
+        return ",".join(str(part) for part in value)
+    return str(value)
+
+
 def describe(problem: Dict[str, Any], status: Optional[int] = None,
              next_step: Optional[str] = None,
              help_url: Optional[str] = None,
@@ -220,7 +226,9 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     first = f"{title}" if status is None else f"{title} ({status})"
     lines.append(first if not detail else f"{first}: {detail}")
 
-    named = [f"{name}: {clean(_member(problem[name]))}"
+    # A keypath as SiliconCompiler prints one, `tool,x,task,y,dataroot,z`.
+    named = [f"{name}: "
+             + clean(_keypath(problem[name]) if name == "keypath" else _member(problem[name]))
              for name in _DISCRIMINATORS if problem.get(name) is not None]
     if named:
         lines.append("  " + ", ".join(named))

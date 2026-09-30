@@ -1557,13 +1557,13 @@ def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
     HTTPResolver.resolve_remote = resolve_remote
     try:
         _routes_for_a_submit(fake_v1, created={"upload_sources": [
-            {"kind": "dataroot", "name": "acme", "dataroot": "acme"}]})
+            {"kind": "dataroot", "keypath": ["library", "acme", "dataroot", "acme"]}]})
         with caplog.at_level("INFO"):
             run._start()
     finally:
         HTTPResolver.resolve_remote = real
 
-    assert "The server asked for acme (acme)" in caplog.text
+    assert "The server asked for the dataroot library,acme,dataroot,acme" in caplog.text
     assert "pdk acme (acme):" in caplog.text
 
 
@@ -1589,19 +1589,20 @@ def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
     HTTPResolver.resolve_remote = unreachable
     try:
         _routes_for_a_submit(fake_v1, created={"upload_sources": [
-            {"kind": "dataroot", "name": "acme", "dataroot": "acme"}]})
+            {"kind": "dataroot", "keypath": ["library", "acme", "dataroot", "acme"]}]})
         fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
                       job_body("cancelled"), status=202)
-        with pytest.raises(RemoteError, match="acme .acme.: it cannot be fetched here "
-                                              "either: 404 from gitlab.example"):
+        with pytest.raises(RemoteError, match="the dataroot library,acme,dataroot,acme: it "
+                                              "cannot be fetched here either: 404 from "
+                                              "gitlab.example"):
             run._start()
     finally:
         HTTPResolver.resolve_remote = real
 
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
-    assert "acme (acme): it cannot be fetched here either: 404 from gitlab.example" in \
-        json.loads(cancel.request.body)["reason"]
+    assert ("library,acme,dataroot,acme: it cannot be fetched here either: 404 from "
+            "gitlab.example") in json.loads(cancel.request.body)["reason"]
 
 
 def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
@@ -1619,8 +1620,8 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
     fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
                   status=202)
 
-    run._send_asked("01J9-job", [{"kind": "dataroot", "name": "gcd",
-                                  "dataroot": "gcd-pytest-example"}])
+    run._send_asked("01J9-job", [{"kind": "dataroot", "keypath": [
+        "library", "gcd", "dataroot", "gcd-pytest-example"]}])
 
     put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
     body = put.request.body.read() if hasattr(put.request.body, "read") else put.request.body
@@ -1632,11 +1633,11 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
 
 
 def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
-    run._sent.add((("dataroot", "gcd", "gcd-pytest-example"),))
+    run._sent.add((("dataroot", "library,gcd,dataroot,gcd-pytest-example", ""),))
 
     with pytest.raises(RemoteError, match="asked again"):
-        run._send_asked("01J9-job", [{"kind": "dataroot", "name": "gcd",
-                                      "dataroot": "gcd-pytest-example"}])
+        run._send_asked("01J9-job", [{"kind": "dataroot", "keypath": [
+            "library", "gcd", "dataroot", "gcd-pytest-example"]}])
 
 
 def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog):
@@ -1694,6 +1695,34 @@ def _granted(fake_v1):
                    "headers": {"content-length": "1"},
                    "expires_at": "2026-09-22T10:15:00.000Z"})
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
+
+
+@pytest.mark.parametrize("refusal,said", [
+    # A private task root this server does not hold (surface D298): the
+    # owner's name, and which of its dataroots.
+    (problem("resource-unavailable", 422, resource="acme_sim",
+             keypath=["tool", "acme_sim", "task", "run", "dataroot", "scripts"],
+             detail="the private dataroot tool,acme_sim,task,run,dataroot,scripts is not "
+                    "held by this server"),
+     ["keypath: tool,acme_sim,task,run,dataroot,scripts",
+      "the private dataroot tool,acme_sim,task,run,dataroot,scripts is not held by this "
+      "server"]),
+    # A keypath of any other shape, from a client this one is not.
+    (problem("invalid-request", 400,
+             detail="a source's keypath is a library's dataroot, [\"library\", name, "
+                    "\"dataroot\", root], or a task's"),
+     ["a source's keypath is a library's dataroot"]),
+])
+def test_a_refused_dataroot_is_said_by_its_keypath(fake_v1, run, monkeypatch, refusal, said):
+    monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: pytest.fail("packed"))
+    fake_v1.route(responses.POST, "jobs", refusal, status=refusal["status"],
+                  content_type="application/problem+json")
+
+    with pytest.raises(RemoteError) as raised:
+        run._start()
+
+    assert all(line in str(raised.value) for line in said), str(raised.value)
+    assert not any("upload-grant" in call.request.url for call in fake_v1.calls)
 
 
 def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch):
@@ -1950,7 +1979,7 @@ def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project
         nop_project.add_dep(lib)
 
     collection = tmp_path / "collected"
-    run._collect([{"kind": "dataroot", "name": "alib", "dataroot": "root"}],
+    run._collect([{"kind": "dataroot", "keypath": ["library", "alib", "dataroot", "root"]}],
                  directory=str(collection), only_asked=True)
 
     found = {name for _, _, names in os.walk(collection) for name in names}

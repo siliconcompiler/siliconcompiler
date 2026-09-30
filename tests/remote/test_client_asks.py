@@ -85,13 +85,15 @@ def test_a_source_asked_for_at_create_that_cannot_be_fetched_here_cancels(
     url, app, client = rig
     project = needing(nop_project, acme(tag="v1-create"))
 
-    with pytest.raises(RemoteError, match=r"acme \(acme\): it cannot be fetched here"):
+    with pytest.raises(RemoteError, match=r"the dataroot library,acme,dataroot,acme: it "
+                                          r"cannot be fetched here"):
         RemoteRun(project, client).run()
 
     detail, row = the_job(app, client)
     assert detail["state"] == "cancelled" == row["state"]
     assert row["state_reason"].startswith("cancelled from sc-remote: it cannot supply "
-                                          "what the server asked for: acme (acme)")
+                                          "what the server asked for: the dataroot "
+                                          "library,acme,dataroot,acme")
     # Served whole (surface D288): what was stored is what the job shows.
     assert detail["transitions"][-1]["reason"] == row["state_reason"]
     assert "hunter2" not in row["state_reason"]
@@ -109,14 +111,15 @@ def test_a_source_asked_for_after_submit_that_cannot_be_fetched_here_cancels(
     url, app, client = rig
     project = needing(nop_project, acme(tag="v1-after"))
 
-    with pytest.raises(RemoteError, match=r"acme \(acme\): it cannot be fetched here"):
+    with pytest.raises(RemoteError, match=r"the dataroot library,acme,dataroot,acme: it "
+                                          r"cannot be fetched here"):
         RemoteRun(project, client).run()
 
     detail, row = the_job(app, client)
     assert detail["state"] == "cancelled"
     assert [entry["state"] for entry in detail["transitions"]][-3:] == \
         ["staging", "awaiting_input", "cancelled"]
-    assert "acme (acme)" in row["state_reason"]
+    assert "library,acme,dataroot,acme" in row["state_reason"]
     # Served whole (surface D288): what was stored is what the job shows.
     assert detail["transitions"][-1]["reason"] == row["state_reason"]
     assert "hunter2" not in row["state_reason"]
@@ -197,7 +200,7 @@ def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
     try:
         with pytest.raises(RemoteError) as raised:
             RemoteRun(project, logged_in)._send_asked("01J9-job", [
-                {"kind": "dataroot", "name": "acme", "dataroot": "acme"},
+                {"kind": "dataroot", "keypath": ["library", "acme", "dataroot", "acme"]},
                 {"kind": "python", "name": "scfakefine"},
                 {"kind": "python", "name": "scfakec"},
                 {"kind": "python", "name": "scfakegone"}])
@@ -207,7 +210,7 @@ def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
     reason = json.loads(cancel.request.body)["reason"]
-    failed = ("acme (acme): it cannot be fetched here either",
+    failed = ("the dataroot library,acme,dataroot,acme: it cannot be fetched here either",
               "the Python package scfakec: it holds a compiled file",
               "the Python package scfakegone: it is not installed here either")
     # Every one printed here; in the reason, those that fit and how many more.

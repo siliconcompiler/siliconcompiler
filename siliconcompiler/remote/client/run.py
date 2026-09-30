@@ -204,8 +204,7 @@ class RemoteRun:
             # other end, never a fetch, and credentials stripped -- and only
             # what the flow reads.
             sources=[item for item in owners.sources(self.project, self._needs()[1])
-                     if (item["name"], item["dataroot"])
-                     not in self._uploaded_packages()] or None,
+                     if tuple(item["keypath"]) not in self._uploaded_packages()] or None,
             idempotency_key=_key())
 
         job_id = job["id"]
@@ -314,12 +313,24 @@ class RemoteRun:
                 "here, and run again")
 
         self._check_upstream_files()
+        self._check_dataroots()
         self._check_software()
         # The node's Python: what cannot be worked out, a compiled extension or
         # two sources for one path among the user's code, and a package to
         # install where the server installs none -- all before create.
         self._check_python_env()
         self._check_account()
+
+    def _check_dataroots(self) -> None:
+        '''Stop before create where a dataroot the server would be told of is
+        defined where no keypath names it: a server names each by a library's
+        or a task's (surface D298), and refuses anything else.'''
+        from siliconcompiler.remote import owners
+
+        try:
+            owners.sources(self.project, self._needs()[1])
+        except owners.Unnamed as e:
+            raise RemoteError(str(e)) from None
 
     def _check_account(self) -> None:
         '''What `GET /v1/me` says of this account, before create: an upcoming
@@ -540,8 +551,8 @@ class RemoteRun:
 
         from siliconcompiler.remote import owners
 
-        seen = tuple(sorted((item.get("kind"), item.get("name"), item.get("dataroot") or "")
-                            for item in asked))
+        seen = tuple(sorted((item.get("kind"), ",".join(item.get("keypath") or ()),
+                             item.get("name") or "") for item in asked))
         if seen in self._sent:
             raise RemoteError(f"the server asked again for {_named(asked)}, which "
                               "this client has already sent")
@@ -768,7 +779,7 @@ class RemoteRun:
             return False
 
     def _uploaded_packages(self):
-        '''Each ``(name, dataroot)`` from an installed package the
+        '''The keypath of each dataroot from an installed package the
         server does not list at this version: its files upload.'''
         from siliconcompiler.remote import owners
 
@@ -934,8 +945,7 @@ class RemoteRun:
                     in owners.installed_dataroots(project, required)
                     if self._supplied(distribution)}
         for one in owners._values(project):
-            if one.origin == owners.PRIVATE or \
-                    (one.name, one.dataroot) in supplied:
+            if one.origin == owners.PRIVATE or one.keypath in supplied:
                 resolver = one.resolvers.get(one.dataroot)
                 try:
                     path = resolver.get_path() if resolver is not None else None
@@ -960,9 +970,10 @@ class RemoteRun:
         '''
         from siliconcompiler.remote import owners
 
-        # 🔴 By owner AND dataroot, never the dataroot alone: many objects use
-        # SiliconCompiler's default, `root` (surface D282).
-        wanted = {(item.get("name"), item.get("dataroot"))
+        # 🔴 By keypath, never the dataroot's name alone: many owners use
+        # SiliconCompiler's default, `root`, and two tasks of one tool may each
+        # have one of the same name (surface D298).
+        wanted = {tuple(item.get("keypath") or ())
                   for item in asked if item.get("kind") == "dataroot"}
         required = self._needs()[1]
         # An installed package the server does not list at this version
@@ -976,7 +987,7 @@ class RemoteRun:
             if not only_asked and owners.uploads(self.project, one.key, one.dataroot,
                                                  one.resolvers, one.value.get()):
                 return True
-            return (one.name, one.dataroot) in wanted
+            return one.keypath in wanted
 
         try:
             keys = owners.collection_keys(self.project, pick)
@@ -1107,7 +1118,8 @@ class RemoteRun:
             if item.get("kind") == "dataroot":
                 why = self._unreachable(item)
                 if why:
-                    failures.append(f"{item.get('name')} ({item.get('dataroot')}): {why}")
+                    failures.append(f"the dataroot {','.join(item.get('keypath') or ())}: "
+                                    f"{why}")
 
         wheel_dir = tempfile.mkdtemp(prefix="sc-remote-asked-")
         try:
@@ -1143,10 +1155,10 @@ class RemoteRun:
         credential taken out of it; None where it can.'''
         from siliconcompiler.remote import owners
 
-        wanted = (item.get("name"), item.get("dataroot"))
+        wanted = tuple(item.get("keypath") or ())
         resolver = None
         for one in owners._values(self.project):
-            if (one.name, one.dataroot) == wanted:
+            if one.keypath == wanted:
                 resolver = one.resolvers.get(one.dataroot)
                 break
         else:
@@ -2308,7 +2320,7 @@ def _moved_at(node: Dict[str, Any]):
 
 def _named(asked) -> str:
     '''`upload_sources` as a person reads it.'''
-    return ", ".join(f"{item.get('name')} ({item.get('dataroot')})"
+    return ", ".join(f"the dataroot {','.join(item.get('keypath') or ())}"
                      if item.get("kind") == "dataroot" else
                      f"the Python package {item.get('name')}"
                      for item in asked)

@@ -358,17 +358,24 @@ class SubmitMixin:
             # `resource_kind` only where the read names a resource kind: never
             # the design, which is no resource (surface D285).
             kind = entry.kind if entry.kind in _RESOURCE_KINDS else None
+            # A dataroot's refusal says which of its owner's (surface D298).
+            where = f" in the dataroot {owners.shown(entry.keypath)}" \
+                if entry.keypath else ""
             raise self._refuse(session, job, ProblemError(
-                "resource-unavailable", resource=entry.name or "",
+                "resource-unavailable",
+                resource=owners.keypath_owner(entry.keypath) if entry.keypath
+                else entry.name or "",
+                **({"keypath": list(entry.keypath)} if entry.keypath else {}),
                 **({"resource_kind": kind} if kind else {}),
-                detail=f"this flow needs {f'a {kind}' if kind else 'a file'} this "
-                       f"server cannot supply: {entry.why}"))
+                detail=f"this flow needs {f'a {kind}' if kind else 'a file'}{where} "
+                       f"this server cannot supply: {entry.why}"))
         for entry in entries:
             if entry.status == owners.UPLOADED:
                 continue
             if entry.status == owners.SUPPLIED and entry.root:
-                logger.info(f"{job['id']} is supplied {entry.kind} {entry.name} "
-                            f"({entry.dataroot}) from this server")
+                logger.info(f"{job['id']} is supplied "
+                            f"{owners.shown(entry.keypath or (entry.name or '',))} "
+                            "from this server")
         return entries
 
     def _check_wheels(self, session, job, unpacked: Path, tally=None) -> None:
@@ -447,17 +454,19 @@ class SubmitMixin:
         on a missing file. *Should have sent* is the design, anything local or
         editable, and anything this job already asked for; the rest the server
         can still ask for. Only a flow whose set is known is checked: without it
-        there is no telling a missing file from one nothing reads.
+        there is no telling a missing file from one nothing reads -- but a file
+        in no dataroot is always the client's to have sent, since nothing names
+        it to be asked for (surface D298).
         '''
-        if summary["required"] is None:
-            return
-        before = {(item.get("name"), item.get("dataroot"))
+        before = {tuple(item.get("keypath") or ())
                   for item in json.loads(job["upload_sources"] or "[]")
                   if item.get("kind") == "dataroot"}
         for entry in asked:
-            if not (entry.kind == owners.DESIGN
-                    or entry.origin in (owners.LOCAL, owners.EDITABLE)
-                    or (entry.name, entry.dataroot) in before):
+            if entry.keypath is not None and (
+                    summary["required"] is None
+                    or not (entry.kind == owners.DESIGN
+                            or entry.origin in (owners.LOCAL, owners.EDITABLE)
+                            or entry.keypath in before)):
                 continue
             where = f" ({entry.dataroot})" if entry.dataroot else ""
             raise self._refuse(session, job, ProblemError(
@@ -476,7 +485,9 @@ class SubmitMixin:
         (`owners.collection_keys`): a value asked for brings the others in its
         ``(key, step, index)``, whatever their dataroot.'''
         entries = json.loads(job["upload_sources"] or "[]")
-        asked = {(item.get("name"), item.get("dataroot"))
+        # 🔴 By keypath: a member under another task's dataroot of the same
+        # name was not asked for (surface D298).
+        asked = {tuple(item.get("keypath") or ())
                  for item in entries if item.get("kind") == "dataroot"}
         packages = {environment.canonical(item.get("name") or "")
                     for item in entries if item.get("kind") == "python"}
@@ -487,7 +498,7 @@ class SubmitMixin:
         private = {at for at, record in zip(where, records)
                    if record["origin"] == owners.PRIVATE}
         keys = {at for at, record in zip(where, records)
-                if (record["name"], record["dataroot"]) in asked
+                if tuple(record.get("keypath") or ()) in asked
                 and owners.needed(at[0], summary["required"]) and at not in private}
         paths = {record["collected_path"] for at, record in zip(where, records)
                  if at in keys and record["origin"] != owners.PRIVATE}

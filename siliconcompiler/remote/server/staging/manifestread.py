@@ -97,6 +97,7 @@ def validate(summary: Any) -> Dict[str, Any]:
     (implementation-notes §E, *Where untrusted input actually enters*).
     '''
     from siliconcompiler.flowgraph import Flowgraph
+    from siliconcompiler.remote import owners
 
     def fail(why):
         raise Invalid(why)
@@ -179,6 +180,12 @@ def validate(summary: Any) -> Dict[str, Any]:
         for field in ("step", "index", "name", "dataroot", "path", "collected_path",
                       "collected", "source", "ref", "package"):
             text(record.get(field), f"a value's {field}", optional=True)
+        # A dataroot's keypath, which everything downstream names it by: one of
+        # the two shapes, or none for a file in no dataroot.
+        if record.get("keypath") is not None:
+            _key(record["keypath"], fail, text)
+            if not owners.is_dataroot_keypath(record["keypath"]):
+                fail("a value's dataroot keypath is neither a library's nor a task's")
         if record.get("kind") not in ("design", "pdk", "library", "fpga", "tool", "project") \
                 or record.get("origin") not in _ORIGINS:
             fail("a value's kind or origin is not one this server knows")

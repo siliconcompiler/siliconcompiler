@@ -20,14 +20,16 @@ from typing import Any, Callable, List, Optional, Tuple, Union
 __all__ = ["Store", "STORE_VERSION", "now"]
 
 
-# Bumped whenever schema.sql changes shape. A store written by a newer server is
-# refused rather than opened: an unrecognised column is a silent wrong answer,
-# where a refusal is a message.
+# Bumped whenever schema.sql changes shape, or the JSON a column holds does --
+# 21: a dataroot in `jobs.upload_sources` and in the descriptor's `sources` is
+# named by its keypath. A store written by a newer server is refused rather than
+# opened: an unrecognised column is a silent wrong answer, where a refusal is a
+# message.
 #
 # Deliberately not `schemaversion`, which is SiliconCompiler's build schema and
 # moves for unrelated reasons. This is the third independent version in the
 # tree, alongside the package version, and it is the one a store file records.
-STORE_VERSION = 20
+STORE_VERSION = 21
 
 # How many times an admission's whole transaction is tried before its lock
 # contention is this server's failure. Each try already waits the connection's

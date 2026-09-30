@@ -14,7 +14,7 @@ an account's data.
 import json
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from siliconcompiler.remote.server.errors import FEATURES
 from siliconcompiler.remote.server.staging import allowlist
@@ -357,8 +357,17 @@ DEFAULTS: Dict[str, Any] = {
     # holding the node slots flows are waiting on.
     "build_queue": None,
 
-    # Private dataroots this server supplies, by the owning object's name and
-    # the dataroot's name: `{"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}`.
+    # Private dataroots this server supplies, by where SiliconCompiler keeps
+    # each (surface D298), a library's and a tool's apart:
+    #
+    #   {"library": {"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}},
+    #    "tool":    {"acme_sim": {"scripts": "/opt/acme/scripts"}},
+    #    "task":    {"acme_sim": {"run": {"scripts": "/opt/acme/run-scripts"}}}}
+    #
+    # `library` is `library,<name>,dataroot,<root>`. `tool` covers
+    # `tool,<tool>,task,<task>,dataroot,<root>` on every task of the tool -- a
+    # tool's private root is normally the same for all of them -- and `task`,
+    # for one (tool, task), overrides it.
     #
     # 🔴 A dataroot marked private never leaves the submitter's machine, so this
     # is the only way its files reach a run -- and a path under a root is
@@ -580,13 +589,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
                          "inputs could not be compared; turn on containers, or leave "
                          "jobs.reuse out")
 
-    private = values["private_dataroots"] or {}
-    if not isinstance(private, dict) or not all(
-            isinstance(roots, dict) and all(
-                isinstance(root, str) and root.startswith("/") for root in roots.values())
-            for roots in private.values()):
-        raise ValueError("private_dataroots maps an object name to "
-                         "{dataroot name: absolute path}")
+    _check_private_dataroots(values["private_dataroots"] or {})
 
     denied = values["denied_resources"] or {}
     unknown = set(denied) - set(RESOURCE_KINDS)
@@ -606,6 +609,53 @@ def _check_policy(values: Dict[str, Any]) -> None:
     interval = values["poll_interval_seconds"]
     if not isinstance(interval, int) or isinstance(interval, bool) or interval < 1:
         raise ValueError("poll_interval_seconds is a whole number of seconds, at least 1")
+
+
+def private_paths(private) -> List[str]:
+    '''Every root `private_dataroots` maps to, once each, in the order the
+    configuration gives them: what jobs are given read-only, and what a
+    published `detail` must never say.'''
+    found: List[str] = []
+    for section in ("library", "tool"):
+        for roots in (private.get(section) or {}).values():
+            found.extend(roots.values())
+    for tasks in (private.get("task") or {}).values():
+        for roots in tasks.values():
+            found.extend(roots.values())
+    return list(dict.fromkeys(found))
+
+
+def _check_private_dataroots(private) -> None:
+    '''`private_dataroots` held to its shape: `library`, `tool` and `task`,
+    each down to `{dataroot name: absolute path}`.'''
+    shape = ('private_dataroots is {"library": {name: {root: path}}, '
+             '"tool": {tool: {root: path}}, "task": {tool: {task: {root: path}}}}, '
+             'each path absolute')
+
+    def roots(value) -> bool:
+        return isinstance(value, dict) and all(
+            isinstance(root, str) and isinstance(path, str) and path.startswith("/")
+            for root, path in value.items())
+
+    if not isinstance(private, dict):
+        raise ValueError(shape)
+    unknown = sorted(set(private) - {"library", "tool", "task"})
+    if unknown:
+        # 🔴 Said plainly: the shape before keypaths was {name: {root: path}},
+        # which is `library`'s now, and a tool's root was never named by its
+        # task at all.
+        raise ValueError(f"{shape}; {unknown[0]!r} is none of library, tool and task. "
+                         "An entry of the old {name: {root: path}} shape goes under "
+                         '"library", or under "tool" where it is a tool\'s')
+    for section in ("library", "tool"):
+        held = private.get(section) or {}
+        if not isinstance(held, dict) or not all(roots(value) for value in held.values()):
+            raise ValueError(shape)
+    tasks = private.get("task") or {}
+    if not isinstance(tasks, dict) or not all(
+            isinstance(value, dict) and all(roots(inner) for inner in value.values())
+            for value in tasks.values()):
+        raise ValueError(shape)
 
 
 def _notice(entry) -> Dict[str, Any]:

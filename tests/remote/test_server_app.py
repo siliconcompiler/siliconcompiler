@@ -321,6 +321,37 @@ def test_a_notice_is_refused_unless_it_has_the_published_shape(notice, complaint
         Config.load("datadir")
 
 
+@pytest.mark.parametrize("private,complaint", [
+    # The shape before keypaths, which is `library`'s now: said how to move it.
+    ({"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}, "goes under \"library\""),
+    ({"library": {"acme_pdk": {"acme_pdk": "opt/pdks/acme"}}}, "each path absolute"),
+    ({"tool": {"acme_sim": "/opt/acme"}}, "each path absolute"),
+    ({"task": {"acme_sim": {"scripts": "/opt/acme"}}}, "each path absolute"),
+])
+def test_private_dataroots_keep_a_librarys_a_tools_and_a_tasks_apart(private, complaint):
+    from siliconcompiler.remote.server.config import Config
+
+    Path("datadir").mkdir()
+    Path("datadir/config.json").write_text(json.dumps({"private_dataroots": private}))
+
+    with pytest.raises(ValueError, match=complaint):
+        Config.load("datadir")
+
+
+def test_every_private_root_is_given_to_jobs_once():
+    from siliconcompiler.remote.server.config import Config, private_paths
+
+    Path("datadir").mkdir()
+    Path("datadir/config.json").write_text(json.dumps({"private_dataroots": {
+        "library": {"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}},
+        "tool": {"acme_sim": {"scripts": "/opt/acme"}},
+        "task": {"acme_sim": {"check": {"scripts": "/opt/acme-check"},
+                              "run": {"scripts": "/opt/acme"}}}}}))
+
+    assert private_paths(Config.load("datadir")["private_dataroots"]) == [
+        "/opt/pdks/acme", "/opt/acme", "/opt/acme-check"]
+
+
 def test_a_features_string_the_registry_does_not_hold_is_refused():
     '''🔴 `features` is a registry: a misspelled string would be advertised in
     `GET /v1`, and a client that knew it would rely on what nothing serves.'''

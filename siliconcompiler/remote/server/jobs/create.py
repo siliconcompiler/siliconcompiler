@@ -11,6 +11,7 @@ import uuid
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from siliconcompiler.remote import owners
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
     CREATE_MEMBERS, DESCRIPTOR_MEMBERS, REUSABLE_STATES, _continuations, _declared_sources,
@@ -208,7 +209,7 @@ class CreateMixin:
         =================================  =================================
         A source that is                   Answer
         =================================  =================================
-        private, and not in the map        `resource-unavailable`, by name
+        private, and not in the map        `resource-unavailable`, by keypath
         private, and in the map            supplied -- not listed
         held                               supplied -- not listed
         an installed package held here     supplied -- not listed
@@ -222,20 +223,22 @@ class CreateMixin:
         '''
         asked = []
         for item in declared:
-            name, dataroot = item["name"], item["dataroot"]
+            keypath = item["keypath"]
             if item["private"]:
-                # 🔴 Refused before a byte moves, by name alone (surface D285):
-                # `sources` carries no kind, this server has no catalogue to
-                # find one in, and a name is unique across kinds, so `resource`
-                # says which and `resource_kind` is left out. The manifest's
-                # read refuses one the descriptor never listed, while staging.
-                if not self._supply.private_root(name, dataroot):
+                # 🔴 Refused before a byte moves (surface D285, D298): the owner's
+                # name as `resource`, and the keypath saying which of its
+                # dataroots, since `root` is on most of them. `sources` carries
+                # no kind and this server has no catalogue to find one in, so
+                # `resource_kind` is left out. The manifest's read refuses one
+                # the descriptor never listed, while staging.
+                if not self._supply.private_root(keypath):
                     raise ProblemError(
-                        "resource-unavailable", resource=name,
-                        detail=f"{name} ({dataroot}) is marked private, and this "
-                               "server holds no copy of it: a private source is "
-                               "never uploaded, and only this server's operator can "
-                               "supply one, by name")
+                        "resource-unavailable", resource=owners.keypath_owner(keypath),
+                        keypath=list(keypath),
+                        detail=f"the private dataroot {owners.shown(keypath)} is not "
+                               "held by this server: a private source is never "
+                               "uploaded, and only this server's operator can supply "
+                               "one")
                 continue
             source, ref = item.get("source"), item.get("ref")
             if self._supply.held(source, ref) or self._supply.allowlisted(source, ref):
@@ -243,7 +246,7 @@ class CreateMixin:
             if source and source.startswith("python://") and \
                     self._supply.package(source[len("python://"):].split("/")[0]):
                 continue
-            asked.append({"kind": "dataroot", "name": name, "dataroot": dataroot})
+            asked.append({"kind": "dataroot", "keypath": list(keypath)})
         return asked
 
     def _identity(self, run_hash: Optional[str], requires,
@@ -398,11 +401,16 @@ class CreateMixin:
                            f"{limits['max_job_nodes']}")
 
         # The early entitlement check: the tools `requested_versions` names and the
-        # resources `sources` names, against what nobody here may use.
-        # Re-derived at submit, where the manifest is the answer.
-        # A source names no kind: the name finds it (entitlements D75).
-        wanted = [(self._config.denied_kind(item["name"]), item["name"])
-                  for item in descriptor.get("sources") or []]
+        # owners `sources` names, against what nobody here may use.
+        # Re-derived at submit, where the manifest is the answer. A source's
+        # owner is its keypath's second part (surface D298): a task's dataroot
+        # needs its tool, and a library's is one of the resource kinds, which
+        # the name finds (entitlements D75).
+        wanted = []
+        for item in descriptor.get("sources") or []:
+            keypath, name = item["keypath"], owners.keypath_owner(item["keypath"])
+            wanted += [("tool", name)] if keypath[0] == "tool" else \
+                [(kind, name) for kind in owners.RESOURCE_KINDS]
         wanted += [("tool", name) for name in sorted(requires["tools"])]
         for kind, name in wanted:
             if kind is not None and self._config.denied(kind, name):
