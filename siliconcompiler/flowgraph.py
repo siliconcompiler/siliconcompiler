@@ -76,12 +76,12 @@ class Flowgraph(NamedSchema, DocsSchema):
             step (str): The step name to validate.
 
         Raises:
-            ValueError: If ``step`` is a reserved name or contains a '/'.
+            ValueError: If ``step`` is a reserved name or is not a single
+                path segment.
         '''
         if step in (Parameter.GLOBAL_KEY, 'default') or step.startswith("sc_"):
             raise ValueError(f"{step} is a reserved name")
-        if '/' in step:
-            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
+        Flowgraph.__assert_valid_node_name(step, "step")
 
     @staticmethod
     def _assert_valid_index(index: str) -> None:
@@ -92,14 +92,23 @@ class Flowgraph(NamedSchema, DocsSchema):
             index (str): The index name to validate.
 
         Raises:
-            ValueError: If ``index`` is a reserved name or contains a '/'.
+            ValueError: If ``index`` is a reserved name or is not a single
+                path segment.
         '''
         if index in (Parameter.GLOBAL_KEY, 'default'):
             raise ValueError(f"{index} is a reserved name")
-        if '/' in index:
-            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
+        Flowgraph.__assert_valid_node_name(index, "index")
 
-    def node(self, step: str, task: "Task", index: Optional[Union[str, int]] = 0) -> None:
+    @staticmethod
+    def __assert_valid_node_name(name: str, what: str) -> None:
+        # A step and an index are directories of the build: one segment each.
+        if not isinstance(name, str) or name in ("", ".", ".."):
+            raise ValueError(f"{name!r} is not a valid {what}")
+        for bad in ("/", "\\", "\0"):
+            if bad in name:
+                raise ValueError(f"{name} is not a valid {what}, it cannot contain {bad!r}")
+
+    def node(self, step: str, task: Union[str, "Task"], index: Optional[Union[str, int]] = 0) -> None:
         '''
         Creates or updates a flowgraph node.
 
@@ -118,16 +127,17 @@ class Flowgraph(NamedSchema, DocsSchema):
         * `['<step>', '<index>', 'taskmodule']`
 
         Args:
-            step (str): Step name for the node. Must not contain '/'.
+            step (str): Step name for the node. Must be a single path segment.
             task (Task or str or Type[Task]): The task to associate with this
                 node. Can be a task instance, a string in the format
                 '<module_path>/<ClassName>', or a Task class type.
             index (int or str, optional): Index for the step. Defaults to 0.
-                Must not contain '/'.
+                Must be a single path segment.
 
         Raises:
             ValueError: If 'step' or 'index' are reserved names (like
-                'default' or '*') or contain invalid characters ('/').
+                'default' or '*') or are not a single path segment: empty,
+                ``.``, ``..``, or containing ``/``, ``\\`` or a NUL.
             ValueError: If 'task' is not a valid Task object, string, or class.
 
         Examples:
@@ -373,8 +383,8 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         Raises:
             ValueError: If ``step`` does not exist, if ``new_step`` is a
-                reserved name or contains a '/', or if ``new_step`` is
-                already defined in the flowgraph.
+                reserved name or is not a single path segment, or if
+                ``new_step`` is already defined in the flowgraph.
 
         Examples:
             >>> flow.node('synmin', minimum.MinimumTask())
