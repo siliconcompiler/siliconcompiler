@@ -8,6 +8,7 @@ import pytest
 
 from siliconcompiler import Design, Flowgraph, Project
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.tool import TaskExecutableNotFound
 from siliconcompiler.tools._common.cocotb import cocotb_task
 from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
 
@@ -49,14 +50,17 @@ def test_setup_needs_no_cocotb_and_sets_no_gpi_users(project, monkeypatch, caplo
     assert "Cocotb is not installed; this test will not be able to run." in caplog.text
 
 
-def test_the_node_stops_before_it_runs_without_cocotb(project, monkeypatch):
+def test_the_tool_check_stops_the_run_without_cocotb(project, monkeypatch):
+    '''The scheduler's tool check looks up each node's executable before any
+    node runs, which is where a missing cocotb is reported. The environment it
+    is looked up in has to build without cocotb for that to be reached.'''
     monkeypatch.setattr(cocotb_task, "_has_cocotb", False)
 
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
         node.setup()
-        with pytest.raises(RuntimeError, match=r"^Cocotb is not installed; cannot run test\.$"):
-            node.task.pre_process()
+        with pytest.raises(TaskExecutableNotFound, match=r"^cocotb is not installed$"):
+            node.get_exe_path()
 
 
 class _Config:
