@@ -24,7 +24,7 @@ inode, as the name in the ``outputs/`` of the node that produced it.
 import os
 import stat
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 __all__ = ["resolve", "follow", "Homes", "relative", "HOP_LIMIT",
            "OUTSIDE", "DANGLING", "LOOP", "OTHER"]
@@ -135,6 +135,12 @@ class Homes:
     def __init__(self, tree):
         self.tree = os.path.realpath(str(tree))
         self._names: Dict[Tuple[int, int], List[str]] = {}
+        # Each file the tree was walked again for, so none costs more than one.
+        self._rewalked: Set[Tuple[int, int]] = set()
+        self._walk()
+
+    def _walk(self) -> None:
+        names: Dict[Tuple[int, int], List[str]] = {}
         for here, dirs, files in os.walk(self.tree, followlinks=False):
             dirs.sort()
             for name in sorted(files):
@@ -144,7 +150,8 @@ class Homes:
                 except OSError:
                     continue
                 if stat.S_ISREG(info.st_mode) and info.st_nlink > 1:
-                    self._names.setdefault((info.st_dev, info.st_ino), []).append(full)
+                    names.setdefault((info.st_dev, info.st_ino), []).append(full)
+        self._names = names
 
     def names(self, info) -> List[str]:
         '''Every name the tree holds for the file ``info`` describes.'''
@@ -153,7 +160,24 @@ class Homes:
     def leaves(self, info) -> bool:
         '''Whether the file has a name outside the tree -- more links than the
         tree holds names for it -- which could be data hard-linked in from
-        anywhere, a PDK's included.'''
+        anywhere, a PDK's included.
+
+        🔴 **The tree is walked again before this says yes.** It is a running
+        job's, and a name can appear in it after the walk: the scheduler
+        hard-links a node's outputs into the next node's inputs as that node
+        starts, which is the moment the node that finished is archived.
+        Counted against the first walk alone, a file whose every name is in the
+        job had one more link than names, and was left out as if it had one
+        outside: a compiled testbench went missing from its node's results
+        that way. Once per file, since one that still has more links than
+        names after a second walk does have a name outside.
+        '''
+        if info.st_nlink <= max(1, len(self.names(info))):
+            return False
+        key = (info.st_dev, info.st_ino)
+        if key not in self._rewalked:
+            self._rewalked.add(key)
+            self._walk()
         return info.st_nlink > max(1, len(self.names(info)))
 
     def home(self, info) -> Optional[str]:

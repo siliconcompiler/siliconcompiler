@@ -998,6 +998,46 @@ def test_a_file_with_a_name_outside_the_job_is_dropped(server, finished, tmp_pat
     assert members["outputs/mine.v"].isfile()
 
 
+def test_a_name_the_next_node_adds_while_a_node_is_archived_is_inside_the_job(
+        server, finished, monkeypatch):
+    '''🔴 The race that lost a compiled testbench: a node is archived as it
+    finishes, which is when the scheduler starts the next node and hard-links
+    this node's outputs into its inputs. A name that appears after the walk is
+    still inside the job, and the file is stored, not left out as if it had a
+    name outside.'''
+    import os
+
+    from siliconcompiler.remote import links
+    from siliconcompiler.remote.server.outputs import artifacts
+
+    job, root, _ = _upstream_file(server, finished)
+    node = root / "gcd" / "job0" / "compile" / "0"
+    (node / "outputs").mkdir(parents=True)
+    built = node / "outputs" / "tb.vexe"
+    built.write_bytes(b"\x7fELF the compiled testbench")
+    inputs = root / "gcd" / "job0" / "simulate" / "0" / "inputs"
+    inputs.mkdir(parents=True)
+
+    walk = links.Homes._walk
+
+    def walk_then_start_the_next_node(self):
+        walk(self)
+        if not (inputs / "tb.vexe").exists():
+            os.link(built, inputs / "tb.vexe")
+
+    monkeypatch.setattr(links.Homes, "_walk", walk_then_start_the_next_node)
+
+    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                           server.config["SC_CONFIG"], job, root, "compile", "0")
+    row = server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'compile' AND kind = 'node'",
+        (job["id"],))
+
+    members = _members(server, row)
+    assert members["outputs/tb.vexe"].isfile()
+    assert members["outputs/tb.vexe"].size == built.stat().st_size
+
+
 def test_a_link_out_of_the_job_is_never_read_nor_stored(
         server, finished, tmp_path):
     '''🔴 The attack (surface D133): a node's own code leaves a link to a
