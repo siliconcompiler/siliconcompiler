@@ -10,8 +10,8 @@ from unittest.mock import patch, MagicMock
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.tools.builtin.nop import NOPTask
 
-from siliconcompiler.scheduler import SlurmSchedulerNode
-from siliconcompiler.utils.paths import jobdir
+from siliconcompiler.scheduler import Scheduler, SlurmSchedulerNode
+from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.utils.multiprocessing import MPManager
 
 
@@ -184,6 +184,7 @@ def test_slurm_local_py(project):
 
 
 PRESCRIPT = ("tool", "builtin", "task", "nop", "prescript")
+POSTSCRIPT = ("tool", "builtin", "task", "nop", "postscript")
 REFDIR = ("tool", "builtin", "task", "nop", "refdir")
 
 
@@ -247,6 +248,60 @@ def test_collect_keys_with_shared_covers_all(project):
     with patch("siliconcompiler.Project.find_files") as find_files:
         assert node.collect_keys() == set()
         find_files.assert_not_called()
+
+
+@pytest.mark.parametrize("sharedpaths,path,collected", [
+    (["/nfs"], "/nfsdata/file", True),
+    (["/nfs"], "/nfs/file", False),
+    (["/nfs"], "/nfs", False),
+    (["/nfs/"], "/nfs/file", False),
+])
+def test_collect_keys_shared_paths_are_directories(project, sharedpaths, path, collected):
+    '''A shared path covers what is inside it, not every path that starts
+    with the same characters.'''
+    SlurmSchedulerNode._set_user_config("sharedpaths", sharedpaths)
+    _requiring_both(project)
+
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.Project.find_files") as find_files:
+        find_files.return_value = [path]
+        assert node.collect_keys() == ({PRESCRIPT, REFDIR} if collected else set())
+
+
+def test_collect_keys_keeps_what_an_earlier_run_collected(project):
+    '''A file the first run collected resolves inside the collection, which is
+    shared when the build directory is. The second run has something new to
+    collect, and the collection it rebuilds still holds the first file.'''
+    SlurmSchedulerNode._set_user_config("sharedpaths", [os.path.abspath("build")])
+    project.option.scheduler.set_name("slurm")
+
+    for name in ("pre.tcl", "post.tcl"):
+        with open(name, "w") as f:
+            f.write(name)
+    project.set(*PRESCRIPT, "pre.tcl")
+    project.set("tool", "builtin", "task", "nop", "require",
+                "tool,builtin,task,nop,prescript", step="steptwo", index="0")
+
+    def run():
+        # Everything up to running the nodes, which is where collection happens
+        with patch("siliconcompiler.scheduler.slurm.SlurmSchedulerNode.assert_slurm"), \
+                patch("siliconcompiler.scheduler.Scheduler.run_core"):
+            Scheduler(project).run()
+
+    def collected(key):
+        paths = project.find_files(*key, step="steptwo", index="0")
+        return bool(paths) and all(path.startswith(collectiondir(project)) for path in paths)
+
+    run()
+    assert collected(PRESCRIPT)
+
+    project.set(*POSTSCRIPT, "post.tcl")
+    project.add("tool", "builtin", "task", "nop", "require",
+                "tool,builtin,task,nop,postscript", step="steptwo", index="0")
+
+    run()
+    assert collected(PRESCRIPT)
+    assert collected(POSTSCRIPT)
 
 
 def test_init_calls_assert():
