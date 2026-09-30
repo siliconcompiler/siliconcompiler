@@ -98,7 +98,8 @@ are unassigned.
 {
   "api_version": "v1",
   "software": {"python": {"siliconcompiler": ["0.39.1"]},  // one version: the one this
-               "tools":  {"openroad": ["2.0.1"]}},          //   server runs. Only what runs here
+               "tools":  {"openroad": ["2.0.1"]},           //   server runs. Only what runs here
+               "interpreter": {"python": ["3.12.4"]}},      // each image's own Python (§5)
   "grant_types_supported": ["client_credentials", "refresh_token"],
   "limits": { /* every member */ },     // the deployment's defaults
   "features": ["logs.stream",           // never "projects"
@@ -117,13 +118,19 @@ are unassigned.
 - `GET /v1`'s `limits` are the deployment's defaults, and `GET /v1/me`'s the
   caller's effective values. A key in both differs only where the operator set
   a per-account override.
+- `max_staging_seconds`, in both, bounds one pass of staging: fetching, the
+  manifest's read and the Python install. Past it the job fails
+  `staging-timed-out`, `limit: "max_staging_seconds"`, and a job sent back and
+  submitted again gets a fresh one. This profile has no plans, so it is the
+  deployment's, from `config.json`'s `limits`, and the same for every account
+  ([README, *The server's own settings*](README.md#the-servers-own-settings-in-one-place)).
 
 ### `GET /v1/me`
 
 | Member | Here |
 |---|---|
 | `id`, `issuer` | `issuer: "local"`. `id` is what a client persists per server address, to tell *my jobs were deleted* from *I am a different person now* |
-| `authorized` | omitted whole, never `{}`: this server does not do grants |
+| `authorized` | omitted whole, never `{}`: this server does not do grants, capabilities included, so a client checks none ([§3](#pythonenv-only-where-there-is-somewhere-safe-to-build)) |
 | `limits` | every member: the caller's effective values, the deployment's defaults unless the operator overrode one ([README, *The operator CLI*](README.md#the-operator-cli)) |
 | `usage` | `concurrent_jobs`, `storage_bytes` and `compute_seconds` (run time in the calendar month), computed from the caller's jobs and artifacts; `license_seconds` is `{}`. Every `limit` is `null` |
 | `can_submit` | always `true`, with no `blocked_type`: no service-scoped terms document exists to block it |
@@ -166,11 +173,21 @@ meaning *never*.
 
 | | Kinds |
 |---|---|
-| **Expected** | `manifest`, `logs` per node and one at job level, `reports`, `node`, and `input` at job level, one per upload |
-| **Optional** | `outputs`, `final`, `issue`, and `input` bound to a node, which this profile produces |
+| **Expected** | `manifest`, `logs` per node and one at job level, `staging`, `reports`, `node`, and `input` at job level, one per upload |
+| **Optional** | `outputs`, `final`, `issue`, `input` bound to a node, and `diagnostics`, which this profile produces |
 
-- The job-level `logs` is the job's own record: staging, dispatch, image-pull
-  failures, and what a host install added ([§5](#5-images-and-software)).
+- **The server's record is never inside `logs`** (surface D295). The job-level
+  `logs` is `job.log` alone, the run's own log.
+- `staging` is what the server did before the run: a section per pass of
+  staging -- the fetches, the manifest's read, what the Python install added or
+  substituted, why the job was sent back -- scrubbed of this server's paths,
+  host names and credentials.
+  Where nodes run on the host, it is the record of what the install added
+  ([§5](#5-images-and-software)).
+- `diagnostics` is the operators' record: pip's whole output, the runner's own
+  log, and what Slurm says of each batch job, job-level and per node. It is
+  listed with `fetchable: false`, a fetch of it is `artifact-not-approved`, and
+  the portal opens it.
 - Job-level `input` is one artifact per upload, so what a job was sent can be
   read beside what it produced.
 - Node-bound `input` is produced here and not on crucible, because this profile
@@ -203,14 +220,31 @@ environment builder, or where nodes run on the host. A containerised
 `sc-server` with neither cannot build a node's Python environment, and refuses
 to start if `features` lists it.
 
+- **Who may use it: `python.env` alone decides.** This profile grants nothing,
+  so none of the capabilities (`python-env`, `python-wheels`, `python-sdist`) is
+  checked, and `entitlement-denied` with `resource_kind: "capability"` is never
+  raised here. Building from source, crucible's `python-sdist`, is the
+  operator's `python_source_builds`, off by default and only in the builder.
 - **Where packages come from.** From PyPI, unless the operator configures other
-  indexes. A job names no index.
+  indexes. A job names no index, and the reuse of a built environment is keyed
+  on the indexes too.
+- **The exact version, or the client's wheel.** A version no index lists is
+  sent back for, however many other versions of the name it lists. The newest
+  of the release line is installed only where the version is listed and nothing
+  of it installs here, or it is yanked, and the substitution is recorded. A
+  package with only a source distribution is sent back for where it is pure,
+  and `uninstallable` where another platform has a wheel.
 - **Host mode's install.** Where nodes run on the host, a job's
   `python_packages` and its uploaded wheels are installed while the job is
-  `staging`, into a per-user cache, under the same rules as a build: a package
-  that will not install is `software-unavailable`, `reason: "uninstallable"`,
-  before any node runs. What the install added is recorded in the job-level
-  `logs`, fresh or cached alike, since there is no image to record it on.
+  `staging`, into an environment of their own, named by what they install and
+  with a pip cache of its own, under the same rules as a build: a package that
+  will not install is `software-unavailable`, `reason: "uninstallable"`, before
+  any node runs. What the install added is recorded in `staging`, fresh or
+  cached alike, since there is no image to record it on.
+- **What is inside a wheel is not looked at.** An uploaded wheel is held to the
+  wheel rules and the archive's extraction limits; detecting content inside it
+  -- a PDK's files packaged as Python -- is crucible's, against a catalogue
+  this profile does not have.
 - **An index that needs a credential** is not supported: the build fails
   `staging-failed`, naming the index, since the fix is the operator's.
 
@@ -270,13 +304,24 @@ operator registered.
   it is not isolated from the machine's files, which is within this profile's
   lack of a security claim
   ([README, *Where a job's manifest is read*](README.md#where-a-jobs-manifest-is-read)).
+- **The interpreter is a bucket of its own** (surface D293). The probe records
+  each image's `python3` as `software.interpreter.python`, and a job with a node
+  running the user's Python sends `requested_versions.interpreter`, the
+  client's `==<major>.<minor>.*`. Only an image running a matching Python places
+  such a node; where none does, create is `software-unavailable` naming the
+  versions there are, and a job that sends none is not held to one. Where nodes
+  run on the host, the interpreter is this server's own.
 - **`resolved_versions` covers images only.** Where nodes run on the host there
   is no image, so a job's `resolved_versions` is absent, and what its Python
-  install added is in the job-level `logs`.
+  install added is in `staging`. Its `interpreter` is the Python of the images
+  the user's Python ran in.
 - **`jobs.reuse` waits for the host's tools.** A reuse hit compares the inputs
   the server supplied, the tools among them (surface §13), and a job run on the
   host records none. So `jobs.reuse` is not advertised by default, and the
-  server refuses to start with it listed where nodes run on the host.
+  server refuses to start with it listed where nodes run on the host. Where it
+  is advertised, a hit also needs the candidate's `python_packages`,
+  `requested_versions.interpreter` and index configuration to equal the new
+  job's (job-reuse D23).
 
 ---
 
@@ -297,6 +342,7 @@ None of these is new vocabulary.
 | fetches a kind a test mode withholds | `403 artifact-not-approved`, and `fetchable: false` in the listing, with no `access_request_url`, since this server offers no way to ask. Off by default |
 | uploads a member with any extension | accepted: there is no extension allowlist, so `archive-rejected` never carries `reason: "extension"` here |
 | exceeds a published ceiling | `limit-exceeded` naming the key as `limits` spells it, or a static one's own `type`: `node-limit-exceeded`, `upload-too-large`, `download-too-large` |
+| stages past `max_staging_seconds` | the job `failed`, `staging-timed-out`, `limit: "max_staging_seconds"` |
 
 ### One gap: some Slurm interruptions read as `run-failed`
 

@@ -74,6 +74,10 @@ The contract's own consistency pass (surface D289–D290, entitlements D76,
 database D149–D150) came from no list here. Follow-on 18 brings the code up to
 it, and moves the profile into this repository.
 
+The Python packages review (surface D291–D296, entitlements D77, job-reuse D23)
+came from no list here either. Follow-on 19 brings the code up to it, and found
+nothing in it that `sc-server` could not serve as written.
+
 ---
 
 ## Open — not yet in the contract docs

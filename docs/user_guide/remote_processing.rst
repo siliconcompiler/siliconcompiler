@@ -161,12 +161,22 @@ node the run executes whose tool runs Python of yours -- a cocotb testbench --
 the client follows the imports of the node's test modules, through your own
 helper modules beside them, to the packages they reach, and lists them once for
 the whole job when it creates it: each package installed from an index, at the
-version installed on your machine, and the version of every other package
-installed there as a constraint. It leaves out what the server's image already
-holds (SiliconCompiler, and cocotb itself). The list names no index and the
-client reads no pip configuration: the server installs from its own indexes,
-while the job is staging, and a package that will not install there rejects the
-job before any node runs.
+version installed on your machine, and, as constraints, the versions of what
+those packages depend on. It leaves out what the server's image already holds
+(SiliconCompiler, and cocotb itself). The list names no index and the client
+reads no pip configuration: the server installs from its own indexes, while the
+job is staging, and a package that will not install there rejects the job
+before any node runs.
+
+The server installs exactly the version listed. Where no index it uses lists
+that version -- even one listing other versions of the same name -- it asks for
+your wheel of it instead. Where the version is listed but nothing of it installs
+on the server, or it has been yanked, the newest of its release line is
+installed in its place, and the client says so once the job has staged. What
+the server did while staging is saved in the job directory as
+``remote-staging.log``, and staging as a whole is bounded by the
+``max_staging_seconds`` in ``GET /v1/me``'s limits: past it the job fails
+``staging-timed-out``.
 
 A package you installed editable, from a local path or from version control
 has no index to come from, so the client builds it into a wheel -- with
@@ -181,16 +191,45 @@ same collected folder as the test that imports them and under their own names,
 so the test imports them on the server as it does here. None of it is installed
 or run on the way.
 
+**A job that runs your Python names the Python it was written for**, the major
+and minor version of the one you are running (``==3.12.*``). The server places
+such a node only in an image running a matching Python, and refuses the job at
+create where it has none, naming the versions it does have. Nothing in the job
+changes that: the server's operator would have to add one, or you run from a
+Python it has.
+
+**A compiled package is published, not uploaded.** A wheel the client builds
+here was built for your machine, so a package with a compiled extension cannot
+go up as one. Publish a wheel of it built for the server's platform to one of
+the server's indexes, and the client lists it like any other package. The server
+installs binary wheels: a package its indexes offer only as a source
+distribution is asked of the client where it is pure Python, and refused where
+it is compiled, unless the deployment's operator lets it build from source.
+
+A deployment may also grant these per account, as capabilities in
+``GET /v1/me``: ``python-env`` to have packages installed, and
+``python-wheels`` to upload wheels as well. The client checks before it creates
+the job, and names what is missing. A deployment that grants nothing gates
+nothing, and ``python.env`` alone decides.
+
 The client stops before creating the job if a package it would send as a wheel,
 or a helper module, holds a compiled extension (``.so``, ``.pyd``, ``.dylib``),
-if a wheel will not build, if two sources would supply the same file, if a node
-that runs your Python cannot be set up on your machine, or if the job has
-packages to install and the server does not offer ``python.env``. A testbench
-whose only Python is its own modules needs no ``python.env`` at all.
+if a wheel holds a file that runs by itself (a ``.pth``, a
+``sitecustomize.py``) or depends on a package by URL, if a wheel will not build,
+if two sources would supply the same file, if a node that runs your Python
+cannot be set up on your machine, if the job has packages to install and the
+server does not offer ``python.env``, or if your account lacks a capability the
+job needs. A testbench whose only Python is its own modules needs no
+``python.env`` at all. It warns, and carries on, where a package it lists
+installs a ``.pth`` file, and where an editable package's wheel leaves out
+files its module directory holds -- a data file its packaging does not name,
+which the node will not have.
 
 An import made dynamically, through ``importlib`` or a plugin entry point, is
 not followed and fails on the server at import. Add a plain import of the
-package to a test module.
+package to a test module. Nor is an import under a platform check,
+``if sys.platform == "win32":``, which is for a platform the server's may not
+be; import it outside the check if the server needs it.
 
 The client prints what goes up, per dataroot, with sizes, before anything
 moves.

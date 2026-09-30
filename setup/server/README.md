@@ -111,6 +111,17 @@ run. The server keeps its copy under `<datadir>/users/<user>/builds/`, indexed
 as artifacts with per-kind retention: manifests and logs for years, bulk outputs
 for the deployment's floor.
 
+Three records, kept apart. The job-level `logs` is `job.log` alone, the run's
+own log. `staging` is what the server did before the run,
+`sc-server-staging.log`: a section per pass of staging -- the fetches, the
+manifest's read, what the Python install added or substituted, why the job was
+sent back -- scrubbed of this server's paths, host names and credentials, kept
+five years, and saved by the client as `remote-staging.log`. `diagnostics` is
+the operators': pip's whole output, the runner's own log and what Slurm says of
+each batch job (`sacct`, `scontrol`), job-level and per node, kept 90 days. It
+is listed with `fetchable: false`, a fetch of it over the API is
+`artifact-not-approved`, and the portal opens it.
+
 What went in is kept too, as `input` artifacts: every upload the job accepted,
 separately and in order, and each node's `inputs/`. The portal opens them file
 by file and shows every artifact's hash. An upload is moved into the artifact
@@ -202,26 +213,64 @@ stages: tagged `none-any`, no compiled file, one per distribution, and not also
 listed. The user's own helper modules arrive as collected files beside their
 tests. `sc_python/` is the server's own, and an upload carrying it is refused.
 
-To install them, a deployment advertises `python.env`. Where nodes run on this
-host (`containers` off, `-cluster local`), the job's packages and wheels are
-installed once while the job is `staging`, wheels only, from `package_indexes`
-(PyPI by default), into the user's own cache, with every distribution this
-host's Python holds pinned to the version it holds; and linked at
+An uploaded wheel is also refused for what would run by itself: a `.pth`, a
+top-level `sitecustomize.py` or `usercustomize.py`, a `<name>.data/` directory,
+which installs outside the package, a device, and a `Requires-Dist` that is a
+direct reference (`name @ url`); and its members are held to the archive's
+extraction limits. Detecting what a wheel holds -- a PDK's files packaged as
+Python -- is crucible's, against a catalogue this server does not have.
+
+To install them, a deployment advertises `python.env`, and nothing else
+decides: `sc-server` grants nothing, so it checks none of the capabilities
+crucible grants (`python-env`, `python-wheels`, `python-sdist`). Where nodes run
+on this host (`containers` off, `-cluster local`), the job's packages and
+wheels are installed while the job is `staging`, binary wheels only, from
+`package_indexes` (PyPI by default), into an environment of their own under
+`<datadir>/python-envs/`, named by what it installs and with a pip cache of its
+own, so no two jobs ever write one; every distribution this host's Python holds
+is pinned to the version it holds. The environment is linked at
 `sc_python/site` in the job, onto the tool's `PYTHONPATH` of each node that runs
-the user's Python -- never SiliconCompiler's own. An entry whose version will
-not install is tried once more within its release line, and the substitution
-is in the job-level log. A package no index has sends the job back for its
-wheel; one that will not install rejects the job before any node runs; an index
-that does not answer is `staging-failed`. It is off by default because the
-install then reaches an index; turn it on in `config.json`:
+the user's Python -- never SiliconCompiler's own -- and a later job asking for
+the same set reuses it. It is off by default because the install then reaches
+an index; turn it on in `config.json`:
 
 ```json
 {"features": ["logs.stream", "logs.stream.job", "python.env"]}
 ```
 
+Each listed version is looked up on the indexes before pip runs:
+
+| The indexes list | The server |
+|---|---|
+| no file at that exact version, however many other versions of the name | sends the job back for the client's wheel -- never another version in its place |
+| that version, and a wheel of it installs here | installs it |
+| that version, and nothing of it installs here | installs the newest of its release line, once, and says so in `staging` |
+| that version, yanked (PEP 592) | the same: pip would install a yanked file pinned with `==` |
+| only a source distribution, for a pure package | sends the job back for the client's wheel |
+| only a source distribution, where another platform has a wheel | rejects it `uninstallable`: publish a wheel for this platform to the index |
+
+A package that will not install rejects the job before any node runs; an
+index that does not answer is `staging-failed`. With no `package_indexes`, a
+listed package the image lacks, and a wheel's own dependency it lacks, are sent
+back for, and `uninstallable` is only for a wheel that will not install or
+conflicts with what the image pins.
+
 Where nodes run in containers, the environment builder does it instead
 (below). Bare Slurm with no builder advertises no `python.env`, and the server
 refuses to start with it listed there.
+
+A job whose nodes run the user's Python also names the Python its modules were
+written for, `requested_versions.interpreter` as `==3.12.*`, and `GET /v1`'s
+`software.interpreter` lists what there is: each image's own `python`, as the
+probe records it, or this server's own where nodes run on the host. Only an
+image running a matching Python places such a node, and a job no image matches
+is refused at create, `software-unavailable` naming the versions there are.
+
+Staging as a whole -- fetching, the manifest's read and the install -- takes at
+most `max_staging_seconds` (3600 by default) per pass, set in `config.json`'s
+`limits`. Past it, what is running is stopped and the job fails
+`staging-timed-out`, `limit: "max_staging_seconds"`; a job sent back and
+submitted again starts a fresh one.
 
 ## Error pages
 
@@ -407,18 +456,25 @@ root, a private `/tmp`, none of the image's mounts, and a network namespace
 holding only a loopback. Its one way out is a unix socket to a proxy the build
 job runs, which admits the hosts of `index_allowlist` -- PyPI by default -- and
 never a private address. pip is told `package_indexes`, never an index the job
-names, and may build a source distribution here: this container is the one
-place isolated enough for a package's own code to run. `scrunner` has
-`NET_ADMIN` for that loopback and nothing else.
+names, runs `--isolated` so no pip configuration in the image changes that, and
+builds a source distribution only where the operator sets
+`"python_source_builds": true`: this container is the one place isolated enough
+for a package's own code to run, and even here it is off by default. `scrunner`
+has `NET_ADMIN` for that loopback and nothing else.
 
-A build may take `env_build_timeout_seconds` (1800 by default) before the job
-waiting on it is refused.
+A build is one phase of staging, and is stopped when the pass runs past
+`max_staging_seconds`.
 
 The same file and image are built once: every later job asking for the same
-set reuses the image, which the portal's images page lists under *Built
-environments*. A pin that will not install rejects the job,
-`software-unavailable` with `reason: "uninstallable"`, naming the package and
-the image's Python and platform.
+set -- on the same indexes, with source builds the same -- reuses the image,
+which the portal's images page lists under *Built environments*. A pin that
+will not install rejects the job, `software-unavailable` with
+`reason: "uninstallable"`, naming the package and the image's Python and
+platform. A package found wrong after it was built -- yanked, broken, a
+security fix -- is dropped with the registry's `drop-built <name>` or
+`drop-built <name>==<version>`: every built image holding it is retired, every
+host environment holding it removed, and the next job asking for that set
+builds it again.
 
 This stack can run it. The image carries `crun` (the OCI runtime Slurm invokes
 — a binary it execs, so no socket and no daemon), plus `skopeo` and `umoci` to
@@ -710,19 +766,25 @@ for. Nothing in it is required.
 
 - `containers`, `container_mounts`, `batch_queue`: where jobs run, what their
   containers see, and the orchestrator's own partition.
-- `env_builder`, `build_queue`, `env_build_timeout_seconds`, `package_indexes`
+- `env_builder`, `build_queue`, `python_source_builds`, `package_indexes`
   and `index_allowlist`: the environment builder (above). `env_builder` needs
   `containers`, is what advertises `python.env`, and false is the switch.
-  `build_queue` is the builder's own partition, and
-  `env_build_timeout_seconds` (1800 by default) is how long a job waits for its
-  build. The indexes are configuration: `package_indexes` is the primary and
-  any extras, `https://pypi.org/simple/` by default, and a job names none;
-  `index_allowlist` is what an install may reach, those and the hosts they
-  serve files from (`https://files.pythonhosted.org/` for PyPI), and must admit
-  every one of `package_indexes`. A build reaches only those, never runs in a
-  job's sandbox or on the API host, and its image is referenced by digest, so
-  nothing a job pushes changes what any job runs in. Where nodes run on the
-  host, the install runs while the job is `staging`, into the user's own cache.
+  `build_queue` is the builder's own partition. `python_source_builds`, false
+  by default, lets the builder build a package from its source distribution,
+  and needs `env_builder`: the policy crucible grants per account as
+  `python-sdist`. The indexes are configuration: `package_indexes` is the
+  primary and any extras, `https://pypi.org/simple/` by default, and a job
+  names none; `index_allowlist` is what an install may reach, those and the
+  hosts they serve files from (`https://files.pythonhosted.org/` for PyPI), and
+  must admit every one of `package_indexes`. A build reaches only those, never
+  runs in a job's sandbox or on the API host, and its image is referenced by
+  digest, so nothing a job pushes changes what any job runs in. Where nodes run
+  on the host, the install runs while the job is `staging`, into
+  `<datadir>/python-envs/<key>`. Staging's `max_staging_seconds` bounds a
+  build, as it does the rest of staging.
+- `limits.max_staging_seconds`: one pass of staging, 3600 seconds by default.
+  `sc-server` has no plans, so it is the deployment's, the same for every
+  account, and the portal's Account screen shows it.
 - `fetch_allowlist`, `private_dataroots`, `fetch_timeout_seconds`,
   `fetch_deadline_seconds`: what the server fetches, and supplies.
 - `manifest_read_timeout_seconds`, `manifest_read_cpu_seconds` and
@@ -757,9 +819,9 @@ reverse proxy with https wherever it is reached from elsewhere.
 It refuses to start, naming the reason, when:
 
 - `config.json` sets a key it does not have, a negative limit, a kind or
-  resource kind it does not know, `env_builder` without `containers`, or
-  `python.env` in `features` where nodes run in containers and no builder can
-  build them an environment;
+  resource kind it does not know, `env_builder` without `containers`,
+  `python_source_builds` without `env_builder`, or `python.env` in `features`
+  where nodes run in containers and no builder can build them an environment;
 - with `containers` on, no live image holds the `siliconcompiler` it runs. It
   advertises that one version and no other, whatever the registry tracks, and
   every job resolves to it: an image holding another is neither advertised nor
@@ -838,17 +900,18 @@ the operator's, and nothing it does has an API endpoint:
 | `stage` | unpack an image's bundle ahead of the first job that needs it |
 | `resolve` | what a job asking for these versions and tools would be placed in |
 | `limits` | one account's allowance, and setting a per-user `max_download_bytes`: `-1` is unlimited in the store and `null` on the wire |
+| `drop-built` | stop reusing every built Python environment holding a distribution, or one at a version: built images retired, host environments removed |
 | `release-binding` | free a user's subject to enrol a new key, ending the sessions of the device bound to the old one. A user whose key was lost is otherwise refused `invalid_client` on every login |
 
 ### The portal's screens
 
 | Screen | Shows | Writes |
 |---|---|---|
-| Jobs, list and detail, with the flowgraph and node selector | each job, its nodes and their dependencies, and its state history | cancel, archive, discard, delete |
+| Jobs, list and detail, with the flowgraph and node selector | each job, its nodes and their dependencies, its state history, and its job log and staging record side by side | cancel, archive, discard, delete |
 | Logs, live and archived, per node | each node's log, through the same stream the API hands out | none |
-| Artifacts, downselected by the node selector | each artifact, and its bytes | none |
+| Artifacts, downselected by the node selector | each artifact, and its bytes -- `diagnostics` among them, which the API never hands over | none |
 | Devices | each device: its key, what its fingerprint was derived from, when it enrolled and when it was last seen | revoke |
-| Account | the caller's identity, limits and usage | none |
+| Account | the caller's identity, limits -- `max_staging_seconds` among them -- and usage | none |
 | Images and software | each registered image, its digest, and the versions it holds | register, retire |
 
 The portal is alpha, as the `v1` client and this server are.

@@ -872,6 +872,21 @@ def test_the_account_page_shows_the_ceiling_and_the_default(signed_in, server,
     assert "portal.set_limit" not in page
 
 
+def test_the_account_page_shows_how_long_a_job_may_stage(signed_in, server):
+    '''`max_staging_seconds` (surface D294): one pass of staging, fetching
+    through the install. sc-server has no plans, so it is the deployment's
+    alone, set in `config.json`, and shown beside the other limits.'''
+    import re
+
+    configured = server.config["SC_CONFIG"].limits["max_staging_seconds"]
+
+    page = signed_in.get("/portal/account").get_data(as_text=True)
+
+    row = re.search(r'<td class="mono">max_staging_seconds</td>\s*'
+                    r'<td class="mono">([^<]*)</td>', page)
+    assert row and row.group(1) == str(configured)
+
+
 def test_the_nodes_table_is_in_the_order_the_run_reaches_them(signed_in, finished):
     '''⚠️ The API lists nodes by name, which puts `elaborate` in the middle of a
     23-node asicflow between `cts` and `floorplan`. Fine for a listing a client
