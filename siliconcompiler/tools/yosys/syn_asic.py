@@ -234,7 +234,7 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
             "file",
             "File used to techmap memories with yosys")
 
-        self.set_dataroot("yosys-techmaps", __file__)
+        self.set_dataroot("yosys-techmaps", "python://siliconcompiler/tools/yosys")
         self.add_parameter(
             "synth_extra_map",
             "[file]",
