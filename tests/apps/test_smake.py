@@ -12,9 +12,12 @@ def isolate_sys(monkeypatch):
     monkeypatch.setattr(smake.sys, "path", sys.path.copy())
     monkeypatch.setattr(smake.sys, "modules", sys.modules.copy())
 
+    # Resolved now, in the test's own directory: smake changes into its -C
+    # directory before it asks for one, which put this in the source tree.
+    path = os.path.abspath("tmp")
+
     @contextmanager
     def tmpdir(*args, **kwargs):
-        path = os.path.abspath("tmp")
         os.makedirs(path, exist_ok=True)
         yield path
 
