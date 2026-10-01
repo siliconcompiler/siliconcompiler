@@ -19,6 +19,18 @@ def install_mock_home(monkeypatch):
     monkeypatch.setenv("HOME", test_dir)
 
 
+@pytest.fixture(autouse=True)
+def no_installed_plugins(fake_plugins):
+    '''
+    Only SiliconCompiler's own install scripts. A package installed beside it that
+    registers ``siliconcompiler.install`` plugins would otherwise add its tools and
+    groups to every test here -- and resolving their scripts can need that package's
+    own data, from wherever it lives. A test that wants a plugin registers it with
+    ``fake_plugins``, which is this same fixture.
+    '''
+    return fake_plugins
+
+
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install(call, monkeypatch):
