@@ -906,12 +906,18 @@ class OptionSchema(BaseSchema):
         parameter against its default value.
 
         Any parameter whose current value differs from its default is
-        collected. This list of non-default settings is then
-        serialized as a JSON array to the file specified by
-        `default_options_file()`.
+        collected, and the collection replaces the ``schema-options``
+        category of the user settings file. The file is re-read under its
+        lock first, so the other categories in it -- including any another
+        process wrote since this one started -- are kept.
 
-        If all parameters are set to their default values, the list
-        will be empty, and no file will be written.
+        If all parameters are set to their default values, the category is
+        removed, and nothing is written when that leaves the file unchanged.
+
+        Raises:
+            TimeoutError: if the settings file's lock is not had in time.
+            ValueError: if the settings file is malformed; it is left as it is,
+                and has to be fixed or deleted.
         """
         transientkeys = {
             # Flow information
@@ -926,9 +932,7 @@ class OptionSchema(BaseSchema):
             ("fileset",),
         }
 
-        settings = MPManager.get_settings()
-        settings.delete(OptionSchema.__OPTIONS)
-
+        options = {}
         for key in self.allkeys():
             if key in transientkeys:
                 continue
@@ -937,10 +941,13 @@ class OptionSchema(BaseSchema):
 
             value = param.get()
             if value != param.default.get():
-                settings.set(OptionSchema.__OPTIONS, ",".join(key), value)
+                options[",".join(key)] = value
 
-        if settings.get_category(OptionSchema.__OPTIONS):
-            settings.save()
+        settings = MPManager.get_settings()
+        with settings.transaction():
+            settings.delete(OptionSchema.__OPTIONS)
+            for key, value in options.items():
+                settings.set(OptionSchema.__OPTIONS, key, value)
 
     # Getters and Setters
     def get_remote(self) -> bool:

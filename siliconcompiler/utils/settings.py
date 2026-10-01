@@ -2,12 +2,15 @@ import contextlib
 import json
 import os
 import logging
+import secrets
+import stat
 import threading
+import time
 import weakref
 
 import os.path
 
-from typing import Generator, Optional
+from typing import Generator, Optional, Tuple
 
 from siliconcompiler import sc_open
 from siliconcompiler.utils.multiprocessing import FileLockTimeout, get_file_lock
@@ -15,6 +18,77 @@ from siliconcompiler.utils.multiprocessing import FileLockTimeout, get_file_lock
 
 #: Every live SettingsManager, so a forked child can rebuild their locks.
 _managers: "weakref.WeakSet[SettingsManager]" = weakref.WeakSet()
+
+#: How long a save keeps retrying a replace that Windows refuses while another
+#: program -- an editor, a virus scanner, the search indexer -- has the file
+#: open. POSIX never refuses, so it never waits.
+_REPLACE_RETRY: float = 1.0 if os.name == "nt" else 0.0
+
+#: Without it, Windows opens a descriptor in text mode and translates newlines
+#: a second time underneath the text wrapper.
+_O_BINARY: int = getattr(os, "O_BINARY", 0)
+
+
+def _make_directory(directory: str, mode: Optional[int]) -> None:
+    """
+    Create ``directory`` if it is missing.
+
+    With ``mode``, the directory is created with it, plus search permission
+    wherever it grants read: ``0o600`` makes a ``0o700`` directory. As with
+    :func:`os.makedirs`, only the last component gets the mode.
+    """
+    if not directory or os.path.isdir(directory):
+        return
+    if mode is None:
+        os.makedirs(directory, exist_ok=True)
+    else:
+        os.makedirs(directory, mode=mode | ((mode & 0o444) >> 2), exist_ok=True)
+
+
+def _create_file(path: str, mode: int) -> None:
+    """
+    Create ``path`` empty with ``mode``, and its directory, if it does not exist.
+    """
+    _make_directory(os.path.dirname(path), mode)
+    if not os.path.exists(path):
+        os.close(os.open(path, os.O_WRONLY | os.O_CREAT | _O_BINARY, mode))
+
+
+def _create_temp(target: str, mode: int) -> Tuple[int, str]:
+    """
+    Create a new, empty file beside ``target`` with ``mode``.
+
+    Not :func:`tempfile.mkstemp`, which always creates ``0600``. Named after the
+    target, and hidden, so one a crash left behind says what it was.
+
+    Returns:
+        tuple: the open descriptor and the file's path.
+    """
+    directory, name = os.path.split(target)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_BINARY
+    for _ in range(100):
+        path = os.path.join(directory, f".{name}.{secrets.token_hex(4)}.tmp")
+        try:
+            return os.open(path, flags, mode), path
+        except FileExistsError:
+            continue
+    raise FileExistsError(f"No free temporary file name beside {target}")
+
+
+def _replace(source: str, target: str) -> None:
+    """
+    :func:`os.replace`, retried for up to :data:`_REPLACE_RETRY` seconds while
+    the target is refused.
+    """
+    deadline = time.monotonic() + _REPLACE_RETRY
+    while True:
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(0.05)
 
 
 def _reset_locks_after_fork() -> None:
@@ -33,6 +107,11 @@ def _reset_locks_after_fork() -> None:
     category left half-written by the parent, which is why a category built in
     steps needs a completion marker rather than a lock alone -- see
     :meth:`SettingsManager.lock_category`.
+
+    The file locks are reset by
+    :func:`~siliconcompiler.utils.multiprocessing.get_file_lock`'s own hook, so
+    a transaction does not carry into the child: one forked from inside a
+    transaction holds nothing there.
     """
     for manager in list(_managers):
         manager._reset_locks()
@@ -81,7 +160,7 @@ class SettingsManager:
     __VALUE_FLAG = "value"
 
     def __init__(self, filepath: str, logger: logging.Logger, timeout: float = 1.0,
-                 system_filepath: Optional[str] = None):
+                 system_filepath: Optional[str] = None, mode: Optional[int] = None):
         """
         Initialize the settings manager.
 
@@ -94,22 +173,40 @@ class SettingsManager:
                 settings file providing administrator-managed defaults and
                 system-priority (non-overridable) values. If None, no system
                 layer is applied.
+            mode (int): Optional POSIX permission bits, such as ``0o600``, that
+                the settings file, its temporary files and its lock file are
+                each created with -- never changed afterwards, so the file is
+                never readable more widely, even for a moment. A directory the
+                manager creates for them gets the same bits plus search
+                permission. The umask still applies. If None, the file keeps
+                the permissions it has, and a new one gets the umask's.
+                Ignored on Windows.
         """
         self.__filepath = filepath
-        # Two levels of lock, always taken category-first: a category lock is
-        # held for as long as a caller is building that category (see
-        # lock_category), while __settings_lock is held only for the dict
-        # operations themselves. Whole-file work (_load, save) takes
-        # __settings_lock and then the file's lock, which nothing takes the
-        # other way round, so there is no cycle to deadlock on. The file's lock
-        # is looked up on each use, not kept: see get_file_lock().
+        self.__mode = mode if os.name != "nt" else None
+        # Three levels of lock, always taken in this order:
+        #   1. the file's lock (see multiprocessing.FileLock), shared by
+        #      everything in the process that locks the file, and taken here
+        #      only by _load, save and transaction;
+        #   2. a category lock, held for as long as a caller is building that
+        #      category (see lock_category) and taken by every accessor;
+        #   3. __settings_lock, held only for the dict operations themselves.
+        # A transaction holds 1 while its body takes 2 and 3, which is why
+        # nothing may save or open a transaction while holding 2 or 3.
         self.__settings_lock = threading.Lock()
         self.__category_locks = {}
         self.__category_locks_lock = threading.Lock()
+        # A file-less manager's stand-in for 1, so its transactions still
+        # exclude one another.
+        self.__memory_lock = threading.RLock()
+        # Per thread, how deep in this manager's transactions it is.
+        self.__transactions = threading.local()
         _managers.add(self)
         self.__timeout = timeout
         self.__logger = logger.getChild("settings")
         self.__settings = {}
+        # Why the last load left nothing safe to save, if it did.
+        self.__load_error: Optional[str] = None
 
         # System layer state: resolved (unwrapped) values plus the set of
         # system-priority keys per category.
@@ -123,40 +220,86 @@ class SettingsManager:
     def _load(self):
         """
         Internal method to load settings from disk.
-        It handles missing files and malformed JSON gracefully.
+
+        Never raises: a file that is missing, malformed or cannot be read is
+        logged and loads as empty. Where it could not be read at all -- the lock
+        was not had in time, or an unexpected error -- :meth:`save` refuses
+        afterwards, since the empty copy would replace whatever the file holds.
+        A malformed file is already lost, and saving over it is how it is
+        repaired.
         """
+        self.__load_error = None
         if self.__filepath is None or not os.path.exists(self.__filepath):
-            self.__settings = {}
+            with self.__settings_lock:
+                self.__settings = {}
             return
 
+        try:
+            with self._locked():
+                data = self._read()
+        except FileLockTimeout:
+            self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
+                                "Starting with empty settings.")
+            self.__load_error = "its lock was not had in time"
+            data = {}
+        except json.JSONDecodeError:
+            self.__logger.error(f"File {self.__filepath} is malformed. "
+                                "Starting with empty settings.")
+            data = {}
+        except Exception as e:
+            # Catch-all for permission errors, etc., to ensure __init__ doesn't crash
+            self.__logger.error(f"Unexpected error loading settings: {e}")
+            self.__load_error = f"it could not be read: {e}"
+            data = {}
+
+        # Ensure the loaded data is actually a dictionary
+        if not isinstance(data, dict):
+            # If valid JSON but not a dict (e.g. a list), reset to empty
+            self.__logger.warning(f"File {self.__filepath} did not contain a JSON object. "
+                                  "Resetting.")
+            data = {}
+
         with self.__settings_lock:
-            try:
-                try:
-                    with get_file_lock(self.__filepath).locked(self.__timeout):
-                        with sc_open(self.__filepath, encoding='utf-8') as f:
-                            data = json.load(f)
-                except FileLockTimeout:
-                    self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
-                                        "Starting with empty settings.")
-                    data = {}
+            self.__settings = data
 
-                # Ensure the loaded data is actually a dictionary
-                if isinstance(data, dict):
-                    self.__settings = data
-                else:
-                    # If valid JSON but not a dict (e.g. a list), reset to empty
-                    self.__logger.warning(f"File {self.__filepath} did not contain a JSON object. "
-                                          "Resetting.")
-                    self.__settings = {}
+    def _read(self):
+        """
+        Read the user file, whose lock the caller holds.
 
-            except json.JSONDecodeError:
-                self.__logger.error(f"File {self.__filepath} is malformed. "
-                                    "Starting with empty settings.")
-                self.__settings = {}
-            except Exception as e:
-                # Catch-all for permission errors, etc., to ensure __init__ doesn't crash
-                self.__logger.error(f"Unexpected error loading settings: {e}")
-                self.__settings = {}
+        Returns:
+            The parsed JSON, which may not be a dict, or an empty dict where
+            there is no file.
+
+        Raises:
+            json.JSONDecodeError: if the file does not parse.
+        """
+        if not os.path.exists(self.__filepath):
+            return {}
+        with sc_open(self.__filepath, encoding='utf-8') as f:
+            return json.load(f)
+
+    @contextlib.contextmanager
+    def _locked(self, timeout: Optional[float] = None) -> Generator[None, None, None]:
+        """
+        Hold the user file's lock.
+
+        Args:
+            timeout (float): Seconds to wait for it; the manager's own timeout
+                where None.
+
+        Raises:
+            TimeoutError: if the lock is not had in time.
+        """
+        if timeout is None:
+            timeout = self.__timeout
+        # Looked up on every use rather than kept: tests point a live manager
+        # at another file by replacing its filepath.
+        lock = get_file_lock(self.__filepath)
+        if self.__mode is not None:
+            # Before the lock opens it, which would create it at the umask.
+            _create_file(lock.lock_path, self.__mode)
+        with lock.locked(timeout):
+            yield
 
     def _load_system(self):
         """
@@ -248,6 +391,7 @@ class SettingsManager:
         self.__settings_lock = threading.Lock()
         self.__category_locks = {}
         self.__category_locks_lock = threading.Lock()
+        self.__memory_lock = threading.RLock()
 
     def _category_lock(self, category: str) -> threading.RLock:
         """
@@ -282,6 +426,11 @@ class SettingsManager:
         therefore still write a marker key last and test *that*, rather than
         reading "the category is non-empty" as "the category is finished".
 
+        Do not :meth:`save` or open a :meth:`transaction` while holding a
+        category. A transaction holds the file's lock while its body takes
+        category locks, so taking them the other way round deadlocks against
+        one.
+
         Args:
             category (str): The group name to hold.
         """
@@ -292,26 +441,168 @@ class SettingsManager:
         """
         Save the current settings to the disk in JSON format.
 
+        The file is replaced, never rewritten in place: the settings are written
+        to a temporary file beside it, flushed to disk and renamed over it, so a
+        crash or an error at any point leaves either the previous file or the
+        new one, whole. A symlinked file is followed, and its target replaced.
+
+        This writes the whole in-memory copy: what was loaded when the manager
+        was built, plus every change since. Where another process may have
+        changed the file in the meantime, make the change in a
+        :meth:`transaction` instead, which re-reads it first.
+
         Raises:
             TimeoutError: if the file's lock is not had within the manager's
                 timeout. Nothing is written.
+            RuntimeError: if the file could not be loaded when the manager was
+                built, so saving would replace what it holds with only the
+                changes made since. A :meth:`transaction` re-reads it and
+                lifts this.
         """
         if self.__filepath is None:
             return
 
         try:
-            # Ensure directory exists
-            directory = os.path.dirname(self.__filepath)
-            if directory and not os.path.exists(directory):
-                os.makedirs(directory)
-
-            with self.__settings_lock:
-                with get_file_lock(self.__filepath).locked(self.__timeout):
-                    with open(self.__filepath, 'w', encoding='utf-8') as f:
-                        json.dump(self.__settings, f, indent=4)
+            if self.__load_error is not None:
+                raise RuntimeError(f"{self.__filepath} was not loaded ({self.__load_error}), "
+                                   "so saving would replace what it holds")
+            with self._locked():
+                self._write(self._serialize())
         except Exception as e:
             self.__logger.error(f"Failed to save settings to {self.__filepath}: {e}")
             raise
+
+    def _serialize(self) -> str:
+        """
+        The user settings as they are written to the file.
+        """
+        with self.__settings_lock:
+            return json.dumps(self.__settings, indent=4)
+
+    def _write(self, content: str) -> None:
+        """
+        Replace the user file with ``content``; the caller holds its lock.
+        """
+        target = os.path.realpath(self.__filepath)
+        _make_directory(os.path.dirname(target), self.__mode)
+
+        mode = self.__mode
+        if mode is None:
+            # What open("w") would have kept, or given a new file.
+            try:
+                mode = stat.S_IMODE(os.stat(target).st_mode) & 0o777
+            except FileNotFoundError:
+                mode = 0o666
+
+        fd, temp = _create_temp(target, mode)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+            _replace(temp, target)
+        except BaseException:
+            with contextlib.suppress(OSError):
+                os.unlink(temp)
+            raise
+
+    @contextlib.contextmanager
+    def transaction(self, timeout: Optional[float] = None) -> Generator[None, None, None]:
+        """
+        Change the settings file as one step, with every other writer kept out.
+
+        Takes the file's lock, re-reads the file, runs the block, and saves on a
+        clean exit if the block changed anything. Another process, another
+        thread, or another manager on the same file waits for the lock rather
+        than writing in between, so what it wrote before is kept rather than
+        overwritten from a stale copy::
+
+            with settings.transaction():
+                settings.set("category", "key", value)
+
+        Inside the block, :meth:`get`, :meth:`set`, :meth:`delete` and
+        :meth:`get_category` work as usual. On an exception nothing is saved,
+        and the in-memory settings go back to what the file held. A transaction
+        nested in another on the same manager joins it: only the outermost
+        re-reads and saves.
+
+        Changes made before the transaction and not yet saved are discarded, in
+        every thread: the re-read replaces the whole in-memory copy. Make a
+        change meant to last inside a transaction.
+
+        The lock is held for the whole block, and other writers give up after
+        their own timeout, so keep the block short. Do not open one while
+        holding :meth:`lock_category`. A transaction does not carry into a child
+        forked inside it.
+
+        On a manager without a file, nothing is read or written, and a
+        transaction only excludes others on the same manager.
+
+        Args:
+            timeout (float): Seconds to wait for the lock, in all; the manager's
+                own timeout where None.
+
+        Raises:
+            TimeoutError: if the lock is not had in time. Nothing is read or
+                written.
+            ValueError: if the file is malformed or does not hold a JSON object.
+                The file is left as it is: unlike a plain load, which logs and
+                starts empty, a transaction will not replace a file it could not
+                read.
+        """
+        if timeout is None:
+            timeout = self.__timeout
+
+        if self.__filepath is None:
+            if not self.__memory_lock.acquire(timeout=timeout):
+                raise TimeoutError(f"Timed out after {timeout}s waiting for a settings "
+                                   "transaction: another thread of this process holds it")
+            try:
+                yield
+            finally:
+                self.__memory_lock.release()
+            return
+
+        with self._locked(timeout):
+            depth = getattr(self.__transactions, "depth", 0)
+            if depth:
+                # Inside this thread's own transaction on this manager, which
+                # re-read the file and will save it.
+                self.__transactions.depth = depth + 1
+                try:
+                    yield
+                finally:
+                    self.__transactions.depth = depth
+                return
+
+            try:
+                data = self._read()
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Settings file {self.__filepath} is malformed ({e}); "
+                                 "fix or delete it") from e
+            if not isinstance(data, dict):
+                raise ValueError(f"Settings file {self.__filepath} does not hold a JSON "
+                                 "object; fix or delete it")
+
+            # Compared as text, not as dicts, because key order carries
+            # meaning (see set): a re-set that only moves a key is a change.
+            before = json.dumps(data, indent=4)
+            with self.__settings_lock:
+                self.__settings = data
+            self.__load_error = None
+
+            self.__transactions.depth = 1
+            try:
+                yield
+                after = self._serialize()
+                if after != before:
+                    self._write(after)
+            except BaseException:
+                with self.__settings_lock:
+                    self.__settings = json.loads(before)
+                raise
+            finally:
+                self.__transactions.depth = 0
 
     def set(self, category: str, key: str, value, keep: bool = False):
         """

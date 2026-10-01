@@ -479,6 +479,55 @@ def test_write_defaults_data(monkeypatch):
     }
 
 
+def test_write_defaults_keeps_other_categories(monkeypatch):
+    """A category another process wrote after this one loaded survives it."""
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
+
+    schema = OptionSchema()
+    schema.set_optmode(12)
+
+    with open("options.json", "w") as fd:
+        json.dump({"other-category": {"key": 1}}, fd)
+
+    schema.write_defaults()
+
+    with open("options.json") as fd:
+        data = json.load(fd)
+    assert data == {
+        "other-category": {"key": 1},
+        "schema-options": {"optmode": 12}
+    }
+
+
+def test_write_defaults_reset_clears_category(monkeypatch):
+    """With every option back at its default, the old ones leave the file."""
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
+
+    with open("options.json", "w") as fd:
+        json.dump({"schema-options": {"optmode": 12}, "other-category": {"key": 1}}, fd)
+
+    OptionSchema().write_defaults()
+
+    with open("options.json") as fd:
+        data = json.load(fd)
+    assert data == {"other-category": {"key": 1}}
+
+
+def test_write_defaults_malformed_file(monkeypatch):
+    _redirect_settings(monkeypatch, os.path.abspath("options.json"))
+
+    with open("options.json", "w") as fd:
+        fd.write("{ not json")
+
+    schema = OptionSchema()
+    schema.set_optmode(12)
+    with pytest.raises(ValueError, match=r"options\.json is malformed"):
+        schema.write_defaults()
+
+    with open("options.json") as fd:
+        assert fd.read() == "{ not json"
+
+
 def test_write_defaults_data_not_transient(monkeypatch):
     _redirect_settings(monkeypatch, os.path.abspath("options.json"))
 
