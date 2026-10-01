@@ -526,6 +526,42 @@ directly.
 The older ``tools`` entry point, which maps tool names straight to scripts,
 still works, and its scripts are given ``SC_TOOLSCRIPTS`` too.
 
+To keep your pins current the way SiliconCompiler keeps its own, call its tool
+updater from a workflow of yours. Every entry in your ``_tools.json`` that has a
+``git-url`` and ``"auto-update": true`` gets a pull request moving it to the
+newest commit or release tag. An override is read on its own, without
+SiliconCompiler's fields, so it is updated only if it carries both itself.
+
+.. code-block:: yaml
+
+   # .github/workflows/tool_updater.yml
+   name: 'Tool Updater'
+
+   on:
+     workflow_dispatch:
+     schedule:
+       - cron: '0 0 * * *'
+
+   jobs:
+     update:
+       permissions:
+         contents: read
+         pull-requests: read
+       uses: siliconcompiler/siliconcompiler/.github/workflows/update_tools.yml@main
+       with:
+         manifest: mylib/toolscripts/_tools.json
+         # Only for pins cloned from private repositories of the same owner
+         repositories: mytool
+         app-client-id: ${{ vars.MYLIB_BOT_CLIENT_ID }}
+       secrets:
+         app-private-key: ${{ secrets.MYLIB_BOT_PRIVATE_KEY }}
+
+The pull requests are opened by a GitHub App you name with ``app-client-id`` and
+``app-private-key``. A pull request opened with ``GITHUB_TOKEN`` would run none
+of your checks, and that token cannot read another private repository. The App
+needs contents and pull requests write on your repository, and contents read on
+each repository listed in ``repositories``.
+
 Publishing to PyPI
 ------------------
 

@@ -1,0 +1,185 @@
+name: 'Update tools'
+
+# Opens a pull request for each tool in a _tools.json that has a newer commit or
+# release. tool_updater.yml runs it nightly for SiliconCompiler's own manifest, and
+# a package that adds tools to sc-install calls it for its own.
+#
+# The pull requests are opened by a GitHub App, for the reasons given at "Mint an
+# App token" below; it needs contents and pull-requests write on the calling
+# repository, and contents read on any private repository listed below. The
+# calling job has to grant contents: read and pull-requests: read, which bound
+# what GITHUB_TOKEN can do here.
+on:
+  workflow_call:
+    inputs:
+      manifest:
+        description: '_tools.json to update, relative to the root of the calling repository'
+        type: string
+        required: true
+      repositories:
+        description: 'Comma-separated private repositories, of the same owner, the pins are cloned from'
+        type: string
+        default: ''
+      app-client-id:
+        description: 'Client ID of the GitHub App that opens the pull requests'
+        type: string
+        required: true
+    secrets:
+      app-private-key:
+        description: 'Private key of that GitHub App'
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  MANIFEST: ${{ inputs.manifest }}
+
+jobs:
+  get_tools:
+    name: 'Get updatable tools'
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      tools: ${{ steps.tools.outputs.tools }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # The _tools.py this workflow file was released with, whichever repository it
+      # runs for. It reads only the manifest it is given.
+      - name: Fetch the updater
+        env:
+          SOURCE: ${{ job.workflow_repository }}
+          SHA: ${{ job.workflow_sha }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/_tools.py" \
+            "https://raw.githubusercontent.com/${SOURCE}/${SHA}/siliconcompiler/toolscripts/_tools.py"
+
+      - name: Tools
+        id: tools
+        run: |
+          echo "tools=$(python3 "$RUNNER_TEMP/_tools.py" --manifest "$MANIFEST" --json_tools)" >> $GITHUB_OUTPUT
+
+  update_tool:
+    needs: get_tools
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get_tools.outputs.tools) }}
+
+    name: 'Update tool'
+    runs-on: ubuntu-latest
+
+    # GITHUB_TOKEN only reads here: the draft-PR check below is its only use.
+    # The App token minted further down does the push and the PR.
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Check if draft exists
+        id: check
+        run: |
+          draft=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "bot/${TOOL}-update" --json isDraft --jq .[0].isDraft)
+          if [[ "$draft" = "true" ]] ; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOL: ${{ matrix.tool }}
+
+      - name: Checkout repository
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Fetch the updater
+        if: steps.check.outputs.skip != 'true'
+        env:
+          SOURCE: ${{ job.workflow_repository }}
+          SHA: ${{ job.workflow_sha }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/_tools.py" \
+            "https://raw.githubusercontent.com/${SOURCE}/${SHA}/siliconcompiler/toolscripts/_tools.py"
+
+      # Read access to the private repositories a package's pins are cloned from.
+      # Kept apart from the token that opens the PR, which reaches only this
+      # repository.
+      - name: Mint a source token
+        id: source-token
+        if: steps.check.outputs.skip != 'true' && inputs.repositories != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          repositories: ${{ inputs.repositories }}
+          permission-contents: read
+
+      - name: Update tool
+        if: steps.check.outputs.skip != 'true'
+        id: update
+        env:
+          TOOL: ${{ matrix.tool }}
+          SOURCE_TOKEN: ${{ steps.source-token.outputs.token }}
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python3 -m pip install GitPython
+          if [ -n "$SOURCE_TOKEN" ]; then
+            # Set for this step's git calls only, so the token is never written to a
+            # config file
+            export GIT_CONFIG_COUNT=1
+            export GIT_CONFIG_KEY_0="url.https://x-access-token:${SOURCE_TOKEN}@github.com/.insteadOf"
+            export GIT_CONFIG_VALUE_0="https://github.com/"
+          fi
+          # Leaves the bump uncommitted in the working tree; create-pull-request
+          # below does the committing, with the author and message it is given.
+          msg=$(python3 "$RUNNER_TEMP/_tools.py" --manifest "$MANIFEST" --bump_commit --tool "$TOOL")
+          echo "$msg"
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "msg<<$EOF" >> $GITHUB_OUTPUT
+          echo "$msg" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      # A GitHub App installation token rather than a PAT on a machine user:
+      # minted per job, scoped to this repository, an hour to live, revoked
+      # when the job ends. Minted here, next to its only use, so the clone in
+      # the step above does not eat into that hour.
+      #
+      # It is also deliberately not GITHUB_TOKEN, which cannot trigger further
+      # workflow runs: a PR opened with it would carry no checks at all, and
+      # 'Tool-based tests' is required to merge, so it could never land.
+      - name: Mint an App token
+        id: app-token
+        if: steps.update.outputs.msg != '' && steps.check.outputs.skip != 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          # Narrower than the installation, should the App ever be granted more
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Create Pull Request
+        if: steps.update.outputs.msg != '' && steps.check.outputs.skip != 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          title: "[SC-BOT] Update ${{ matrix.tool }}"
+          author: "SiliconCompiler Bot <bot@siliconcompiler.com>"
+          committer: "SiliconCompiler Bot <bot@siliconcompiler.com>"
+          body: |
+            ${{ steps.update.outputs.msg }}
+          commit-message: |
+            Update ${{ matrix.tool }}
+          # --bump_commit writes only this file; naming it keeps anything else
+          # that lands in the tree out of the PR.
+          add-paths: ${{ env.MANIFEST }}
+          branch: bot/${{ matrix.tool }}-update
+          base: main
+          delete-branch: true
