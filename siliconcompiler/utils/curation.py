@@ -171,12 +171,14 @@ def collect(project: "Project",
 
     def resolve(params):
         """
-        Pair each value with the real path of what it names, in path order, so a
-        directory comes before anything inside it
+        Pair each value with the real path of what it names and what its dataroot
+        is collected as, in path order, so a directory comes before anything inside it
         """
         found = []
         for key, step, index in sorted(params.keys()):
             values = params[(key, step, index)]
+            resolvers = project.get(*key[:-1], field="schema") \
+                ._find_files_dataroot_resolvers(resolvers=True)
             # Only the values gathered, so the others are never resolved
             gathered = {id(value) for value in values}
             abs_paths = find_files(*key, step=step, index=index,
@@ -188,15 +190,25 @@ def collect(project: "Project",
             for abs_path, value in zip(abs_paths, values):
                 if not abs_path:
                     raise FileNotFoundError(f"{value.get()} could not be copied")
-                found.append((os.path.realpath(abs_path), abs_path, value))
+                dataroot = value.get(field="dataroot")
+                dataroot_id = None
+                if dataroot:
+                    try:
+                        dataroot_id = resolvers[dataroot].collection_id
+                    except Exception:
+                        # A dataroot that cannot be resolved, as of a value found
+                        # without it, has no ID, so find_files reads it by name
+                        dataroot_id = dataroot
+                found.append((os.path.realpath(abs_path), abs_path, value, dataroot_id))
         return sorted(found, key=lambda f: f[0])
 
-    def found_in_collection(value) -> bool:
+    def found_in_collection(value, dataroot_id) -> bool:
         """
         True if the value already resolves in the collection by its own path
         """
         try:
-            path = value.resolve_path(search=[], collection_dir=directory)
+            path = value.resolve_path(search=[], collection_dir=directory,
+                                      dataroot_id=dataroot_id)
         except FileNotFoundError:
             return False
         return path is not None and _is_within(path, directory)
@@ -328,13 +340,13 @@ def collect(project: "Project",
     try:
         # Directories first, so that a file inside one is found there
         for is_dir, params in ((True, dirs), (False, files)):
-            for real_path, abs_path, value in resolve(params):
-                if _is_within(abs_path, directory) or found_in_collection(value):
+            for real_path, abs_path, value, dataroot_id in resolve(params):
+                if _is_within(abs_path, directory) or \
+                        found_in_collection(value, dataroot_id):
                     continue
 
                 import_path = os.path.join(
-                    directory,
-                    value.generate_hashed_collection_path(value.get(), value.get('dataroot')))
+                    directory, value.generate_hashed_collection_path(value.get(), dataroot_id))
 
                 copy = find_stored(real_path)
                 if copy:
