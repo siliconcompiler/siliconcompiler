@@ -464,6 +464,25 @@ def test_collect_read_with_other_variables(path_keys, monkeypatch):
     assert _in_collection(proj, files)
 
 
+def test_collect_file_under_unresolvable_dataroot(path_keys):
+    """An absolute path is found without its dataroot, so a dataroot that cannot be
+    resolved does not stop it being collected, or read back from the collection."""
+    os.makedirs("src")
+    with open("src/top.v", "w") as f:
+        f.write("module top; endmodule")
+
+    design = Design("testdesign")
+    design.set_dataroot("broken", "dataroot://missing")
+    design.add_file(os.path.abspath("src/top.v"), dataroot="broken", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("src")
+
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
+
+
 def test_collect_file_inside_directory_under_other_dataroot(two_dataroots, path_keys):
     """A file inside a collected directory, but named from another dataroot, is not
     reachable through the directory's collected path, so it must not be skipped."""

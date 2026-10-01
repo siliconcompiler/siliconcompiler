@@ -191,7 +191,14 @@ def collect(project: "Project",
                 if not abs_path:
                     raise FileNotFoundError(f"{value.get()} could not be copied")
                 dataroot = value.get(field="dataroot")
-                dataroot_id = resolvers[dataroot].collection_id if dataroot else None
+                dataroot_id = None
+                if dataroot:
+                    try:
+                        dataroot_id = resolvers[dataroot].collection_id
+                    except Exception:
+                        # A dataroot that cannot be resolved, as of a value found
+                        # without it, has no ID, so find_files reads it by name
+                        dataroot_id = dataroot
                 found.append((os.path.realpath(abs_path), abs_path, value, dataroot_id))
         return sorted(found, key=lambda f: f[0])
 
