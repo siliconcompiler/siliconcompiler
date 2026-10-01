@@ -1,5 +1,6 @@
 import pytest
 import os
+import re
 import sys
 from unittest import mock
 from pathlib import Path
@@ -826,6 +827,250 @@ def test_get_tools_list_plugin_overrides_builtin(monkeypatch, fake_plugins):
     assert found["mytool"] == "mytool.sh"
     # Tools the plugin does not claim keep their built-in script
     assert found["openroad"].endswith(os.path.join("ubuntu22", "install-openroad.sh"))
+
+
+_PACKAGE_SCRIPT = """#!/bin/bash
+
+set -e
+
+src_path="${SC_TOOLSCRIPTS:?run this script through sc-install}"
+
+. "${src_path}/_prereqs.sh"
+
+echo "MYTOOL $(python3 ${src_path}/_tools.py --tool mytool --field git-commit) $PREFIX"
+"""
+
+
+def _make_package(name, manifest=None, scripts=None):
+    import json as _json
+    root = Path(name)
+    root.mkdir()
+    if manifest is not None:
+        (root / "_tools.json").write_text(_json.dumps(manifest))
+    for path, text in (scripts or {}).items():
+        script = root / path
+        script.parent.mkdir(parents=True, exist_ok=True)
+        script.write_text(text)
+    return root.resolve()
+
+
+def _builtin_manifest():
+    import json as _json
+    with open(sc_install._get_tool_script_dir() / "_tools.json") as f:
+        return _json.load(f)
+
+
+def test_get_tools_manifest_without_packages(fake_plugins):
+    assert sc_install._get_tools_manifest() == _builtin_manifest()
+
+
+def test_get_tools_manifest_adds_and_overrides(fake_plugins):
+    """A new tool is added whole; an override changes only the fields it names."""
+    root = _make_package("pkg", manifest={
+        "mytool": {"git-url": "https://example.com/mytool.git", "git-commit": "v1"},
+        "yosys": {"git-commit": "v0.70"}})
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    builtin = _builtin_manifest()
+    manifest = sc_install._get_tools_manifest()
+    assert manifest["mytool"] == {"git-url": "https://example.com/mytool.git",
+                                  "git-commit": "v1"}
+    assert manifest["yosys"] == {**builtin["yosys"], "git-commit": "v0.70"}
+    assert manifest["openroad"] == builtin["openroad"]
+
+
+def test_get_package_tools_rejects_pin_in_two_packages(monkeypatch, fake_plugins):
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu24")
+    first = _make_package("first", manifest={"mytool": {"git-commit": "v1"}})
+    second = _make_package("second", manifest={"mytool": {"git-commit": "v2"}})
+    fake_plugins("install", "toolscripts", lambda: first)
+    fake_plugins("install", "toolscripts", lambda: second)
+
+    msg = f"mytool is supplied by both {first} and {second}"
+    with pytest.raises(ValueError, match=f"^{re.escape(msg)}$"):
+        sc_install._get_tools_manifest()
+
+
+def test_get_package_tools_rejects_script_in_two_packages(fake_plugins):
+    """A script supplies a tool as much as a pin does."""
+    first = _make_package("first", manifest={"yosys": {"git-commit": "v0.70"}})
+    second = _make_package("second", scripts={"ubuntu24/install-yosys.sh": ""})
+    fake_plugins("install", "toolscripts", lambda: first)
+    fake_plugins("install", "toolscripts", lambda: second)
+
+    msg = f"yosys is supplied by both {first} and {second}"
+    with pytest.raises(ValueError, match=f"^{re.escape(msg)}$"):
+        sc_install._get_package_tools("ubuntu24")
+
+
+def test_get_package_tools_rejects_missing_directory(fake_plugins):
+    missing = Path("missing").resolve()
+    fake_plugins("install", "toolscripts", lambda: missing)
+
+    msg = f"toolscripts entry point returned {missing}, which is not a directory"
+    with pytest.raises(ValueError, match=f"^{re.escape(msg)}$"):
+        sc_install._get_package_tools("ubuntu24")
+
+
+def test_get_package_tools_rejects_bad_json(fake_plugins):
+    root = _make_package("pkg")
+    (root / "_tools.json").write_text("{")
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    msg = f"{root / '_tools.json'} is not valid JSON"
+    with pytest.raises(ValueError, match=f"^{re.escape(msg)}"):
+        sc_install._get_package_tools("ubuntu24")
+
+
+def test_get_tools_list_includes_package_scripts(monkeypatch, fake_plugins):
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu22")
+
+    root = _make_package("pkg", scripts={
+        "ubuntu22/install-mytool.sh": "",
+        "ubuntu22/install-yosys.sh": "",
+        "ubuntu24/install-other.sh": ""})
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    found = sc_install._get_tools_list()
+    assert found["mytool"] == str(root / "ubuntu22" / "install-mytool.sh")
+    assert found["yosys"] == str(root / "ubuntu22" / "install-yosys.sh")
+    assert "other" not in found
+    assert found["openroad"].endswith(os.path.join("ubuntu22", "install-openroad.sh"))
+
+    # The older tools entry point still has the last word
+    fake_plugins("install", "tools", lambda osname: {"yosys": "myscript.sh"})
+    assert sc_install._get_tools_list()["yosys"] == "myscript.sh"
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_package_tool(monkeypatch, fake_plugins, capfd):
+    """A package's tool installs from its own pin, and a bump of that pin rebuilds it."""
+    import json as _json
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu24")
+
+    root = _make_package("pkg",
+                         manifest={"mytool": {"git-commit": "v1"}},
+                         scripts={"ubuntu24/install-mytool.sh": _PACKAGE_SCRIPT})
+    (root / "ubuntu24" / "install-mytool.sh").chmod(0o755)
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    build_dir = os.path.abspath("build_package")
+    prefix = os.path.abspath("prefix_package")
+    argv = ['sc-install', 'mytool', '-build_dir', build_dir, '-prefix', prefix]
+
+    monkeypatch.setattr('sys.argv', argv)
+    assert sc_install.main() == 0
+    assert f"MYTOOL v1 {prefix}" in capfd.readouterr().out
+
+    monkeypatch.setattr('sys.argv', argv)
+    assert sc_install.main() == 0
+    assert "mytool is already up to date" in capfd.readouterr().out
+
+    (root / "_tools.json").write_text(_json.dumps({"mytool": {"git-commit": "v2"}}))
+    monkeypatch.setattr('sys.argv', argv)
+    assert sc_install.main() == 0
+    assert f"MYTOOL v2 {prefix}" in capfd.readouterr().out
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_install_sets_sc_toolscripts(call, monkeypatch, fake_plugins):
+    """Every script runs where it is installed, pointed at the helpers and merged pins."""
+    import json as _json
+    monkeypatch.setattr(sc_install, '_get_tools_list', lambda: {"yosys": "yosys.sh"})
+
+    root = _make_package("pkg", manifest={"yosys": {"git-commit": "v0.70"}})
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    call.return_value = 0
+    build_dir = os.path.abspath("build_env")
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-build_dir', build_dir])
+    assert sc_install.main() == 0
+
+    call.assert_called_once()
+    assert call.call_args.args == ("yosys.sh",)
+    path = Path(call.call_args.kwargs['env']['SC_TOOLSCRIPTS'])
+    assert path == Path(build_dir) / "yosys" / "toolscripts"
+    assert (path / "_prereqs.sh").is_file()
+    assert (path / "_tools.py").is_file()
+    with open(path / "_tools.json") as f:
+        assert _json.load(f)["yosys"]["git-commit"] == "v0.70"
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_builtin_script_uses_package_pin(monkeypatch, fake_plugins, capfd):
+    """SiliconCompiler's own script, unchanged, builds the version a package pins."""
+    import json as _json
+    import shutil as _shutil
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu24")
+
+    builtin = Path("sc_toolscripts").resolve()
+    (builtin / "ubuntu24").mkdir(parents=True)
+    for helper in ("_tools.py", "_prereqs.sh"):
+        _shutil.copy(sc_install._get_tool_script_dir() / helper, builtin)
+    (builtin / "_tools.json").write_text(_json.dumps({
+        "mytool": {"git-url": "https://example.com/mytool.git", "git-commit": "v1"}}))
+    script = builtin / "ubuntu24" / "install-mytool.sh"
+    script.write_text("""#!/bin/bash
+
+set -e
+
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
+
+. "${src_path}/_prereqs.sh"
+
+echo "MYTOOL $(python3 ${src_path}/_tools.py --tool mytool --field git-commit)"
+""")
+    script.chmod(0o755)
+    monkeypatch.setattr(sc_install, '_get_tool_script_dir', lambda: builtin)
+
+    argv = ['sc-install', 'mytool', '-build_dir', os.path.abspath("build_override")]
+
+    monkeypatch.setattr('sys.argv', argv)
+    assert sc_install.main() == 0
+    assert "MYTOOL v1" in capfd.readouterr().out
+
+    root = _make_package("pkg", manifest={"mytool": {"git-commit": "v2"}})
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    monkeypatch.setattr('sys.argv', argv)
+    assert sc_install.main() == 0
+    assert "MYTOOL v2" in capfd.readouterr().out
+
+
+def test_install_reports_package_conflict(monkeypatch, fake_plugins, capfd):
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu24")
+
+    first = _make_package("first", manifest={"mytool": {"git-commit": "v1"}})
+    second = _make_package("second", manifest={"mytool": {"git-commit": "v2"}})
+    fake_plugins("install", "toolscripts", lambda: first)
+    fake_plugins("install", "toolscripts", lambda: second)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'mytool'])
+    assert sc_install.main() == 1
+    assert f"Error: mytool is supplied by both {first} and {second}" in capfd.readouterr().err
+
+
+def test_fingerprint_tracks_package_override(monkeypatch, fake_plugins, tmp_path):
+    """A package overriding a dependency's pin changes the dependent's fingerprint."""
+    import json as _json
+    scripts_dir = tmp_path / "toolscripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "_tools.json").write_text(_json.dumps({
+        "child": {"git-url": "https://example/child.git", "git-commit": "v1"},
+        "parent": {"git-url": "https://example/parent.git", "git-commit": "v1",
+                   "docker-depends": "child"}}))
+    script = scripts_dir / "install-parent.sh"
+    script.write_text("#!/bin/sh\n_tools.py --tool parent --field git-commit\n")
+
+    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+
+    fp_before = sc_install.compute_fingerprint("parent", str(script))
+
+    root = _make_package("pkg", manifest={"child": {"git-commit": "v2"}})
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    assert sc_install.compute_fingerprint("parent", str(script)) != fp_before
 
 
 def test_recommended_tool_groups_plugin_overrides_builtin(monkeypatch, fake_plugins):

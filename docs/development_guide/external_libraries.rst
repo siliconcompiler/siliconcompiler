@@ -150,12 +150,13 @@ Points worth calling out:
       linkcode = "mylib.docs:get_codeurl"
 
       [project.entry-points."siliconcompiler.install"]
-      tools = "mylib.install:get_install_tools"
+      toolscripts = "mylib.install:get_toolscripts_dir"
       groups = "mylib.install:get_install_groups"
       fingerprint = "mylib.install:compute_fingerprint"
 
    The names in the ``siliconcompiler.docs`` and ``siliconcompiler.install`` groups are
-   fixed, since SiliconCompiler looks them up by name. Names in the
+   fixed, since SiliconCompiler looks them up by name. :ref:`ext_lib_toolscripts`
+   covers ``toolscripts``. Names in the
    ``siliconcompiler.showtask`` and ``siliconcompiler.path_resolver`` groups are
    free-form; pick something unique to your package.
 
@@ -455,6 +456,75 @@ environment variable the modules depend on:
 If a module points a dataroot at an environment variable such as
 ``$FOUNDRY_ROOT``, setting it here with ``project.option.set_env`` means users
 get a working default without configuring anything themselves.
+
+.. _ext_lib_toolscripts:
+
+Adding tools to sc-install
+--------------------------
+
+A package that drives a tool SiliconCompiler does not build can make it
+installable with :ref:`sc-install <app-sc-install>`. Lay out a directory the
+way SiliconCompiler lays out its own ``toolscripts``, and return it from a
+``toolscripts`` entry point:
+
+.. code-block:: text
+
+   mylib/toolscripts/
+   ├── _tools.json                  <- pins, in the same fields as SiliconCompiler's
+   └── ubuntu24/
+       └── install-mytool.sh        <- one directory per supported OS
+
+.. code-block:: toml
+
+   # pyproject.toml
+   [project.entry-points."siliconcompiler.install"]
+   toolscripts = "mylib.install:get_toolscripts_dir"
+
+.. code-block:: python
+
+   # mylib/install.py
+   import os.path
+
+
+   def get_toolscripts_dir():
+       return os.path.join(os.path.dirname(__file__), "toolscripts")
+
+``sc-install`` runs each script where it is installed, with ``SC_TOOLSCRIPTS``
+naming a directory that holds the shared helpers, ``_prereqs.sh`` and
+``_tools.py``, beside a ``_tools.json`` that merges your pins into
+SiliconCompiler's. An install script finds the helpers there and reads its pins
+through ``_tools.py``:
+
+.. code-block:: bash
+
+   #!/bin/bash
+
+   set -ex
+
+   src_path="${SC_TOOLSCRIPTS:?run this script through sc-install}"
+
+   . "${src_path}/_prereqs.sh"
+   install_prereqs git
+
+   git clone $(python3 ${src_path}/_tools.py --tool mytool --field git-url) mytool
+   cd mytool
+   git checkout $(python3 ${src_path}/_tools.py --tool mytool --field git-commit)
+
+Commit the script executable (``git update-index --chmod=+x``), since it is run
+directly.
+
+* **Overriding a pin.** An entry for a tool SiliconCompiler already pins changes
+  only the fields it names: ``{"yosys": {"git-commit": "v0.70"}}`` builds yosys
+  v0.70 with SiliconCompiler's own script. Ship ``ubuntu24/install-yosys.sh`` as
+  well only to replace the recipe on that OS.
+* **Rebuilds.** A tool's fingerprint covers its own pin and the pins of what it
+  lists in ``docker-depends``, so ``sc-install`` rebuilds it when either moves,
+  including when the move comes from your override.
+* **One package per tool.** Two installed packages supplying the same tool,
+  whether by pin or by script, are an error.
+
+The older ``tools`` entry point, which maps tool names straight to scripts,
+still works, and its scripts are given ``SC_TOOLSCRIPTS`` too.
 
 Publishing to PyPI
 ------------------
