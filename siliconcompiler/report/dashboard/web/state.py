@@ -14,13 +14,13 @@ The main functions are:
   to the session state.
 """
 import argparse
-import fasteners
 import json
 import os
 import streamlit
 import streamlit_javascript
 
 from siliconcompiler import Project
+from siliconcompiler.utils.multiprocessing import get_file_lock
 
 # --- State Keys ---
 # These constants define the keys used to store and access data in
@@ -45,7 +45,6 @@ TAB_STATE = "tab-state"
 # Data State
 LOADED_PROJECTS = "loaded_projects"
 MANIFEST_FILE = "manifest_file"
-MANIFEST_LOCK = "manifest_lock"
 MANIFEST_TIME = "manifest_time"
 IS_RUNNING = "is_flow_running"
 GRAPH_JOBS = "graph_jobs"
@@ -89,7 +88,7 @@ def update_manifest():
     file_time = os.stat(get_key(MANIFEST_FILE)).st_mtime
 
     if get_key(MANIFEST_TIME) != file_time:
-        with get_key(MANIFEST_LOCK):
+        with get_file_lock(get_key(MANIFEST_FILE)).locked():
             proj = Project.from_manifest(filepath=get_key(MANIFEST_FILE))
         set_key(MANIFEST_TIME, file_time)
         debug_print("Read manifest", get_key(MANIFEST_FILE))
@@ -123,7 +122,6 @@ def init():
     _add_default(SELECTED_FILE_PAGE, None)
     _add_default(LOADED_PROJECTS, {})
     _add_default(MANIFEST_FILE, None)
-    _add_default(MANIFEST_LOCK, None)
     _add_default(MANIFEST_TIME, None)
     _add_default(IS_RUNNING, False)
     _add_default(GRAPH_JOBS, None)
@@ -151,7 +149,6 @@ def init():
             config = json.load(f)
 
         set_key(MANIFEST_FILE, config["manifest"])
-        set_key(MANIFEST_LOCK, fasteners.InterProcessLock(config["lock"]))
 
         update_manifest()
         project = get_project("default")

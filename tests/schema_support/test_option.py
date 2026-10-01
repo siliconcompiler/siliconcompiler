@@ -5,8 +5,6 @@ import os.path
 
 from unittest.mock import patch
 
-from fasteners import InterProcessLock
-
 from siliconcompiler.schema import Scope
 from siliconcompiler.schema_support.option import OptionSchema, SchedulerSchema
 from siliconcompiler.project import Project
@@ -15,15 +13,12 @@ from siliconcompiler.utils.multiprocessing import MPManager
 
 def _redirect_settings(monkeypatch, filepath):
     """
-    Point the shared settings manager at an isolated file (and its sibling
-    lock) so write_defaults() does not touch the shared, user-global ``.sc``
-    directory. The lock is derived from the filepath at construction, so it must
-    be redirected alongside the filepath.
+    Point the shared settings manager at an isolated file so write_defaults()
+    does not touch the shared, user-global ``.sc`` directory. The lock is found
+    from the filepath on every use, so it follows.
     """
     settings = MPManager.get_settings()
     monkeypatch.setattr(settings, "_SettingsManager__filepath", filepath)
-    monkeypatch.setattr(settings, "_SettingsManager__lock",
-                        InterProcessLock(filepath + ".lock"))
 
 
 def test_keys():

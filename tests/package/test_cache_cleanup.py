@@ -2,6 +2,7 @@
 import logging
 import os
 import pytest
+import threading
 
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -9,7 +10,7 @@ from unittest.mock import patch
 
 from siliconcompiler import Project
 from siliconcompiler.package import cleanup
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, get_file_lock
 
 
 @pytest.fixture
@@ -204,7 +205,7 @@ def test_cleanup_cache_warns_when_lock_survives_entry(cachedir, caplog):
     real_unlink = Path.unlink
 
     def fail_on_lock(self, *args, **kwargs):
-        if self.suffix in cleanup.LOCK_SUFFIXES:
+        if self.name in ("old.lock", "old.sc_lock"):
             raise OSError("held open")
         return real_unlink(self, *args, **kwargs)
 
@@ -427,6 +428,36 @@ def test_cleanup_cache_skips_locked_entry(cachedir, caplog):
     assert "Skipping old, it is in use" in caplog.text
 
 
+def test_cleanup_cache_skips_entry_locked_by_another_thread(cachedir, caplog):
+    '''
+    A download in another thread of this process counts as in use. fcntl alone
+    would hand the sweep the lock: it is held per process.
+    '''
+    entry = make_entry(cachedir, "old", age_days=91)
+    caplog.set_level(logging.INFO)
+
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with get_file_lock(cachedir / "old").locked(10):
+            holding.set()
+            release.wait(timeout=10)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    try:
+        assert holding.wait(timeout=10)
+        stats = cleanup.cleanup_cache(cachedir, 90)
+    finally:
+        release.set()
+        thread.join(timeout=10)
+
+    assert entry.exists()
+    assert stats.entries == 0
+    assert "Skipping old, it is in use" in caplog.text
+
+
 def test_cleanup_cache_skips_entry_with_live_fallback_lock(cachedir):
     '''A .sc_lock exists only while it is held, so a fresh one means a live download.'''
     entry = make_entry(cachedir, "old", age_days=91)
@@ -461,6 +492,36 @@ def test_cleanup_cache_removes_entry_when_locking_unsupported(cachedir):
 
     assert not entry.exists()
     assert stats.entries == 1
+
+
+def test_cleanup_cache_clears_stale_fallback_when_locking_unsupported(cachedir):
+    '''
+    Where flock does not work the lock *is* the .sc_lock, so an old one -- residue
+    from a killed process -- would block the sweep forever unless cleared.
+    '''
+    entry = make_entry(cachedir, "old", age_days=91)
+    fallback = cachedir / "old.sc_lock"
+    fallback.touch()
+    age_lock(fallback, 91)
+
+    with patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK")):
+        stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert not entry.exists()
+    assert not fallback.exists()
+    assert stats.entries == 1
+
+
+def test_cleanup_cache_skips_live_fallback_when_locking_unsupported(cachedir):
+    entry = make_entry(cachedir, "old", age_days=91)
+    (cachedir / "old.sc_lock").touch()
+
+    with patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK")):
+        stats = cleanup.cleanup_cache(cachedir, 90)
+
+    assert entry.exists()
+    assert (cachedir / "old.sc_lock").exists()
+    assert stats.entries == 0
 
 
 def test_cleanup_cache_does_not_create_lock_to_delete_entry(cachedir):

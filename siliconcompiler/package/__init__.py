@@ -26,14 +26,14 @@ import os.path
 
 from typing import Optional, List, Dict, Tuple, Type, Union, TYPE_CHECKING
 
-from fasteners import InterProcessLock
 from pathlib import Path, PureWindowsPath
 
 from siliconcompiler.package.cache import PathCache, DataRootResolutionError, \
     PermanentResolutionError
 from siliconcompiler.utils import get_plugins
 from siliconcompiler.utils.paths import cwdirsafe, datarootdir
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, FileLockTimeout, \
+    get_file_lock
 
 if TYPE_CHECKING:
     from urllib import parse as url_parse
@@ -644,22 +644,18 @@ class RemoteResolver(Resolver):
     @property
     def lock_file(self) -> Path:
         """The path to the file used for inter-process locking."""
-        cache_dir = self.cache_dir
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir, exist_ok=True)
-
-        return self.cache_dir / f"{self.cache_name}.lock"
+        return Path(get_file_lock(self.cache_path).lock_path)
 
     @property
     def sc_lock_file(self) -> Path:
         """
         The path to a secondary lock file used as a fallback mechanism.
-        """
-        cache_dir = self.cache_dir
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir, exist_ok=True)
 
-        return self.cache_dir / f"{self.cache_name}.sc_lock"
+        Where the filesystem cannot lock :attr:`lock_file`, the lock is held by
+        creating this file instead (see
+        :attr:`~siliconcompiler.utils.multiprocessing.FileLock.fallback_path`).
+        """
+        return Path(get_file_lock(self.cache_path).fallback_path)
 
     def thread_lock(self) -> threading.Lock:
         """
@@ -704,38 +700,29 @@ class RemoteResolver(Resolver):
 
     @contextlib.contextmanager
     def __file_lock(self):
-        """A context manager for acquiring the inter-process file lock."""
-        data_path_lock = InterProcessLock(self.lock_file)
-        lock_acquired = False
-        sc_data_path_lock = None
-        try:
-            try:
-                lock_acquired = data_path_lock.acquire(timeout=self.timeout)
-            except (OSError, RuntimeError):
-                if not lock_acquired:
-                    sc_data_path_lock = Path(self.sc_lock_file)
-                    max_seconds = self.timeout
-                    while sc_data_path_lock.exists():
-                        if max_seconds == 0:
-                            raise RuntimeError(f'Failed to access {self.cache_path}. '
-                                               f'Lock {sc_data_path_lock} still exists.')
-                        time.sleep(1)
-                        max_seconds -= 1
-                    sc_data_path_lock.touch()
-                    lock_acquired = True
-            if lock_acquired:
-                yield
-        finally:
-            if lock_acquired:
-                if data_path_lock.acquired:
-                    data_path_lock.release()
-                if sc_data_path_lock:
-                    sc_data_path_lock.unlink(missing_ok=True)
+        """
+        A context manager for acquiring the inter-process file lock.
 
-        if not lock_acquired:
+        The process's shared lock on :attr:`lock_file` (see
+        :func:`~siliconcompiler.utils.multiprocessing.get_file_lock`), so the
+        cache sweep in another thread sees a download in progress. Where the
+        filesystem cannot lock files, it is held as :attr:`sc_lock_file`
+        instead.
+        """
+        lock = get_file_lock(self.cache_path)
+        try:
+            lock.acquire(self.timeout)
+        except FileLockTimeout as e:
+            if e.fallback:
+                raise RuntimeError(f'Failed to access {self.cache_path}. '
+                                   f'Lock {e.fallback} still exists.') from None
             raise RuntimeError(f'Failed to access {self.cache_path}. '
                                f'{self.lock_file} is still locked. If this is a mistake, '
-                               'please delete the lock file.')
+                               'please delete the lock file.') from None
+        try:
+            yield
+        finally:
+            lock.release()
 
     @contextlib.contextmanager
     def lock(self):

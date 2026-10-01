@@ -56,10 +56,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-from fasteners import InterProcessLock
-
 from siliconcompiler.package import RemoteResolver
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, FileLockTimeout, get_file_lock
 from siliconcompiler.utils.paths import cachedir as cachedir_path, \
     datarootdir, toolcachedir
 
@@ -77,9 +75,6 @@ DEFAULT_INTERVAL = 7
 
 #: Records when a cache directory was last swept automatically.
 STAMP_FILE = ".sc_cleanup"
-
-#: Suffixes of the lock files that sit beside a cache entry.
-LOCK_SUFFIXES = (".lock", ".sc_lock")
 
 #: How recently a lock must have been taken to belong, plausibly, to a running
 #: process -- one still downloading behind the fallback lock, or one that has not
@@ -122,6 +117,27 @@ def format_size(size_bytes: float) -> str:
     return f"{size_bytes:.1f}TB"
 
 
+def _lock_entry(lock_file: Path) -> Optional[str]:
+    """
+    Names the cache entry a lock file belongs to.
+
+    The lock names its own files (see
+    :class:`~siliconcompiler.utils.multiprocessing.FileLock`), so ask the
+    entry's lock rather than matching suffixes here.
+
+    Args:
+        lock_file (Path): A file in the cache directory.
+
+    Returns:
+        str: The entry's name, or None if this is not one of its lock files.
+    """
+    name = lock_file.stem
+    lock = get_file_lock(lock_file.parent / name)
+    if lock_file.name in (os.path.basename(path) for path in lock.paths):
+        return name
+    return None
+
+
 def _entry_lock_mtime(cachedir: Path, name: str) -> Optional[float]:
     """
     Reads when a cache entry's lock was last stamped.
@@ -137,9 +153,9 @@ def _entry_lock_mtime(cachedir: Path, name: str) -> Optional[float]:
     Raises:
         OSError: If a lock file is there but cannot be read.
     """
-    for suffix in LOCK_SUFFIXES:
+    for path in get_file_lock(cachedir / name).paths:
         try:
-            return (cachedir / f"{name}{suffix}").stat().st_mtime
+            return Path(path).stat().st_mtime
         except FileNotFoundError:
             continue
     return None
@@ -154,6 +170,9 @@ def _exclusive(cachedir: Path, name: str):
     sources, so an entry must not be deleted out from under a reader. This takes
     the same lock :meth:`RemoteResolver.resolve` holds while downloading, without
     waiting: a busy entry is left for the next sweep rather than blocking the run.
+    It is the process's shared lock on the file (see
+    :func:`~siliconcompiler.utils.multiprocessing.get_file_lock`), so a download
+    in another thread of this process counts as busy too.
 
     Args:
         cachedir (Path): The cache directory holding the entry.
@@ -163,44 +182,53 @@ def _exclusive(cachedir: Path, name: str):
         bool: True if the caller now holds the lock and may delete, False if
             another process is working on the entry.
     """
-    # The fallback lock exists only while it is held -- RemoteResolver unlinks it
-    # on release -- so a recent one means a live download on a filesystem where
-    # flock is unavailable, which is also the case the file lock below cannot
-    # detect. An old one is residue from a process that was killed.
-    fallback = cachedir / f"{name}.sc_lock"
+    lock = get_file_lock(cachedir / name)
+
+    # The fallback marker exists only while it is held, so a recent one means a
+    # live download on a filesystem where flock is unavailable. An old one is
+    # residue from a process that was killed.
     try:
-        if os.path.exists(fallback) and \
-                datetime.now().timestamp() - fallback.stat().st_mtime < LOCK_ACTIVE_SECONDS:
-            yield False
-            return
+        taken = lock.fallback_taken()
     except OSError:
         yield False
         return
+    if taken is not None and datetime.now().timestamp() - taken < LOCK_ACTIVE_SECONDS:
+        yield False
+        return
+    residue = taken is not None
 
-    primary = cachedir / f"{name}.lock"
-    if not os.path.exists(primary):
+    if not os.path.exists(lock.lock_path):
         # Nothing to take a lock on, and creating one here would leave behind the
         # very orphan this module collects.
         yield True
         return
 
-    lock = InterProcessLock(str(primary))
     try:
-        acquired = lock.acquire(blocking=False)
-    except (OSError, RuntimeError):
-        # Filesystem does not support locking; resolve() falls back to the
-        # existence check already made above.
+        try:
+            lock.acquire(0)
+        except FileLockTimeout as e:
+            if not (residue and e.fallback):
+                raise
+            # Where flock is unavailable the lock *is* the fallback marker, and
+            # this one was judged residue above: clear it and take the lock.
+            lock.clear_fallback()
+            lock.acquire(0)
+    except FileLockTimeout:
+        yield False
+        return
+    except OSError:
+        # The lock file cannot be opened, or flock is unavailable and not even
+        # the fallback can be created; rely on the existence check made above.
         yield True
         return
 
     try:
-        yield acquired
+        yield True
     finally:
-        if acquired:
-            # Bookkeeping on an open descriptor; failing at it must not abort
-            # the rest of the sweep.
-            with contextlib.suppress(Exception):
-                lock.release()
+        # Bookkeeping on an open descriptor; failing at it must not abort the
+        # rest of the sweep.
+        with contextlib.suppress(Exception):
+            lock.release()
 
 
 def _remove_locks(cachedir: Path, name: str, logger: logging.Logger) -> None:
@@ -212,8 +240,8 @@ def _remove_locks(cachedir: Path, name: str, logger: logging.Logger) -> None:
         name (str): The entry's directory name.
         logger (logging.Logger): Logger for reporting what could not be removed.
     """
-    for suffix in LOCK_SUFFIXES:
-        lock_file = cachedir / f"{name}{suffix}"
+    for path in get_file_lock(cachedir / name).paths:
+        lock_file = Path(path)
         try:
             lock_file.unlink(missing_ok=True)
         except OSError as e:
@@ -344,11 +372,10 @@ def _collect_orphan_locks(cachedir: Path,
     cutoff = datetime.now().timestamp() - LOCK_ACTIVE_SECONDS
 
     for lock_file in sorted(cachedir.iterdir()):
-        suffix = lock_file.suffix
-        if suffix not in LOCK_SUFFIXES:
+        name = _lock_entry(lock_file)
+        if name is None:
             continue
 
-        name = lock_file.name[:-len(suffix)]
         if os.path.exists(cachedir / name):
             continue
 
