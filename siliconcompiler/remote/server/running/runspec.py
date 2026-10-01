@@ -52,6 +52,11 @@ IMAGES_FILENAME = "sc-server-images.json"
 # (`apply_run`); nothing in the API process rewrites the manifest.
 RUN_FILENAME = "sc-server-run.json"
 
+# Where the run puts each uploaded dataroot's files back together, one
+# directory per dataroot, under the job root: outside the collection, which a
+# run that collects before it starts moves aside (`point_dataroots`).
+UPLOADS_DIRNAME = "sc-server-uploads"
+
 # What the manifest's read returned (`manifestread`), kept for a resumed
 # staging and a follow-up's allowed set. Written by the API process; no
 # upload can reach it.
@@ -260,25 +265,35 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
     return None
 
 
-def dataroot_targets(entries, collection) -> List[List[Optional[str]]]:
+def dataroot_targets(entries, collection, uploads=None) -> List[List[Optional[str]]]:
     '''Where each dataroot the run reads is supplied, from `owners.account`'s
-    answer, as ``[keypath, target]``: an uploaded one at this job's
-    collection, a supplied one at this server's own copy -- a held source, or
-    an operator's private root. An installed package is left out, since it is
-    found by name, and so are files in no dataroot.'''
+    answer: a supplied one as ``[keypath, target]``, at this server's own copy
+    -- a held source, or an operator's private root -- and an uploaded one as
+    ``[keypath, target, collection]``, at a directory of its own under
+    ``uploads`` that the run builds from this job's collection
+    (:func:`point_dataroots`). An installed package is left out, since it is
+    found by name, and so are files in no dataroot.
+
+    ``uploads`` defaults to the job root's :data:`UPLOADS_DIRNAME`, the job
+    root being the one ``collection`` -- `<design>/<jobname>/sc_collected_files`
+    -- is under.'''
+    import hashlib
+
     from siliconcompiler.remote import owners
 
+    if uploads is None:
+        uploads = Path(collection).parents[2] / UPLOADS_DIRNAME
     found = []
     for entry in entries:
         if not entry.keypath:
             continue
         if entry.status == owners.SUPPLIED and entry.root:
-            target = str(entry.root)
+            found.append([list(entry.keypath), str(entry.root)])
         elif entry.status == owners.UPLOADED:
-            target = str(collection)
-        else:
-            continue
-        found.append([list(entry.keypath), target])
+            # One per dataroot, by its keypath, so two that share a name stay
+            # apart; hashed, since a dataroot's name is whatever its owner typed.
+            name = hashlib.sha1(json.dumps(list(entry.keypath)).encode()).hexdigest()[:16]
+            found.append([list(entry.keypath), str(Path(uploads) / name), str(collection)])
     return found
 
 
@@ -293,16 +308,26 @@ def point_dataroots(project, targets) -> int:
     a path on the submitter's machine, so nothing in the run can reach one:
     the server never reads a path a job names (D112).
 
-    ⚠️ An uploaded file is found in the collection by its dataroot's NAME,
-    not its path, so pointing the path at the collection changes nothing about
-    how it resolves.
+    🔴 **An uploaded dataroot is rebuilt before it is pointed**, each value
+    from where `collect` filed it to its own path under the dataroot's target.
+    A collected file is filed by its dataroot's `collection_id`, a hash of the
+    dataroot's source, so pointing the source anywhere moves where the run
+    looks: the files are found at the target itself instead, by path, as any
+    local dataroot's are. That holds where the run collects again before it
+    starts, which moves the collection aside but never the target.
 
     Returns how many dataroots were pointed.
     '''
+    uploaded: Dict[Tuple[str, ...], Tuple[str, str]] = {
+        tuple(entry[0]): (entry[1], entry[2]) for entry in targets
+        if len(entry) > 2 and entry[2]}
+    if uploaded:
+        _rebuild_uploads(project, uploaded)
+
     # 🔴 By the dataroot's own keypath -- the parameter's key less `path` --
     # so each task's dataroot is pointed on its own, never every task of the
     # tool at the first one's copy.
-    by = {tuple(keypath): target for keypath, target in targets}
+    by = {tuple(entry[0]): entry[1] for entry in targets}
     pointed = 0
     for key in sorted(project.allkeys(include_default=False)):
         if key[0] == "history" or len(key) < 3 or key[-1] != "path" \
@@ -314,6 +339,42 @@ def point_dataroots(project, targets) -> int:
         project.set(*key, target)
         pointed += 1
     return pointed
+
+
+def _rebuild_uploads(project, uploaded: Dict[Tuple[str, ...], Tuple[str, str]]) -> None:
+    '''Each value under an uploaded dataroot, from the collection to its own
+    path under that dataroot's target -- linked where it can be, else copied.
+
+    Read before any dataroot is pointed, since where `collect` filed a value
+    is computed from its dataroot as the manifest has it. A value not in the
+    collection is left out, and the run does not find it: never looked for
+    anywhere else. Both ends are confined, so no value reaches past either.
+    '''
+    import shutil
+
+    from siliconcompiler.remote import owners
+
+    def place(src, dst):
+        try:
+            os.link(src, dst)
+        except OSError:
+            shutil.copy2(src, dst)
+
+    for collection in sorted({where for _, where in uploaded.values()}):
+        for record in owners.value_records(project, collection):
+            keypath = tuple(record["keypath"] or ())
+            if keypath not in uploaded or uploaded[keypath][1] != collection \
+                    or not record["collected"]:
+                continue
+            src = owners.confined(collection, record["collected"])
+            dst = owners.confined(uploaded[keypath][0], record["path"])
+            if src is None or dst is None or not os.path.exists(src):
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            if os.path.isdir(src):
+                shutil.copytree(src, dst, copy_function=place, dirs_exist_ok=True)
+            elif not os.path.exists(dst):
+                place(src, dst)
 
 
 def write_run(path, job_id: str, builddir, cachedir, cluster: str,

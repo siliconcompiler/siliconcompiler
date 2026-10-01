@@ -829,8 +829,14 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
     ran = run_manifest(dispatcher.submitted[0][2])
     assert str(root) in ran.get("library", "secret", "dataroot", "secret", "path")
     assert str(tmp_path / "client-copy") not in json.dumps(ran.getdict()["library"])
-    assert "sc_collected_files" in ran.get("library", "gcd", "dataroot",
-                                           "gcd-pytest-example", "path")
+    # The upload's copy: the design's dataroot rebuilt under the job, where
+    # the run finds its files by path.
+    from siliconcompiler.remote.server.running import runspec
+
+    uploaded = ran.get("library", "gcd", "dataroot", "gcd-pytest-example", "path")
+    assert f"/{runspec.UPLOADS_DIRNAME}/" in uploaded
+    assert ran.find_files("library", "gcd", "fileset", "rtl", "file", "verilog")[0] \
+        .startswith(uploaded)
 
 
 @pytest.mark.parametrize("key", [
@@ -968,6 +974,57 @@ def test_the_run_points_each_tasks_dataroot_at_its_own_copy(gcd_design, tmp_path
     assert runspec.point_dataroots(project, targets) == 2
     assert project.get(*RUN, "path") == str(tmp_path / "run")
     assert project.get(*CHECK, "path") == str(tmp_path / "check")
+
+
+@pytest.mark.parametrize("collects", [False, True], ids=["as-run", "collected-again"])
+def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(tmp_path, collects):
+    '''🔴 The runner's half end to end: collected as the client collects it,
+    pointed as the runner points it, and found -- where the run collects again
+    before it starts, as a Slurm-dispatched one does, as well. A collected
+    file is filed by its dataroot's `collection_id`, a hash of the source the
+    runner then points elsewhere, so it is found at the rebuilt dataroot
+    instead, never at the submitter's path.'''
+    from siliconcompiler import Design, Lint
+    from siliconcompiler.remote.server.running import runspec
+    from siliconcompiler.schema import BaseSchema
+    from siliconcompiler.utils.curation import collect
+
+    source = tmp_path / "submitter" / "top"
+    (source / "rtl").mkdir(parents=True)
+    (source / "rtl" / "top.v").write_text("module top; endmodule\n")
+    design = Design("top")
+    design.set_dataroot("top", str(source))
+    design.set_topmodule("top", fileset="rtl")
+    design.add_file("rtl/top.v", dataroot="top", fileset="rtl")
+    project = Lint(design)
+    project.add_fileset("rtl")
+
+    tree = tmp_path / "job" / "top" / "job0"
+    collection = tree / "sc_collected_files"
+    chosen = owners.collection(project, lambda one: owners.uploads(
+        project, one.key, one.dataroot, one.resolvers, one.value.get()))
+    collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
+            select=chosen.select)
+    project.write_manifest(str(tree / "top.pkg.json"))
+    # Nothing the run does may reach the submitter's copy.
+    shutil.rmtree(tmp_path / "submitter")
+
+    run = Lint.from_manifest(filepath=str(tree / "top.pkg.json"))
+    keypath = ("library", "top", "dataroot", "top")
+    targets = runspec.dataroot_targets(
+        [owners.Entry("design", "top", "top", owners.UPLOADED, keypath=keypath)], collection)
+    assert runspec.point_dataroots(run, targets) == 1
+    assert run.get(*keypath, "path").startswith(str(tmp_path / "job" / "sc-server-uploads"))
+    if collects:
+        collect(run, keys=[(("library", "top", "fileset", "rtl", "file", "verilog"),
+                            None, None)], verbose=False)
+
+    found = BaseSchema._find_files(run, "library", "top", "fileset", "rtl", "file", "verilog",
+                                   collection_dir=str(collection))
+
+    assert len(found) == 1 and found[0].startswith(str(tmp_path / "job"))
+    with open(found[0]) as f:
+        assert f.read() == "module top; endmodule\n"
 
 
 def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
