@@ -123,7 +123,7 @@ class ConvertTask(Task):
 
         self.set_threads(1)
 
-        self.set_dataroot("chisel-tool", __file__)
+        self.set_dataroot("chisel-tool", "python://siliconcompiler/tools/chisel")
         with self.active_dataroot("chisel-tool"):
             self.set_refdir("template")
 

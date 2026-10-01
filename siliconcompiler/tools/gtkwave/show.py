@@ -40,7 +40,7 @@ class ShowTask(ShowTask):
 
         self.set_threads()
 
-        self.set_dataroot("gtkwave", __file__)
+        self.set_dataroot("gtkwave", "python://siliconcompiler/tools/gtkwave")
         with self.active_dataroot("gtkwave"):
             self.set_refdir("scripts")
         self.set_script("sc_show.tcl")

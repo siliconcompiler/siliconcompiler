@@ -37,7 +37,7 @@ class VivadoTask(Task):
 
         self.set_threads()
 
-        self.set_dataroot("vivado", __file__)
+        self.set_dataroot("vivado", "python://siliconcompiler/tools/vivado")
         with self.active_dataroot("vivado"):
             self.set_refdir("scripts")
 
