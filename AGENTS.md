@@ -187,7 +187,7 @@ the four are easy not to know about. Details in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```sh
-pip install -e .[test,lint,docs,cocotb]
+pip install -e .[test,lint,docs]
 
 flake8 --statistics .                              # 1. Python
 tclfmt --check . && tclint .                       # 2. TCL
@@ -196,21 +196,10 @@ pytest -m "not eda"                                # tests, no EDA tools needed
 cd docs && make html                               # warnings are errors
 ```
 
-**`cocotb` is in that list, and the docs build needs it.** It is its own extra, not
-part of `docs`: the build documents the cocotb tasks, generating a task's
-documentation runs its `setup()`, and theirs needs `cocotb` importable. Install
-`docs` alone and the build fails on the first cocotb task.
-`.github/workflows/docs.yml` installs `.[docs,cocotb]` for the same reason.
-
-**The symptom is worth knowing, because it is not a missing-package message:**
-Sphinx dies mid-build with `RuntimeError: Cocotb is not installed; cannot run test.`
-out of `tools/_common/cocotb/cocotb_task.py`, during *reading*, so nothing later is
-checked and a broken cross-reference elsewhere stays hidden behind it.
-
-**There is no Python ceiling on this.** `cocotb` used to carry
-`python_version <= '3.13'`, which made the docs build the one gate that could not run
-on 3.14 -- the extra resolved to nothing and installed empty. **That bound was dropped
-in `55d949f6e` (2026-09-08)** and `cocotb` installs on 3.14 like everything else.
+**`docs` alone is enough for the docs build.** Generating a task's documentation
+runs its `setup()`, so a task whose `setup()` imports a package the `docs` extra
+does not install breaks the build. The cocotb tasks need `cocotb` only where the
+simulation runs, never in `setup()`, and a new task has to do the same.
 
 The fourth gate is **Verilog**, and it is the sharpest edge: it needs
 [Verible](https://github.com/chipsalliance/verible) (not a Python package), and

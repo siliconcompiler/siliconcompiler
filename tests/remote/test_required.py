@@ -7,7 +7,7 @@ from siliconcompiler.remote import owners
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from conftest import outcome, slug
-from test_owners import DATASHEET, _upload_without, collected_path, first, private
+from test_owners import DATASHEET, _upload_without, collected_path, private
 
 
 # Only what the flow requires goes up (D129). The owner table says whether a
@@ -157,9 +157,9 @@ def test_only_what_the_flow_reads_goes_up(gcd_design, tmp_path, logged_in):
 
     collected = collectiondir(project)
     assert os.path.exists(os.path.join(
-        collected, collected_path(first(project, ("library", "mylib", *DATASHEET)))))
+        collected, collected_path(project, ("library", "mylib", *DATASHEET))))
     assert not os.path.exists(os.path.join(
-        collected, collected_path(first(project, ("library", "mylib", *QUICKSTART)))))
+        collected, collected_path(project, ("library", "mylib", *QUICKSTART))))
 
 
 def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
@@ -202,7 +202,7 @@ def test_a_setup_that_cannot_run_here_uploads_by_owner_alone(
     run._collect()
     assert os.path.exists(os.path.join(
         collectiondir(project),
-        collected_path(first(project, ("library", "mylib", *QUICKSTART)))))
+        collected_path(project, ("library", "mylib", *QUICKSTART))))
 
 
 def test_the_manifest_carries_the_set_and_the_run_adds_nothing_twice(
@@ -255,7 +255,7 @@ def test_a_required_file_the_client_should_have_sent_is_refused_before_dispatch(
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
                               pdk=PDK("lambda"), libs=[lib]))
-    hashed = collected_path(first(project, ("library", "mylib", *DATASHEET)))
+    hashed = collected_path(project, ("library", "mylib", *DATASHEET))
 
     job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
                               left_out=hashed)
@@ -272,7 +272,7 @@ def test_a_file_the_flow_does_not_read_may_be_left_out(
     lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
     project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
                               pdk=PDK("lambda"), libs=[lib]))
-    hashed = collected_path(first(project, ("library", "mylib", *QUICKSTART)))
+    hashed = collected_path(project, ("library", "mylib", *QUICKSTART))
 
     job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
                               left_out=hashed)
@@ -340,7 +340,7 @@ def test_a_follow_up_carries_only_the_required_values_of_what_was_asked(
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")
 
-    unread = collected_path(first(project, ("library", "lambda", *QUICKSTART)))
+    unread = collected_path(project, ("library", "lambda", *QUICKSTART))
     refused = send(server_client, key, token, job["id"],
                    {f"sc_collected_files/{unread}": b"not asked for\n"})
     assert refused.get_json()["reason"] == "unrequested_member"

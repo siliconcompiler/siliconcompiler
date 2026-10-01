@@ -51,7 +51,6 @@ KEY_FILENAME = "dpop-key.pem"
 SESSIONS_FILENAME = "sessions.json"      # per server: tokens, scope, grants
 HEADERS_FILENAME = "headers.json"        # per origin: operator header secrets
 CI_FILENAME = "ci-credential"            # the one-line CI secret, from -ci_setup
-LOCK_FILENAME = "lock"
 
 # Where a CI job's one-line credential secret is read from.
 CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
@@ -326,17 +325,19 @@ class Credentials:
         '''An inter-process lock on the store, for one refresh at a time.
 
         A process that waited MUST re-read the store once it holds this, never
-        use the token it held before.
+        use the token it held before. SiliconCompiler's own file lock, on the
+        sessions file: it excludes another thread of this process as well as
+        another process.
         '''
-        import fasteners
+        from siliconcompiler.utils.multiprocessing import get_file_lock
 
         self._ensure_dir()
-        path = self.auth_dir / LOCK_FILENAME
-        if not path.exists():
+        lock = get_file_lock(self.auth_dir / SESSIONS_FILENAME)
+        if not os.path.exists(lock.lock_path):
             # Created with its mode, so the lock file is no exception.
-            fd = os.open(str(path), os.O_WRONLY | os.O_CREAT, _PRIVATE_FILE)
+            fd = os.open(lock.lock_path, os.O_WRONLY | os.O_CREAT, _PRIVATE_FILE)
             os.close(fd)
-        with fasteners.InterProcessLock(str(path)):
+        with lock.locked():
             yield
 
     ######################################################################

@@ -438,11 +438,23 @@ def collection(project, pick: Callable[[_Value], bool]) -> Collection:
     return Collection(filter_collection_keys(list(keys)), select)
 
 
+def _dataroot_id(one: _Value) -> Optional[str]:
+    '''What ``one``'s dataroot is collected as, by `collect`'s own rule: its
+    resolver's `collection_id`, or its name where the resolver cannot be had;
+    None for a value in no dataroot.'''
+    if not one.dataroot:
+        return None
+    try:
+        return one.resolvers[one.dataroot].collection_id
+    except Exception:                                           # noqa: BLE001
+        return one.dataroot
+
+
 def collected_path(one: _Value) -> Optional[str]:
     '''Where `collect` puts ``one``, under the collection directory.'''
     from siliconcompiler.schema.parametervalue import PathNodeValue
 
-    return PathNodeValue.generate_hashed_collection_path(one.value.get(), one.dataroot)
+    return PathNodeValue.generate_hashed_collection_path(one.value.get(), _dataroot_id(one))
 
 
 def collected_paths(project, paths) -> Dict[str, str]:
@@ -611,7 +623,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
                   "origin": one.origin, "path": one.value.get(),
                   "collected_path": collected_path(one),
                   "collected": None, "source": None, "ref": None, "package": None}
-        found = _collected_at(one.value, collection_dir)
+        found = _collected_at(one, collection_dir)
         if found is not None:
             record["collected"] = found
         resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
@@ -774,15 +786,24 @@ def _supplied(base, root, path, present: bool) -> Entry:
     return Entry(**base, status=SUPPLIED, root=root)
 
 
-def _collected_at(value, collection_dir) -> Optional[str]:
-    '''Where ``value`` resolves in ``collection_dir``, relative to it, or
-    None where it is not there.'''
+def _in_collection(one: _Value, collection_dir) -> Optional[str]:
+    '''Where ``one`` resolves in ``collection_dir``, absolute, looked up under
+    its dataroot's collected name as `collect` filed it; None where it is not
+    there.'''
     if not collection_dir or not os.path.isdir(collection_dir):
         return None
     try:
-        found = value.resolve_path(search=[], collection_dir=str(collection_dir))
+        found = one.value.resolve_path(search=[], collection_dir=str(collection_dir),
+                                       dataroot_id=_dataroot_id(one))
     except FileNotFoundError:
         return None
+    return str(found) if found else None
+
+
+def _collected_at(one: _Value, collection_dir) -> Optional[str]:
+    '''Where ``one`` resolves in ``collection_dir``, relative to it, or None
+    where it is not there.'''
+    found = _in_collection(one, collection_dir)
     if not found:
         return None
     base = os.path.abspath(str(collection_dir))
@@ -792,14 +813,9 @@ def _collected_at(value, collection_dir) -> Optional[str]:
     return os.path.relpath(found, base).replace(os.sep, "/")
 
 
-def _collected(value, collection_dir) -> bool:
-    if not collection_dir or not os.path.isdir(collection_dir):
-        return False
-    try:
-        found = value.resolve_path(search=[], collection_dir=str(collection_dir))
-    except FileNotFoundError:
-        return False
-    return bool(found) and str(found).startswith(str(collection_dir))
+def _collected(one: _Value, collection_dir) -> bool:
+    found = _in_collection(one, collection_dir)
+    return bool(found) and found.startswith(str(collection_dir))
 
 
 def _relative_and_inside(path) -> bool:
@@ -839,9 +855,9 @@ def upload_report(project, collection_dir) \
     totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
     counted: Set[Tuple[int, int]] = set()
     for one in _values(project):
-        if not _collected(one.value, collection_dir):
+        if not _collected(one, collection_dir):
             continue
-        path = str(one.value.resolve_path(search=[], collection_dir=str(collection_dir)))
+        path = _in_collection(one, collection_dir)
         size, files = _weigh(path, counted)
         if not files:
             continue

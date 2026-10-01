@@ -1232,7 +1232,7 @@ class BaseSchema:
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
             dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
-                paths, these can either be a path or a callable function
+                paths, these can either be a path, a callable function or a resolver
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
@@ -1283,7 +1283,7 @@ class BaseSchema:
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
             dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
-                paths, these can either be a path or a callable function
+                paths, these can either be a path, a callable function or a resolver
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
@@ -1336,7 +1336,7 @@ class BaseSchema:
             cwd = os.getcwd()
 
         if dataroots is None:
-            dataroots = base_schema._find_files_dataroot_resolvers()
+            dataroots = base_schema._find_files_dataroot_resolvers(resolvers=True)
 
         resolved_paths = []
         root_search_paths = base_schema._find_files_search_paths(keypath[-1],
@@ -1346,6 +1346,7 @@ class BaseSchema:
             search_paths = root_search_paths.copy()
 
             dataroot: Optional[str] = path.get(field="dataroot")
+            dataroot_id: Optional[str] = None
             dataroot_except: Optional[Exception] = None
             if dataroot:
                 if dataroot not in dataroots:
@@ -1354,6 +1355,15 @@ class BaseSchema:
                 dataroot_path = dataroots[dataroot]
                 if isinstance(dataroot_path, str):
                     search_paths.append(os.path.abspath(dataroot_path))
+                elif callable(getattr(dataroot_path, "get_path", None)):
+                    # A resolver, whose ID is known without fetching, so a dataroot
+                    # missing here is still found in the collection
+                    try:
+                        if collection_dir:
+                            dataroot_id = dataroot_path.collection_id
+                        search_paths.append(dataroot_path.get_path())
+                    except Exception as e:
+                        dataroot_except = e
                 elif callable(dataroot_path):
                     try:
                         search_paths.append(dataroot_path())
@@ -1370,10 +1380,12 @@ class BaseSchema:
                 if hash:
                     resolved = path.hash(hashalgo,
                                          search=search_paths,
-                                         collection_dir=collection_dir)
+                                         collection_dir=collection_dir,
+                                         dataroot_id=dataroot_id)
                 else:
                     resolved = path.resolve_path(search=search_paths,
-                                                 collection_dir=collection_dir)
+                                                 collection_dir=collection_dir,
+                                                 dataroot_id=dataroot_id)
             except FileNotFoundError:
                 resolved = None
                 if not missing_ok:
@@ -1410,7 +1422,7 @@ class BaseSchema:
             ignore_keys (list of keypaths): list of keypaths to ignore while checking
             logger (:class:`logging.Logger`): optional logger to use to report errors
             dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
-                paths, these can either be a path or a callable function
+                paths, these can either be a path, a callable function or a resolver
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
@@ -1500,7 +1512,7 @@ class BaseSchema:
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
             dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
-                paths, these can either be a path or a callable function
+                paths, these can either be a path, a callable function or a resolver
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.

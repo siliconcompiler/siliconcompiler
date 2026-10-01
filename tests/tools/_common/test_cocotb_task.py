@@ -8,7 +8,7 @@ import pytest
 
 from siliconcompiler import Design, Flowgraph, Project
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.tool import Task
+from siliconcompiler.tool import Task, TaskExecutableNotFound
 from siliconcompiler.tools._common.cocotb import cocotb_task
 from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
 from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask
@@ -47,7 +47,7 @@ def test_importing_the_driver_imports_no_cocotb():
     assert done.stdout.strip() == "False", done.stderr
 
 
-def test_setup_needs_no_cocotb_and_sets_no_gpi_users(project, monkeypatch):
+def test_setup_needs_no_cocotb_and_sets_no_gpi_users(project, monkeypatch, caplog):
     '''🔴 GPI_USERS names absolute paths into the Python and cocotb that run
     the node, so it is not set on the machine that sets the node up.'''
     monkeypatch.setattr(cocotb_task, "_cocotb", lambda: None)
@@ -57,6 +57,21 @@ def test_setup_needs_no_cocotb_and_sets_no_gpi_users(project, monkeypatch):
         assert node.setup()
         assert "GPI_USERS" not in node.task.getkeys("env")
         assert node.task.get("env", "COCOTB_TEST_MODULES") == "test_gcd"
+
+    assert "Cocotb is not installed; this test will not be able to run." in caplog.text
+
+
+def test_the_tool_check_stops_the_run_without_cocotb(project, monkeypatch):
+    '''The scheduler's tool check looks up each node's executable before any
+    node runs, which is where a missing cocotb is reported. The environment it
+    is looked up in has to build without cocotb for that to be reached.'''
+    monkeypatch.setattr(cocotb_task, "_cocotb", lambda: None)
+
+    node = SchedulerNode(project, "sim", "0")
+    with node.runtime():
+        node.setup()
+        with pytest.raises(TaskExecutableNotFound, match=r"^cocotb is not installed$"):
+            node.get_exe_path()
 
 
 class _Config:
@@ -74,16 +89,19 @@ class _FindLibpython:
 
 
 def test_the_node_computes_gpi_users_for_its_own_python(project, monkeypatch):
+    '''Even where setup has cocotb, the manifest does not record GPI_USERS:
+    the node computes it.'''
     monkeypatch.setattr(cocotb_task, "_cocotb", lambda: (_Config, _FindLibpython))
 
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
         node.setup()
+        assert "GPI_USERS" not in node.task.getkeys("env")
         env = node.task.get_runtime_environmental_variables()
 
     assert env["GPI_USERS"] == "/usr/lib/libpython3.so;/opt/cocotb/libs/libpygpi.so"
     assert env["PYGPI_PYTHON_BIN"] == sys.executable
-    assert env["PATH"].split(os.pathsep)[0] == "/opt/cocotb/libs"
+    assert env["PATH"].split(os.pathsep)[0] == str(Path("/opt/cocotb/libs"))
 
 
 def test_a_renamed_test_module_keeps_its_own_name(project, monkeypatch, tmp_path):

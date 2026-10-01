@@ -101,45 +101,41 @@ network off -- waits for it.
 
 **Planned:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
 
-### From follow-on 20 (2026-09-30)
+### From merging `main`'s #5465 (2026-10-01)
 
-#### 13. 🔴 Two dataroots of one name collect a file of one path to one place
+#### 14. 🔴 A dataroot whose source carries a query is collected under one name and looked for under another
 
-**Checked, by running it:** two libraries, `a` and `b`, each with a dataroot
-called `root` at a directory of its own and a file `rtl/top.v` in it, different
-in each. `collect()` stores one file, `rtl_<hash>/top.v`, holding `a`'s, and
-`b`'s value resolves in the collection to that same file. The collected path is
-`PathNodeValue.generate_hashed_collection_path(path, dataroot)`, and the hash is
-of the dataroot's NAME and the path's parent parts
-(`__generate_collection_hash`) -- never of the owner, nor of the dataroot's
-source.
+**Checked, by construction:** `main`'s #5465 buckets each collected file by
+its dataroot's `collection_id`, a hash of the source and reference "as the
+manifest records them" (`Resolver._collection_source`): userinfo dropped, the
+query kept whole. Surface D302 has the client mask every query value in the
+manifest it uploads. So for `https://example.com/ip/archive/?token=SECRET` the
+client collects under the id of `?token=SECRET` and the server, reading the
+masked manifest, looks under the id of `?token=***`: different buckets. For
+userinfo alone both agree, since the id drops it either way.
 
-**Why it matters:** silently, a run reads another owner's file. Many owners
-use SiliconCompiler's default name, `root`, and a tool's tasks may each
-register a dataroot of one name (`scripts`, `refdir`), so two of them with one
-relative path is ordinary. Wherever the collection is what a run reads -- a
-remote run's upload, a Slurm or Docker run that collects first, `sc-issue` --
-the second owner's file is the first's. It also caps what the server can tell
-apart in a follow-up archive: surface D298 asks it to refuse a member under
-another task's dataroot of the same name, which it does where the two paths
-differ, and cannot where they are the same path, since then they are one
-member.
+**Why it matters:** a value under such a dataroot that goes up is not found
+where it arrived. The server takes it as never sent and asks for it, the client
+sends the same bytes to the same place, and the run fails on *asked again for
+what was sent*. Two cases upload one: a design's own dataroot on a remote
+source, which always uploads, and a remote source the server asked for. A
+presigned or tokened download URL is the ordinary way to have one.
 
 **Options:**
 
-- Hash the owner in: the dataroot's keypath (`library,<name>` or
-  `tool,<tool>,task,<task>`) beside its name. It changes every collected path,
-  so a collection written before is not read after -- acceptable, since a
-  collection is rebuilt for each run.
-- Hash the dataroot's resolved source, so two owners with one source share the
-  copy, as the store-once rule wants, and two with different sources do not.
-  Needs the resolver where the path is computed, which the static method has
-  not got.
+- The id hashes the source with every query value masked, as `safe_source`
+  writes it, so it is what both ends can compute from the uploaded manifest. Two
+  sources differing only in a query value then share a bucket; the reference,
+  not the query, is the usual version, and one object presigned twice would
+  share one bucket rather than taking two.
+- The manifest records each dataroot's `collection_id` as the client computed
+  it, and the reader uses the recorded one. A schema field, and the server
+  trusting a value the client wrote, which the collection layout is meant to
+  derive.
+- The client keeps the query values of a dataroot whose files it uploads. That
+  is what D302 forbids.
 
-**Where it goes:** `siliconcompiler/schema/parametervalue.py`
-(`generate_hashed_collection_path`), its callers in
-`siliconcompiler/utils/curation.py`, and `owners.collected_path`, which follows
-it. The branch's test task gives each task's `refdir` its own path until then
-(`tests/remote/pytasks.py`).
+**Where it goes:** `siliconcompiler/package/__init__.py`
+(`Resolver._collection_source`, `collection_id`).
 
 **Planned:** not yet; nothing in the plans repository covers it.

@@ -29,7 +29,6 @@ import os
 import shutil
 import sys
 import sysconfig
-import threading
 import uuid
 
 from pathlib import Path
@@ -42,14 +41,6 @@ __all__ = ["InstallFailed", "HEADER", "install", "recorded", "digest"]
 
 HEADER = ("Written by sc-server from the job's python_packages; nothing the job "
           "wrote is handed to pip.")
-
-
-# One lock per environment, for the threads of this process: the file lock
-# beside it keeps out another process, and is none between two threads of one
-# -- POSIX record locks belong to the process -- which is what two jobs staging
-# in one server are.
-_BUILDING: Dict[str, threading.Lock] = {}
-_BUILDING_LOCK = threading.Lock()
 
 
 class InstallFailed(RuntimeError):
@@ -103,9 +94,8 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
     exists is one that is finished. ``timeout`` bounds the install, and
     ``echo`` is handed pip's output, whole.
     '''
-    from fasteners import InterProcessLock
-
     from siliconcompiler.remote.server.packages import pipbuild
+    from siliconcompiler.utils.multiprocessing import get_file_lock
 
     requirements = environment.render(packages.requirements, header=HEADER)
     constraints = environment.render(packages.constraints, header=HEADER)
@@ -124,9 +114,9 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
 
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
-    with _BUILDING_LOCK:
-        held = _BUILDING.setdefault(str(target), threading.Lock())
-    with held, InterProcessLock(f"{target}.lock"):
+    # One lock per environment, which keeps out another process and another
+    # thread of this one alike: two jobs staging in one server are threads.
+    with get_file_lock(target).locked():
         if target.is_dir():
             return str(target), recorded(target)
 

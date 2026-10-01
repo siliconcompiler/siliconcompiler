@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Union, Dict
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task, utils
-from siliconcompiler.tool import PythonEnvironment
+from siliconcompiler.tool import PythonEnvironment, TaskExecutableNotFound
 
 
 def _cocotb():
@@ -266,6 +266,11 @@ class CocotbTask(Task):
     def setup(self):
         super().setup()
 
+        # Only running the test needs cocotb, and get_exe() stops the run
+        # there, so setting it up without cocotb is only worth a warning.
+        if _cocotb() is None:
+            self.logger.warning("Cocotb is not installed; this test will not be able to run.")
+
         # Output: xUnit XML results file
         self.add_output_file(file="results.xml")
 
@@ -305,7 +310,9 @@ class CocotbTask(Task):
         """
         envs = super().get_runtime_environmental_variables(include_path)
 
-        # None only on a machine without cocotb, where no simulation runs.
+        # The executable is looked up in this environment, and get_exe() is
+        # what reports a missing cocotb, so without cocotb it is built without
+        # cocotb's parts.
         found = _cocotb()
 
         ##########################################
@@ -362,6 +369,26 @@ class CocotbTask(Task):
             os.makedirs(staged_dir, exist_ok=True)
             for module_name, path in staged.items():
                 utils.link_symlink_copy(path, os.path.join(staged_dir, f"{module_name}.py"))
+
+    def get_exe(self) -> Optional[str]:
+        """
+        Determines the absolute path for the task's executable.
+
+        The simulator runs cocotb's VPI library and Python, so without cocotb
+        it has nothing to run: the scheduler's tool check stops the run before
+        any node starts.
+
+        Raises:
+            TaskExecutableNotFound: If cocotb is not installed, or the
+                executable cannot be found in the system PATH.
+
+        Returns:
+            str: The absolute path to the executable, or None if not specified.
+        """
+        if _cocotb() is None:
+            self.logger.error("Cocotb is not installed; cannot run test.")
+            raise TaskExecutableNotFound("cocotb is not installed")
+        return super().get_exe()
 
     def _parse_cocotb_results(self, results_file: Path):
         """

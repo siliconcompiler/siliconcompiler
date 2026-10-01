@@ -4,16 +4,18 @@ import logging
 import sys
 import tempfile
 import threading
+import time
 import warnings
+import weakref
 
 import os.path
 
-from typing import Iterator, Union, Optional, TYPE_CHECKING
+from typing import Iterator, Union, Optional, Tuple, TYPE_CHECKING
 
 from datetime import datetime
+from fasteners import InterProcessLock
 from logging.handlers import QueueHandler
 
-from siliconcompiler.utils.settings import SettingsManager
 from siliconcompiler.utils import default_sc_path, default_sc_system_path
 
 
@@ -23,6 +25,7 @@ if TYPE_CHECKING:
 
     from siliconcompiler.package.cache import PathCache
     from siliconcompiler.report.dashboard.cli.board import Board
+    from siliconcompiler.utils.settings import SettingsManager
 
 
 def get_process_context() -> "BaseContext":
@@ -83,6 +86,317 @@ def forking() -> Iterator[None]:
                     r"in the child",
             category=DeprecationWarning)
         yield
+
+
+class FileLockTimeout(TimeoutError):
+    """
+    A :class:`FileLock` was not had in time.
+
+    Its own class so that a caller can tell it apart from a :class:`TimeoutError`
+    raised by the work it was guarding.
+
+    Attributes:
+        path (str): The file the lock guards.
+        timeout (float): How long it was waited for; None if without a limit.
+        fallback (str): The fallback marker that was in the way, where the
+            filesystem cannot lock files (see :class:`FileLock`); None otherwise.
+    """
+
+    def __init__(self, path: str, timeout: Optional[float], holder: str,
+                 fallback: Optional[str] = None):
+        # FileLock.acquire() passes its own timeout through, which may be None.
+        # A wait without a limit only ends once the lock is held, so it never
+        # raises today, but the message must not depend on that.
+        waited = "" if timeout is None else f" after {timeout}s"
+        super().__init__(f"Timed out{waited} waiting for the lock on {path}: {holder}")
+        self.path = path
+        self.timeout = timeout
+        self.fallback = fallback
+
+
+class FileLock:
+    """
+    A lock on a file, held by one thread of one process at a time.
+
+    The lock is kept beside the file it guards, which need not exist: a lock
+    file, ``<path>.lock``, and a fallback marker, ``<path>.sc_lock`` (see
+    below). Callers name the file they are locking; only this class names the
+    files that lock it. The path is resolved first, so a symlink is followed:
+    every spelling of one file shares its lock, and the lock's files sit beside
+    the file itself, not beside the link.
+
+    ``fasteners`` locks with ``fcntl.lockf`` on POSIX, which is held per
+    *process*: a second thread acquiring the same lock succeeds at once, and the
+    first release through any descriptor on the file drops it for the whole
+    process. On its own it cannot tell this process's threads apart, so two
+    pieces of code each taking a lock on one file -- two threads, or a resolver
+    and the cache sweep -- walk straight into one another, and on Windows, where
+    ``msvcrt`` locks per handle, deadlock instead.
+
+    This pairs it with a thread lock and a hold count, and hands every caller in
+    the process the same instance for a given file (see :func:`get_file_lock`).
+    Threads queue on the thread lock, and only the outermost acquire and release
+    touch the file lock. It is re-entrant: the thread holding it can take it
+    again, and the file lock is released with the last hold.
+
+    Where the filesystem cannot lock files at all -- an NFS mount without lock
+    support is the usual case -- the lock is held instead by creating a marker
+    beside it (:attr:`fallback_path`) and released by deleting it. A process
+    that is killed while holding it leaves the marker behind, and nothing
+    breaks it automatically: whoever next waits for the lock times out with an
+    error naming the marker, to be deleted once no process is using it.
+
+    A ``fork`` child starts with no instance held; see :func:`get_file_lock`.
+    One forked by the holding thread inherits that thread's hold, and can still
+    release it on its way out of the block, but the file lock and the marker
+    stay the parent's: the release leaves them alone.
+    """
+
+    def __init__(self, path: Union[str, "os.PathLike"]):
+        # Absolute and with every symlink resolved, so that one file has one
+        # lock, named the same in every process, however it was spelled.
+        self.__path = os.path.realpath(path)
+        self.__lock_path = self.__path + ".lock"
+        self.__fallback = self.__path + ".sc_lock"
+        self.__thread_lock = threading.RLock()
+        self.__file_lock = InterProcessLock(self.__lock_path)
+        self.__depth = 0
+        # The thread holding it, so release() can refuse every other caller,
+        # and the process, so a forked child's release leaves the parent's
+        # file lock and marker alone
+        self.__owner: Optional[int] = None
+        self.__pid: Optional[int] = None
+        self.__holding_fallback = False
+
+    @property
+    def path(self) -> str:
+        """The file the lock guards, as its real path."""
+        return self.__path
+
+    @property
+    def lock_path(self) -> str:
+        """The lock file: :attr:`path` with ``.lock`` added."""
+        return self.__lock_path
+
+    @property
+    def fallback_path(self) -> str:
+        """
+        The marker that holds the lock where the filesystem cannot lock files:
+        :attr:`path` with ``.sc_lock`` added.
+        """
+        return self.__fallback
+
+    @property
+    def paths(self) -> Tuple[str, str]:
+        """Both of the files that lock :attr:`path`: the lock file, then the marker."""
+        return self.__lock_path, self.__fallback
+
+    def fallback_taken(self) -> Optional[float]:
+        """
+        When the fallback marker was created -- when the lock was last taken
+        through it -- as a timestamp; None if there is no marker.
+
+        A marker exists only while it is held, so an old one is residue from a
+        process that was killed, or a hold that has lasted that long.
+
+        Raises:
+            OSError: if the marker exists but cannot be read.
+        """
+        try:
+            return os.stat(self.__fallback).st_mtime
+        except FileNotFoundError:
+            return None
+
+    @staticmethod
+    def __remaining(deadline: Optional[float]) -> Optional[float]:
+        if deadline is None:
+            return None
+        return max(0.0, deadline - time.monotonic())
+
+    def acquire(self, timeout: Optional[float] = None) -> None:
+        """
+        Take the lock, waiting at most ``timeout`` seconds in all.
+
+        Args:
+            timeout (float): Seconds to wait, for this process's other threads
+                and for other processes together; 0 tries once. If None, waits
+                for as long as it takes.
+
+        Raises:
+            FileLockTimeout: if it is not had in time, saying whether another
+                thread, another process, or the fallback marker holds it.
+            OSError: where the lock file cannot be opened, or where the
+                filesystem cannot lock it and the fallback marker cannot be
+                created either.
+        """
+        deadline = None if timeout is None else time.monotonic() + timeout
+        if not self.__thread_lock.acquire(timeout=-1 if timeout is None else timeout):
+            raise FileLockTimeout(self.__path, timeout, "another thread of this process holds it")
+
+        if self.__depth == 0:
+            try:
+                self.__take(timeout, deadline)
+            except BaseException:
+                self.__thread_lock.release()
+                raise
+            # Kept alive while held: the registry only holds it weakly, and a
+            # collected lock closes its file, which drops the file lock.
+            _held_file_locks[self.__path] = self
+            self.__owner = threading.get_ident()
+            self.__pid = os.getpid()
+
+        self.__depth += 1
+
+    def __take(self, timeout: Optional[float], deadline: Optional[float]) -> None:
+        """
+        Take the file lock, or the fallback marker where files cannot be locked.
+        """
+        try:
+            held = self.__file_lock.acquire(timeout=self.__remaining(deadline))
+        except RuntimeError:
+            # fasteners' word for a lockf the filesystem refused. An OSError is
+            # a lock file that cannot even be opened, and is raised: falling
+            # back there would leave this process on the marker while every
+            # process that can open the file locks it, each ignoring the other.
+            self.__take_fallback(timeout, deadline)
+            return
+        if not held:
+            raise FileLockTimeout(self.__path, timeout, "another process holds it")
+
+    def __take_fallback(self, timeout: Optional[float], deadline: Optional[float]) -> None:
+        """
+        Hold the lock by creating :attr:`fallback_path`, which must not exist.
+        """
+        delay = 0.01
+        while True:
+            try:
+                # O_EXCL, so of two processes racing for it only one creates it;
+                # owner-only, so it is never wider than a lock taken with a mode.
+                # It is empty, and nothing needs to open it: checking it is a
+                # stat, and deleting it rests on the directory's permissions.
+                os.close(os.open(self.__fallback, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
+                self.__holding_fallback = True
+                return
+            except FileExistsError:
+                pass
+
+            remaining = self.__remaining(deadline)
+            if remaining == 0.0:
+                raise FileLockTimeout(
+                    self.__path, timeout,
+                    f"{self.__fallback} exists. This filesystem cannot lock files, so a "
+                    "held lock is marked by that file instead; delete it if no process "
+                    "is using it",
+                    fallback=self.__fallback)
+            time.sleep(delay if remaining is None else min(delay, remaining))
+            delay = min(delay + 0.01, 0.1)
+
+    def release(self) -> None:
+        """
+        Release one hold, and the file lock with the last.
+
+        Raises:
+            RuntimeError: if the calling thread does not hold it. Nothing is
+                changed: every caller in the process shares this instance, so a
+                release that went ahead would drop the file lock from under the
+                thread that does hold it.
+        """
+        if self.__depth <= 0 or self.__owner != threading.get_ident():
+            raise RuntimeError(f"The lock on {self.__path} is not held by this thread")
+
+        self.__depth -= 1
+        try:
+            if self.__depth == 0:
+                inherited = self.__pid != os.getpid()
+                self.__owner = None
+                self.__pid = None
+                if _held_file_locks.get(self.__path) is self:
+                    del _held_file_locks[self.__path]
+                if self.__holding_fallback:
+                    self.__holding_fallback = False
+                    # A child forked inside the hold inherits it, but not the
+                    # marker, which its parent still holds
+                    if not inherited:
+                        with contextlib.suppress(FileNotFoundError):
+                            os.unlink(self.__fallback)
+                else:
+                    # Harmless in such a child: fcntl locks are not inherited,
+                    # so its unlock releases nothing of the parent's
+                    self.__file_lock.release()
+        finally:
+            self.__thread_lock.release()
+
+    @contextlib.contextmanager
+    def locked(self, timeout: Optional[float] = None) -> Iterator[None]:
+        """
+        Hold the lock for the length of the block.
+
+        Args:
+            timeout (float): Seconds to wait for it, in all; if None, for as
+                long as it takes.
+
+        Raises:
+            FileLockTimeout: if it is not had in time; see :meth:`acquire`.
+        """
+        self.acquire(timeout)
+        try:
+            yield
+        finally:
+            self.release()
+
+
+#: The lock on each file in use, keyed by the file's real path (FileLock.path).
+#: Weak-valued, so an entry
+#: lives as long as it is held or referenced, and a fresh one stands in once it
+#: is neither.
+_file_locks: "weakref.WeakValueDictionary[str, FileLock]" = weakref.WeakValueDictionary()
+_file_locks_guard = threading.Lock()
+#: Every held lock, keyed like _file_locks: what keeps a held lock alive when
+#: its holder kept no reference to it.
+_held_file_locks: "dict[str, FileLock]" = {}
+
+
+def get_file_lock(path: Union[str, "os.PathLike"]) -> FileLock:
+    """
+    Returns the lock on the file ``path``, shared by every caller in the process.
+
+    Name the file to be locked, not a lock file: the lock keeps its own files
+    beside it (see :class:`FileLock`), and ``path`` itself need not exist.
+
+    There is no need to keep it: it is the same object for as long as anyone
+    holds it or has it, and is dropped once nobody does.
+
+    A ``fork`` child gets a fresh set. The parent still holds whatever it held,
+    so a child that wants a lock waits for the parent like any other process,
+    and one forked while holding a lock does not hold it in the child.
+
+    Args:
+        path (str or path-like): The file to lock. A symlink is followed.
+    """
+    path = os.path.realpath(path)
+    with _file_locks_guard:
+        lock = _file_locks.get(path)
+        if lock is None:
+            lock = FileLock(path)
+            _file_locks[path] = lock
+        return lock
+
+
+def _reset_file_locks_after_fork() -> None:
+    """
+    Drops every file lock in a freshly forked child; see :func:`get_file_lock`.
+
+    A lock held by a thread that does not exist in the child is never released,
+    and the file lock under it belongs to the parent anyway.
+    """
+    global _file_locks, _file_locks_guard, _held_file_locks
+    _file_locks_guard = threading.Lock()
+    _file_locks = weakref.WeakValueDictionary()
+    _held_file_locks = {}
+
+
+if hasattr(os, "register_at_fork"):  # absent on Windows, which has no fork
+    os.register_at_fork(after_in_child=_reset_file_locks_after_fork)
 
 
 class _ManagerSingleton(type):
@@ -233,7 +547,9 @@ class MPManager(metaclass=_ManagerSingleton):
         self.__board_lock = self.__manager.Lock()
         self.__board = None
 
-        # Settings
+        # Settings. Imported here rather than at module scope: the settings
+        # module takes its file lock from this one.
+        from siliconcompiler.utils.settings import SettingsManager
         self.__settings = SettingsManager(
             default_sc_path("settings.json"), self.__logger,
             system_filepath=default_sc_system_path())
@@ -377,7 +693,7 @@ class MPManager(metaclass=_ManagerSingleton):
         return MPManager().__manager
 
     @staticmethod
-    def get_settings() -> SettingsManager:
+    def get_settings() -> "SettingsManager":
         """
         Provides access to the shared SettingsManager instance.
 
@@ -387,7 +703,7 @@ class MPManager(metaclass=_ManagerSingleton):
         return MPManager().__settings
 
     @staticmethod
-    def get_transient_settings() -> SettingsManager:
+    def get_transient_settings() -> "SettingsManager":
         """
         Provides access to the shared transient SettingsManager instance.
 

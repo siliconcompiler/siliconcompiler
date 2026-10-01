@@ -30,7 +30,6 @@ from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler import utils
 from siliconcompiler.utils.multiprocessing import MPManager, forking
-from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
 from siliconcompiler.schema import BaseSchema
@@ -425,6 +424,85 @@ def test_safe_uri_ipv6_cache_id():
     assert first.safe_source == "https://[2001:db8::1]:443/archive"
     assert second.safe_source == "https://[2001:db8::2]:443/archive"
     assert first.cache_id != second.cache_id
+
+
+@pytest.mark.parametrize("kind,source,reference,collection_id", [
+    (FileResolver, "/data/archive", None, "bf0faec33c99614c2e1d381338c5954474406575"),
+    (FileResolver, "file:///data/archive", None, "bf0faec33c99614c2e1d381338c5954474406575"),
+    (FileResolver, "file+private:///data/archive", None,
+     "bf0faec33c99614c2e1d381338c5954474406575"),
+    (FileResolver, "src", None, "24664d3e26d46dd44ac5f1a1d287abd5297a90e4"),
+    (FileResolver, "$DATA_ROOT/archive", None, "cb68a6e86a857859014c5d7bf0bc95f596afde82"),
+    (PythonPathResolver, "python://siliconcompiler", None,
+     "d3f5128df34461a06db28594289ff5d80574b787"),
+    (KeyPathResolver, "key://tool,openroad,task,place,refdir", None,
+     "4956e9c0d822c88ad0400e2f33ee4fb119303915"),
+    (Resolver, "https://example.com/pdk.tar.gz?v=1", "v1",
+     "62839725fad6e97979c77c20ee760dfffb522d5f"),
+    (Resolver, "https://user:token@example.com/pdk.tar.gz?v=1", "v1",
+     "62839725fad6e97979c77c20ee760dfffb522d5f"),
+    (Resolver, "https://example.com/pdk.tar.gz?v=1", "v2",
+     "d97d4667a79303f621dd4377d83ef027f1dfbef7"),
+    (Resolver, "git+ssh+private://git@github.com/org/repo.git", "abc",
+     "87ab05a69a9315f25bd160f89c92acc2133461e6"),
+    # An '@' in the path is not userinfo.
+    (Resolver, "https://example.com/pkg@1.0/archive.tar.gz", "v1",
+     "90aca9ddfb8c42b7a586c665746f6077e05e998c"),
+])
+def test_collection_id_is_stable(monkeypatch, kind, source, reference, collection_id):
+    # A collection is read by another SiliconCompiler, on another machine, which
+    # must name its files alike.
+    monkeypatch.setenv("DATA_ROOT", "/data")
+    assert kind("testpath", Project("testproj"), source, reference).collection_id == \
+        collection_id
+
+
+@pytest.mark.parametrize("source", ["src", "$DATA_ROOT/archive", "~/archive"])
+def test_collection_id_ignores_variables_and_cwd(monkeypatch, source):
+    """Where this machine finds the data changes the cache_id, not the collection_id."""
+    monkeypatch.setenv("DATA_ROOT", "/first")
+    monkeypatch.setenv("HOME", "/first_home")
+    first = FileResolver("testpath", Project("testproj"), source)
+    first_cache_id = first.cache_id
+
+    os.makedirs("elsewhere")
+    monkeypatch.chdir("elsewhere")
+    monkeypatch.setenv("DATA_ROOT", "/second")
+    monkeypatch.setenv("HOME", "/second_home")
+    second = FileResolver("testpath", Project("testproj"), source)
+
+    assert first_cache_id != second.cache_id
+    assert first.collection_id == second.collection_id
+
+
+def test_collection_id_dataroot_follows_target():
+    """A dataroot:// names another dataroot in every schema, so the dataroot it
+    names identifies it."""
+    design_a = Design("designA")
+    design_a.set_dataroot("shared_name", "/dataA")
+    design_b = Design("designB")
+    design_b.set_dataroot("shared_name", "/dataB")
+    design_c = Design("designC")
+    design_c.set_dataroot("other_name", "/dataA")
+
+    res_a = DatarootResolver("n", design_a, "dataroot://shared_name/sub")
+    res_b = DatarootResolver("n", design_b, "dataroot://shared_name/sub")
+    res_c = DatarootResolver("n", design_c, "dataroot://other_name/sub")
+
+    assert res_a.cache_id == res_b.cache_id
+    assert res_a.collection_id != res_b.collection_id
+    assert res_a.collection_id == res_c.collection_id
+    assert res_a.collection_id != \
+        DatarootResolver("n", design_a, "dataroot://shared_name/other").collection_id
+
+
+def test_collection_id_dataroot_cycle():
+    design = Design("testdesign")
+    design.set_dataroot("dataA", "dataroot://dataB")
+    design.set_dataroot("dataB", "dataroot://dataA")
+
+    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+        DatarootResolver("thisname", design, "dataroot://dataA").collection_id
 
 
 def test_init_with_env_project():
@@ -1645,6 +1723,10 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
 
 
 def test_remote_lock_within_lock_file(monkeypatch):
+    """
+    The file lock alone keeps out another thread of this process, which fcntl on
+    its own does not: it is held per process.
+    """
     project = Project("testproj")
     project.option.set_cachedir(".")
 
@@ -1655,23 +1737,35 @@ def test_remote_lock_within_lock_file(monkeypatch):
     resolver1.set_timeout(1)
     assert resolver1.timeout == 1
 
-    # Allow threadlock to pass
+    # Isolate the file lock from the thread lock
     @contextlib.contextmanager
     def dummy_lock():
         yield
-    monkeypatch.setattr(resolver0, "_RemoteResolver__thread_lock", dummy_lock)
+    for resolver in (resolver0, resolver1):
+        monkeypatch.setattr(resolver, "_RemoteResolver__thread_lock", dummy_lock)
 
-    with resolver0.lock():
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with resolver0.lock():
+            holding.set()
+            release.wait(timeout=30)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    try:
+        assert holding.wait(timeout=30)
         assert os.path.exists(resolver0.lock_file)
         assert not os.path.exists(resolver0.sc_lock_file)
 
-        def dummy_lock(*args, **kwargs):
-            return False
-        monkeypatch.setattr(dut_ipl, "acquire", dummy_lock)
         with pytest.raises(RuntimeError, match=r"^Failed to access .*\. .*\.lock is still locked. "
                            r"If this is a mistake, please delete the lock file\.$"):
             with resolver1.lock():
                 pass
+    finally:
+        release.set()
+        thread.join(timeout=30)
 
     assert os.path.exists(resolver0.lock_file)
     assert not os.path.exists(resolver0.sc_lock_file)
@@ -1744,9 +1838,9 @@ def test_remote_lock_revert_to_file_failed():
     project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver.set_timeout(1)
 
-    with patch("fasteners.InterProcessLock.acquire") as acquire, \
-         patch("time.sleep") as sleep:
+    with patch("fasteners.InterProcessLock.acquire") as acquire:
         def fail_lock(*args, **kwargs):
             raise RuntimeError
         acquire.side_effect = fail_lock
@@ -1754,12 +1848,13 @@ def test_remote_lock_revert_to_file_failed():
         # Generate lock
         resolver.sc_lock_file.touch()
 
+        start = time.monotonic()
         with pytest.raises(RuntimeError,
-                           match=r"^Failed to access .*\. Lock .* still exists\.$"):
+                           match=r"^Failed to access .*\. Lock .*\.sc_lock still exists\.$"):
             with resolver.lock():
                 pass
-
-        assert sleep.call_count == 600
+        # Waited out its timeout, and no longer
+        assert 1 <= time.monotonic() - start < 10
 
     assert not os.path.exists(resolver.lock_file)
     assert os.path.exists(resolver.sc_lock_file)

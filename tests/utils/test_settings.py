@@ -1,7 +1,9 @@
 import pytest
+import errno
 import os
 import json
 import logging
+import stat
 import threading
 import time
 
@@ -9,6 +11,7 @@ import os.path
 
 from unittest.mock import patch
 
+from siliconcompiler.utils import settings as settings_module
 from siliconcompiler.utils.multiprocessing import forking
 from siliconcompiler.utils.settings import SettingsManager
 
@@ -626,3 +629,681 @@ def test_locks_reset_after_fork(settings_file, wait_for_child):
 
     assert exited, "forked child blocked on a lock held by a thread it does not have"
     assert read_ok, "forked child failed to read the category"
+
+
+# --- ATOMIC SAVES ---
+posix_only = pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+
+
+@pytest.fixture
+def umask():
+    """Set the process umask for one test, and put it back."""
+    previous = []
+
+    def set_umask(value):
+        previous.append(os.umask(value))
+
+    yield set_umask
+    if previous:
+        os.umask(previous[0])
+
+
+def _mode(path):
+    return stat.S_IMODE(os.stat(path).st_mode)
+
+
+def _listing(path):
+    return sorted(os.listdir(os.path.dirname(path)))
+
+
+def _contents(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
+@posix_only
+def test_mode_applied_as_created(tmp_path, monkeypatch, umask):
+    """The file, its lock and a new directory are private from the start."""
+    umask(0o022)
+
+    def no_chmod(*args, **kwargs):
+        raise AssertionError("permissions changed after creation")
+
+    monkeypatch.setattr(os, "chmod", no_chmod)
+    monkeypatch.setattr(os, "fchmod", no_chmod)
+
+    path = str(tmp_path / "auth" / "store.json")
+    manager = SettingsManager(path, logging.getLogger(), mode=0o600)
+    manager.set("a", "b", "c")
+    manager.save()
+
+    assert _mode(path) == 0o600
+    assert _mode(path + ".lock") == 0o600
+    assert _mode(tmp_path / "auth") == 0o700
+
+
+@posix_only
+def test_mode_none_new_file_gets_umask(settings_file, umask):
+    umask(0o027)
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    assert _mode(settings_file) == 0o640
+
+
+@posix_only
+def test_mode_none_keeps_existing_permissions(settings_file, umask):
+    """A file the user made private stays private: the replacement copies its bits."""
+    umask(0o022)
+    with open(settings_file, "w") as f:
+        f.write("{}")
+    os.chmod(settings_file, 0o600)
+
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    assert _mode(settings_file) == 0o600
+
+
+def test_save_unserializable_leaves_file(settings_file):
+    """Today's truncate-then-write left an empty file behind for this."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+    before = _contents(settings_file)
+    listing = _listing(settings_file)
+
+    manager.set("a", "b", object())
+    with pytest.raises(TypeError):
+        manager.save()
+
+    assert _contents(settings_file) == before
+    assert _listing(settings_file) == listing
+
+
+def test_save_failed_write_leaves_file(settings_file, monkeypatch):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+    before = _contents(settings_file)
+    listing = _listing(settings_file)
+
+    def fail(*args, **kwargs):
+        raise OSError("disk full")
+
+    manager.set("a", "b", "d")
+    monkeypatch.setattr(os, "fsync", fail)
+    with pytest.raises(OSError, match=r"^disk full$"):
+        manager.save()
+
+    assert _contents(settings_file) == before
+    assert _listing(settings_file) == listing
+
+
+def test_save_follows_symlink(tmp_path):
+    target = tmp_path / "dotfiles" / "settings.json"
+    target.parent.mkdir()
+    target.write_text("{}")
+    link = tmp_path / "settings.json"
+    try:
+        os.symlink(target, link)
+    except (OSError, NotImplementedError):
+        pytest.skip("cannot create a symlink here")
+
+    manager = SettingsManager(str(link), logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    assert os.path.islink(link)
+    assert json.loads(target.read_text()) == {"a": {"b": "c"}}
+
+
+def test_save_retries_refused_replace(settings_file, monkeypatch):
+    """Windows refuses a replace while another program has the file open."""
+    real_replace = os.replace
+    refusals = []
+
+    def refuse_twice(src, dst):
+        if len(refusals) < 2:
+            refusals.append(dst)
+            raise PermissionError("in use")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(settings_module, "_REPLACE_RETRY", 5.0)
+    monkeypatch.setattr(os, "replace", refuse_twice)
+
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    assert len(refusals) == 2
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"b": "c"}}
+
+
+def test_save_does_not_retry_on_posix(settings_file, monkeypatch):
+    def refuse(src, dst):
+        raise PermissionError("in use")
+
+    monkeypatch.setattr(settings_module, "_REPLACE_RETRY", 0.0)
+    monkeypatch.setattr(os, "replace", refuse)
+
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    with pytest.raises(PermissionError, match=r"^in use$"):
+        manager.save()
+    assert _listing(settings_file) == ["config.json.lock"]
+
+
+def test_save_times_out(settings_file, other_process_lock):
+    """save() used to wait on the lock forever."""
+    manager = SettingsManager(settings_file, logging.getLogger(), timeout=0.2)
+    manager.set("a", "b", "c")
+
+    with other_process_lock.hold(settings_file + ".lock"):
+        with pytest.raises(TimeoutError, match=r": another process holds it$"):
+            manager.save()
+
+    assert not os.path.exists(settings_file)
+
+
+def test_save_times_out_on_a_leftover_marker(settings_file, caplog):
+    """
+    Where files cannot be locked, a marker a killed process left behind makes
+    save() fail naming it, rather than poll for ever.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger(), timeout=0.2)
+    manager.set("a", "b", "c")
+    with open(settings_file + ".sc_lock", "w"):
+        pass
+
+    start = time.monotonic()
+    with patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK")):
+        with pytest.raises(TimeoutError, match=r"config\.json\.sc_lock exists\."):
+            manager.save()
+    assert time.monotonic() - start < 5
+    assert "Failed to save settings" in caplog.text
+
+
+def test_save_refused_after_load_timeout(settings_file, caplog):
+    """The empty copy a timed-out load starts from must not replace the file."""
+    settings = SettingsManager(settings_file, logging.getLogger())
+    settings.set("keep", "this", True)
+    settings.save()
+    before = _contents(settings_file)
+
+    with patch("fasteners.InterProcessLock.acquire") as acq:
+        acq.return_value = False
+        manager = SettingsManager(settings_file, logging.getLogger(), timeout=0.1)
+
+    manager.set("new", "key", 1)
+    with pytest.raises(RuntimeError, match=r"was not loaded \(its lock was not had in time\)"):
+        manager.save()
+
+    assert _contents(settings_file) == before
+    assert "Failed to save settings" in caplog.text
+
+
+def test_transaction_lifts_save_refusal(settings_file):
+    settings = SettingsManager(settings_file, logging.getLogger())
+    settings.set("keep", "this", True)
+    settings.save()
+
+    with patch("fasteners.InterProcessLock.acquire") as acq:
+        acq.return_value = False
+        manager = SettingsManager(settings_file, logging.getLogger(), timeout=0.1)
+
+    with manager.transaction():
+        manager.set("new", "key", 1)
+    manager.save()
+
+    with open(settings_file) as f:
+        assert json.load(f) == {"keep": {"this": True}, "new": {"key": 1}}
+
+
+# --- TRANSACTIONS ---
+def test_transaction_keeps_another_managers_write(settings_file):
+    """The lost update: both managers loaded before either wrote."""
+    first = SettingsManager(settings_file, logging.getLogger())
+    second = SettingsManager(settings_file, logging.getLogger())
+
+    with first.transaction():
+        first.set("a", "first", 1)
+    with second.transaction():
+        second.set("a", "second", 2)
+
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"first": 1, "second": 2}}
+
+
+def test_transaction_threads_on_two_managers(settings_file):
+    """
+    Read-modify-write from many threads over two managers loses nothing, which
+    needs the lock to be shared by every manager on the file.
+    """
+    managers = [SettingsManager(settings_file, logging.getLogger(), timeout=30)
+                for _ in range(2)]
+    errors = []
+
+    def bump(manager):
+        try:
+            for _ in range(10):
+                with manager.transaction():
+                    manager.set("count", "n", manager.get("count", "n", 0) + 1)
+        except BaseException as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=bump, args=(managers[i % 2],)) for i in range(4)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=60)
+
+    assert errors == []
+    with open(settings_file) as f:
+        assert json.load(f) == {"count": {"n": 40}}
+
+
+def test_save_waits_for_another_threads_transaction(settings_file):
+    """A plain save() used to walk straight into a running transaction."""
+    manager = SettingsManager(settings_file, logging.getLogger(), timeout=10)
+    inside = threading.Event()
+    leave = threading.Event()
+    order = []
+    errors = []
+
+    def transact():
+        try:
+            with manager.transaction():
+                manager.set("a", "b", 1)
+                inside.set()
+                leave.wait(timeout=10)
+                order.append("transaction")
+        except BaseException as e:
+            errors.append(e)
+
+    def save():
+        manager.save()
+        order.append("save")
+
+    first = threading.Thread(target=transact)
+    first.start()
+    assert inside.wait(timeout=10)
+
+    second = threading.Thread(target=save)
+    second.start()
+    second.join(timeout=0.3)
+    assert second.is_alive(), "save() did not wait for the transaction"
+
+    leave.set()
+    first.join(timeout=10)
+    second.join(timeout=10)
+
+    assert errors == []
+    assert order == ["transaction", "save"]
+
+
+def test_save_inside_transaction_keeps_the_lock(settings_file, other_process_lock):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    lockfile = settings_file + ".lock"
+
+    with manager.transaction():
+        manager.set("a", "b", 1)
+        manager.save()
+        assert not other_process_lock.can_take(lockfile)
+        manager.set("a", "c", 2)
+
+    assert other_process_lock.can_take(lockfile)
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"b": 1, "c": 2}}
+
+
+def test_transaction_lock_held_by_another_process(settings_file, other_process_lock):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", 1)
+    manager.save()
+    before = _contents(settings_file)
+
+    with other_process_lock.hold(settings_file + ".lock"):
+        with pytest.raises(TimeoutError, match=r": another process holds it$"):
+            with manager.transaction(timeout=0.2):
+                pytest.fail("should not get here")
+
+    assert _contents(settings_file) == before
+
+
+def test_transaction_where_files_cannot_be_locked(settings_file):
+    """As on an NFS home without lock support: the fallback marker holds it."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    marker = settings_file + ".sc_lock"
+
+    with patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK")):
+        with manager.transaction():
+            assert os.path.exists(marker)
+            manager.set("a", "b", 1)
+        assert not os.path.exists(marker)
+
+        # A marker a killed process left behind is named, not broken
+        with open(marker, "w"):
+            pass
+        with pytest.raises(TimeoutError, match=r"config\.json\.sc_lock exists\."):
+            with manager.transaction(timeout=0.2):
+                pytest.fail("should not get here")
+
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"b": 1}}
+
+
+def test_transaction_lock_held_by_another_thread(settings_file):
+    """The timeout bounds the wait on this process's threads too."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with manager.transaction():
+            holding.set()
+            release.wait(timeout=10)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    try:
+        assert holding.wait(timeout=10)
+        start = time.monotonic()
+        with pytest.raises(TimeoutError, match=r"another thread of this process holds it$"):
+            with manager.transaction(timeout=0.2):
+                pytest.fail("should not get here")
+        assert time.monotonic() - start < 5
+    finally:
+        release.set()
+        thread.join(timeout=10)
+
+
+def test_transaction_accessors(settings_file):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "gone", 0)
+    manager.save()
+
+    reached = threading.Event()
+    read = []
+
+    def reader():
+        reached.set()
+        read.append(manager.get_category("a"))
+
+    with manager.transaction():
+        manager.set("a", "b", 1)
+        assert manager.get("a", "b") == 1
+        manager.delete("a", "gone")
+        assert manager.get_category("a") == {"b": 1}
+
+        with manager.lock_category("a"):
+            manager.set("a", "c", 2)
+            thread = threading.Thread(target=reader)
+            thread.start()
+            assert reached.wait(timeout=10)
+            thread.join(timeout=0.2)
+            assert thread.is_alive(), "lock_category did not hold the other thread"
+            manager.set("a", "d", 3)
+        thread.join(timeout=10)
+
+    assert read == [{"b": 1, "c": 2, "d": 3}]
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"b": 1, "c": 2, "d": 3}}
+
+
+def test_transaction_exception_saves_nothing(settings_file):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "x", 1)
+    manager.save()
+    before = _contents(settings_file)
+
+    with pytest.raises(ValueError, match=r"^boom$"):
+        with manager.transaction():
+            manager.set("a", "y", 2)
+            raise ValueError("boom")
+
+    assert _contents(settings_file) == before
+    assert manager.get_category("a") == {"x": 1}
+
+    # Nothing left held
+    with manager.transaction(timeout=0.2):
+        pass
+
+
+def test_transaction_unserializable_saves_nothing(settings_file):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "x", 1)
+    manager.save()
+    before = _contents(settings_file)
+
+    with pytest.raises(TypeError):
+        with manager.transaction():
+            manager.set("a", "y", object())
+
+    assert _contents(settings_file) == before
+    assert manager.get_category("a") == {"x": 1}
+
+
+@pytest.mark.parametrize("contents,message", [
+    ("{ this is not json }", r"is malformed"),
+    ("[1, 2, 3]", r"does not hold a JSON object"),
+])
+def test_transaction_refuses_unreadable_file(settings_file, contents, message):
+    with open(settings_file, "w") as f:
+        f.write(contents)
+
+    manager = SettingsManager(settings_file, logging.getLogger())
+    with pytest.raises(ValueError, match=message):
+        with manager.transaction():
+            manager.set("a", "b", 1)
+
+    with open(settings_file) as f:
+        assert f.read() == contents
+
+
+def test_transaction_unchanged_writes_nothing(settings_file):
+    manager = SettingsManager(settings_file, logging.getLogger())
+    with manager.transaction():
+        assert manager.get("a", "b") is None
+    assert not os.path.exists(settings_file)
+
+    manager.set("a", "b", 1)
+    manager.save()
+    inode = os.stat(settings_file).st_ino
+
+    with manager.transaction():
+        manager.set("a", "b", 1)
+
+    assert os.stat(settings_file).st_ino == inode
+
+
+def test_transaction_saves_a_reorder(settings_file):
+    """Key order carries meaning, so moving a key is a change."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "first", 1)
+    manager.set("a", "second", 2)
+    manager.save()
+
+    with manager.transaction():
+        manager.set("a", "first", 1)
+
+    with open(settings_file) as f:
+        assert list(json.load(f)["a"]) == ["second", "first"]
+
+
+def test_transaction_nested(settings_file):
+    manager = SettingsManager(settings_file, logging.getLogger())
+
+    with manager.transaction():
+        manager.set("a", "outer", 1)
+        with manager.transaction():
+            manager.set("a", "inner", 2)
+        assert not os.path.exists(settings_file), "the inner transaction saved"
+
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"outer": 1, "inner": 2}}
+
+
+def test_transaction_discards_unsaved_changes(settings_file):
+    """Documented: a transaction starts from the file."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "unsaved", 1)
+
+    with manager.transaction():
+        assert manager.get("a", "unsaved") is None
+
+
+def test_transaction_without_file():
+    manager = SettingsManager(None, logging.getLogger())
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with manager.transaction():
+            holding.set()
+            release.wait(timeout=10)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    try:
+        assert holding.wait(timeout=10)
+        with pytest.raises(TimeoutError, match=r"another thread of this process holds it$"):
+            with manager.transaction(timeout=0.2):
+                pytest.fail("should not get here")
+    finally:
+        release.set()
+        thread.join(timeout=10)
+
+    with manager.transaction():
+        manager.set("a", "b", 1)
+    assert manager.get("a", "b") == 1
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_transaction_locks_reset_after_fork(settings_file, wait_for_child):
+    """
+    A child forked while a thread is in a transaction does not wait on that
+    thread: a file-less transaction runs, and a file transaction waits on the
+    parent process, which still holds the file.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger())
+    memory = SettingsManager(None, logging.getLogger())
+
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with manager.transaction(), memory.transaction():
+            holding.set()
+            release.wait(timeout=10)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    assert holding.wait(timeout=10)
+
+    with forking():
+        pid = os.fork()
+    if pid == 0:
+        try:
+            with memory.transaction(timeout=5):
+                pass
+            try:
+                with manager.transaction(timeout=0.2):
+                    os._exit(2)
+            except TimeoutError as e:
+                os._exit(0 if str(e).endswith(": another process holds it") else 3)
+        except BaseException:
+            os._exit(1)
+
+    try:
+        exited, as_expected = wait_for_child(pid)
+    finally:
+        release.set()
+        thread.join(timeout=10)
+
+    assert exited, "forked child blocked on a lock held by a thread it does not have"
+    assert as_expected, "forked child did not run its own transaction or wait on its parent"
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_transaction_does_not_commit_in_a_forked_child(settings_file, wait_for_child,
+                                                       other_process_lock):
+    """
+    A child forked by the thread inside a transaction inherits the block, and
+    used to commit it on the way out -- writing the file while its parent held
+    the lock. It raises instead, and writes nothing.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "before", 1)
+    manager.save()
+
+    pid = None
+    try:
+        with manager.transaction():
+            manager.set("a", "parent", 1)
+            with forking():
+                pid = os.fork()
+            if pid == 0:
+                manager.set("a", "child", 1)
+            else:
+                exited, clean = wait_for_child(pid)
+                held = not other_process_lock.can_take(settings_file + ".lock")
+                with open(settings_file) as f:
+                    while_held = json.load(f)
+    except RuntimeError as e:
+        if pid == 0:
+            os._exit(0 if "forked" in str(e) else 2)
+        raise
+    except BaseException:
+        if pid == 0:
+            os._exit(3)
+        raise
+    if pid == 0:
+        os._exit(4)
+
+    assert exited and clean, "the child committed its parent's transaction"
+    assert held, "the child released its parent's lock"
+    assert while_held == {"a": {"before": 1}}, "the child wrote the file"
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"before": 1, "parent": 1}}
+
+
+@posix_only
+def test_save_syncs_the_directory(settings_file, monkeypatch):
+    """The rename reaches the disk before save() returns, not only the contents."""
+    synced = []
+    real_fsync = os.fsync
+
+    def fsync(fd):
+        synced.append(stat.S_ISDIR(os.fstat(fd).st_mode))
+        return real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", fsync)
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    # The temporary file, then the directory it was renamed in
+    assert synced == [False, True]
+
+
+@posix_only
+def test_save_where_the_directory_cannot_be_synced(settings_file, monkeypatch):
+    """Some filesystems refuse to sync a directory; the rename has still happened."""
+    real_fsync = os.fsync
+
+    def fsync(fd):
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            raise OSError(errno.EINVAL, "not supported")
+        return real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", fsync)
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"b": "c"}}

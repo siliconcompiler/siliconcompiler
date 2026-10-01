@@ -40,12 +40,15 @@ def first(project, key, n=0):
     return value.values[n] if hasattr(value, "values") else value
 
 
-def collected_path(value):
-    '''Where `collect` puts one value, under the collection directory.'''
-    from siliconcompiler.schema.parametervalue import PathNodeValue
-
-    return PathNodeValue.generate_hashed_collection_path(
-        value.get(), value.get(field="dataroot"))
+def collected_path(project, key, n=0):
+    '''Where `collect` puts the ``n``th value of ``key``, under the collection
+    directory: bucketed by its dataroot's collected name, which only the
+    value's own resolver knows (`owners.collected_path`).'''
+    path = first(project, key, n).get()
+    for one in owners._values(project):
+        if one.key == tuple(key) and one.value.get() == path:
+            return owners.collected_path(one)
+    raise AssertionError(f"{key} has no value {path}")
 
 
 def decide_value(project, key, n):
@@ -555,8 +558,7 @@ def test_an_uploaded_file_is_accounted_as_uploaded(project, tmp_path):
     project.set_pdk(resource(PDK, "mine", tmp_path / "pdk"))
     collection = tmp_path / "sc_collected_files"
     collection.mkdir()
-    value = first(project, ("library", "mine", *DATASHEET))
-    target = collection / collected_path(value)
+    target = collection / collected_path(project, ("library", "mine", *DATASHEET))
     target.parent.mkdir(parents=True)
     target.write_text("uploaded\n")
 
@@ -707,7 +709,7 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
 
     project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
     archive, _, _ = job_archive(project)
-    hashed = collected_path(first(project, ("library", "mine", *DATASHEET)))
+    hashed = collected_path(project, ("library", "mine", *DATASHEET))
     archive, digest, size = _upload_without(project, archive, tmp_path, hashed)
 
     job = stage(server_client, key, token, archive, size)

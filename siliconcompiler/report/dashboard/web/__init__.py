@@ -4,7 +4,6 @@ import time
 import tempfile
 
 import atexit
-import fasteners
 import multiprocessing
 import shutil
 import signal
@@ -13,6 +12,7 @@ import subprocess
 
 from siliconcompiler.report.dashboard import AbstractDashboard, weak_atexit_call
 from siliconcompiler.report.dashboard.web import utils
+from siliconcompiler.utils.multiprocessing import get_file_lock
 
 
 class WebDashboard(AbstractDashboard):
@@ -60,7 +60,6 @@ class WebDashboard(AbstractDashboard):
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
                                             suffix=f'_{self.__project.name}')
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
-        self.__manifest_lock = os.path.join(self.__directory, 'manifest.lock')
         self.__port = port
         dirname = os.path.dirname(__file__)
         self.__streamlit_file = os.path.join(dirname, 'viewer.py')
@@ -99,14 +98,11 @@ class WebDashboard(AbstractDashboard):
         # Final configuration object to be passed to the Streamlit process
         self.__config = {
             "manifest": self.__manifest,
-            "lock": self.__manifest_lock,
             "graph_projects": graph_projects_config
         }
 
         self.__sleep_time = 0.5
         self.__signal_handler = None
-
-        self.__lock = fasteners.InterProcessLock(self.__manifest_lock)
 
         # Ensure cleanup is called on exit. Register via a weakref trampoline
         # so the atexit registry does not pin this dashboard (and, transitively,
@@ -156,7 +152,7 @@ class WebDashboard(AbstractDashboard):
         new_file = f"{self.__manifest}.new.json"
         self.__project.write_manifest(new_file)
 
-        with self.__lock:
+        with get_file_lock(self.__manifest).locked():
             shutil.move(new_file, self.__manifest)
 
     def update_graph_manifests(self):

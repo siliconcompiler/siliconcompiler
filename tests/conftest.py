@@ -374,6 +374,57 @@ def wait_for_child():
         os.waitpid(pid, 0)
 
 
+class _OtherProcessLock:
+    '''
+    Takes a fasteners lock file from a separate Python process; see
+    other_process_lock().
+    '''
+
+    _HOLD = ("import sys, fasteners\n"
+             "lock = fasteners.InterProcessLock(sys.argv[1])\n"
+             "assert lock.acquire(timeout=30)\n"
+             "print('held', flush=True)\n"
+             "sys.stdin.read()\n")
+
+    _PROBE = ("import sys, fasteners\n"
+              "lock = fasteners.InterProcessLock(sys.argv[1])\n"
+              "sys.exit(0 if lock.acquire(timeout=0) else 1)\n")
+
+    @contextmanager
+    def hold(self, path):
+        '''Holds the lock on ``path`` for the length of the block.'''
+        proc = subprocess.Popen([sys.executable, "-c", self._HOLD, str(path)],
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        try:
+            assert proc.stdout.readline().strip() == "held", "the other process took no lock"
+            yield
+        finally:
+            proc.stdin.close()
+            try:
+                proc.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+
+    def can_take(self, path) -> bool:
+        '''Whether another process could take the lock on ``path`` right now.'''
+        return subprocess.run([sys.executable, "-c", self._PROBE, str(path)],
+                              timeout=30).returncode == 0
+
+
+@pytest.fixture
+def other_process_lock():
+    '''
+    Takes a lock file from a separate Python process.
+
+    ``fcntl`` locks are held per process, so whether a lock keeps another process
+    out can only be seen from one: from inside the test's own process, every
+    attempt succeeds. Returns an object with ``hold(path)``, a context manager
+    holding the lock for its block, and ``can_take(path)``.
+    '''
+    return _OtherProcessLock()
+
+
 @pytest.fixture
 def project_logger(monkeypatch):
     def setup(proj):

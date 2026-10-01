@@ -394,7 +394,7 @@ def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
     -- so the job goes back asking for it, and the second archive is kept as
     its own `input` beside the first.'''
     from siliconcompiler import PDK
-    from test_owners import DATASHEET, _nop_asic, collected_path, first, resource
+    from test_owners import DATASHEET, _nop_asic, collected_path, resource
     from test_server_sources_flow import LAMBDA, read, send, wait_for
 
     # A copy from before would supply the job and skip the path under test.
@@ -416,7 +416,7 @@ def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
         "AND to_state = 'awaiting_input' AND from_state = 'staging'", (job["id"],))["reason"]
     assert "fetches nothing" in reason
 
-    hashed = collected_path(first(project, ("library", "lambda", *DATASHEET)))
+    hashed = collected_path(project, ("library", "lambda", *DATASHEET))
     response = send(server_client, key, token, job["id"],
                     {f"sc_collected_files/{hashed}": b"sent by the client\n"})
     assert response.status_code == 202, response.get_json()

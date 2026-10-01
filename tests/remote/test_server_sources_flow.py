@@ -8,7 +8,7 @@ import time
 import pytest
 
 from conftest import call, outcome, slug
-from test_owners import DATASHEET, _nop_asic, collected_path, first, private, resource
+from test_owners import DATASHEET, _nop_asic, collected_path, private, resource
 from test_server_jobs import FakeDispatcher, create, put, stage, submit
 
 
@@ -416,7 +416,7 @@ def test_a_follow_up_carrying_a_wheel_nobody_asked_for_is_unrequested(
 def test_the_asked_for_sources_arrive_and_the_job_runs(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     job = sent_back(server, server_client, key, token, job_archive, remote_project)
-    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
+    hashed = collected_path(remote_project, ("library", "lambda", *DATASHEET))
 
     response = send(server_client, key, token, job["id"], {
         f"sc_collected_files/{hashed}": b"sent by the client\n"})
@@ -440,7 +440,7 @@ def test_the_staging_record_gains_a_section_each_pass_and_is_scrubbed(
     submit(server_client, key, token, job["id"], digest, size)
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")
-    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
+    hashed = collected_path(remote_project, ("library", "lambda", *DATASHEET))
     assert send(server_client, key, token, job["id"], {
         f"sc_collected_files/{hashed}": b"sent by the client\n"}).status_code == 202
     store = server.config["SC_STORE"]
@@ -516,7 +516,7 @@ def test_a_job_sent_back_gets_a_fresh_staging_limit(
         return []
 
     monkeypatch.setattr(PythonEnvMixin, "_install_on_host", slow_install)
-    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
+    hashed = collected_path(remote_project, ("library", "lambda", *DATASHEET))
     assert send(server_client, key, token, job["id"], {
         f"sc_collected_files/{hashed}": b"sent by the client\n"}).status_code == 202
 
@@ -529,7 +529,7 @@ def test_each_upload_is_kept_as_its_own_input(
     '''The first archive and the follow-up, separately and in order, each
     under the digest its submit checked -- so what was sent can be inspected.'''
     job = sent_back(server, server_client, key, token, job_archive, remote_project)
-    hashed = collected_path(first(remote_project, ("library", "lambda", *DATASHEET)))
+    hashed = collected_path(remote_project, ("library", "lambda", *DATASHEET))
     data, digest, size = follow_up({f"sc_collected_files/{hashed}": b"sent by the client\n"})
 
     grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
@@ -768,7 +768,7 @@ def sent_back_for_run(server, server_client, key, token, job_archive, acme_proje
 def test_a_follow_up_answers_one_tasks_dataroot_by_its_keypath(
         server, server_client, key, token, job_archive, acme_project, dispatcher):
     job = sent_back_for_run(server, server_client, key, token, job_archive, acme_project)
-    run = collected_path(first(acme_project, ("tool", "acme_sim", "task", "run", "refdir")))
+    run = collected_path(acme_project, ("tool", "acme_sim", "task", "run", "refdir"))
 
     response = send(server_client, key, token, job["id"], {
         f"sc_collected_files/{run}/run.tcl": b"sent by the client\n"})
@@ -781,8 +781,7 @@ def test_a_member_under_another_tasks_dataroot_of_that_name_was_not_asked_for(
         server, server_client, key, token, job_archive, acme_project, dispatcher):
     '''🔴 By keypath: `check`'s `scripts` is not `run`'s, whatever the tool.'''
     job = sent_back_for_run(server, server_client, key, token, job_archive, acme_project)
-    check = collected_path(first(acme_project,
-                                 ("tool", "acme_sim", "task", "check", "refdir")))
+    check = collected_path(acme_project, ("tool", "acme_sim", "task", "check", "refdir"))
 
     response = send(server_client, key, token, job["id"], {
         f"sc_collected_files/{check}/check.tcl": b"not asked for\n"})
@@ -914,7 +913,7 @@ def test_an_archive_carrying_a_private_value_is_refused_naming_it(
     fake_fetch(server)
     archive, _, _ = job_archive(private_project)
     member = "sc_collected_files/" + collected_path(
-        first(private_project, ("library", "secret", *DATASHEET)))
+        private_project, ("library", "secret", *DATASHEET))
     carrying = tmp_path / "carrying.tar.gz"
     with tarfile.open(archive) as source, tarfile.open(carrying, "w:gz") as out:
         for item in source.getmembers():
@@ -959,9 +958,10 @@ def test_a_follow_up_holds_the_asked_value_and_no_other_of_its_parameter(
     assert read(server_client, key, token, job["id"])["upload_sources"] == [
         {"kind": "dataroot", "keypath": ["library", "mixed", "dataroot", "there"]}]
 
-    value = first(project, ("library", "mixed", *DATASHEET), n=0 if answer == "here" else 1)
+    hashed = collected_path(project, ("library", "mixed", *DATASHEET),
+                            n=0 if answer == "here" else 1)
     response = send(server_client, key, token, job["id"], {
-        f"sc_collected_files/{collected_path(value)}": b"sent by the client\n"})
+        f"sc_collected_files/{hashed}": b"sent by the client\n"})
 
     if accepted:
         assert response.status_code == 202, response.get_json()
