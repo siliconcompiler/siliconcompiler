@@ -785,11 +785,15 @@ class PathNodeValue(NodeValue):
         return super().set(value, field=field)
 
     def __resolve_collection_path(self, path: Union[str, pathlib.Path],
-                                  collection_dir: str) -> Optional[str]:
+                                  collection_dir: str,
+                                  dataroot_id: Optional[str]) -> Optional[str]:
         if not os.path.isdir(collection_dir):
             return None
 
-        import_path = PathNodeValue.generate_hashed_collection_path(path, self.__dataroot)
+        if dataroot_id is None:
+            dataroot_id = self.__dataroot
+
+        import_path = PathNodeValue.generate_hashed_collection_path(path, dataroot_id)
         if import_path:
             abspath = os.path.abspath(os.path.join(collection_dir, import_path))
             if os.path.exists(abspath):
@@ -806,7 +810,7 @@ class PathNodeValue(NodeValue):
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
             import_path = PathNodeValue.generate_hashed_collection_path(
-                basename, self.__dataroot)
+                basename, dataroot_id)
             if import_path:
                 abspath = os.path.join(collection_dir, import_path)
                 if endname:
@@ -818,7 +822,8 @@ class PathNodeValue(NodeValue):
         return None
 
     def resolve_path(self, search: Optional[List[str]] = None,
-                     collection_dir: Optional[str] = None) -> Optional[str]:
+                     collection_dir: Optional[str] = None,
+                     dataroot_id: Optional[str] = None) -> Optional[str]:
         """
         Resolve the path of this value.
 
@@ -827,6 +832,8 @@ class PathNodeValue(NodeValue):
         Args:
             search (list of paths): list of paths to search to check for the path.
             collection_dir (path): path to collection directory.
+            dataroot_id (str): what this value's dataroot is collected as, its
+                resolver's ``collection_id``. Defaults to the dataroot's name.
         """
         value: Optional[Union[str, pathlib.Path]] = self.get()
         if value is None:
@@ -834,7 +841,7 @@ class PathNodeValue(NodeValue):
 
         # Check collections path
         if collection_dir:
-            collect_path = self.__resolve_collection_path(value, collection_dir)
+            collect_path = self.__resolve_collection_path(value, collection_dir, dataroot_id)
             if collect_path:
                 return str(pathlib.Path(collect_path))
 
@@ -866,7 +873,16 @@ class PathNodeValue(NodeValue):
     @staticmethod
     def generate_hashed_collection_path(path: Optional[Union[str, pathlib.Path]],
                                         dataroot: Optional[str]) -> Optional[str]:
-        """Map a collected path to a component-hashed parent bucket and basename."""
+        """
+        Map a collected path to a component-hashed parent bucket and basename.
+
+        Args:
+            path (path): the value's path.
+            dataroot (str): what the value's dataroot is collected as, its
+                resolver's ``collection_id``, or None if it has none. A dataroot's
+                name is unique only within the schema that defines it, so a
+                collection does not use it.
+        """
         if path is None:
             return None
 

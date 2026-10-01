@@ -101,6 +101,7 @@ class Resolver:
         self.__reference = reference
         self.__changed = False
         self.__cacheid = None
+        self.__collectionid = None
         self.__private = False
 
         # The marker comes off the source, which is then fetched by its plain
@@ -456,6 +457,42 @@ class Resolver:
 
             self.__cacheid = hash_obj.hexdigest()
         return self.__cacheid
+
+    @property
+    def _collection_source(self) -> str:
+        """
+        The source as :attr:`collection_id` identifies it: as written, without its
+        userinfo, which says who fetches the data rather than which data it is.
+
+        It is taken apart as a string, not by ``urllib``, whose parsing has changed
+        between Python releases.
+        """
+        scheme, sep, rest = self.source.partition("://")
+        if not sep:
+            return self.source
+        end = min([rest.find(c) for c in "/?#" if c in rest], default=len(rest))
+        return f"{scheme}://{rest[:end].rpartition('@')[2]}{rest[end:]}"
+
+    @property
+    def collection_id(self) -> str:
+        """
+        An ID for this resolver's data that is the same on every machine, used to
+        name its files in a collection.
+
+        A collection is written on one machine and read on another: a remote
+        server, a container, wherever an issue testcase is unpacked. :attr:`cache_id`
+        identifies where the data is on this machine, so it expands environment
+        variables and a relative path, and the reader would compute another. This
+        ID is computed only from the source and reference as the manifest records
+        them.
+        """
+        if self.__collectionid is None:
+            import hashlib
+
+            payload = json.dumps([self._collection_source, self.__reference or ""],
+                                 ensure_ascii=False, separators=(',', ':'))
+            self.__collectionid = hashlib.sha1(payload.encode('utf-8')).hexdigest()
+        return self.__collectionid
 
     def set_changed(self):
         """Marks the resolved data as having been changed."""
@@ -960,6 +997,7 @@ class FileResolver(Resolver):
         elif source.startswith("file+private://"):
             is_private = True
             source = source[15:]
+        self.__recorded = source
         if source[0] != "$" and not os.path.isabs(source):
             source = os.path.join(cwdirsafe(schema._parent(root=True)), source)
 
@@ -980,6 +1018,11 @@ class FileResolver(Resolver):
     @property
     def _cache_source(self) -> str:
         return self.urlparse.geturl()
+
+    @property
+    def _collection_source(self) -> str:
+        # As recorded: a relative path is not joined to this machine's cwd
+        return f"file://{self.__recorded}"
 
     def resolve(self) -> str:
         """Returns the absolute path to the file."""
@@ -1173,17 +1216,9 @@ class DatarootResolver(Resolver):
         # Track visited dataroots passed from parent resolver for cycle detection
         self._parent_visited: Optional[set] = None
 
-    def resolve(self) -> str:
+    def __target(self) -> Resolver:
         """
-        Resolves a dataroot by looking up its configured path and resolving it.
-
-        This resolver looks up a dataroot by name in the dataroot registry, retrieves
-        its configured path (which may be a file://, python://, or another dataroot://),
-        and resolves that path using the appropriate resolver. This allows dataroots
-        to reference other dataroots, forming resolution chains.
-
-        Returns:
-            str: The resolved absolute path for the dataroot.
+        The resolver for the dataroot this one names.
 
         Raises:
             RuntimeError: If the resolver does not have a root project object defined,
@@ -1225,7 +1260,33 @@ class DatarootResolver(Resolver):
         if isinstance(resolver_instance, DatarootResolver):
             resolver_instance._parent_visited = visited_copy
 
-        base_path = resolver_instance.get_path()
+        return resolver_instance
+
+    @property
+    def _collection_source(self) -> str:
+        # The name means another dataroot in every schema, so the dataroot it
+        # names identifies it
+        subpath = self.source.partition("://")[2].partition("/")[2]
+        return f"dataroot://{self.__target().collection_id}/{subpath}"
+
+    def resolve(self) -> str:
+        """
+        Resolves a dataroot by looking up its configured path and resolving it.
+
+        This resolver looks up a dataroot by name in the dataroot registry, retrieves
+        its configured path (which may be a file://, python://, or another dataroot://),
+        and resolves that path using the appropriate resolver. This allows dataroots
+        to reference other dataroots, forming resolution chains.
+
+        Returns:
+            str: The resolved absolute path for the dataroot.
+
+        Raises:
+            RuntimeError: If the resolver does not have a root project object defined,
+                if the dataroot is not defined in the registry, or if a circular
+                dataroot reference is detected during resolution.
+        """
+        base_path = self.__target().get_path()
         # Strip leading '/' from urlparse.path to avoid os.path.join treating it as absolute
         subpath = self.urlparse.path.lstrip('/')
         return os.path.join(base_path, subpath) if subpath else base_path

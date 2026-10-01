@@ -1869,7 +1869,7 @@ def test_find_files_scalar_dataroot_not_found(monkeypatch):
     def call_dataroot():
         raise FileNotFoundError("this is not found")
 
-    def dataroot():
+    def dataroot(resolvers=False):
         return {"test": call_dataroot}
     monkeypatch.setattr(schema, "_find_files_dataroot_resolvers", dataroot)
 
@@ -1889,7 +1889,7 @@ def test_find_files_scalar_dataroot_not_found_collected(monkeypatch):
     def call_dataroot():
         raise FileNotFoundError("this is not found")
 
-    def dataroot():
+    def dataroot(resolvers=False):
         return {"test": call_dataroot}
     monkeypatch.setattr(schema, "_find_files_dataroot_resolvers", dataroot)
 
@@ -1915,7 +1915,7 @@ def test_find_files_scalar_dataroot_not_found_allow(monkeypatch):
     def call_dataroot():
         raise FileNotFoundError("this is not found")
 
-    def dataroot():
+    def dataroot(resolvers=False):
         return {"test": call_dataroot}
     monkeypatch.setattr(schema, "_find_files_dataroot_resolvers", dataroot)
 
