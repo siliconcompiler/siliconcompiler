@@ -30,7 +30,6 @@ from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler import utils
 from siliconcompiler.utils.multiprocessing import MPManager, forking
-from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Project, Design
 from siliconcompiler.schema import BaseSchema
@@ -1724,6 +1723,10 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
 
 
 def test_remote_lock_within_lock_file(monkeypatch):
+    """
+    The file lock alone keeps out another thread of this process, which fcntl on
+    its own does not: it is held per process.
+    """
     project = Project("testproj")
     project.option.set_cachedir(".")
 
@@ -1734,23 +1737,35 @@ def test_remote_lock_within_lock_file(monkeypatch):
     resolver1.set_timeout(1)
     assert resolver1.timeout == 1
 
-    # Allow threadlock to pass
+    # Isolate the file lock from the thread lock
     @contextlib.contextmanager
     def dummy_lock():
         yield
-    monkeypatch.setattr(resolver0, "_RemoteResolver__thread_lock", dummy_lock)
+    for resolver in (resolver0, resolver1):
+        monkeypatch.setattr(resolver, "_RemoteResolver__thread_lock", dummy_lock)
 
-    with resolver0.lock():
+    holding = threading.Event()
+    release = threading.Event()
+
+    def holder():
+        with resolver0.lock():
+            holding.set()
+            release.wait(timeout=30)
+
+    thread = threading.Thread(target=holder)
+    thread.start()
+    try:
+        assert holding.wait(timeout=30)
         assert os.path.exists(resolver0.lock_file)
         assert not os.path.exists(resolver0.sc_lock_file)
 
-        def dummy_lock(*args, **kwargs):
-            return False
-        monkeypatch.setattr(dut_ipl, "acquire", dummy_lock)
         with pytest.raises(RuntimeError, match=r"^Failed to access .*\. .*\.lock is still locked. "
                            r"If this is a mistake, please delete the lock file\.$"):
             with resolver1.lock():
                 pass
+    finally:
+        release.set()
+        thread.join(timeout=30)
 
     assert os.path.exists(resolver0.lock_file)
     assert not os.path.exists(resolver0.sc_lock_file)
@@ -1823,9 +1838,9 @@ def test_remote_lock_revert_to_file_failed():
     project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver.set_timeout(1)
 
-    with patch("fasteners.InterProcessLock.acquire") as acquire, \
-         patch("time.sleep") as sleep:
+    with patch("fasteners.InterProcessLock.acquire") as acquire:
         def fail_lock(*args, **kwargs):
             raise RuntimeError
         acquire.side_effect = fail_lock
@@ -1833,12 +1848,13 @@ def test_remote_lock_revert_to_file_failed():
         # Generate lock
         resolver.sc_lock_file.touch()
 
+        start = time.monotonic()
         with pytest.raises(RuntimeError,
-                           match=r"^Failed to access .*\. Lock .* still exists\.$"):
+                           match=r"^Failed to access .*\. Lock .*\.sc_lock still exists\.$"):
             with resolver.lock():
                 pass
-
-        assert sleep.call_count == 600
+        # Waited out its timeout, and no longer
+        assert 1 <= time.monotonic() - start < 10
 
     assert not os.path.exists(resolver.lock_file)
     assert os.path.exists(resolver.sc_lock_file)

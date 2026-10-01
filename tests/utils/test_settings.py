@@ -626,3 +626,33 @@ def test_locks_reset_after_fork(settings_file, wait_for_child):
 
     assert exited, "forked child blocked on a lock held by a thread it does not have"
     assert read_ok, "forked child failed to read the category"
+
+
+def test_save_times_out(settings_file, other_process_lock):
+    """save() used to wait on the lock forever."""
+    manager = SettingsManager(settings_file, logging.getLogger(), timeout=0.2)
+    manager.set("a", "b", "c")
+
+    with other_process_lock.hold(settings_file + ".lock"):
+        with pytest.raises(TimeoutError, match=r": another process holds it$"):
+            manager.save()
+
+    assert not os.path.exists(settings_file)
+
+
+def test_save_times_out_on_a_leftover_marker(settings_file, caplog):
+    """
+    Where files cannot be locked, a marker a killed process left behind makes
+    save() fail naming it, rather than poll for ever.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger(), timeout=0.2)
+    manager.set("a", "b", "c")
+    with open(settings_file + ".sc_lock", "w"):
+        pass
+
+    start = time.monotonic()
+    with patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK")):
+        with pytest.raises(TimeoutError, match=r"config\.json\.sc_lock exists\."):
+            manager.save()
+    assert time.monotonic() - start < 5
+    assert "Failed to save settings" in caplog.text

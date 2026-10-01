@@ -9,9 +9,8 @@ import os.path
 
 from typing import Generator, Optional
 
-from fasteners import InterProcessLock
-
 from siliconcompiler import sc_open
+from siliconcompiler.utils.multiprocessing import FileLockTimeout, get_file_lock
 
 
 #: Every live SettingsManager, so a forked child can rebuild their locks.
@@ -97,13 +96,13 @@ class SettingsManager:
                 layer is applied.
         """
         self.__filepath = filepath
-        if self.__filepath is not None:
-            self.__lock = InterProcessLock(self.__filepath + ".lock")
         # Two levels of lock, always taken category-first: a category lock is
         # held for as long as a caller is building that category (see
         # lock_category), while __settings_lock is held only for the dict
-        # operations themselves. Whole-file work (_load, save) takes just
-        # __settings_lock, so there is no cycle to deadlock on.
+        # operations themselves. Whole-file work (_load, save) takes
+        # __settings_lock and then the file's lock, which nothing takes the
+        # other way round, so there is no cycle to deadlock on. The file's lock
+        # is looked up on each use, not kept: see get_file_lock().
         self.__settings_lock = threading.Lock()
         self.__category_locks = {}
         self.__category_locks_lock = threading.Lock()
@@ -132,13 +131,11 @@ class SettingsManager:
 
         with self.__settings_lock:
             try:
-                if self.__lock.acquire(timeout=self.__timeout):
-                    try:
+                try:
+                    with get_file_lock(self.__filepath).locked(self.__timeout):
                         with sc_open(self.__filepath, encoding='utf-8') as f:
                             data = json.load(f)
-                    finally:
-                        self.__lock.release()
-                else:
+                except FileLockTimeout:
                     self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
                                         "Starting with empty settings.")
                     data = {}
@@ -294,6 +291,10 @@ class SettingsManager:
     def save(self):
         """
         Save the current settings to the disk in JSON format.
+
+        Raises:
+            TimeoutError: if the file's lock is not had within the manager's
+                timeout. Nothing is written.
         """
         if self.__filepath is None:
             return
@@ -305,7 +306,7 @@ class SettingsManager:
                 os.makedirs(directory)
 
             with self.__settings_lock:
-                with self.__lock:
+                with get_file_lock(self.__filepath).locked(self.__timeout):
                     with open(self.__filepath, 'w', encoding='utf-8') as f:
                         json.dump(self.__settings, f, indent=4)
         except Exception as e:
