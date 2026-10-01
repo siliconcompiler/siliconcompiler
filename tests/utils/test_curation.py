@@ -365,6 +365,12 @@ def _in_collection(proj, paths):
     return all(path.startswith(collectiondir(proj) + os.sep) for path in paths)
 
 
+def _collected_path(schema, path, dataroot):
+    """Where collect stores path, named from the schema's dataroot"""
+    resolver = schema._find_files_dataroot_resolvers(True)[dataroot]
+    return PathNodeValue.generate_hashed_collection_path(path, resolver.collection_id)
+
+
 def test_collect_file_under_two_dataroots_stored_once(two_dataroots, path_keys):
     design = two_dataroots
     design.add_file("rtl/a.v", dataroot="top", fileset="rtl")
@@ -377,6 +383,104 @@ def test_collect_file_under_two_dataroots_stored_once(two_dataroots, path_keys):
     files = design.get_file(fileset="rtl", filetype="verilog")
     assert _in_collection(proj, files)
     assert os.path.samefile(files[0], files[1])
+
+
+def test_collect_same_dataroot_name_in_two_libraries(path_keys):
+    """Two libraries' dataroots of one name are two dataroots, so a file of one path
+    under each is stored twice, and each library reads its own."""
+    designs = []
+    for name in ("a", "b"):
+        os.makedirs(f"{name}/rtl")
+        with open(f"{name}/rtl/top.v", "w") as f:
+            f.write(f"module {name}_top; endmodule")
+        design = Design(name)
+        design.set_dataroot("root", os.path.abspath(name))
+        design.add_file("rtl/top.v", dataroot="root", fileset="rtl")
+        designs.append(design)
+    proj = Project(designs[0])
+    proj.add_dep(designs[1])
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("a")
+    shutil.rmtree("b")
+
+    for design in designs:
+        files = design.get_file(fileset="rtl", filetype="verilog")
+        assert _in_collection(proj, files)
+        with open(files[0]) as f:
+            assert f.read() == f"module {design.name}_top; endmodule"
+
+
+def test_collect_same_dataroot_name_in_two_tasks(path_keys):
+    """Two tasks' dataroots of one name are two dataroots, so a refdir of one path
+    under each is stored twice, and each task reads its own."""
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="rtl")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("step0", FauxTask0())
+    flow.node("step1", FauxTask1())
+    proj.set_flow(flow)
+
+    tasks = (FauxTask0.find_task(proj), FauxTask1.find_task(proj))
+    for task in tasks:
+        os.makedirs(f"{task.tool()}/scripts")
+        with open(f"{task.tool()}/scripts/sc_run.tcl", "w") as f:
+            f.write(f"# {task.tool()}")
+        task.set_dataroot("refdir", os.path.abspath(task.tool()))
+        task.set_refdir("scripts", dataroot="refdir")
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("tool0")
+    shutil.rmtree("tool1")
+
+    for task in tasks:
+        refdirs = task.find_files("refdir")
+        assert _in_collection(proj, refdirs)
+        with open(os.path.join(refdirs[0], "sc_run.tcl")) as f:
+            assert f.read() == f"# {task.tool()}"
+
+
+def test_collect_read_with_other_variables(path_keys, monkeypatch):
+    """A collection is read where the environment is not the one it was written in,
+    as in a container or on a remote server."""
+    os.makedirs("ip/rtl")
+    with open("ip/rtl/top.v", "w") as f:
+        f.write("module top; endmodule")
+    monkeypatch.setenv("IP_ROOT", os.path.abspath("ip"))
+
+    design = Design("testdesign")
+    design.set_dataroot("ip", "$IP_ROOT")
+    design.add_file("rtl/top.v", dataroot="ip", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("ip")
+    monkeypatch.delenv("IP_ROOT")
+
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
+
+
+def test_collect_file_under_unresolvable_dataroot(path_keys):
+    """An absolute path is found without its dataroot, so a dataroot that cannot be
+    resolved does not stop it being collected, or read back from the collection."""
+    os.makedirs("src")
+    with open("src/top.v", "w") as f:
+        f.write("module top; endmodule")
+
+    design = Design("testdesign")
+    design.set_dataroot("broken", "dataroot://missing")
+    design.add_file(os.path.abspath("src/top.v"), dataroot="broken", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("src")
+
+    files = design.get_file(fileset="rtl", filetype="verilog")
+    assert _in_collection(proj, files)
 
 
 def test_collect_file_inside_directory_under_other_dataroot(two_dataroots, path_keys):
@@ -513,7 +617,7 @@ def test_collect_select_leaves_dataroot_unresolved(path_keys, monkeypatch):
     assert "local" in resolved
     assert "pdk" not in resolved
     assert os.path.isfile(os.path.join(
-        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("a.v", "local")))
+        collectiondir(proj), _collected_path(design, "a.v", "local")))
 
 
 @pytest.mark.parametrize("path,dataroot", [("rtl/a.v", "top"), ("a.v", "rtl")])
@@ -533,7 +637,7 @@ def test_collect_select_file_inside_unselected_directory(two_dataroots, path_key
     files = design.get_file(fileset="rtl", filetype="verilog")
     assert _in_collection(proj, files)
     assert not os.path.exists(os.path.join(
-        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("rtl", "top")))
+        collectiondir(proj), _collected_path(design, "rtl", "top")))
 
 
 def test_collect_source_beside_collection_with_same_prefix(path_keys):

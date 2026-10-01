@@ -1,3 +1,4 @@
+import hashlib
 import os
 import pathlib
 import pytest
@@ -851,6 +852,19 @@ def test_generate_hashed_collection_path_hashes_dataroot():
     assert without_dataroot != with_dataroot
 
 
+# What two resolvers' collection_id might be: two dataroots of one name
+ID_A = "a" * 40
+ID_B = "b" * 40
+
+
+def test_generate_hashed_collection_path_hashes_dataroot_id():
+    first = PathNodeValue.generate_hashed_collection_path("one/two/three/file.v", ID_A)
+    second = PathNodeValue.generate_hashed_collection_path("one/two/three/file.v", ID_B)
+
+    assert first != second
+    assert first == PathNodeValue.generate_hashed_collection_path("one/two/three/file.v", ID_A)
+
+
 def test_generate_hashed_collection_path_sanitizes_drive_label():
     collected_path = PathNodeValue.generate_hashed_collection_path(
         pathlib.PureWindowsPath(r"C:\\file.v"), None)
@@ -975,6 +989,137 @@ def test_directory_resolve_path_collected_not_found():
 
     with pytest.raises(FileNotFoundError, match=r"^one/two/three/four/testdir0$"):
         value.resolve_path(collection_dir=coll_dir)
+
+
+def _collect_file(path, dataroot, contents):
+    """Store a file in ./collections where collect puts path under dataroot"""
+    collected = os.path.abspath(os.path.join(
+        "collections", PathNodeValue.generate_hashed_collection_path(path, dataroot)))
+    os.makedirs(os.path.dirname(collected), exist_ok=True)
+    with open(collected, "w", newline="\n") as f:
+        f.write(contents)
+    return collected
+
+
+def _dataroot_value(cls=FileNodeValue, path="rtl/top.v"):
+    value = cls()
+    value.set(path)
+    value.set("root", field="dataroot")
+    return value
+
+
+def test_file_resolve_path_collected_by_dataroot_id():
+    collected = _collect_file("rtl/top.v", ID_A, "a")
+
+    value = _dataroot_value()
+
+    assert value.resolve_path(collection_dir=os.path.abspath("collections"),
+                              dataroot_id=ID_A) == collected
+
+
+def test_file_resolve_path_collected_same_name_other_dataroot_id():
+    """One path under two dataroots of one name are two files, each found by its
+    dataroot's ID."""
+    collected_a = _collect_file("rtl/top.v", ID_A, "a")
+    collected_b = _collect_file("rtl/top.v", ID_B, "b")
+    assert collected_a != collected_b
+
+    value = _dataroot_value()
+    coll_dir = os.path.abspath("collections")
+
+    assert value.resolve_path(collection_dir=coll_dir, dataroot_id=ID_A) == collected_a
+    assert value.resolve_path(collection_dir=coll_dir, dataroot_id=ID_B) == collected_b
+
+
+def test_file_resolve_path_collected_other_dataroot_id_not_found():
+    _collect_file("rtl/top.v", ID_A, "a")
+
+    value = _dataroot_value()
+
+    with pytest.raises(FileNotFoundError, match=r"^rtl/top.v$"):
+        value.resolve_path(search=[], collection_dir=os.path.abspath("collections"),
+                           dataroot_id=ID_B)
+
+
+def test_file_resolve_path_collected_dataroot_id_replaces_name():
+    """Given an ID, a file collected under the dataroot's name is not this one."""
+    _collect_file("rtl/top.v", "root", "a")
+
+    value = _dataroot_value()
+
+    with pytest.raises(FileNotFoundError, match=r"^rtl/top.v$"):
+        value.resolve_path(search=[], collection_dir=os.path.abspath("collections"),
+                           dataroot_id=ID_A)
+
+
+def test_file_resolve_path_collected_dataroot_id_defaults_to_name():
+    collected = _collect_file("rtl/top.v", "root", "a")
+
+    value = _dataroot_value()
+
+    assert value.resolve_path(collection_dir=os.path.abspath("collections")) == collected
+
+
+def test_file_resolve_path_collected_in_directory_by_dataroot_id():
+    """A file inside a collected directory is found through the directory's bucket,
+    named by the same ID."""
+    collected_dir = os.path.abspath(os.path.join(
+        "collections", PathNodeValue.generate_hashed_collection_path("rtl", ID_A)))
+    os.makedirs(collected_dir)
+    with open(os.path.join(collected_dir, "top.v"), "w") as f:
+        f.write("a")
+
+    value = _dataroot_value()
+    coll_dir = os.path.abspath("collections")
+
+    assert value.resolve_path(collection_dir=coll_dir, dataroot_id=ID_A) == \
+        os.path.join(collected_dir, "top.v")
+    with pytest.raises(FileNotFoundError, match=r"^rtl/top.v$"):
+        value.resolve_path(search=[], collection_dir=coll_dir, dataroot_id=ID_B)
+
+
+def test_directory_resolve_path_collected_by_dataroot_id():
+    collected_a = os.path.abspath(os.path.join(
+        "collections", PathNodeValue.generate_hashed_collection_path("rtl", ID_A)))
+    collected_b = os.path.abspath(os.path.join(
+        "collections", PathNodeValue.generate_hashed_collection_path("rtl", ID_B)))
+    os.makedirs(collected_a)
+    os.makedirs(collected_b)
+
+    value = _dataroot_value(DirectoryNodeValue, "rtl")
+    coll_dir = os.path.abspath("collections")
+
+    assert value.resolve_path(collection_dir=coll_dir, dataroot_id=ID_A) == collected_a
+    assert value.resolve_path(collection_dir=coll_dir, dataroot_id=ID_B) == collected_b
+
+
+def test_file_hash_collected_by_dataroot_id():
+    """hash passes the ID on to resolve_path, so it hashes its own dataroot's file."""
+    _collect_file("rtl/top.v", ID_A, "a\n")
+    _collect_file("rtl/top.v", ID_B, "b\n")
+
+    value = _dataroot_value()
+    coll_dir = os.path.abspath("collections")
+
+    hash_a = value.hash("md5", collection_dir=coll_dir, dataroot_id=ID_A)
+    hash_b = value.hash("md5", collection_dir=coll_dir, dataroot_id=ID_B)
+    assert hash_a == hashlib.md5(b"a\n").hexdigest()
+    assert hash_b == hashlib.md5(b"b\n").hexdigest()
+
+
+def test_directory_hash_collected_by_dataroot_id():
+    for dataroot, contents in ((ID_A, "a\n"), (ID_B, "b\n")):
+        collected = os.path.join(
+            "collections", PathNodeValue.generate_hashed_collection_path("rtl", dataroot))
+        os.makedirs(collected)
+        with open(os.path.join(collected, "top.v"), "w", newline="\n") as f:
+            f.write(contents)
+
+    value = _dataroot_value(DirectoryNodeValue, "rtl")
+    coll_dir = os.path.abspath("collections")
+
+    assert value.hash("md5", collection_dir=coll_dir, dataroot_id=ID_A) != \
+        value.hash("md5", collection_dir=coll_dir, dataroot_id=ID_B)
 
 
 def test_directory_resolve_path_cwd(monkeypatch):

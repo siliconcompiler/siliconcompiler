@@ -426,6 +426,85 @@ def test_safe_uri_ipv6_cache_id():
     assert first.cache_id != second.cache_id
 
 
+@pytest.mark.parametrize("kind,source,reference,collection_id", [
+    (FileResolver, "/data/archive", None, "bf0faec33c99614c2e1d381338c5954474406575"),
+    (FileResolver, "file:///data/archive", None, "bf0faec33c99614c2e1d381338c5954474406575"),
+    (FileResolver, "file+private:///data/archive", None,
+     "bf0faec33c99614c2e1d381338c5954474406575"),
+    (FileResolver, "src", None, "24664d3e26d46dd44ac5f1a1d287abd5297a90e4"),
+    (FileResolver, "$DATA_ROOT/archive", None, "cb68a6e86a857859014c5d7bf0bc95f596afde82"),
+    (PythonPathResolver, "python://siliconcompiler", None,
+     "d3f5128df34461a06db28594289ff5d80574b787"),
+    (KeyPathResolver, "key://tool,openroad,task,place,refdir", None,
+     "4956e9c0d822c88ad0400e2f33ee4fb119303915"),
+    (Resolver, "https://example.com/pdk.tar.gz?v=1", "v1",
+     "62839725fad6e97979c77c20ee760dfffb522d5f"),
+    (Resolver, "https://user:token@example.com/pdk.tar.gz?v=1", "v1",
+     "62839725fad6e97979c77c20ee760dfffb522d5f"),
+    (Resolver, "https://example.com/pdk.tar.gz?v=1", "v2",
+     "d97d4667a79303f621dd4377d83ef027f1dfbef7"),
+    (Resolver, "git+ssh+private://git@github.com/org/repo.git", "abc",
+     "87ab05a69a9315f25bd160f89c92acc2133461e6"),
+    # An '@' in the path is not userinfo.
+    (Resolver, "https://example.com/pkg@1.0/archive.tar.gz", "v1",
+     "90aca9ddfb8c42b7a586c665746f6077e05e998c"),
+])
+def test_collection_id_is_stable(monkeypatch, kind, source, reference, collection_id):
+    # A collection is read by another SiliconCompiler, on another machine, which
+    # must name its files alike.
+    monkeypatch.setenv("DATA_ROOT", "/data")
+    assert kind("testpath", Project("testproj"), source, reference).collection_id == \
+        collection_id
+
+
+@pytest.mark.parametrize("source", ["src", "$DATA_ROOT/archive", "~/archive"])
+def test_collection_id_ignores_variables_and_cwd(monkeypatch, source):
+    """Where this machine finds the data changes the cache_id, not the collection_id."""
+    monkeypatch.setenv("DATA_ROOT", "/first")
+    monkeypatch.setenv("HOME", "/first_home")
+    first = FileResolver("testpath", Project("testproj"), source)
+    first_cache_id = first.cache_id
+
+    os.makedirs("elsewhere")
+    monkeypatch.chdir("elsewhere")
+    monkeypatch.setenv("DATA_ROOT", "/second")
+    monkeypatch.setenv("HOME", "/second_home")
+    second = FileResolver("testpath", Project("testproj"), source)
+
+    assert first_cache_id != second.cache_id
+    assert first.collection_id == second.collection_id
+
+
+def test_collection_id_dataroot_follows_target():
+    """A dataroot:// names another dataroot in every schema, so the dataroot it
+    names identifies it."""
+    design_a = Design("designA")
+    design_a.set_dataroot("shared_name", "/dataA")
+    design_b = Design("designB")
+    design_b.set_dataroot("shared_name", "/dataB")
+    design_c = Design("designC")
+    design_c.set_dataroot("other_name", "/dataA")
+
+    res_a = DatarootResolver("n", design_a, "dataroot://shared_name/sub")
+    res_b = DatarootResolver("n", design_b, "dataroot://shared_name/sub")
+    res_c = DatarootResolver("n", design_c, "dataroot://other_name/sub")
+
+    assert res_a.cache_id == res_b.cache_id
+    assert res_a.collection_id != res_b.collection_id
+    assert res_a.collection_id == res_c.collection_id
+    assert res_a.collection_id != \
+        DatarootResolver("n", design_a, "dataroot://shared_name/other").collection_id
+
+
+def test_collection_id_dataroot_cycle():
+    design = Design("testdesign")
+    design.set_dataroot("dataA", "dataroot://dataB")
+    design.set_dataroot("dataB", "dataroot://dataA")
+
+    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
+        DatarootResolver("thisname", design, "dataroot://dataA").collection_id
+
+
 def test_init_with_env_project():
     project = Project("testproj")
     project.set("option", "env", "FILE_PATH", "this")
