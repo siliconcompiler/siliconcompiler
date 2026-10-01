@@ -88,7 +88,7 @@ _NEXT_STEP = {
     "software-unavailable": "Ask for a version this server has, or ask its "
                             "operator for the one you need.",
     "artifact-not-approved": "It is held back from download here; ask for access "
-                             "where there is a link to.",
+                             "on its page, where the listing says it may be asked.",
     "resource-unavailable": "This server does not hold it and cannot be sent "
                             "it: use one it holds, or ask its operator.",
     "upload-forbidden": "That resource may not be uploaded here; use this "
@@ -175,10 +175,17 @@ NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")
 
 
+# Which requirement failed, by an `unresolved` entry's `kind` (surface D311):
+# a `requested_versions` key, a task class, or a package that would not install.
+_UNRESOLVED_KIND = {"python": "python", "tools": "tool", "interpreter": "interpreter",
+                    "class": "task class", "package": "package"}
+
+
 def _unresolved(entry: Dict[str, Any]) -> str:
     wanted = " or ".join(str(one) for one in entry.get("requirement") or []) \
         or "any version"
-    return (f"{entry.get('name', '?')} {wanted} "
+    kind = _UNRESOLVED_KIND.get(entry.get("kind"))
+    return (f"{kind + ' ' if kind else ''}{entry.get('name', '?')} {wanted} "
             f"(available: {_member(entry.get('available') or [])})")
 
 
@@ -219,7 +226,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
 
     ``job_id`` is the support reference for anything about a job; without one
     it is the refusal's `trace_id`. ``titles`` maps a terms id to its title in
-    `GET /v1/me`'s `terms`, for a `blocked_by` entry with no link.
+    `GET /v1/me`'s `terms`, which names each `blocked_by` document.
     '''
     lines = []
 
@@ -270,8 +277,8 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
 # a step up in whose code the deployment runs, and each has a way round short
 # of the grant.
 _CAPABILITY_STEP = {
-    "python-env": "Ask the deployment for the python-env grant. A job whose only "
-                  "Python is its own modules needs none.",
+    "python-packages": "Ask the deployment for the python-packages grant. A job whose "
+                       "only Python is its own modules needs none.",
     "python-wheels": "Ask the deployment for the python-wheels grant, or publish the "
                      "package to one of its indexes.",
 }
@@ -293,7 +300,7 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
             return ("It hit a limit the server sets, and will fail the same way: "
                     "change what the detail names before you resubmit.")
     if slug == "software-unavailable" and any(
-            isinstance(entry, dict) and entry.get("name") == "python"
+            isinstance(entry, dict) and entry.get("kind") == "interpreter"
             for entry in problem.get("unresolved") or []):
         # The interpreter: nothing the user chooses in the job changes it
         # (surface D293).
@@ -310,21 +317,13 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
 
 
 def blocked_lines(blocked_by, titles: Optional[Dict[str, str]] = None) -> list:
-    '''One line per document in a `blocked_by` map: its id and signing link, or
-    its title where the entry carries no link. Nothing is opened here.'''
-    if not isinstance(blocked_by, dict):
+    '''One line per document in a `blocked_by` list of `terms` ids: its title
+    from `GET /v1/me`'s `terms`, or its id where there is none. Nothing is
+    opened here.'''
+    if not isinstance(blocked_by, list):
         return []
-    lines = []
-    for terms_id, entry in blocked_by.items():
-        name = clean(str(terms_id))
-        url = entry.get("url") if isinstance(entry, dict) else None
-        if isinstance(url, str) and url:
-            lines.append(f"sign {name}: {clean(url)}")
-        else:
-            title = (titles or {}).get(terms_id)
-            lines.append(f"sign {clean(title) if title else name} "
-                         "(no link is available; ask the operator where)")
-    return lines
+    return [f"sign {clean(str((titles or {}).get(terms_id) or terms_id))}"
+            for terms_id in blocked_by if isinstance(terms_id, str) and terms_id]
 
 
 # Everything a terminal acts on except newline, tab and colour (SGR).

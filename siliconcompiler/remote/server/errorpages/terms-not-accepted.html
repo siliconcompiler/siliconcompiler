@@ -23,18 +23,17 @@
 <main>
 <p>There is a terms document you have not accepted, and it covers something this request needs.</p>
 
-<p><strong>This one you can fix yourself.</strong> <code>blocked_by</code> names every document in
-the way, each with where to sign it.</p>
+<p><strong>This one you can fix yourself.</strong> <code>blocked_by</code> lists every document in
+the way, by its terms <code>id</code>.</p>
 
 <h2>What to do</h2>
 
 <div class="do">
 <ol>
-  <li>For each document in <code>blocked_by</code>, open its <code>url</code> in a browser, read it,
-      and sign it.</li>
-  <li>A document whose entry is <code>{}</code> has no link here: find it by its <code>id</code> in
-      <code>GET /v1/me</code>&rsquo;s <code>terms</code>, where its <code>title</code> is, and ask
-      the operator where to sign it.</li>
+  <li>Name each document by its <code>title</code> in <code>GET /v1/me</code>&rsquo;s
+      <code>terms</code>, found by its <code>id</code>.</li>
+  <li>Open each one&rsquo;s page from <code>POST /v1/auth/browser</code> with
+      <code>{"terms_id": "&lt;id&gt;"}</code>, read it, and sign it there.</li>
   <li>Then retry the original request unchanged.</li>
 </ol>
 <p>You may also decline, and you may change your mind later. Declining is a recorded answer, not a
@@ -69,10 +68,7 @@ failure state.</p>
   "detail":     "This flow names a PDK covered by an agreement you have not accepted.",
   "instance":   "/v1/jobs",
 
-  "blocked_by": {                                   <span class="c">// REQUIRED</span>
-    "gf22-nda":   {"url": "https://.../terms/gf22-nda"},
-    "gf22-export": {}                               <span class="c">// no link available</span>
-  },
+  "blocked_by": ["gf22-nda", "gf22-export"],       <span class="c">// REQUIRED</span>
 
   "trace_id":   "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
@@ -81,10 +77,9 @@ failure state.</p>
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
 <tr><td><code>blocked_by</code></td><td><span class="req">REQUIRED</span></td>
-    <td>Each document in the way, by its terms <code>id</code>, mapped to <code>{"url"}</code>,
-        where a person signs it, or to <code>{}</code> where no link is available. The same shape
+    <td>Each document in the way, by its terms <code>id</code>, as a list. The same shape
         <code>GET /v1/me</code>&rsquo;s <code>authorized</code> entries and the artifact listing
-        carry.</td></tr>
+        carry. A document&rsquo;s page comes from <code>POST /v1/auth/browser</code>.</td></tr>
 </tbody>
 </table>
 

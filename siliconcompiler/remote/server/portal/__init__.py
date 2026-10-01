@@ -83,18 +83,19 @@ class Sessions:
         self._sessions = {}
         self._lock = threading.Lock()
 
-    def offer(self, user_id: str, landing=None) -> str:
-        """Mint a single-use token for one browser.
+    def offer(self, user_id: str, landing=None):
+        """Mint a single-use token for one browser: ``(token, when it stops
+        working)``, as an epoch time.
 
-        `landing` is where to send it once the cookie is set -- already
-        validated by the caller, because this class stores what it is given.
+        `landing` is where to send it once the cookie is set -- built by the
+        caller from an id, because this class stores what it is given.
         """
         token = secrets.token_urlsafe(32)
+        expires = time.time() + HANDOVER_SECONDS
         with self._lock:
             self._expire()
-            self._handovers[token] = (user_id, time.time() + HANDOVER_SECONDS,
-                                      landing)
-        return token
+            self._handovers[token] = (user_id, expires, landing)
+        return token, expires
 
     def redeem(self, token: str):
         '''Spend a handover token. Returns ``(cookie, csrf, landing)`` or None.
@@ -198,9 +199,9 @@ def screen(handler):
     def guarded(*args, **kwargs):
         session = caller()
         if session is None:
-            # 🔴 Remember where they were going. A `web_url` printed by the CLI
-            # is a link somebody clicks cold, and without this the handover
-            # always lands on the jobs list -- so the answer to "here is your
+            # 🔴 Remember where they were going. A portal link opened cold --
+            # a bookmark, or one pasted from elsewhere -- would otherwise land
+            # on the jobs list after signing in, so the answer to "here is your
             # job" was "here is a list, go and find it". It goes in a cookie
             # because the CLI mints the handover and never sees this request.
             page = flask.make_response(flask.render_template("signin.html"), 401)
@@ -338,47 +339,14 @@ def _csrf_for_templates():
     return {"csrf": held[1] if held else ""}
 
 
-@blueprint.route("/portal/session", methods=["POST"])
-def offer_session():
-    '''The CLI asks for a browser session, proving it holds its key.
-
-    Outside ``/v1`` because ``/v1`` is exactly the contract's twenty-two
-    endpoints and this is not one of them -- the same reason the signed upload
-    ``PUT`` lives outside it.
-    '''
-    from siliconcompiler.remote.server.routes.auth import current_session, public_origin
-
-    session = current_session()
-    session.require("profile:read")
-    # 🔴 An interactive session only (ui/access D15): a CI session has nobody
-    # at a browser, and a CI run never accepts an agreement.
-    family = _store().one("SELECT kind FROM token_families WHERE id = ?",
-                          (session.family_id,))
-    if family is None or family["kind"] != "interactive":
-        raise ProblemError("not-permitted",
-                           detail="a CI session cannot hand a browser a session")
-
-    # 🔴 Where to land, validated exactly as the cookie is -- it arrives from a
-    # client, and a redirect that follows caller-supplied input is an open
-    # redirect whichever door it came through. The client sends the job's page
-    # so that one URL both authenticates and arrives somewhere useful.
-    body = flask.request.get_json(silent=True) or {}
-    token = _sessions().offer(session.user_id, _safe_path(body.get("next")))
-    # On the configured origin, never the request's `Host`.
-    url = public_origin() + flask.url_for("portal.enter", token=token)
-
-    response = flask.jsonify({"url": url, "expires_in": HANDOVER_SECONDS})
-    response.headers["Cache-Control"] = "private, no-store"
-    return response
-
-
 def _safe_path(path):
     """A local portal path, or nothing.
 
     🔴 Two characters decide it: it must begin `/portal/`, and must not begin
     `//`, which a browser reads as a scheme-relative host. This is the one
-    function that says yes to a redirect target, so both doors -- the cookie
-    and the handover -- come through it.
+    function that says yes to a redirect target a request carried, the
+    breadcrumb cookie; the handover's landing is built from an id instead
+    (`POST /v1/auth/browser`), and follows no caller's path.
     """
     if isinstance(path, str) and path.startswith("/portal/") \
             and not path.startswith("//"):

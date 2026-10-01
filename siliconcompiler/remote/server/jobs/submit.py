@@ -361,7 +361,7 @@ class SubmitMixin:
             keypath, member = carried[0]
             more = len(carried) - 1
             raise self._refuse(session, job, ProblemError(
-                "archive-rejected", reason="unrequested_member",
+                "archive-rejected", reason="unrequested_member", keypath=list(keypath),
                 detail=f"{member} is under the private dataroot {owners.shown(keypath)}, "
                        "which never leaves the submitter's machine: this server "
                        "supplies it itself" + (f", and {more} more" if more else "")))
@@ -529,19 +529,22 @@ class SubmitMixin:
                 or path.startswith(f"{inside}/") for path in paths)
         return allowed
 
-    def _forget_upload(self, job) -> None:
-        '''🔴 Delete the upload `upload-forbidden` refused, on either detection
-        -- restricted material is not kept (surface D133). The row goes too:
-        what remains is the job, its reason and the transition, which name the
-        member and its hash; the refusal's `detail` is where the raiser puts
-        both.'''
+    def _forget_upload(self, job, slug: str = "upload-forbidden") -> None:
+        '''🔴 Delete an upload refused for what it must not carry: restricted
+        material, `upload-forbidden` on either detection (surface D133), or a
+        credential or a private dataroot's value (surface D307, D308) -- each
+        is not kept. The row and the tree it expanded into go too: what
+        remains is the job, its reason and the transition, which name the
+        member; the refusal's `detail` is where the raiser puts it.'''
         row = self._store.one(
             "SELECT id, storage_key FROM artifacts WHERE job_id = ? AND upload_seq = "
             "(SELECT max(upload_seq) FROM artifacts WHERE job_id = ?)",
             (job["id"], job["id"]))
+        shutil.rmtree(self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"],
+                      ignore_errors=True)
         if row is None:
             return
         self._storage.artifact_path(row["storage_key"]).unlink(missing_ok=True)
         with self._store.transaction():
             self._store.execute("DELETE FROM artifacts WHERE id = ?", (row["id"],))
-        logger.warning(f"{job['id']}: deleted an upload refused as upload-forbidden")
+        logger.warning(f"{job['id']}: deleted an upload refused as {slug}")

@@ -12,7 +12,8 @@ from typing import Any, Dict, List, Optional
 from siliconcompiler.remote.server.errors import bound, ProblemError
 from siliconcompiler.remote.server.jobs.common import (
     MAX_REASON, TERMINAL_NODE_STATES, TERMINAL_STATES, _CANCELS, _NoLongerStaging, _bounded,
-    _error, _members_json)
+    _error, _members_json, logger)
+from siliconcompiler.remote.server.outputs import artifacts
 from siliconcompiler.remote.server.software import images
 from siliconcompiler.remote.server.state.store import now
 
@@ -69,11 +70,6 @@ class RowsMixin:
         return {(entry.get("step"), entry.get("index")) for entry in nodes
                 if isinstance(entry, dict) and entry.get("python")}
 
-    def web_url(self, job_id: str) -> Optional[str]:
-        """This job's page for a person, where this deployment has one."""
-        base = self._config["web_url_base"]
-        return f"{base.rstrip('/')}/portal/jobs/{job_id}" if base else None
-
     def _why(self, job) -> Optional[str]:
         '''What actually went wrong, in the run's own words.
 
@@ -99,6 +95,8 @@ class RowsMixin:
     def _transition(self, job_id: str, from_state: Optional[str], to_state: str,
                     actor: Optional[str] = None, reason: Optional[str] = None,
                     state_reason: Optional[str] = None) -> None:
+        if to_state in TERMINAL_STATES:
+            self._list_records(job_id)
         # `state_reason` describes the state being entered, so every move resets it.
         self._store.execute(
             "UPDATE jobs SET state = ?, state_changed_at = ?, state_reason = ? WHERE id = ?",
@@ -108,6 +106,23 @@ class RowsMixin:
             "INSERT INTO job_state_transitions "
             "(job_id, from_state, to_state, actor_id, reason) VALUES (?, ?, ?, ?, ?)",
             (job_id, from_state, to_state, actor, reason))
+
+    def _list_records(self, job_id: str) -> None:
+        '''🔴 A job turns terminal only once every artifact it will list is
+        listed (surface D308), so the server's own records are listed as it
+        ends -- the `staging` record and the operators' `diagnostics`, which a
+        job that never ran leaves and nothing else indexes. In the caller's
+        transaction; a run's own output is indexed before it, by
+        `_index`.'''
+        job = self._row(job_id)
+        if job is None:
+            return
+        root = self.job_root(job["user_id"], job_id)
+        try:
+            artifacts.collect_staging(self._store, self._storage, self._config, job, root)
+            artifacts.collect_diagnostics(self._store, self._storage, self._config, job, root)
+        except OSError as e:
+            logger.warning(f"{job_id}: could not list the server's records: {e}")
 
     def _phase(self, job_id: str, what: str) -> None:
         '''The staging phase, as the job's `state_reason`.'''
@@ -153,15 +168,9 @@ class RowsMixin:
         if job["state"] == "staging" and job["state_reason"] and body["error"] is None:
             body["state_reason"] = bound(job["state_reason"])
 
-        # 🔴 Followed, never constructed. The portal's route shape may change
-        # without a version bump, so a client that builds this itself breaks
-        # quietly -- which is why it is published at all rather than left as
-        # something an id could be pasted into.
-        #
-        # Absent, never null, where the deployment serves no web UI.
-        page = self.web_url(job["id"])
-        if page:
-            body["web_url"] = page
+        # No portal URL: a job's page is asked for by its id, at
+        # `POST /v1/auth/browser`, when a client is about to open it (surface
+        # D309).
 
         # 🔴 What it actually ran in. Once a request can carry a range, nothing
         # else answers *what did this job run* -- the descriptor says what was
@@ -275,6 +284,11 @@ class RowsMixin:
         already see, while `detail` -- *which* limit, *which* mismatch -- was
         computed one line later and thrown away.
         '''
+        kept = _kept(problem)
+        if not kept:
+            # 🔴 Before the transition, so the job is never read as terminal
+            # with what it was refused for still listed.
+            self._forget_upload(job, problem.error.slug)
         with self._store.transaction():
             current = self._row(job["id"])
             if current["state"] != job["state"]:
@@ -288,6 +302,18 @@ class RowsMixin:
                              actor=session.user_id if session else None,
                              reason=problem.detail or problem.error.slug)
         self._storage.discard_upload(job["id"])
-        if problem.error.slug == "upload-forbidden":
-            self._forget_upload(job)
         return problem
+
+
+def _kept(problem: ProblemError) -> bool:
+    '''Whether a refused job's upload is kept: not where it was refused for
+    what it must not carry -- `upload-forbidden`, a `credential`, or a private
+    dataroot's value, the `unrequested_member` that names its `keypath`
+    (surface D307, D308).'''
+    if problem.error.slug == "upload-forbidden":
+        return False
+    if problem.error.slug != "archive-rejected":
+        return True
+    reason = problem.members.get("reason")
+    return not (reason == "credential"
+                or (reason == "unrequested_member" and problem.members.get("keypath")))

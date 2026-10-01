@@ -730,23 +730,24 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     # No `authorized`, as sc-server's: a deployment that grants nothing gates
     # nothing, and `python.env` alone decides.
     (None, False, None),
-    ([{"name": "python-env", "via": ["self"]}], False, None),
-    ([], False, "is not granted python-env"),
-    ([{"name": "python-env", "via": ["self"]}], True,
+    ([{"name": "python-packages", "via": ["self"]}], False, None),
+    ([], False, "is not granted python-packages"),
+    ([{"name": "python-packages", "via": ["self"]}], True,
      "python-wheels to upload scfakeloose-3.0.0-py3-none-any.whl.*not granted python-wheels"),
-    # Review row 29: each document in the way, with its signing link, or its
-    # title from `terms` where the entry carries none.
-    ([{"name": "python-env", "via": ["self"],
-       "blocked_by": {"py-terms": {"url": "https://portal.test/terms"}}}], False,
-     "holds python-env blocked on an agreement.*sign py-terms: https://portal.test/terms"),
-    ([{"name": "python-env", "via": ["self"], "blocked_by": {"py-terms": {}}}], False,
-     "blocked on an agreement.*sign The Python terms \\(no link is available"),
+    # Each document in the way, by its title from `terms`, or by its id where
+    # it has none (surface D309).
+    ([{"name": "python-packages", "via": ["self"], "blocked_by": ["py-terms"]}], False,
+     "holds python-packages blocked on an agreement.*sign The Python terms"),
+    ([{"name": "python-packages", "via": ["self"], "blocked_by": ["other-terms"]}], False,
+     "blocked on an agreement.*sign other-terms"),
+    # The old name grants nothing: the capability is `python-packages`.
+    ([{"name": "python-env", "via": ["self"]}], False, "is not granted python-packages"),
 ])
 def test_a_capability_the_account_lacks_stops_the_run_before_create(
         site, fake_v1, logged_in, granted, wheel, stops):
     '''surface *Who may use it: three capabilities*: checked against
     `GET /v1/me`'s `authorized.capabilities` before create -- packages need
-    `python-env`, wheels `python-wheels`.'''
+    `python-packages`, wheels `python-wheels`.'''
     import responses
 
     from siliconcompiler.remote import RemoteError
@@ -771,15 +772,15 @@ def test_a_capability_the_account_lacks_stops_the_run_before_create(
 
 
 @pytest.mark.parametrize("resource,advice", [
-    ("python-env", "Ask the deployment for the python-env grant. A job whose only "
-                   "Python is its own modules needs none."),
+    ("python-packages", "Ask the deployment for the python-packages grant. A job whose "
+                        "only Python is its own modules needs none."),
     ("python-wheels", "Ask the deployment for the python-wheels grant, or publish the "
                       "package to one of its indexes."),
 ])
 def test_a_capability_refused_at_create_says_which_and_what_to_do(
         site, fake_v1, logged_in, offers_python_env, resource, advice):
     '''sc-server grants nothing and never says this; a deployment that grants
-    capabilities does, at create for `python-env` and on the job for
+    capabilities does, at create for `python-packages` and on the job for
     `python-wheels` -- the same refusal either way.'''
     import responses
 

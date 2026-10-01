@@ -55,7 +55,8 @@ def test_a_task_class_this_server_does_not_have_is_refused_and_never_imported(
     body = response.get_json()
     assert (slug(response), body["reason"]) == ("software-unavailable", "unknown_class")
     assert body["unresolved"] == [
-        {"name": "sc_uploaded_names/NamedTask", "requirement": [], "available": []}]
+        {"kind": "class", "name": "sc_uploaded_names/NamedTask", "requirement": [],
+         "available": []}]
     assert "stepone/0" in body["detail"]
     assert not unloaded.exists()
     assert not dispatcher.submitted

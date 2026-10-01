@@ -32,14 +32,14 @@ than interprets.
 import json
 import logging
 import os
+import sys
 import tarfile
 import tempfile
-import time
 
 from typing import Any, Dict, List, Optional
 
 from siliconcompiler import utils
-from siliconcompiler.remote.client.errors import RemoteError, ServerProblem, clean
+from siliconcompiler.remote.client.errors import RemoteError, clean
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
 
@@ -107,10 +107,6 @@ def _takeable(items):
 # rotates its own backups under, and it prunes all but the most recent few.
 REMOTE_JOB_LOG = "remote-job.log"
 
-# How many times an artifact still being described is asked for again, each
-# after the `Retry-After` its `409 not-ready` named.
-NOT_READY_ASKS = 10
-
 # Where the server's record of the job lands (surface D295): what it did
 # between create and dispatch, never inside the run's own log.
 REMOTE_STAGING_LOG = "remote-staging.log"
@@ -140,8 +136,8 @@ class Results:
         # means not looked up yet; `None` means this server publishes none.
         self._ceiling: Any = False
 
-        # Each terms document's title by id, for a `blocked_by` entry with no
-        # link; None until something needs one.
+        # Each terms document's title by id, which names a `blocked_by`
+        # entry; None until something needs one.
         self._titles = None
 
     ######################################################################
@@ -363,13 +359,7 @@ class Results:
                 # Already taken while the run was going.
                 continue
             if not item.get("fetchable"):
-                got = self._fetch_once(job_id, item) if _names_no_way(item) else None
-                if got is None:
-                    withheld.append(item)
-                else:
-                    landed += got
-                    self._fetched.add(item["id"])
-                    self._landed += 1
+                withheld.append(item)
                 continue
             try:
                 landed += self._retrieve(job_id, item)
@@ -390,26 +380,6 @@ class Results:
         # arrived as the nodes finished, and "2 of 26" reads like 24 failures.
         self.logger.info(f"Retrieved {self._landed} objects")
         return landed
-
-    def _fetch_once(self, job_id: str, item: Dict[str, Any]) -> Optional[int]:
-        '''An artifact listed `fetchable: false` that names neither an
-        agreement nor an approval, asked for once (surface D306): the listing
-        cannot tell one still being described from one with no path to yes,
-        and the fetch can. A `409 not-ready` says to wait its `Retry-After` and
-        ask again; any other answer is final. None where it did not land --
-        a kind with no home here is never asked for at all.'''
-        for asked in range(NOT_READY_ASKS + 1):
-            try:
-                return self._retrieve(job_id, item) or None
-            except ServerProblem as e:
-                if e.slug != "not-ready" or asked == NOT_READY_ASKS:
-                    logger.debug(f"{self._name(item)}: {e}")
-                    return None
-                time.sleep(max(1.0, e.retry_after or 1.0))
-            except RemoteError as e:
-                logger.debug(f"{self._name(item)}: {e}")
-                return None
-        return None
 
     ######################################################################
     # The five sentences
@@ -438,6 +408,24 @@ class Results:
                 counts[kind] = counts.get(kind, 0) + 1
             kinds = ", ".join(f"{kind} x{count}" for kind, count in counts.items())
             self.logger.warning(f"{len(same)} objects ({kinds}): {why}")
+
+        self._offer_requests(items)
+
+    def _offer_requests(self, items: List[Dict[str, Any]]) -> None:
+        '''*Ask*, where a person is at a terminal: each approval request's page,
+        from `POST /v1/auth/browser` with the artifact's id, opened on a yes.'''
+        from siliconcompiler.remote.client import _ask
+
+        ask = [item for item in items if item.get("can_request_access") is True
+               and not item.get("access_requested_at") and item.get("id")]
+        if not ask or not sys.stdin.isatty() or not self.client.may_open():
+            return
+        if _ask(f"Open the approval request for {len(ask)} of them in a browser? "
+                "[y/N] ").strip().lower() not in ("y", "yes"):
+            return
+        for item in ask:
+            self.client.open_page(f"the approval request for {self._name(item)}",
+                                  artifact_id=item["id"])
 
     def _explain(self, item: Dict[str, Any]) -> str:
         '''Why this object is not coming, in the words that fit its case.'''
@@ -470,22 +458,20 @@ class Results:
             return f"deleted on {day}."
 
         # 🔴 *Sign*: every grant is held and agreements stand in the way. Each
-        # document is named with its own link; one with no link is named by its
-        # title in GET /v1/me's `terms`.
+        # document is named by its title in GET /v1/me's `terms`, or by its id.
         blocked = item.get("blocked_by")
-        if isinstance(blocked, dict) and blocked:
+        if isinstance(blocked, list) and blocked:
             from siliconcompiler.remote.client.errors import blocked_lines
 
             return ("held back by agreements you have not signed: "
                     + "; ".join(blocked_lines(blocked, self._terms_titles())) + ".")
 
         # *Ask*: an approval is all that is missing.
-        where = item.get("access_request_url")
-        if where:
+        if item.get("can_request_access") is True:
             asked = item.get("access_requested_at")
             if asked:
                 return f"access requested on {_day(asked)}; it has not been decided yet."
-            return f"it needs an approval. Ask for access at {clean(where)}"
+            return "it needs an approval. Ask for access on its page in this server's portal."
 
         return (f"you may not have {this}. Neither an agreement nor an approval "
                 "is named, so it is not something asking would change.")
@@ -774,13 +760,6 @@ def _folded(key, step, index, ran) -> bool:
     return (len(key) >= 2 and key[0] in ("record", "metric")
             and key != ("record", "remoteid")
             and step is not None and index is not None and (step, index) in ran)
-
-
-def _names_no_way(item: Dict[str, Any]) -> bool:
-    '''Whether a not-fetchable artifact says nothing about why: not deleted,
-    and neither an agreement nor an approval named.'''
-    return not (item.get("deleted_at") or item.get("blocked_by")
-                or item.get("access_request_url"))
 
 
 def _day(timestamp: str) -> str:

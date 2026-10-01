@@ -63,6 +63,10 @@ _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 # derived by adding an "s".
 BUCKETS = {"python": "python", "tool": "tools", "interpreter": "interpreter"}
 
+# A requirement's `kind` on a `software-unavailable` `unresolved` entry
+# (surface D311): the `requested_versions` key it is under, as spelled.
+UNRESOLVED_KIND = {"library": "python", "tool": "tools", "interpreter": "interpreter"}
+
 # The interpreter bucket's one name: the image's own Python (surface D293).
 INTERPRETER = "python"
 
@@ -838,7 +842,7 @@ def _unsatisfiable_tools(failures: Sequence[Sequence[Requirement]],
 
 def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
                           images) -> ProblemError:
-    entries = [{"name": want.name,
+    entries = [{"kind": UNRESOLVED_KIND[want.kind], "name": want.name,
                 # The alternatives exactly as they were asked for; empty is
                 # "any version".
                 "requirement": list(want.wanted or ()),

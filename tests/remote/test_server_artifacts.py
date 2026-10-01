@@ -126,15 +126,18 @@ def test_every_required_member_is_published(server_client, key, token, finished)
                        # person took the bytes. One is a closed enum a client
                        # branches on; the other is prose a person reads.
                        "deleted_cause", "deleted_reason",
-                       "fetchable"):
+                       "fetchable", "can_request_access"):
             assert member in item, member
         assert item["digest"].startswith("sha256:")
         assert "storage_key" not in item and "expires_at" not in item
-        # An unauthenticated deployment never emits these: nothing here is
-        # approval-gated, and an endpoint that always refuses is worse than an
-        # absent one.
+        # 🔴 Nothing here is approval-gated, so there is never anything to ask
+        # for, a fully fetchable `node` included (surface D309); and no
+        # artifact carries a portal URL: an approval request's page is asked
+        # for at POST /v1/auth/browser.
+        assert item["can_request_access"] is False
         assert "blocked_by" not in item
         assert "access_request_url" not in item
+        assert not any("portal" in str(value) for value in item.values()), item
 
 
 def test_retention_is_per_kind_and_the_job_floor_is_only_a_floor(
@@ -326,7 +329,7 @@ def test_a_server_on_http_issues_only_http_urls(server, server_client, key, toke
                                                 finished):
     '''🔴 Contract rule 5: a deployment is one scheme throughout. This one is
     served on http, so every URL it issues is: the artifact `303`, the upload
-    grant, the handover and the job's page.'''
+    grant and endpoint 6's sign-in link.'''
     from test_server_jobs import create
 
     server.config["SC_CONFIG"]._values["web_url_base"] = "http://localhost"
@@ -336,10 +339,10 @@ def test_a_server_on_http_issues_only_http_urls(server, server_client, key, toke
     urls = [
         call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
              token).headers["Location"],
-        job["web_url"],
         call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
              json={"size_bytes": 10, "digest": "sha256:" + "0" * 64}).get_json()["url"],
-        call(server_client, key, "POST", "/portal/session", token).get_json()["url"],
+        call(server_client, key, "POST", "/v1/auth/browser", token,
+             json={"job_id": job["id"]}).get_json()["url"],
     ]
 
     assert all(url.startswith("http://localhost/") for url in urls), urls
@@ -462,6 +465,23 @@ def test_a_pending_artifact_is_not_ready_and_never_refused_for_good(
     assert slug(response) == "not-ready"
     assert response.get_json()["artifact_kind"] == item["kind"]
     assert response.headers["Retry-After"]
+
+
+def test_an_artifact_still_being_described_is_not_listed_nor_is_its_node(
+        server, server_client, key, token, finished):
+    '''🔴 Surface D308: listed once described, so a client fetching at
+    `terminal` misses nothing it could have had. A `node` archive with such a
+    member is held back with it; the other node's are listed.'''
+    items = listing(server_client, key, token, finished["id"])
+    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
+    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
+    other = next(i for i in items if i["kind"] == "node" and i["step"] == "steptwo")
+    _mark(server, log, provenance="pending")
+
+    listed = {i["id"] for i in listing(server_client, key, token, finished["id"])}
+
+    assert log["id"] not in listed and node["id"] not in listed
+    assert other["id"] in listed
 
 
 def test_a_withheld_artifact_is_not_approved(server, server_client, key, token,

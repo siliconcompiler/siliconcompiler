@@ -75,7 +75,7 @@ def test_create_asks_only_for_what_it_cannot_supply(server_client, key, token):
         {"keypath": ["library", "lambda", "dataroot", "lambda"],
          "source": LAMBDA, "ref": "v0.2.22", "private": False},
         {"keypath": ["library", "acme_ip", "dataroot", "acme_ip"],
-         "source": "git+ssh://git@github.com/acme/ip.git", "ref": "v1.2",
+         "source": "git+ssh://github.com/acme/ip.git", "ref": "v1.2",
          "private": False},
     ]).get_json()
 
@@ -114,29 +114,64 @@ def test_a_private_source_none_of_the_three_can_supply_is_refused_at_create(
     assert listed["items"] == []
 
 
-def test_a_private_source_without_its_source_is_decided_while_staging(
-        server_client, key, token):
-    '''The `sc-server` client sends a private entry no source -- the
-    manifest carries it -- so create cannot tell a held or fetchable one from
-    neither: it is left to staging, and never asked for.'''
-    response = create(server_client, key, token, sources=[
-        {"keypath": ["library", "secret", "dataroot", "secretroot"], "private": True}])
+def test_a_private_entry_with_no_source_is_supplied_only_by_the_operators_copy(
+        server, server_client, key, token, tmp_path):
+    '''🔴 Surface D308: a local private dataroot has no source, so create
+    decides it by keypath alone -- the operator's copy, or refused before any
+    upload. It is never left to staging, and never asked for.'''
+    entry = {"keypath": ["library", "secret", "dataroot", "secretroot"], "private": True}
 
-    assert response.status_code == 201
-    assert not response.get_json().get("upload_sources")
+    refused = create(server_client, key, token, sources=[entry])
+    server.config["SC_CONFIG"]._values["private_dataroots"] = {
+        "library": {"secret": {"secretroot": str(tmp_path / "secret")}}}
+    supplied = create(server_client, key, token, jobname="job1", sources=[entry])
+
+    assert (refused.status_code, slug(refused)) == (422, "resource-unavailable")
+    assert refused.get_json()["keypath"] == entry["keypath"]
+    assert supplied.status_code == 201
+    assert not supplied.get_json().get("upload_sources")
 
 
-def test_credentials_in_a_source_are_never_stored(server, server_client, key, token):
-    '''🔴 The client strips them; the server strips them again.'''
+def test_a_query_value_in_a_source_is_never_stored(server, server_client, key, token):
+    '''🔴 The client masks it; the server masks it again. Userinfo is
+    refused outright (test_server_jobs).'''
     job = create(server_client, key, token, sources=[
         {"keypath": ["library", "ip", "dataroot", "ip"],
-         "source": "https://user:ghp_secret@gitlab.com/acme/ip/archive/",
+         "source": "https://gitlab.com/acme/ip/archive/?private_token=ghp_secret",
          "ref": "v1", "private": False}]).get_json()
 
     stored = server.config["SC_STORE"].one(
         "SELECT descriptor FROM jobs WHERE id = ?", (job["id"],))["descriptor"]
     assert "ghp_secret" not in stored
-    assert "gitlab.com/acme/ip" in stored
+    assert "gitlab.com/acme/ip/archive/?private_token=***" in stored
+
+
+@pytest.mark.parametrize("private", [False, True])
+def test_a_queried_source_is_asked_for_and_never_fetched(server, server_client, key, token,
+                                                         private):
+    '''🔴 Surface D308: its values are masked, so this server never fetches
+    one -- an allowlisted host's included. A public one is asked for; a
+    private one has only the operator's copy or a held one, and with neither
+    is refused at create.'''
+    fetched = []
+    store = server.config["SC_JOBS"]._sources
+    store._resolve = lambda *args: fetched.append(args)
+    source = f"{LAMBDA}?token=***"
+
+    assert server.config["SC_JOBS"]._supply.allowlisted(LAMBDA, "v0.2.22")
+    assert not server.config["SC_JOBS"]._supply.allowlisted(source, "v0.2.22")
+    response = create(server_client, key, token, sources=[
+        {"keypath": ["library", "lambda", "dataroot", "lambda"],
+         "source": source, "ref": "v0.2.22", "private": private}])
+
+    if private:
+        assert (response.status_code, slug(response)) == (422, "resource-unavailable")
+    else:
+        assert response.get_json()["upload_sources"] == [
+            {"kind": "dataroot", "keypath": ["library", "lambda", "dataroot", "lambda"]}]
+    with pytest.raises(Permanent):
+        store.fetch(source, "v0.2.22", 5)
+    assert not fetched
 
 
 def test_a_token_in_a_sources_query_is_masked_here_too(server, server_client, key, token):
@@ -229,9 +264,9 @@ def test_two_owners_of_one_dataroot_name_are_told_apart(server_client, key, toke
     (surface §13; D282).'''
     job = create(server_client, key, token, sources=[
         {"keypath": ["library", "acme_ip", "dataroot", "root"],
-         "source": "git+ssh://git@github.com/acme/ip.git", "ref": "v1", "private": False},
+         "source": "git+ssh://github.com/acme/ip.git", "ref": "v1", "private": False},
         {"keypath": ["library", "beta_ip", "dataroot", "root"],
-         "source": "git+ssh://git@github.com/beta/ip.git", "ref": "v1", "private": False},
+         "source": "git+ssh://github.com/beta/ip.git", "ref": "v1", "private": False},
     ]).get_json()
 
     assert job["upload_sources"] == [
@@ -908,8 +943,9 @@ def test_an_archive_carrying_a_private_value_is_refused_naming_it(
         server, server_client, key, token, job_archive, private_project, dispatcher,
         tmp_path):
     '''It must never have been sent, so it is not used in place of the server's
-    own: `archive-rejected`, `unrequested_member`, naming the dataroot and the
-    member.'''
+    own: `archive-rejected`, `unrequested_member`, naming the dataroot as
+    `keypath` and the member in `detail` -- and the upload is not kept
+    (surface D308): no `input` row, and its bytes nowhere.'''
     fake_fetch(server)
     archive, _, _ = job_archive(private_project)
     member = "sc_collected_files/" + collected_path(
@@ -932,7 +968,34 @@ def test_an_archive_carrying_a_private_value_is_refused_naming_it(
     assert response.get_json()["reason"] == "unrequested_member"
     assert member in response.get_json()["detail"]
     assert "library,secret,dataroot,secret" in response.get_json()["detail"]
+    assert response.get_json()["keypath"] == ["library", "secret", "dataroot", "secret"]
     assert not dispatcher.submitted
+
+    kinds = [row["kind"] for row in server.config["SC_STORE"].all(
+        "SELECT kind FROM artifacts WHERE job_id = ?", (job["id"],))]
+    assert "input" not in kinds and "staging" in kinds
+    for where, _, files in os.walk("datadir"):
+        for name in files:
+            with open(os.path.join(where, name), "rb") as f:
+                data = f.read()
+            if data[:2] == b"\x1f\x8b":
+                import gzip
+                data = gzip.decompress(data)
+            assert b"the private datasheet, sent anyway" not in data, name
+
+
+def test_an_archive_refused_for_another_reason_is_kept(
+        server, server_client, key, token, job_archive, nop_project, dispatcher):
+    '''Only what it must not carry costs the upload: a first archive with an
+    ordinary stray member is refused, and kept as the job's `input`.'''
+    archive, digest, size = job_archive(extra={"stray.txt": b"not asked for\n"})
+    job, response = staged(server_client, key, token, archive, digest, size)
+
+    assert response.get_json()["reason"] == "unrequested_member"
+    assert "keypath" not in response.get_json()
+    assert [row["kind"] for row in server.config["SC_STORE"].all(
+        "SELECT kind FROM artifacts WHERE job_id = ? AND kind = 'input'",
+        (job["id"],))] == ["input"]
 
 
 ###########################

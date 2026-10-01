@@ -28,6 +28,7 @@ def artifact(kind="manifest", step=None, index=None, fetchable=True, **extra):
         "deleted_cause": None,
         "deleted_reason": None,
         "fetchable": fetchable,
+        "can_request_access": False,
         **extra,
     }
 
@@ -234,48 +235,67 @@ def test_expired_says_when_it_aged_out(fake_v1, results, caplog):
     assert "deleted" not in caplog.text
 
 
-def test_blocked_by_names_each_document_with_its_own_link(fake_v1, results, caplog):
-    '''*Sign*: each document in the map, with the link its entry carries.'''
-    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "stepone", "0", fetchable=False, blocked_by={
-            "gf22-nda": {"url": "https://portal.test/terms/gf22-nda"},
-            "gf22-export": {"url": "https://portal.test/terms/gf22-export"}})]})
-
-    with caplog.at_level("WARNING"):
-        results.fetch("j1")
-
-    assert "sign gf22-nda: https://portal.test/terms/gf22-nda" in caplog.text
-    assert "sign gf22-export: https://portal.test/terms/gf22-export" in caplog.text
-
-
-def test_a_document_with_no_link_is_named_by_its_title(fake_v1, results, caplog):
-    '''An entry that is `{}` has no link, and the client names the document by
-    its title in GET /v1/me's `terms` -- without inventing one.'''
+def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
+    '''*Sign*: `blocked_by` is a list of `terms` ids (surface D309), each
+    named by its title in GET /v1/me's `terms`, or by its id where it has
+    none -- and no link is invented.'''
     fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
-        {"id": "gf22-nda", "title": "GF22 non-disclosure agreement"}]})
+        {"id": "gf22-nda", "title": "GF22 non-disclosure agreement", "can_decide": True}]})
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "stepone", "0", fetchable=False, blocked_by={"gf22-nda": {}})]})
+        artifact("final", "stepone", "0", fetchable=False,
+                 blocked_by=["gf22-nda", "gf22-export"])]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
 
-    assert "GF22 non-disclosure agreement" in caplog.text
+    assert "sign GF22 non-disclosure agreement" in caplog.text
+    assert "sign gf22-export" in caplog.text
     assert "http" not in caplog.text
 
 
 def test_an_approval_is_asked_for_and_a_request_shows_when(fake_v1, results, caplog):
+    '''*Ask* reads `can_request_access`, and names no URL: the page comes from
+    endpoint 6, asked for only when it is about to be opened.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("final", "stepone", "0", fetchable=False,
-                 access_request_url="https://portal.test/request/1"),
-        artifact("final", "steptwo", "0", fetchable=False,
-                 access_request_url="https://portal.test/request/2",
+        artifact("final", "stepone", "0", fetchable=False, can_request_access=True),
+        artifact("final", "steptwo", "0", fetchable=False, can_request_access=True,
                  access_requested_at="2026-09-21T10:00:00.000Z")]})
 
     with caplog.at_level("WARNING"):
         results.fetch("j1")
 
-    assert "Ask for access at https://portal.test/request/1" in caplog.text
+    assert "needs an approval. Ask for access on its page" in caplog.text
     assert "requested on 2026-09-21" in caplog.text
+    assert not [c for c in fake_v1.calls if c.request.url.endswith("/auth/browser")]
+
+
+def test_on_a_terminal_the_approval_request_is_offered_and_opened_on_a_yes(
+        fake_v1, results, monkeypatch):
+    '''One question for every object that may be asked for, and each one's
+    page asked for at endpoint 6 by its id. One already requested is not.'''
+    from siliconcompiler.remote import client as client_module
+
+    for stream in ("stdin", "stdout"):
+        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    asked = []
+    monkeypatch.setattr(client_module, "_ask", lambda question: asked.append(question) or "y")
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=a", "expires_at": None})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("final", "stepone", "0", fetchable=False, can_request_access=True),
+        artifact("final", "steptwo", "0", fetchable=False, can_request_access=True,
+                 access_requested_at="2026-09-21T10:00:00.000Z")]})
+
+    results.fetch("j1")
+
+    assert len(asked) == 1
+    pages = [json.loads(c.request.body) for c in fake_v1.calls
+             if c.request.url.endswith("/v1/auth/browser")]
+    assert pages == [{"artifact_id": "art-final-stepone-0"}]
+    assert opened == ["https://portal.test/enter?token=a"]
 
 
 def test_ungranted_with_no_agreement_says_asking_will_not_help(fake_v1, results,
@@ -291,52 +311,27 @@ def test_ungranted_with_no_agreement_says_asking_will_not_help(fake_v1, results,
     assert "not something asking would change" in caplog.text
 
 
-def test_an_artifact_still_being_described_is_asked_again_then_fetched(
-        fake_v1, results, nop_project, monkeypatch):
-    '''🔴 Surface D306: `fetchable: false` with neither `blocked_by` nor
-    `access_request_url` is fetched once, since a listing cannot tell *still
-    being described* from *no path to yes*. `409 not-ready` says to wait its
-    `Retry-After` and ask again.'''
-    slept = []
-    monkeypatch.setattr("siliconcompiler.remote.client.results.time.sleep", slept.append)
+def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
+    '''🔴 Surface D308: an artifact still being described is not listed, so
+    `fetchable: false` is the answer, and nothing is fetched to find out --
+    whether it names a way to yes or not.'''
     fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("node", "stepone", "0", fetchable=False)]})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
-                  problem("not-ready", 409, artifact_kind="node"), status=409,
-                  content_type="application/problem+json", headers={"Retry-After": "3"})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
-                  tarball(["outputs/gcd.pkg.json"]), content_type="application/gzip")
-
-    assert results.fetch("j1") == 1
-    assert slept == [3.0]
-
-
-def test_any_other_answer_to_that_one_fetch_is_final(fake_v1, results, monkeypatch, caplog):
-    slept = []
-    monkeypatch.setattr("siliconcompiler.remote.client.results.time.sleep", slept.append)
-    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("node", "stepone", "0", fetchable=False)]})
-    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-node-stepone-0",
-                  problem("artifact-not-approved", 403), status=403,
-                  content_type="application/problem+json")
+        artifact("node", "stepone", "0", fetchable=False),
+        artifact("node", "steptwo", "0", fetchable=False, can_request_access=True)]})
 
     with caplog.at_level("WARNING"):
         assert results.fetch("j1") == 0
 
-    assert not slept
-    assert len([c for c in fake_v1.calls
-                if c.request.url.endswith("/artifacts/art-node-stepone-0")]) == 1
+    assert not [c for c in fake_v1.calls if "/artifacts/art-" in c.request.url]
     assert "may not have this" in caplog.text
 
 
-def test_an_artifact_that_names_a_way_to_yes_is_never_fetched(fake_v1, results):
-    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
-        artifact("node", "stepone", "0", fetchable=False,
-                 access_request_url="https://sc-server.test/ask")]})
+def test_no_fetch_once_probe_remains():
+    '''Follow-on 23's probe, removed: *listed* means describable.'''
+    from siliconcompiler.remote.client import results as module
 
-    results.fetch("j1")
-
-    assert not [c for c in fake_v1.calls if "/artifacts/art-" in c.request.url]
+    for name in ("_fetch_once", "_names_no_way", "NOT_READY_ASKS"):
+        assert not hasattr(module, name) and not hasattr(module.Results, name), name
 
 
 def test_the_cases_are_different_sentences(results):
@@ -347,10 +342,9 @@ def test_the_cases_are_different_sentences(results):
                                   deleted_at="2026-09-20T00:00:00.000Z")),
         results._explain(artifact(fetchable=False, deleted_cause="expired",
                                   deleted_at="2020-01-01T00:00:00.000Z")),
-        results._explain(artifact(fetchable=False,
-                                  blocked_by={"nda": {"url": "https://x.test/nda"}})),
-        results._explain(artifact(fetchable=False, access_request_url="https://x.test")),
-        results._explain(artifact(fetchable=False, access_request_url="https://x.test",
+        results._explain(artifact(fetchable=False, blocked_by=["nda"])),
+        results._explain(artifact(fetchable=False, can_request_access=True)),
+        results._explain(artifact(fetchable=False, can_request_access=True,
                                   access_requested_at="2026-09-20T00:00:00.000Z")),
         results._explain(artifact(fetchable=False)),
     }

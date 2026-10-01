@@ -340,12 +340,12 @@ def _resources(summary) -> List[Tuple[str, str]]:
 
 
 def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
-    '''The descriptor's `sources`, checked, with credentials stripped -- or
-    None where there are none.
+    '''The descriptor's `sources`, checked, with every query value masked --
+    or None where there are none.
 
-    `private` is OPTIONAL and defaults to false. A private entry may carry
-    `source` and `ref` (surface D299), masked here as any other's; the
-    `sc-server` client sends neither, since the manifest carries the source.
+    `private` is OPTIONAL and defaults to false. A private entry carries
+    `source` and `ref` where its dataroot has a remote one (surface D308),
+    masked here as any other's; a local one has neither.
     '''
     declared = descriptor.get("sources")
     if declared is None:
@@ -382,9 +382,16 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         private = item.get("private", False)
         entry = {"keypath": list(keypath), "private": private}
         if isinstance(item.get("source"), str):
-            # 🔴 Masked again, as the client masks it (`Resolver.safe_source`):
-            # a client that sent `user:token@` or a query's token anyway has
-            # its secret neither stored nor logged here.
+            # 🔴 Refused, never stripped (surface D310): no client sends
+            # userinfo, so one that did is told which entry -- by its keypath in
+            # `detail`, never the value, which is neither stored nor logged.
+            if owners.has_userinfo(item["source"]):
+                raise ProblemError(
+                    "invalid-request",
+                    detail=f"{where}: a source carries no userinfo -- no user name and "
+                           "no secret ahead of its host")
+            # Masked again, as the client masks it (`Resolver.safe_source`): a
+            # query's token a client sent anyway is neither stored nor logged.
             try:
                 entry["source"] = owners.masked(item["source"])
             except ValueError:
@@ -530,8 +537,9 @@ def _problem_from(outcome: Dict[str, Any]) -> ProblemError:
     members: Dict[str, Any] = {}
     given = outcome.get("members") or {}
     if outcome["type"] == "software-unavailable":
+        # A read refuses software only as `unknown_class`: a task class.
         members["unresolved"] = [
-            {"name": str(item.get("name"))[:manifestread.MAX_NAME],
+            {"kind": "class", "name": str(item.get("name"))[:manifestread.MAX_NAME],
              "requirement": [], "available": []}
             for item in (given.get("unresolved") or [])[:100] if isinstance(item, dict)]
     if outcome["type"] == "resource-unresolved":
@@ -569,7 +577,7 @@ def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> Problem
     for requirement in named:
         match = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)(\[[^\]]*\])?(.*)$", requirement)
         name, spec = (match.group(1), match.group(3).strip()) if match else (requirement, "")
-        unresolved.append({"name": environment.canonical(name),
+        unresolved.append({"kind": "package", "name": environment.canonical(name),
                            "requirement": [spec] if spec else [], "available": []})
 
     refused = result.get("refused") or []

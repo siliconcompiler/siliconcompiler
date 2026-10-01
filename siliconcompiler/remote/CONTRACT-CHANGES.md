@@ -111,6 +111,14 @@ contract D68, entitlements D81, client-v1-migration D16, ui/access D14) came
 from no list here; follow-on 23 brings the code up to them, and to the one
 handover route ui/access D15 and identity D92 put on both deployments.
 
+Items 7–9 here, from building follow-on 22 -- an upload refused for a
+credential not kept, the rule covering every manifest an archive carries, and
+D302's example and `keypath` (surface D307, client-v1-migration D18) -- were
+decided too, and removed the same way. The week's two reviews (surface
+D308–D311, contract D70–D73) came from no list here. They also close the portal
+handover: follow-on 23's route outside `/v1` is replaced by `POST
+/v1/auth/browser` (identity D93). Follow-on 24 brings the code up to both.
+
 ---
 
 ## Open — not yet in the contract docs
@@ -132,52 +140,6 @@ Nothing to port: it goes when its plan lands on `main` and is merged here.
   editable** (surface *Uploaded wheels*). The node's resolver may still ask
   (CORE-FOLLOWUPS item 10).
   **Tracked in:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
-
-### From building follow-on 22 (2026-09-30)
-
-#### 7. 🔴 An upload refused for a credential is kept, and keeps it
-
-`archive-rejected`, `reason: "credential"` exists because the archive is kept as
-the job's `input`, which anyone who can read the job can fetch (D302). But the
-surface keeps an upload refused as `archive-rejected` as an `input` row
-(*`input` is one per upload*), and excepts only `upload-forbidden`. So the
-refusal keeps exactly what it refused. `sc-server` keeps it, as the text says,
-and removes the extracted tree, which is a second copy of the same bytes.
-
-**Proposed:** an upload refused for `credential` is not kept, as one refused
-`upload-forbidden` is not: only the record of why remains.
-
-**Where it goes:** `api/surface.md`, *`input` is one per upload*.
-
-#### 8. A `-from` run's archive carries more manifests than the one D302 names
-
-Each upstream node's `outputs/` carries that node's own manifest, and it
-records every dataroot's path as the root manifest does. D302 has the client
-send *each dataroot's path in the manifest it uploads* without its userinfo,
-and the server refuse *an archive whose manifest carries userinfo*: the root
-manifest. `sc-server`'s client masks every manifest it packs, the upstream ones
-included, and its server checks the root manifest only.
-
-**For the contract to say:** whether the rule and the refusal cover every
-manifest an archive carries, or the root one alone.
-
-**Where it goes:** `api/surface.md`, D302's bullet under *Every file is
-uploaded or supplied by identity*.
-
-#### 9. Two small things in D302's text
-
-- **The `sources` example keeps userinfo.** §13 shows `"source":
-  "git+ssh://git@github.com/acme/ip.git"` marked *credentials stripped*, but
-  the rule removes all userinfo, `git@` included, as `safe_source` does, and
-  the server refuses a manifest path carrying any. The example should read
-  `git+ssh://github.com/acme/ip.git`.
-- **"Naming the keypath" does not say where.** `sc-server` names each
-  dataroot's keypath in `detail`. `resource-unavailable` carries a `keypath`
-  member for the same purpose (D298), and `archive-rejected`'s registry row
-  lists none; a client that wants to act on it has only prose.
-
-**Where it goes:** `api/surface.md` §13 (the example) and the registry row for
-`archive-rejected`.
 
 ---
 

@@ -201,15 +201,18 @@ this server's own environment; it is uploaded again. To keep a proprietary PDK
 off the wire, mark its dataroot `+private` -- its bytes then never leave the
 submitter's machine -- and the operator supplies it through `private_dataroots`,
 or lets this server fetch it by putting its source on `fetch_allowlist`. The
-source is the manifest's own: the create body does not carry it, so a private
-dataroot the map does not hold is decided while the job stages, and one no
-route supplies ends the job `rejected`, `resource-unavailable`, never sent back
-for.
+create body carries a remote private dataroot's source and ref, and none for a
+local one, so create decides all three routes: one none of them supplies is
+refused `resource-unavailable`, naming its keypath, before anything uploads,
+and is never sent back for.
 
-⚠️ **The manifest carries every dataroot's source as it was registered**, a
-private one's included, and a `user:token@` in it with it. The server masks one
-wherever it keeps or logs it, but the upload holds it: register a source with
-no credential in it, and let the fetching side use its own.
+⚠️ **No credential leaves the client in a URL.** It sends every dataroot's
+source, in the create body and in every manifest the archive carries, with no
+`user:token@` and every query value masked. A `sources` URL with userinfo is
+refused at create, naming its keypath and never the value; a manifest with one
+is `archive-rejected`, `credential`, and the upload is not kept. A source whose
+URL has a query is never fetched here. Register a source with no credential in
+it, and let the fetching side use its own.
 
 **A dataroot is named by its keypath**, where the manifest keeps it: a
 library's `library,<name>,dataroot,<root>`, and a task's own
@@ -254,7 +257,7 @@ Python -- is crucible's, against a catalogue this server does not have.
 
 To install them, a deployment advertises `python.env`, and nothing else
 decides: `sc-server` grants nothing, so it checks none of the capabilities
-crucible grants (`python-env`, `python-wheels`, `python-sdist`). Where nodes run
+crucible grants (`python-packages`, `python-wheels`, `python-sdist`). Where nodes run
 on this host (`containers` off, `-cluster local`), the job's packages and
 wheels are installed while the job is `staging`, binary wheels only, from
 `package_indexes` (PyPI by default), into an environment of their own under
@@ -342,14 +345,14 @@ errors while the run goes on &mdash; they are in the manifest, not in the
 archive around it.
 
 A kind the API withholds stays **in the listing** with `fetchable: false` and
-no `access_request_url` &mdash; it exists and there is no path to yes from
+`can_request_access: false` &mdash; it exists and there is no path to yes from
 here &mdash; and fetching it is `403 artifact-not-approved`: the entitlement
 ladder's row 7, with no way to ask, since this server offers none. The portal
 lists and serves it, the same split `max_download_bytes` makes.
 
 `api_fetchable_kinds` is what does it, and it is **a test mode**: off by
 default, where every kind is fetchable over the API, and set by modes 2 and 3.
-Outside it this server never emits `access_request_url`.
+Every artifact reads `can_request_access: false`, in a test mode or not.
 
 A denied PDK, library or tool is refused at submit, after the archive is
 opened, as `entitlement-denied` naming `resource_kind` and `resource`, and the

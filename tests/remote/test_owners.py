@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -182,7 +183,8 @@ def private(cls, name, root):
 def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path, scheme):
     '''🔴 The marker is a `+private` suffix on any scheme (surface D274), read
     through `Resolver.is_private` before every other source rule: never
-    uploaded, and supplied by name with no source or ref.'''
+    uploaded. A remote one carries its cleaned source and ref (surface D308),
+    and a local one neither -- its path is never sent.'''
     local = scheme == "file+private"
     source = f"{scheme}://{tmp_path / 'secret'}" if local else f"{scheme}://host/secret.git"
     pdk = PDK("secret")
@@ -194,7 +196,27 @@ def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path
     assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
     entry, = [item for item in owners.sources(project)
               if item["keypath"] == ["library", "secret", "dataroot", "secret"]]
-    assert entry["private"] is True and "source" not in entry and "ref" not in entry
+    assert entry["private"] is True
+    if local:
+        assert "source" not in entry and "ref" not in entry
+        assert str(tmp_path) not in json.dumps(entry)
+    else:
+        assert entry["source"].endswith("://host/secret.git") and entry["ref"] == "v1"
+
+
+def test_a_private_remote_source_is_sent_without_its_credentials(project):
+    '''As every other source is: no userinfo, and every query value masked.'''
+    pdk = PDK("secret")
+    pdk.set_dataroot("secret", "git+https+private://alice:ghp_TOKEN@host/secret.git?k=v",
+                     tag="v1")
+    with pdk.active_dataroot("secret"):
+        pdk.set(*DATASHEET, "datasheet.pdf")
+    project.set_pdk(pdk)
+
+    entry, = [item for item in owners.sources(project)
+              if item["keypath"] == ["library", "secret", "dataroot", "secret"]]
+    assert "ghp_TOKEN" not in entry["source"] and "alice" not in entry["source"]
+    assert entry["source"].endswith("host/secret.git?k=***")
 
 
 def test_a_private_pdk_is_never_uploaded(project, tmp_path):

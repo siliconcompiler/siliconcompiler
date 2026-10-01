@@ -219,12 +219,7 @@ class RemoteRun:
 
         self.logger.info(f"Your job's reference ID is: {job_id}")
 
-        # 🔴 Followed, never constructed. The portal's route shape may change
-        # without a version bump, so this is printed only when the server sent
-        # it -- absent means the deployment has no web UI.
-        if job.get("web_url"):
-            self.logger.info(f"Watch it at: {job['web_url']}")
-            self._open_portal(job["web_url"])
+        self._open_portal(job_id)
 
         self._save_manifest()
 
@@ -345,7 +340,7 @@ class RemoteRun:
 
     def _check_capabilities(self, me: Dict[str, Any]) -> None:
         '''Stop where the job's Python needs a capability this account does
-        not hold (surface *Who may use it: three capabilities*): `python-env`
+        not hold (surface *Who may use it: three capabilities*): `python-packages`
         to list packages, `python-wheels` to upload wheels.
 
         Only where `authorized.capabilities` is published: a deployment that
@@ -357,18 +352,18 @@ class RemoteRun:
         if not isinstance(granted, list):
             return
         member, built, _ = self._python()
-        needed = [name for name, needs in (("python-env", bool(member)),
+        needed = [name for name, needs in (("python-packages", bool(member)),
                                            ("python-wheels", bool(built))) if needs]
         held = {entry.get("name"): entry for entry in granted if isinstance(entry, dict)}
         missing = [name for name in needed if name not in held]
         blocked = [name for name in needed if name in held and held[name].get("blocked_by")]
         if not missing and not blocked:
             return
-        what = {"python-env": "to install its Python packages",
+        what = {"python-packages": "to install its Python packages",
                 "python-wheels": f"to upload {', '.join(sorted(built))}"}
         said = [f"{name} {what[name]}" for name in missing + blocked]
-        # 🔴 Each document in the way, with its own signing link, as the
-        # listing's access message says it: `blocked_by` is where to go.
+        # 🔴 Each document in the way by its title, as the listing's access
+        # message names it: `blocked_by` is a list of `terms` ids.
         from siliconcompiler.remote.client.errors import blocked_lines
 
         titles = {entry.get("id"): entry.get("title")
@@ -589,19 +584,20 @@ class RemoteRun:
             self.client.upload(grant, upload)
             self.client.submit_job(job_id, idempotency_key=_key())
 
-    def _open_portal(self, web_url: str) -> None:
+    def _open_portal(self, job_id: str) -> None:
         '''Open the job's page, where a person is plainly watching.
 
         ⚠️ **Provisional.** Launching a browser from a build is a convenience
-        and not a commitment: the durable part is `web_url` on the job object,
-        which is printed either way. If this proves more annoying than useful,
-        deleting this method and its one call site removes it entirely and
-        changes nothing else.
+        and not a commitment (when to is the client's call, surface D309). If
+        this proves more annoying than useful, deleting this method and its
+        one call site removes it entirely and changes nothing else.
 
-        🔴 A browser is opened only when somebody is there to see it. Three
-        things have to agree:
+        🔴 The page is asked for only when it is about to be opened -- from
+        `POST /v1/auth/browser` with the job's id, never built -- and only
+        when somebody is there to see it. Three things have to agree:
 
-        - the server published a `web_url`, so there IS a portal
+        - the session is not a CI one: nobody is at a browser there, and a CI
+          session never asks
         - `option,nodisplay` is not set, which is SiliconCompiler's existing
           way of saying *do not pop anything up* and is already honoured by the
           dashboard and the layout viewers
@@ -610,22 +606,9 @@ class RemoteRun:
           small mystery at best
 
         ⚠️ `open_portal`, in the `remote` category of `settings.json`, overrides
-        all of it either way, because a proxy is a guess and somebody will want it wrong on
-        purpose.
-
-        A handover rather than the bare URL: the browser holds none of what
-        this client holds, so the plain page would answer 401 and ask them to
-        run a command. This mints a single-use link that both authenticates
-        and lands on the job (client-v1-migration D17).
-
-        🔴 **Landing on `web_url`'s own path**, never one built from the job
-        id: the route is the portal's, and only the server knows its shape. A
-        CI session never asks, since nobody is at a browser; and where the
-        handover is refused -- a `404` from a deployment with no such route
-        included -- the page opens as given, and the reason is said.
+        the last two either way, because a proxy is a guess and somebody will
+        want it wrong on purpose. A refusal is said, and the run carries on.
         '''
-        from urllib.parse import urlsplit
-
         if self.client.ci_session:
             return
         from siliconcompiler.remote.client.credentials import preference
@@ -639,14 +622,7 @@ class RemoteRun:
             if not (hasattr(sys.stdout, "isatty") and sys.stdout.isatty()):
                 return
 
-        try:
-            self.client.portal(open_browser=True, landing=urlsplit(web_url).path)
-        except Exception as e:                                   # noqa: BLE001
-            # A handover that is not given is not a reason to stop a run.
-            why = (str(e).strip().splitlines() or [type(e).__name__])[0]
-            self.logger.warning(f"The server did not hand this browser a session "
-                                f"({why}); opening the job's page as given")
-            self.client.open_url(web_url, "the job's page")
+        self.client.open_page("the job's page", require_tty=False, job_id=job_id)
 
     def _preprocess(self) -> None:
         '''Collect what the server will need and cannot have, by what owns it.

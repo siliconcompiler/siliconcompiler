@@ -109,9 +109,14 @@ class ReconcileMixin:
         for key, node in (progress.get("nodes") or {}).items():
             step, _, index = key.partition("/")
             state = node.get("state", "pending")
-            if state == "completed":
-                # 🔴 `completed` only once its artifacts are listed: a client
-                # that sees it fetches them.
+            if state in TERMINAL_NODE_STATES:
+                # 🔴 Every terminal state only once the node's artifacts are
+                # listed, `failed` and `cancelled` as well as `completed`
+                # (surface D310): a client that sees it fetches them. As the
+                # node finishes rather than as the job does, so a node that is
+                # done answers /logs with its archive while the rest of the
+                # flow is still running -- which is precisely the moment
+                # somebody tailing it asks.
                 self._index_node(job, step, index)
 
             # 🔴 A published field with no writer is a published field that
@@ -135,13 +140,6 @@ class ReconcileMixin:
                 (state, node.get("started_at"), node.get("finished_at"),
                  None if state == "cancelled" else runspec.exit_code(node.get("exit_code")),
                  error_type, error_members, job["id"], step, index))
-
-            if state in TERMINAL_NODE_STATES and state != "completed":
-                # Indexed as the node finishes rather than as the job does, so
-                # a node that is done answers /logs with its archive while the
-                # rest of the flow is still running -- which is precisely the
-                # moment somebody tailing it asks.
-                self._index_node(job, step, index)
 
     @staticmethod
     def _final(job, reported: str) -> str:
@@ -422,6 +420,10 @@ class ReconcileMixin:
             return
 
         logger.warning(f"{job['id']} is gone from the scheduler with no result")
+        # 🔴 What it did leave, the operators' record above all -- a run the
+        # scheduler lost is the one somebody has to explain -- listed before
+        # its nodes and the job turn terminal (surface D310).
+        self._index(job)
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
@@ -449,14 +451,16 @@ class ReconcileMixin:
                 job["id"], job["state"], "failed",
                 reason="the scheduler no longer has this job and the run never "
                        "recorded how it ended")
-        # What it did leave, the operators' record above all: a run the
-        # scheduler lost is the one somebody has to explain.
-        self._index(self._row(job["id"]))
 
     def _settle_cancelled(self, job) -> None:
         '''A cancel that has taken effect: `cancelling` to `cancelled`, and
         every node it stopped `cancelled`, with no exit code and the cancel's
-        reason. No error: nothing went wrong.'''
+        reason. No error: nothing went wrong.
+
+        A run the cancel stopped is indexed first, so its nodes and the job
+        turn `cancelled` only once what it left is listed (surface D310).'''
+        if job["scheduler_job_id"] and job["state"] == "cancelling":
+            self._index(job)
         with self._store.transaction():
             current = self._row(job["id"])
             if current is None or current["state"] != "cancelling":

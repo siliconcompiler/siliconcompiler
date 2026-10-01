@@ -46,7 +46,7 @@ def finished(server, server_client, key, token, job_archive, dispatcher):
 
 @pytest.fixture
 def signed_in(server, server_client, key, token):
-    response = call(server_client, key, "POST", "/portal/session", token)
+    response = call(server_client, key, "POST", "/v1/auth/browser", token, json={})
     url = response.get_json()["url"]
     assert server_client.get(url.split("http://localhost", 1)[1]).status_code == 302
     return server_client

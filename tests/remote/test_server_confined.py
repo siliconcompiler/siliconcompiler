@@ -65,7 +65,7 @@ def test_the_portal_does_not_show_a_log_through_a_link(
     tool_log = log.parent / "place.log"
     tool_log.symlink_to(secret)
 
-    response = call(server_client, key, "POST", "/portal/session", token)
+    response = call(server_client, key, "POST", "/v1/auth/browser", token, json={})
     server_client.get(response.get_json()["url"].split("http://localhost", 1)[1])
     page = server_client.get(f"/portal/jobs/{job_id}/logs/place/0?file=place.log")
 

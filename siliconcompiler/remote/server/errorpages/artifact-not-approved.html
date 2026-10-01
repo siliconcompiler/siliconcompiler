@@ -26,8 +26,8 @@
 
 <div class="do">
 <ol>
-  <li>Look at the artifact in the listing: a <code>fetchable: false</code> object with an <code>access_request_url</code> has a path to approval &mdash; follow it.</li>
-  <li>Without one there is no request to make over the API. A deployment with a web portal may offer the object there.</li>
+  <li>Look at the artifact in the listing: a <code>fetchable: false</code> object with <code>can_request_access: true</code> has a path to approval &mdash; open its page from <code>POST /v1/auth/browser</code> with <code>{"artifact_id": "&lt;id&gt;"}</code>, and ask there.</li>
+  <li>With <code>can_request_access: false</code> there is no request to make. A deployment with a web portal may offer the object there.</li>
   <li>For a <code>node</code> archive, fetch what it holds that you can have &mdash; its manifest, log and reports are listed on their own.</li>
 </ol>
 </div>

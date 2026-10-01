@@ -67,8 +67,9 @@ API, where an administrator is an ordinary user:
 
 ## 2. The API: every endpoint, row by row
 
-The numbering is surface.md's, and a removed endpoint leaves a gap: 6, 7 and 8
-are unassigned.
+The numbering is surface.md's, and a removed endpoint leaves a gap: 7 and 8 are
+unassigned. There are 20, and `sc-server` serves every one, the device grant
+routed and refused.
 
 | # | Endpoint | What `sc-server` serves |
 |---|---|---|
@@ -77,6 +78,7 @@ are unassigned.
 | 3 | `POST /v1/auth/device` | routed, and refused in the OAuth shape with `400 unsupported_grant_type`, the contract's answer where `grant_types_supported` omits the device grant: the client's cue to use `client_credentials`. There is no approval page behind a `verification_uri` |
 | 4 | `POST /v1/auth/token` | `client_credentials` and `refresh_token`, with DPoP on every session and no exception. The subject is bound to the first key that presents it ([§7](#7-the-key-binding)). A session lasts 12 days and is never extended; a refresh token 7 days, sliding; an access token 15 minutes. The refresh grace window is [300 seconds](#the-refresh-grace-window-is-300-seconds) |
 | 5 | `POST /v1/auth/revoke` | ends the calling session, whatever its scope |
+| 6 | `POST /v1/auth/browser` | a single-use sign-in to the portal, landing on the page the body names -- a job's, or the home -- and living 60 seconds; [§4](#the-sign-in-a-page-for-a-persons-browser) |
 | 9 | `GET /v1/me` | [below](#get-v1me) |
 | 10 | `GET /v1/devices` | the caller's devices. Never empty for a caller with a session: the key binding is the one real control this profile has, and this list is where a person sees it |
 | 11 | `GET /v1/devices/{id}` | one of the caller's devices |
@@ -85,7 +87,7 @@ are unassigned.
 | 14 | `POST /v1/jobs/{id}/upload-grant` | a `PUT` to a signed route on this host, since `file://` storage cannot presign ([§2](#the-stream-host-and-storage-are-this-host)) |
 | 15 | `POST /v1/jobs/{id}/submit` | the contract's staging: the digest checked before anything is opened, then the archive, then the manifest, read by this server's own SiliconCompiler in a subprocess of its own ([§5](#5-images-and-software)), and the job's Python packages installed ([§3](#pythonenv-only-where-there-is-somewhere-safe-to-build)) |
 | 16 | `GET /v1/jobs` | the caller's jobs, newest first, over a keyset cursor; `?project=` is `501 feature-unsupported` |
-| 17 | `GET /v1/jobs/{id}` | the whole job object. `web_url` is served, since this profile has a portal. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#one-gap-some-slurm-interruptions-read-as-run-failed) says it can |
+| 17 | `GET /v1/jobs/{id}` | the whole job object, with no portal URL: a job's page comes from endpoint 6. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#one-gap-some-slurm-interruptions-read-as-run-failed) says it can |
 | 18 | `POST /v1/jobs/{id}/cancel` | a `reason` of at most 300 characters, served whole on the transitions and on each node it stopped |
 | 19 | `DELETE /v1/jobs/{id}` | deletes the job's data; the job object stays readable |
 | 20 | `GET /v1/jobs/{id}/logs` | `logs.stream` and `logs.stream.job` are advertised, so a node or job gets a `303` to a stream on this host: live while it runs, and for a finished one a stream that ends at once, naming its archived `logs` artifact |
@@ -226,7 +228,7 @@ environment builder, or where nodes run on the host. A containerised
 to start if `features` lists it.
 
 - **Who may use it: `python.env` alone decides.** This profile grants nothing,
-  so none of the capabilities (`python-env`, `python-wheels`, `python-sdist`) is
+  so none of the capabilities (`python-packages`, `python-wheels`, `python-sdist`) is
   checked, and `entitlement-denied` with `resource_kind: "capability"` is never
   raised here. Building from source, crucible's `python-sdist`, is the
   operator's `python_source_builds`, off by default and only in the builder.
@@ -264,40 +266,45 @@ the server's environment.
 
 | Source | Here |
 |---|---|
-| **marked private** | supplied only from roots the operator configures, by the dataroot's keypath, never outside them, or `resource-unavailable` with that `keypath`. Never uploaded |
+| **marked private** | decided at create, three ways: the operator's copy, from roots the operator configures, by the dataroot's keypath and never outside them; a copy this server holds, by source and ref; or a fetch from the allowlist while `staging`. A local one sends no source, so only the operator's copy supplies it. None of them is `resource-unavailable` with that `keypath`, before anything uploads. Never uploaded or asked for: an archive carrying a value under one is `archive-rejected`, `unrequested_member`, with its `keypath`, and is not kept |
 | **remote** | fetched only from the allowlist, whose default is the SiliconCompiler GitHub organisation: `github.com/siliconcompiler/` and `codeload.github.com/siliconcompiler/`, which is what lambdapdk needs |
 | **not on the allowlist, and not held** | asked for at create, in `upload_sources`. A private repository behind the user's own key is the common case |
 | **allowlisted, and the fetch fails for good** | fetched after submit, while `staging`; on failure the job goes back to `awaiting_input`, asking for that source alone |
+| **carrying userinfo** | `400 invalid-request` at create, naming the entry's keypath and never the value, which is neither stored nor logged. In any manifest the archive carries, the root one or an upstream node's under `<step>/<index>/outputs/`, it is `archive-rejected`, `credential`, with the dataroot's `keypath`, and the upload is not kept |
 
-A source whose query values the client masked (`?token=***`) says what it is
-and not enough to fetch it from, so it is asked for rather than fetched.
+A source whose URL has a query is never fetched: the client masks its values
+(`?token=***`), so it says what it is and not enough to fetch it from. A public
+one is asked for; a private one is supplied by the operator's copy or a held
+one, or refused.
+
+A source registered against a resource is crucible's: `sc-server` has no
+catalogue, so it has none.
 
 ---
 
 ## 4. The portal
 
-`sc-server` serves a portal, which is why it serves `web_url`. A client sees
-only the API; the portal's screens are in [README](README.md#the-portals-screens).
+`sc-server` serves a portal. A client sees only the API; the portal's screens
+are in [README](README.md#the-portals-screens). No payload carries a portal URL:
+every page a client opens for a person comes from endpoint 6.
 
-`web_url` is `web_url_base` plus the job's portal path. `web_url_base` must be on
-a scheme this deployment is served on, or it refuses to start: a deployment is
-one scheme throughout (contract rule 5).
+### The sign-in: a page for a person's browser
 
-### The handover: the route both deployments serve
-
-A client hands its browser a session at `POST /portal/session`, the one handover
-route crucible serves too (ui/access D15). It is a portal route, outside `/v1`
-and outside the `v1` contract, as the signed upload `PUT` is.
+`POST /v1/auth/browser` answers `{"url", "expires_at"}`, with
+`Cache-Control: private, no-store`. This portal has no sign-in of its own, so
+`url` is always a single-use sign-in, and `expires_at` is always set.
 
 | | |
 |---|---|
-| **Request** | on the API's origin, with `Authorization: DPoP <token>` and a proof, as any API request. The body is `{"next": "<path>"}`, the path of the job's `web_url`, or nothing |
-| **Response** | `{"url", "expires_in"}` and `Cache-Control: private, no-store`. `url` is on the configured public origin, never the request's `Host`, and carries a single-use token that lives 60 seconds |
-| **Who may ask** | an interactive session holding `profile:read`. A CI session is refused, `403 not-permitted`: nobody is at a browser |
-| **`next`** | a path under `/portal/` on this origin. Anything else is dropped rather than followed, since a redirect that follows a caller's input is an open redirect, and the browser lands on the jobs list |
+| **The body** | at most one member: `{"job_id"}` lands on the job's page, `{}` on the portal's home. `{"terms_id"}` is always `404`, since this profile serves no terms documents, and `{"artifact_id"}` is `404` for one the caller cannot see and otherwise `403 not-permitted`, since this profile takes no access requests and every artifact reads `can_request_access: false` |
+| **The landing** | built from the id, never from a path the request carries |
+| **The token** | held in this process's memory, never in the store, and spent on arrival: it works once, for 60 seconds. A restart forgets every one |
+| **`url`** | on `web_url_base`, or the configured public origin the request arrived at where there is none: never on `Host` or `X-Forwarded-Host` |
+| **Who may ask** | any session but a CI one, and no scope gates it. Every session here is `interactive`, so a CI session's `403 not-permitted` is a guard |
 
-A client that is refused, or gets a `404` from a deployment with no such route,
-opens `web_url` as given and says why.
+`web_url_base` may not be plain `http` beside an `https` public origin, or the
+server refuses to start: an answer to an `https` request sends the client only
+to `https` URLs (contract rule 5, D70).
 
 ---
 
@@ -363,8 +370,8 @@ None of these is new vocabulary.
 | presents a known subject with a different key | `invalid_client` at the token endpoint, OAuth-shaped, wherever the request comes from, saying the subject is bound to a different key ([§7](#7-the-key-binding)) |
 | reads `GET /v1/me` | `authorized` absent; `terms: []`; `projects: []`; `can_submit: true` |
 | asks for a job or an artifact it does not own | `404`, not `403` |
-| looks for `access_request_url` | never present: nothing here needs an approval, and a deployment without grants has nothing to request |
-| fetches a kind a test mode withholds | `403 artifact-not-approved`, and `fetchable: false` in the listing, with no `access_request_url`, since this server offers no way to ask. Off by default |
+| reads an artifact's `can_request_access` | always `false`: nothing here needs an approval, and a deployment without grants has nothing to request, so endpoint 6 has no approval page and answers `403 not-permitted` |
+| fetches a kind a test mode withholds | `403 artifact-not-approved`, and `fetchable: false` in the listing, with `can_request_access: false`, since this server offers no way to ask. Off by default |
 | uploads a member with any extension | accepted: there is no extension allowlist, so `archive-rejected` never carries `reason: "extension"` here |
 | exceeds a published ceiling | `limit-exceeded` naming the key as `limits` spells it, or a static one's own `type`: `node-limit-exceeded`, `upload-too-large`, `download-too-large` |
 | stages past `max_staging_seconds` | the job `failed`, `staging-timed-out`, `limit: "max_staging_seconds"` |

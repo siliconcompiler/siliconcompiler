@@ -102,12 +102,13 @@ def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
 # No credential in the manifest (surface D302)
 ###########################
 
-def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere_else(
+def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere(
         server, server_client, key, token, job_archive, nop_project, dispatcher, caplog):
     '''🔴 A hand-built archive, as a client that did not strip it would send
     one: `archive-rejected`, `credential`, naming the keypath and never the
-    value -- which is in no response, row, log line or file this server wrote.
-    Only the upload is kept, as it arrived, as the job's `input`.'''
+    value -- which is in no response, row, log line or file this server
+    wrote. The upload is not kept either (surface D307): no `input` row and no
+    bytes, only the record of why.'''
     import logging
 
     caplog.set_level(logging.DEBUG)
@@ -116,11 +117,17 @@ def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere_else(
 
     job, response = submitted(server_client, key, token, job_archive())
 
+    assert_refused_for_a_credential(server, server_client, key, token, job, response, caplog)
+
+
+def assert_refused_for_a_credential(server, server_client, key, token, job, response, caplog):
     body = response.get_json()
     assert (response.status_code, slug(response), body["reason"]) == \
         (422, "archive-rejected", "credential")
+    # 🔴 The first such dataroot as `keypath` (surface D307), and every one in
+    # `detail`.
+    assert body["keypath"] == ["library", "gcd", "dataroot", "ip"]
     assert "library,gcd,dataroot,ip" in body["detail"]
-    assert not dispatcher.submitted
 
     assert "TOKEN" not in json.dumps(body)
     assert "TOKEN" not in json.dumps(read(server_client, key, token, job["id"]))
@@ -130,21 +137,43 @@ def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere_else(
         rows = [dict(row) for row in store.all(f'SELECT * FROM "{table["name"]}"')]
         assert "TOKEN" not in json.dumps(rows, default=str), table["name"]
 
-    # The extracted tree was a second copy of it, and is gone; the upload is
-    # kept, compressed, as the job's `input`, and is the one place it is.
+    # The extracted tree and the upload are gone, and its row with them; the
+    # record of why is what is left.
     user = store.one("SELECT user_id FROM jobs WHERE id = ?", (job["id"],))["user_id"]
     assert not server.config["SC_JOBS"].job_root(user, job["id"]).exists()
-    kept = server.config["SC_STORE"].all(
-        "SELECT storage_key FROM artifacts WHERE job_id = ? AND kind = 'input'", (job["id"],))
-    assert len(kept) == 1
-    stored = server.config["SC_JOBS"]._storage.artifact_path(kept[0]["storage_key"])
+    kinds = [row["kind"] for row in store.all(
+        "SELECT kind FROM artifacts WHERE job_id = ?", (job["id"],))]
+    assert "input" not in kinds and "staging" in kinds
     for where, _, files in os.walk("datadir"):
         for name in files:
-            path = os.path.join(where, name)
-            if os.path.samefile(path, stored):
-                continue
-            with open(path, "rb") as f:
-                assert b"TOKEN" not in f.read(), path
+            with open(os.path.join(where, name), "rb") as f:
+                data = f.read()
+            assert b"TOKEN" not in data, name
+            if data[:2] == b"\x1f\x8b":
+                import gzip
+                assert b"TOKEN" not in gzip.decompress(data), name
+
+
+def test_an_upstream_nodes_manifest_carrying_a_credential_is_refused(
+        server, server_client, key, token, job_archive, nop_project, dispatcher, caplog,
+        tmp_path):
+    '''🔴 Every manifest the archive carries (surface D307): an upstream
+    node's under `<step>/<index>/outputs/`, which the input keeps alike, as
+    well as the root one.'''
+    import copy
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    upstream = copy.deepcopy(nop_project)
+    upstream.get("library", "gcd", field="schema").set_dataroot(
+        "ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    written = tmp_path / "upstream.pkg.json"
+    upstream.write_manifest(str(written))
+
+    job, response = submitted(server_client, key, token, job_archive(
+        extra={"stepone/0/outputs/gcd.pkg.json": written.read_bytes()}))
+
+    assert_refused_for_a_credential(server, server_client, key, token, job, response, caplog)
 
 
 def test_a_credential_is_refused_after_what_the_read_itself_refuses(

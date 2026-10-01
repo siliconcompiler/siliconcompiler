@@ -257,9 +257,10 @@ class StagingMixin:
                 "WHERE id = ?", (ERRORS["staging-timed-out"].uri,
                                  _members_json({"limit": "max_staging_seconds"}), now(),
                                  job_id))
+            # Before the transition, which lists the record as it then stands.
+            self._note(job, [f"timed out: {detail}"])
             self._transition(job_id, "staging", "failed", reason=_bounded(detail))
         logger.warning(f"{job_id}: {detail}")
-        self._note(self._row(job_id), [f"timed out: {detail}"])
 
     def _fail_staging(self, job_id: str, detail: str) -> None:
         '''This server's own failure while staging: `failed`, `staging-failed`,
@@ -276,9 +277,10 @@ class StagingMixin:
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, error_members = NULL, finished_at = ? "
                 "WHERE id = ?", (ERRORS["staging-failed"].uri, now(), job_id))
+            # Before the transition, which lists the record as it then stands.
+            self._note(job, [f"staging failed: {detail}"])
             self._transition(job_id, "staging", "failed", reason=_bounded(detail))
         logger.warning(f"{job_id}: staging failed: {detail}")
-        self._note(self._row(job_id), [f"staging failed: {detail}"])
 
     def _note(self, job, lines) -> None:
         '''Lines of the job's `staging` record, each scrubbed like `detail`.'''
@@ -478,8 +480,8 @@ class StagingMixin:
         except BaseException:
             if raw.get("credentials"):
                 # 🔴 The extracted tree is a second copy of a credential, and
-                # a job refused goes no further: only the upload itself is
-                # kept, as it arrived, as the job's `input`.
+                # a job refused goes no further. The upload itself went with
+                # the refusal (`_refuse`), and only the record of why is kept.
                 shutil.rmtree(root, ignore_errors=True)
             raise
 
@@ -563,14 +565,16 @@ class StagingMixin:
                        f"is {job['design']}/{job['jobname']}"))
 
         # 🔴 The first check against what the read reports (surface D302): a
-        # dataroot's path carrying userinfo, named by keypath and never by
-        # value. Before anything is fetched or accounted for, and never
-        # stripped here -- the archive is kept as it was uploaded.
+        # dataroot's path carrying userinfo, in any manifest the archive
+        # carries, named by keypath and never by value -- the first as
+        # `keypath`, and all of them in `detail`. Before anything is fetched or
+        # accounted for, and never stripped here: the upload is not kept
+        # (surface D307).
         found = raw.get("credentials") or []
         if found:
             named = ", ".join(owners.shown(keypath) for keypath in found)
             raise self._refuse_staging(job, ProblemError(
-                "archive-rejected", reason="credential",
+                "archive-rejected", reason="credential", keypath=list(found[0]),
                 detail=_bounded(
                     f"the manifest carries userinfo -- a user name, or a user name and "
                     f"a secret -- in the path of {len(found)} dataroot(s): {named}. A "

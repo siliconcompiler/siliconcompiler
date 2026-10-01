@@ -27,7 +27,7 @@
 <div class="do">
 <ol>
   <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all, SiliconCompiler&rsquo;s own version included. <code>combination</code>: each is held by some image, and no single image holds them together. <code>uninstallable</code>: while staging, the job&rsquo;s Python packages cannot be installed for a target &mdash; nothing in a package&rsquo;s release line installs for it, or a requirement needs another version of a distribution the image holds; <code>available</code> is <code>[]</code> and <code>detail</code> names each package, its version and the target Python and platform, or the host. A package no configured index has is not this: the job is sent back for its wheel. <code>unknown_class</code>: while staging, a node runs a task class the job&rsquo;s resolved environment does not provide; <code>unresolved</code> names each as <code>&lt;module&gt;/&lt;Class&gt;</code> and <code>detail</code> names the node. A task&rsquo;s own setup runs on the node, so it is never run as its base class instead. An unrecognised value means act on the type alone.</li>
-  <li>Read <code>unresolved</code>: one entry per failed requirement, with <code>requirement</code> &mdash; your alternatives, exactly as sent &mdash; and <code>available</code>, the versions this deployment&rsquo;s images hold. An empty <code>available</code> means none holds it.</li>
+  <li>Read <code>unresolved</code>: one entry per failed requirement, with <code>kind</code> &mdash; where it came from &mdash; <code>requirement</code> &mdash; your alternatives, exactly as sent &mdash; and <code>available</code>, the versions this deployment&rsquo;s images hold. An empty <code>available</code> means none holds it.</li>
   <li>For <code>unavailable</code>, ask for a version in <code>available</code>. For <code>combination</code>, choose versions that exist in one image together.</li>
   <li><code>GET /v1</code>&rsquo;s <code>software</code> lists what is on offer before you submit, name by name. It cannot show which names share an image, which is why <code>combination</code> exists.</li>
 </ol>
@@ -43,7 +43,7 @@
   "detail":   "...",
   "instance": "/v1/jobs/01J9...",
   "reason":   "unavailable",  <span class="c">// REQUIRED on this type</span>
-  "unresolved": [{"name": "openroad", "requirement": ["&gt;=24.3.2011", "==2.0"], "available": ["2.1.0"]}],  <span class="c">// REQUIRED on this type</span>
+  "unresolved": [{"kind": "tools", "name": "openroad", "requirement": ["&gt;=24.3.2011", "==2.0"], "available": ["2.1.0"]}],  <span class="c">// REQUIRED on this type</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
 
@@ -53,7 +53,7 @@
 <tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
     <td><code>unavailable</code>, <code>combination</code>, <code>uninstallable</code> or <code>unknown_class</code>.</td></tr>
 <tr><td><code>unresolved</code></td><td><span class="req">REQUIRED</span></td>
-    <td>A list of <code>{name, requirement, available}</code>, one per requirement that failed. <code>requirement</code> is the list of alternatives as sent &mdash; a requirement is met if any one resolves &mdash; and <code>available</code> what the live images hold; <code>[]</code> if none.</td></tr>
+    <td>A list of <code>{kind, name, requirement, available}</code>, one per requirement that failed. <code>kind</code> says where it came from: <code>python</code>, <code>tools</code> or <code>interpreter</code> for that <code>requested_versions</code> key as spelled, <code>class</code> for a task class and <code>package</code> for one of the job&rsquo;s Python packages, so a Python distribution and a tool of one name stay apart. <code>requirement</code> is the list of alternatives as sent &mdash; a requirement is met if any one resolves &mdash; and <code>available</code> what the live images hold; <code>[]</code> if none.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>

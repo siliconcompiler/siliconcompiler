@@ -546,10 +546,11 @@ def test_reconnect_re_enters_the_wait(fake_v1, run, nop_project):
 ###########################
 
 ###########################
-# The portal handover (ui/access D15, client-v1-migration D17)
+# A page for a person's browser: POST /v1/auth/browser (surface D309)
 ###########################
 
-WEB_URL = "https://sc-server.test/portal/jobs/01J9-job"
+SIGN_IN = {"url": "https://sc-server.test/portal/enter?token=t",
+           "expires_at": "2026-10-01T18:04:30Z"}
 
 
 @pytest.fixture
@@ -563,51 +564,107 @@ def opened(run, monkeypatch):
     return urls
 
 
-def _handovers(fake_v1):
-    return [c.request for c in fake_v1.calls if c.request.url.endswith("/portal/session")]
+def _pages(fake_v1):
+    return [c.request for c in fake_v1.calls if c.request.url.endswith("/v1/auth/browser")]
 
 
-def test_the_handover_lands_on_web_urls_own_path(fake_v1, run, opened):
-    '''🔴 `next` is the path of `web_url`, never one built from the job id.'''
-    fake_v1.elsewhere(responses.POST, "https://sc-server.test/portal/session",
-                      {"url": "https://sc-server.test/portal/enter?token=t",
-                       "expires_in": 60})
+def test_after_a_submit_the_jobs_page_is_asked_for_by_its_id(fake_v1, run, opened):
+    '''🔴 Asked for, never built: the body names the job, and the client opens
+    what comes back.'''
+    fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
 
-    run._open_portal(WEB_URL)
+    run._open_portal("01J9-job")
 
-    handover, = _handovers(fake_v1)
-    assert json.loads(handover.body) == {"next": "/portal/jobs/01J9-job"}
-    assert handover.headers["Authorization"].startswith("DPoP ")
-    assert opened == ["https://sc-server.test/portal/enter?token=t"]
+    page, = _pages(fake_v1)
+    assert json.loads(page.body) == {"job_id": "01J9-job"}
+    assert page.headers["Authorization"].startswith("DPoP ")
+    assert opened == [SIGN_IN["url"]]
+
+
+def test_a_sign_in_is_printed_only_where_no_browser_opened_and_never_logged(
+        fake_v1, run, monkeypatch, caplog, capsys):
+    '''A sign-in link is a bearer secret for its page: opened, printed to the
+    terminal only where no browser opened, and never through the logger.'''
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
+
+    monkeypatch.setattr(run.client, "open_url",
+                        lambda url, what, require_tty=True: True)
+    assert run.client.open_page("the job's page", job_id="01J9-job") is True
+    assert "token=t" not in capsys.readouterr().out
+
+    monkeypatch.setattr(run.client, "open_url",
+                        lambda url, what, require_tty=True: False)
+    assert run.client.open_page("the job's page", job_id="01J9-job") is False
+    assert SIGN_IN["url"] in capsys.readouterr().out
+
+    assert "token=t" not in caplog.text
+
+
+def test_a_plain_page_is_printed_and_opened(fake_v1, run, opened, caplog):
+    '''`expires_at: null` is the page itself, crucible's answer: it needs no
+    secrecy, so it is printed as well as opened.'''
+    import logging
+
+    caplog.set_level(logging.INFO)
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://crucible.test/jobs/01J9-job", "expires_at": None})
+
+    run._open_portal("01J9-job")
+
+    assert opened == ["https://crucible.test/jobs/01J9-job"]
+    assert "https://crucible.test/jobs/01J9-job" in caplog.text
 
 
 @pytest.mark.parametrize("status", [404, 403])
-def test_a_refused_handover_opens_web_url_and_says_why(fake_v1, run, opened, caplog,
+def test_a_refused_page_is_said_and_the_run_carries_on(fake_v1, run, opened, caplog,
                                                        status):
-    '''A deployment with no handover route answers `404`, and any refusal is
-    treated the same: the page opens as given, and the reason is said rather
-    than swallowed.'''
-    fake_v1.elsewhere(responses.POST, "https://sc-server.test/portal/session",
-                      problem("not-found" if status == 404 else "not-permitted", status),
-                      status=status, content_type="application/problem+json")
+    '''Nothing is opened in its place, and nothing is built: the reason is
+    said rather than swallowed, and the run goes on.'''
+    fake_v1.route(responses.POST, "auth/browser",
+                  problem("not-found" if status == 404 else "not-permitted", status),
+                  status=status, content_type="application/problem+json")
 
-    run._open_portal(WEB_URL)
+    run._open_portal("01J9-job")
 
-    assert opened == [WEB_URL]
-    assert "did not hand this browser a session" in caplog.text
+    assert opened == []
+    assert "No page for the job's page" in caplog.text
 
 
-def test_a_ci_session_never_asks_for_a_handover(fake_v1, run, opened):
+def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened):
     from siliconcompiler.remote.client import GRANT_TOKEN_EXCHANGE
 
     run.client._mode = GRANT_TOKEN_EXCHANGE
 
-    run._open_portal(WEB_URL)
+    run._open_portal("01J9-job")
 
-    assert not _handovers(fake_v1)
+    assert not _pages(fake_v1)
     assert not opened
     with pytest.raises(RemoteError, match="CI session"):
         run.client.portal()
+    assert not _pages(fake_v1)
+
+
+def test_sc_remote_portal_asks_for_the_home_page(fake_v1, run, opened):
+    fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
+
+    run.client.portal()
+
+    page, = _pages(fake_v1)
+    assert json.loads(page.body) == {}
+    assert opened == [SIGN_IN["url"]]
+
+
+def test_a_refused_portal_command_fails_and_says_why(fake_v1, run, opened):
+    '''Asked for on purpose, so the command fails rather than carrying on.'''
+    fake_v1.route(responses.POST, "auth/browser", problem("not-permitted", 403),
+                  status=403, content_type="application/problem+json")
+
+    with pytest.raises(RemoteError, match="not-permitted|Not permitted"):
+        run.client.portal()
+    assert opened == []
 
 
 def test_listing_follows_the_link_header(fake_v1, logged_in):
@@ -763,27 +820,42 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
      ["feature: projects", "does not offer that"]),
     ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"},
      ["resource: gf12", "resource_kind: pdk", "Ask for a grant"]),
+    # Each entry says which requirement failed by its `kind` (surface D311).
     ("software-unavailable", 422,
      {"reason": "unavailable", "unresolved": [
-         {"name": "openroad", "requirement": [">=24.3.2011", "==2.0"],
+         {"kind": "tools", "name": "openroad", "requirement": [">=24.3.2011", "==2.0"],
           "available": ["2.1.0"]},
-         {"name": "magic", "requirement": [], "available": []}]},
+         {"kind": "tools", "name": "magic", "requirement": [], "available": []}]},
      ["reason: unavailable",
-      "openroad >=24.3.2011 or ==2.0 (available: 2.1.0)",
-      "magic any version (available: none)",
+      "tool openroad >=24.3.2011 or ==2.0 (available: 2.1.0)",
+      "tool magic any version (available: none)",
       "Ask for a version this server has"]),
     ("software-unavailable", 422,
      {"reason": "combination", "unresolved": [
-         {"name": "siliconcompiler", "requirement": ["==0.39.1"], "available": ["0.39.1"]},
-         {"name": "za-sclib", "requirement": ["==0.1.80"], "available": ["0.1.80"]}]},
-     ["reason: combination", "za-sclib ==0.1.80 (available: 0.1.80)"]),
+         {"kind": "python", "name": "siliconcompiler", "requirement": ["==0.39.1"],
+          "available": ["0.39.1"]},
+         {"kind": "python", "name": "za-sclib", "requirement": ["==0.1.80"],
+          "available": ["0.1.80"]}]},
+     ["reason: combination", "python za-sclib ==0.1.80 (available: 0.1.80)"]),
+    ("software-unavailable", 422,
+     {"reason": "unavailable", "unresolved": [
+         {"kind": "interpreter", "name": "python", "requirement": ["==3.12.*"],
+          "available": ["3.11.9"]}]},
+     ["interpreter python ==3.12.* (available: 3.11.9)",
+      "No image here runs the Python this machine does"]),
+    ("software-unavailable", 422,
+     {"reason": "unknown_class", "unresolved": [
+         {"kind": "class", "name": "mytasks/MyTask", "requirement": [], "available": []}]},
+     ["task class mytasks/MyTask"]),
+    ("software-unavailable", 422,
+     {"reason": "uninstallable", "unresolved": [
+         {"kind": "package", "name": "numpy", "requirement": ["==1.*"], "available": []}]},
+     ["package numpy ==1.* (available: none)"]),
     ("artifact-not-approved", 403, {}, ["held back from download"]),
     ("resource-unavailable", 422, {"resource_kind": "pdk", "resource": "mypdk"},
      ["resource: mypdk", "resource_kind: pdk", "cannot be sent it"]),
-    ("terms-not-accepted", 403, {"blocked_by": {
-        "tos": {"url": "https://example.test/terms/tos"}, "export": {}}},
-     ["sign tos: https://example.test/terms/tos", "sign export (no link",
-      "Sign each document"]),
+    ("terms-not-accepted", 403, {"blocked_by": ["tos", "export"]},
+     ["sign tos", "sign export", "Sign each document"]),
     ("not-permitted", 403, {}, ["You cannot do that to this job"]),
     ("limit-exceeded", 429, {"limit": "pending_uploads", "job_ids": ["a", "b"]},
      ["job_ids: a b"]),

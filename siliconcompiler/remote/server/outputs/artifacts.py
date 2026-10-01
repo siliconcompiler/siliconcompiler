@@ -699,8 +699,10 @@ def wire(row, surface_allows: bool = True,
         # This profile takes no access requests, so there is never an
         # undecided one to name -- but the member is REQUIRED (surface D177).
         "access_requested_at": None,
+        # 🔴 Always false here, a fetchable `node` included: an unauthenticated
+        # deployment offers no way to ask (surface D309), so there is never a
+        # page to ask at.
+        "can_request_access": False,
     }
-    # No `blocked_by` and no `access_request_url`: both are about an agreement
-    # standing in the way, and this deployment has no agreements. An
-    # unauthenticated deployment never emits access_request_url, because an
-    # endpoint that always refuses is worse than an absent one.
+    # No `blocked_by`: it lists the agreements standing in the way, and this
+    # deployment has none.

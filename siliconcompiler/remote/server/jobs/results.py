@@ -95,7 +95,15 @@ class ResultsMixin:
             # The job stays readable and its subresources do not.
             raise ProblemError("not-found", detail="this job's data was deleted")
 
-        where = ["job_id = ?"]
+        # 🔴 Listed once described (surface D308): never an artifact still
+        # being described, nor a `node` archive with such a member, so a client
+        # fetching at `terminal` misses nothing it could have had.
+        where = ["job_id = ?", "provenance <> 'pending'",
+                 "NOT (kind = 'node' AND EXISTS (SELECT 1 FROM artifacts AS member "
+                 "  WHERE member.job_id = artifacts.job_id AND member.step = artifacts.step "
+                 '  AND member."index" = artifacts."index" '
+                 "  AND member.kind NOT IN ('node', 'issue', 'input', 'staging', 'diagnostics') "
+                 "  AND member.provenance = 'pending'))"]
         params: List[Any] = [job["id"]]
 
         kind = args.get("kind")

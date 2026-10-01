@@ -600,6 +600,39 @@ def test_the_grants_this_profile_lacks_refuse_the_same_way(client, key, grant):
 # Configured public origins
 ###########################
 
+@pytest.mark.parametrize("signed", ["https://sc.example.test", "http://lab.test:8080"])
+def test_the_scheme_a_request_arrived_on_is_its_htus_origin(tmp_path, signed):
+    '''🔴 Contract rule 5 (D70): the configured public origin a request
+    matched, by its DPoP `htu` -- never the socket's, which behind a
+    TLS-terminating proxy is http whichever origin the client used.'''
+    import json
+
+    from siliconcompiler.remote.server.app import create_app
+
+    datadir = tmp_path / "both"
+    datadir.mkdir()
+    (datadir / "config.json").write_text(json.dumps(
+        {"public_origins": ["http://lab.test:8080", "https://sc.example.test"]}))
+    client = create_app(datadir).test_client()
+    key = dpop.generate_key()
+    # What the proxy forwards either way: plain http, to the backend's Host.
+    backend = {"Host": "lab.test:8080"}
+
+    def proof(method, path, token=None):
+        return dpop.sign_proof(key, method, f"{signed}{path}", access_token=token)
+
+    token = client.post(
+        "/v1/auth/token", data={"grant_type": "client_credentials",
+                                "client_id": "local:machine:1000"},
+        headers={"DPoP": proof("POST", "/v1/auth/token"), **backend},
+        content_type="application/x-www-form-urlencoded").get_json()["access_token"]
+    page = client.post("/v1/auth/browser", json={}, headers={
+        "Authorization": f"DPoP {token}", **backend,
+        "DPoP": proof("POST", "/v1/auth/browser", token)}).get_json()
+
+    assert page["url"].startswith(f"{signed}/portal/enter?token=")
+
+
 def test_htu_and_handed_out_urls_come_from_config_behind_a_proxy(tmp_path):
     '''A proxy rewrites `Host`; the server checks proofs against, and builds
     URLs on, the origin it is configured with -- never the header.'''
@@ -634,8 +667,8 @@ def test_htu_and_handed_out_urls_come_from_config_behind_a_proxy(tmp_path):
                    json={"size_bytes": 10, "digest": "sha256:" + "0" * 64}).get_json()
     assert grant["url"].startswith("https://sc.example.test/storage/upload/")
 
-    handover = authed("POST", "/portal/session", json={}).get_json()
-    assert handover["url"].startswith("https://sc.example.test/portal/")
+    page = authed("POST", "/v1/auth/browser", json={}).get_json()
+    assert page["url"].startswith("https://sc.example.test/portal/")
 
     # A proof made for the Host the proxy wrote is not a proof for this server.
     wrong = client.get("/v1/me", headers={

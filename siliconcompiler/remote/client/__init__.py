@@ -798,14 +798,15 @@ class Client:
                 + ", and you have not accepted it. Once it does, a submit it covers is "
                   "refused until you have.")
 
-            url = entry.get("decision_url")
-            if not isinstance(url, str) or not url:
+            # 🔴 `can_decide` is whether its page can take the decision; the
+            # page itself is asked for only when it is about to be opened.
+            if entry.get("can_decide") is not True or not entry.get("id"):
                 continue
-            self.logger.warning(f"  It may be accepted early, at {clean(url)}")
-            interactive = sys.stdin.isatty() and sys.stdout.isatty()
-            if interactive and not self._in_ci() and self.open_browser:
+            self.logger.warning("  It may be accepted early, on its page in this "
+                                "server's portal.")
+            if sys.stdin.isatty() and self.may_open():
                 if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
-                    self.open_url(url, "the terms page")
+                    self.open_page(f"{title}'s page", terms_id=entry["id"])
 
     def _in_ci(self) -> bool:
         return self._mode == GRANT_TOKEN_EXCHANGE or bool(os.environ.get("CI")) \
@@ -982,26 +983,28 @@ class Client:
 
     def _to_sign(self, refusal: ServerProblem) -> ServerProblem:
         '''A `terms-not-accepted` refusal as a person acts on it: each document
-        in its `blocked_by` printed with its own link -- opened, where it may be,
-        on a terminal -- and one with no link named by its title in
-        `GET /v1/me`'s `terms`. Never accepted here.'''
+        in its `blocked_by` named by its title in `GET /v1/me`'s `terms` --
+        by its id where there is no `/me` -- and its page opened, where a
+        person is at a terminal to see it. Never accepted here.'''
         blocked = refusal.member("blocked_by")
-        if not isinstance(blocked, dict):
+        if not isinstance(blocked, list) or not blocked:
             return refusal
 
-        for entry in blocked.values():
-            url = entry.get("url") if isinstance(entry, dict) else None
-            if isinstance(url, str) and url:
-                self.open_url(url, "the terms page")
-
-        if all(isinstance(entry, dict) and entry.get("url") for entry in blocked.values()):
-            return refusal
         try:
             terms = self.me(remind=False).get("terms") or []
         except RemoteError:
-            return refusal
+            terms = []
         titles = {entry.get("id"): entry.get("title") for entry in terms
                   if isinstance(entry, dict) and entry.get("title")}
+
+        if self.may_open():
+            for terms_id in blocked:
+                if isinstance(terms_id, str) and terms_id:
+                    title = clean(titles.get(terms_id) or terms_id)
+                    self.open_page(f"{title}'s page", terms_id=terms_id)
+
+        if not titles:
+            return refusal
         return ServerProblem(refusal.problem, refusal.status, help_url=refusal.help_url,
                              titles=titles, retry_after=refusal.retry_after)
 
@@ -1312,52 +1315,74 @@ class Client:
     @property
     def ci_session(self) -> bool:
         '''Whether this client's session is a CI credential's: one that no
-        person is at, and so one that never asks for a portal handover.'''
+        person is at, and so one that never asks for a page.'''
         return self._mode == GRANT_TOKEN_EXCHANGE or bool(self.credentials.ci_secret())
 
-    def portal(self, open_browser: bool = True, landing: str = None) -> str:
-        '''Hand this machine's browser a session, and open it there.
+    def browser_page(self, **named) -> Dict[str, Any]:
+        '''``POST /v1/auth/browser``: the page for what ``named`` names --
+        ``job_id``, ``terms_id`` or ``artifact_id`` -- or the portal's home.
+
+        🔴 **Asked for, never built.** The portal's route shape is not
+        contract, so the client holds an id and the server answers the page.
+        A CI session never asks: nobody is at a browser there.
+        '''
+        if self.ci_session:
+            raise RemoteError("a CI session asks for no page: nobody is at a browser")
+        self.ensure_session()
+        return self.transport.request("POST", "auth/browser", json_body=named).json()
+
+    def open_page(self, what: str, require_tty: bool = True, **named) -> bool:
+        '''Ask for a page and open it in this machine's browser; whether one
+        opened. A refusal is said and carried on from.'''
+        try:
+            answer = self.browser_page(**named)
+        except RemoteError as e:
+            why = (str(e).strip().splitlines() or [type(e).__name__])[0]
+            self.logger.warning(f"No page for {what}: {why}")
+            return False
+        return self._show(answer, what, require_tty=require_tty)
+
+    def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True,
+              open_browser: bool = True) -> bool:
+        '''Open the page endpoint 6 answered, and print it where it may be.
+
+        ⚠️ **`expires_at` says what came back.** `null` is the page itself,
+        which is printed and opened. A time is a single-use sign-in that lands
+        on it: a bearer secret for that page, so it is opened, printed only
+        where no browser opened -- written to the terminal, never to a log --
+        and never kept.
+        '''
+        url = answer.get("url") if isinstance(answer, dict) else None
+        if not isinstance(url, str) or not url:
+            self.logger.warning(f"No page for {what}: the server answered no url")
+            return False
+        expires = answer.get("expires_at")
+
+        if expires is None:
+            self.logger.info(f"{what[:1].upper()}{what[1:]}: {clean(url)}")
+        opened = open_browser and self.open_url(url, what, require_tty=require_tty)
+        if expires is not None and not opened:
+            print(f"No browser was opened for {what}. Open this in one on this machine; "
+                  f"it signs you in once, until {clean(expires)}:\n  {clean(url)}",
+                  flush=True)
+        return opened
+
+    def may_open(self) -> bool:
+        '''Whether a person is plausibly here to see a page this client opens
+        unasked: a terminal, a browser allowed, and no CI.'''
+        return self.open_browser and sys.stdout.isatty() and not self._in_ci()
+
+    def portal(self, open_browser: bool = True) -> bool:
+        '''`sc-remote -portal`: the portal's home, signed in as this machine.
 
         🔴 The browser has none of what this client has. Identity here is a
         machine-and-uid derivation pinned to a key on first contact, and a
-        browser arriving cold can present none of it -- so the client proves
-        possession of the key and passes a session across.
-
-        ⚠️ The URL it gets back is a capability and is spent on arrival. It
-        reaches the browser's history and possibly an access log, and being
-        single-use is what makes both worthless. It lives under a minute,
-        because it is handed to a browser on the same machine and there is no
-        legitimate slow path.
-
-        One route on every deployment, `POST /portal/session` (ui/access D15),
-        and never from a CI session, which the server refuses: nobody is at a
-        browser there.
+        browser arriving cold can present none of it -- so endpoint 6 answers
+        a sign-in that lands on the page, where the portal has none of its
+        own. Asked for on purpose, so a refusal fails the command.
         '''
-        self.ensure_session()
-        if self.ci_session:
-            raise RemoteError("a CI session cannot hand a browser a session: nobody "
-                              "is at one")
-
-        # Outside /v1, because /v1 is exactly the contract's endpoints and this
-        # is not one of them.
-        # `landing` is where the browser should end up once the cookie is
-        # set. Without it the handover lands on the jobs list, which is the
-        # wrong answer when the caller knows exactly which job it just made.
-        answer = self.transport.request(
-            "POST", "/portal/session", authenticated=True, on_v1=False,
-            json_body={"next": landing} if landing else {}).json()
-
-        url = answer["url"]
-        self.logger.info(f"Opening {clean(url)}")
-        self.logger.info(
-            f"It is good for one use and about {answer['expires_in']} seconds.")
-
-        if open_browser and not self.open_url(url, "the portal", require_tty=False):
-            self.logger.warning(
-                "No browser was opened here. Paste that URL into one on this "
-                "machine -- quickly.")
-
-        return url
+        return self._show(self.browser_page(), "the portal", require_tty=False,
+                          open_browser=open_browser)
 
     def configure_whitelist(self, add=None, remove=None) -> None:
         '''Which directories may be uploaded from.

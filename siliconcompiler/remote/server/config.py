@@ -188,18 +188,14 @@ DEFAULTS: Dict[str, Any] = {
     # profile is a demo and a test rig, where the watcher is a person waiting.
     "poll_interval_seconds": 1,
 
-    # Where a person reads about a job, as an absolute origin -- this
-    # deployment then appends its own portal path. `GET /v1/jobs/{id}` and the
-    # create response publish the result as `web_url`.
+    # The portal's origin, absolute: what `POST /v1/auth/browser`'s sign-in
+    # link is built on, the portal's own paths appended. None builds it on the
+    # configured public origin the request arrived at.
     #
     # 🔴 **Config, and never `Host` or `X-Forwarded-Host`.** Both are attacker
     # controlled unless a trusted proxy is rewriting them, and the output here
-    # is a link that gets pasted into a ticket and clicked by somebody else --
-    # the same trap as trusting a forwarded client address, with a worse
-    # payoff for whoever poisons it.
-    #
-    # None means ABSENT rather than null: null would claim there is a portal
-    # and that this job has no page on it, which is never true.
+    # is a link opened in somebody's browser -- the same trap as trusting a
+    # forwarded client address, with a worse payoff for whoever poisons it.
     "web_url_base": None,
 
     # The origins this deployment is reached at, one or several, as
@@ -277,7 +273,7 @@ DEFAULTS: Dict[str, Any] = {
     # knob, off by default: the profile has no kind that needs an approval.
     #
     # 🔴 **The API's answer and not the portal's.** A kind left out stays in
-    # the listing with `fetchable: false` and no `access_request_url` -- it
+    # the listing with `fetchable: false` and `can_request_access: false` -- it
     # exists, and there is no path to yes from here -- and fetching it is the
     # ladder's own answer for a kind that needs an approval, row 7:
     # `403 artifact-not-approved`. The portal lists and serves it as before,

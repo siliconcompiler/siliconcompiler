@@ -338,9 +338,12 @@ def without_credentials(project):
     masked (surface D302). A copy where anything changes, and ``project``
     itself, untouched, where nothing does.
 
-    🔴 **Nothing reads a masked path back to resolve it.** A collected file is
-    found by its dataroot's name, never its path, and a server points every
-    dataroot it supplies at its own copy by keypath.'''
+    🔴 **Nothing reads a masked path back to resolve it**: a server points
+    every dataroot it supplies at its own copy by keypath. A collected file is
+    found by its resolver's `collection_id`, which hashes the source without
+    its userinfo, so removing that keeps the id. ⚠️ Masking a query does not:
+    the server computes another id and misses the file (CORE-FOLLOWUPS item
+    14, `dataroots/masked-query-bucket.md`).'''
     import copy
 
     changed = [(keypath, masked(path)) for keypath, path in dataroot_paths(project)
@@ -489,7 +492,10 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
     🔴 Every URL is its resolver's `safe_source`: no `user:secret@`, and every
     query value masked as ``***`` -- which says what the source is and not
     enough to fetch it from, so the server asks for it rather than fetch it.
-    A private dataroot's source is ABSENT -- its path is never sent.
+    A private dataroot carries its source and ref too where it has a remote
+    one (surface D308): a copy the server holds, or a fetch, supplies it as
+    well as the operator's copy does. A local private dataroot has none, and
+    its path is never sent.
 
     Each names its dataroot by its ``keypath`` and no kind (surface D298).
     Raises :class:`Unnamed` for one defined where neither shape names it,
@@ -507,7 +513,7 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
             continue
         resolver = one.resolvers.get(one.dataroot)
         item = {"keypath": list(one.keypath), "private": one.origin == PRIVATE}
-        if one.origin != PRIVATE:
+        if one.origin != PRIVATE or _remote(resolver):
             item["source"] = safe_source(resolver)
             ref = getattr(resolver, "reference", None)
             if ref:

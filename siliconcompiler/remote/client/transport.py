@@ -227,8 +227,8 @@ class Transport:
 
     @property
     def origin(self) -> str:
-        '''The server without the version prefix. The signed upload PUT and the
-        portal handover live outside ``/v1``.'''
+        '''The server without the version prefix, where its signed routes, the
+        upload PUT among them, live outside ``/v1``.'''
         base = self.base_url
         return base[:-len("/v1")] if base.endswith("/v1") else base
 
@@ -533,8 +533,8 @@ class Transport:
         '''Follow a 303 by hand, with this session left behind.
 
         No `Authorization` and no proof, whatever the target's origin; never
-        to another scheme than the API's; operator headers only to the API's
-        own origin (:meth:`operator_headers`). `kind` is `storage` or `stream`,
+        from https to http; operator headers only to the API's own origin, its
+        signed routes included (:meth:`operator_headers`). `kind` is `storage` or `stream`,
         and names it in a failure.
         '''
         if response.status_code not in (301, 302, 303, 307, 308):
@@ -546,14 +546,14 @@ class Transport:
         from urllib.parse import urljoin
         target = urljoin(response.url or self.base_url, target)
 
-        # 🔴 One scheme throughout (contract rule 5): a deployment issues every
-        # URL on its API's scheme, so a redirect to another is followed in
-        # neither direction.
+        # 🔴 Contract rule 5 (D70): an answer to an https request sends the
+        # client only to https URLs, and one to an http request may send it to
+        # either. So http to https is followed, and https to http never is.
         ours, theirs = urlsplit(self.base_url).scheme, urlsplit(target).scheme
-        if theirs != ours:
+        if theirs not in ("http", "https") or (ours == "https" and theirs != "https"):
             raise RemoteError(f"the server redirected an {ours} request to {theirs}, "
-                              "and a deployment is one scheme throughout: this client "
-                              "does not follow it")
+                              "and an answer to an https request sends a client only to "
+                              "https: this client does not follow it")
 
         sent = {"User-Agent": USER_AGENT, **self.operator_headers(target),
                 **dict(headers or {})}

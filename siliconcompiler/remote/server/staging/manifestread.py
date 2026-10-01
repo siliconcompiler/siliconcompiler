@@ -47,8 +47,9 @@ __all__ = ["SUMMARY_VERSION", "Invalid", "request", "validate", "read", "contain
 
 # The summary's own version: a shape change is a new number, and the server
 # refuses a number it does not know as it refuses any other malformed summary.
-# 3 added `credentials`.
-SUMMARY_VERSION = 3
+# 3 added `credentials`; 4 has them from every manifest the archive carries,
+# so a summary that only looked at the root one is read again.
+SUMMARY_VERSION = 4
 
 # 🔴 Bounds on what the read may say. A summary is written by whatever the
 # manifest makes this process do, so it is capped as it is read back, whole and
@@ -80,6 +81,32 @@ class Invalid(ValueError):
 ######################################################################
 # The server's half: what it asks, and what it accepts back
 ######################################################################
+
+def _outputs_manifests(tree) -> List[str]:
+    '''Each manifest under a node's `<step>/<index>/outputs/` in ``tree``, as
+    a path relative to it -- never through a link.'''
+    found = []
+    for step in sorted(set(_dirs(tree)) - {"sc_collected_files"}):
+        for index in sorted(_dirs(os.path.join(tree, step))):
+            outputs = os.path.join(tree, step, index, "outputs")
+            if os.path.islink(outputs) or not os.path.isdir(outputs):
+                continue
+            for name in sorted(os.listdir(outputs)):
+                path = os.path.join(outputs, name)
+                if name.endswith(".pkg.json") and not os.path.islink(path) \
+                        and os.path.isfile(path):
+                    found.append(os.path.join(step, index, "outputs", name))
+    return found
+
+
+def _dirs(where) -> List[str]:
+    '''The directories directly in ``where``, never a link to one.'''
+    try:
+        return [entry.name for entry in os.scandir(where)
+                if entry.is_dir(follow_symlinks=False)]
+    except OSError:
+        return []
+
 
 def request(tree, design: str, jobname: str, requires_siliconcompiler=None,
             skipped=()) -> Dict[str, Any]:
@@ -277,6 +304,21 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
         summary["credentials"] = [list(keypath)
                                   for keypath, path in owners.dataroot_paths(project)
                                   if owners.has_userinfo(path)]
+        # And in every upstream node's, under `<step>/<index>/outputs/`, which
+        # the input keeps alike (surface D307).
+        for member in _outputs_manifests(tree):
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    upstream = Project.from_manifest(filepath=os.path.join(tree, member),
+                                                     lazyload=False)
+            except Exception as e:                               # noqa: BLE001
+                return refuse("archive-rejected",
+                              f"the uploaded manifest {member} could not be read: {e}",
+                              reason="invalid_manifest")
+            for keypath, path in owners.dataroot_paths(upstream):
+                if owners.has_userinfo(path) and list(keypath) not in summary["credentials"]:
+                    summary["credentials"].append(list(keypath))
 
         try:
             runtime = runflow.runtime_flow(project)
@@ -326,7 +368,8 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                 f"{named}. A task's own setup runs on the node, so it is not run as its "
                 "base class instead",
                 reason="unknown_class",
-                unresolved=[{"name": name, "requirement": [], "available": []}
+                unresolved=[{"kind": "class", "name": name, "requirement": [],
+                             "available": []}
                             for name in sorted(unknown)])
 
         refused = _unattended(project, nodes)

@@ -120,8 +120,12 @@ class SourceStore:
             return None
 
     def allowlisted(self, source: Optional[str], ref: Optional[str]) -> bool:
-        '''Whether this server would fetch the source itself.'''
-        if not source:
+        '''Whether this server would fetch the source itself.
+
+        🔴 Never one whose URL has a query (surface D308): its values are
+        masked, so it is asked for -- or, where it is private, supplied by the
+        operator's copy or a held one.'''
+        if not source or urlsplit(source).query:
             return False
         scheme = urlsplit(source).scheme.lower()
         if scheme not in ("https", "http", "git+https", "git+http"):

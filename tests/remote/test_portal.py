@@ -31,7 +31,7 @@ def me(server_client, key, token):
 @pytest.fixture
 def signed_in(server, server_client, key, token):
     '''A browser that has been handed a session by the CLI.'''
-    response = call(server_client, key, "POST", "/portal/session", token)
+    response = call(server_client, key, "POST", "/v1/auth/browser", token, json={})
     assert response.status_code == 200
 
     url = response.get_json()["url"]
@@ -71,18 +71,19 @@ def test_plain_http_beyond_this_machine_is_warned_at_startup(tmp_path, caplog, o
 
 
 @pytest.mark.parametrize("base,origins,refused", [
-    ("https://sc.example", ["http://localhost:8080"], True),
     ("http://sc.example", ["https://sc.example"], True),
+    ("http://sc.example", ["http://localhost:8080", "https://sc.example"], True),
     ("http://localhost:8080", ["http://localhost:8080"], False),
-    # Origins on both schemes are allowed, each one scheme on its own, and a
-    # page on either is on a scheme the deployment is served on.
+    # An `http` answer may send the client to either scheme.
+    ("https://sc.example", ["http://localhost:8080"], False),
     ("https://sc.example", ["http://localhost:8080", "https://sc.example"], False),
 ])
-def test_a_job_page_is_on_a_scheme_the_deployment_is_served_on(tmp_path, base, origins,
-                                                               refused):
-    '''Contract rule 5: every other URL is built on the origin a request
-    arrived at, and `web_url` is the one built from a setting of its own, so a
-    `web_url_base` on another scheme refuses to start.'''
+def test_a_sign_in_link_is_never_plain_http_beside_an_https_origin(tmp_path, base,
+                                                                   origins, refused):
+    '''Contract rule 5 (D70): an answer to an `https` request sends the
+    client only to `https` URLs. Endpoint 6's link is built on
+    `web_url_base`, whichever origin the request arrived at, so an `http` one
+    beside any `https` origin refuses to start.'''
     import json
 
     from siliconcompiler.remote.server.app import create_app
@@ -92,7 +93,7 @@ def test_a_job_page_is_on_a_scheme_the_deployment_is_served_on(tmp_path, base, o
     (datadir / "config.json").write_text(json.dumps({"web_url_base": base}))
 
     if refused:
-        with pytest.raises(ValueError, match="one scheme throughout"):
+        with pytest.raises(ValueError, match="web_url_base must be https"):
             create_app(datadir, public_origins=origins)
     else:
         create_app(datadir, public_origins=origins)
@@ -133,15 +134,49 @@ def test_a_browser_with_no_session_is_told_how_to_get_one(server_client):
     assert "sc-remote -portal" in response.get_data(as_text=True)
 
 
+def browser(client, key, token, headers=None, **named):
+    '''`POST /v1/auth/browser`, endpoint 6: the page for what `named` names.'''
+    return call(client, key, "POST", "/v1/auth/browser", token, json=named,
+                headers=headers)
+
+
+def enter(client, response):
+    '''Spend the sign-in endpoint 6 answered, as a browser does.'''
+    return client.get(response.get_json()["url"].split("http://localhost", 1)[1])
+
+
 def test_the_handover_is_spent_on_arrival(server, server_client, key, token):
     '''🔴 The URL reaches the browser's history and possibly an access log.
     Spending it on arrival is what makes both worthless.'''
-    url = call(server_client, key, "POST", "/portal/session",
-               token).get_json()["url"]
-    path = url.split("http://localhost", 1)[1]
+    response = browser(server_client, key, token)
 
-    assert server_client.get(path).status_code == 302
-    assert server_client.get(path).status_code == 403
+    assert enter(server_client, response).status_code == 302
+    assert enter(server_client, response).status_code == 403
+
+
+def test_a_sign_in_says_when_it_stops_working_and_is_kept_by_nobody(
+        server_client, key, token):
+    '''`expires_at` is set on `sc-server`: its portal has no sign-in of its
+    own, so the answer is a sign-in, never crucible's plain page.'''
+    import datetime
+
+    response = browser(server_client, key, token)
+    body = response.get_json()
+
+    assert set(body) == {"url", "expires_at"}
+    assert response.headers["Cache-Control"] == "private, no-store"
+    when = datetime.datetime.fromisoformat(body["expires_at"].replace("Z", "+00:00"))
+    left = (when - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+    assert 0 < left <= 60
+
+
+def test_a_sign_in_does_not_work_after_it_expires(monkeypatch, server_client, key, token):
+    from siliconcompiler.remote.server import portal
+
+    monkeypatch.setattr(portal, "HANDOVER_SECONDS", -1)
+    response = browser(server_client, key, token)
+
+    assert enter(server_client, response).status_code == 403
 
 
 def test_a_handover_link_that_was_never_minted(server_client):
@@ -151,46 +186,145 @@ def test_a_handover_link_that_was_never_minted(server_client):
 def test_the_handover_needs_the_machine_key(server_client):
     '''It is the CLI proving possession of its registered key, so an
     unauthenticated caller gets nothing to open.'''
-    assert server_client.post("/portal/session").status_code == 401
+    assert server_client.post("/v1/auth/browser", json={}).status_code == 401
 
 
-def test_the_handover_lands_on_the_path_it_was_given(server_client, key, token):
-    '''`next` is the path of the job's `web_url` (ui/access D15): the browser
-    lands there once the cookie is set.'''
-    url = call(server_client, key, "POST", "/portal/session", token,
-               json={"next": "/portal/jobs/J1"}).get_json()["url"]
+def test_the_portal_session_route_is_gone(server_client, key, token):
+    '''Retired: every page comes from endpoint 6, under `/v1`.'''
+    response = call(server_client, key, "POST", "/portal/session", token, json={})
 
-    entered = server_client.get(url.split("http://localhost", 1)[1])
+    assert response.status_code in (404, 405)
+
+
+def test_the_portals_home_lands_on_the_jobs_list(server_client, key, token):
+    entered = enter(server_client, browser(server_client, key, token))
 
     assert entered.status_code == 302
-    assert entered.headers["Location"].endswith("/portal/jobs/J1")
+    assert entered.headers["Location"].rstrip("/").endswith("/portal")
 
 
-@pytest.mark.parametrize("hostile", ["https://evil.example/portal/jobs/J1",
-                                     "//evil.example/portal/jobs/J1", "/v1/me",
-                                     "portal/jobs/J1", 7])
-def test_a_next_that_is_not_a_portal_path_is_dropped(server_client, key, token, hostile):
-    '''Dropped rather than followed: a redirect that follows a caller's input
-    is an open redirect. The browser lands on the jobs list instead.'''
-    response = call(server_client, key, "POST", "/portal/session", token,
-                    json={"next": hostile})
+def test_an_empty_body_is_the_portals_home(server_client, key, token):
+    '''No body at all reads as `{}`.'''
+    response = call(server_client, key, "POST", "/v1/auth/browser", token)
+
     assert response.status_code == 200
-
-    entered = server_client.get(response.get_json()["url"].split("http://localhost", 1)[1])
-
-    assert entered.headers["Location"].endswith("/portal/")
-    assert "evil" not in entered.headers["Location"]
+    assert enter(server_client, response).headers["Location"].rstrip("/").endswith("/portal")
 
 
-def test_a_ci_session_is_refused_a_handover(server, server_client, key, token):
+def test_a_job_id_lands_on_the_jobs_page(server_client, key, token, finished):
+    '''🔴 The landing is built from the id; no path a caller sends is followed.'''
+    entered = enter(server_client, browser(server_client, key, token, job_id=finished["id"]))
+
+    assert entered.status_code == 302
+    assert entered.headers["Location"].endswith(f"/portal/jobs/{finished['id']}")
+
+
+def test_a_terms_id_is_a_document_nobody_here_can_see(server_client, key, token):
+    '''This profile serves no terms documents, so every one is invisible.'''
+    response = browser(server_client, key, token, terms_id="gf22-nda")
+
+    assert (response.status_code, slug(response)) == (404, "not-found")
+
+
+def test_an_artifact_with_nothing_to_ask_for_is_not_permitted(server_client, key, token,
+                                                              finished):
+    '''Every artifact here reads `can_request_access: false`: there is no
+    page, rather than one that always refuses.'''
+    items = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/artifacts",
+                 token).get_json()["items"]
+    assert items and all(item["can_request_access"] is False for item in items)
+
+    response = browser(server_client, key, token, artifact_id=items[0]["id"])
+
+    assert (response.status_code, slug(response)) == (403, "not-permitted")
+
+
+@pytest.mark.parametrize("member", ["job_id", "artifact_id"])
+def test_an_invisible_job_or_artifact_is_not_found(server_client, key, token, finished,
+                                                   member):
+    '''Another person's is the same answer as one that does not exist: the
+    job read predicate, applied to an artifact through its job.'''
+    from siliconcompiler.remote import dpop
+
+    items = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/artifacts",
+                 token).get_json()["items"]
+    named = finished["id"] if member == "job_id" else items[0]["id"]
+
+    other_key = dpop.generate_key()
+    other = login(server_client, other_key, subject="machine:2000").get_json()
+    for value in (named, "01J9NOSUCHTHING"):
+        response = browser(server_client, other_key, other["access_token"],
+                           **{member: value})
+        assert (response.status_code, slug(response)) == (404, "not-found")
+
+
+@pytest.mark.parametrize("body", [
+    {"job_id": "J1", "terms_id": "tos"},
+    {"next": "/portal/jobs/J1"},
+    {"job_id": 7},
+    ["job_id"],
+])
+def test_a_body_naming_anything_but_one_page_is_invalid(server_client, key, token, body):
+    '''More than one member, one this endpoint does not define -- `next`
+    included, since a redirect that follows a caller's input is an open
+    redirect -- or an id that is not one.'''
+    response = call(server_client, key, "POST", "/v1/auth/browser", token, json=body)
+
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
+
+
+def test_a_body_that_is_not_json_is_refused(server_client, key, token):
+    response = call(server_client, key, "POST", "/v1/auth/browser", token,
+                    data="job_id=J1", content_type="application/x-www-form-urlencoded")
+
+    assert (response.status_code, slug(response)) == (415, "unsupported-media-type")
+
+
+def test_a_ci_session_is_refused_a_page(server, server_client, key, token):
     '''Nobody is at a browser in a CI run, and one never accepts an agreement.
     This profile mints no CI session, so the family is made one here.'''
     server.config["SC_STORE"].execute(
         "UPDATE token_families SET kind = 'ci', device_id = NULL")
 
-    response = call(server_client, key, "POST", "/portal/session", token)
+    response = browser(server_client, key, token)
 
     assert (response.status_code, slug(response)) == (403, "not-permitted")
+
+
+def test_a_client_credentials_session_is_interactive(server_client, key, token):
+    '''Identity D94: a session is CI exactly when a CI key minted it, so every
+    session here may ask for a page.'''
+    me = call(server_client, key, "GET", "/v1/me", token).get_json()
+
+    assert me["session"]["kind"] == "interactive"
+
+
+@pytest.mark.parametrize("headers", [
+    {"Host": "evil.example"},
+    {"X-Forwarded-Host": "evil.example"},
+    {"Host": "evil.example", "X-Forwarded-Host": "evil.example",
+     "X-Forwarded-Proto": "https"},
+])
+def test_the_link_is_never_built_on_a_request_header(server, server_client, key, token,
+                                                     headers):
+    '''🔴 Otherwise anyone who can set one mints a link that gets pasted into
+    a ticket or an email.'''
+    server.config["SC_CONFIG"]._values["web_url_base"] = "http://sc.example/"
+
+    response = browser(server_client, key, token, headers=headers)
+    url = response.get_json()["url"]
+
+    assert url.startswith("http://sc.example/portal/enter?token=")
+    assert "evil" not in url
+
+
+def test_without_a_web_url_base_the_link_is_on_the_configured_origin(
+        server, server_client, key, token):
+    '''Never the `Host` a request carried: the configured public origin it
+    matched, by its DPoP `htu`.'''
+    response = browser(server_client, key, token, headers={"Host": "evil.example"})
+
+    assert response.get_json()["url"].startswith("http://localhost/portal/enter?token=")
 
 
 def test_a_portal_session_is_not_an_api_credential(signed_in):
@@ -280,8 +414,8 @@ def test_a_stranger_cannot_read_another_persons_job(
     # A second person, with a portal session of their own.
     other_key = dpop.generate_key()
     other = login(server_client, other_key, subject="machine:2000").get_json()
-    url = call(server_client, other_key, "POST", "/portal/session",
-               other["access_token"]).get_json()["url"]
+    url = call(server_client, other_key, "POST", "/v1/auth/browser",
+               other["access_token"], json={}).get_json()["url"]
     server_client.get(url.split("http://localhost", 1)[1])
 
     assert server_client.get(f"/portal/jobs/{job['id']}").status_code == 404
@@ -1041,7 +1175,7 @@ def test_nodes_at_the_same_depth_break_ties_on_the_name(signed_in):
 
 def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
                                                      finished):
-    '''🔴 `web_url` is a link somebody clicks cold. Without this the handover
+    '''🔴 A job's page is a link somebody clicks cold. Without this the handover
     always landed on the jobs list, so the answer to "here is your job" was
     "here is a list, find it again".'''
     page = f"/portal/jobs/{finished['id']}"
@@ -1050,7 +1184,8 @@ def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
     assert turned_away.status_code == 401
     assert "sc-remote -portal" in turned_away.get_data(as_text=True)
 
-    url = call(server_client, key, "POST", "/portal/session", token).get_json()["url"]
+    url = call(server_client, key, "POST", "/v1/auth/browser", token,
+               json={}).get_json()["url"]
     entered = server_client.get(url.split("http://localhost", 1)[1])
 
     assert entered.status_code == 302
@@ -1059,7 +1194,8 @@ def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
 
 def test_a_cold_link_to_nothing_in_particular_lands_on_the_jobs_list(
         server_client, key, token):
-    url = call(server_client, key, "POST", "/portal/session", token).get_json()["url"]
+    url = call(server_client, key, "POST", "/v1/auth/browser", token,
+               json={}).get_json()["url"]
     entered = server_client.get(url.split("http://localhost", 1)[1])
 
     assert entered.status_code == 302
@@ -1070,7 +1206,8 @@ def test_the_return_path_is_never_an_open_redirect(server_client, key, token):
     '''🔴 Anything can set a cookie on this origin, and a redirect that follows
     one is the classic phishing primitive -- made worse here because the person
     has just been told this link is the trustworthy way in.'''
-    url = call(server_client, key, "POST", "/portal/session", token).get_json()["url"]
+    url = call(server_client, key, "POST", "/v1/auth/browser", token,
+               json={}).get_json()["url"]
 
     for hostile in ("//evil.example/", "https://evil.example/",
                     "/etc/passwd", "/v1/jobs"):

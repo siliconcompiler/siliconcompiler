@@ -155,42 +155,75 @@ def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
     assert "http://portal.test/approve" in caplog.text
 
 
-def test_a_terms_refusal_names_each_document_its_own_way(logged_in, fake_v1, monkeypatch):
-    '''🔴 Two documents with their own links, each printed beside its own; one
-    with no link named by its title in `GET /v1/me`'s `terms`. Nothing is
-    accepted; only an https link may be opened.'''
-    opened = []
-    monkeypatch.setattr(type(logged_in), "open_url",
-                        lambda self, url, what, require_tty=True: opened.append(url))
-    fake_v1.route(responses.POST, "jobs", problem("terms-not-accepted", 403, blocked_by={
-        "tos": {"url": "https://portal.test/sign/tos"},
-        "gf22-nda": {"url": "https://portal.test/sign/nda"},
-        "export": {}}), status=403, content_type="application/problem+json")
+def asked_for_pages(fake_v1):
+    '''Each body this client sent endpoint 6.'''
+    import json
+
+    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")]
+
+
+def terms_refusal(fake_v1):
+    fake_v1.route(responses.POST, "jobs", problem(
+        "terms-not-accepted", 403, blocked_by=["tos", "gf22-nda", "export"]),
+        status=403, content_type="application/problem+json")
     fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
-        {"id": "export", "title": "Export Control Statement"}]})
+        {"id": "tos", "title": "Terms of Service", "can_decide": True},
+        {"id": "export", "title": "Export Control Statement", "can_decide": True}]})
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=t1",
+                   "expires_at": "2026-10-01T18:04:30Z"})
+
+
+def test_a_terms_refusal_names_each_document_by_its_title(logged_in, fake_v1, monkeypatch):
+    '''🔴 `blocked_by` is a list of `terms` ids (surface D309): each named by
+    its title in `GET /v1/me`'s `terms`, by its id where it has none, and its
+    page asked for at endpoint 6 and opened, on a terminal. Nothing is
+    accepted.'''
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    terms_refusal(fake_v1)
 
     with pytest.raises(ServerProblem) as raised:
         logged_in.create_job(design="gcd", jobname="job0")
 
     text = str(raised.value)
-    assert "sign tos: https://portal.test/sign/tos" in text
-    assert "sign gf22-nda: https://portal.test/sign/nda" in text
-    assert "sign Export Control Statement (no link" in text
-    assert opened == ["https://portal.test/sign/tos", "https://portal.test/sign/nda"]
+    assert "sign Terms of Service" in text
+    assert "sign gf22-nda" in text
+    assert "sign Export Control Statement" in text
+    assert "portal.test" not in text
+    assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}, {"terms_id": "gf22-nda"},
+                                        {"terms_id": "export"}]
+    assert opened == ["https://portal.test/enter?token=t1"] * 3
     assert not [c for c in fake_v1.calls if "accept" in c.request.url]
 
 
-def test_a_blocked_artifact_names_each_document_its_own_way(fake_v1, logged_in):
+def test_a_terms_refusal_off_a_terminal_asks_for_no_page(logged_in, fake_v1, monkeypatch):
+    '''Nobody is there to see one, so none is minted.'''
+    monkeypatch.setattr("sys.stdout.isatty", lambda: False)
+    terms_refusal(fake_v1)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.create_job(design="gcd", jobname="job0")
+
+    assert "sign Terms of Service" in str(raised.value)
+    assert asked_for_pages(fake_v1) == []
+
+
+def test_a_blocked_document_is_named_by_its_title_or_its_id(fake_v1, logged_in):
     from siliconcompiler.remote.client.errors import blocked_lines
 
-    lines = blocked_lines({"tos": {"url": "https://portal.test/sign/tos"},
-                           "gf22-nda": {"url": "https://portal.test/sign/nda"},
-                           "export": {}}, {"export": "Export Control Statement"})
+    lines = blocked_lines(["tos", "gf22-nda", "export"],
+                          {"tos": "Terms of Service", "export": "Export Control Statement"})
 
-    assert lines == ["sign tos: https://portal.test/sign/tos",
-                     "sign gf22-nda: https://portal.test/sign/nda",
-                     "sign Export Control Statement (no link is available; ask the "
-                     "operator where)"]
+    assert lines == ["sign Terms of Service", "sign gf22-nda",
+                     "sign Export Control Statement"]
+    # Where there is no `/me`, by its id.
+    assert blocked_lines(["tos"]) == ["sign tos"]
+    # The keyed object this used to be is no longer read.
+    assert blocked_lines({"tos": {}}) == []
 
 
 def test_the_stream_url_is_never_printed(logged_in, fake_v1, monkeypatch, caplog):

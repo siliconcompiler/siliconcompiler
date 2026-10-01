@@ -218,20 +218,22 @@ def _warn_of_plaintext(origins) -> None:
 
 
 def _check_page_scheme(web_url_base, origins) -> None:
-    '''🔴 A job's page is on a scheme this deployment is served on (contract
-    rule 5): every other URL it issues is built on the origin a request
-    arrived at, and `web_url` is the one built from a setting of its own.'''
+    '''🔴 Contract rule 5, as the owner states it (D70): an answer to an
+    `https` request sends the client only to `https` URLs. Every other URL is
+    built on the origin a request arrived at; `POST /v1/auth/browser`'s link is
+    built on `web_url_base`, so an `http` one beside any `https` origin would
+    send an `https` caller to plain `http`. An `https` one beside `http`
+    origins is allowed: an `http` answer may send the client to either.'''
     from urllib.parse import urlsplit
 
-    if not web_url_base:
+    if not web_url_base or urlsplit(str(web_url_base)).scheme != "http":
         return
-    schemes = sorted({urlsplit(origin).scheme for origin in origins})
-    scheme = urlsplit(str(web_url_base)).scheme
-    if scheme not in schemes:
+    secure = [origin for origin in origins if urlsplit(origin).scheme == "https"]
+    if secure:
         raise ValueError(
-            f"web_url_base is {web_url_base}, on {scheme or 'no scheme'}, and this "
-            f"deployment is served on {' and '.join(schemes)} ({', '.join(origins)}): a "
-            "deployment is one scheme throughout, so a job's page is on its scheme too")
+            f"web_url_base is {web_url_base}, plain http, and this deployment is also "
+            f"reached at {', '.join(secure)}: an answer to an https request sends the "
+            "client only to https URLs, so web_url_base must be https")
 
 
 def _origins(values) -> List[str]:

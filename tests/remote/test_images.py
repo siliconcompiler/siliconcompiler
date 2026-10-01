@@ -196,7 +196,7 @@ def test_a_registered_tool_with_no_image_fails_the_whole_submit(registry, store)
     assert raised.value.error.slug == "software-unavailable"
     assert raised.value.members["reason"] == "unavailable"
     assert raised.value.members["unresolved"] == [
-        {"name": "yosys", "requirement": [], "available": []}]
+        {"kind": "tools", "name": "yosys", "requirement": [], "available": []}]
 
 
 def test_a_framework_version_no_image_holds(registry, store):
@@ -1257,9 +1257,9 @@ def test_a_python_no_image_has_is_refused_naming_what_there_is(pythons, store):
 
     body = refused.value.body()
     assert body["type"].endswith("/software-unavailable")
-    assert {"name": "python", "requirement": ["==3.10.*"],
+    assert {"kind": "interpreter", "name": "python", "requirement": ["==3.10.*"],
             "available": ["3.12.4", "3.11.9"]} in body["unresolved"] \
-        or {"name": "python", "requirement": ["==3.10.*"],
+        or {"kind": "interpreter", "name": "python", "requirement": ["==3.10.*"],
             "available": ["3.11.9", "3.12.4"]} in body["unresolved"]
 
 

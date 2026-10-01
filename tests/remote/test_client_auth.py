@@ -356,12 +356,14 @@ def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywher
 
 @pytest.mark.parametrize("base,target", [
     ("https://sc-server.test/v1", "http://storage.test/object"),
-    ("http://sc-server.test/v1", "https://storage.test/object")],
-    ids=["downgrade", "upgrade"])
-def test_a_redirect_to_another_scheme_is_never_followed(
+    ("https://sc-server.test/v1", "ftp://storage.test/object"),
+    ("http://sc-server.test/v1", "file:///etc/passwd")],
+    ids=["downgrade", "ftp", "file"])
+def test_a_redirect_from_https_to_http_is_never_followed(
         base, target, tmp_credentials, tmp_path):
-    '''🔴 Contract rule 5: a deployment is one scheme throughout, so a
-    redirect to the other one is followed in neither direction.'''
+    '''🔴 Contract rule 5 (D70): an answer to an https request sends the
+    client only to https URLs, so a redirect to http is not followed -- nor
+    one to anything that is not http or https.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.client.transport import Transport
 
@@ -374,7 +376,25 @@ def test_a_redirect_to_another_scheme_is_never_followed(
         with pytest.raises(RemoteError) as raised:
             transport.follow(response)
 
-    assert "one scheme throughout" in str(raised.value)
+    assert "sends a client only to https" in str(raised.value)
+
+
+def test_a_redirect_from_http_to_https_is_followed(tmp_credentials):
+    '''An answer to an http request may send the client to either scheme.'''
+    from siliconcompiler.remote import dpop
+    from siliconcompiler.remote.client.transport import Transport
+
+    base = "http://sc-server.test/v1"
+    transport = Transport(base, dpop.generate_key(), tmp_credentials)
+    with responses.RequestsMock() as mock:
+        mock.add(responses.GET, f"{base}/redirect", status=303,
+                 headers={"Location": "https://storage.test/object"})
+        mock.add(responses.GET, "https://storage.test/object", body="bytes")
+        response = transport._session.get(f"{base}/redirect", allow_redirects=False)
+
+        followed = transport.follow(response)
+
+    assert followed.status_code == 200 and followed.text == "bytes"
 
 
 def test_a_header_value_with_a_line_break_is_refused(tmp_credentials):

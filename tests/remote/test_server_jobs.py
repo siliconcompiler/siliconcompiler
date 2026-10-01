@@ -1,4 +1,6 @@
 
+import json
+
 from pathlib import Path
 
 import pytest
@@ -328,23 +330,52 @@ def test_a_requirement_is_always_a_list(server_client, key, token):
 
 
 def test_a_private_source_may_carry_its_source(server_client, key, token):
-    '''Surface D299: `private` defaults to false, and a private entry may
-    carry `source` and `ref`, which a held copy or a fetch supplies it from.
-    One this server can use neither way is refused before a byte moves.'''
+    '''Surface D299, D308: `private` defaults to false, and a private entry
+    carries `source` and `ref`, which a held copy or a fetch supplies it from.
+    One this server can supply no way -- a local one, with no source, among
+    them -- is refused before a byte moves, naming its keypath.'''
     defaulted = create(server_client, key, token, sources=[
         {"keypath": ["library", "ip", "dataroot", "ip"],
-         "source": "git+ssh://git@example.com/ip.git", "ref": "v1"}])
+         "source": "git+ssh://example.com/ip.git", "ref": "v1"}])
     fetchable = create(server_client, key, token, jobname="job1", sources=[
         {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
          "source": "https://github.com/siliconcompiler/gf180/archive/", "ref": "v1"}])
     neither = create(server_client, key, token, jobname="job2", sources=[
         {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
          "source": "file:///opt/pdks/gf180"}])
+    local = create(server_client, key, token, jobname="job3", sources=[
+        {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True}])
 
     assert defaulted.status_code == 201
     # 🔴 Never asked for: fetched while staging, or refused.
     assert fetchable.status_code == 201 and not fetchable.get_json().get("upload_sources")
-    assert neither.status_code == 422
+    for refused in (neither, local):
+        assert (refused.status_code, slug(refused)) == (422, "resource-unavailable")
+        assert refused.get_json()["keypath"] == ["library", "gf180", "dataroot", "gf180"]
+        assert refused.get_json()["resource"] == "gf180"
+
+
+@pytest.mark.parametrize("source", [
+    "git+ssh://git@example.com/ip.git",
+    "https://alice:ghp_TOKEN@example.com/ip.tar.gz",
+    "git+https+private://ghp_TOKEN@example.com/ip.git"])
+def test_a_source_carrying_userinfo_is_refused_at_create_by_its_keypath(
+        server, server_client, key, token, caplog, source):
+    '''🔴 Surface D310: refused, never stripped -- naming the entry's keypath
+    and never the value, which is neither stored nor logged.'''
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    response = create(server_client, key, token, sources=[
+        {"keypath": ["library", "ip", "dataroot", "ip"], "source": source,
+         "private": "private" in source}])
+
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
+    body = response.get_json()
+    assert "library,ip,dataroot,ip" in body["detail"]
+    secret = source.split("://", 1)[1].split("@", 1)[0]
+    assert secret not in json.dumps(body) and secret not in caplog.text
+    assert server.config["SC_STORE"].one("SELECT count(*) AS n FROM jobs")["n"] == 0
 
 
 def test_a_need_the_server_lacks_is_refused_at_create_naming_it(server_client, key, token):
@@ -922,8 +953,7 @@ def test_the_job_object_carries_every_required_member(server_client, key, token)
     # no `deleted_cause`: every job deletion is a person's (D279).
     assert "state_changed_at" not in body and "deleted_cause" not in body
     assert [entry["state"] for entry in body["transitions"]] == ["created"]
-    # ABSENT, never null, where the deployment serves no web UI: a null would
-    # claim there is a portal and this job has no page.
+    # No portal URL: a job's page comes from POST /v1/auth/browser (D309).
     assert "web_url" not in body
 
 
@@ -1568,7 +1598,7 @@ def test_a_tool_with_no_image_fails_the_whole_submit(
     assert read["error"]["type"].endswith("software-unavailable")
     assert read["error"]["reason"] == "unavailable"
     assert read["error"]["unresolved"] == [
-        {"name": "openroad", "requirement": [], "available": []}]
+        {"kind": "tools", "name": "openroad", "requirement": [], "available": []}]
 
 
 def test_a_python_no_image_runs_is_refused_at_create_naming_what_there_is(
@@ -1582,8 +1612,8 @@ def test_a_python_no_image_runs_is_refused_at_create_naming_what_there_is(
 
     assert (response.status_code, slug(response)) == (422, "software-unavailable")
     body = response.get_json()
-    assert body["unresolved"] == [{"name": "python", "requirement": ["==3.12.*"],
-                                   "available": ["3.11.9"]}]
+    assert body["unresolved"] == [{"kind": "interpreter", "name": "python",
+                                   "requirement": ["==3.12.*"], "available": ["3.11.9"]}]
     assert "operator would have to add" in body["detail"]
 
 
@@ -1697,7 +1727,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
     assert slug(response) == "software-unavailable"
     assert "reports no version" in response.get_json()["detail"]
     assert response.get_json()["unresolved"] == [
-        {"name": "magic", "requirement": [">=8.0"], "available": []}]
+        {"kind": "tools", "name": "magic", "requirement": [">=8.0"], "available": []}]
 
 
 def test_the_job_identity_folds_in_what_the_server_chose(
@@ -2544,6 +2574,129 @@ def test_a_failed_node_carries_the_type_that_says_so(
 
 
 ###########################
+# Terminal only once listed (surface D308, D310)
+###########################
+
+def _states_when_indexed(monkeypatch, server, method):
+    '''Wrap a JobService indexing method to record, at each call, the job's
+    and its nodes' states as the store then holds them.'''
+    jobs = server.config["SC_JOBS"]
+    store = server.config["SC_STORE"]
+    real = getattr(jobs, method)
+    seen = []
+
+    def wrapped(job, *args):
+        seen.append((store.one("SELECT state FROM jobs WHERE id = ?", (job["id"],))["state"],
+                     {(row["step"], row["index"]): row["state"] for row in store.all(
+                         'SELECT step, "index", state FROM job_nodes WHERE job_id = ?',
+                         (job["id"],))}, args))
+        return real(job, *args)
+
+    monkeypatch.setattr(jobs, method, wrapped)
+    return seen
+
+
+def test_a_node_turns_failed_only_after_its_log_is_listed(
+        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
+    '''🔴 `failed` as well as `completed`: a client that sees a terminal node
+    fetches what it left, so the listing has it first.'''
+    from siliconcompiler.remote.server.running import runspec
+
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    node = root / "stepone" / "0"
+    node.mkdir(parents=True, exist_ok=True)
+    (node / "sc_stepone_0.log").write_text("it went wrong\n")
+    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
+        "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
+                  "steptwo/0": {"state": "pending"}}})
+    seen = _states_when_indexed(monkeypatch, server, "_index_node")
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert {(n["step"], n["state"]) for n in read["nodes"]} >= {("stepone", "failed")}
+    _, nodes, named = seen[0]
+    assert named == ("stepone", "0")
+    assert nodes[("stepone", "0")] not in ("completed", "failed", "skipped", "cancelled")
+    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
+                  token).get_json()["items"]
+    assert any(item["kind"] == "logs" and item["step"] == "stepone" for item in listed)
+
+
+def test_a_lost_job_turns_failed_only_after_what_it_left_is_listed(
+        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "job.log").write_text("the run's own log\n")
+    dispatcher.alive = False
+    seen = _states_when_indexed(monkeypatch, server, "_index")
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "failed"
+    state, nodes, _ = seen[0]
+    assert state not in ("failed", "cancelled")
+    assert not set(nodes.values()) & {"failed", "cancelled"}
+    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
+                  token).get_json()["items"]
+    assert any(item["kind"] == "logs" and item["step"] is None for item in listed)
+
+
+def test_a_cancelled_run_turns_cancelled_only_after_what_it_left_is_listed(
+        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "job.log").write_text("the run's own log, until it was stopped\n")
+    assert call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
+                json={}).get_json()["state"] == "cancelling"
+    dispatcher.alive = False
+    seen = _states_when_indexed(monkeypatch, server, "_index")
+
+    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+
+    assert read["state"] == "cancelled"
+    state, nodes, _ = seen[0]
+    assert state == "cancelling"
+    assert "cancelled" not in nodes.values()
+    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
+                  token).get_json()["items"]
+    assert any(item["kind"] == "logs" and item["step"] is None for item in listed)
+
+
+def test_a_job_failed_in_staging_has_its_record_listed_as_it_ends(
+        monkeypatch, server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 Not by the pass's cleanup after the transition: the record, with
+    the line saying why, is listed by the transition itself.'''
+    import gzip
+
+    from siliconcompiler.remote.server.running.dispatch import DispatchError
+
+    def refuse(*args, **kwargs):
+        raise DispatchError("slurmctld is not answering")
+
+    dispatcher.submit = refuse
+    monkeypatch.setattr(server.config["SC_JOBS"], "_keep_staging_record",
+                        lambda job_id: None)
+
+    archive, digest, size = job_archive()
+    job = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, job["id"], digest, size)
+
+    assert call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
+                token).get_json()["state"] == "failed"
+    item, = [item for item in call(server_client, key, "GET",
+                                   f"/v1/jobs/{job['id']}/artifacts", token).get_json()["items"]
+             if item["kind"] == "staging"]
+    target = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts/{item['id']}",
+                  token).headers["Location"]
+    text = gzip.decompress(server_client.get(target.split("http://localhost", 1)[1]).data)
+    assert b"staging failed: " in text and b"slurmctld is not answering" in text
+
+
+###########################
 # A run that stops saying anything
 ###########################
 
@@ -2624,54 +2777,22 @@ def test_no_heartbeat_means_no_opinion(server, server_client, key, token,
 # The job's page for a person
 ###########################
 
-def test_a_deployment_with_no_web_ui_omits_web_url(server_client, key, token):
-    '''🔴 ABSENT and never null. A null would claim there IS a portal and that
-    this job has no page on it, which is never true.'''
-    created = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0"}).get_json()
-
-    assert "web_url" not in created
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
-                token).get_json()
-    assert "web_url" not in read
-
-
-def test_a_deployment_with_a_portal_publishes_the_page(server, server_client,
-                                                       key, token):
-    '''Followed, never constructed: the portal's route shape may change without
-    a version bump, so a client that builds this itself breaks quietly.'''
-    server.config["SC_CONFIG"]._values["web_url_base"] = "http://sc.example/"
+@pytest.mark.parametrize("web_url_base", [None, "http://sc.example/"])
+def test_no_job_object_carries_a_portal_url(server, server_client, key, token,
+                                            web_url_base):
+    '''🔴 Surface D309: a job's page is asked for at `POST /v1/auth/browser`
+    by its id, so no answer carries one -- create, the read and the listing,
+    with a portal configured or not.'''
+    server.config["SC_CONFIG"]._values["web_url_base"] = web_url_base
 
     created = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0"}).get_json()
+    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}", token).get_json()
+    listed = call(server_client, key, "GET", "/v1/jobs", token).get_json()["items"]
 
-    assert created["web_url"] == f"http://sc.example/portal/jobs/{created['id']}"
-    # Both places: the create response is what a CLI has in hand at submit
-    # time, and the job object is what anything reading it later sees.
-    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
-                token).get_json()
-    assert read["web_url"] == created["web_url"]
-
-
-def test_the_page_origin_never_comes_from_a_request_header(server, server_client,
-                                                           key, token):
-    '''⚠️ The same trusted-proxy trap as a forwarded client address, with a
-    worse payoff: the output is a link somebody pastes into a ticket.'''
-    server.config["SC_CONFIG"]._values["web_url_base"] = "http://sc.example"
-
-    # 🔴 Only the forwarded headers, and that is not a weaker test -- it is
-    # the realistic one. `Host` cannot be moved here at all: DPoP binds the
-    # proof to the request URL, so changing it fails authentication long before
-    # any link is built. What a proxy forwards is the header that actually
-    # reaches an application unchallenged.
-    created = call(server_client, key, "POST", "/v1/jobs", token,
-                   json={"design": "gcd", "jobname": "job0"},
-                   headers={"X-Forwarded-Host": "evil.example",
-                            "X-Forwarded-Proto": "https"}).get_json()
-
-    assert created["web_url"].startswith("http://sc.example/")
-    assert "evil.example" not in created["web_url"]
+    for job in [created, read] + listed:
+        assert "web_url" not in job
+        assert not any("portal" in str(value) for value in job.values()), job
 
 
 ###########################

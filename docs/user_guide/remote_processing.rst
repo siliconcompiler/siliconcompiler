@@ -220,7 +220,7 @@ distribution is asked of the client where it is pure Python, and refused where
 it is compiled, unless the deployment's operator lets it build from source.
 
 A deployment may also grant these per account, as capabilities in
-``GET /v1/me``: ``python-env`` to have packages installed, and
+``GET /v1/me``: ``python-packages`` to have packages installed, and
 ``python-wheels`` to upload wheels as well. The client checks before it creates
 the job, and names what is missing. A deployment that grants nothing gates
 nothing, and ``python.env`` alone decides.
@@ -252,8 +252,8 @@ scheme -- ``file+private://``, ``git+ssh+private://`` and the rest -- is data
 whose bytes must not leave your machine, the design's included. The server
 supplies it itself: from its operator's copy, from a copy of its source it
 already holds, or by fetching that source where its allowlist admits it --
-never by asking you -- or refuses the job, and it refuses a job whose upload
-carries one anyway. A ``file+private://`` source is on your machine, where no
+never by asking you -- or refuses the job before anything uploads, and it
+refuses a job whose upload carries one anyway, keeping none of it. A ``file+private://`` source is on your machine, where no
 server can fetch it, so only an operator's copy can supply it. A private
 dataroot is named by where the manifest keeps it: a library's as
 ``library,<name>,dataroot,<root>``, and a task's own as
@@ -425,8 +425,9 @@ it has the uploads, and a node's inputs are its upstream's outputs.
 **There is no login.** Your machine's key is the credential, and a browser
 arriving cold holds none of it -- so the client proves possession of that key
 and passes a session across. The link it opens is **good for one use and lives
-under a minute**: it reaches the browser's history and possibly an access log,
-and spending it on arrival is what makes both worthless.
+under a minute**, and is printed only where no browser opened: it reaches the
+browser's history and possibly an access log, and spending it on arrival is what
+makes both worthless.
 
 .. note::
 

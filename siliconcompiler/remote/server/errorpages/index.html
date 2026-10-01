@@ -94,11 +94,11 @@ if it carries <code>Retry-After</code>.</p>
     <td>The job&rsquo;s state does not allow that call; <code>reason: "in_progress"</code> for a retry the server is still handling.</td>
     <td>Re-reads the job. On <code>in_progress</code>, waits <code>Retry-After</code> and retries with the same key.</td></tr>
 <tr><td><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a></td><td><code>403</code></td>
-    <td>An unaccepted terms document. <code>blocked_by</code> maps each one to where to sign it.</td>
-    <td>Sends the person to each <code>url</code>, names any document without one, then retries.</td></tr>
+    <td>An unaccepted terms document. <code>blocked_by</code> lists each one by its terms id.</td>
+    <td>Opens each document&rsquo;s page from <code>POST /v1/auth/browser</code>, then retries.</td></tr>
 <tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>
     <td>The per-object gate withholds the artifact.</td>
-    <td>Asks through <code>access_request_url</code> where there is one; otherwise stops.</td></tr>
+    <td>Asks at the page <code>POST /v1/auth/browser</code> answers for the artifact, where <code>can_request_access</code> is <code>true</code>; otherwise stops.</td></tr>
 <tr><td><a href="not-found.html"><code>not-found</code></a></td><td><code>404</code></td>
     <td>It does not exist, or it is not yours &mdash; deliberately indistinguishable.</td>
     <td>Stops.</td></tr>

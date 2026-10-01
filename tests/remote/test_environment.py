@@ -610,7 +610,8 @@ def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
         assert job["state"] == "rejected"
         assert (error["type"].rsplit("/", 1)[-1], error["reason"]) == \
             ("software-unavailable", "uninstallable")
-        assert error["unresolved"][0]["name"] == "numpy"
+        assert {key: error["unresolved"][0][key] for key in ("kind", "name")} == \
+            {"kind": "package", "name": "numpy"}
         assert "cpython-test" in error["detail"] and "test-platform" in error["detail"]
     else:
         assert job["state"] == "failed"
@@ -759,7 +760,7 @@ def test_a_python_name_nothing_here_holds_is_refused_at_create(
     assert response.status_code == 422, response.get_json()
     body = response.get_json()
     assert slug(response) == "software-unavailable"
-    assert body["unresolved"] == [{"name": "scnosuchdistribution",
+    assert body["unresolved"] == [{"kind": "python", "name": "scnosuchdistribution",
                                    "requirement": ["==1.0"], "available": available}]
 
 

@@ -340,15 +340,19 @@ def test_a_deprecation_warns_once_per_session_with_its_sunset(
 # Upcoming terms
 ###########################
 
-def terms_entry(accepted_at=None, decision_url="https://portal.test/terms/tos"):
-    entry = {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
-             "version": "2026-09-01", "accepted_at": "2026-09-02T00:00:00Z",
-             "declined_at": None, "document_url": "https://portal.test/tos",
-             "upcoming": {"version": "2026-11-01", "effective_at": "2026-11-01T00:00:00Z",
-                          "accepted_at": accepted_at}}
-    if decision_url:
-        entry["decision_url"] = decision_url
-    return entry
+def terms_entry(accepted_at=None, can_decide=True):
+    '''A `terms` entry as surface D309 has it: `can_decide`, and no URL.'''
+    return {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
+            "version": "2026-09-01", "accepted_at": "2026-09-02T00:00:00Z",
+            "declined_at": None, "can_decide": can_decide,
+            "upcoming": {"version": "2026-11-01", "effective_at": "2026-11-01T00:00:00Z",
+                         "accepted_at": accepted_at}}
+
+
+def asked_for_pages(fake_v1):
+    '''Each body this client sent endpoint 6.'''
+    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")]
 
 
 def me_body(*terms):
@@ -376,16 +380,18 @@ def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
     assert len(named) == 1
     assert "Terms of Service" in named[0]
     assert "2026-11-01T00:00:00Z" in named[0]
-    assert "accepted early, at https://portal.test/terms/tos" in caplog.text
+    assert "accepted early, on its page in this server's portal" in caplog.text
+    # 🔴 No page is asked for unless it is about to be opened.
+    assert asked_for_pages(fake_v1) == []
     assert not [c for c in fake_v1.calls if c.request.method != "GET"
-                and "/auth/" not in c.request.url]
+                and "/auth/token" not in c.request.url]
 
 
 def test_an_accepted_upcoming_version_is_not_mentioned(logged_in, fake_v1, caplog):
     import logging
 
     fake_v1.route(responses.GET, "me",
-                  me_body(terms_entry(accepted_at="2026-10-01T00:00:00Z", decision_url=None)))
+                  me_body(terms_entry(accepted_at="2026-10-01T00:00:00Z")))
     caplog.set_level(logging.INFO)
 
     logged_in.me()
@@ -405,13 +411,40 @@ def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
     answers = iter(["n", "y"])
     monkeypatch.setattr(client_module, "_ask", lambda question: next(answers))
     fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=t1", "expires_at": None})
 
     logged_in.me()
     assert opened == []
+    assert asked_for_pages(fake_v1) == []
 
     # Every time in the check command.
     logged_in.remind_terms(me_body(terms_entry()), always=True)
-    assert opened == ["https://portal.test/terms/tos"]
+    assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}]
+    assert opened == ["https://portal.test/enter?token=t1"]
+
+
+def test_a_document_whose_page_cannot_decide_is_not_offered(logged_in, fake_v1, monkeypatch,
+                                                            caplog):
+    '''`can_decide: false` -- the page cannot take the decision -- so it is
+    named and nothing is offered.'''
+    import logging
+
+    from siliconcompiler.remote import client as client_module
+
+    for stream in ("stdin", "stdout"):
+        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.setattr(client_module, "_ask",
+                        lambda question: pytest.fail("offered a page that cannot decide"))
+    fake_v1.route(responses.GET, "me", me_body(terms_entry(can_decide=False)))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+
+    assert "2026-11-01" in caplog.text
+    assert "accepted early" not in caplog.text
+    assert asked_for_pages(fake_v1) == []
 
 
 def test_a_ci_run_only_reports_an_upcoming_version(logged_in, fake_v1, monkeypatch,
@@ -798,7 +831,7 @@ def test_an_empty_error_body_still_renders(fake_v1, tmp_credentials,
     ("limit-exceeded", 429, {"limit": "concurrent_jobs"}),
     ("feature-unsupported", 501, {"feature": "projects"}),
     ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"}),
-    ("terms-not-accepted", 403, {"blocked_by": {"tos": {}}}),
+    ("terms-not-accepted", 403, {"blocked_by": ["tos"]}),
     ("rate-limited", 429, {}),
     ("insecure-transport", 426, {}),
     ("not-ready", 409, {"artifact_kind": "logs"}),

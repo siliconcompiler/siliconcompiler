@@ -221,9 +221,9 @@ class CreateMixin:
         private, in the map                supplied -- not listed
         private, its source held or        supplied, or fetched while staging --
           allowlisted                        not listed
-        private, and no source given       decided while staging, from the
-                                             manifest's own source -- not listed
-        private, and none of those         `resource-unavailable`, by keypath
+        private, and none of those         `resource-unavailable`, by keypath --
+                                             a local one, with no source, among
+                                             them
         held                               supplied -- not listed
         an installed package held here     supplied -- not listed
         on the allowlist, not held         assumed fetchable -- not listed
@@ -239,14 +239,14 @@ class CreateMixin:
             keypath = item["keypath"]
             source, ref = item.get("source"), item.get("ref")
             if item["private"]:
-                # 🔴 Never asked for (surface D299): the operator's copy, a held
-                # copy of its source, or a fetch of it while staging. An entry
-                # with no source -- which this server's own client never sends,
-                # since the manifest carries it -- is decided while staging, from
-                # the manifest's read; one whose source none of them can use is
-                # refused before a byte moves, the owner's name as `resource` and
-                # the keypath saying which of its dataroots (D285, D298).
-                if self._supply.private_root(keypath) or not source or \
+                # 🔴 Never asked for (surface D299): the operator's copy by
+                # keypath, a held copy by source and ref, or a fetch from the
+                # allowlist while staging -- all three decided here (surface
+                # D308). A local one has no source, so only the operator's copy
+                # can supply it. One none of them can is refused before a byte
+                # moves, the owner's name as `resource` and the keypath saying
+                # which of its dataroots (D285, D298).
+                if self._supply.private_root(keypath) or \
                         self._supply.held(source, ref) or \
                         self._supply.allowlisted(source, ref):
                     continue
@@ -488,7 +488,8 @@ class CreateMixin:
                             detail=f"the job's own Python needs {', '.join(asked)}, and "
                                    "no image this server runs records its Python: the "
                                    "operator would have to register one",
-                            unresolved=[{"name": name, "requirement": list(asked or ()),
+                            unresolved=[{"kind": bucket, "name": name,
+                                         "requirement": list(asked or ()),
                                          "available": []}])
                     continue
 
@@ -515,7 +516,8 @@ class CreateMixin:
                               f"and you asked for {asked}")
                 raise ProblemError(
                     "software-unavailable", reason="unavailable", detail=detail,
-                    unresolved=[{"name": name, "requirement": list(asked or ()),
+                    unresolved=[{"kind": bucket, "name": name,
+                                 "requirement": list(asked or ()),
                                  "available": sorted(said.get(name, ()))}])
 
     def _check_untracked_python(self, name: str, asked) -> None:
@@ -542,7 +544,7 @@ class CreateMixin:
         raise ProblemError(
             "software-unavailable", reason="unavailable",
             detail=f"the job needs {name} {', '.join(asked) or '(any version)'}, and {where}",
-            unresolved=[{"name": name, "requirement": list(asked or ()),
+            unresolved=[{"kind": "python", "name": name, "requirement": list(asked or ()),
                          "available": available}])
 
     def _check_concurrent_jobs(self, user_id: str) -> None:
