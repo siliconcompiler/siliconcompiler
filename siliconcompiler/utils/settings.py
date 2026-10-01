@@ -291,6 +291,10 @@ class SettingsManager:
     def save(self):
         """
         Save the current settings to the disk in JSON format.
+
+        Raises:
+            TimeoutError: if the file's lock is not had within the manager's
+                timeout. Nothing is written.
         """
         if self.__filepath is None:
             return
@@ -302,7 +306,7 @@ class SettingsManager:
                 os.makedirs(directory)
 
             with self.__settings_lock:
-                with get_file_lock(self.__filepath).locked():
+                with get_file_lock(self.__filepath).locked(self.__timeout):
                     with open(self.__filepath, 'w', encoding='utf-8') as f:
                         json.dump(self.__settings, f, indent=4)
         except Exception as e:

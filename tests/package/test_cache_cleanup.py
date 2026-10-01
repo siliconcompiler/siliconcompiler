@@ -494,22 +494,25 @@ def test_cleanup_cache_removes_entry_when_locking_unsupported(cachedir):
     assert stats.entries == 1
 
 
-def test_cleanup_cache_clears_stale_fallback_when_locking_unsupported(cachedir):
+def test_cleanup_cache_leaves_old_fallback_when_locking_unsupported(cachedir, caplog):
     '''
-    Where flock does not work the lock *is* the .sc_lock, so an old one -- residue
-    from a killed process -- would block the sweep forever unless cleared.
+    Where flock does not work the lock *is* the .sc_lock, and the sweep never
+    deletes one it does not hold, however old: two sweeps that both judged it
+    stale would each clear the other's fresh marker and both proceed.
     '''
     entry = make_entry(cachedir, "old", age_days=91)
     fallback = cachedir / "old.sc_lock"
     fallback.touch()
     age_lock(fallback, 91)
+    caplog.set_level(logging.INFO)
 
     with patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK")):
         stats = cleanup.cleanup_cache(cachedir, 90)
 
-    assert not entry.exists()
-    assert not fallback.exists()
-    assert stats.entries == 1
+    assert entry.exists()
+    assert fallback.exists()
+    assert stats.entries == 0
+    assert "Skipping old, it is in use" in caplog.text
 
 
 def test_cleanup_cache_skips_live_fallback_when_locking_unsupported(cachedir):

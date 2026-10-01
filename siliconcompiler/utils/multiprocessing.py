@@ -158,6 +158,8 @@ class FileLock:
         self.__thread_lock = threading.RLock()
         self.__file_lock = InterProcessLock(self.__lock_path)
         self.__depth = 0
+        # The thread holding it, so release() can refuse every other caller
+        self.__owner: Optional[int] = None
         self.__holding_fallback = False
 
     @property
@@ -199,21 +201,6 @@ class FileLock:
         except FileNotFoundError:
             return None
 
-    def clear_fallback(self) -> None:
-        """
-        Deletes a fallback marker a killed process left behind.
-
-        Only for a caller that has judged it residue (see
-        :meth:`fallback_taken`): deleting a live marker lets a second holder in.
-
-        Raises:
-            RuntimeError: if this process holds the lock through it.
-        """
-        if self.__holding_fallback:
-            raise RuntimeError(f"{self.__fallback} is held by this process")
-        with contextlib.suppress(FileNotFoundError):
-            os.unlink(self.__fallback)
-
     @staticmethod
     def __remaining(deadline: Optional[float]) -> Optional[float]:
         if deadline is None:
@@ -249,6 +236,7 @@ class FileLock:
             # Kept alive while held: the registry only holds it weakly, and a
             # collected lock closes its file, which drops the file lock.
             _held_file_locks[self.__path] = self
+            self.__owner = threading.get_ident()
 
         self.__depth += 1
 
@@ -296,10 +284,20 @@ class FileLock:
     def release(self) -> None:
         """
         Release one hold, and the file lock with the last.
+
+        Raises:
+            RuntimeError: if the calling thread does not hold it. Nothing is
+                changed: every caller in the process shares this instance, so a
+                release that went ahead would drop the file lock from under the
+                thread that does hold it.
         """
+        if self.__depth <= 0 or self.__owner != threading.get_ident():
+            raise RuntimeError(f"The lock on {self.__path} is not held by this thread")
+
         self.__depth -= 1
         try:
             if self.__depth == 0:
+                self.__owner = None
                 if _held_file_locks.get(self.__path) is self:
                     del _held_file_locks[self.__path]
                 if self.__holding_fallback:

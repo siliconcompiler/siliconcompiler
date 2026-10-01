@@ -510,6 +510,43 @@ def test_file_lock_held_without_a_reference(guarded, other_process_lock):
     assert other_process_lock.can_take(get_file_lock(guarded).lock_path)
 
 
+def test_file_lock_release_without_a_hold(guarded, other_process_lock):
+    """
+    A stray release changes nothing. It used to leave the hold count at -1, so
+    the next acquire skipped taking the file lock and held nothing.
+    """
+    lock = get_file_lock(guarded)
+    with pytest.raises(RuntimeError, match=r"is not held by this thread$"):
+        lock.release()
+
+    with lock.locked(1):
+        assert not other_process_lock.can_take(lock.lock_path)
+    assert other_process_lock.can_take(lock.lock_path)
+
+
+def test_file_lock_release_from_another_thread(guarded, other_process_lock):
+    """
+    Only the holder releases. Another thread's release used to drop the file
+    lock out from under the holder before it was refused.
+    """
+    lock = get_file_lock(guarded)
+    errors = []
+
+    def release():
+        try:
+            lock.release()
+        except RuntimeError as e:
+            errors.append(str(e))
+
+    with lock.locked(1):
+        thread = threading.Thread(target=release)
+        thread.start()
+        thread.join(timeout=10)
+        assert len(errors) == 1 and errors[0].endswith("is not held by this thread")
+        assert not other_process_lock.can_take(lock.lock_path), "the holder lost the file lock"
+    assert other_process_lock.can_take(lock.lock_path)
+
+
 def test_file_lock_waits_without_a_timeout(guarded):
     holding = threading.Event()
 
@@ -580,18 +617,6 @@ def test_file_lock_fallback_taken(guarded):
         pass
     os.utime(lock.fallback_path, (1000, 1000))
     assert lock.fallback_taken() == 1000
-
-    lock.clear_fallback()
-    assert not os.path.exists(lock.fallback_path)
-    lock.clear_fallback()
-
-
-def test_file_lock_will_not_clear_its_own_fallback(guarded, no_flock):
-    lock = get_file_lock(guarded)
-    with lock.locked(1):
-        with pytest.raises(RuntimeError, match=r"is held by this process$"):
-            lock.clear_fallback()
-        assert os.path.exists(lock.fallback_path)
 
 
 def test_file_lock_fallback_held_by_marker(guarded, no_flock):

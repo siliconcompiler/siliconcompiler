@@ -186,7 +186,11 @@ def _exclusive(cachedir: Path, name: str):
 
     # The fallback marker exists only while it is held, so a recent one means a
     # live download on a filesystem where flock is unavailable. An old one is
-    # residue from a process that was killed.
+    # probably residue from a process that was killed, but it is never cleared
+    # here: two sweeps that both judged it stale would each delete the fresh
+    # marker the other took in its place, and both go ahead. Where flock works
+    # the lock below ignores it; where it does not, the lock waits on it, and
+    # the entry is left until someone deletes the marker.
     try:
         taken = lock.fallback_taken()
     except OSError:
@@ -195,7 +199,6 @@ def _exclusive(cachedir: Path, name: str):
     if taken is not None and datetime.now().timestamp() - taken < LOCK_ACTIVE_SECONDS:
         yield False
         return
-    residue = taken is not None
 
     if not os.path.exists(lock.lock_path):
         # Nothing to take a lock on, and creating one here would leave behind the
@@ -204,15 +207,7 @@ def _exclusive(cachedir: Path, name: str):
         return
 
     try:
-        try:
-            lock.acquire(0)
-        except FileLockTimeout as e:
-            if not (residue and e.fallback):
-                raise
-            # Where flock is unavailable the lock *is* the fallback marker, and
-            # this one was judged residue above: clear it and take the lock.
-            lock.clear_fallback()
-            lock.acquire(0)
+        lock.acquire(0)
     except FileLockTimeout:
         yield False
         return
