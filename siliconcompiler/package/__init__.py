@@ -462,7 +462,13 @@ class Resolver:
     def _collection_source(self) -> str:
         """
         The source as :attr:`collection_id` identifies it: as written, without its
-        userinfo, which says who fetches the data rather than which data it is.
+        userinfo, which says who fetches the data rather than which data it is, and
+        with every query value masked as :attr:`safe_source` masks it.
+
+        The query is masked because a manifest sent off this machine carries the
+        source as :attr:`safe_source`, and its reader must name the collection's
+        files alike. So two sources that differ only in a query value share a
+        collection, as one object presigned twice should.
 
         It is taken apart as a string, not by ``urllib``, whose parsing has changed
         between Python releases.
@@ -471,7 +477,11 @@ class Resolver:
         if not sep:
             return self.source
         end = min([rest.find(c) for c in "/?#" if c in rest], default=len(rest))
-        return f"{scheme}://{rest[:end].rpartition('@')[2]}{rest[end:]}"
+        tail, hash_sep, fragment = rest[end:].partition("#")
+        path, query_sep, query = tail.partition("?")
+        if query_sep:
+            path = f"{path}?{Resolver._masked_query(query)}"
+        return f"{scheme}://{rest[:end].rpartition('@')[2]}{path}{hash_sep}{fragment}"
 
     @property
     def collection_id(self) -> str:
@@ -1024,8 +1034,10 @@ class PythonPathResolver(Resolver):
     A resolver for locating installed Python packages.
 
     This resolver uses Python's import machinery to find the installation
-    directory of a given Python module. It also includes helper methods to
-    determine if a package is installed in "editable" mode.
+    directory of a given Python module, as in ``python://siliconcompiler``, or
+    of a directory inside it, as in ``python://siliconcompiler/tools/openroad``.
+    It also includes helper methods to determine if a package is installed in
+    "editable" mode.
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
@@ -1133,14 +1145,18 @@ class PythonPathResolver(Resolver):
 
     def resolve(self) -> str:
         """
-        Resolves the path to the specified Python module.
+        Resolves the path to the specified Python module, or to a directory
+        inside it when the source names one, as in
+        ``python://siliconcompiler/tools/openroad``.
 
         Returns:
-            str: The absolute path to the module's directory.
+            str: The absolute path to the module's directory, or to the
+            directory named inside it.
         """
         module = importlib.import_module(self.urlpath)
         python_path = os.path.dirname(module.__file__)
-        return os.path.abspath(python_path)
+        # A path, not a submodule: it is not imported, and need not be a package
+        return os.path.abspath(os.path.join(python_path, self.urlparse.path.lstrip("/")))
 
 
 class KeyPathResolver(Resolver):
@@ -1208,17 +1224,16 @@ class DatarootResolver(Resolver):
         The resolver for the dataroot this one names.
 
         Raises:
-            RuntimeError: If the resolver does not have a root project object defined,
-                if the dataroot is not defined in the registry, or if a circular
+            RuntimeError: If the resolver does not have a schema context, if the
+                dataroot is not defined in the registry, or if a circular
                 dataroot reference is detected during resolution.
         """
-        source_schema = self.schema
-        if not source_schema:
+        if not self.schema:
             raise RuntimeError(f"A schema context is required for '{self.display_name}'")
 
-        datarootstore = self.schema._parent()
-        if not datarootstore:
-            raise RuntimeError(f"A root schema has not been defined for '{self.display_name}'")
+        # The registry the dataroot naming this one came from, wherever its
+        # schema sits: a design inside a project as well as on its own
+        datarootstore = self.schema._dataroot_section()
 
         find_root = self.urlpath
         if not datarootstore.valid('dataroot', self.urlpath):
@@ -1269,8 +1284,8 @@ class DatarootResolver(Resolver):
             str: The resolved absolute path for the dataroot.
 
         Raises:
-            RuntimeError: If the resolver does not have a root project object defined,
-                if the dataroot is not defined in the registry, or if a circular
+            RuntimeError: If the resolver does not have a schema context, if the
+                dataroot is not defined in the registry, or if a circular
                 dataroot reference is detected during resolution.
         """
         base_path = self.__target().get_path()

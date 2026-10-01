@@ -658,7 +658,7 @@ def test_get_active_dataroot_multiple_defined():
 def test_dataroot_section_normal():
     schema_base = PathSchema()
 
-    assert schema_base._PathSchema__dataroot_section() is schema_base
+    assert schema_base._dataroot_section() is schema_base
 
 
 def test_dataroot_section_above():
@@ -668,7 +668,7 @@ def test_dataroot_section_above():
     schema_base = PathSchema()
     EditableSchema(schema_base).insert("test", schema)
 
-    assert schema._PathSchema__dataroot_section() is schema_base
+    assert schema._dataroot_section() is schema_base
 
 
 def test_dataroot_section_not_above():
@@ -676,7 +676,7 @@ def test_dataroot_section_not_above():
     schema_base = PathSchema()
     EditableSchema(schema_base).insert("test", schema)
 
-    assert schema._PathSchema__dataroot_section() is schema
+    assert schema._dataroot_section() is schema
 
 
 def test_dataroot_section_above_active_at_base():
