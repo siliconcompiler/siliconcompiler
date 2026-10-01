@@ -1,7 +1,9 @@
+import contextlib
 import gc
 import logging
 import os
 import re
+import stat
 import threading
 import time
 import warnings
@@ -629,6 +631,18 @@ def test_file_lock_fallback_held_by_marker(guarded, no_flock):
     assert not os.path.exists(lock.fallback_path)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+def test_file_lock_fallback_marker_is_private(guarded, no_flock):
+    """Owner-only whatever the umask: never wider than a lock taken with a mode."""
+    previous = os.umask(0o022)
+    try:
+        lock = get_file_lock(guarded)
+        with lock.locked(1):
+            assert stat.S_IMODE(os.stat(lock.fallback_path).st_mode) == 0o600
+    finally:
+        os.umask(previous)
+
+
 def test_file_lock_fallback_marker_excludes(guarded, no_flock):
     """
     A marker that exists is a hold by someone else, or a killed process's
@@ -759,3 +773,40 @@ def test_file_locks_reset_after_fork(guarded, wait_for_child):
 
     assert exited, "forked child hung on the lock"
     assert waited_on_parent, "forked child did not wait on the parent process's lock"
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+@pytest.mark.parametrize("flock", (True, False), ids=("flock", "no_flock"))
+def test_file_lock_inherited_hold_stays_with_the_parent(guarded, flock, other_process_lock,
+                                                        wait_for_child):
+    """
+    A child forked by the holding thread inherits the hold, and leaves it on its
+    way out without releasing what is the parent's. Where files cannot be locked
+    that is the marker, which the child used to delete from under the parent.
+    """
+    lock = get_file_lock(guarded)
+    no_flock = patch("fasteners.InterProcessLock.acquire", side_effect=RuntimeError("ENOLCK"))
+
+    pid = None
+    try:
+        with contextlib.nullcontext() if flock else no_flock:
+            with lock.locked(1):
+                with forking():
+                    pid = os.fork()
+                if pid:
+                    exited, clean = wait_for_child(pid)
+                    if flock:
+                        held = not other_process_lock.can_take(lock.lock_path)
+                    else:
+                        held = os.path.exists(lock.fallback_path)
+    except BaseException:
+        if pid == 0:
+            os._exit(1)
+        raise
+    if pid == 0:
+        os._exit(0)
+
+    assert exited and clean, "the child failed to leave its inherited hold"
+    assert held, "the child released the parent's lock"
+    if not flock:
+        assert not os.path.exists(lock.fallback_path), "the parent did not release its marker"

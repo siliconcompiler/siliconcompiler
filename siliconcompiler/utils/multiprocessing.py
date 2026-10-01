@@ -147,6 +147,9 @@ class FileLock:
     error naming the marker, to be deleted once no process is using it.
 
     A ``fork`` child starts with no instance held; see :func:`get_file_lock`.
+    One forked by the holding thread inherits that thread's hold, and can still
+    release it on its way out of the block, but the file lock and the marker
+    stay the parent's: the release leaves them alone.
     """
 
     def __init__(self, path: Union[str, "os.PathLike"]):
@@ -158,8 +161,11 @@ class FileLock:
         self.__thread_lock = threading.RLock()
         self.__file_lock = InterProcessLock(self.__lock_path)
         self.__depth = 0
-        # The thread holding it, so release() can refuse every other caller
+        # The thread holding it, so release() can refuse every other caller,
+        # and the process, so a forked child's release leaves the parent's
+        # file lock and marker alone
         self.__owner: Optional[int] = None
+        self.__pid: Optional[int] = None
         self.__holding_fallback = False
 
     @property
@@ -237,6 +243,7 @@ class FileLock:
             # collected lock closes its file, which drops the file lock.
             _held_file_locks[self.__path] = self
             self.__owner = threading.get_ident()
+            self.__pid = os.getpid()
 
         self.__depth += 1
 
@@ -263,8 +270,11 @@ class FileLock:
         delay = 0.01
         while True:
             try:
-                # O_EXCL, so of two processes racing for it only one creates it
-                os.close(os.open(self.__fallback, os.O_WRONLY | os.O_CREAT | os.O_EXCL))
+                # O_EXCL, so of two processes racing for it only one creates it;
+                # owner-only, so it is never wider than a lock taken with a mode.
+                # It is empty, and nothing needs to open it: checking it is a
+                # stat, and deleting it rests on the directory's permissions.
+                os.close(os.open(self.__fallback, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
                 self.__holding_fallback = True
                 return
             except FileExistsError:
@@ -297,14 +307,21 @@ class FileLock:
         self.__depth -= 1
         try:
             if self.__depth == 0:
+                inherited = self.__pid != os.getpid()
                 self.__owner = None
+                self.__pid = None
                 if _held_file_locks.get(self.__path) is self:
                     del _held_file_locks[self.__path]
                 if self.__holding_fallback:
                     self.__holding_fallback = False
-                    with contextlib.suppress(FileNotFoundError):
-                        os.unlink(self.__fallback)
+                    # A child forked inside the hold inherits it, but not the
+                    # marker, which its parent still holds
+                    if not inherited:
+                        with contextlib.suppress(FileNotFoundError):
+                            os.unlink(self.__fallback)
                 else:
+                    # Harmless in such a child: fcntl locks are not inherited,
+                    # so its unlock releases nothing of the parent's
                     self.__file_lock.release()
         finally:
             self.__thread_lock.release()
