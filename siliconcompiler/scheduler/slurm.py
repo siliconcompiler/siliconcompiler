@@ -3,6 +3,7 @@ import os
 import shlex
 import shutil
 import stat
+import warnings
 import subprocess
 import uuid
 import time
@@ -101,11 +102,15 @@ class SlurmSchedulerNode(SchedulerNode):
     @staticmethod
     def _write_user_config() -> None:
         """
-        Writes the current system configuration to the user configuration file.
+        Deprecated, and does nothing: :meth:`_set_user_config` saves as it sets.
 
-        Not needed after :meth:`_set_user_config`, which saves as it sets.
+        It used to save the whole in-memory settings, which after a change saved
+        that way would only put a stale copy back over whatever another process
+        had written since.
         """
-        MPManager.get_settings().save()
+        warnings.warn("SlurmSchedulerNode._write_user_config is deprecated and does nothing: "
+                      "_set_user_config saves as it sets",
+                      DeprecationWarning, stacklevel=2)
 
     @property
     def is_local(self):

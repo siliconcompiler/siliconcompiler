@@ -357,7 +357,8 @@ def test_write_user_config(monkeypatch):
 
     assert MPManager.get_settings().get_category("scheduler-slurm") == {}
     SlurmSchedulerNode._set_user_config("sharedprefix", [])
-    SlurmSchedulerNode._write_user_config()
+    with pytest.deprecated_call(match=r"_set_user_config.* saves as it sets"):
+        SlurmSchedulerNode._write_user_config()
 
     assert os.path.isfile(os.path.abspath("options.json"))
     with open(os.path.abspath("options.json")) as fd:
@@ -618,9 +619,34 @@ def test_set_user_config_survives_write_defaults(settings_file):
     schema = OptionSchema()
     schema.set_optmode(12)
     schema.write_defaults()
-    SlurmSchedulerNode._write_user_config()
+    with pytest.deprecated_call():
+        SlurmSchedulerNode._write_user_config()
 
     with open(settings_file) as fd:
         data = json.load(fd)
     assert data["scheduler-slurm"] == {"sharedpaths": ["/nfs"]}
     assert data["schema-options"] == {"optmode": 12}
+
+
+def test_write_user_config_keeps_a_concurrent_update(settings_file):
+    """
+    _write_user_config() used to save the whole in-memory copy, putting it back
+    over whatever another process had written since.
+    """
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs"])
+
+    # Another process, writing another category
+    with open(settings_file) as fd:
+        data = json.load(fd)
+    data["other-category"] = {"key": 1}
+    with open(settings_file, "w") as fd:
+        json.dump(data, fd)
+
+    with pytest.deprecated_call():
+        SlurmSchedulerNode._write_user_config()
+
+    with open(settings_file) as fd:
+        assert json.load(fd) == {
+            "scheduler-slurm": {"sharedpaths": ["/nfs"]},
+            "other-category": {"key": 1}
+        }

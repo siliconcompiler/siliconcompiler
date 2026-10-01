@@ -3,6 +3,7 @@ import gc
 import logging
 import os
 import re
+import stat
 import threading
 import time
 import warnings
@@ -628,6 +629,18 @@ def test_file_lock_fallback_held_by_marker(guarded, no_flock):
             pass
         assert os.path.exists(lock.fallback_path), "the inner release dropped the outer hold"
     assert not os.path.exists(lock.fallback_path)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
+def test_file_lock_fallback_marker_is_private(guarded, no_flock):
+    """Owner-only whatever the umask: never wider than a lock taken with a mode."""
+    previous = os.umask(0o022)
+    try:
+        lock = get_file_lock(guarded)
+        with lock.locked(1):
+            assert stat.S_IMODE(os.stat(lock.fallback_path).st_mode) == 0o600
+    finally:
+        os.umask(previous)
 
 
 def test_file_lock_fallback_marker_excludes(guarded, no_flock):

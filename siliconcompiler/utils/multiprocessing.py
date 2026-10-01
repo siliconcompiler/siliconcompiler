@@ -270,8 +270,11 @@ class FileLock:
         delay = 0.01
         while True:
             try:
-                # O_EXCL, so of two processes racing for it only one creates it
-                os.close(os.open(self.__fallback, os.O_WRONLY | os.O_CREAT | os.O_EXCL))
+                # O_EXCL, so of two processes racing for it only one creates it;
+                # owner-only, so it is never wider than a lock taken with a mode.
+                # It is empty, and nothing needs to open it: checking it is a
+                # stat, and deleting it rests on the directory's permissions.
+                os.close(os.open(self.__fallback, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
                 self.__holding_fallback = True
                 return
             except FileExistsError:

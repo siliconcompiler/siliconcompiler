@@ -203,7 +203,9 @@ class SettingsManager:
                 never readable more widely, even for a moment. A directory the
                 manager creates for them gets the same bits plus search
                 permission. The umask still applies. If None, the file keeps
-                the permissions it has, and a new one gets the umask's.
+                the permissions it has, and a new one gets the umask's. The
+                fallback marker used where files cannot be locked is owner-only
+                either way (see :class:`~siliconcompiler.utils.multiprocessing.FileLock`).
                 Ignored on Windows.
         """
         self.__filepath = filepath
