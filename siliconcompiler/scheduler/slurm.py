@@ -79,18 +79,31 @@ class SlurmSchedulerNode(SchedulerNode):
     @staticmethod
     def _set_user_config(tag: str, value: Union[List[str], str]) -> None:
         """
-        Sets a specific value in the user configuration map.
+        Sets a specific value in the user configuration map, and saves it.
+
+        It is saved as it is set, in a transaction of its own: a change left
+        unsaved would be dropped by the next transaction on the settings file,
+        such as the one :meth:`.OptionSchema.write_defaults` runs (see
+        :meth:`.SettingsManager.transaction`).
 
         Args:
             tag (str): The configuration key to update.
             value (Union[List[str], str]): The value to assign to the key.
+
+        Raises:
+            TimeoutError: if the settings file's lock is not had in time.
+            ValueError: if the settings file is malformed; it is left as it is.
         """
-        MPManager.get_settings().set(SlurmSchedulerNode.__OPTIONS, tag, value)
+        settings = MPManager.get_settings()
+        with settings.transaction():
+            settings.set(SlurmSchedulerNode.__OPTIONS, tag, value)
 
     @staticmethod
     def _write_user_config() -> None:
         """
         Writes the current system configuration to the user configuration file.
+
+        Not needed after :meth:`_set_user_config`, which saves as it sets.
         """
         MPManager.get_settings().save()
 

@@ -15,6 +15,17 @@ from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.utils.multiprocessing import MPManager
 
 
+@pytest.fixture(autouse=True)
+def settings_file(monkeypatch):
+    """
+    Each test's own settings file: _set_user_config() saves as it sets, and the
+    ``~/.sc`` the tests run under is shared by the whole session.
+    """
+    path = os.path.abspath("settings.json")
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath", path)
+    return path
+
+
 @pytest.fixture
 def project():
     flow = Flowgraph("testflow")
@@ -587,3 +598,29 @@ def test_get_slurm_partition_survives_unparsable_json():
                                         _sinfo_result(0, b"not json"))):
         with pytest.raises(RuntimeError, match="Unable to determine partitions in slurm"):
             SlurmSchedulerNode.get_slurm_partition()
+
+
+def test_set_user_config_saves(settings_file):
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs"])
+
+    with open(settings_file) as fd:
+        assert json.load(fd) == {"scheduler-slurm": {"sharedpaths": ["/nfs"]}}
+
+
+def test_set_user_config_survives_write_defaults(settings_file):
+    """
+    write_defaults() re-reads the file under its lock, which used to drop a
+    setting made here and not yet written.
+    """
+    from siliconcompiler.schema_support.option import OptionSchema
+
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs"])
+    schema = OptionSchema()
+    schema.set_optmode(12)
+    schema.write_defaults()
+    SlurmSchedulerNode._write_user_config()
+
+    with open(settings_file) as fd:
+        data = json.load(fd)
+    assert data["scheduler-slurm"] == {"sharedpaths": ["/nfs"]}
+    assert data["schema-options"] == {"optmode": 12}

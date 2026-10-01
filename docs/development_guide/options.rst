@@ -94,9 +94,10 @@ The underlying :class:`.SettingsManager` utilizes a file lock (``.lock``) alongs
 1.  **Atomic Writes**: A save writes the settings to a temporary file beside ``settings.json`` and renames it into place, so a crash or an error part way through leaves the previous file whole. A symlinked ``settings.json`` is followed and its target replaced.
 2.  **Process Safety**: A change that another run may also be making goes through :meth:`.SettingsManager.transaction`, which re-reads the file under the lock before changing it, so neither run puts back a stale copy over the other's write. :meth:`.OptionSchema.write_defaults` works this way. The lock also keeps out the other threads of the same process.
 3.  **Error Recovery**: Waiting for the lock is bounded by a timeout (default 1.0s), so your build pipeline doesn't hang indefinitely.
-    Loading the file when SiliconCompiler starts logs an error and continues with empty settings; a later plain save then refuses rather than write that empty copy over the file.
+    If the file cannot be loaded when SiliconCompiler starts, an error is logged and SiliconCompiler continues with empty settings.
+    Where the lock was not had in time or the file could not be read, a later plain save then refuses rather than write that empty copy over the file.
     A transaction, or a save, that cannot get the lock raises :class:`TimeoutError` and writes nothing.
-    A malformed ``settings.json`` is never replaced by a transaction: fix or delete it.
+    A malformed ``settings.json`` is never replaced by a transaction: fix or delete it. A plain save does replace one, with the settings in memory.
 4.  **Filesystems Without Locking**: Where ``~/.sc`` is on a filesystem that cannot lock files, such as an NFS home directory mounted without lock support, a held lock is marked instead by a ``settings.json.sc_lock`` file, deleted on release.
     A process killed while holding it leaves that file behind, and every later save waits out its timeout and names it: delete it once no SiliconCompiler process is running.
 
@@ -185,12 +186,9 @@ The :class:`.SlurmSchedulerNode` provides static helper methods to manage these 
 
     from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
 
-    # 1. Set the shared paths
+    # Set the shared paths; they are saved to ~/.sc/settings.json as they are set.
     # These paths must be visible on all compute nodes.
     SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs/tools", "/work/project"])
-
-    # 2. Persist changes to ~/.sc/settings.json
-    SlurmSchedulerNode._write_user_config()
 
 Show Task Preferences (The 'showtask' Category)
 -----------------------------------------------

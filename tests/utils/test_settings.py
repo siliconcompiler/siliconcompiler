@@ -1,4 +1,5 @@
 import pytest
+import errno
 import os
 import json
 import logging
@@ -1225,3 +1226,84 @@ def test_transaction_locks_reset_after_fork(settings_file, wait_for_child):
 
     assert exited, "forked child blocked on a lock held by a thread it does not have"
     assert as_expected, "forked child did not run its own transaction or wait on its parent"
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_transaction_does_not_commit_in_a_forked_child(settings_file, wait_for_child,
+                                                       other_process_lock):
+    """
+    A child forked by the thread inside a transaction inherits the block, and
+    used to commit it on the way out -- writing the file while its parent held
+    the lock. It raises instead, and writes nothing.
+    """
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "before", 1)
+    manager.save()
+
+    pid = None
+    try:
+        with manager.transaction():
+            manager.set("a", "parent", 1)
+            with forking():
+                pid = os.fork()
+            if pid == 0:
+                manager.set("a", "child", 1)
+            else:
+                exited, clean = wait_for_child(pid)
+                held = not other_process_lock.can_take(settings_file + ".lock")
+                with open(settings_file) as f:
+                    while_held = json.load(f)
+    except RuntimeError as e:
+        if pid == 0:
+            os._exit(0 if "forked" in str(e) else 2)
+        raise
+    except BaseException:
+        if pid == 0:
+            os._exit(3)
+        raise
+    if pid == 0:
+        os._exit(4)
+
+    assert exited and clean, "the child committed its parent's transaction"
+    assert held, "the child released its parent's lock"
+    assert while_held == {"a": {"before": 1}}, "the child wrote the file"
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"before": 1, "parent": 1}}
+
+
+@posix_only
+def test_save_syncs_the_directory(settings_file, monkeypatch):
+    """The rename reaches the disk before save() returns, not only the contents."""
+    synced = []
+    real_fsync = os.fsync
+
+    def fsync(fd):
+        synced.append(stat.S_ISDIR(os.fstat(fd).st_mode))
+        return real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", fsync)
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    # The temporary file, then the directory it was renamed in
+    assert synced == [False, True]
+
+
+@posix_only
+def test_save_where_the_directory_cannot_be_synced(settings_file, monkeypatch):
+    """Some filesystems refuse to sync a directory; the rename has still happened."""
+    real_fsync = os.fsync
+
+    def fsync(fd):
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            raise OSError(errno.EINVAL, "not supported")
+        return real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", fsync)
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set("a", "b", "c")
+    manager.save()
+
+    with open(settings_file) as f:
+        assert json.load(f) == {"a": {"b": "c"}}

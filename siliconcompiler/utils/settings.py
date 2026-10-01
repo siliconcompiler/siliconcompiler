@@ -91,6 +91,30 @@ def _replace(source: str, target: str) -> None:
             time.sleep(0.05)
 
 
+def _sync_directory(directory: str) -> None:
+    """
+    Flush a rename in ``directory`` to disk.
+
+    Syncing the file makes its contents durable, but the rename that put it in
+    place is an entry in the directory, and a crash can lose that unless the
+    directory is synced too. Windows cannot open a directory to sync it, and some
+    filesystems refuse to; the rename is atomic either way, so a crash still
+    leaves the previous file or the new one, only not necessarily the new one.
+    """
+    if os.name == "nt":
+        return
+    try:
+        fd = os.open(directory, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
 def _reset_locks_after_fork() -> None:
     """
     Rebuilds every manager's locks in a freshly forked child.
@@ -444,7 +468,9 @@ class SettingsManager:
         The file is replaced, never rewritten in place: the settings are written
         to a temporary file beside it, flushed to disk and renamed over it, so a
         crash or an error at any point leaves either the previous file or the
-        new one, whole. A symlinked file is followed, and its target replaced.
+        new one, whole. On POSIX the directory is synced after the rename too,
+        so a save that has returned survives a crash. A symlinked file is
+        followed, and its target replaced.
 
         This writes the whole in-memory copy: what was loaded when the manager
         was built, plus every change since. Where another process may have
@@ -505,6 +531,7 @@ class SettingsManager:
             with contextlib.suppress(OSError):
                 os.unlink(temp)
             raise
+        _sync_directory(os.path.dirname(target))
 
     @contextlib.contextmanager
     def transaction(self, timeout: Optional[float] = None) -> Generator[None, None, None]:
@@ -533,7 +560,9 @@ class SettingsManager:
         The lock is held for the whole block, and other writers give up after
         their own timeout, so keep the block short. Do not open one while
         holding :meth:`lock_category`. A transaction does not carry into a child
-        forked inside it.
+        forked inside it: the child inherits the block, but leaving it there
+        raises :class:`RuntimeError` and saves nothing, and the lock stays the
+        parent's.
 
         On a manager without a file, nothing is read or written, and a
         transaction only excludes others on the same manager.
@@ -549,6 +578,8 @@ class SettingsManager:
                 The file is left as it is: unlike a plain load, which logs and
                 starts empty, a transaction will not replace a file it could not
                 read.
+            RuntimeError: on leaving the block in a child forked inside it.
+                Nothing is saved.
         """
         if timeout is None:
             timeout = self.__timeout
@@ -591,9 +622,16 @@ class SettingsManager:
                 self.__settings = data
             self.__load_error = None
 
+            # Kept in this frame, which a forked child inherits as it stands
+            opened_by = os.getpid()
             self.__transactions.depth = 1
             try:
                 yield
+                if os.getpid() != opened_by:
+                    raise RuntimeError(
+                        f"Not saving {self.__filepath}: the transaction was opened in "
+                        f"process {opened_by}, and a child forked inside it cannot commit "
+                        "it, since the lock is its parent's")
                 after = self._serialize()
                 if after != before:
                     self._write(after)
