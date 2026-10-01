@@ -559,12 +559,13 @@ def default_sc_system_path() -> str:
 
 def default_credentials_file() -> str:
     """
-    Returns the default path for the SiliconCompiler credentials file.
+    Returns the default path for the remote client's store: ``auth/remote.json``
+    in the SiliconCompiler configuration directory, beside the machine's key.
 
     Returns:
-        str: The absolute path to the credentials file.
+        str: The absolute path to the store file.
     """
-    return default_sc_path('credentials')
+    return default_sc_path(os.path.join('auth', 'remote.json'))
 
 
 def default_cache_dir() -> str:

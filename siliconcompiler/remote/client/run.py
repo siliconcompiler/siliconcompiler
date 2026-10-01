@@ -609,8 +609,8 @@ class RemoteRun:
           this*. A CI job that opened a browser on a build agent would be a
           small mystery at best
 
-        ⚠️ `open_portal` in the credentials file overrides all of it either
-        way, because a proxy is a guess and somebody will want it wrong on
+        ⚠️ `open_portal`, in the `remote` category of `settings.json`, overrides
+        all of it either way, because a proxy is a guess and somebody will want it wrong on
         purpose.
 
         A handover rather than the bare URL: the browser holds none of what
@@ -628,7 +628,9 @@ class RemoteRun:
 
         if self.client.ci_session:
             return
-        wanted = self.client.credentials.get("open_portal")
+        from siliconcompiler.remote.client.credentials import preference
+
+        wanted = preference("open_portal")
         if wanted is False:
             return
         if not wanted:

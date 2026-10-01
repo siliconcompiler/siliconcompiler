@@ -54,7 +54,7 @@ def test_a_same_origin_signed_route_gets_the_operator_headers_and_no_session(
     '''The artifact 303 on `sc-server`'s own host: the operator's header goes,
     because the edge in front of the host wants it, and the session never
     does, since the signature is the credential.'''
-    tmp_credentials.set_header(ORIGIN, "CF-Access-Client-Id", "id")
+    tmp_credentials.set_header("CF-Access-Client-Id", "id")
     fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
                   headers={"Location": f"{ORIGIN}/storage/artifact/J/A?sig=1"})
     fake_v1.elsewhere(responses.GET, f"{ORIGIN}/storage/artifact/J/A", "bytes",
@@ -141,12 +141,13 @@ def test_a_notice_loses_its_control_characters(logged_in, fake_v1, capabilities,
 
 
 def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
-        logged_in, tmp_credentials, monkeypatch, caplog):
+        logged_in, fake_v1, capabilities, monkeypatch, caplog):
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("sys.stdout.isatty", lambda: True)
-    tmp_credentials.update_session(
-        grant_types_supported=["urn:ietf:params:oauth:grant-type:device_code"])
+    fake_v1.replace(responses.GET, "", {
+        **capabilities,
+        "grant_types_supported": ["urn:ietf:params:oauth:grant-type:device_code"]})
 
     assert logged_in.open_url("http://portal.test/approve", "the page") is False
 

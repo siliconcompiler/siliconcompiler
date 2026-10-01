@@ -147,14 +147,15 @@ def test_a_key_bound_elsewhere_names_the_operator_command(
     assert len(_posts(fake_v1)) == 1
 
 
-def test_a_stale_grant_cache_is_refreshed_and_the_login_switches(
+def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
         fake_v1, tmp_credentials, capabilities, no_sleep):
-    '''`unsupported_grant_type` is the only thing that says the cache is
-    stale.'''
-    tmp_credentials.update_session(grant_types_supported=["client_credentials"])
+    '''`unsupported_grant_type` is the one thing that says what `GET /v1`
+    offered has changed: it is read again, and nothing is cached.'''
+    _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS)
+    fake_v1.route(responses.GET, "", {**capabilities, "grant_types_supported":
+                                      [GRANT_DEVICE_CODE, "refresh_token"]})
     fake_v1.route(responses.POST, "auth/token",
                   {"error": "unsupported_grant_type"}, status=400)
-    _offer(fake_v1, capabilities, GRANT_DEVICE_CODE, "refresh_token")
     fake_v1.route(responses.POST, "auth/device",
                   {"device_code": "dc", "user_code": "ABCD-EFGH",
                    "verification_uri": "https://sc-server.test/device",
@@ -167,8 +168,7 @@ def test_a_stale_grant_cache_is_refreshed_and_the_login_switches(
 
     assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == \
         ["client_credentials", GRANT_DEVICE_CODE]
-    assert tmp_credentials.session_value("grant_types_supported") == \
-        [GRANT_DEVICE_CODE, "refresh_token"]
+    assert "grant_types_supported" not in tmp_credentials.path.read_text()
 
 
 ###########################
@@ -202,8 +202,7 @@ def test_a_redirect_to_an_identity_provider_is_not_followed(logged_in, fake_v1):
 
 def test_storage_on_another_origin_gets_no_credential_of_any_kind(
         logged_in, fake_v1, tmp_credentials, tmp_path):
-    tmp_credentials.set_header("https://sc-server.test", "CF-Access-Client-Id", "id")
-    tmp_credentials.set_header("https://storage.test", "X-Storage", "never-sent")
+    tmp_credentials.set_header("CF-Access-Client-Id", "id")
 
     fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
                   headers={"Location": "https://storage.test/object?sig=1"})
@@ -223,8 +222,7 @@ def test_a_stream_host_on_another_origin_gets_no_operator_header(
     '''🔴 Surface D304: operator headers go to the API's origin and nowhere
     else -- not even one stored for the stream's own origin, which nothing
     configures any more.'''
-    tmp_credentials.set_header("https://sc-server.test", "CF-Access-Client-Id", "id")
-    tmp_credentials.set_header("https://stream.test", "X-Stream", "s")
+    tmp_credentials.set_header("CF-Access-Client-Id", "id")
 
     fake_v1.route(responses.GET, "jobs/J/logs", "", status=303,
                   headers={"Location": "https://stream.test/log"})
@@ -381,13 +379,13 @@ def test_a_redirect_to_another_scheme_is_never_followed(
 
 def test_a_header_value_with_a_line_break_is_refused(tmp_credentials):
     with pytest.raises(StoreError):
-        tmp_credentials.set_header("https://sc-server.test", "X-A", "v\r\nX-B: w")
+        tmp_credentials.set_header("X-A", "v\r\nX-B: w")
     with pytest.raises(StoreError):
-        tmp_credentials.set_header("https://sc-server.test", "Authorization", "v")
+        tmp_credentials.set_header("Authorization", "v")
 
 
 def test_a_header_value_is_never_printed(tmp_credentials, fake_v1, caplog):
-    tmp_credentials.set_header("https://sc-server.test", "CF-Access-Client-Secret",
+    tmp_credentials.set_header("CF-Access-Client-Secret",
                                "very-secret")
 
     with caplog.at_level("INFO"):
@@ -406,7 +404,7 @@ def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
     '''🔴 A process that waited for the lock uses what it finds in the store,
     never the token it held before: presenting a rotated one after the grace
     window would end every worker's session.'''
-    tmp_credentials.update_session(refresh_token="r1")
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
     first = Client(Credentials(tmp_credentials.path))
     second = Client(Credentials(tmp_credentials.path))
 
@@ -427,7 +425,7 @@ def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
                                                        client_credentials, no_sleep):
     '''The answer was lost, not the request: the server rotated, and the grace
     window gives the same pair back for the same token.'''
-    tmp_credentials.update_session(refresh_token="r1")
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
     fake_v1._mock.add(responses.POST, fake_v1.url("auth/token"),
                       body=requests.ConnectionError("connection reset"))
     fake_v1.route(responses.POST, "auth/token",
@@ -441,7 +439,7 @@ def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
 
 
 def test_a_refresh_sends_no_scope(fake_v1, tmp_credentials, client_credentials):
-    tmp_credentials.update_session(refresh_token="r1")
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
@@ -455,13 +453,13 @@ def test_a_refresh_sends_no_scope(fake_v1, tmp_credentials, client_credentials):
 ###########################
 
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
-@pytest.mark.parametrize("which", ["dir", "key", "sessions"])
+@pytest.mark.parametrize("which", ["dir", "key", "store"])
 def test_a_store_others_can_read_stops_the_client(tmp_credentials, which):
     tmp_credentials.key()
-    tmp_credentials.update_session(refresh_token="r1")
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
     target = {"dir": tmp_credentials.auth_dir,
               "key": tmp_credentials.key_path,
-              "sessions": tmp_credentials.auth_dir / "sessions.json"}[which]
+              "store": tmp_credentials.path}[which]
     os.chmod(target, stat.S_IMODE(os.stat(target).st_mode) | 0o044)
 
     with pytest.raises(StoreError) as raised:
@@ -473,7 +471,7 @@ def test_a_store_others_can_read_stops_the_client(tmp_credentials, which):
 @pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
 def test_the_store_is_written_private(tmp_credentials):
     tmp_credentials.key()
-    tmp_credentials.update_session(refresh_token="r1")
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
 
     assert stat.S_IMODE(os.stat(tmp_credentials.auth_dir).st_mode) == 0o700
     for entry in tmp_credentials.auth_dir.iterdir():
@@ -487,9 +485,9 @@ def test_the_store_is_private_from_creation_whatever_the_umask(tmp_path, monkeyp
     monkeypatch.delenv("SC_AUTH_DIR", raising=False)
     previous = os.umask(0)
     try:
-        credentials = Credentials(tmp_path / "home" / ".sc" / "credentials")
+        credentials = Credentials(tmp_path / "home" / ".sc" / "auth" / "remote.json")
         credentials.key()
-        credentials.update_session(refresh_token="r1")
+        credentials.save_tokens({"refresh_token": "r1"})
     finally:
         os.umask(previous)
 
@@ -554,6 +552,200 @@ def test_the_auth_dir_can_be_moved(monkeypatch, tmp_path):
     creds.key()
 
     assert creds.key_path.parent == tmp_path / "elsewhere"
+
+
+###########################
+# What the store holds, and what it took over
+###########################
+
+def _store_file(credentials):
+    return json.loads(credentials.path.read_text())
+
+
+def test_the_store_is_one_versioned_file_of_two_categories(
+        fake_v1, tmp_credentials, client_credentials):
+    '''The layout, whole: a `store` category and one entry per server, and no
+    access token, scope, login mode or grant list kept anywhere in it.'''
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+    client = Client(tmp_credentials)
+    client.me()
+    tmp_credentials.set_header("CF-Access-Client-Id", "id")
+    tmp_credentials.set_directory_whitelist(["/proj"])
+
+    assert _store_file(tmp_credentials) == {
+        "store": {"version": 1, "server": "https://sc-server.test/v1",
+                  "directory_whitelist": ["/proj"]},
+        "servers": {"https://sc-server.test/v1": {
+            "user_id": "u1", "refresh_token": "refresh-token-one",
+            "headers": {"CF-Access-Client-Id": "id"}}}}
+    assert tmp_credentials.path == tmp_credentials.auth_dir / "remote.json"
+    assert sorted(entry.name for entry in tmp_credentials.auth_dir.iterdir()) == \
+        ["dpop-key.pem", "remote.json", "remote.json.lock"]
+
+
+def test_a_store_a_newer_client_wrote_is_refused_by_name(tmp_credentials):
+    '''Read, it would be misread: a later version is a later shape.'''
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    written = _store_file(tmp_credentials)
+    written["store"]["version"] = 2
+    tmp_credentials.path.write_text(json.dumps(written))
+
+    with pytest.raises(StoreError, match="newer SiliconCompiler"):
+        Credentials(tmp_credentials.path)
+
+
+def test_each_server_keeps_its_own_entry(tmp_credentials):
+    '''Switching back finds the session left there, and one server's id is
+    never read as another's.'''
+    tmp_credentials.save_tokens({"refresh_token": "first"})
+    tmp_credentials.set_user_id("me-on-first")
+    tmp_credentials.set_server("https://other.test")
+    assert (tmp_credentials.refresh_token, tmp_credentials.user_id) == (None, None)
+    tmp_credentials.save_tokens({"refresh_token": "second"})
+
+    tmp_credentials.set_server("https://sc-server.test")
+
+    assert (tmp_credentials.refresh_token, tmp_credentials.user_id) == \
+        ("first", "me-on-first")
+
+
+def test_a_ci_credential_takes_the_place_of_a_refresh_token(tmp_credentials, ci_secret,
+                                                            monkeypatch):
+    '''One deployment mints it for its own API, and a CI session trades it for
+    each access token: the entry holds one or the other.'''
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    tmp_credentials.save_ci_secret(ci_secret)
+    monkeypatch.delenv("SC_CI_CREDENTIAL")
+
+    entry = _store_file(tmp_credentials)["servers"]["https://sc-server.test/v1"]
+    assert entry == {"ci_credential": ci_secret}
+    assert tmp_credentials.ci_secret() == ci_secret
+    assert Client(tmp_credentials).ci_session
+
+
+def test_rotating_the_key_ends_each_session_and_keeps_the_rest(
+        tmp_credentials, ci_secret, monkeypatch):
+    monkeypatch.delenv("SC_CI_CREDENTIAL")
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    tmp_credentials.set_user_id("u1")
+    tmp_credentials.set_header("X-Edge", "v")
+    tmp_credentials.set_server("https://ci.test")
+    tmp_credentials.save_ci_secret(ci_secret)
+    before = tmp_credentials.thumbprint
+
+    tmp_credentials.rotate_key()
+
+    servers = _store_file(tmp_credentials)["servers"]
+    assert servers["https://sc-server.test/v1"] == {"user_id": "u1", "headers": {"X-Edge": "v"}}
+    assert servers["https://ci.test/v1"] == {"ci_credential": ci_secret}
+    assert tmp_credentials.thumbprint != before
+
+
+def test_a_private_store_directory_may_hold_other_files(tmp_path):
+    '''`-credentials` may name a store in a private directory of the user's
+    choosing; only the directory and the store's own files are judged.'''
+    home = tmp_path / "mine"
+    home.mkdir(mode=0o700)
+    (home / "notes.txt").write_text("not the store's\n")
+    os.chmod(home / "notes.txt", 0o644)
+
+    store = Credentials(home / "remote.json")
+    store.set_server("https://sc-server.test")
+
+    assert store.server == "https://sc-server.test/v1"
+
+
+def test_a_store_in_a_directory_others_can_read_is_refused(tmp_path):
+    '''The directory holds the key, so it is private or the store is not
+    used: a credentials path in an ordinary working directory included.'''
+    shared = tmp_path / "shared"
+    shared.mkdir(mode=0o755)
+    os.chmod(shared, 0o755)
+
+    with pytest.raises(StoreError, match="readable by others"):
+        Credentials(shared / "remote.json")
+
+
+def _legacy_home(tmp_path, ci_secret=None):
+    '''What an older client left: its configuration file and, beside it, the
+    old store's three files and its lock.'''
+    home = tmp_path / "home" / ".sc"
+    auth = home / "auth"
+    auth.mkdir(parents=True, mode=0o700)
+    (home / "credentials").write_text(json.dumps({
+        "address": "https://sc-server.test", "port": 443, "user_id": "u1",
+        "directory_whitelist": ["/proj"], "open_portal": False}))
+    files = {
+        "sessions.json": json.dumps({"https://sc-server.test:443/v1": {
+            "refresh_token": "kept", "scope": "jobs:read", "login": "client_credentials",
+            "grant_types_supported": ["client_credentials"]}}),
+        "headers.json": json.dumps({"https://sc-server.test:443": {"CF-Access-Client-Id": "id"}}),
+        "lock": ""}
+    if ci_secret:
+        files["ci-credential"] = ci_secret + "\n"
+    for name, body in files.items():
+        (auth / name).write_text(body)
+        (auth / name).chmod(0o600)
+    return home
+
+
+def test_an_older_clients_files_are_moved_in_once(tmp_path, monkeypatch):
+    '''🔴 Each piece to its place, the preference to settings.json, and every
+    old file removed: nothing an older client wrote is read twice.'''
+    from siliconcompiler.remote.client import credentials as module
+
+    moved = {}
+    monkeypatch.setattr(module, "_set_preference",
+                        lambda name, value: moved.update({name: value}))
+    home = _legacy_home(tmp_path)
+
+    store = Credentials(home / "auth" / "remote.json")
+
+    assert _store_file(store) == {
+        "store": {"version": 1, "server": "https://sc-server.test:443/v1",
+                  "directory_whitelist": ["/proj"]},
+        "servers": {"https://sc-server.test:443/v1": {
+            "refresh_token": "kept", "user_id": "u1",
+            "headers": {"CF-Access-Client-Id": "id"}}}}
+    assert moved == {"open_portal": False}
+    assert not (home / "credentials").exists()
+    assert sorted(entry.name for entry in (home / "auth").iterdir()) == \
+        ["remote.json", "remote.json.lock"]
+
+
+def test_an_older_ci_credential_goes_to_the_configured_server(tmp_path, ci_secret,
+                                                              monkeypatch):
+    '''It named no server, so it is the configured one's -- in place of the
+    refresh token beside it.'''
+    from siliconcompiler.remote.client import credentials as module
+
+    monkeypatch.setattr(module, "_set_preference", lambda name, value: None)
+    monkeypatch.delenv("SC_CI_CREDENTIAL")
+    home = _legacy_home(tmp_path, ci_secret=ci_secret)
+
+    store = Credentials(home / "auth" / "remote.json")
+
+    entry = _store_file(store)["servers"]["https://sc-server.test:443/v1"]
+    assert entry["ci_credential"] == ci_secret and "refresh_token" not in entry
+
+
+def test_credentials_naming_an_older_file_finds_the_store_it_moved_to(
+        tmp_path, monkeypatch, caplog):
+    '''`-credentials ~/.sc/credentials` in a script still works: the file is
+    moved into the `auth/` beside it, and once it is gone the path finds that
+    store, saying where to point it.'''
+    from siliconcompiler.remote.client import credentials as module
+
+    monkeypatch.setattr(module, "_set_preference", lambda name, value: None)
+    home = _legacy_home(tmp_path)
+
+    first = Credentials(home / "credentials")
+    again = Credentials(home / "credentials")
+
+    assert first.path == again.path == home / "auth" / "remote.json"
+    assert again.refresh_token == "kept"
+    assert "point -credentials there" in caplog.text
 
 
 ###########################
@@ -682,13 +874,12 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
     assert "expires in 3 days" in caplog.text
 
 
-def test_a_ci_key_with_a_stale_cache_trades_and_never_prints_a_code(
-        fake_v1, tmp_credentials, exchange, capsys, caplog):
-    '''🔴 Identity §2: token exchange first whatever the cache says -- here
-    that the deployment offers only the device grant -- and never a
-    `user_code` in a CI runner's log.'''
+def test_a_ci_key_trades_first_and_never_prints_a_code(
+        fake_v1, capabilities, tmp_credentials, exchange, capsys, caplog):
+    '''🔴 Identity §2: token exchange first whatever is offered -- here only
+    the device grant -- and never a `user_code` in a CI runner's log.'''
     exchange()
-    tmp_credentials.update_session(grant_types_supported=[GRANT_DEVICE_CODE])
+    _offer(fake_v1, capabilities, GRANT_DEVICE_CODE)
 
     Client(tmp_credentials, open_browser=False).login()
 
@@ -705,7 +896,6 @@ def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
     this one offers both.'''
     _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE,
            "refresh_token")
-    tmp_credentials.update_session(grant_types_supported=[GRANT_TOKEN_EXCHANGE])
     fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
                   status=400)
 
@@ -749,9 +939,8 @@ def test_insecure_transport_stops_and_is_never_sent_again(logged_in, fake_v1):
 
 
 def test_a_ci_credential_is_never_sent_over_plain_http(tmp_path, monkeypatch, ci_secret):
-    creds = Credentials(tmp_path / "credentials")
-    creds.update(address="http://sc-server.test")
-    creds.update_session(grant_types_supported=[GRANT_TOKEN_EXCHANGE])
+    creds = Credentials(tmp_path / "auth" / "remote.json")
+    creds.set_server("http://sc-server.test")
 
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         with pytest.raises(RemoteError) as raised:
@@ -799,7 +988,7 @@ def test_ci_setup_writes_the_store_and_asks_for_the_access_headers(
     monkeypatch.setattr("builtins.input", lambda _: next(answers))
     monkeypatch.setattr("getpass.getpass", lambda _: next(values))
 
-    creds = Credentials(tmp_path / "home" / "credentials")
+    creds = Credentials(tmp_path / "home" / "auth" / "remote.json")
     Client(creds).ci_setup(server="https://sc-server.test")
 
     exported = (tmp_path / "github_env").read_text()
@@ -808,11 +997,13 @@ def test_ci_setup_writes_the_store_and_asks_for_the_access_headers(
 
     monkeypatch.setenv("SC_AUTH_DIR", str(tmp_path / "runner" / "sc-auth"))
     monkeypatch.delenv("SC_CI_CREDENTIAL")
-    reopened = Credentials(tmp_path / "home" / "credentials")
+    reopened = Credentials(tmp_path / "home" / "auth" / "remote.json")
     assert reopened.ci_secret() == ci_secret
-    assert reopened.headers_for("https://sc-server.test") == {
+    assert reopened.headers() == {
         "CF-Access-Client-Id": "cf-id", "CF-Access-Client-Secret": "cf-secret"}
-    assert json.loads(reopened.path.read_text())["address"].startswith("https://")
+    assert reopened.server == "https://sc-server.test/v1"
+    # The CI credential is the server's own, in place of a refresh token.
+    assert reopened.refresh_token is None
 
 
 def test_ci_setup_without_a_terminal_asks_nothing(tmp_path, monkeypatch, ci_secret):
@@ -821,10 +1012,10 @@ def test_ci_setup_without_a_terminal_asks_nothing(tmp_path, monkeypatch, ci_secr
     monkeypatch.setenv("CF_ACCESS_CLIENT_SECRET", "ignored")
     monkeypatch.setattr("sys.stdin.isatty", lambda: False)
 
-    creds = Credentials(tmp_path / "home" / "credentials")
+    creds = Credentials(tmp_path / "home" / "auth" / "remote.json")
     Client(creds).ci_setup(server="https://sc-server.test")
 
-    assert creds.headers_for("https://sc-server.test") == {}
+    assert creds.headers() == {}
 
 
 def test_a_header_value_is_read_from_a_pipe(tmp_credentials, monkeypatch):

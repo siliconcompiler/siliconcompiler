@@ -25,7 +25,7 @@ To configure a server, use:
     sc-remote -configure -add ./fine_to_upload
     sc-remote -configure -remove ./no_longer_okay_to_upload
 
-    to display the full configuration of the credentials file
+    to display the full configuration of the store, ~/.sc/auth/remote.json
     sc-remote -configure -list
 
 To check an ongoing job's progress, use:

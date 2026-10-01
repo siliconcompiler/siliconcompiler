@@ -68,7 +68,7 @@ def test_a_server_url_may_already_carry_its_prefix():
 def test_a_client_without_a_server_still_builds():
     '''Constructing must not raise, or `sc-remote -configure` could not build
     one in order to fix it.'''
-    client = Client(Credentials(Path("sc-home/credentials")))
+    client = Client(Credentials(Path("sc-home/auth/remote.json")))
 
     assert client.base_url is None
 
@@ -78,20 +78,20 @@ def test_a_client_without_a_server_reports_it_as_such(caplog):
     import logging
 
     caplog.set_level(logging.INFO)
-    Client(Credentials(Path("sc-home/credentials"))).print_configuration()
+    Client(Credentials(Path("sc-home/auth/remote.json"))).print_configuration()
 
     assert "Server: not configured" in caplog.text
 
 
 def test_a_client_without_a_server_names_the_way_to_fix_it():
-    client = Client(Credentials(Path("sc-home/credentials")))
+    client = Client(Credentials(Path("sc-home/auth/remote.json")))
 
     with pytest.raises(RemoteError, match="No remote server address is configured"):
         client.capabilities()
 
 
 def test_the_fix_is_a_command_the_user_can_run():
-    client = Client(Credentials(Path("sc-home/credentials")))
+    client = Client(Credentials(Path("sc-home/auth/remote.json")))
 
     with pytest.raises(RemoteError, match="sc-remote -configure"):
         client.me()
@@ -104,17 +104,17 @@ def test_the_fix_is_a_command_the_user_can_run():
 def test_the_credentials_file_is_private(tmp_credentials):
     '''A shipped security fix, and the floor rather than the starting point: a
     refresh token is a session, not one service's password.'''
-    tmp_credentials.update(refresh_token="secret")
+    tmp_credentials.save_tokens({"refresh_token": "secret"})
 
     assert _mode(tmp_credentials.path) == 0o600
 
 
 def test_an_existing_wider_file_is_tightened(tmp_credentials):
     '''Re-running configure over a file somebody widened has to fix it.'''
-    tmp_credentials.update(refresh_token="secret")
+    tmp_credentials.save_tokens({"refresh_token": "secret"})
     os.chmod(tmp_credentials.path, 0o644)
 
-    tmp_credentials.update(refresh_token="secret-again")
+    tmp_credentials.save_tokens({"refresh_token": "secret-again"})
 
     assert _mode(tmp_credentials.path) == 0o600
 
@@ -499,35 +499,12 @@ def test_the_machine_label_is_not_the_subject(tmp_credentials):
     assert label is None or label != subject
 
 
-def test_the_next_command_reads_with_the_stored_access_token(
-        fake_v1, tmp_credentials, client_credentials):
-    '''🔴 Identity §3: the access token is kept until it expires, so a later
-    command -- a bare `sc-remote` included -- reads `/me` with it and goes to
-    the token endpoint not at all.'''
-    import stat
-
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    Client(tmp_credentials).login()
-
-    # A second client, as a second process would be.
-    Client(Credentials(tmp_credentials.path)).me()
-
-    grants = [_form(c.request.body)["grant_type"]
-              for c in fake_v1.calls if c.request.method == "POST"]
-    assert grants == ["client_credentials"]
-    me = [c.request for c in fake_v1.calls if c.request.url.endswith("/v1/me")][-1]
-    assert me.headers["Authorization"] == "DPoP access-token-one"
-    # Kept under the store's own modes.
-    sessions = tmp_credentials.auth_dir / "sessions.json"
-    assert stat.S_IMODE(sessions.stat().st_mode) == 0o600
-
-
 def test_the_next_command_refreshes_rather_than_enrolling_again(
         fake_v1, tmp_credentials, client_credentials):
-    '''🔴 The property that matters is WHICH grant a later process uses once
-    the stored access token has expired: `refresh_token`. `client_credentials`
+    '''🔴 The property that matters is WHICH grant the second process uses.
+
+    The access token is not written down, so a later command always goes to the
+    token endpoint -- and it must go with `refresh_token`. `client_credentials`
     mints a NEW token family every time it is called and a family lives twelve
     days whether or not anything uses it, so enrolling per command would leave
     one live session behind per invocation.
@@ -536,8 +513,8 @@ def test_the_next_command_refreshes_rather_than_enrolling_again(
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     Client(tmp_credentials).login()
-    tmp_credentials.update_session(access_expires_at=0)
 
+    # A second client, as a second process would be.
     Client(Credentials(tmp_credentials.path)).me()
 
     grants = [_form(c.request.body)["grant_type"]
@@ -563,7 +540,7 @@ def test_a_dead_refresh_token_falls_back_to_enrolling(fake_v1, tmp_credentials,
                                                       client_credentials):
     '''A session that ended is not a session to renew, and this machine's key
     is still enrolled -- so the answer is a new session, not a failure.'''
-    tmp_credentials.update_session(refresh_token="long-dead")
+    tmp_credentials.save_tokens({"refresh_token": "long-dead"})
 
     fake_v1.route(responses.POST, "auth/token",
                   {"error": "invalid_grant", "reason": "revoked"}, status=400)
@@ -577,18 +554,22 @@ def test_a_dead_refresh_token_falls_back_to_enrolling(fake_v1, tmp_credentials,
     assert grants == ["refresh_token", "client_credentials"]
 
 
-def test_an_access_token_left_by_an_older_client_is_dropped(tmp_credentials):
-    '''Popped on read rather than only on write, so a file written by a client
-    that stored one can never have it read back.'''
-    values = json.loads(tmp_credentials.path.read_text())
-    values["access_token"] = "left-behind"
-    tmp_credentials.path.write_text(json.dumps(values))
+def test_an_access_token_left_by_an_older_client_is_never_kept(tmp_path):
+    '''An older client's files are moved into the store, and an access token
+    any of them held is not: the store keeps none.'''
+    home = tmp_path / "home"
+    (home / "auth").mkdir(parents=True, mode=0o700)
+    (home / "credentials").write_text(json.dumps(
+        {"address": "https://sc-server.test", "access_token": "left-behind"}))
+    sessions = home / "auth" / "sessions.json"
+    sessions.write_text(json.dumps({"https://sc-server.test/v1": {
+        "refresh_token": "kept", "access_token": "left-behind", "access_expires_at": 9e9}}))
+    sessions.chmod(0o600)
 
-    reopened = Credentials(tmp_credentials.path)
-    assert not hasattr(reopened, "access_token")
+    store = Credentials(home / "auth" / "remote.json")
 
-    reopened.update(refresh_token="fresh")
-    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+    assert store.refresh_token == "kept"
+    assert "left-behind" not in store.path.read_text()
 
 
 ###########################
@@ -664,7 +645,7 @@ def test_a_reused_refresh_token_says_to_rotate_the_key(fake_v1, tmp_credentials,
     '''`reused` means the credentials were used somewhere else: the person is
     told to replace this machine's key, and on a `client_credentials` server
     that an operator must release the binding.'''
-    tmp_credentials.update_session(refresh_token="stolen-and-spent")
+    tmp_credentials.save_tokens({"refresh_token": "stolen-and-spent"})
     fake_v1.route(responses.POST, "auth/token",
                   {"error": "invalid_grant", "reason": "reused"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -735,7 +716,7 @@ def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
     import logging
 
     caplog.set_level(logging.WARNING)
-    tmp_credentials.update(user_id="the-old-me")
+    tmp_credentials.set_user_id("the-old-me")
 
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "the-new-me", "issuer": "local"})
@@ -947,7 +928,7 @@ def test_reconfiguring_forgets_which_principal_the_old_server_used(
     on the one occasion when a different principal is exactly what was asked
     for.
     '''
-    tmp_credentials.update(user_id="who-the-old-server-called-me")
+    tmp_credentials.set_user_id("who-the-old-server-called-me")
 
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u-new", "issuer": "local"})
@@ -1007,7 +988,7 @@ def test_a_stale_refresh_token_does_not_recurse(fake_v1, tmp_credentials,
     ended in a RecursionError after a couple of hundred REAL round trips, so
     the client flooded the server on its way to crashing.
     '''
-    tmp_credentials.update_session(refresh_token="long-since-revoked")
+    tmp_credentials.save_tokens({"refresh_token": "long-since-revoked"})
 
     fake_v1.route(responses.POST, "auth/token", {"error": "invalid_grant"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -1025,7 +1006,7 @@ def test_a_stale_refresh_token_does_not_recurse(fake_v1, tmp_credentials,
 def test_a_stale_refresh_token_is_replaced_on_disk(fake_v1, tmp_credentials,
                                                    client_credentials):
     '''Self-healing, so the next command costs one request rather than two.'''
-    tmp_credentials.update_session(refresh_token="long-since-revoked")
+    tmp_credentials.save_tokens({"refresh_token": "long-since-revoked"})
 
     fake_v1.route(responses.POST, "auth/token", {"error": "invalid_grant"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -1039,7 +1020,7 @@ def test_a_stale_refresh_token_is_replaced_on_disk(fake_v1, tmp_credentials,
 def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
     '''There is no access token on one, so there is nothing a refresh could
     repair.'''
-    tmp_credentials.update(refresh_token="whatever")
+    tmp_credentials.save_tokens({"refresh_token": "whatever"})
 
     fake_v1.route(responses.POST, "auth/token",
                   problem("invalid-token", 401), status=401,

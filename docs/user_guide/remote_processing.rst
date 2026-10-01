@@ -39,7 +39,7 @@ The command reaches the server, logs in, and reports what it found:
   Configured https://your-server.example.com/v1
   This machine's key: 6VnuUMHokGfjlyAQjS56zCQTPEIb1PesAsRNubDmHK4
   You are 01a0cac7-2bb6-75ae-bdfd-59ff615f6dc1 on this server
-  Saved to /home/user/.sc/credentials
+  Saved to /home/user/.sc/auth/remote.json
 
 There is no default server, so the address is required: leaving it out is an
 error rather than a redirect somewhere you did not choose.
@@ -47,25 +47,30 @@ error rather than a redirect somewhere you did not choose.
 What is written, and where
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The configuration file is ``$HOME/.sc/credentials`` (``C:\Users\<USERNAME>\.sc\``
-on Windows), JSON: the server address and the upload whitelist. Everything
-secret is in the session store beside it, ``$HOME/.sc/auth/`` -- or wherever
-``SC_AUTH_DIR`` points:
+Everything is in one private directory, ``$HOME/.sc/auth/``
+(``C:\Users\<USERNAME>\.sc\auth\`` on Windows) -- or wherever ``SC_AUTH_DIR``
+points -- in two files:
 
 ``dpop-key.pem``
   Your machine's private key. **This is the credential.**
 
-``sessions.json``
-  Your session with each server. ``sc-remote`` on its own shows the one this
-  machine holds -- its scope, the device it is bound to, and when its access
-  token, its refresh token and the session itself end -- as the server reports
-  it; showing it refreshes nothing.
+``remote.json``
+  The store: which server, the upload whitelist, and for each server you have
+  configured, your session with it -- the id it knows you by, its refresh
+  token, or a CI credential in place of one -- and any headers an operator's
+  access layer requires (``sc-remote -header``). ``-credentials`` names this
+  file. No access token is written down, so a command, ``sc-remote`` on its own
+  included, spends the refresh token once. ``sc-remote`` on its own shows the
+  session this machine holds -- its scope, the device it is bound to, and when
+  its tokens and the session itself end -- as the server reports it.
 
-``headers.json``
-  Headers an operator's access layer requires, if any (``sc-remote -header``).
-  They are configured once, for the server, and sent to its address and
-  nowhere else: a live log or a download arrives through the server's own
-  address, or from somewhere that needs none.
+The headers are configured once, for the server, and sent to its address and
+nowhere else: a live log or a download arrives through the server's own
+address, or from somewhere that needs none. A ``$HOME/.sc/credentials`` file an
+older client wrote, and the files it kept beside it, are moved into
+``remote.json`` the first time it is read. ``open_portal``, which forced the
+browser open or shut after a submit, moves to ``$HOME/.sc/settings.json``, in
+its ``remote`` category.
 
 Nothing else goes with a request. The client never sends a credential it did
 not put there itself, so an entry for the server in ``~/.netrc``, a credential

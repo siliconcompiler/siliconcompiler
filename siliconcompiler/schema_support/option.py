@@ -463,18 +463,18 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: user credentials file",
                 switch="-credentials <file>",
                 example=[
-                    "cli: -credentials /home/user/.sc/credentials",
-                    "api: option.set('credentials', '/home/user/.sc/credentials')"],
+                    "cli: -credentials /home/user/.sc/auth/remote.json",
+                    "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"],
                 help="""
-                Filepath to credentials used for remote processing. If the
-                credentials parameter is empty, the remote processing client program
-                tries to access the ".sc/credentials" file in the user's home
-                directory. The file supports the following fields:
-
-                address=<server address>
-                port=<server port> (optional)
-                username=<user id> (optional)
-                password=<password / key used for authentication> (optional)"""))
+                Filepath to the store remote processing keeps its configuration
+                and sessions in: the server, the upload whitelist, and each
+                server's session. If the credentials parameter is empty, the
+                remote processing client uses ".sc/auth/remote.json" in the
+                user's home directory, beside the machine's key,
+                "dpop-key.pem". It is written by "sc-remote -configure". A
+                credentials file an older client wrote, such as
+                ".sc/credentials", is moved into the "auth" directory beside it
+                the first time it is read."""))
 
         schema.insert(
             'cachedir',

@@ -55,7 +55,7 @@ def test_server_beside_a_job_command_stops_there(arg, monkeypatch):
 def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
     '''A refusal is a message and an exit code, never a traceback.'''
     monkeypatch.setattr('sys.argv', ['sc-remote',
-                                     '-credentials', 'creds.json',
+                                     '-credentials', 'sc-auth/remote.json',
                                      '-configure',
                                      '-server', 'https://127.0.0.1:1/'])
 
@@ -66,7 +66,7 @@ def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
 def test_a_missing_manifest_names_the_path(monkeypatch, caplog):
     '''F9: an absent -cfg manifest is an error with the path in it.'''
     monkeypatch.setattr('sys.argv', ['sc-remote',
-                                     '-credentials', 'creds.json',
+                                     '-credentials', 'sc-auth/remote.json',
                                      '-cancel',
                                      '-cfg', 'nowhere.json'])
 
@@ -79,7 +79,7 @@ def test_a_manifest_with_no_job_is_refused(monkeypatch, caplog):
     so here is cheaper than a 404 from a server that was never asked.'''
     Path('manifest.json').write_text('{}')
     monkeypatch.setattr('sys.argv', ['sc-remote',
-                                     '-credentials', 'creds.json',
+                                     '-credentials', 'sc-auth/remote.json',
                                      '-cancel',
                                      '-cfg', 'manifest.json'])
 

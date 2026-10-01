@@ -281,7 +281,7 @@ def test_default_sc_dir():
 def test_default_credentials_file():
     with patch("pathlib.Path.home") as home:
         home.return_value = "this"
-        assert default_credentials_file() == os.path.join("this", ".sc", "credentials")
+        assert default_credentials_file() == os.path.join("this", ".sc", "auth", "remote.json")
 
 
 def test_default_cache_dir():

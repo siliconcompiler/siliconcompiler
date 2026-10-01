@@ -207,8 +207,8 @@ def tmp_credentials():
 
     from siliconcompiler.remote import Credentials
 
-    creds = Credentials(Path("sc-home/credentials"))
-    creds.update(address=V1_URL.rsplit("/v1", 1)[0])
+    creds = Credentials(Path("sc-home/auth/remote.json"))
+    creds.set_server(V1_URL.rsplit("/v1", 1)[0])
     return creds
 
 

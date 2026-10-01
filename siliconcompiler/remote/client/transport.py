@@ -250,7 +250,7 @@ class Transport:
         '''
         if self._credentials is None or origin_of(url) != self.api_origin:
             return {}
-        return self._credentials.headers_for(self.api_origin)
+        return self._credentials.headers()
 
     def _proof(self, method: str, url: str, token: Optional[str]) -> str:
         return dpop.sign_proof(
@@ -389,8 +389,6 @@ class Transport:
             # is a refresh that fails, asks for a refresh, and fails again.
             if again["authenticated"] and slug == "invalid-token":
                 self._access_token = None
-                if self._credentials is not None:
-                    self._credentials.forget_access_token()
                 self._renew()
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
@@ -619,12 +617,12 @@ class Transport:
     def refresh(self) -> bool:
         '''Spend the refresh token for a new access token.
 
-        🔴 **One refresh at a time, per store**, under an inter-process lock. A
-        process that waited re-reads the store and uses what it finds, never the
-        token it held before the lock: presenting a rotated one after the
-        grace window would end every worker's session. Returns whether it
-        worked; raises `SessionEnded` or `LoginRequired` where a login is the
-        answer.
+        🔴 **One refresh at a time, per store**: inside the store's transaction,
+        which re-reads it under its lock. A process that waited uses the token
+        the last refresh wrote, never the one it held before: presenting a
+        rotated one after the grace window would end every worker's session.
+        Returns whether it worked; raises `SessionEnded` or `LoginRequired`
+        where a login is the answer.
         '''
         if self._refreshing:
             # A refresh that provokes a refresh costs the SERVER: impossible by
@@ -636,7 +634,7 @@ class Transport:
 
         self._refreshing = True
         try:
-            held = self._credentials.lock() if self._credentials is not None \
+            held = self._credentials.transaction() if self._credentials is not None \
                 else contextlib.nullcontext()
             with held:
                 refresh_token = (self._credentials.refresh_token
@@ -654,24 +652,28 @@ class Transport:
                 except OAuthRefusal as e:
                     if e.error != "invalid_grant":
                         raise
-                    self.set_tokens(None, None)
+                    refused = e
+                else:
+                    self.set_tokens(body.get("access_token"),
+                                    body.get("refresh_token") or refresh_token,
+                                    body.get("expires_in"))
                     if self._credentials is not None:
-                        self._credentials.forget_tokens()
-                    if e.reason:
-                        raise SessionEnded(
-                            {"type": "https://siliconcompiler.com/server-errors/session-ended",
-                             "title": "Session ended", "reason": e.reason,
-                             "detail": e.description}, e.status) from None
-                    # A changed fingerprint, or a token the server does not
-                    # know: the person logs in again.
-                    raise LoginRequired(e.description or "log in again") from None
+                        self._credentials.save_tokens(body)
+                    return True
 
-                self.set_tokens(body.get("access_token"),
-                                body.get("refresh_token") or refresh_token,
-                                body.get("expires_in"))
-                if self._credentials is not None:
-                    self._credentials.save_tokens(body)
-                return True
+            # Out of the transaction: forgetting the dead token inside it would
+            # be rolled back by the raise that follows.
+            self.set_tokens(None, None)
+            if self._credentials is not None:
+                self._credentials.forget_tokens()
+            if refused.reason:
+                raise SessionEnded(
+                    {"type": "https://siliconcompiler.com/server-errors/session-ended",
+                     "title": "Session ended", "reason": refused.reason,
+                     "detail": refused.description}, refused.status) from None
+            # A changed fingerprint, or a token the server does not know: the
+            # person logs in again.
+            raise LoginRequired(refused.description or "log in again") from None
         finally:
             self._refreshing = False
 

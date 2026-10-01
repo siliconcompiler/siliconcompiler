@@ -1,13 +1,30 @@
 '''
 What this machine holds, and how tightly.
 
-Two places, and only one of them is secret:
+One directory, ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves it), and in it two files:
 
-``~/.sc/credentials``   which server, the upload whitelist, and the id the
-                        server last knew this machine by. Not a secret.
-``~/.sc/auth/``         the session store: the DPoP private key -- **the machine
-                        pin itself** -- each server's refresh and access
-                        tokens, and any operator header secret.
+``remote.json``    the store: which server, the upload whitelist, and for each
+                   server the id it last knew this machine by, its refresh
+                   token or its CI credential, and any operator header secret.
+``dpop-key.pem``   this machine's private key -- **the machine pin itself** --
+                   a file of its own, so that no rewrite of the store can take
+                   it.
+
+``remote.json`` is a :class:`~siliconcompiler.utils.settings.SettingsManager`
+file in two categories::
+
+    {"store":   {"version": 1,
+                 "server": "https://sc.example.com/v1",
+                 "directory_whitelist": []},
+     "servers": {"https://sc.example.com/v1": {"user_id": "...",
+                                                "refresh_token": "...",
+                                                "headers": {"CF-Access-Client-Id": "..."}}}}
+
+A server's entry holds ``refresh_token``, for an interactive session, or
+``ci_credential``, for a CI one, which trades it for each access token -- never
+both. No access token is kept, so a command spends the refresh token once.
+``version`` is the store's own: a later client migrates an older file, and this
+one refuses a newer one by name rather than misreading it.
 
 🔴 **The store's modes are normative** (identity §4): the directory is ``0700``
 and every file in it ``0600``, each created with its mode set, never ``open()``
@@ -15,11 +32,10 @@ then ``chmod()``. A store found wider than that stops the client rather than
 being repaired: a key that was readable by others may already be copied, so the
 user is told to fix the modes and rotate the key.
 
-🔴 **The access token is kept until it expires** (identity §3), in
-``sessions.json`` under the same ``0600``, so a later command reads with it
-rather than rotating the refresh token for every `/me`. Neither token is a
-bearer secret: each is bound to the key beside it, and the server checks the
-thumbprint on every request and every refresh.
+🔴 **Every change is a transaction** that re-reads the file under its lock
+first. A refresh token is rotated by one process at a time: a second process
+writing back the copy it read earlier would put back a spent token, which the
+server reads as reuse, and ends the session.
 
 The store is a directory of its own for one reason: ``scheduler/docker.py``
 mounts ``~/.sc`` into task containers, and one path is something a narrower
@@ -28,6 +44,7 @@ mount can leave out.
 
 import contextlib
 import json
+import logging
 import os
 import stat
 import sys
@@ -38,32 +55,55 @@ from typing import Any, Dict, Optional, Tuple
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import RemoteError
 
-__all__ = ["Credentials", "StoreError", "AUTH_DIRNAME", "KEY_FILENAME",
+__all__ = ["Credentials", "StoreError", "AUTH_DIRNAME", "STORE_FILENAME", "KEY_FILENAME",
            "CI_SECRET_VARIABLE", "parse_ci_secret"]
 
 
-# The session store, beside the configuration file unless SC_AUTH_DIR moves it
-# -- which is how a CI job keeps what it writes in a job-scoped directory.
+# The store's directory, beside SiliconCompiler's own configuration unless
+# SC_AUTH_DIR moves it -- which is how a CI job keeps what it writes in a
+# job-scoped directory.
 AUTH_DIRNAME = "auth"
 AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
 
+STORE_FILENAME = "remote.json"
 KEY_FILENAME = "dpop-key.pem"
-SESSIONS_FILENAME = "sessions.json"      # per server: tokens, scope, grants
-HEADERS_FILENAME = "headers.json"        # per origin: operator header secrets
-CI_FILENAME = "ci-credential"            # the one-line CI secret, from -ci_setup
 
 # Where a CI job's one-line credential secret is read from.
 CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
 
-# What a client of an older release left in ~/.sc, moved into the store.
-_LEGACY_KEY_FILENAME = "credentials.key"
+# The store's own version. A change to its shape is a new number, with a
+# migration from the last.
+STORE_VERSION = 1
+
+# The two categories.
+_STORE = "store"        # version, server, directory_whitelist
+_SERVERS = "servers"    # each server's entry, by its URL
+
+# How long a change waits for another process's. A refresh holds the store
+# across its request, which the transport gives 30 seconds.
+LOCK_SECONDS = 60
+
+# What older clients left, moved into the store once and removed: a
+# configuration file beside the store's directory, and three files and a lock
+# inside it.
+_LEGACY_CONFIG = "credentials"
+_LEGACY_SESSIONS = "sessions.json"
+_LEGACY_HEADERS = "headers.json"
+_LEGACY_CI = "ci-credential"
+_LEGACY_LOCKS = ("lock", "sessions.json.lock")
+_LEGACY_KEY = "credentials.key"         # beside the old configuration file
+# The keys an old configuration file held.
+_LEGACY_FIELDS = ("address", "port", "directory_whitelist", "user_id", "refresh_token",
+                  "access_token", "open_portal")
+
+# Where a preference the old configuration file held now lives: the user's
+# settings.json.
+SETTINGS_CATEGORY = "remote"
 
 _PRIVATE_DIR = 0o700
 _PRIVATE_FILE = 0o600
 
-# A stored access token with less left than this is not used: a command
-# starting on it would spend its first request on a refusal.
-ACCESS_TOKEN_MARGIN_SECONDS = 30
+logger = logging.getLogger(__name__)
 
 
 class StoreError(RemoteError):
@@ -71,7 +111,7 @@ class StoreError(RemoteError):
 
 
 class Credentials:
-    '''One machine's configuration, and its session store.'''
+    '''One machine's remote configuration, and its sessions.'''
 
     @classmethod
     def for_project(cls, project) -> "Credentials":
@@ -89,45 +129,50 @@ class Credentials:
         return cls(Path(utils.default_credentials_file()))
 
     def __init__(self, path: Path):
+        '''``path`` is the store file, `option,credentials`. An older client's
+        configuration file named there is moved into the ``auth/`` beside it.'''
+        store, legacy = _resolve(Path(path))
+        if os.environ.get(AUTH_DIR_VARIABLE):
+            store = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
+        self._open(store)
+        self._migrate(legacy)
+
+    def _open(self, path: Path) -> None:
+        from siliconcompiler.utils.settings import SettingsManager
+
         self.path = Path(path)
-        self.auth_dir = Path(os.environ.get(AUTH_DIR_VARIABLE)
-                             or self.path.parent / AUTH_DIRNAME)
-        self._values: Dict[str, Any] = {}
+        self.auth_dir = self.path.parent
         self._key = None
-
-        if self.path.exists():
-            self._values = json.loads(self.path.read_text() or "{}")
-
-        # Dropped on read, not just on write: a file written by a client that
-        # persisted one must not have it read back.
-        self._values.pop("access_token", None)
-
         self.check_store()
-        self._migrate()
+        self._ensure_dir()
+        self._store = SettingsManager(str(self.path), logger, timeout=LOCK_SECONDS,
+                                      mode=_PRIVATE_FILE)
+        self._check_version()
+
+    def relocate(self, auth_dir: Path) -> None:
+        '''Use the store in ``auth_dir`` instead, as a CI job does in its own
+        temporary directory. Nothing is copied: a store moved is a new one, and
+        its key is generated there.'''
+        self._open(Path(auth_dir) / STORE_FILENAME)
 
     ######################################################################
     # Reading
     ######################################################################
 
     @property
-    def address(self) -> Optional[str]:
-        return self._values.get("address")
-
-    @property
-    def port(self) -> Optional[int]:
-        return self._values.get("port")
-
-    @property
     def server(self) -> Optional[str]:
-        '''The base URL of the configured server: what the store is keyed by.'''
-        if not self.address:
-            return None
-        from siliconcompiler.remote.client.transport import normalize_server
-        return normalize_server(self.address, self.port)
+        '''The base URL of the configured server: what each entry is keyed by.'''
+        return self._store.get(_STORE, "server")
 
     @property
-    def refresh_token(self) -> Optional[str]:
-        return self.session_value("refresh_token")
+    def directory_whitelist(self) -> list:
+        return list(self._store.get(_STORE, "directory_whitelist") or [])
+
+    def _entry(self, server: Optional[str] = None) -> Dict[str, Any]:
+        server = server or self.server
+        if not server:
+            return {}
+        return dict(self._store.get(_SERVERS, server) or {})
 
     @property
     def user_id(self) -> Optional[str]:
@@ -140,14 +185,121 @@ class Credentials:
         all replace the principal, and all look like "every job I ever ran has
         been deleted" without it.
         '''
-        return self._values.get("user_id")
+        return self._entry().get("user_id")
 
     @property
-    def directory_whitelist(self) -> list:
-        return list(self._values.get("directory_whitelist", []))
+    def refresh_token(self) -> Optional[str]:
+        return self._entry().get("refresh_token")
 
-    def get(self, name: str, default: Any = None) -> Any:
-        return self._values.get(name, default)
+    def headers(self) -> Dict[str, str]:
+        '''The operator-configured headers for this server. Secret values.'''
+        return dict(self._entry().get("headers") or {})
+
+    def ci_secret(self) -> Optional[str]:
+        '''The one-line CI secret: the environment first, then this server's
+        entry.'''
+        value = os.environ.get(CI_SECRET_VARIABLE)
+        if value:
+            return value.strip()
+        return self._entry().get("ci_credential") or None
+
+    ######################################################################
+    # Changing
+    ######################################################################
+
+    @contextlib.contextmanager
+    def transaction(self):
+        '''Hold the store for one change: the file is re-read under its lock
+        first, so what this sees is what another process last wrote, and saved
+        on a clean exit. A refresh holds it across its request, so a process
+        that waited uses the token the refresh wrote, never the one it held.
+
+        Nests: a change made inside another joins it.
+
+        Raises:
+            StoreError: where the store is held past `LOCK_SECONDS`, does not
+                read, or was written by a newer client.
+        '''
+        self._ensure_dir()
+        entered = False
+        try:
+            with self._store.transaction(timeout=LOCK_SECONDS):
+                entered = True
+                self._check_version()
+                if self._store.get(_STORE, "version") is None:
+                    self._store.set(_STORE, "version", STORE_VERSION)
+                yield
+        except (TimeoutError, ValueError) as e:
+            if entered:
+                raise
+            raise StoreError(f"the session store {self.path} cannot be used: {e}") from None
+
+    def set_server(self, server: str) -> None:
+        '''Point this machine at a server, by its address or base URL, kept as
+        the base URL. Each server keeps its own entry, so switching back finds
+        the session left there.'''
+        from siliconcompiler.remote.client.transport import normalize_server
+
+        with self.transaction():
+            self._store.set(_STORE, "server", normalize_server(server))
+
+    def set_directory_whitelist(self, entries) -> None:
+        with self.transaction():
+            self._store.set(_STORE, "directory_whitelist", list(entries))
+
+    def _update_entry(self, **values) -> None:
+        '''This server's entry, changed: a value of None removes its field.'''
+        server = self.server
+        if not server:
+            return
+        with self.transaction():
+            entry = self._entry(server)
+            for name, value in values.items():
+                if value is None:
+                    entry.pop(name, None)
+                else:
+                    entry[name] = value
+            self._store.set(_SERVERS, server, entry)
+
+    def set_user_id(self, user_id: Optional[str]) -> None:
+        if user_id != self.user_id:
+            self._update_entry(user_id=user_id)
+
+    def save_tokens(self, body: Dict[str, Any]) -> None:
+        '''Persist the half of a session that outlives this command: the
+        refresh token. The access token is never written down.'''
+        self._update_entry(refresh_token=body.get("refresh_token"))
+
+    def forget_tokens(self) -> None:
+        self._update_entry(refresh_token=None)
+
+    def set_header(self, name: str, value: Optional[str]) -> None:
+        '''An operator-configured header for this server, or None to remove
+        it. A header name is an RFC 9110 token, and neither half may carry a
+        line break: a value is sent verbatim on every request to the server.'''
+        import re
+
+        if not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name or ""):
+            raise StoreError(f"{name!r} is not a header name")
+        if name.lower() in ("authorization", "dpop", "host", "content-length",
+                            "content-type", "cookie"):
+            raise StoreError(f"{name} is set by this client and cannot be configured")
+        if value is not None and any(c in value for c in "\r\n\0"):
+            raise StoreError(f"the value for {name} contains a line break")
+        if not self.server:
+            raise StoreError("no server is configured: run sc-remote -configure first")
+        headers = self.headers()
+        if value is None:
+            headers.pop(name, None)
+        else:
+            headers[name] = value
+        self._update_entry(headers=headers or None)
+
+    def save_ci_secret(self, secret: str) -> None:
+        '''This server's CI credential, in place of a refresh token: a CI
+        session trades the credential for each access token.'''
+        parse_ci_secret(secret)
+        self._update_entry(ci_credential=secret.strip(), refresh_token=None)
 
     ######################################################################
     # The key
@@ -183,175 +335,35 @@ class Credentials:
         '''Replace the key, and with it every session it was bound to.
 
         The deliberate act the contract reserves the key for: the machine
-        enrols again as a new device.
+        enrols again as a new device. Each server's refresh token goes with
+        it; its id, its headers and a CI credential, which no key binds, stay.
         '''
-        with self.lock():
+        with self.transaction():
             self._key = dpop.generate_key()
             self._write(self.key_path, dpop.serialize_key(self._key))
-            self._write_json(SESSIONS_FILENAME, {})
-
-    ######################################################################
-    # The session, per server
-    ######################################################################
-
-    def sessions(self) -> Dict[str, Dict[str, Any]]:
-        return self._read_json(SESSIONS_FILENAME)
-
-    def session_value(self, name: str, default: Any = None) -> Any:
-        return (self.sessions().get(self.server or "") or {}).get(name, default)
-
-    def update_session(self, **values) -> None:
-        '''Write this server's entry, through a temporary file and a rename.'''
-        if not self.server:
-            return
-        sessions = self.sessions()
-        entry = dict(sessions.get(self.server) or {})
-        for name, value in values.items():
-            if value is None:
-                entry.pop(name, None)
-            else:
-                entry[name] = value
-        sessions[self.server] = entry
-        self._write_json(SESSIONS_FILENAME, sessions)
-
-    def save_tokens(self, body: Dict[str, Any]) -> None:
-        '''Persist a session: the refresh token and the scope it was granted,
-        and the access token until it expires (identity §3), so a later
-        command -- a bare `sc-remote` included -- reads `/me` with it and
-        rotates nothing. An access token with no `expires_in` is not kept,
-        since nothing would say when to stop using it.'''
-        import time
-
-        access, expires_in = body.get("access_token"), body.get("expires_in")
-        kept = bool(access) and isinstance(expires_in, int) and expires_in > 0
-        self.update_session(refresh_token=body.get("refresh_token"),
-                            scope=body.get("scope"),
-                            access_token=access if kept else None,
-                            access_expires_at=time.time() + expires_in if kept else None)
-
-    def stored_access_token(self) -> Tuple[Optional[str], Optional[int]]:
-        '''The access token this store keeps for the server, and the whole
-        seconds it has left -- or ``(None, None)`` where there is none, or it
-        has under half a minute left, so no command starts on a token about
-        to lapse.'''
-        import time
-
-        token, until = self.session_value("access_token"), self.session_value(
-            "access_expires_at")
-        if not token or not isinstance(until, (int, float)):
-            return None, None
-        left = int(until - time.time())
-        return (token, left) if left > ACCESS_TOKEN_MARGIN_SECONDS else (None, None)
-
-    def forget_access_token(self) -> None:
-        self.update_session(access_token=None, access_expires_at=None)
-
-    def forget_tokens(self) -> None:
-        self.update_session(refresh_token=None, scope=None, access_token=None,
-                            access_expires_at=None)
-
-    ######################################################################
-    # Operator headers and the CI secret
-    ######################################################################
-
-    def headers_for(self, origin: str) -> Dict[str, str]:
-        '''The operator-configured headers for one origin. Secret values.'''
-        return dict(self._read_json(HEADERS_FILENAME).get(_origin(origin)) or {})
-
-    def set_header(self, origin: str, name: str, value: Optional[str]) -> None:
-        import re
-
-        # A header name is an RFC 9110 token, and neither half may carry a line
-        # break: a value is sent verbatim on every request to the origin.
-        if not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name or ""):
-            raise StoreError(f"{name!r} is not a header name")
-        if name.lower() in ("authorization", "dpop", "host", "content-length",
-                            "content-type", "cookie"):
-            raise StoreError(f"{name} is set by this client and cannot be configured")
-        if value is not None and any(c in value for c in "\r\n\0"):
-            raise StoreError(f"the value for {name} contains a line break")
-        headers = self._read_json(HEADERS_FILENAME)
-        entry = dict(headers.get(_origin(origin)) or {})
-        if value is None:
-            entry.pop(name, None)
-        else:
-            entry[name] = value
-        if entry:
-            headers[_origin(origin)] = entry
-        else:
-            headers.pop(_origin(origin), None)
-        self._write_json(HEADERS_FILENAME, headers)
-
-    def ci_secret(self) -> Optional[str]:
-        '''The one-line CI secret: the environment first, then the store.'''
-        value = os.environ.get(CI_SECRET_VARIABLE)
-        if value:
-            return value.strip()
-        path = self.auth_dir / CI_FILENAME
-        if path.exists():
-            return path.read_text().strip() or None
-        return None
-
-    def save_ci_secret(self, secret: str) -> None:
-        parse_ci_secret(secret)
-        self._write(self.auth_dir / CI_FILENAME, (secret.strip() + "\n").encode())
-
-    ######################################################################
-    # The configuration file
-    ######################################################################
-
-    def update(self, **values) -> None:
-        for name, value in values.items():
-            if name in ("access_token", "refresh_token"):
-                # Neither belongs in the configuration file any more.
-                continue
-            if value is None:
-                self._values.pop(name, None)
-            else:
-                self._values[name] = value
-        self.save()
-
-    def save(self) -> None:
-        self._values.setdefault("directory_whitelist", [])
-        self._values.pop("refresh_token", None)
-        _write_atomic(self.path, (json.dumps(self._values, indent=2) + "\n").encode("utf-8"))
-
-    ######################################################################
-    # One refresh at a time
-    ######################################################################
-
-    @contextlib.contextmanager
-    def lock(self):
-        '''An inter-process lock on the store, for one refresh at a time.
-
-        A process that waited MUST re-read the store once it holds this, never
-        use the token it held before. SiliconCompiler's own file lock, on the
-        sessions file: it excludes another thread of this process as well as
-        another process.
-        '''
-        from siliconcompiler.utils.multiprocessing import get_file_lock
-
-        self._ensure_dir()
-        lock = get_file_lock(self.auth_dir / SESSIONS_FILENAME)
-        if not os.path.exists(lock.lock_path):
-            # Created with its mode, so the lock file is no exception.
-            fd = os.open(lock.lock_path, os.O_WRONLY | os.O_CREAT, _PRIVATE_FILE)
-            os.close(fd)
-        with lock.locked():
-            yield
+            for server, entry in (self._store.get_category(_SERVERS) or {}).items():
+                if isinstance(entry, dict) and "refresh_token" in entry:
+                    entry = dict(entry)
+                    entry.pop("refresh_token")
+                    self._store.set(_SERVERS, server, entry)
 
     ######################################################################
     # The store's files
     ######################################################################
 
     def check_store(self) -> None:
-        '''🔴 Refuse a store others can read, rather than repair it.'''
+        '''🔴 Refuse a store others can read, rather than repair it: its
+        directory, which holds the key, and each of the store's own files in
+        it. A file of anything else's in a private directory is not the
+        store's to judge.'''
         if sys.platform == "win32" or not self.auth_dir.exists():
             return
         wrong = []
         if stat.S_IMODE(os.stat(self.auth_dir).st_mode) & 0o077:
             wrong.append(str(self.auth_dir))
         for entry in self.auth_dir.iterdir():
+            if not self._owns(entry.name):
+                continue
             if stat.S_IMODE(os.lstat(entry).st_mode) & 0o077 or entry.is_symlink():
                 wrong.append(str(entry))
         if wrong:
@@ -360,6 +372,28 @@ class Credentials:
                 f"Fix it -- chmod 700 {self.auth_dir}; chmod 600 on every file in "
                 "it -- and then rotate this machine's key with sc-remote -rotate_key, "
                 "because a key others could read may already be copied")
+
+    def _owns(self, name: str) -> bool:
+        '''Whether a file in the store's directory is the store's: the store,
+        its lock, the key, a temporary file either is written through, or a
+        file an older client left there.'''
+        store = self.path.name
+        if name in (store, f"{store}.lock", f"{store}.sc_lock", KEY_FILENAME,
+                    _LEGACY_SESSIONS, _LEGACY_HEADERS, _LEGACY_CI, *_LEGACY_LOCKS):
+            return True
+        return name.endswith(".tmp") and name.startswith((f".{store}.", f".{KEY_FILENAME}."))
+
+    def _check_version(self) -> None:
+        version = self._store.get(_STORE, "version")
+        if version is None:
+            return
+        if not isinstance(version, int) or isinstance(version, bool):
+            raise StoreError(f"{self.path} names no store version this client reads")
+        if version > STORE_VERSION:
+            raise StoreError(
+                f"{self.path} was written by a newer SiliconCompiler (store version "
+                f"{version}; this one reads {STORE_VERSION}). Upgrade SiliconCompiler, "
+                "or point -credentials at another store")
 
     def _ensure_dir(self) -> None:
         if self.auth_dir.exists():
@@ -373,38 +407,137 @@ class Credentials:
         self._ensure_dir()
         _write_atomic(path, payload)
 
-    def _read_json(self, name: str) -> Dict[str, Any]:
-        path = self.auth_dir / name
-        if not path.exists():
-            return {}
-        try:
-            value = json.loads(path.read_text() or "{}")
-        except ValueError:
-            return {}
-        return value if isinstance(value, dict) else {}
+    ######################################################################
+    # What older clients left
+    ######################################################################
 
-    def _write_json(self, name: str, value: Dict[str, Any]) -> None:
-        self._write(self.auth_dir / name,
-                    (json.dumps(value, indent=2, sort_keys=True) + "\n").encode())
+    def _migrate(self, config: Optional[Path]) -> None:
+        '''Move an older client's files into the store, once, and remove them.
 
-    def _migrate(self) -> None:
-        '''Move an older client's secrets into the store, once.
-
-        The key file and the refresh token lived beside the configuration; both
-        go into the store, and neither is left behind.
+        From the configuration file: the server, the whitelist and the id it
+        last reported, and `open_portal`, a preference, into the user's
+        settings. From the old store's directory: each server's refresh token,
+        each origin's headers into the server on that origin, and the CI
+        credential into the configured server, in place of its refresh token.
+        A key file that predates the store becomes the key.
         '''
-        legacy_key = self.path.parent / _LEGACY_KEY_FILENAME
-        refresh = self._values.get("refresh_token")
-        if not legacy_key.exists() and not refresh:
+        from siliconcompiler.remote.client.transport import normalize_server, origin_of
+
+        values = _read_json(config) if config is not None else {}
+        sessions = _read_json(self.auth_dir / _LEGACY_SESSIONS)
+        headers = _read_json(self.auth_dir / _LEGACY_HEADERS)
+        ci_path = self.auth_dir / _LEGACY_CI
+        ci = ci_path.read_text().strip() if ci_path.exists() else ""
+        legacy_key = config.parent / _LEGACY_KEY if config is not None else None
+        leftovers = [self.auth_dir / name for name in _LEGACY_LOCKS]
+        if not (values or sessions or headers or ci or any(p.exists() for p in leftovers)
+                or (legacy_key is not None and legacy_key.exists())):
             return
-        if legacy_key.exists() and not self.key_path.exists():
+
+        if legacy_key is not None and legacy_key.exists() and not self.key_path.exists():
             self._write(self.key_path, legacy_key.read_bytes())
-        if legacy_key.exists():
-            legacy_key.unlink()
-        if refresh and self.server and not self.refresh_token:
-            self.update_session(refresh_token=refresh)
-        if "refresh_token" in self._values:
-            self.save()
+
+        with self.transaction():
+            if values.get("address") and not self.server:
+                self._store.set(_STORE, "server",
+                                normalize_server(values["address"], values.get("port")))
+            if values.get("directory_whitelist") and not self.directory_whitelist:
+                self._store.set(_STORE, "directory_whitelist",
+                                list(values["directory_whitelist"]))
+            server = self.server
+            entries = {url: dict(entry) for url, entry
+                       in (self._store.get_category(_SERVERS) or {}).items()
+                       if isinstance(entry, dict)}
+            for url, old in sessions.items():
+                if isinstance(old, dict) and old.get("refresh_token"):
+                    entries.setdefault(url, {}).setdefault("refresh_token", old["refresh_token"])
+            if server:
+                if values.get("user_id"):
+                    entries.setdefault(server, {}).setdefault("user_id", values["user_id"])
+                if values.get("refresh_token"):
+                    entries.setdefault(server, {}).setdefault("refresh_token",
+                                                              values["refresh_token"])
+                if ci:
+                    entries.setdefault(server, {})["ci_credential"] = ci
+                    entries[server].pop("refresh_token", None)
+            for origin, named in headers.items():
+                if not isinstance(named, dict):
+                    continue
+                for url in [url for url in {*entries, *([server] if server else [])}
+                            if origin_of(url) == origin]:
+                    entries.setdefault(url, {}).setdefault("headers", {}).update(named)
+            for url, entry in entries.items():
+                self._store.set(_SERVERS, url, entry)
+
+        if values.get("open_portal") is not None:
+            _set_preference("open_portal", values["open_portal"])
+
+        for stale in [config, self.auth_dir / _LEGACY_SESSIONS, self.auth_dir / _LEGACY_HEADERS,
+                      ci_path, legacy_key, *leftovers]:
+            if stale is not None and stale.exists():
+                stale.unlink()
+        logger.info(f"Moved the remote configuration into {self.path}")
+
+
+def preference(name: str, default: Any = None) -> Any:
+    '''One of the remote client's preferences, from the user's settings.json.'''
+    from siliconcompiler.utils.multiprocessing import MPManager
+
+    return MPManager.get_settings().get(SETTINGS_CATEGORY, name, default)
+
+
+def _set_preference(name: str, value: Any) -> None:
+    from siliconcompiler.utils.multiprocessing import MPManager
+
+    settings = MPManager.get_settings()
+    with settings.transaction():
+        settings.set(SETTINGS_CATEGORY, name, value)
+
+
+def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
+    '''``(the store file, an older client's configuration file to move into
+    it, or None)`` for the path `option,credentials` names.
+
+    - **A store file**, or nothing yet: it is the store.
+    - **An older client's configuration file**, `~/.sc/credentials` or one of
+      its shape: the store is ``auth/remote.json`` beside it, and the file is
+      moved in.
+    - **A path that is gone, with a store beside it**: the configuration file
+      that was moved, still named by a script. That store is used.
+    '''
+    if given.exists():
+        if _is_legacy_config(given):
+            return given.parent / AUTH_DIRNAME / STORE_FILENAME, given
+        return given, None
+
+    beside = given.parent / AUTH_DIRNAME / STORE_FILENAME
+    if given.name != STORE_FILENAME and beside.exists():
+        logger.warning(f"{given} was moved into {beside}: point -credentials there")
+        return beside, None
+
+    # A store named directly: an older client's configuration file left in
+    # the directory above its own may still need moving in.
+    if given.parent.name == AUTH_DIRNAME:
+        old = given.parent.parent / _LEGACY_CONFIG
+        if old.exists() and _is_legacy_config(old):
+            return given, old
+    return given, None
+
+
+def _is_legacy_config(path: Path) -> bool:
+    '''Whether ``path`` is an older client's configuration file: a JSON object
+    of its fields, with no store category.'''
+    values = _read_json(path)
+    return bool(values) and _STORE not in values and \
+        any(name in values for name in _LEGACY_FIELDS)
+
+
+def _read_json(path: Path) -> Dict[str, Any]:
+    try:
+        value = json.loads(Path(path).read_text() or "{}")
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 def parse_ci_secret(secret: str):
@@ -429,13 +562,6 @@ def parse_ci_secret(secret: str):
     except Exception:                                           # noqa: BLE001
         raise RemoteError(f"the key in {CI_SECRET_VARIABLE} does not decode") from None
     return credential_id, key
-
-
-def _origin(url: str) -> str:
-    from urllib.parse import urlsplit
-
-    parts = urlsplit(url)
-    return f"{parts.scheme}://{parts.netloc}" if parts.netloc else url.rstrip("/")
 
 
 def _write_atomic(path: Path, payload: bytes) -> None:

@@ -556,7 +556,8 @@ WEB_URL = "https://sc-server.test/portal/jobs/01J9-job"
 def opened(run, monkeypatch):
     '''What the run opened in a browser, with the tty checks out of the way.'''
     urls = []
-    run.client.credentials._values["open_portal"] = True
+    monkeypatch.setattr("siliconcompiler.remote.client.credentials.preference",
+                        lambda name, default=None: True if name == "open_portal" else default)
     monkeypatch.setattr(run.client, "open_url",
                         lambda url, what, require_tty=True: urls.append(url) or True)
     return urls

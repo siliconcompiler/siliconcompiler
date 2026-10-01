@@ -84,17 +84,17 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
     local_tree = tree(jobdir(local))
     assert local_tree
 
-    credentials = Credentials(os.path.abspath("sc-home/credentials"))
-    credentials.update(address=live_server)
+    credentials = Credentials(os.path.abspath("sc-home/auth/remote.json"))
+    credentials.set_server(live_server)
 
     remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
     remote.option.set_remote(True)
     remote.run()
 
     from siliconcompiler.remote import Client
 
-    client = Client(Credentials(os.path.abspath("sc-home/credentials")))
+    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
     jobs = client.jobs()
     assert len(jobs) == 1
 
@@ -152,10 +152,10 @@ def test_a_summary_works_after_a_remote_run(gcd_design, live_server):
     '''What the manifests are fetched FOR. The record, the metrics and the tool
     versions are in them and in nothing the poll loop saw, so a run whose
     results did not come back can report node states and no numbers.'''
-    Credentials(os.path.abspath("sc-home/credentials")).update(address=live_server)
+    Credentials(os.path.abspath("sc-home/auth/remote.json")).set_server(live_server)
 
     remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
     remote.option.set_remote(True)
     history = remote.run()
 
@@ -171,16 +171,16 @@ def test_a_summary_works_after_a_remote_run(gcd_design, live_server):
 def test_one_nodes_log_comes_back_as_text(gcd_design, live_server):
     '''Endpoint 20 followed to its bytes. A log at rest IS an artifact, so
     this is the same machinery the listing uses with a different scope gate.'''
-    Credentials(os.path.abspath("sc-home/credentials")).update(address=live_server)
+    Credentials(os.path.abspath("sc-home/auth/remote.json")).set_server(live_server)
 
     remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
     remote.option.set_remote(True)
     remote.run()
 
     from siliconcompiler.remote import Client
 
-    client = Client(Credentials(os.path.abspath("sc-home/credentials")))
+    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
     job = client.jobs()[0]
 
     client.node_log(job["id"], "stepone", "0", "fetched.log")
@@ -192,17 +192,17 @@ def test_the_run_happens_inside_the_users_own_tree(gcd_design, live_server):
     writes shares a path with another user, which is what makes the tree
     single-owner and stops ccache and coursier creating directories the next
     user cannot write into.'''
-    credentials = Credentials(os.path.abspath("sc-home/credentials"))
-    credentials.update(address=live_server)
+    credentials = Credentials(os.path.abspath("sc-home/auth/remote.json"))
+    credentials.set_server(live_server)
 
     remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
     remote.option.set_remote(True)
     remote.run()
 
     from siliconcompiler.remote import Client
 
-    client = Client(Credentials(os.path.abspath("sc-home/credentials")))
+    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
     identity = client.me()
     user_root = os.path.join("datadir", "users", identity["id"])
 
@@ -235,7 +235,7 @@ def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, mon
     monkeypatch.setattr(run_module.RemoteRun, "_preprocess", explode)
 
     project = build_project(gcd_design, "remote-build")
-    project.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    project.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
     project.option.set_remote(True)
 
     with pytest.raises(RuntimeError) as raised:
@@ -252,7 +252,7 @@ def run_cli(monkeypatch, *args):
     from siliconcompiler.apps import sc_remote
 
     monkeypatch.setattr("sys.argv", ["sc-remote", "-credentials",
-                                     os.path.abspath("sc-home/credentials"),
+                                     os.path.abspath("sc-home/auth/remote.json"),
                                      *args])
     return sc_remote.main()
 
@@ -260,10 +260,10 @@ def run_cli(monkeypatch, *args):
 @pytest.fixture
 def submitted(gcd_design, live_server):
     '''A job that has been run, and the manifest that names it.'''
-    Credentials(os.path.abspath("sc-home/credentials")).update(address=live_server)
+    Credentials(os.path.abspath("sc-home/auth/remote.json")).set_server(live_server)
 
     project = build_project(gcd_design, "remote-build")
-    project.option.set_credentials(os.path.abspath("sc-home/credentials"))
+    project.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
     project.option.set_remote(True)
     project.run()
 
@@ -293,7 +293,7 @@ def test_delete_through_the_cli(monkeypatch, caplog, submitted):
 
     from siliconcompiler.remote import Client
 
-    client = Client(Credentials(os.path.abspath("sc-home/credentials")))
+    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
     assert client.jobs() == []
 
 
@@ -353,9 +353,9 @@ def test_a_rotated_key_logs_in_again_as_a_new_device(live_server, tmp_path):
     until an operator steps in.'''
     from siliconcompiler.remote import Client
 
-    path = tmp_path / "sc-home" / "credentials"
+    path = tmp_path / "sc-home" / "auth" / "remote.json"
     credentials = Credentials(path)
-    credentials.update(address=live_server)
+    credentials.set_server(live_server)
     client = Client(credentials)
     user = client.me()["id"]
     old, = [device["id"] for device in client.devices() if device["current"]]

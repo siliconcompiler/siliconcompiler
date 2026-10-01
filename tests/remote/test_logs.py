@@ -417,8 +417,8 @@ def live(tmp_path):
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
-    credentials = Credentials(tmp_path / "sc-home" / "credentials")
-    credentials.update(address=f"http://127.0.0.1:{server.server_port}")
+    credentials = Credentials(tmp_path / "sc-home" / "auth" / "remote.json")
+    credentials.set_server(f"http://127.0.0.1:{server.server_port}")
     client = Client(credentials)
 
     store = app.config["SC_STORE"]

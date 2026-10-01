@@ -72,7 +72,7 @@ class Client:
         self._notices_shown = set()
         self._terms_reminded = set()
 
-        if not credentials.address:
+        if not credentials.server:
             # There is no default server to fall back on, so this is an error
             # rather than a redirect. It is raised on use rather than on
             # construction so that `sc-remote -configure` can build a client in
@@ -80,17 +80,14 @@ class Client:
             self._transport = None
             return
 
-        self._transport = self._make_transport(
-            normalize_server(credentials.address, credentials.port))
+        self._transport = self._make_transport(credentials.server)
 
     def _make_transport(self, base_url: str) -> Transport:
         transport = Transport(base_url, self.credentials.key(),
                               credentials=self.credentials)
-        # 🔴 The access token the store keeps, until it expires (identity §3):
-        # a later command reads with it and rotates nothing. Without one, a
-        # command starts with the refresh token and spends it once.
-        access, left = self.credentials.stored_access_token()
-        transport.set_tokens(access, self.credentials.refresh_token, left)
+        # No access token: it is never written down, so a command starts with
+        # the refresh token and spends it once.
+        transport.set_tokens(None, self.credentials.refresh_token)
         transport.relogin = self._relogin
         transport.fingerprint = self._fingerprint
         transport.warn = self.logger.warning
@@ -127,8 +124,7 @@ class Client:
         # Names only: a header's value is a secret, and never printed. The
         # server's own origin is the only one sent any (surface D304).
         if self._transport is not None:
-            names = ", ".join(sorted(self.credentials.headers_for(
-                self._transport.api_origin)))
+            names = ", ".join(sorted(self.credentials.headers()))
             if names:
                 self.logger.info(f"Operator headers: {names}")
         if self.credentials.ci_secret():
@@ -314,9 +310,7 @@ class Client:
         if self.credentials.ci_secret():
             return self._ci_login()
 
-        offered = self.credentials.session_value("grant_types_supported")
-        if not offered:
-            offered = self._grant_types()
+        offered = self._grant_types()
 
         tried = set()
         while True:
@@ -326,14 +320,14 @@ class Client:
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type" or mode in tried:
                     raise self._refused(e, mode) from None
-                # Stale: switch, and refresh what is cached.
+                # Stale: switch, and read what is offered again.
                 tried.add(mode)
                 offered = [grant for grant in self._grant_types() if grant not in tried]
 
     def _grant_types(self) -> List[str]:
-        offered = list(self.capabilities().get("grant_types_supported") or [])
-        self.credentials.update_session(grant_types_supported=offered)
-        return offered
+        '''What `GET /v1` offers, read for each login: a login is rare, since a
+        command spends its refresh token first, and nothing is cached.'''
+        return list(self.capabilities().get("grant_types_supported") or [])
 
     def _ci_login(self) -> Dict[str, Any]:
         '''Token exchange, for a caller holding a CI key: tried first whatever
@@ -377,7 +371,6 @@ class Client:
         else:
             body = self._login_device()
         self._mode = mode
-        self.credentials.update_session(login=mode)
         return body
 
     def _login_client_credentials(self) -> Dict[str, Any]:
@@ -507,8 +500,6 @@ class Client:
             if e.error == "invalid_grant":
                 raise RemoteError(self._ci_refusal(e.reason)) from None
             raise
-        # Kept until it expires, so the next command in the job trades nothing.
-        self.credentials.save_tokens(body)
 
         left = body.get("session_expires_in")
         if isinstance(left, int) and left <= CI_EXPIRY_WARNING_SECONDS:
@@ -574,7 +565,9 @@ class Client:
         '''
         if self.transport.access_token is not None:
             return
-        if self.credentials.session_value("login") == GRANT_TOKEN_EXCHANGE:
+        if self.credentials.ci_secret():
+            # A CI credential trades for each access token, and has no
+            # refresh token to spend (identity D91).
             self._mode = GRANT_TOKEN_EXCHANGE
             self._trade_login()
             return
@@ -675,11 +668,14 @@ class Client:
                               "CI credential")
         parse_ci_secret(secret)
 
+        configured = self.credentials.server
         runner_temp = os.environ.get("RUNNER_TEMP")
         if runner_temp and not os.environ.get(AUTH_DIR_VARIABLE):
             from pathlib import Path
 
-            self.credentials.auth_dir = Path(runner_temp) / "sc-auth"
+            # A store of the job's own, which the runner empties between jobs:
+            # the server it names goes with it, and its key is made there.
+            self.credentials.relocate(Path(runner_temp) / "sc-auth")
             exported = os.environ.get("GITHUB_ENV")
             if exported:
                 with open(exported, "a") as f:
@@ -687,8 +683,11 @@ class Client:
 
         if server:
             address, port, _ = _split_address(server.strip())
-            self.credentials.update(address=address, port=port)
-            self._transport = self._make_transport(normalize_server(address, port))
+            configured = normalize_server(address, port)
+        if configured:
+            if configured != self.credentials.server:
+                self.credentials.set_server(configured)
+            self._transport = self._make_transport(configured)
 
         self.credentials.save_ci_secret(secret)
         self.logger.info(f"CI credential stored in {self.credentials.auth_dir}")
@@ -711,10 +710,18 @@ class Client:
         '''An operator-configured header, for the server's own origin: the one
         origin a client sends any to (surface D304). Its value is a secret,
         kept in the store and never printed.'''
-        origin = self.transport.api_origin
-        self.credentials.set_header(origin, name, value)
+        self.credentials.set_header(name, value)
         self.logger.info(f"{'Set' if value is not None else 'Removed'} the {name} header "
-                         f"for {origin}")
+                         f"for {self.transport.api_origin}")
+
+    def _unauthenticated(self) -> bool:
+        '''Whether this deployment authenticates nobody, by what `GET /v1`
+        offers: only there is a plain-http page opened.'''
+        try:
+            offered = self.capabilities(notices=False).get("grant_types_supported") or []
+        except RemoteError:
+            return False
+        return GRANT_CLIENT_CREDENTIALS in offered
 
     def open_url(self, url: str, what: str, require_tty: bool = True) -> bool:
         '''Open a URL a person has to act on -- only `https`, or `http` from a
@@ -722,9 +729,7 @@ class Client:
         from urllib.parse import urlsplit
 
         scheme = urlsplit(url or "").scheme
-        unauthenticated = GRANT_CLIENT_CREDENTIALS in (
-            self.credentials.session_value("grant_types_supported") or [])
-        if scheme != "https" and not (scheme == "http" and unauthenticated):
+        if scheme != "https" and not (scheme == "http" and self._unauthenticated()):
             self.logger.warning(f"Not opening {what}: {clean(url)} is not an https URL")
             return False
         if not self.open_browser or (require_tty and not sys.stdout.isatty()):
@@ -759,7 +764,7 @@ class Client:
                 f"({seen} -> {body.get('id')}). Jobs submitted as the previous "
                 "identity are not visible to this one.")
 
-        self.credentials.update(user_id=body.get("id"))
+        self.credentials.set_user_id(body.get("id"))
         if remind:
             self.remind_terms(body)
         return body
@@ -1212,16 +1217,16 @@ class Client:
         '''Point this machine at a server and prove it can reach it.
 
         There is no default address, so an unanswerable prompt is an error and
-        nothing is written -- a half-written credentials file is worse than
+        nothing is written -- a half-written store is worse than
         none, because the next command fails somewhere further away.
         '''
-        if self.credentials.address and not clobber:
+        if self.credentials.server and not clobber:
             if not prompt:
                 raise RemoteError(
                     f"{self.credentials.path} already configures "
-                    f"{self.credentials.address}; pass clobber=True instead")
+                    f"{self.credentials.server}; pass clobber=True instead")
             answer = _ask(f"Overwrite the configuration for "
-                          f"{self.credentials.address}? [y/N] ")
+                          f"{self.credentials.server}? [y/N] ")
             if answer.strip().lower() not in ("y", "yes"):
                 self.logger.info("Left unchanged.")
                 return
@@ -1245,20 +1250,15 @@ class Client:
                 "server authenticates with a key held on this machine, which "
                 "is generated for you.")
 
-        # user_id goes with the tokens, because all three are about ONE server
-        # and the address is changing. Keeping it would make the first `me()`
-        # against the new server report a drift that did not happen -- the
-        # principal is different because the server is, which is the one case
-        # that warning must not fire on.
-        self.credentials.update(address=address, port=port, user_id=None)
-        self._transport = self._make_transport(normalize_server(address, port))
+        # Each server keeps its own entry, its user_id among it, so another
+        # server's is never read as this one's. Configuring one again starts
+        # its session afresh.
+        self.credentials.set_server(normalize_server(address, port))
+        self._transport = self._make_transport(self.credentials.server)
         self.credentials.forget_tokens()
         self._transport.set_tokens(None, None)
 
         capabilities = self.capabilities()
-        self.credentials.update_session(
-            grant_types_supported=list(capabilities.get("grant_types_supported") or []))
-
         self.login()
         identity = self.me()
 
@@ -1313,8 +1313,7 @@ class Client:
     def ci_session(self) -> bool:
         '''Whether this client's session is a CI credential's: one that no
         person is at, and so one that never asks for a portal handover.'''
-        return self._mode == GRANT_TOKEN_EXCHANGE or \
-            self.credentials.session_value("login") == GRANT_TOKEN_EXCHANGE
+        return self._mode == GRANT_TOKEN_EXCHANGE or bool(self.credentials.ci_secret())
 
     def portal(self, open_browser: bool = True, landing: str = None) -> str:
         '''Hand this machine's browser a session, and open it there.
@@ -1380,7 +1379,7 @@ class Client:
             if absolute in entries:
                 entries.remove(absolute)
 
-        self.credentials.update(directory_whitelist=entries)
+        self.credentials.set_directory_whitelist(entries)
         self.logger.info(f"Directory whitelist saved to {self.credentials.path}")
 
 
