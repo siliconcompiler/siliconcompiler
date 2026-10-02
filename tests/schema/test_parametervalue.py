@@ -788,6 +788,103 @@ def test_directory_hash_invalid_algoritm():
         param.hash('md56')
 
 
+@pytest.mark.parametrize('stdlib', [True, False])
+@pytest.mark.parametrize('algorithm,expected', [
+    ('md5', 'c623ea24f5c5bb76db136658bbec9edd'),
+    ('sha256', '62bf4dac314280c65bfec2a49872d67974db10af14c8a4b84c70166fb11252b9')])
+def test_file_hash_multi_chunk(monkeypatch, stdlib, algorithm, expected):
+    '''A file larger than any read chunk still hashes to the digest a manifest
+    already holds for it, before Python 3.11 and after.'''
+    with open('data.bin', 'wb') as f:
+        f.write(bytes(range(256)) * 9000)
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    param = FileNodeValue()
+    param.set('data.bin')
+    assert param.hash(algorithm) == expected
+
+
+@pytest.mark.parametrize('algorithm', ['blake2b', 'blake2s', 'sha3_256', 'sha3_512'])
+def test_file_hash_other_algorithms(algorithm):
+    with open('foo.txt', 'wb') as f:
+        f.write(b'foobar\n')
+
+    param = FileNodeValue()
+    param.set('foo.txt')
+    assert param.hash(algorithm) == hashlib.new(algorithm, b'foobar\n').hexdigest()
+
+
+def test_file_hash_reads_through_file_digest(monkeypatch):
+    '''Both a fresh hash and a caller's hash are fed by utils.file_digest,
+    one call per file.'''
+    from siliconcompiler import utils
+
+    calls = []
+    file_digest = utils.file_digest
+
+    def spy(path, algorithm="sha256"):
+        calls.append(path)
+        return file_digest(path, algorithm)
+
+    monkeypatch.setattr(utils, "file_digest", spy)
+
+    with open('foo.txt', 'wb') as f:
+        f.write(b'foobar\n')
+
+    assert PathNodeValue.hash_file('foo.txt', hashfunction='sha256') == \
+        hashlib.sha256(b'foobar\n').hexdigest()
+    assert PathNodeValue.hash_file('foo.txt', hashobj=hashlib.sha256(b'prefix')) == \
+        hashlib.sha256(b'prefix' + b'foobar\n').hexdigest()
+    assert calls == ['foo.txt', 'foo.txt']
+
+
+@pytest.mark.parametrize('stdlib', [True, False])
+def test_file_hash_continues_given_hash(monkeypatch, stdlib):
+    '''With a hash object passed in, the file's bytes are added to it rather
+    than hashed fresh, and no hashfunction is needed.'''
+    data = bytes(range(256)) * 9000          # more than one chunk
+    with open('data.bin', 'wb') as f:
+        f.write(data)
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    hashobj = hashlib.sha256(b'prefix')
+    assert PathNodeValue.hash_file('data.bin', hashobj=hashobj) == \
+        hashlib.sha256(b'prefix' + data).hexdigest()
+
+
+@pytest.mark.parametrize('stdlib', [True, False])
+def test_directory_hash_composition(monkeypatch, stdlib):
+    '''Each file's path relative to the directory, then its bytes, in sorted
+    path order, all into one hash, through subdirectories and across chunks.'''
+    os.makedirs('top/sub', exist_ok=True)
+    big = bytes(range(256)) * 9000           # more than one chunk
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+    with open('top/b.txt', 'wb') as f:
+        f.write(b'b')
+    with open('top/sub/a.bin', 'wb') as f:
+        f.write(big)
+    with open('top/a.txt', 'wb') as f:
+        f.write(b'a')
+
+    assert PathNodeValue.hash_directory('top', hashfunction='sha256') == \
+        hashlib.sha256(b'a.txt' + b'a' + b'b.txt' + b'b' + b'sub/a.bin' + big).hexdigest()
+
+
+def test_directory_hash_continues_given_hash():
+    '''A hash object passed in is the one fed, from where the caller left it.
+    It used to be swapped for a fresh one, which raised UnboundLocalError.'''
+    os.makedirs('top', exist_ok=True)
+    with open('top/a.txt', 'wb') as f:
+        f.write(b'a')
+
+    hashobj = hashlib.sha256(b'prefix')
+    assert PathNodeValue.hash_directory('top', hashobj=hashobj) == \
+        hashlib.sha256(b'prefix' + b'a.txt' + b'a').hexdigest()
+
+
 def test_file_add_to_parent_field():
     param = FileNodeValue()
 
