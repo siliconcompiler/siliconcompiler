@@ -5,10 +5,12 @@ name: 'Update tools'
 # a package that adds tools to sc-install calls it for its own.
 #
 # The pull requests are opened by a GitHub App, for the reasons given at "Mint an
-# App token" below; it needs contents and pull-requests write on the calling
-# repository, and contents read on any private repository listed below. The
-# calling job has to grant contents: read and pull-requests: read, which bound
-# what GITHUB_TOKEN can do here.
+# App token" below, which needs contents and pull-requests write on the calling
+# repository. Private repositories listed below are read through a second App,
+# with contents read on them, so the one that writes needs no access there; without
+# one, the App that opens the pull requests reads them too. The calling job has to
+# grant contents: read and pull-requests: read, which bound what GITHUB_TOKEN can
+# do here.
 on:
   workflow_call:
     inputs:
@@ -24,14 +26,21 @@ on:
         description: 'Client ID of the GitHub App that opens the pull requests'
         type: string
         required: true
+      source-app-client-id:
+        description: 'Client ID of the GitHub App that reads those repositories, default the one that opens the pull requests'
+        type: string
+        default: ''
       base:
         description: 'Branch the pins are updated on, default the repository''s default branch'
         type: string
         default: ''
     secrets:
       app-private-key:
-        description: 'Private key of that GitHub App'
+        description: 'Private key of the GitHub App that opens the pull requests'
         required: true
+      source-app-private-key:
+        description: 'Private key of the GitHub App that reads those repositories'
+        required: false
 
 permissions:
   contents: read
@@ -119,14 +128,14 @@ jobs:
 
       # Read access to the private repositories a package's pins are cloned from.
       # Kept apart from the token that opens the PR, which reaches only this
-      # repository.
+      # repository, and minted from the reading App when the caller names one.
       - name: Mint a source token
         id: source-token
         if: steps.check.outputs.skip != 'true' && inputs.repositories != ''
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ inputs.app-client-id }}
-          private-key: ${{ secrets.app-private-key }}
+          client-id: ${{ inputs.source-app-client-id || inputs.app-client-id }}
+          private-key: ${{ secrets.source-app-private-key || secrets.app-private-key }}
           repositories: ${{ inputs.repositories }}
           permission-contents: read
 
