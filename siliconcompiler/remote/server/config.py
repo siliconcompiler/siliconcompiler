@@ -792,15 +792,6 @@ class Config:
         kinds = self._values["api_fetchable_kinds"]
         return kinds is None or kind in kinds
 
-    def denied_kind(self, name: str) -> Optional[str]:
-        '''The kind of resource ``name`` is denied as, or None: a name
-        matches at most one resource of any kind (entitlements D75), so the
-        kind is found from the name alone.'''
-        for kind in sorted(self._values["denied_resources"] or {}):
-            if self.denied(kind, name):
-                return kind
-        return None
-
     def denied(self, resource_kind: str, name: str) -> bool:
         '''Whether no caller may use this PDK, library or tool.'''
         from fnmatch import fnmatchcase

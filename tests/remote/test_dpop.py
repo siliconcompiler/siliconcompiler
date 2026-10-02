@@ -158,6 +158,21 @@ def test_a_proof_from_the_future_is_refused(key):
                           now=int(time.time()) - dpop.PROOF_LIFETIME_SECONDS - 5)
 
 
+@pytest.mark.parametrize("ahead,accepted", [(2, True), (dpop.PROOF_LIFETIME_SECONDS - 5, True),
+                                            (dpop.PROOF_LIFETIME_SECONDS + 5, False)])
+def test_a_proof_signed_by_a_clock_ahead_is_held_to_the_same_window(key, ahead, accepted):
+    '''🔴 Signed ahead, not merely checked behind: a client whose clock runs a
+    few seconds fast is inside the window, and was once refused by the JWT
+    library's own `iat` check before the window was ever asked.'''
+    proof = dpop.sign_proof(key, "GET", URL, iat=int(time.time()) + ahead)
+
+    if accepted:
+        dpop.verify_proof(proof, "GET", URL)
+    else:
+        with pytest.raises(dpop.DPoPError, match="window"):
+            dpop.verify_proof(proof, "GET", URL)
+
+
 def test_the_wrong_key_is_refused(key):
     '''What the first-contact binding is made of: the presented key must be the
     bound one.'''

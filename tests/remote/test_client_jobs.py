@@ -679,7 +679,8 @@ def test_listing_follows_the_link_header(fake_v1, logged_in):
     "</v1/jobs?limit=1&cursor=abc&kept=1>; rel=next",
     '</v1/jobs?cursor=zzz>; rel="prev", </v1/jobs?limit=1&cursor=abc&kept=1>; rel="next"',
     '<https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1>; title="a, b"; rel="next last"',
-], ids=["unquoted", "second", "absolute"])
+    "</v1/jobs?limit=1&cursor=abc&kept=1>; REL=Next",
+], ids=["unquoted", "second", "absolute", "case"])
 def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
     '''Surface D306 and RFC 8288: whichever link-value says `rel="next"`,
     quoted or not, and its URL requested unchanged -- never this request
@@ -1523,7 +1524,7 @@ def test_a_development_client_asks_by_prefix_rather_than_exactly():
     before = run.sc_version
     try:
         run.sc_version = "0.38.10.dev43+g20db24fa2.d20260924"
-        spec = run._framework_requirement()
+        spec = run._pin(run.sc_version)
         assert spec == "==0.38.10.*"
 
         matches = SpecifierSet(spec, prereleases=True)
@@ -1532,7 +1533,7 @@ def test_a_development_client_asks_by_prefix_rather_than_exactly():
         assert Version("0.38.9") not in matches
 
         run.sc_version = "0.38.9"
-        assert run._framework_requirement() == "==0.38.9"
+        assert run._pin(run.sc_version) == "==0.38.9"
     finally:
         run.sc_version = before
 

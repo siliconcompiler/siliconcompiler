@@ -133,6 +133,8 @@ class RowsMixin:
 
     def wire(self, job, nodes: bool = True) -> Dict[str, Any]:
         '''The job object, as §17 publishes it.'''
+        owner = self._store.one("SELECT display_name FROM users WHERE id = ?",
+                                (job["user_id"],))
         body = {
             "id": job["id"],
             "state": job["state"],
@@ -149,7 +151,8 @@ class RowsMixin:
             "flow": job["manifest_flow"],
             # The user id is what GET /v1/me returns, so a client compares it;
             # the name is display only. Nothing here verifies who anybody is.
-            "owner": {"id": job["user_id"], "name": self._display_name(job["user_id"])},
+            "owner": {"id": job["user_id"],
+                      "name": (owner["display_name"] if owner else None) or job["user_id"]},
             "project": None,
             "created_at": job["created_at"],
             "submitted_at": job["submitted_at"],
@@ -258,10 +261,6 @@ class RowsMixin:
                     else bound(row["reason"])
             entries.append(entry)
         return entries or [{"state": job["state"], "at": job["state_changed_at"]}]
-
-    def _display_name(self, user_id: str) -> str:
-        row = self._store.one("SELECT display_name FROM users WHERE id = ?", (user_id,))
-        return (row["display_name"] if row else None) or user_id
 
     def _refuse(self, session, job, problem: ProblemError) -> ProblemError:
         '''Record a refusal, and hand back the problem for the caller to raise.

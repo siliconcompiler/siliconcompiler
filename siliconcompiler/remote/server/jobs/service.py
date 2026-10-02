@@ -104,9 +104,6 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
     def user_root(self, user_id: str) -> Path:
         return self._datadir / "users" / user_id
 
-    def builds_root(self, user_id: str) -> Path:
-        return self.user_root(user_id) / "builds"
-
     def cache_dir(self, user_id: str) -> Path:
         return self.user_root(user_id) / "cache"
 
@@ -181,4 +178,4 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         the store, rather than a file inside the directory it protects -- which
         is what the tree it replaces did.
         '''
-        return self.builds_root(user_id) / job_id
+        return self.user_root(user_id) / "builds" / job_id

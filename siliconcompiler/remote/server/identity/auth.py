@@ -15,6 +15,7 @@ once B has used the server, A cannot become B.
 import logging
 import os
 import secrets
+import threading
 import time
 import uuid
 
@@ -23,7 +24,7 @@ from typing import Dict, Optional
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.server.errors import OAuthError, ProblemError
-from siliconcompiler.remote.server.state.store import Store, now
+from siliconcompiler.remote.server.state.store import Store, now, stamp
 
 __all__ = [
     "SCOPES", "expand_scope", "TokenIssuer", "Session",
@@ -167,6 +168,9 @@ class TokenIssuer:
         # by the window rather than by a count: a proof older than that fails on
         # `iat` regardless.
         self._seen: Dict[str, float] = {}
+        # 🔴 Requests run on threads of their own, so the check that a `jti`
+        # is new and the write that makes it seen are one step.
+        self._seen_lock = threading.Lock()
 
     @property
     def secret(self) -> bytes:
@@ -329,7 +333,12 @@ class TokenIssuer:
                 raise self._grant_ended("reused")
             # Inside the window: a retry of a lost response, not an attack. It
             # gets the replacement already issued, never a second live one.
-            return self._replay_refresh(row)
+            replacement = self._store.one(
+                "SELECT * FROM refresh_tokens WHERE jti = ?", (row["replaced_by"],))
+            return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
+                                row["scope"], row["family_id"],
+                                replacement["jti"], replacement["issued_at"],
+                                replacement["expires_at"], row["family_expires_at"])
 
         if timestamp >= row["family_expires_at"]:
             # Not revoked: nothing decided this, the session cap simply passed.
@@ -367,14 +376,6 @@ class TokenIssuer:
         raise OAuthError("invalid_grant",
                          "this machine's fingerprint is not the one this device "
                          "enrolled with; log in again")
-
-    def _replay_refresh(self, row) -> dict:
-        replacement = self._store.one(
-            "SELECT * FROM refresh_tokens WHERE jti = ?", (row["replaced_by"],))
-        return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
-                            row["scope"], row["family_id"],
-                            replacement["jti"], replacement["issued_at"],
-                            replacement["expires_at"], row["family_expires_at"])
 
     def _rotate(self, row) -> dict:
         timestamp = now()
@@ -515,8 +516,12 @@ class TokenIssuer:
         family = self._store.one(
             "SELECT * FROM token_families WHERE id = ?", (claims["family"],))
         if family is None or family["revoked_at"] is not None:
-            raise self._session_ended(
-                _wire_reason(family["revoked_reason"] if family else None))
+            # The client must re-authenticate and must NOT refresh. Every
+            # reason is one client branch, which is why they are one slug with
+            # a `reason` member rather than four slugs.
+            reason = _wire_reason(family["revoked_reason"] if family else None)
+            raise ProblemError("session-ended", reason=reason, detail=_ENDED.get(reason),
+                               headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
 
         # Best effort, with no security claim (profile §0): a token whose
         # family is another user's is not a token for this one.
@@ -539,15 +544,18 @@ class TokenIssuer:
         jti = jwt.decode(proof, options={"verify_signature": False}).get("jti")
         current = time.time()
 
-        for seen, when in list(self._seen.items()):
-            if current - when > dpop.PROOF_LIFETIME_SECONDS * 2:
-                self._seen.pop(seen, None)
+        with self._seen_lock:
+            for seen, when in list(self._seen.items()):
+                if current - when > dpop.PROOF_LIFETIME_SECONDS * 2:
+                    self._seen.pop(seen, None)
+            replayed = jti in self._seen
+            if not replayed:
+                self._seen[jti] = current
 
-        if jti in self._seen:
+        if replayed:
             if oauth:
                 raise OAuthError("invalid_dpop_proof", "proof replayed")
             raise ProblemError("invalid-dpop-proof", detail="proof replayed")
-        self._seen[jti] = current
 
     ######################################################################
     # Ending
@@ -631,18 +639,6 @@ class TokenIssuer:
         return len(devices)
 
     @staticmethod
-    def _session_ended(reason: str) -> ProblemError:
-        '''The client must re-authenticate and must NOT refresh.
-
-        Every reason is one client branch, which is why they are one slug with
-        a `reason` member rather than four slugs.
-        '''
-        return ProblemError(
-            "session-ended", reason=reason,
-            detail=_ENDED.get(reason),
-            headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
-
-    @staticmethod
     def _grant_ended(reason: str) -> OAuthError:
         '''The same condition at the token endpoint, in the OAuth shape.'''
         return OAuthError("invalid_grant", _ENDED.get(reason), reason=reason)
@@ -689,9 +685,8 @@ def _load_or_create_secret(path: Path) -> bytes:
 def _plus(timestamp: str, seconds: int) -> str:
     from datetime import datetime, timedelta, timezone
 
-    moment = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").replace(
-        tzinfo=timezone.utc) + timedelta(seconds=seconds)
-    return moment.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return stamp(datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").replace(
+        tzinfo=timezone.utc) + timedelta(seconds=seconds))
 
 
 def _parse(timestamp: str) -> float:

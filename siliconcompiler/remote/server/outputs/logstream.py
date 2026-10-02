@@ -207,7 +207,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline,
             step, node_index = nodes[slot]
             chunk, _ = _read(path_of(step, node_index), offset, length, root)
             position = number + 1
-            yield _log(step, node_index, _decode(chunk), _job_id(position))
+            yield _log(step, node_index, _decode(chunk), f"{_JOB_ID_PREFIX}{position:x}")
             last_sent = time.monotonic()
             progressed = True
         if progressed:
@@ -261,10 +261,6 @@ def _log(step: str, index: str, text: str, identifier: str) -> bytes:
 # What marks a job stream's id, so a per-node one -- a bare hex offset -- is
 # never read as a position in the index.
 _JOB_ID_PREFIX = "e"
-
-
-def _job_id(position: int) -> str:
-    return f"{_JOB_ID_PREFIX}{position:x}"
 
 
 def resume_job(header: Optional[str], fallback, index: "EventIndex") -> int:
@@ -502,9 +498,9 @@ def _decode(raw: bytes) -> str:
 
 
 def _now() -> str:
-    from datetime import datetime, timezone
+    from siliconcompiler.remote.server.state.store import now
 
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return now()
 
 
 def resume_from(header: Optional[str], fallback) -> int:

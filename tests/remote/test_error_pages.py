@@ -4,7 +4,12 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from siliconcompiler.remote.server.errors import ERRORS, RETIRED, TYPE_BASE   # noqa: E402
+from siliconcompiler.remote.server.errors import ERRORS, TYPE_BASE   # noqa: E402
+
+
+# Retired, never raised, and not to be reused. Each has an index row and no page.
+RETIRED = ("unsatisfiable-request", "version-skew", "too-many-attempts",
+           "scheduler-lost")
 from siliconcompiler.remote.server.routes.errorpages import PAGES     # noqa: E402
 
 

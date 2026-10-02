@@ -40,20 +40,6 @@ except ModuleNotFoundError as e:                                # pragma: no cov
 PROBLEM_JSON = "application/problem+json"
 
 
-def require_server_dependency() -> None:
-    '''Fail with the install command rather than a traceback.
-
-    The module entry point is importable whether or not the ``server`` extra is,
-    so ``--help`` has to work without it. Only actually starting a server needs
-    the extra.
-    '''
-    if missing_server_dependency:                               # pragma: no cover
-        raise ModuleNotFoundError(
-            f"{missing_server_dependency} is required to run the server: "
-            'pip install "siliconcompiler[server]"',
-            name=missing_server_dependency)
-
-
 def _keep_off_path(datadir: Path) -> None:
     '''Take the data directory, and anything under it, off `sys.path`.'''
     import os
@@ -85,7 +71,14 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     names none; the entry point passes this host's names on its port, and a
     test client's is ``http://localhost``.
     '''
-    require_server_dependency()
+    # Fail with the install command rather than a traceback. The entry point
+    # is importable whether or not the ``server`` extra is, so ``--help`` works
+    # without it; only starting a server needs the extra.
+    if missing_server_dependency:                               # pragma: no cover
+        raise ModuleNotFoundError(
+            f"{missing_server_dependency} is required to run the server: "
+            'pip install "siliconcompiler[server]"',
+            name=missing_server_dependency)
 
     datadir = Path(datadir).resolve()
     datadir.mkdir(parents=True, exist_ok=True)
@@ -129,7 +122,17 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _check_page_scheme(config["web_url_base"], app.config["SC_PUBLIC_ORIGINS"])
     _register_error_handlers(app)
-    _warn_of_plaintext(app.config["SC_PUBLIC_ORIGINS"])
+    # 🔴 The portal is served wherever the API is (implementation-notes §O).
+    # Where that is plain http beyond this machine, its session cookie is a
+    # bearer secret on the wire, beside the signed storage route and the
+    # stream URL that contract rule 3 permits there -- so say so, once.
+    beyond = plaintext_origins(app.config["SC_PUBLIC_ORIGINS"])
+    if beyond:
+        logging.getLogger("sc-server").warning(
+            f"serving plain http at {', '.join(beyond)}: the portal's session cookie, "
+            "the signed storage route and the stream URL cross the network in the "
+            "clear there. Serve https through a reverse proxy, and set public_origins "
+            "to its https origin")
 
     @app.teardown_request
     def _release_connection(_error=None):
@@ -200,21 +203,6 @@ def plaintext_origins(origins) -> List[str]:
         if not local:
             beyond.append(origin)
     return beyond
-
-
-def _warn_of_plaintext(origins) -> None:
-    '''🔴 The portal is served wherever the API is (implementation-notes
-    §O). Where that is plain http beyond this machine, its session cookie is
-    a bearer secret on the wire, beside the signed storage route and the
-    stream URL that contract rule 3 permits there -- so say so, once, at
-    startup.'''
-    beyond = plaintext_origins(origins)
-    if beyond:
-        logging.getLogger("sc-server").warning(
-            f"serving plain http at {', '.join(beyond)}: the portal's session cookie, "
-            "the signed storage route and the stream URL cross the network in the "
-            "clear there. Serve https through a reverse proxy, and set public_origins "
-            "to its https origin")
 
 
 def _check_page_scheme(web_url_base, origins) -> None:

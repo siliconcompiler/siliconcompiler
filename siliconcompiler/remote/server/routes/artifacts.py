@@ -20,6 +20,7 @@ import flask
 
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.outputs import logstream
+from siliconcompiler.remote.server.routes import next_page
 from siliconcompiler.remote.server.routes.auth import public_url, require
 from siliconcompiler.remote.server.state.storage import DOWNLOAD_SECONDS, SignatureError
 
@@ -75,11 +76,8 @@ def listing(session, job_id):
     response = flask.jsonify({"items": items})
     response.headers["Cache-Control"] = "private, no-store"
     if cursor:
-        query = flask.request.args.to_dict()
-        query["cursor"] = cursor
-        query_string = "&".join(f"{k}={v}" for k, v in query.items())
-        response.headers["Link"] = \
-            f'</v1/jobs/{job_id}/artifacts?{query_string}>; rel="next"'
+        # 🔴 Encoded: a `step` holding a space or an `&` is still one value.
+        response.headers["Link"] = next_page(f"/v1/jobs/{job_id}/artifacts", cursor)
     return response
 
 

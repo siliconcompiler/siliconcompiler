@@ -819,11 +819,6 @@ def _collected_at(one: _Value, collection_dir) -> Optional[str]:
     return os.path.relpath(found, base).replace(os.sep, "/")
 
 
-def _collected(one: _Value, collection_dir) -> bool:
-    found = _in_collection(one, collection_dir)
-    return bool(found) and found.startswith(str(collection_dir))
-
-
 def _relative_and_inside(path) -> bool:
     '''Lexically: relative, and not climbing out of wherever it is joined.'''
     text = str(path or "")
@@ -861,9 +856,9 @@ def upload_report(project, collection_dir) \
     totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
     counted: Set[Tuple[int, int]] = set()
     for one in _values(project):
-        if not _collected(one, collection_dir):
-            continue
         path = _in_collection(one, collection_dir)
+        if not path or not path.startswith(str(collection_dir)):
+            continue
         size, files = _weigh(path, counted)
         if not files:
             continue

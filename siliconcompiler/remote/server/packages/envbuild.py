@@ -34,6 +34,7 @@ wrote from what parsed, and the job's wheels under ``wheels/``.
 '''
 
 import copy
+import http.server
 import json
 import os
 import shutil
@@ -45,7 +46,7 @@ import threading
 import time
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 from urllib.parse import urlsplit
 
 __all__ = ["SPEC", "RESULT", "REQUIREMENTS", "CONSTRAINTS", "WHEELS", "LOG", "build",
@@ -64,7 +65,6 @@ _REQ = "/tmp/sc-req"
 _OUT = "/tmp/sc-out"
 _PROXY = "/tmp/sc-proxy"
 
-_HEAD_LIMIT = 64 * 1024
 _CONNECT_TIMEOUT = 30
 
 
@@ -77,7 +77,11 @@ def main(argv=None) -> int:
         result = build(spec, workspace)
     except Exception as e:                                      # noqa: BLE001
         result = {"ok": False, "reason": "error", "detail": f"{type(e).__name__}: {e}"}
-    _write_result(workspace, result)
+    # Written whole and renamed into place: the API polls for it, and must
+    # never read half of one.
+    from siliconcompiler.remote.server.running.runspec import write_json
+
+    write_json(workspace / RESULT, result)
     print(json.dumps(result, indent=1))
     return 0
 
@@ -280,14 +284,6 @@ def _tail(text: str, lines: int = 20) -> str:
     return "\n".join((text or "").strip().splitlines()[-lines:])
 
 
-def _write_result(workspace: Path, result: Dict[str, Any]) -> None:
-    '''Written whole and renamed into place: the API polls for it, and must
-    never read half of one.'''
-    staging = workspace / f".{RESULT}.{os.getpid()}"
-    staging.write_text(json.dumps(result))
-    os.replace(staging, workspace / RESULT)
-
-
 ######################################################################
 # The proxy: the build's only way out
 ######################################################################
@@ -299,7 +295,8 @@ class Proxy:
     loopback (``address`` a ``(host, port)``) for the git a source fetch runs.
     ``CONNECT host:port`` for HTTPS, admitted when an https entry names that
     host and port; a plain ``GET``/``HEAD`` for an ``http://`` URL, admitted
-    when the whole URL is under an entry.
+    when the whole URL is under an entry. Served by the standard library's
+    `http.server`; what is admitted, and where it may connect, is this class's.
 
     🔴 **Never to a private, loopback or link-local address**, whatever
     resolves to one -- `allowlist.public_host`'s rule, for every fetch this
@@ -313,6 +310,8 @@ class Proxy:
     '''
 
     def __init__(self, address, entries, private_exact_hosts: bool = False):
+        import socketserver
+
         from siliconcompiler.remote.server.staging import allowlist
 
         self._rules = [allowlist.parse(entry) for entry in entries]
@@ -320,26 +319,27 @@ class Proxy:
                        if rule.scheme == "https"]
         self._private_exact = private_exact_hosts
         self.refused: List[str] = []
-        if isinstance(address, tuple):
-            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket.bind(address)
-            self.url = "http://%s:%d" % self._socket.getsockname()[:2]
-        else:
-            self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self._socket.bind(address)
-            self.url = None
-        self._socket.listen(64)
-        self._closed = False
+
+        base = socketserver.ThreadingTCPServer if isinstance(address, tuple) \
+            else socketserver.ThreadingUnixStreamServer
+        server = type("_ProxyServer", (base,), {
+            "daemon_threads": True, "block_on_close": False, "request_queue_size": 64})
+        self._server = server(address, _ProxyHandler)
+        self._server.proxy = self
+        self.url = "http://%s:%d" % self._server.server_address[:2] \
+            if isinstance(address, tuple) else None
+        self._serving = None
 
     def start(self) -> None:
-        threading.Thread(target=self._serve, daemon=True, name="envbuild-proxy").start()
+        self._serving = threading.Thread(target=self._server.serve_forever, daemon=True,
+                                         name="envbuild-proxy")
+        self._serving.start()
 
     def close(self) -> None:
-        self._closed = True
-        try:
-            self._socket.close()
-        except OSError:                                         # pragma: no cover
-            pass
+        # `shutdown` waits for `serve_forever` to stop, so only once it ran.
+        if self._serving is not None:
+            self._server.shutdown()
+        self._server.server_close()
 
     def admits_connect(self, host: str, port: int) -> bool:
         return self._matching(self._hosts, f"https://{host}:{port}/") is not None
@@ -364,95 +364,81 @@ class Proxy:
         return not (self._private_exact and rule is not None
                     and not rule.host.startswith("*."))
 
-    def _serve(self) -> None:
-        while not self._closed:
-            try:
-                client, _ = self._socket.accept()
-            except OSError:
-                return
-            threading.Thread(target=self._handle, args=(client,), daemon=True).start()
 
-    def _handle(self, client) -> None:
-        upstream = None
-        try:
-            head, rest = _read_head(client)
-            if head is None:
-                return
-            line, _, headers = head.partition(b"\r\n")
-            try:
-                method, target, _ = line.decode("latin-1").split(" ", 2)
-            except ValueError:
-                return _answer(client, 400, "a request line")
+class _ProxyHandler(http.server.BaseHTTPRequestHandler):
+    '''One connection to the proxy: a tunnel, or one plain GET or HEAD.'''
 
-            if method == "CONNECT":
-                host, _, port = target.rpartition(":")
-                host = host.strip("[]").lower()
-                if not port.isdigit() or not self.admits_connect(host, int(port)):
-                    return self._refuse(client, host)
-                upstream = _open_public(host, int(port), public_only=self._public_only(
-                    self._hosts, f"https://{host}:{port}/"))
-                if upstream is None:
-                    return self._refuse(client, host, "resolves to a non-public address")
-                client.sendall(b"HTTP/1.1 200 Connection established\r\n\r\n")
-                if rest:
-                    upstream.sendall(rest)
-            elif method in ("GET", "HEAD") and target.startswith("http://"):
-                parts = urlsplit(target)
-                if not self.admits_get(target):
-                    return self._refuse(client, (parts.hostname or "").lower())
-                upstream = _open_public(parts.hostname, parts.port or 80,
-                                        public_only=self._public_only(self._rules, target))
-                if upstream is None:
-                    return self._refuse(client, parts.hostname,
-                                        "resolves to a non-public address")
-                path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
-                kept = [header for header in headers.split(b"\r\n") if header and not
-                        header.lower().startswith((b"proxy-", b"connection:"))]
-                upstream.sendall(f"{method} {path} HTTP/1.1\r\n".encode("latin-1")
-                                 + b"\r\n".join(kept + [b"Connection: close"])
-                                 + b"\r\n\r\n" + rest)
-            else:
-                return _answer(client, 405, "CONNECT, or GET and HEAD for http")
+    protocol_version = "HTTP/1.1"
+    # 🔴 Unbuffered, so what a client sends after a CONNECT's head -- the TLS
+    # hello, pipelined -- is still on the socket for the tunnel, never held in
+    # a buffer this handler then drops.
+    rbufsize = 0
 
-            _splice(client, upstream)
-        except OSError:
-            pass
-        finally:
-            for end in (client, upstream):
-                if end is not None:
-                    try:
-                        end.close()
-                    except OSError:                             # pragma: no cover
-                        pass
+    def do_CONNECT(self) -> None:
+        proxy = self.server.proxy
+        host, _, port = self.path.rpartition(":")
+        host = host.strip("[]").lower()
+        if not port.isdigit() or not proxy.admits_connect(host, int(port)):
+            return self._refuse(host)
+        upstream = _open_public(host, int(port), public_only=proxy._public_only(
+            proxy._hosts, f"https://{host}:{port}/"))
+        if upstream is None:
+            return self._refuse(host, "resolves to a non-public address")
+        with upstream:
+            self.send_response(200, "Connection established")
+            self.end_headers()
+            self._splice(upstream)
 
-    def _refuse(self, client, host: str, why: str = "is not on the allowlist"):
-        if host and host not in self.refused:
-            self.refused.append(host)
+    def do_GET(self) -> None:
+        proxy = self.server.proxy
+        if not self.path.startswith("http://"):
+            return self._answer(405, "CONNECT, or GET and HEAD for http")
+        parts = urlsplit(self.path)
+        if not proxy.admits_get(self.path):
+            return self._refuse((parts.hostname or "").lower())
+        upstream = _open_public(parts.hostname, parts.port or 80,
+                                public_only=proxy._public_only(proxy._rules, self.path))
+        if upstream is None:
+            return self._refuse(parts.hostname, "resolves to a non-public address")
+        path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
+        kept = [f"{name}: {value}" for name, value in self.headers.items()
+                if not name.lower().startswith("proxy-") and name.lower() != "connection"]
+        with upstream:
+            head = [f"{self.command} {path} HTTP/1.1", *kept, "Connection: close", "", ""]
+            upstream.sendall("\r\n".join(head).encode("latin-1"))
+            self._splice(upstream)
+
+    do_HEAD = do_GET
+
+    def __getattr__(self, name):
+        # Every other method: 405, where `http.server` would answer 501.
+        if name.startswith("do_"):
+            return lambda: self._answer(405, "CONNECT, or GET and HEAD for http")
+        raise AttributeError(name)
+
+    def _splice(self, upstream) -> None:
+        self.close_connection = True
+        _splice(self.connection, upstream)
+
+    def _refuse(self, host: str, why: str = "is not on the allowlist") -> None:
+        refused = self.server.proxy.refused
+        if host and host not in refused:
+            refused.append(host)
         print(f"proxy: refused {host}: it {why}", flush=True)
-        _answer(client, 403, f"{host} {why}")
+        self._answer(403, f"{host} {why}")
 
+    def _answer(self, status: int, why: str) -> None:
+        body = f"{why}\n".encode()
+        self.close_connection = True
+        self.send_response(status)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.end_headers()
+        self.wfile.write(body)
 
-def _read_head(client) -> Tuple[Optional[bytes], bytes]:
-    data = b""
-    while b"\r\n\r\n" not in data:
-        chunk = client.recv(8192)
-        if not chunk:
-            return None, b""
-        data += chunk
-        if len(data) > _HEAD_LIMIT:
-            return None, b""
-    head, _, rest = data.partition(b"\r\n\r\n")
-    return head, rest
-
-
-def _answer(client, status: int, why: str) -> None:
-    reason = {400: "Bad Request", 403: "Forbidden", 405: "Method Not Allowed"}[status]
-    body = f"{why}\n".encode()
-    try:
-        client.sendall(f"HTTP/1.1 {status} {reason}\r\nContent-Length: {len(body)}\r\n"
-                       f"Connection: close\r\n\r\n".encode() + body)
-    except OSError:                                             # pragma: no cover
-        pass
+    def log_message(self, format, *args) -> None:
+        # Refusals are said by `_refuse`; nothing else is worth a line.
+        return
 
 
 def _open_public(host: str, port: int, public_only: bool = True):

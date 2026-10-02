@@ -88,8 +88,11 @@ class LogTail:
                 # 🔴 After the `303` only an event stream is the log: anything
                 # else is a refusal, such as the stream host's
                 # `concurrent_log_streams`, and is never printed as log text.
+                from siliconcompiler.remote.client.transport import _problem_body
+
                 with response:
-                    raise _refusal(response)
+                    raise ServerProblem(_problem_body(response), response.status_code
+                                        if response.status_code >= 400 else 502)
 
             with response:
                 produced, finished = self._consume(response, emit)
@@ -200,11 +203,3 @@ def _data(raw: str) -> dict:
         # better than ending a tail that is otherwise working.
         return {}
     return body if isinstance(body, dict) else {}
-
-
-def _refusal(response) -> ServerProblem:
-    '''What a non-stream answer after the `303` says, as a refusal.'''
-    from siliconcompiler.remote.client.transport import _problem_body
-
-    status = response.status_code if response.status_code >= 400 else 502
-    return ServerProblem(_problem_body(response), status)

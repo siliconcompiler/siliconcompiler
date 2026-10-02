@@ -17,6 +17,7 @@ import time
 import flask
 
 from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.routes import next_page
 from siliconcompiler.remote.server.routes.auth import public_url, require
 from siliconcompiler.remote.server.routes.errorpages import help_link
 from siliconcompiler.remote.server.state.storage import SignatureError
@@ -134,15 +135,7 @@ def listing(session):
                "GET /v1/jobs")
     items, cursor = _jobs().listing(session, flask.request.args)
 
-    headers = {}
-    if cursor:
-        from urllib.parse import urlencode
-
-        # Every repeat kept, and every value encoded: the next page is the
-        # same query one page on.
-        query = [(name, value) for name, value in flask.request.args.items(multi=True)
-                 if name != "cursor"] + [("cursor", cursor)]
-        headers["Link"] = f'</v1/jobs?{urlencode(query)}>; rel="next"'
+    headers = {"Link": next_page("/v1/jobs", cursor)} if cursor else {}
 
     return _private({"items": items}, headers=headers)
 

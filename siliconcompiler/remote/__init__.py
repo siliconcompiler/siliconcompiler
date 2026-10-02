@@ -11,9 +11,6 @@ See ``tests/remote/BEHAVIOUR.md`` for what the client this replaces did and what
 the rewrite owes back.
 '''
 
-import warnings
-
-from siliconcompiler._common import NodeStatus as SCNodeStatus
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
 from siliconcompiler.utils.logging import get_console_formatter
@@ -32,43 +29,6 @@ banner = r'''
  ___) | |___   ___) |  __/ |   \ V /  __/ |
 |____/ \____| |____/ \___|_|    \_/ \___|_|
 '''
-
-
-class _NodeStatus(SCNodeStatus):
-    '''The old protocol's node states, with its own `uploaded`.'''
-
-    UPLOADED = 'uploaded'
-
-
-class _JobStatus():
-    '''The old protocol's job states.'''
-
-    RUNNING = "running"
-
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELED = "canceled"
-    REJECTED = "rejected"
-    TIMEOUT = "timeout"
-
-    UNKNOWN = "unknown"
-
-
-# Released, and nothing here reads them since the old protocol went: the v1
-# API publishes a job's and each node's `state` on the job object. Kept working
-# so a script that imports them runs, and says why it should change.
-_DEPRECATED = {"NodeStatus": (_NodeStatus, "siliconcompiler.NodeStatus"),
-               "JobStatus": (_JobStatus, "the `state` of the job object")}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED:
-        value, instead = _DEPRECATED[name]
-        warnings.warn(f"siliconcompiler.remote.{name} is deprecated, and nothing reads "
-                      f"it since the v1 API replaced the old protocol; use {instead}",
-                      DeprecationWarning, stacklevel=2)
-        return value
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 class ClientScheduler(Scheduler):

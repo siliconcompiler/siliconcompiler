@@ -77,19 +77,13 @@ def sweep(store, storage, config, datadir) -> Dict[str, Any]:
             return format_binary(value, "B", digits=1, show_unit=True, compact=True,
                                  default="—")
 
+        units = {"bundles": "container bundles", "artifacts": "expired artifacts",
+                 "builds": "build directories", "uploads": "abandoned uploads"}
         logger.info(f"reclaimed {size(freed)}: " + ", ".join(
-            f"{units_of(name)} {size(value)}"
+            f"{units[name]} {size(value)}"
             for name, value in taken.items()
             if value and name != "abandoned"))
     return taken
-
-
-def units_of(name: str) -> str:
-    return {"bundles": "container bundles",
-            "artifacts": "expired artifacts",
-            "builds": "build directories",
-            "uploads": "abandoned uploads",
-            "abandoned": "abandoned jobs"}[name]
 
 
 def _bundles(store, storage, config, datadir) -> int:
@@ -205,7 +199,7 @@ def _builds(store, storage, config, datadir) -> int:
         if not root.is_dir() or datadir not in root.resolve().parents:
             continue
 
-        freed += _weigh(root)
+        freed += images._weigh(root)
         shutil.rmtree(root, ignore_errors=True)
         # Its bundles' configurations, which borrow shared root filesystems and
         # are a few kilobytes: nothing of this job runs again.
@@ -270,14 +264,3 @@ def _abandoned(store, storage, config, datadir) -> int:
     if moved:
         logger.info(f"{moved} job(s) were never uploaded to; abandoned")
     return moved
-
-
-def _weigh(path: Path) -> int:
-    total = 0
-    for child in path.rglob("*"):
-        try:
-            if child.is_file() and not child.is_symlink():
-                total += child.stat().st_size
-        except OSError:
-            continue
-    return total

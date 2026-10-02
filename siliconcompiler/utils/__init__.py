@@ -322,6 +322,31 @@ def open_zstd_stream(fileobj: IO[bytes]) -> IO[bytes]:
     return cast(IO[bytes], _zstd.ZstdFile(fileobj))
 
 
+def file_digest(path: Union[str, Path], algorithm: str = "sha256"):
+    '''
+    The hash of the file at ``path``, read in chunks rather than whole.
+
+    ``hashlib.file_digest`` from Python 3.11, and the same read by hand before
+    it, so every supported Python hashes a file one way.
+
+    Args:
+        path (path): the file to hash.
+        algorithm (str): a name ``hashlib.new`` takes.
+
+    Returns:
+        the ``hashlib`` hash object, as ``hashlib.file_digest`` returns.
+    '''
+    import hashlib
+
+    with open(path, "rb") as f:
+        if hasattr(hashlib, "file_digest"):
+            return hashlib.file_digest(f, algorithm)
+        digest = hashlib.new(algorithm)
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+        return digest
+
+
 def link_symlink_copy(srcfile, dstfile):
     """
     Attempts to link a source file to a destination using hard link, symbolic link,

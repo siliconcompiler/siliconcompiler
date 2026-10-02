@@ -15,7 +15,7 @@ page, and what they share is the question underneath.
 from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import now, stamp
 
 __all__ = ["account_limits", "devices_for", "effective_limits", "lifetime",
            "owned_device", "set_limit", "usage", "user", "OVERRIDABLE"]
@@ -177,8 +177,7 @@ def session_view(store, session) -> Dict[str, Any]:
         "  AND revoked_at IS NULL ORDER BY issued_at DESC LIMIT 1", (session.family_id,))
     access = None
     if session.expires_at is not None:
-        access = datetime.fromtimestamp(session.expires_at, tz=timezone.utc) \
-            .strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        access = stamp(datetime.fromtimestamp(session.expires_at, tz=timezone.utc))
     kind = family["kind"] if family else "interactive"
     return {
         "kind": kind,

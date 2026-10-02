@@ -34,12 +34,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler._common import NodeStatus as SCNodeStatus
+from siliconcompiler.utils import file_digest
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote.client.errors import (
-    NO_NODE_FAILED, RemoteError, ServerProblem, clean, describe)
+    NO_NODE_FAILED, RemoteError, ServerProblem, _slug, clean, describe)
 from siliconcompiler.remote.client import MAX_CANCEL_REASON
 from siliconcompiler.remote.client.results import Results, record_job, recorded_job
 from siliconcompiler.utils.units import format_binary, format_duration
@@ -549,8 +550,6 @@ class RemoteRun:
         '''The follow-up for a job sent back to `awaiting_input` (D124): an
         archive of ONLY what the server asked for, its own grant, and submit
         again.'''
-        import hashlib
-
         from siliconcompiler.remote import owners
 
         seen = tuple(sorted((item.get("kind"), ",".join(item.get("keypath") or ()),
@@ -573,14 +572,10 @@ class RemoteRun:
             with tarfile.open(upload, mode="w:gz") as tar:
                 tar.add(str(collection), arcname="sc_collected_files")
 
-            digest, size = hashlib.sha256(), 0
-            with open(upload, "rb") as f:
-                for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                    digest.update(chunk)
-                    size += len(chunk)
-
-            grant = self.client.upload_grant(job_id, size, f"sha256:{digest.hexdigest()}")
-            self._report_upload(size, owners.upload_report(self.project, collection) + report)
+            grant = self.client.upload_grant(job_id, os.path.getsize(upload),
+                                             f"sha256:{file_digest(upload).hexdigest()}")
+            self._report_upload(os.path.getsize(upload),
+                                owners.upload_report(self.project, collection) + report)
             self.client.upload(grant, upload)
             self.client.submit_job(job_id, idempotency_key=_key())
 
@@ -713,7 +708,11 @@ class RemoteRun:
             from siliconcompiler.remote.runflow import runtime_flow
 
             project, required = self._needs()
-            pins = {"siliconcompiler": [_framework_requirement()]}
+            # What this client needs the framework image to hold. `tools`
+            # beside it is often `{}`, the ordinary case: a client submitting
+            # remotely generally has no tools installed, and a tool's
+            # requirement comes from its task's declared version, set in setup.
+            pins = {"siliconcompiler": [_pin(sc_version)]}
 
             def exact(distribution):
                 name = _canonical(distribution)
@@ -1063,17 +1062,7 @@ class RemoteRun:
             # client did and nobody asked for.
             shutil.rmtree(collected, ignore_errors=True)
 
-        digest = hashlib.sha256()
-        size = 0
-        with open(upload, "rb") as f:
-            while True:
-                chunk = f.read(1024 * 1024)
-                if not chunk:
-                    break
-                size += len(chunk)
-                digest.update(chunk)
-
-        return f"sha256:{digest.hexdigest()}", size
+        return f"sha256:{file_digest(upload).hexdigest()}", os.path.getsize(upload)
 
     def _upstream_manifests(self, root: str, packed, scratch: str) -> Dict[str, str]:
         '''Each upstream node's manifest the archive carries that holds a
@@ -1260,16 +1249,9 @@ class RemoteRun:
         # know: a wheel is built here from whatever its source holds now, and
         # the same version is often different code.
 
-        def digest(path) -> str:
-            found = hashlib.sha256()
-            with open(path, "rb") as f:
-                for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                    found.update(chunk)
-            return found.hexdigest()
-
         return hashlib.sha256(json.dumps(
             {"run_hash": run_hash,
-             "wheels": sorted(digest(path) for path in built.values())},
+             "wheels": sorted(file_digest(path).hexdigest() for path in built.values())},
             sort_keys=True).encode()).hexdigest()
 
     def _flow_descriptor(self) -> Tuple[Optional[str], Optional[int]]:
@@ -1428,7 +1410,12 @@ class RemoteRun:
                 owner = job.get("owner")
                 self._owner = owner.get("id") if isinstance(owner, dict) else None
             except ServerProblem as refusal:
-                if _is_refusal(refusal):
+                # 🔴 Whether to stop polling is the `type` slug's, never the
+                # status alone: a 5xx with no slug is a server having a bad
+                # minute; a named condition is an answer that will not change
+                # by asking again.
+                if refusal.slug is not None and \
+                        refusal.slug not in ("not-ready", "rate-limited"):
                     # 🔴 A refusal ends the wait AS A FAILURE. Falling through
                     # would announce a finished job with nothing in it, which is
                     # the opposite of what happened.
@@ -2009,26 +1996,14 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
     # `run-interrupted` says resubmitting may work, and it would be no less
     # true for a run that got halfway.
     failed = (job.get("progress") or {}).get("failed_count")
-    ran_out = str(error["type"]).rstrip("/").rsplit("/", 1)[-1] == "run-failed"
+    slug = _slug(error)
 
     # The server's own page for it, where the server has said it serves them.
-    slug = str(error["type"]).rstrip("/").rsplit("/", 1)[-1]
     return describe(error,
-                    next_step=NO_NODE_FAILED if ran_out and failed == 0 else None,
+                    next_step=NO_NODE_FAILED if slug == "run-failed" and failed == 0
+                    else None,
                     help_url=f"{help_pages}{slug}" if help_pages else None,
                     job_id=job.get("id"))
-
-
-def _is_refusal(problem: ServerProblem) -> bool:
-    '''Whether to stop polling.
-
-    🔴 The discriminator is the `type` slug and never the status alone. A 5xx
-    with no slug is a server having a bad minute; a named condition is an answer
-    that will not change by asking again.
-    '''
-    if problem.slug is None:
-        return False
-    return problem.slug not in ("not-ready", "rate-limited")
 
 
 # The shape of one entry in a version requirement, and the same one
@@ -2251,18 +2226,12 @@ def _framework_range(name: str) -> str:
         return ""
 
 
-def _framework_requirement() -> str:
-    """What this client needs the server's framework image to hold.
-
-    ⚠️ **`tools` beside it is often `{}`, and that is the ordinary case.** A
-    client submitting remotely generally has no tools installed -- which is
-    usually why it is submitting remotely -- and a tool's requirement comes
-    from its task's declared version, which is set in setup.
-
-    The SERVER resolves the specifier, which is what lets a deployment answer
-    *which image has all of these* -- a question a client cannot answer,
-    because `GET /v1`'s `software` is flat per name within a bucket while the
-    image join is over combinations.
+def _pin(version: str) -> str:
+    """One installed version as the specifier a server resolves: exact, or
+    the release line's prefix for a development build. The SERVER resolves
+    it, which is what lets a deployment answer *which image has all of these*
+    -- a question a client cannot answer, because `GET /v1`'s `software` is
+    flat per name within a bucket while the image join is over combinations.
 
     🔴 **`==` and deliberately not `>=`, which is the tempting one.** Reading a
     manifest is only backwards compatible: a newer SiliconCompiler reads an
@@ -2290,12 +2259,6 @@ def _framework_requirement() -> str:
     ⚠️ A dev job's resolution is therefore not stable between two dev builds,
     which is correct: they are not the same code.
     """
-    return _pin(sc_version)
-
-
-def _pin(version: str) -> str:
-    """One installed version as the specifier a server resolves: exact, or
-    the release line's prefix for a development build."""
     from packaging.version import InvalidVersion, Version
 
     try:

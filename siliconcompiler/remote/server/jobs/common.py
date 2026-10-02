@@ -17,6 +17,7 @@ from siliconcompiler.remote import environment, owners
 from siliconcompiler.remote.server.errors import bound, ERRORS, ProblemError, TYPE_BASE
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.staging import archive, manifestread
+from siliconcompiler.remote.server.state.store import stamp
 
 logger = logging.getLogger("sc-server")
 
@@ -624,8 +625,7 @@ def _after(when: str, seconds: int) -> str:
 
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=timezone.utc)
-    moment += timedelta(seconds=seconds)
-    return moment.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return stamp(moment + timedelta(seconds=seconds))
 
 
 def _ago(seconds: int) -> str:
@@ -636,8 +636,7 @@ def _ago(seconds: int) -> str:
     """
     from datetime import datetime, timedelta, timezone
 
-    when = datetime.now(timezone.utc) - timedelta(seconds=seconds)
-    return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return stamp(datetime.now(timezone.utc) - timedelta(seconds=seconds))
 
 
 def _expired_key(bound_at: Optional[str]) -> bool:
@@ -772,5 +771,4 @@ def _epoch() -> float:
 
 def _from_epoch(value: float) -> str:
     from datetime import datetime, timezone
-    return datetime.fromtimestamp(value, timezone.utc).strftime(
-        "%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return stamp(datetime.fromtimestamp(value, timezone.utc))

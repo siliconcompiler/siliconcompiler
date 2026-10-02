@@ -259,6 +259,19 @@ def test_an_unknown_kind_is_refused(server_client, key, token, finished):
     assert slug(response) == "invalid-request"
 
 
+def test_the_next_page_keeps_the_query_encoded(server):
+    '''One builder for every collection's `Link`: each value encoded, a
+    repeat kept, and the cursor replaced -- `step=a b&c` is one value.'''
+    from siliconcompiler.remote.server.routes import next_page
+
+    with server.test_request_context("/v1/jobs/J/artifacts?step=a%20b%26c&kind=logs"
+                                     "&kind=reports&cursor=old"):
+        link = next_page("/v1/jobs/J/artifacts", "new")
+
+    assert link == ('</v1/jobs/J/artifacts?step=a+b%26c&kind=logs&kind=reports'
+                    '&cursor=new>; rel="next"')
+
+
 def test_the_listing_pages(server_client, key, token, finished):
     first = call(server_client, key, "GET",
                  f"/v1/jobs/{finished['id']}/artifacts?limit=2", token)

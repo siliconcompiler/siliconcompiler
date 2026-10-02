@@ -105,19 +105,11 @@ class Storage:
         '''Check a presented signature, and return the byte ceiling it carries.'''
         try:
             ceiling = int(max_bytes)
-            deadline = int(expires_at)
         except (TypeError, ValueError):
             raise SignatureError("malformed grant") from None
-
-        expected = self._sign(f"upload\n{job_id}\n{ceiling}\n{deadline}")
-        if not hmac.compare_digest(expected, signature or ""):
-            raise SignatureError("the signature does not match this URL")
-
-        # Checked after the signature, deliberately: an expiry read off an
-        # unverified URL is a number the caller chose.
-        if when > deadline:
-            raise SignatureError("this upload grant has expired")
-
+        self._verify(lambda deadline: f"upload\n{job_id}\n{ceiling}\n{deadline}",
+                     expires_at, signature, when, "this upload grant has expired",
+                     malformed="malformed grant")
         return ceiling
 
     def receive(self, job_id: str, stream, ceiling: int) -> Tuple[int, str]:
@@ -164,17 +156,9 @@ class Storage:
         if not path.is_file():
             return None
 
-        digest = hashlib.sha256()
-        size = 0
-        with open(path, "rb") as f:
-            while True:
-                chunk = f.read(_CHUNK)
-                if not chunk:
-                    break
-                size += len(chunk)
-                digest.update(chunk)
+        from siliconcompiler.utils import file_digest
 
-        return size, f"sha256:{digest.hexdigest()}"
+        return path.stat().st_size, f"sha256:{file_digest(path).hexdigest()}"
 
     def discard_upload(self, job_id: str) -> None:
         '''Drop a staged upload. Not an error if it was never there.'''
@@ -223,16 +207,9 @@ class Storage:
     def verify_stream(self, job_id: str, step: str, index: str,
                       expires_at: str, signature: str, when: float,
                       nonce: Optional[str] = "") -> None:
-        try:
-            deadline = int(expires_at)
-        except (TypeError, ValueError):
-            raise SignatureError("malformed link") from None
-
-        expected = self._sign(f"stream\n{job_id}\n{step}\n{index}\n{deadline}\n{nonce or ''}")
-        if not hmac.compare_digest(expected, signature or ""):
-            raise SignatureError("the signature does not match this URL")
-        if when > deadline:
-            raise SignatureError("this stream link has expired")
+        self._verify(
+            lambda deadline: f"stream\n{job_id}\n{step}\n{index}\n{deadline}\n{nonce or ''}",
+            expires_at, signature, when, "this stream link has expired")
 
     def sign_job_stream(self, job_id: str, expires_at: int, nonce: str = "") -> str:
         '''The capability half of a whole job's live stream.
@@ -245,34 +222,32 @@ class Storage:
 
     def verify_job_stream(self, job_id: str, expires_at: str, signature: str,
                           when: float, nonce: Optional[str] = "") -> None:
-        try:
-            deadline = int(expires_at)
-        except (TypeError, ValueError):
-            raise SignatureError("malformed link") from None
-
-        expected = self._sign(f"stream-job\n{job_id}\n{deadline}\n{nonce or ''}")
-        if not hmac.compare_digest(expected, signature or ""):
-            raise SignatureError("the signature does not match this URL")
-        if when > deadline:
-            raise SignatureError("this stream link has expired")
+        self._verify(lambda deadline: f"stream-job\n{job_id}\n{deadline}\n{nonce or ''}",
+                     expires_at, signature, when, "this stream link has expired")
 
     def verify_download(self, artifact_id: str, expires_at: str,
                         signature: str, when: float) -> None:
-        try:
-            deadline = int(expires_at)
-        except (TypeError, ValueError):
-            raise SignatureError("malformed link") from None
-
-        expected = self._sign(f"download\n{artifact_id}\n{deadline}")
-        if not hmac.compare_digest(expected, signature or ""):
-            raise SignatureError("the signature does not match this URL")
-        if when > deadline:
-            raise SignatureError("this link has expired")
+        self._verify(lambda deadline: f"download\n{artifact_id}\n{deadline}",
+                     expires_at, signature, when, "this link has expired")
 
     def discard_artifacts(self, job_id: str) -> None:
         shutil.rmtree(self.artifact_dir(job_id), ignore_errors=True)
 
     ######################################################################
+
+    def _verify(self, message, expires_at, signature, when: float, expired: str,
+                malformed: str = "malformed link") -> None:
+        '''One presented signature against the message ``message(deadline)``
+        signs, then its deadline -- checked after the signature, deliberately:
+        an expiry read off an unverified URL is a number the caller chose.'''
+        try:
+            deadline = int(expires_at)
+        except (TypeError, ValueError):
+            raise SignatureError(malformed) from None
+        if not hmac.compare_digest(self._sign(message(deadline)), signature or ""):
+            raise SignatureError("the signature does not match this URL")
+        if when > deadline:
+            raise SignatureError(expired)
 
     def _sign(self, message: str) -> str:
         mac = hmac.new(self._key, message.encode(), hashlib.sha256).digest()

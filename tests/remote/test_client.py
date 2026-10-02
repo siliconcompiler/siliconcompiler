@@ -52,6 +52,27 @@ def test_the_scheme_comes_from_the_address_never_from_the_port():
     assert normalize_server("example.com", port=8000) == "https://example.com:8000/v1"
 
 
+@pytest.mark.parametrize("given,port,expected", [
+    ("https://[::1]:8000", None, "https://[::1]:8000/v1"),
+    ("https://[::1]", 8000, "https://[::1]:8000/v1"),
+    ("http://[fd00::5]:8080/sc", None, "http://[fd00::5]:8080/sc"),
+])
+def test_an_ipv6_server_keeps_its_brackets_and_its_port(given, port, expected):
+    assert normalize_server(given, port) == expected
+
+
+def test_configuring_an_ipv6_server_keeps_its_port():
+    '''The address as `sc-remote -configure -server` splits it: brackets
+    kept, so the port is never read as part of the host.'''
+    from siliconcompiler.remote.client import _split_address
+
+    address, port, had_credentials = _split_address("https://[::1]:8000")
+
+    assert (address, port, had_credentials) == ("https://[::1]", 8000, False)
+    assert normalize_server(address, port) == "https://[::1]:8000/v1"
+    assert _split_address("https://me:secret@example.com")[2] is True
+
+
 def test_a_server_url_may_already_carry_its_prefix():
     assert normalize_server("https://example.com/v1") == "https://example.com/v1"
     assert normalize_server("https://example.com/sc/v1") == "https://example.com/sc/v1"

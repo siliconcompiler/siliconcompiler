@@ -34,6 +34,41 @@ def digest(letter):
 # The layer, and the registry
 ###########################
 
+@pytest.mark.parametrize("ref,parts", [
+    ("registry:5000/sc-runtime@sha256:" + "a" * 64,
+     ("registry:5000", "sc-runtime", "sha256:" + "a" * 64)),
+    ("registry:5000/sc-runtime:v1", ("registry:5000", "sc-runtime", "v1")),
+    ("ghcr.io/org/sc:v1@sha256:" + "b" * 64, ("ghcr.io", "org/sc", "sha256:" + "b" * 64)),
+    ("registry:5000/a/b/c:tag", ("registry:5000", "a/b/c", "tag")),
+])
+def test_a_reference_splits_as_docker_reads_it(ref, parts):
+    assert oci.split_ref(ref) == parts
+
+
+def test_a_reference_with_nothing_to_pull_is_refused():
+    with pytest.raises(ValueError, match="host/repository@digest"):
+        oci.split_ref("registry:5000/sc-runtime")
+
+
+@pytest.mark.parametrize("conf,scheme", [
+    ('[[registry]]\nlocation = "reg:5000"\ninsecure = true\n', "http"),
+    ("[[registry]]\nlocation = 'reg:5000'\ninsecure = true\n", "http"),
+    ('[[registry]]\nlocation = "reg:5000"\n# insecure = true\n', "https"),
+    ('[[registry]]\nlocation = "reg:5000"\n[[registry.mirror]]\n'
+     'location = "mirror:5000"\ninsecure = true\n', "https"),
+    ('[[registry]]\nlocation = "other:5000"\ninsecure = true\n', "https"),
+    ("not toml at all [[[", "https"),
+], ids=["insecure", "single-quoted", "commented-out", "mirror-only", "other-host", "unreadable"])
+def test_a_registry_is_plain_http_only_where_registries_conf_says_so(tmp_path, conf, scheme,
+                                                                     monkeypatch):
+    '''🔴 Read as TOML, as skopeo reads it: a commented-out `insecure`, or a
+    mirror's own, never sends a push over plain http.'''
+    monkeypatch.delenv("CONTAINERS_REGISTRIES_CONF", raising=False)
+    (tmp_path / "registries.conf").write_text(conf)
+
+    assert oci._scheme("reg:5000", confs=[str(tmp_path / "registries.conf")]) == scheme
+
+
 def test_a_layer_puts_the_tree_where_it_is_asked_and_is_reproducible(tmp_path):
     site = tmp_path / "site"
     (site / "pkg").mkdir(parents=True)
@@ -832,6 +867,40 @@ def test_an_admitted_tunnel_carries_both_ways(proxy, monkeypatch):
     assert client.recv(5) == b"world"
     client.close()
     here.close()
+
+
+def test_an_admitted_get_is_sent_on_without_the_proxys_own_headers(proxy, monkeypatch):
+    '''A plain http GET goes upstream in origin form, closing, with nothing
+    meant for the proxy -- and the answer comes back as it was sent.'''
+    here, there = socket.socketpair()
+    monkeypatch.setattr(envbuild, "_open_public", lambda host, port, **kwargs: there)
+
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(5)
+    client.connect(proxy.path)
+    client.sendall(b"GET http://mirror.example.com/pypi/simple/numpy/?a=1 HTTP/1.1\r\n"
+                   b"Host: mirror.example.com\r\nProxy-Authorization: x\r\n"
+                   b"Connection: keep-alive\r\nAccept: text/html\r\n\r\n")
+
+    here.settimeout(5)
+    sent = b""
+    while b"\r\n\r\n" not in sent:
+        sent += here.recv(4096)
+    head = sent.decode().split("\r\n")
+    assert head[0] == "GET /pypi/simple/numpy/?a=1 HTTP/1.1"
+    assert "Accept: text/html" in head and "Connection: close" in head
+    assert not any(line.lower().startswith(("proxy-", "connection: keep")) for line in head)
+
+    here.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+    here.close()
+    answer = b""
+    while True:
+        chunk = client.recv(4096)
+        if not chunk:
+            break
+        answer += chunk
+    client.close()
+    assert answer == b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok"
 
 
 def test_anything_but_a_tunnel_or_a_plain_get_is_refused(proxy):

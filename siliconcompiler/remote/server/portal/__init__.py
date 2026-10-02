@@ -339,34 +339,6 @@ def _csrf_for_templates():
     return {"csrf": held[1] if held else ""}
 
 
-def _safe_path(path):
-    """A local portal path, or nothing.
-
-    🔴 Two characters decide it: it must begin `/portal/`, and must not begin
-    `//`, which a browser reads as a scheme-relative host. This is the one
-    function that says yes to a redirect target a request carried, the
-    breadcrumb cookie; the handover's landing is built from an id instead
-    (`POST /v1/auth/browser`), and follows no caller's path.
-    """
-    if isinstance(path, str) and path.startswith("/portal/") \
-            and not path.startswith("//"):
-        return path
-    return None
-
-
-def _wanted():
-    """Where the browser was going when it was turned away.
-
-    🔴 A local portal path or nothing. Anything can set a cookie on this
-    origin, and a redirect that follows one is an open redirect -- the classic
-    phishing primitive, made worse here because the person has just been told
-    this link is the trustworthy way in. Two checks decide it: it must begin
-    `/portal/`, and must not begin `//`, which a browser reads as a
-    scheme-relative host.
-    """
-    return _safe_path(flask.request.cookies.get(NEXT_COOKIE))
-
-
 @blueprint.route("/portal/enter")
 def enter():
     '''Exchange the token for a cookie, and destroy the token.'''
@@ -382,8 +354,18 @@ def enter():
     # just submitted; the cookie only knows where this browser was turned away
     # from, which is nothing at all when the browser is being opened for the
     # first time.
-    response = flask.redirect(
-        landing or _wanted() or flask.url_for("portal.jobs"))
+    #
+    # 🔴 The breadcrumb is followed only as a local portal path. Anything can
+    # set a cookie on this origin, and a redirect that follows one is an open
+    # redirect -- the classic phishing primitive, made worse here because the
+    # person has just been told this link is the trustworthy way in. A path
+    # beginning `/portal/` is never `//`, which a browser reads as a
+    # scheme-relative host. This is the one redirect target a request carries;
+    # the handover's landing is built from an id (`POST /v1/auth/browser`).
+    wanted = flask.request.cookies.get(NEXT_COOKIE)
+    if not (isinstance(wanted, str) and wanted.startswith("/portal/")):
+        wanted = None
+    response = flask.redirect(landing or wanted or flask.url_for("portal.jobs"))
     response.delete_cookie(NEXT_COOKIE, samesite="Strict")
     response.set_cookie(
         COOKIE, cookie, max_age=SESSION_SECONDS, httponly=True,
@@ -478,37 +460,38 @@ _BOX_W, _BOX_H, _GAP_X, _GAP_Y, _PAD = 132, 28, 14, 22, 12
 
 
 def _depths(nodes, edges):
-    """How far into the run each node is: the longest path to it.
+    """How far into the run each node is: its level in the flowgraph's own
+    execution order (`Flowgraph.get_execution_order`), the longest path to it.
 
     🔴 For a flowgraph that IS the order the work happens in, which is why the
     same number lays out the picture and sorts the table beside it. Two views
     of one run disagreeing about what comes first is worse than either ordering
     on its own.
+
+    Built from the job's rows as a flowgraph of no-op nodes: the portal never
+    reads the manifest, and a job's task classes are not this server's to load.
     """
-    incoming = {node: [] for node in nodes}
-    for edge in edges:
-        target = (edge["to_step"], edge["to_index"])
-        source = (edge["from_step"], edge["from_index"])
-        if target in incoming and source in incoming:
-            incoming[target].append(source)
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
 
-    depth = {}
-
-    def _of(node, seen=()):
-        if node in depth:
-            return depth[node]
-        if node in seen:
-            # A cycle cannot happen in a flowgraph, and a layout routine is not
-            # the place to find out that one did.
-            return 0
-        found = max((_of(parent, seen + (node,)) + 1
-                     for parent in incoming[node]), default=0)
-        depth[node] = found
-        return found
-
-    for node in nodes:
-        _of(node)
-    return depth
+    known = set(nodes)
+    try:
+        flow = Flowgraph("portal")
+        for step, index in nodes:
+            flow.node(step, NOPTask(), index=index)
+        for edge in edges:
+            source = (edge["from_step"], edge["from_index"])
+            target = (edge["to_step"], edge["to_index"])
+            if source in known and target in known:
+                flow.edge(source[0], target[0], tail_index=source[1], head_index=target[1])
+        # A cycle cannot happen in a flowgraph, and a layout routine is not the
+        # place to find out that one did -- nor to loop on it.
+        if flow.validate(logger=logging.getLogger("sc-server")):
+            return {node: level for level, row in enumerate(flow.get_execution_order())
+                    for node in row}
+    except ValueError:
+        pass
+    return {node: 0 for node in nodes}
 
 
 def running_order(job, edges):
@@ -587,23 +570,18 @@ def _graph(job, edges):
 
     for node, (x, y) in place.items():
         step, index = node
+        # A name that fits the box. The full one is in the box's <title>, which
+        # is what a browser shows on hover -- so nothing is lost, only folded.
+        clipped = step if len(step) <= 16 else step[:15] + "\u2026"
         out.append(
             f'<g class="node {states.get(node, "pending")}">'
             f'<rect x="{x}" y="{y}" width="{_BOX_W}" height="{_BOX_H}" rx="5"/>'
             f'<title>{_plain(step)}/{index}</title>'
             f'<text x="{x + _BOX_W / 2}" y="{y + _BOX_H / 2 + 4}" '
-            f'text-anchor="middle">{_clip(step)}/{index}</text></g>')
+            f'text-anchor="middle">{_plain(clipped)}/{index}</text></g>')
 
     out.append("</svg>")
     return markupsafe.Markup("".join(out))
-
-
-def _clip(step: str, width: int = 16) -> str:
-    '''A name that fits the box. The full one is in the box's <title>, which
-    is what a browser shows on hover -- so nothing is lost, only folded.'''
-    if len(step) > width:
-        step = step[:width - 1] + "\u2026"
-    return _plain(step)
 
 
 def _plain(value: str) -> str:
@@ -1212,10 +1190,14 @@ def add_software(session):
     except ValueError as e:
         raise ProblemError("invalid-request", detail=str(e)) from None
 
+    try:
+        preference = int(flask.request.form.get("preference"))
+    except (TypeError, ValueError):
+        preference = 0
     if version:
         images.register_version(
             _store(), name, version, session.user_id,
-            preference=_int(flask.request.form.get("preference")),
+            preference=preference,
             source=("published_date" if flask.request.form.get("unversioned")
                     else "reported"))
 
@@ -1293,10 +1275,3 @@ def retire_software(session, name):
         images.retire_software(_store(), name, session.user_id)
 
     return flask.redirect(flask.url_for("portal.registry"))
-
-
-def _int(value) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 0

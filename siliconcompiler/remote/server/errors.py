@@ -142,10 +142,6 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
 )}
 
 
-# Retired, never raised, and not to be reused. Each has an index row and no page.
-RETIRED = ("unsatisfiable-request", "version-skew", "too-many-attempts",
-           "scheduler-lost")
-
 # A `feature` value holds only registered `features` strings.
 FEATURES = ("logs.stream", "logs.stream.job", "projects", "python.env",
             "jobs.reuse")
@@ -179,10 +175,6 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       # (surface D165): a node with a breakpoint, and one whose
                       # task opens a window.
                       "breakpoint", "interactive_task")
-
-# Why a session is over. All four are one client branch -- re-authenticate, and
-# do NOT refresh.
-SESSION_END_REASONS = ("revoked", "reused", "deactivated", "expired")
 
 
 class OAuthError(Exception):

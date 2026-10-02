@@ -38,17 +38,20 @@ ADMISSION_ATTEMPTS = 5
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
-# RFC 3339 in UTC, to milliseconds -- the same spelling schema.sql's DEFAULTs
-# produce, so a row written by Python and one written by the database sort and
-# compare against each other.
-_TIMESTAMP = "%Y-%m-%dT%H:%M:%S.%fZ"
+
+def stamp(moment: datetime) -> str:
+    '''A UTC ``moment`` in the one format this store writes: RFC 3339 to
+    milliseconds -- the same spelling schema.sql's DEFAULTs produce, so a row
+    written by Python and one written by the database sort and compare against
+    each other, as strings.'''
+    # %f is microseconds and the column holds milliseconds; the slice is what
+    # keeps a Python write byte-comparable with a DEFAULT.
+    return moment.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 def now() -> str:
     '''The current time, in the one format this store writes.'''
-    # %f is microseconds and the column holds milliseconds; the slice is what
-    # keeps a Python write byte-comparable with a DEFAULT.
-    return datetime.now(timezone.utc).strftime(_TIMESTAMP)[:-4] + "Z"
+    return stamp(datetime.now(timezone.utc))
 
 
 class StoreVersionError(RuntimeError):
@@ -273,7 +276,9 @@ class Store:
                 con.execute("BEGIN IMMEDIATE")
                 break
             except sqlite3.OperationalError as e:
-                if not _busy(e) or attempt == attempts - 1:
+                # Only SQLite's lock not being had in time is tried again.
+                text = str(e).lower()
+                if not ("locked" in text or "busy" in text) or attempt == attempts - 1:
                     raise
                 time.sleep(0.05 * 2 ** attempt)
         try:
@@ -431,12 +436,6 @@ class _Transaction:
         else:
             self._con.execute("ROLLBACK")
         return False
-
-
-def _busy(error: sqlite3.OperationalError) -> bool:
-    '''Whether an error is SQLite's lock not being had in time.'''
-    text = str(error).lower()
-    return "locked" in text or "busy" in text
 
 
 def _close(con: sqlite3.Connection) -> None:

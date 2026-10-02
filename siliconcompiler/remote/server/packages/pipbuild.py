@@ -154,10 +154,6 @@ def named(output: str):
     return found
 
 
-def _name_of(requirement: str) -> str:
-    return canonical(re.split(r"[\[=<>!~;( ]", requirement.strip(), maxsplit=1)[0])
-
-
 # An entry as the server writes it: name==version.
 _LINE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==(\S+)$")
 
@@ -197,13 +193,6 @@ def release_line(version: str):
     return f"0.{int(minor)}.*" if minor is not None else None
 
 
-def _opener(proxy):
-    import urllib.request
-
-    return urllib.request.build_opener(
-        urllib.request.ProxyHandler({"http": proxy, "https": proxy} if proxy else {}))
-
-
 def _page(index, name, proxy):
     '''One index's project page for ``name`` (PEP 503), as ``(files, ok)``:
     each file it lists as ``(filename, yanked)``, and False where the index
@@ -236,7 +225,9 @@ def _page(index, name, proxy):
         request = urllib.request.Request(url, headers={
             "Accept": "application/vnd.pypi.simple.v1+json, text/html;q=0.1"})
         try:
-            with _opener(proxy).open(request, timeout=30) as answer:
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler(
+                {"http": proxy, "https": proxy} if proxy else {}))
+            with opener.open(request, timeout=30) as answer:
                 kind = answer.headers.get("Content-Type", "")
                 body = answer.read(64 * 1024 * 1024).decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
@@ -416,7 +407,11 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
             raise RuntimeError(f"the environment at {environment} has no site-packages")
         # This interpreter's own sites, its .pth files processed: a venv made
         # from a venv sees the base installation's otherwise.
-        sites = [path for path in site_directories() if os.path.isdir(path)]
+        # `site` is this function's target; the module is imported under
+        # another name.
+        import site as interpreter
+
+        sites = [path for path in interpreter.getsitepackages() if os.path.isdir(path)]
         with open(os.path.join(packages[0], _VISIBLE), "w") as f:
             f.write(f"import site; [site.addsitedir(p) for p in {sites!r}]\n")
 
@@ -549,8 +544,8 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
             if _NETWORK.search(done.stdout):
                 break
             changed = False
-            for key in [_name_of(one) for pattern in _NOT_FOUND
-                        for one in pattern.findall(done.stdout)]:
+            for key in [canonical(re.split(r"[\[=<>!~;( ]", one.strip(), maxsplit=1)[0])
+                        for pattern in _NOT_FOUND for one in pattern.findall(done.stdout)]:
                 if key in absent or key in source_only or key in compiled_only:
                     continue
                 field, one = entry(key)
@@ -653,13 +648,6 @@ def _timed_out(result, error, echo):
     result.update({"returncode": -1, "timed_out": True, "unresolved": [],
                    "tail": "\n".join(said.strip().splitlines()[-20:])})
     return result
-
-
-def site_directories():
-    '''Where this interpreter's installed packages are.'''
-    import site
-
-    return list(site.getsitepackages())
 
 
 def _merge(source, target):

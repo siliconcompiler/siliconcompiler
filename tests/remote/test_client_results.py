@@ -338,15 +338,15 @@ def test_the_cases_are_different_sentences(results):
     '''Collapsing them answers "where did my results go" with the one sentence
     that fits none of the cases.'''
     said = {
-        results._explain(artifact(fetchable=False, deleted_cause="removed",
-                                  deleted_at="2026-09-20T00:00:00.000Z")),
-        results._explain(artifact(fetchable=False, deleted_cause="expired",
-                                  deleted_at="2020-01-01T00:00:00.000Z")),
-        results._explain(artifact(fetchable=False, blocked_by=["nda"])),
-        results._explain(artifact(fetchable=False, can_request_access=True)),
-        results._explain(artifact(fetchable=False, can_request_access=True,
-                                  access_requested_at="2026-09-20T00:00:00.000Z")),
-        results._explain(artifact(fetchable=False)),
+        results._why(artifact(fetchable=False, deleted_cause="removed",
+                              deleted_at="2026-09-20T00:00:00.000Z")),
+        results._why(artifact(fetchable=False, deleted_cause="expired",
+                              deleted_at="2020-01-01T00:00:00.000Z")),
+        results._why(artifact(fetchable=False, blocked_by=["nda"])),
+        results._why(artifact(fetchable=False, can_request_access=True)),
+        results._why(artifact(fetchable=False, can_request_access=True,
+                              access_requested_at="2026-09-20T00:00:00.000Z")),
+        results._why(artifact(fetchable=False)),
     }
     assert len(said) == 6
 

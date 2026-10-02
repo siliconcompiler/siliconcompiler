@@ -316,8 +316,18 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
         # present and mute: `published_date`. `unparsed` keeps what it said
         # for the operator; never coerce it into a version.
         unparsed = None
-        if version is not None and not _is_version(version):
+        from siliconcompiler.remote.server.software.images import _is_pep440
+
+        if version is not None and not _is_pep440(version):
             version, unparsed = None, (reported or version)[:_UNPARSED_CHARS]
+
+        # Whether presence could be asked about at all. ⚠️ Not whether a
+        # VERSION could be: a tool naming an executable and no version switch
+        # is testable and mute; one naming neither cannot be tested, and
+        # untestable is not absent.
+        testable = (command_for(name, kind, driver, package)
+                    if kind in ("python", "interpreter") or package
+                    else executable_for(name, kind, driver, package)) is not None
 
         found[name] = {"kind": kind, "version": version, "reported": reported,
                        "unparsed": unparsed,
@@ -331,33 +341,8 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
                        # that is not the same as absent and must not be
                        # treated as it. Only a test that ran and said no is
                        # grounds to refuse an image.
-                       "present": (present.get(name, False)
-                                   if _testable(name, kind, driver, package)
-                                   else None)}
+                       "present": present.get(name, False) if testable else None}
     return found
-
-
-def _is_version(text: str) -> bool:
-    from packaging.version import InvalidVersion, Version
-
-    try:
-        Version(text)
-        return True
-    except InvalidVersion:
-        return False
-
-
-def _testable(name: str, kind: str, driver: Optional[str],
-              package: Optional[str]) -> bool:
-    """Whether presence could be asked about at all.
-
-    ⚠️ Not the same as whether a VERSION could be. A tool naming an executable
-    and no version switch is testable and mute; one naming neither cannot be
-    tested, and untestable is not absent.
-    """
-    if kind in ("python", "interpreter") or package:
-        return command_for(name, kind, driver, package) is not None
-    return executable_for(name, kind, driver, package) is not None
 
 
 def _want(entry):

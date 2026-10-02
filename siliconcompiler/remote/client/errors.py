@@ -40,10 +40,7 @@ class ServerProblem(RemoteError):
 
     @property
     def slug(self) -> Optional[str]:
-        uri = self.problem.get("type")
-        if not isinstance(uri, str):
-            return None
-        return uri.rstrip("/").rsplit("/", 1)[-1]
+        return _slug(self.problem)
 
     def member(self, name: str) -> Any:
         '''An extension member -- `limit`, `feature`, `reason`, and the rest.'''
@@ -181,14 +178,6 @@ _UNRESOLVED_KIND = {"python": "python", "tools": "tool", "interpreter": "interpr
                     "class": "task class", "package": "package"}
 
 
-def _unresolved(entry: Dict[str, Any]) -> str:
-    wanted = " or ".join(str(one) for one in entry.get("requirement") or []) \
-        or "any version"
-    kind = _UNRESOLVED_KIND.get(entry.get("kind"))
-    return (f"{kind + ' ' if kind else ''}{entry.get('name', '?')} {wanted} "
-            f"(available: {_member(entry.get('available') or [])})")
-
-
 def _member(value) -> str:
     '''One extension member as a person reads it. A list -- `available` is
     one -- is its items, and an empty one says so rather than printing `[]`.'''
@@ -248,7 +237,12 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     # its alternatives and what the server has instead -- one line apiece.
     for entry in problem.get("unresolved") or []:
         if isinstance(entry, dict):
-            lines.append("  " + clean(_unresolved(entry)))
+            wanted = " or ".join(str(one) for one in entry.get("requirement") or []) \
+                or "any version"
+            kind = _UNRESOLVED_KIND.get(entry.get("kind"))
+            lines.append("  " + clean(
+                f"{kind + ' ' if kind else ''}{entry.get('name', '?')} {wanted} "
+                f"(available: {_member(entry.get('available') or [])})"))
 
     for line in blocked_lines(problem.get("blocked_by"), titles):
         lines.append(f"  {line}")
@@ -342,6 +336,7 @@ def clean(text: Optional[str]) -> str:
 
 
 def _slug(problem: Dict[str, Any]) -> Optional[str]:
+    '''The condition a problem names: the last segment of its `type`.'''
     uri = problem.get("type")
     if not isinstance(uri, str):
         return None

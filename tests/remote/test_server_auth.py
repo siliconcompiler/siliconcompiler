@@ -333,6 +333,41 @@ def test_a_proof_cannot_be_replayed(client, key):
     assert slug(replayed) == "invalid-dpop-proof"
 
 
+def test_one_proof_sent_twice_at_once_is_taken_once(server, key):
+    '''🔴 Requests run on threads of their own: two arriving together with one
+    proof must not both read it as unseen. The check is widened here so the
+    two always overlap.'''
+    import threading
+    import time
+
+    issuer = server.config["SC_ISSUER"]
+
+    class Slow(dict):
+        def __contains__(self, item):
+            found = dict.__contains__(self, item)
+            time.sleep(0.2)
+            return found
+
+    issuer._seen = Slow()
+    proof = dpop.sign_proof(key, "GET", f"{BASE}/me")
+    outcomes = []
+
+    def check():
+        try:
+            issuer._check_replay(proof)
+            outcomes.append("taken")
+        except Exception as e:                                   # noqa: BLE001
+            outcomes.append(type(e).__name__)
+
+    both = [threading.Thread(target=check) for _ in range(2)]
+    for thread in both:
+        thread.start()
+    for thread in both:
+        thread.join()
+
+    assert sorted(outcomes) == ["ProblemError", "taken"]
+
+
 def test_insufficient_scope_names_the_scope_needed(client, key):
     '''The client fails rather than refreshing: a refresh re-mints the same
     ceiling, so retrying is a loop.'''
@@ -1003,7 +1038,9 @@ def test_a_session_ends_for_the_registrys_reasons_and_no_other():
     '''`session-ended`'s `reason` is a closed set: every cause the store
     records maps onto one, and each has its own sentence.'''
     from siliconcompiler.remote.server.identity import auth
-    from siliconcompiler.remote.server.errors import SESSION_END_REASONS
+    # Why a session is over, as the registry has it. All four are one client
+    # branch -- re-authenticate, and do NOT refresh.
+    SESSION_END_REASONS = ("revoked", "reused", "deactivated", "expired")
 
     assert set(auth._ENDED) == set(SESSION_END_REASONS)
     assert set(auth._WIRE_REASON.values()) <= set(SESSION_END_REASONS)

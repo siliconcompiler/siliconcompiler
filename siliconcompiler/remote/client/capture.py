@@ -84,12 +84,6 @@ _PLATFORM = {("sys", "platform"), ("os", "name"), ("os", "uname"),
              ("platform", "uname")}
 
 
-def _platform_check(test: ast.AST) -> bool:
-    '''Whether an ``if``'s test asks which platform this is.'''
-    return any(isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
-               and (node.value.id, node.attr) in _PLATFORM for node in ast.walk(test))
-
-
 def _imports(path: str) -> Tuple[Set[str], Set[str]]:
     '''The top-level names one source imports absolutely, and those it
     imports only under a platform check -- in either branch, since which one
@@ -105,7 +99,10 @@ def _imports(path: str) -> Tuple[Set[str], Set[str]]:
     todo = [(tree, False)]
     while todo:
         node, under = todo.pop()
-        if isinstance(node, ast.If) and _platform_check(node.test):
+        # An `if` whose test asks which platform this is.
+        if isinstance(node, ast.If) and any(
+                isinstance(test, ast.Attribute) and isinstance(test.value, ast.Name)
+                and (test.value.id, test.attr) in _PLATFORM for test in ast.walk(node.test)):
             todo.extend((child, True) for child in node.body + node.orelse)
             continue
         found = guarded if under else names
@@ -320,20 +317,16 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
             f"this run's Python reaches {len(entries)} installed distributions, and a "
             f"job lists at most {environment.MAX_ENTRIES}")
 
+    # The `.pth` files a distribution installs beside its packages, where any
+    # Python that starts with them on its path runs them.
     for name, _ in requirements + constraints:
-        for file in _startup_files(installed[name]):
+        for file in sorted(str(entry) for entry in installed[name].files or ()
+                           if len(entry.parts) == 1 and entry.suffix == ".pth"):
             warnings.append(
                 f"{name} installs {file}, a .pth file, which runs in every Python that "
                 "starts with it on its path -- the node's among them")
 
     return Lists(requirements, constraints, wheels, warnings)
-
-
-def _startup_files(dist: metadata.Distribution) -> List[str]:
-    '''The ``.pth`` files a distribution installs beside its packages, where
-    any Python that starts with them on its path runs them.'''
-    return sorted(str(entry) for entry in dist.files or ()
-                  if len(entry.parts) == 1 and entry.suffix == ".pth")
 
 
 def place(files: Dict[str, str], path: str, source: str, what: str) -> None:

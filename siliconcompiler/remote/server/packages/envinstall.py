@@ -55,11 +55,9 @@ class InstallFailed(RuntimeError):
 
 def digest(path) -> str:
     '''A wheel's sha256, which is what an install of it is keyed on.'''
-    found = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            found.update(chunk)
-    return found.hexdigest()
+    from siliconcompiler.utils import file_digest
+
+    return file_digest(path).hexdigest()
 
 
 def recorded(target) -> Dict[str, Any]:

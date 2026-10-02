@@ -68,6 +68,8 @@ def registry(store):
     # A colon before the last slash is a registry port and not a tag.
     ("localhost:5000/sc", "localhost:5000/sc"),
     ("localhost:5000/sc:v2", "localhost:5000/sc"),
+    # A tag beside a digest comes off too.
+    (f"localhost:5000/sc:v2@{'sha256:' + 'd' * 64}", "localhost:5000/sc"),
 ])
 def test_the_tag_comes_off_and_the_port_does_not(ref, expected):
     assert images.pinned_ref(ref, digest("c")) == f"{expected}@{digest('c')}"

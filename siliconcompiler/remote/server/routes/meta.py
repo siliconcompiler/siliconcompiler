@@ -79,16 +79,10 @@ def _advertised(store, config, read):
     software["python"][PRIMARY] = [own_version()]
     if not containers:
         # Where nodes run on this host, the user's Python runs in this one.
-        software[BUCKETS["interpreter"]] = {INTERPRETER: [host_interpreter()]}
+        import sys
+
+        software[BUCKETS["interpreter"]] = {INTERPRETER: ["%d.%d.%d" % sys.version_info[:3]]}
     return software
-
-
-def host_interpreter() -> str:
-    '''This server's own Python, as `X.Y.Z`: what a node running the user's
-    Python runs in where nodes run on this host.'''
-    import sys
-
-    return "%d.%d.%d" % sys.version_info[:3]
 
 
 @blueprint.route("/v1", methods=["GET"])

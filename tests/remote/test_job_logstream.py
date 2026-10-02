@@ -478,6 +478,8 @@ def live(tmp_path):
 
 
 def test_the_client_follows_the_whole_job_to_its_end(live):
+    from siliconcompiler.remote.client.logs import LogTail
+
     client, app, job_id, logs = live
 
     def run():
@@ -495,7 +497,7 @@ def test_the_client_follows_the_whole_job_to_its_end(live):
     writer = threading.Thread(target=run)
     writer.start()
     try:
-        text = client.tail_job(job_id)
+        text = LogTail(client, job_id).follow()
     finally:
         writer.join()
 
@@ -522,8 +524,10 @@ def test_the_client_collects_every_nodes_archive_as_it_goes(live):
 
 
 def test_a_finished_job_is_an_ordinary_end_to_the_client(live):
+    from siliconcompiler.remote.client.logs import LogTail
+
     client, app, job_id, logs = live
     app.config["SC_STORE"].execute(
         "UPDATE jobs SET state = 'completed' WHERE id = ?", (job_id,))
 
-    assert client.tail_job(job_id) == ""
+    assert LogTail(client, job_id).follow() == ""

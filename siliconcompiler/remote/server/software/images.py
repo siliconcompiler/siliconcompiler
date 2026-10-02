@@ -29,8 +29,9 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
 
-from siliconcompiler.remote.environment import IMAGE_SITE
+from siliconcompiler.remote.environment import IMAGE_SITE, canonical
 from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.running.runspec import write_json
 from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
@@ -611,7 +612,20 @@ def plan_for_job(store, requires: Dict[str, Any],
             # infers it: `Task._remote_toolname` says `openroad` for an
             # OpenROAD task, `slang` for one that has no executable at all, and
             # nothing for a builtin. See `runflow.node_tools`.
-            raise _unregistered(tool, node, images)
+            #
+            # 🔴 Distinct from *registered and in no image*, and the detail
+            # says which: one is an operator who curated a tool and has not
+            # built an image holding it, the other is a flow reaching for
+            # something nobody here offers at all. They are fixed in different
+            # places by different people.
+            step, index = node
+            raise ProblemError(
+                "resource-unavailable", resource_kind="tool", resource=tool,
+                detail=f"{step}/{index} runs {tool}, and no image on this server holds "
+                       f"it -- this deployment runs every node in a container, so there "
+                       f"is nowhere for it to run. {len(images)} image(s) are "
+                       "registered, and an operator adds one with "
+                       "'registry add-software' and 'registry add-image'")
 
         # 🔴 The python set PLUS this node's tool, which is exactly what
         # `job_nodes.image_id` has always meant. Resolved per node, because two
@@ -759,7 +773,7 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
             # A derived image runs its base's Python.
             interpreted.add(row["derived_from"])
         for name, version in json.loads(row["installed"] or "[]"):
-            add("python", canonical_python(name), version)
+            add("python", canonical(name), version)
 
     for image in live_images(store):
         if image["id"] not in wanted:
@@ -768,7 +782,7 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
             bucket = BUCKETS.get(entry.kind, "tools")
             if bucket == BUCKETS["interpreter"] and image["id"] not in interpreted:
                 continue
-            add(bucket, canonical_python(entry.name) if bucket == "python"
+            add(bucket, canonical(entry.name) if bucket == "python"
                 else entry.name.lower(), entry.version)
 
     if not any(found.values()):
@@ -778,11 +792,6 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
     return {bucket: {name: sorted(versions) for name, versions in sorted(held.items())}
             for bucket, held in found.items()
             if bucket != BUCKETS["interpreter"] or held}
-
-
-def canonical_python(name: str) -> str:
-    '''A Python distribution name normalised under PEP 503.'''
-    return re.sub(r"[-_.]+", "-", str(name)).lower()
 
 
 def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
@@ -846,7 +855,10 @@ def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
                 # The alternatives exactly as they were asked for; empty is
                 # "any version".
                 "requirement": list(want.wanted or ()),
-                "available": _available(want.name, images)}
+                # Every version of it a live image holds, to offer instead.
+                "available": sorted({entry.version for image in images
+                                     for entry in image["contents"]
+                                     if entry.name == want.name})}
                for want in unresolved]
 
     unversioned = _present_but_unversioned(unresolved, images)
@@ -868,31 +880,6 @@ def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
 
     return ProblemError("software-unavailable", reason=reason,
                         unresolved=entries, detail=detail)
-
-
-def _available(name: str, images) -> List[str]:
-    '''Every version of ``name`` a live image holds, for the refusal to
-    offer instead. ``[]`` when none holds it at all.'''
-    return sorted({entry.version for image in images
-                   for entry in image["contents"] if entry.name == name})
-
-
-def _unregistered(tool: str, node: Tuple[str, str], images) -> ProblemError:
-    '''A node needs a program this deployment has never heard of.
-
-    🔴 Distinct from *registered and in no image*, and the detail says which:
-    one is an operator who curated a tool and has not built an image holding
-    it, the other is a flow reaching for something nobody here offers at all.
-    They are fixed in different places by different people.
-    '''
-    step, index = node
-    return ProblemError(
-        "resource-unavailable", resource_kind="tool", resource=tool,
-        detail=f"{step}/{index} runs {tool}, and no image on this server holds "
-               f"it -- this deployment runs every node in a container, so there "
-               f"is nowhere for it to run. {len(images)} image(s) are "
-               "registered, and an operator adds one with "
-               "'registry add-software' and 'registry add-image'")
 
 
 def _present_but_unversioned(requirements: Sequence[Requirement], images):
@@ -926,7 +913,12 @@ def pinned_ref(registry_ref: str, digest: str) -> str:
     exists to prevent, and it only prevents it if this is the string that is
     used.
     '''
-    return f"{_repository(registry_ref)}@{digest}"
+    from docker.utils import parse_repository_tag
+
+    # Any tag or digest taken off -- twice, since `repo:tag@digest` keeps its
+    # tag on the repository -- and a registry's port, `localhost:5000/sc`, kept.
+    repository = parse_repository_tag(parse_repository_tag(registry_ref)[0])[0]
+    return f"{repository}@{digest}"
 
 
 def bundle_path(root, digest: str):
@@ -1210,11 +1202,7 @@ def job_bundle(shared, target, mounts, drop=()):
                 and os.path.realpath(entry["source"]) in dropped)]
     _add_mounts(spec, mounts)
 
-    target.mkdir(parents=True, exist_ok=True)
-    partial = target / "config.json.part"
-    with open(partial, "w") as f:
-        json.dump(spec, f)
-    os.replace(partial, target / "config.json")
+    write_json(target / "config.json", spec)
     return target
 
 
@@ -1230,7 +1218,6 @@ def read_bundle(shared, target, tree):
     shared bundle with every bind mount taken away, since a mount baked into a
     shared bundle is every job's.
     '''
-    import os
     from pathlib import Path
 
     shared, target = Path(shared), Path(target)
@@ -1251,11 +1238,7 @@ def read_bundle(shared, target, tree):
     if not any(entry.get("type") == "network" for entry in namespaces):
         namespaces.append({"type": "network"})
 
-    target.mkdir(parents=True, exist_ok=True)
-    partial = target / "config.json.part"
-    with open(partial, "w") as f:
-        json.dump(spec, f)
-    os.replace(partial, target / "config.json")
+    write_json(target / "config.json", spec)
     return target
 
 
@@ -1307,10 +1290,10 @@ def drop_built(store, name: str, version: Optional[str], actor: str,
     answerable.'''
     import shutil
 
-    wanted = canonical_python(name)
+    wanted = canonical(name)
 
     def holds(pairs) -> bool:
-        return any(canonical_python(held) == wanted
+        return any(canonical(held) == wanted
                    and (version is None or normalize(found) == normalize(version))
                    for held, found in pairs)
 
@@ -1425,18 +1408,6 @@ def is_staged(bundle) -> bool:
     from pathlib import Path
 
     return (Path(bundle) / "config.json").is_file()
-
-
-def _repository(registry_ref: str) -> str:
-    '''The reference with any tag or digest taken off.'''
-    ref = registry_ref.split("@", 1)[0]
-
-    # A colon before the last slash is a registry port, not a tag:
-    # `localhost:5000/sc` has no tag at all.
-    head, sep, tail = ref.rpartition(":")
-    if sep and "/" not in tail:
-        return head
-    return ref
 
 
 ######################################################################

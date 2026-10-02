@@ -87,7 +87,6 @@ is per row -- so the exclusion is a note for the deployment that does.
 '''
 
 import gzip
-import hashlib
 import logging
 import os
 import shutil
@@ -100,7 +99,8 @@ from typing import Any, Dict, Optional
 
 from siliconcompiler.remote import links
 from siliconcompiler.remote.server.outputs import confine, record
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import now, stamp
+from siliconcompiler.utils import file_digest
 
 __all__ = ["collect", "collect_node", "cause", "wire", "fetchable", "KINDS", "log_text",
            "referenced_elsewhere"]
@@ -116,8 +116,6 @@ logger = logging.getLogger("sc-server")
 # `artifact_kinds` had said all along. `diagnostics` is produced too and is not
 # here: no surface setting hands it over the API (ladder row 3).
 KINDS = ("manifest", "logs", "staging", "reports", "node")
-
-_CHUNK = 1024 * 1024
 
 
 def collect_node(store, storage, config, job, build_root, step, index) -> int:
@@ -544,14 +542,7 @@ def _record(store, job, artifact_id, location, floor, kind, step, index,
 
 
 def _digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    with open(path, "rb") as f:
-        while True:
-            chunk = f.read(_CHUNK)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return f"sha256:{digest.hexdigest()}"
+    return f"sha256:{file_digest(path).hexdigest()}"
 
 
 def _retention(store, kind: str, floor_seconds: int) -> str:
@@ -568,8 +559,7 @@ def _retention(store, kind: str, floor_seconds: int) -> str:
                     (kind,))
     seconds = max(floor_seconds, (row["retention_seconds"] or 0) if row else 0)
 
-    when = datetime.now(timezone.utc) + timedelta(seconds=seconds)
-    return when.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+    return stamp(datetime.now(timezone.utc) + timedelta(seconds=seconds))
 
 
 # A gated `node` archive answers with its worst member's refusal (D120), and

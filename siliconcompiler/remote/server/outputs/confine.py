@@ -125,7 +125,7 @@ def add_tree(tar: tarfile.TarFile, root, top, base, skip: Iterable[str] = (),
     if not _SAFE:
         return _add_tree_by_path(tar, root, top, arcname, skip, packing)
 
-    fd = _open_dir(root, top)
+    fd = _walk_to(*_parts(root, top))
     try:
         if arcname != os.curdir:
             tar.addfile(_dir_info(tar, arcname, os.fstat(fd)))
@@ -225,11 +225,6 @@ def _open_file(root, path) -> int:
     finally:
         os.close(parent)
     return _regular(fd, path)
-
-
-def _open_dir(root, path) -> int:
-    root, parts = _parts(root, path)
-    return _walk_to(root, parts)
 
 
 def _walk_to(root: str, parts) -> int:

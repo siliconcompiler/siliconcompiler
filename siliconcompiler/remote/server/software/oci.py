@@ -24,7 +24,6 @@ import hashlib
 import io
 import json
 import os
-import re
 import tarfile
 import time
 
@@ -53,13 +52,20 @@ _TIMEOUT = 120
 
 
 def split_ref(ref: str) -> Tuple[str, str, str]:
-    '''`registry:5000/sc-tools@sha256:...` as (host, repository, reference).'''
-    host, _, rest = ref.partition("/")
-    if "@" in rest:
-        repository, _, reference = rest.partition("@")
-    else:
-        repository, _, reference = rest.rpartition(":")
-    if not host or not repository or not reference:
+    '''`registry:5000/sc-tools@sha256:...` as (host, repository, reference),
+    read as docker reads a reference: an unqualified name is Docker Hub's.'''
+    from docker.auth import resolve_repository_name
+    from docker.errors import InvalidRepository
+    from docker.utils import parse_repository_tag
+
+    repository, reference = parse_repository_tag(ref)
+    # `repo:tag@digest` keeps its tag on the repository; the digest names it.
+    repository = parse_repository_tag(repository)[0]
+    try:
+        host, repository = resolve_repository_name(repository)
+    except InvalidRepository as e:
+        raise ValueError(f"{ref} is not host/repository@digest: {e}") from None
+    if not reference:
         raise ValueError(f"{ref} is not host/repository@digest")
     return host, repository, reference
 
@@ -173,14 +179,20 @@ def _digest(data: bytes) -> str:
 
 def _scheme(host: str, confs=_REGISTRIES_CONF) -> str:
     '''http where registries.conf marks the registry insecure, as skopeo reads
-    it; https otherwise.'''
+    it; https otherwise. Read as TOML, so a commented-out key, a mirror's own
+    `insecure` and either quoting all read as skopeo reads them.'''
+    from siliconcompiler.utils import tomllib
+
     for conf in [os.environ.get("CONTAINERS_REGISTRIES_CONF"), *confs]:
         if not conf or not os.path.isfile(conf):
             continue
-        text = open(conf).read()
-        for block in re.split(r"\[\[registry\]\]", text)[1:]:
-            location = re.search(r'location\s*=\s*"([^"]+)"', block)
-            insecure = re.search(r"insecure\s*=\s*true", block)
-            if location and insecure and location.group(1) == host:
+        try:
+            with open(conf, "rb") as f:
+                registries = tomllib.load(f).get("registry") or []
+        except (OSError, ValueError):
+            continue
+        for entry in registries:
+            if isinstance(entry, dict) and entry.get("location") == host \
+                    and entry.get("insecure") is True:
                 return "http"
     return "https"

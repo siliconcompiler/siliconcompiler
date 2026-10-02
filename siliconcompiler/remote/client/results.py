@@ -90,10 +90,6 @@ _ARCHIVES = ("node", "outputs", "reports", "final", "logs")
 _NOT_TAKEN = ("input", "diagnostics")
 
 
-def _takeable(items):
-    return [item for item in items or [] if item.get("kind") not in _NOT_TAKEN]
-
-
 # Where the run's own log lands. It belongs to no node, so it goes beside them
 # in the job directory.
 #
@@ -155,7 +151,7 @@ class Results:
         except Exception:                                        # noqa: BLE001
             nodes = set()
         kept = []
-        for item in _takeable(items):
+        for item in [item for item in items or [] if item.get("kind") not in _NOT_TAKEN]:
             step, index = item.get("step"), item.get("index")
             if step is None and index is None:
                 kept.append(item)
@@ -373,7 +369,14 @@ class Results:
 
         self._report_withheld(withheld)
         self._report_oversized(oversized)
-        self._report_absent(items)
+        # 🔴 A kind not in the listing was never indexed here: not an error and
+        # not a retry, but this deployment saying it does not keep those. Only
+        # worth a line for the manifest, the one a user most likely looks for.
+        if not any(item.get("kind") == "manifest" for item in items):
+            self.logger.info(
+                "No manifest was kept for this run, so the metrics and the "
+                "per-node record are not available. This server does not keep "
+                "those; it is not an error and there is nothing to retry.")
         self._replay()
 
         # Counted across the whole run, not just this sweep: most of it
@@ -399,7 +402,7 @@ class Results:
 
         for why, same in grouped.items():
             if len(same) == 1:
-                self.logger.warning(self._explain(same[0]))
+                self.logger.warning(f"{self._name(same[0])}: {self._why(same[0])}")
                 continue
 
             counts: Dict[str, int] = {}
@@ -426,10 +429,6 @@ class Results:
         for item in ask:
             self.client.open_page(f"the approval request for {self._name(item)}",
                                   artifact_id=item["id"])
-
-    def _explain(self, item: Dict[str, Any]) -> str:
-        '''Why this object is not coming, in the words that fit its case.'''
-        return f"{self._name(item)}: {self._why(item)}"
 
     def _why(self, item: Dict[str, Any], many: bool = False) -> str:
         '''The reason alone, for one object or for several with the same one.'''
@@ -488,19 +487,6 @@ class Results:
                             and entry.get("id") and entry.get("title")}
         return self._titles
 
-    def _report_absent(self, items: List[Dict[str, Any]]) -> None:
-        '''A kind that is not in the listing was never indexed here.
-
-        🔴 Not an error and not a retry -- it is this deployment saying it does
-        not keep those. Only worth a line for the manifest, because that is the
-        one a user is most likely to be looking for.
-        '''
-        if not any(item.get("kind") == "manifest" for item in items):
-            self.logger.info(
-                "No manifest was kept for this run, so the metrics and the "
-                "per-node record are not available. This server does not keep "
-                "those; it is not an error and there is nothing to retry.")
-
     ######################################################################
     # Putting it back
     ######################################################################
@@ -546,19 +532,14 @@ class Results:
     def _download(self, job_id: str, item: Dict[str, Any], tmpdir: str) -> str:
         '''The bytes, checked against the listing's `size_bytes` and `digest`
         before anything uses them; a mismatch is discarded.'''
-        import hashlib
+        from siliconcompiler.utils import file_digest
 
         path = os.path.join(tmpdir, "artifact")
         self.client.fetch_artifact(job_id, item["id"], path)
 
-        digest, size = hashlib.sha256(), 0
-        with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                digest.update(chunk)
-                size += len(chunk)
         expected = item.get("digest")
-        if (item.get("size_bytes") is not None and size != item["size_bytes"]) or \
-                (expected and f"sha256:{digest.hexdigest()}" != expected):
+        if (item.get("size_bytes") is not None and os.path.getsize(path) != item["size_bytes"]) \
+                or (expected and f"sha256:{file_digest(path).hexdigest()}" != expected):
             os.remove(path)
             raise RemoteError(f"{self._name(item)} did not match its listed size and "
                               "digest, and was discarded")

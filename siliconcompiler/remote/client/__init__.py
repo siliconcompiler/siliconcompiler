@@ -8,7 +8,6 @@ CLI rename off the critical path.
 
 import logging
 import os
-import re
 import sys
 import time
 
@@ -498,7 +497,13 @@ class Client:
             body = self.transport.login(form)
         except OAuthRefusal as e:
             if e.error == "invalid_grant":
-                raise RemoteError(self._ci_refusal(e.reason)) from None
+                raise RemoteError({
+                    "expired": "the CI credential has expired: mint a new one in the "
+                               "portal and replace the secret",
+                    "revoked": "the CI credential was revoked: ask for a new one",
+                    "deactivated": "the account this CI credential belongs to is "
+                                   "deactivated",
+                }.get(e.reason, "the CI credential was refused")) from None
             raise
 
         left = body.get("session_expires_in")
@@ -510,15 +515,6 @@ class Client:
                 print(f"::warning::{message}", flush=True)
             self.logger.warning(message)
         return body
-
-    @staticmethod
-    def _ci_refusal(reason: Optional[str]) -> str:
-        return {
-            "expired": "the CI credential has expired: mint a new one in the portal "
-                       "and replace the secret",
-            "revoked": "the CI credential was revoked: ask for a new one",
-            "deactivated": "the account this CI credential belongs to is deactivated",
-        }.get(reason, "the CI credential was refused")
 
     def _refused(self, refusal: OAuthRefusal, mode: str) -> RemoteError:
         '''What a failed login tells the person.'''
@@ -807,10 +803,6 @@ class Client:
             if sys.stdin.isatty() and self.may_open():
                 if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
                     self.open_page(f"{title}'s page", terms_id=entry["id"])
-
-    def _in_ci(self) -> bool:
-        return self._mode == GRANT_TOKEN_EXCHANGE or bool(os.environ.get("CI")) \
-            or bool(self.credentials.ci_secret())
 
     def devices(self) -> list:
         '''The machines that can act as me, following ``Link`` to the end.'''
@@ -1198,18 +1190,6 @@ class Client:
 
         return LogTail(self, job_id, step, index).follow(write=write)
 
-    def tail_job(self, job_id: str, write=None) -> str:
-        '''Read every node's log as it is written, merged, to the job's end.
-
-        One connection for the whole job, where the server advertises
-        `logs.stream.job`. Raises the server's refusal otherwise, and a
-        `feature-unsupported` naming `logs.stream.job` is permanent: follow each
-        running node instead.
-        '''
-        from siliconcompiler.remote.client.logs import LogTail
-
-        return LogTail(self, job_id).follow(write=write)
-
     ######################################################################
     # sc-remote -configure
     ######################################################################
@@ -1370,7 +1350,8 @@ class Client:
     def may_open(self) -> bool:
         '''Whether a person is plausibly here to see a page this client opens
         unasked: a terminal, a browser allowed, and no CI.'''
-        return self.open_browser and sys.stdout.isatty() and not self._in_ci()
+        return self.open_browser and sys.stdout.isatty() and \
+            not (self.ci_session or os.environ.get("CI"))
 
     def portal(self, open_browser: bool = True) -> bool:
         '''`sc-remote -portal`: the portal's home, signed in as this machine.
@@ -1429,23 +1410,20 @@ def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
             for name, value in filters.items() if value is not None}
 
 
-# One link-value of a `Link` header (RFC 8288 §3): a target, then its
-# parameters, each `;`-separated, with a value quoted or bare.
-_LINK_VALUE = re.compile(r'<([^>]*)>((?:\s*;\s*[^;,=\s]+(?:\s*=\s*(?:"[^"]*"|[^;,\s]*))?)*)')
-_LINK_PARAM = re.compile(r';\s*([^;,=\s]+)(?:\s*=\s*(?:"([^"]*)"|([^;,\s]*)))?')
-
-
 def _next_link(header: Optional[str], base: str) -> Optional[str]:
-    '''The `rel="next"` target of a `Link` header, resolved against the
-    request it answered, or None on the last page. Any link-value in the
-    header, `rel` quoted or bare, and one of several space-separated
+    '''The `rel="next"` target of a `Link` header (RFC 8288), resolved
+    against the request it answered, or None on the last page: any link-value
+    in the header, `rel` quoted or bare, and one of several space-separated
     relations.'''
     from urllib.parse import urljoin
 
-    for target, params in _LINK_VALUE.findall(header or ""):
-        for name, quoted, bare in _LINK_PARAM.findall(params):
-            if name.lower() == "rel" and "next" in (quoted or bare).lower().split():
-                return urljoin(base, target.strip())
+    from requests.utils import parse_header_links
+
+    for link in parse_header_links(header or ""):
+        # A parameter's name is case-insensitive; requests keeps it as sent.
+        rel = next((value for name, value in link.items() if name.lower() == "rel"), "")
+        if "next" in rel.lower().split():
+            return urljoin(base, link["url"])
     return None
 
 
@@ -1503,16 +1481,18 @@ def _split_address(server: str):
     reported as ignored rather than stored, because they are not the credential
     any more.
     '''
-    from urllib.parse import urlsplit
+    from urllib3.exceptions import LocationParseError
+    from urllib3.util import parse_url
 
     if "://" not in server:
         server = f"https://{server}"
 
-    parts = urlsplit(server)
-    had_credentials = bool(parts.username or parts.password)
+    try:
+        parts = parse_url(server)
+    except LocationParseError as e:
+        raise RemoteError(f"{server} is not a server address: {e}") from None
 
-    host = parts.hostname or ""
-    if parts.path.rstrip("/"):
-        host += parts.path.rstrip("/")
-
-    return f"{parts.scheme}://{host}", parts.port, had_credentials
+    # An IPv6 host keeps its brackets, so the port beside it is never read as
+    # part of it.
+    host = (parts.host or "") + (parts.path or "").rstrip("/")
+    return f"{parts.scheme}://{host}", parts.port, bool(parts.auth)

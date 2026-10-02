@@ -11,7 +11,6 @@ The client signs a proof per request; the server verifies it. Both directions
 are here, and only the direction a process needs is ever called.
 '''
 
-import base64
 import hashlib
 import json
 import time
@@ -46,10 +45,6 @@ class DPoPError(Exception):
     '''
 
 
-def _b64url(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
-
-
 def generate_key():
     '''A new P-256 private key.
 
@@ -80,23 +75,16 @@ def load_key(pem: bytes):
 
 
 def public_jwk(key) -> Dict[str, str]:
-    '''The public half, as a JWK.
+    '''The public half, as a JWK: exactly ``kty``, ``crv``, ``x`` and ``y``,
+    the four RFC 7638 hashes for a thumbprint.
 
-    Built from the curve point rather than through a library's JWK exporter so
-    that the member set is exactly the four RFC 7638 requires for a thumbprint,
-    in the order they are hashed.
+    🔴 From the PUBLIC key, always: PyJWT's exporter adds ``d`` for a private
+    one, and a proof carrying it is refused.
     '''
+    from jwt.algorithms import ECAlgorithm
+
     public = key.public_key() if hasattr(key, "public_key") else key
-    numbers = public.public_numbers()
-
-    size = (public.curve.key_size + 7) // 8
-
-    return {
-        "crv": "P-256",
-        "kty": "EC",
-        "x": _b64url(numbers.x.to_bytes(size, "big")),
-        "y": _b64url(numbers.y.to_bytes(size, "big")),
-    }
+    return ECAlgorithm.to_jwk(public, as_dict=True)
 
 
 def jwk_thumbprint(jwk: Dict[str, Any]) -> str:
@@ -106,6 +94,8 @@ def jwk_thumbprint(jwk: Dict[str, Any]) -> str:
     other spelling produces a different thumbprint, which would bind a session
     to a key the other half cannot recognise.
     '''
+    from jwt.utils import base64url_encode
+
     try:
         required = {"crv": jwk["crv"], "kty": jwk["kty"],
                     "x": jwk["x"], "y": jwk["y"]}
@@ -113,7 +103,7 @@ def jwk_thumbprint(jwk: Dict[str, Any]) -> str:
         raise DPoPError(f"JWK is missing {e.args[0]}") from None
 
     canonical = json.dumps(required, separators=(",", ":"), sort_keys=True)
-    return _b64url(hashlib.sha256(canonical.encode("ascii")).digest())
+    return base64url_encode(hashlib.sha256(canonical.encode("ascii")).digest()).decode()
 
 
 def access_token_hash(access_token: str) -> str:
@@ -122,7 +112,9 @@ def access_token_hash(access_token: str) -> str:
     It is what stops a proof captured on one request being replayed against a
     different token.
     '''
-    return _b64url(hashlib.sha256(access_token.encode("ascii")).digest())
+    from jwt.utils import base64url_encode
+
+    return base64url_encode(hashlib.sha256(access_token.encode("ascii")).digest()).decode()
 
 
 def sign_proof(key, method: str, url: str,
@@ -221,7 +213,10 @@ def verify_proof(proof: str, method: str, url: str,
     try:
         key = jwt.PyJWK.from_dict({**jwk, "alg": ALGORITHM}).key
         claims = jwt.decode(proof, key, algorithms=[ALGORITHM],
-                            options={"verify_exp": False,
+                            # 🔴 The window below is the only `iat` check:
+                            # PyJWT's own refuses any `iat` ahead of this
+                            # clock, so a client a second fast was refused.
+                            options={"verify_exp": False, "verify_iat": False,
                                      "require": ["jti", "htm", "htu", "iat"]})
     except jwt.PyJWTError as e:
         raise DPoPError(f"proof does not verify: {e}") from None

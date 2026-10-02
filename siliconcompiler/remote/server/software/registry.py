@@ -191,10 +191,15 @@ def _cmd_add_software(store, args) -> int:
             f"{args.name}: say -kind python or -kind tool. A tool with a "
             "driver can say -driver instead, which implies it")
 
+    # The deployment's own out-of-tree drivers, from its config.
+    try:
+        allowed = list(Config.load(Path(args.datadir).resolve())["software_drivers"] or [])
+    except Exception:                                            # noqa: BLE001
+        allowed = []
     try:
         images.register_software(store, args.name, args.display or args.name,
                                  _operator(store), kind, driver=args.driver,
-                                 allowed_drivers=_allowed_drivers(args))
+                                 allowed_drivers=allowed)
     except ValueError as e:
         raise SystemExit(str(e))
 
@@ -591,14 +596,6 @@ def _parser() -> argparse.ArgumentParser:
     release.set_defaults(run=_cmd_release)
 
     return parser
-
-
-def _allowed_drivers(args) -> List[str]:
-    '''The deployment's own out-of-tree drivers, from its config.'''
-    try:
-        return list(Config.load(Path(args.datadir).resolve())["software_drivers"] or [])
-    except Exception:                                            # noqa: BLE001
-        return []
 
 
 def main(argv: Optional[List[str]] = None) -> int:

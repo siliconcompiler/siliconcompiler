@@ -40,7 +40,7 @@ import os
 import sys
 import time
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 __all__ = ["SUMMARY_VERSION", "Invalid", "request", "validate", "read", "contain", "main"]
 
@@ -387,9 +387,19 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
 
         summary["upstream"] = [list(node) for node in runflow.upstream_nodes(
             project, {tuple(node) for node in asked.get("skipped") or []})]
-        summary["pdk"] = _pdk(project)
+        # The PDK this run needs; the literal 'none' where the class has no
+        # PDK setting; None where it has one and it is unset. 'none' is a value
+        # rather than a NULL: a flow that needs no PDK has resolved its PDK
+        # requirement, and the column's CHECK on admitted jobs has to be able
+        # to tell that apart from one that has not been resolved yet.
+        summary["pdk"] = (project.get("asic", "pdk") or None) \
+            if project.valid("asic", "pdk") else "none"
         summary["libraries"] = _libraries(project)
-        summary["fpga"] = _fpga(project)
+        # The FPGA device this run targets, or None for a flow with none.
+        try:
+            summary["fpga"] = project.get("fpga", "device") or None
+        except Exception:                                       # noqa: BLE001
+            pass
 
         required = owners.required(project)
         summary["required"] = sorted([list(key) for key in required]) \
@@ -432,27 +442,6 @@ def _unattended(project, nodes):
                     "window for a person -- and nobody is at a remote run. A screenshot "
                     "task renders the same view without one")
     return None
-
-
-def _pdk(project) -> Optional[str]:
-    '''The PDK this run needs; the literal 'none' where the class has no PDK
-    setting; None where it has one and it is unset.
-
-    'none' is a value rather than a NULL: a flow that needs no PDK has resolved
-    its PDK requirement, and the column's CHECK on admitted jobs has to be able
-    to tell that apart from one that has not been resolved yet.
-    '''
-    if not project.valid("asic", "pdk"):
-        return "none"
-    return project.get("asic", "pdk") or None
-
-
-def _fpga(project) -> Optional[str]:
-    '''The FPGA device this run targets, or None for a flow with none.'''
-    try:
-        return project.get("fpga", "device") or None
-    except Exception:                                           # noqa: BLE001
-        return None
 
 
 def _libraries(project) -> List[str]:

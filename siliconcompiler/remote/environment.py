@@ -34,6 +34,11 @@ import zipfile
 
 from typing import Any, Iterable, NamedTuple, Optional, Sequence, Tuple
 
+from packaging.utils import InvalidWheelFilename, parse_wheel_filename
+# A distribution name as PEP 503 compares it.
+from packaging.utils import canonicalize_name as canonical
+from packaging.version import InvalidVersion, Version
+
 __all__ = ["MAX_BYTES", "MAX_ENTRIES", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
            "PackagesError", "WheelError", "Pin", "Packages", "Wheel", "canonical",
            "parse_entry", "parse", "render", "wheels_path", "site_path", "wheel_name",
@@ -65,18 +70,6 @@ IMAGE_SITE = "/opt/sc/python-env/site"
 # A PEP 508 name, which is what normalises under PEP 503.
 _NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
 _ENTRY = re.compile(rf"^(?P<name>{_NAME})==(?P<version>\S+)$")
-
-# A PEP 440 version in its canonical form: what `packaging` prints it as.
-_VERSION = re.compile(
-    r"^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*"
-    r"((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?"
-    r"(\+[a-z0-9]+(\.[a-z0-9]+)*)?$")
-
-# A wheel's name (PEP 427): distribution, version, optional build tag, then the
-# python, abi and platform tags.
-_WHEEL = re.compile(r"^(?P<name>[A-Za-z0-9_.]+)-(?P<version>[A-Za-z0-9_.!+]+)"
-                    r"(-(?P<build>\d[A-Za-z0-9_.]*))?-(?P<python>[A-Za-z0-9_.]+)"
-                    r"-(?P<abi>[A-Za-z0-9_.]+)-(?P<platform>[A-Za-z0-9_.]+)\.whl$")
 
 # What of a wheel is read to check it: its two metadata files, each bounded.
 _METADATA_LIMIT = 1024 * 1024
@@ -136,11 +129,6 @@ class Wheel(NamedTuple):
     expanded: int = 0           # its members' bytes, uncompressed
 
 
-def canonical(name: str) -> str:
-    '''A distribution name as PEP 503 compares it.'''
-    return re.sub(r"[-_.]+", "-", name).lower()
-
-
 def parse_entry(text: Any) -> Pin:
     '''One entry, held to the grammar. Raises PackagesError naming it.'''
     if not isinstance(text, str):
@@ -150,7 +138,12 @@ def parse_entry(text: Any) -> Pin:
         raise PackagesError(
             "not exactly name==version: extras, a marker, a range, a URL, a path, "
             "an option and whitespace are all refused", text)
-    if not _VERSION.match(found["version"]):
+    # A PEP 440 version in its canonical form: what `packaging` prints it as.
+    try:
+        canonical_form = str(Version(found["version"])) == found["version"]
+    except InvalidVersion:
+        canonical_form = False
+    if not canonical_form:
         raise PackagesError(f"{found['version']} is not a PEP 440 version in its "
                             "canonical form", text)
     return Pin(found["name"], found["version"])
@@ -218,10 +211,12 @@ def site_path() -> str:
 
 
 def wheel_name(filename: str) -> Optional[str]:
-    '''The canonical distribution a wheel's file name says it is, or None for
-    a name that is not a wheel's.'''
-    found = _WHEEL.match(os.path.basename(filename))
-    return canonical(found["name"]) if found else None
+    '''The canonical distribution a wheel's file name says it is (PEP 427), or
+    None for a name that is not a wheel's.'''
+    try:
+        return parse_wheel_filename(os.path.basename(filename))[0]
+    except (InvalidWheelFilename, InvalidVersion):
+        return None
 
 
 def check_wheel(path) -> Wheel:
@@ -241,22 +236,18 @@ def check_wheel(path) -> Wheel:
 
     Reads the zip's directory and its two metadata files, and runs nothing.
     '''
-    from packaging.version import InvalidVersion, Version
-
     filename = os.path.basename(str(path))
-    found = _WHEEL.match(filename)
-    if not found:
-        raise WheelError(f"{filename} is not named as a wheel is, "
-                         "<name>-<version>-<python>-<abi>-<platform>.whl")
-    if set(found["abi"].split(".")) != {"none"} or \
-            set(found["platform"].split(".")) != {"any"}:
-        raise WheelError(f"{filename} is tagged {found['abi']}-{found['platform']}, and "
-                         "only a pure wheel, none-any, is taken")
-    name = canonical(found["name"])
     try:
-        version = Version(found["version"].replace("_", "-"))
-    except InvalidVersion:
-        raise WheelError(f"{filename} does not carry a PEP 440 version") from None
+        name, version, _, tags = parse_wheel_filename(filename)
+    except (InvalidWheelFilename, InvalidVersion):
+        raise WheelError(f"{filename} is not named as a wheel is, "
+                         "<name>-<version>-<python>-<abi>-<platform>.whl, with a "
+                         "PEP 440 version") from None
+    if any(tag.abi != "none" or tag.platform != "any" for tag in tags):
+        tagged = "-".join(".".join(sorted({getattr(tag, part) for tag in tags}))
+                          for part in ("abi", "platform"))
+        raise WheelError(f"{filename} is tagged {tagged}, and "
+                         "only a pure wheel, none-any, is taken")
 
     try:
         archive = zipfile.ZipFile(str(path))

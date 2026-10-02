@@ -22,20 +22,20 @@ request, reported as the edge.
 '''
 
 import email.utils
-import json
 import logging
 import time
 
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 import requests
 import requests.auth
 
+from siliconcompiler import __version__
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, clean)
+    RemoteError, ServerProblem, SessionEnded, _slug, clean)
 
 __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
            "OAuthRefusal", "LoginRequired", "USER_AGENT"]
@@ -55,18 +55,10 @@ MAX_WAITS = 10
 
 TIMEOUT_SECONDS = 30
 
-# How far a proof's `iat` may be from the server's clock (surface §6).
-PROOF_WINDOW_SECONDS = 60
-
-
-def _user_agent() -> str:
-    from siliconcompiler import __version__
-    return f"siliconcompiler/{__version__}"
-
 
 # Stable and product-named, never randomised and never the library's default:
 # an edge in front of the API allowlists it rather than challenging it.
-USER_AGENT = _user_agent()
+USER_AGENT = f"siliconcompiler/{__version__}"
 
 
 class _NoEnvironmentCredential(requests.auth.AuthBase):
@@ -140,21 +132,23 @@ def normalize_server(address: str, port: Optional[int] = None) -> str:
     reached over plaintext because of its port number is every local
     deployment of the client this replaces.
     '''
+    from urllib3.exceptions import LocationParseError
+    from urllib3.util import Url, parse_url
+
     address = address.strip()
     if "://" not in address:
         address = f"https://{address}"
 
-    parts = urlsplit(address)
-    netloc = parts.netloc
+    try:
+        parts = parse_url(address)
+    except LocationParseError as e:
+        raise ValueError(f"{address} is not a server address: {e}") from None
 
-    if port is not None and ":" not in parts.netloc:
-        netloc = f"{parts.netloc}:{port}"
-
-    path = parts.path.rstrip("/")
-    if not path:
-        path = "/v1"
-
-    return urlunsplit((parts.scheme, netloc, path, "", ""))
+    # A port in the address wins over one given beside it; an IPv6 host keeps
+    # its brackets.
+    return Url(scheme=parts.scheme, auth=parts.auth, host=parts.host,
+               port=parts.port if parts.port is not None else port,
+               path=(parts.path or "").rstrip("/") or "/v1").url
 
 
 def origin_of(url: str) -> str:
@@ -252,12 +246,6 @@ class Transport:
             return {}
         return self._credentials.headers()
 
-    def _proof(self, method: str, url: str, token: Optional[str]) -> str:
-        return dpop.sign_proof(
-            self._key, method, url, access_token=token,
-            nonce=self._nonces.get(origin_of(url)),
-            iat=int(time.time() + self._clock_offset))
-
     ######################################################################
     # The request
     ######################################################################
@@ -300,7 +288,10 @@ class Transport:
 
         # A fresh proof per request, retries included: `htm` and `htu` bind it
         # to this method and URI, and the server remembers its `jti`.
-        sent["DPoP"] = self._proof(method, url, token)
+        sent["DPoP"] = dpop.sign_proof(
+            self._key, method, url, access_token=token,
+            nonce=self._nonces.get(origin_of(url)),
+            iat=int(time.time() + self._clock_offset))
 
         again = dict(method=method, path=path, authenticated=authenticated, data=data,
                      json_body=json_body, params=params, headers=headers,
@@ -345,8 +336,8 @@ class Transport:
         # An HTML page in place of an answer is an access layer's refusal. A
         # gateway's 5xx is HTML too, but it says the server is unwell, not that
         # the request was refused, and it is handled as the failure it is.
-        if on_v1 and _is_html(response) and response.status_code < 500 \
-                and response.status_code != 204:
+        if on_v1 and response.status_code < 500 and response.status_code != 204 and \
+                (response.headers.get("Content-Type") or "").lower().startswith("text/html"):
             raise EdgeRefused(self.api_origin)
 
         if response.status_code < 400:
@@ -366,7 +357,8 @@ class Transport:
         # 🔴 At the two OAuth endpoints the Content-Type decides the shape:
         # problem+json is a transport-level refusal, handled by status and type
         # below and never read for `error`.
-        if again["oauth"] and not _is_problem(response):
+        if again["oauth"] and not (response.headers.get("Content-Type") or "").lower() \
+                .startswith("application/problem+json"):
             return self._handle_oauth(response, again, attempt=attempt, waits=waits)
 
         problem = _problem_body(response)
@@ -408,7 +400,9 @@ class Transport:
         if wait is not None and waits < MAX_WAITS and (
                 slug == "rate-limited"
                 or (slug == "job-state-conflict" and problem.get("reason") == "in_progress")
-                or (status >= 500 and _replayable(again))):
+                # A retry that cannot do something twice: a read, or a keyed write.
+                or (status >= 500 and (again["method"] in ("GET", "HEAD")
+                                       or "Idempotency-Key" in (again["headers"] or {})))):
             time.sleep(wait)
             return self.request(**again, _attempt=attempt, _waits=waits + 1)
         # A keyed create or submit replays, so a 5xx is retried with the same
@@ -473,7 +467,7 @@ class Transport:
         '''A proof refused for its time: take the server's clock from `Date`,
         correct later proofs by the offset, and say so -- once.'''
         skew = _skew(response)
-        if skew is None or abs(skew) <= PROOF_WINDOW_SECONDS or self._clock_offset:
+        if skew is None or abs(skew) <= dpop.PROOF_LIFETIME_SECONDS or self._clock_offset:
             return False
         self._clock_offset = -skew
         self.warn(
@@ -485,11 +479,11 @@ class Transport:
     @staticmethod
     def _clock_advice(response) -> Optional[str]:
         skew = _skew(response)
-        if skew is None or abs(skew) <= PROOF_WINDOW_SECONDS:
+        if skew is None or abs(skew) <= dpop.PROOF_LIFETIME_SECONDS:
             return None
         return (f"This machine's clock is {_duration(abs(skew))} "
                 f"{'ahead of' if skew > 0 else 'behind'} the server's, and a proof is "
-                f"accepted only within {PROOF_WINDOW_SECONDS} seconds of it. Correct the "
+                f"accepted only within {dpop.PROOF_LIFETIME_SECONDS} seconds of it. Correct the "
                 "clock -- turn on time synchronization -- and try again.")
 
     def _notice_deprecation(self, response) -> None:
@@ -678,12 +672,6 @@ class Transport:
             self._refreshing = False
 
 
-def _replayable(again) -> bool:
-    '''Whether a retry cannot do something twice: a read, or a keyed write.'''
-    return again["method"] in ("GET", "HEAD") or \
-        "Idempotency-Key" in (again["headers"] or {})
-
-
 def _retry_after(response) -> Optional[float]:
     '''`Retry-After` in seconds, a date or a number, never below 1.'''
     value = (response.headers.get("Retry-After") or "").strip()
@@ -722,15 +710,6 @@ def _duration(seconds: float) -> str:
     if seconds < 7200:
         return f"{seconds // 60} minutes"
     return f"{seconds // 3600} hours"
-
-
-def _is_html(response) -> bool:
-    return (response.headers.get("Content-Type") or "").lower().startswith("text/html")
-
-
-def _is_problem(response) -> bool:
-    return (response.headers.get("Content-Type") or "").lower().startswith(
-        "application/problem+json")
 
 
 def _why(exc: Exception) -> str:
@@ -795,14 +774,3 @@ def _first_line(text: str, limit: int = 300) -> str:
         text = re.sub(r"<[^>]+>", " ", text)
     collapsed = " ".join(text.split())
     return collapsed[:limit] + ("..." if len(collapsed) > limit else "")
-
-
-def _slug(problem: Dict[str, Any]) -> Optional[str]:
-    uri = problem.get("type")
-    if not isinstance(uri, str):
-        return None
-    return uri.rstrip("/").rsplit("/", 1)[-1]
-
-
-def dumps(value: Any) -> str:
-    return json.dumps(value, separators=(",", ":"))

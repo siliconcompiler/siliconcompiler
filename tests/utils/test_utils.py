@@ -1373,3 +1373,19 @@ def test_extract_safely_strips_setuid_without_the_data_filter(tmp_path, monkeypa
     with tarfile.open(archive) as tar:
         utils.extract_safely(tar, str(tmp_path / "out"))
     assert os.stat(tmp_path / "out" / "tool").st_mode & 0o7777 == 0o755
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+def test_file_digest_matches_hashlib_on_every_python(monkeypatch, stdlib):
+    '''`hashlib.file_digest` where the interpreter has it (3.11+), and the
+    same answer from the chunked read before it.'''
+    import hashlib
+
+    data = bytes(range(256)) * 9000          # more than one chunk
+    with open("data.bin", "wb") as f:
+        f.write(data)
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    assert utils.file_digest("data.bin").hexdigest() == hashlib.sha256(data).hexdigest()
+    assert utils.file_digest("data.bin", "md5").hexdigest() == hashlib.md5(data).hexdigest()
