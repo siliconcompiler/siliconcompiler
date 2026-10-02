@@ -27,7 +27,8 @@ SiliconCompiler concepts
     dataroot
        A named data source that file paths are resolved against.
        A dataroot can be a local directory, a git repository, or a downloadable
-       archive, and is registered with ``set_dataroot(name, path, tag=None)``.
+       archive -- see :ref:`Data Sources <builtin_resolvers>` for every kind -- and
+       is registered with ``set_dataroot(name, path, tag=None)``.
        The optional ``tag`` is a version identifier for remote sources -- a git
        commit, branch, or tag.
        Storing files relative to a dataroot is what lets a :term:`design` be

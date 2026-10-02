@@ -3,6 +3,12 @@ This module provides a generic HTTP/HTTPS resolver for SiliconCompiler packages.
 
 It defines the `HTTPResolver` class, which is responsible for downloading
 and unpacking archives (TAR or ZIP) from a given URL.
+
+`HTTPResolver` handles no particular host itself. One that needs more -- a
+header, its own tokens, or an archive unwrapped -- gets a subclass overriding
+`HTTPResolver._get_headers`, `HTTPResolver._token_prefixes` and
+`HTTPResolver._archive_root`, which `HTTPResolver.subresolver` hands that host's
+URLs to.
 """
 import requests
 import shutil
@@ -157,16 +163,33 @@ def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
 
 class HTTPResolver(RemoteResolver):
     """
-    A resolver for fetching and unpacking data from HTTP/HTTPS URLs.
+    An archive downloaded over HTTP or HTTPS.
 
-    This class downloads a file from a URL, determines from its contents whether
-    it is a tarball (gzip, bzip2, xz or Zstandard compressed) or a zip file, and
-    extracts it into the local cache.
+    Format:
+        ``https://<host>/<path>`` or ``http://<host>/<path>``
 
-    It handles no particular host itself. One that needs more -- a header, its
-    own tokens, or an archive unwrapped -- gets a subclass overriding
-    :meth:`_get_headers`, :meth:`_token_prefixes` and :meth:`_archive_root`,
-    which :meth:`subresolver` hands that host's URLs to.
+        The download is unpacked into the cache. Its format is read from its
+        contents rather than its name: a tar compressed with gzip, bzip2, xz or
+        Zstandard, or a zip. A URL on a GitHub host is handled as GitHub's
+        archives are, see :ref:`resolver-githubarchive`.
+
+    Tag:
+        Appended to a URL that ends in ``/`` as ``<tag>.tar.gz``:
+        ``https://example.com/ip/`` with the tag ``v1.0`` downloads
+        ``https://example.com/ip/v1.0.tar.gz``. A URL naming its file outright
+        uses the tag only to key its cache entry.
+
+    Authentication:
+        A username and password in the URL are sent as Basic auth, and a
+        username alone as ``Authorization: Bearer <username>``. Otherwise the
+        token is read from ``HTTPS_TOKEN``, then ``HTTP_TOKEN``, and sent as a
+        Bearer token. A plain ``http://`` URL is never sent a credential, since
+        it would cross the network in cleartext.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("ip", "https://example.com/ip/", tag="v1.0")
     """
 
     @classmethod

@@ -32,9 +32,26 @@ def get_resolver() -> Dict[str, Type["SCPResolver"]]:
 
 class SCPResolver(RemoteResolver):
     """
-    A resolver for fetching and unpacking data from SCP URLs.
+    A directory copied from another machine with ``scp``.
 
-    This class copies a directory from a remote server using SCP
+    Format:
+        ``scp://[<user>@]<host>[:<port>]/<path>``
+
+        ``<path>`` is absolute on the remote machine, and the directory there is
+        copied recursively into the cache. ``scp`` has to be on ``PATH``.
+
+    Tag:
+        Required, but only keys the cache entry. Once an entry exists it is
+        reused, so a new tag is what copies the directory again.
+
+    Authentication:
+        Whatever ``scp`` itself uses: this machine's SSH keys and agent, and
+        ``~/.ssh/config``. Nothing is read from the environment.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("pdk", "scp://user@fileserver/data/pdk", tag="v1.0")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):

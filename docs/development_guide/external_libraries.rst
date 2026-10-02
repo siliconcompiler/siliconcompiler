@@ -129,13 +129,15 @@ Points worth calling out:
   the exact release you develop against using an ``==`` constraint; the current
   release is |release|.
 
+.. _ext_lib_entry_points:
+
 .. note::
 
    More advanced packages can also register SiliconCompiler *entry points* to plug into
-   documentation source links, ``show``/``open`` tasks, data source resolvers, and
-   tool-install helpers, plus ``[project.scripts]`` for CLI apps. SiliconCompiler
-   registers its own built-ins in code before consulting these groups, so an entry point
-   you provide takes precedence wherever the two overlap.
+   documentation source links, ``show``/``open`` tasks, :ref:`data source resolvers
+   <builtin_resolvers>`, and tool-install helpers, plus ``[project.scripts]`` for CLI
+   apps. SiliconCompiler registers its own built-ins in code before consulting these
+   groups, so an entry point you provide takes precedence wherever the two overlap.
 
    .. code-block:: toml
 
@@ -198,7 +200,7 @@ from clashing when several libraries are combined into one project.
    ``mylib`` package, and ``python://mylib/libs/mymacro`` to a directory inside
    it. To additionally fetch large data files that are *not*
    shipped in the wheel, give the dataroot a git fallback keyed to the package
-   version with ``PythonPathResolver.set_dataroot``.
+   version with ``PythonPathResolver.set_dataroot`` (see :ref:`resolver-python`).
 
 .. _ext_lib_dataroots:
 

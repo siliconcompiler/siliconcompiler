@@ -54,11 +54,11 @@ search scorer; `_ext/` holds the Sphinx extensions that live with the docs rathe
 than with the package.
 
 Most of the site is generated rather than written. The schema reference, the
-pre-defined tool/flow/PDK/library/target catalogues, the CLI app reference and
-the tool install matrix are all built from the source tree at build time, by
-`siliconcompiler.schema.docs.schemagen` plus the extensions in `_ext/`. Editing
-those pages means editing the generator or the docstrings behind them, not the
-`.rst`.
+pre-defined tool/flow/PDK/library/target catalogues, the data source (resolver)
+catalogue, the CLI app reference and the tool install matrix are all built from
+the source tree at build time, by `siliconcompiler.schema.docs.schemagen` plus
+the extensions in `_ext/`. Editing those pages means editing the generator or
+the docstrings behind them, not the `.rst`.
 
 `user_guide/tutorials/examples` is a symlink to the top-level `examples/`
 directory, so tutorials can pull real, tested code in with `literalinclude`

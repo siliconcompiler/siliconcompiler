@@ -54,14 +54,40 @@ def get_resolver() -> Dict[str, Type["GithubResolver"]]:
 
 class GithubArchiveResolver(HTTPResolver):
     """
-    A resolver for archives downloaded from GitHub's own hosts over HTTP(S).
+    GitHub archives over HTTPS.
 
-    `HTTPResolver` hands it every ``http(s)://`` URL on a GitHub host, so a plain
-    ``https://github.com/<owner>/<repo>/archive/...`` dataroot gets what GitHub
-    needs without being written as ``github://``: the source archive is
-    unwrapped from its ``<repo>-<ref>`` directory, a release asset is asked for
-    as a file rather than as its JSON description, and -- on a host GitHub owns
-    -- GitHub's tokens are sent.
+    Format:
+        Any ``https://`` or ``http://`` URL whose host has a ``github`` label,
+        GitHub Enterprise included, such as
+        ``https://github.com/<owner>/<repo>/archive/refs/tags/<tag>.tar.gz``.
+        Nothing in the URL marks it: the ``https://`` resolver hands these URLs
+        here, so a plain GitHub URL gets what GitHub needs without being written
+        as ``github://``.
+
+        A source archive is unwrapped from the ``<repo>-<version>`` directory
+        GitHub packs it in, so the dataroot is the repository's top level. A
+        release asset named by its API URL is asked for as the file rather than
+        as its JSON description.
+
+    Tag:
+        As for ``https://``: appended to a URL that ends in ``/`` as
+        ``<tag>.tar.gz``, and otherwise used only to key the cache entry.
+
+    Authentication:
+        On ``github.com`` and its subdomains the token is read from
+        ``GITHUB_TOKEN``, ``GH_TOKEN`` or ``GIT_TOKEN``, then from the
+        ``https://`` variables. A GitHub Enterprise host is not GitHub's, so it
+        is offered only the ``https://`` variables, never the ambient
+        ``GITHUB_TOKEN``. Either way the token is sent as
+        ``Authorization: Bearer <token>``, and a credential in the URL is used
+        as it is for ``https://``.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot(
+                "ip", "https://github.com/org/ip/archive/refs/tags/v1.0.tar.gz",
+                tag="v1.0")
     """
 
     @classmethod
@@ -133,19 +159,34 @@ class GithubArchiveResolver(HTTPResolver):
 
 class GithubResolver(GithubArchiveResolver):
     """
-    A resolver for fetching release assets from GitHub repositories.
+    A release asset or source archive from a GitHub repository.
 
-    This class extends `GithubArchiveResolver` to interact with the GitHub API
-    for locating and downloading release assets. It supports both public
-    and private repositories. A source archive (`<release>.tar.gz` or
-    `<release>.zip`) is unwrapped as any GitHub source archive is; a release asset
-    is left as its author packed it.
+    Format:
+        ``github://<owner>/<repository>/<release>/<asset>``
 
-    The expected source URI format is:
-    `github://<owner>/<repository>/<release_tag>/<asset_name>`
+        ``<asset>`` is an archive attached to the release, found through the
+        GitHub API and unpacked as its author packed it. An asset named
+        ``<release>.tar.gz`` or ``<release>.zip`` is instead the repository's
+        source at that tag, unwrapped from the directory GitHub packs it in. An
+        empty release (``.../<repository>//<asset>``) means the latest one.
 
-    For private repositories, the scheme should be `github+private://` and
-    a GitHub token must be provided via environment variables.
+    Tag:
+        Required, but it does not choose what is fetched: the release in the URL
+        does. It keys the cache entry along with the URL, so with an empty
+        release in the URL, changing the tag is what fetches the latest one
+        again.
+
+    Authentication:
+        The token is read from ``GITHUB_TOKEN``, ``GH_TOKEN`` or ``GIT_TOKEN``,
+        falling back to ``gh auth token`` when the GitHub CLI is installed and
+        logged in, and is sent as ``Authorization: token <token>``. The
+        repository is looked up anonymously first, and with the token only if
+        that finds nothing; ``github+private://`` skips the anonymous attempt.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("ip", "github://org/ip/v1.0/ip-v1.0.tar.gz", tag="v1.0")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
