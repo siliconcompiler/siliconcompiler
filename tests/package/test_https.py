@@ -308,6 +308,94 @@ def test_http_resolver_resolve_remote_with_auth_token(monkeypatch):
         assert mock_requests.get.called
 
 
+@pytest.fixture
+def no_http_tokens(monkeypatch):
+    """Clears every variable a resolver named ``test`` could take a token from."""
+    for prefix in ("GITHUB", "GH", "GIT", "HTTPS", "HTTP"):
+        monkeypatch.delenv(f"{prefix}_TOKEN", raising=False)
+        monkeypatch.delenv(f"{prefix}_TEST_TOKEN", raising=False)
+
+
+def _sent_authorization(source):
+    """The ``Authorization`` header a download of ``source`` sends, and the
+    warnings it logs."""
+    resolver = HTTPResolver("test", Project("testproj"), source, "v1.0")
+    with patch("siliconcompiler.package.https.requests.get") as get, \
+         patch.object(resolver.logger, "warning") as warning:
+        get.return_value.ok = False
+        get.return_value.status_code = 404
+        with pytest.raises(DataSourceUnavailableError):
+            resolver.resolve_remote()
+    return get.call_args.kwargs["headers"].get("Authorization"), \
+        [call.args[0] for call in warning.call_args_list]
+
+
+@pytest.mark.parametrize("source", [
+    "https://evil.example/github/x.tar.gz",
+    "http://github.attacker.example/x.tar.gz",
+    "https://github.attacker.example/x.tar.gz",
+    "https://files.example.com/x.tar.gz?from=github",
+    "https://notgithub.com/x.tar.gz",
+    "https://github.mycorp.com/o/r/archive/refs/tags/v1.0.tar.gz",
+])
+def test_http_resolver_github_tokens_not_sent_to_lookalikes(no_http_tokens, monkeypatch, source):
+    """A URL that mentions GitHub without GitHub owning the host gets none of the
+    ambient GitHub tokens."""
+    for var in ("GITHUB_TOKEN", "GH_TOKEN", "GIT_TOKEN"):
+        monkeypatch.setenv(var, "SECRET_GH")
+
+    authorization, _ = _sent_authorization(source)
+    assert authorization is None
+
+
+@pytest.mark.parametrize("var", ("GITHUB_TOKEN", "GH_TOKEN", "GIT_TOKEN"))
+@pytest.mark.parametrize("source", [
+    "https://github.com/o/r/archive/refs/tags/v1.0.tar.gz",
+    "https://api.github.com/repos/o/r/releases/assets/1",
+    "https://codeload.github.com/o/r/tar.gz/refs/tags/v1.0",
+])
+def test_http_resolver_github_tokens_sent_to_github(no_http_tokens, monkeypatch, source, var):
+    monkeypatch.setenv(var, "SECRET_GH")
+
+    authorization, _ = _sent_authorization(source)
+    assert authorization == "token SECRET_GH"
+
+
+@pytest.mark.parametrize("var", ("HTTPS_TOKEN", "HTTP_TOKEN"))
+def test_http_resolver_generic_token_sent_to_any_https_host(no_http_tokens, monkeypatch, var):
+    monkeypatch.setenv(var, "SECRET")
+
+    authorization, warnings = _sent_authorization("https://files.example.com/x.tar.gz")
+    assert authorization == "token SECRET"
+    assert warnings == []
+
+
+@pytest.mark.parametrize("source,var", [
+    ("http://files.example.com/x.tar.gz", "HTTPS_TOKEN"),
+    ("http://files.example.com/x.tar.gz", "HTTP_TOKEN"),
+    ("http+private://files.example.com/x.tar.gz", "HTTPS_TOKEN"),
+    ("http://github.com/o/r/archive/refs/tags/v1.0.tar.gz", "GITHUB_TOKEN"),
+    ("http://SECRET@files.example.com/x.tar.gz", None),
+])
+def test_http_resolver_no_token_over_plain_http(no_http_tokens, monkeypatch, source, var):
+    """A token over plain http:// would cross the network in cleartext, so it is
+    withheld, and the warning says why without repeating it."""
+    if var:
+        monkeypatch.setenv(var, "SECRET")
+
+    authorization, warnings = _sent_authorization(source)
+    assert authorization is None
+    assert len(warnings) == 1
+    assert "plain http://" in warnings[0]
+    assert "SECRET" not in warnings[0]
+
+
+def test_http_resolver_plain_http_without_token_is_quiet(no_http_tokens):
+    authorization, warnings = _sent_authorization("http://files.example.com/x.tar.gz")
+    assert authorization is None
+    assert warnings == []
+
+
 def test_http_resolver_resolve_remote_github_header():
     """Test resolve_remote sets GitHub-specific Accept header."""
     project = Project("testproj")

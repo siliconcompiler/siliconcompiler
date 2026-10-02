@@ -201,9 +201,9 @@ class HTTPResolver(RemoteResolver):
         """
         Constructs the HTTP headers for the download request.
 
-        If a GIT_TOKEN is available in the environment variables, it adds an
-        Authorization header for authentication. This is particularly useful
-        for accessing private repositories or authenticated endpoints.
+        The base adds no credential: :meth:`resolve_remote` looks one up, but
+        only if the headers returned here carry no ``Authorization`` of their
+        own, so a subclass that sets one decides the credential itself.
 
         Returns:
             dict: A dictionary of HTTP headers to include in the download request.
@@ -224,6 +224,13 @@ class HTTPResolver(RemoteResolver):
         special logic to handle the extra top-level directory that GitHub often
         includes in its source archives.
 
+        The credential is a username in the URL, else the first of
+        ``HTTPS_TOKEN`` and ``HTTP_TOKEN`` found in the environment. A host
+        GitHub owns (:meth:`_saas_forge`) looks for ``GITHUB_TOKEN``,
+        ``GH_TOKEN`` and ``GIT_TOKEN`` before those; a URL that merely mentions
+        GitHub gets none of the three. A plain ``http://`` download sends no
+        credential at all, since it would cross the network in cleartext.
+
         Raises:
             FileNotFoundError: If the download fails. One of the
                 :data:`_TERMINAL_STATUSES` raises the
@@ -235,6 +242,7 @@ class HTTPResolver(RemoteResolver):
                 the bindings to unpack, which no retry can change.
         """
         data_url = self.download_url
+        url = urlparse(data_url)
 
         headers = self._get_headers()
         if "Authorization" not in headers:
@@ -242,15 +250,21 @@ class HTTPResolver(RemoteResolver):
             if not auth_token:
                 try:
                     srvs = []
-                    if "github" in data_url:
-                        srvs.append("GITHUB")
-                        srvs.append("GH")
-                        srvs.append("GIT")
+                    # Decided by who owns the host, not by the URL's text: GitHub's
+                    # variables are set ambiently -- GITHUB_TOKEN in every Actions
+                    # job -- so a URL that only mentions GitHub must not get them.
+                    if self._saas_forge(url.hostname) == "github":
+                        srvs.extend(["GITHUB", "GH", "GIT"])
                     srvs.extend(["HTTPS", "HTTP"])
                     auth_token = self._get_auth_token(srvs)
                 except ValueError:
                     pass
-            if auth_token:
+            if auth_token and url.scheme == "http":
+                self.logger.warning(
+                    f'Not sending an authorization token for {self.display_name}: '
+                    f'{Resolver._masked_uri(data_url)} is plain http://, which would '
+                    'send it in cleartext. Use https:// to authenticate.')
+            elif auth_token:
                 headers['Authorization'] = f'token {auth_token}'
 
         self.logger.info(f'Downloading {self.display_name} data from '

@@ -945,6 +945,37 @@ class RemoteResolver(Resolver):
             new_mode = current_mode | stat.S_IWUSR
             os.chmod(path, new_mode)
 
+    @staticmethod
+    def _saas_forge(hostname: Optional[str]) -> Optional[str]:
+        """
+        Identifies a forge's own hosted service, by exact domain.
+
+        This is the ownership check that decides whether a forge's own variables
+        -- ``GITHUB_TOKEN`` and the rest, set ambiently on CI runners and
+        developer machines -- may be sent to a host. It is deliberately stricter
+        than :meth:`~siliconcompiler.package.git.GitResolver._host_forge`.
+        Matching a forge name in any label is fine for choosing a username --
+        that is a fixed, public string -- but it is not evidence of who owns a
+        host, and ``gitlab.attacker.example`` must not be handed the ambient
+        ``GITLAB_TOKEN``. A self-hosted instance supplies its credential through
+        a generic variable, or through a username in the URL.
+
+        Args:
+            hostname (str or None): The host from the source URL.
+
+        Returns:
+            str or None: The forge key, or None if the host is not that forge's.
+        """
+        if not hostname:
+            return None
+        host = hostname.lower()
+        for forge, domain in (("github", "github.com"),
+                              ("gitlab", "gitlab.com"),
+                              ("bitbucket", "bitbucket.org")):
+            if host == domain or host.endswith(f".{domain}"):
+                return forge
+        return None
+
     def _get_auth_token(self, prefix: List[str]) -> str:
         """
         Retrieves an authentication token from environment variables.
