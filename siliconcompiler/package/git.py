@@ -104,30 +104,6 @@ class GitResolver(RemoteResolver):
                 return False
         return False
 
-    @staticmethod
-    def _host_forge(hostname: Optional[str]) -> Optional[str]:
-        """
-        Identifies which forge a hostname belongs to.
-
-        Matches whole dot-separated labels, so a self-hosted instance
-        (``gitlab.example.com``, ``github.mycorp.com``) is recognised while an
-        unrelated host that merely contains the name (``mygithub.internal``) is
-        not.
-
-        Args:
-            hostname (str or None): The host from the source URL.
-
-        Returns:
-            str or None: The forge key, or None if the host is unrecognised.
-        """
-        if not hostname:
-            return None
-        labels = hostname.lower().split('.')
-        for forge in ("github", "gitlab", "bitbucket"):
-            if forge in labels:
-                return forge
-        return None
-
     @classmethod
     def _token_username(cls, hostname: Optional[str]) -> Optional[str]:
         """
@@ -153,34 +129,6 @@ class GitResolver(RemoteResolver):
             "gitlab": "oauth2",
             "bitbucket": "x-token-auth",
         }.get(cls._host_forge(hostname))
-
-    @staticmethod
-    def _saas_forge(hostname: Optional[str]) -> Optional[str]:
-        """
-        Identifies a forge's own hosted service, by exact domain.
-
-        This is the ownership check, and it is deliberately stricter than
-        :meth:`_host_forge`. Matching a forge name in any label is fine for
-        choosing a username -- that is a fixed, public string -- but it is not
-        evidence of who owns a host, and ``gitlab.attacker.example`` must not be
-        handed the ambient ``GITLAB_TOKEN``. A self-hosted instance supplies its
-        credential through ``GIT_TOKEN``, or through a username in the URL.
-
-        Args:
-            hostname (str or None): The host from the source URL.
-
-        Returns:
-            str or None: The forge key, or None if the host is not that forge's.
-        """
-        if not hostname:
-            return None
-        host = hostname.lower()
-        for forge, domain in (("github", "github.com"),
-                              ("gitlab", "gitlab.com"),
-                              ("bitbucket", "bitbucket.org")):
-            if host == domain or host.endswith(f".{domain}"):
-                return forge
-        return None
 
     @classmethod
     def _redact_url(cls, url: str) -> str:

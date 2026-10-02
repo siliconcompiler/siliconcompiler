@@ -87,6 +87,12 @@ Prefer ``git+ssh://`` where you can. A token supplied this way is written into
 the cached clone's ``.git/config``, whereas SSH keeps the credential out of the
 URL entirely.
 
+A ``gitlab://<host>/<group>/<project>/<tag>/<asset>`` dataroot takes the same
+variables for the same hosts: ``GITLAB_TOKEN`` or ``GL_TOKEN`` for ``gitlab.com``,
+``GIT_TOKEN`` for a self-hosted instance. It sends the token as
+``Authorization: Bearer <token>``, only to the GitLab host, and only once the
+project turns out not to be readable without one.
+
 A private repository does not need the ``+private`` marker (``git+ssh+private://``,
 ``file+private://`` and the rest). The marker says a source must never leave this
 machine: a :ref:`remote run <remote_processing>` is not to upload it, so the

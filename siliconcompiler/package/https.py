@@ -11,10 +11,10 @@ import zipfile
 
 import os.path
 
-from typing import Callable, Dict, IO, List, Tuple, Type
+from typing import Callable, Dict, IO, List, Optional, Tuple, Type
 
 from io import BytesIO
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 from siliconcompiler.package import RemoteResolver, Resolver
 from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
@@ -34,19 +34,15 @@ from siliconcompiler.utils import is_zstd, open_zstd_stream, tar_extract_kwargs,
 #: too: a server having a bad minute may not be having a bad hour.
 _TERMINAL_STATUSES = (400, 404, 405, 410, 414, 451)
 
-#: Archive suffixes stripped from a GitHub archive's filename to recover the
-#: release reference its top-level directory is named after.
-#:
-#: The fallback for a name matching none of these gives up at the first '.', which
-#: truncates any release carrying a dotted version -- 'v1.0.2.tar.zst' would look
-#: for 'repo-1' rather than 'repo-1.0.2'. No entry is a suffix of another, so the
-#: first match is the whole extension.
-#:
-#: One format is deliberately absent: a plain, uncompressed '.tar' is not among the
-#: formats :func:`_archive_formats` can read, so an archive named that way never
-#: reaches the flattening this table serves.
-_ARCHIVE_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
-                     ".tgz", ".tbz2", ".txz", ".tzst", ".zip")
+
+def _no_auth(request: requests.PreparedRequest) -> requests.PreparedRequest:
+    """
+    A requests auth hook that adds nothing.
+
+    Passed where no credential may be sent: given no hook, requests takes a
+    username and password from the URL and sends them as Basic auth.
+    """
+    return request
 
 
 def _extract_tar(fileobj: IO[bytes], path: str, mode: str) -> None:
@@ -165,9 +161,40 @@ class HTTPResolver(RemoteResolver):
 
     This class downloads a file from a URL, determines from its contents whether
     it is a tarball (gzip, bzip2, xz or Zstandard compressed) or a zip file, and
-    extracts it into the local cache. It also includes special handling to flatten
-    the directory structure of archives downloaded from GitHub.
+    extracts it into the local cache.
+
+    It handles no particular host itself. One that needs more -- a header, its
+    own tokens, or an archive unwrapped -- gets a subclass overriding
+    :meth:`_get_headers`, :meth:`_token_prefixes` and :meth:`_archive_root`,
+    which :meth:`subresolver` hands that host's URLs to.
     """
+
+    @classmethod
+    def subresolver(cls, url: ParseResult) -> Type[Resolver]:
+        """
+        The resolver for ``url``: GitHub's for an archive on a GitHub host, else
+        this one.
+
+        Only the resolver registered for the HTTP schemes chooses. A subclass is
+        registered for a scheme of its own, ``github://`` for one, and keeps it:
+        the hosts in such a URL are not web hosts -- ``github://github/...``
+        names the owner ``github`` -- so matching them here would hand the URL
+        to the wrong class.
+
+        Args:
+            url (urllib.parse.ParseResult): The parsed source URI.
+
+        Returns:
+            type: The resolver class to use.
+        """
+        if cls is not HTTPResolver:
+            return cls
+
+        # Imported here: the github module imports this one.
+        from siliconcompiler.package.github import GithubArchiveResolver
+        if GithubArchiveResolver.claims(url):
+            return GithubArchiveResolver
+        return cls
 
     def check_cache(self) -> bool:
         """
@@ -201,28 +228,66 @@ class HTTPResolver(RemoteResolver):
         """
         Constructs the HTTP headers for the download request.
 
-        If a GIT_TOKEN is available in the environment variables, it adds an
-        Authorization header for authentication. This is particularly useful
-        for accessing private repositories or authenticated endpoints.
+        The base adds no credential: :meth:`resolve_remote` looks one up, but
+        only if the headers returned here carry no ``Authorization`` of their
+        own, so a subclass that sets one decides the credential itself.
 
         Returns:
             dict: A dictionary of HTTP headers to include in the download request.
         """
-        headers = {}
-        # GitHub release assets require a specific Accept header.
-        if "github" in self.download_url:
-            headers['Accept'] = 'application/octet-stream'
+        return {}
 
-        return headers
+    def _token_prefixes(self, data_url: str) -> List[str]:
+        """
+        The environment variable prefixes a credential for ``data_url`` is
+        looked up under, most preferred first (see
+        :meth:`~siliconcompiler.package.RemoteResolver._get_auth_token`).
+
+        The base offers only the generic opt-ins, which any host may receive. A
+        subclass adding a service's own variables has to make sure the host is
+        that service's: those are often set ambiently, as ``GITHUB_TOKEN`` is in
+        every GitHub Actions job.
+
+        Args:
+            data_url (str): The URL about to be downloaded.
+
+        Returns:
+            list: The prefixes, such as ``["HTTPS", "HTTP"]``.
+        """
+        return ["HTTPS", "HTTP"]
+
+    def _archive_root(self, data_url: str, entries: List[str]) -> Optional[str]:
+        """
+        The directory the archive from ``data_url`` wraps its contents in, if
+        any.
+
+        Asked once the archive is unpacked. When it unpacked to that directory
+        and nothing else, the directory's contents are moved up, so the cache
+        root is the archive's own root. The base expects no wrapper.
+
+        Args:
+            data_url (str): The URL the archive was downloaded from.
+            entries (list): The names the archive unpacked to, at its top level.
+
+        Returns:
+            str or None: The directory's name, or None to leave the archive as
+            it unpacked.
+        """
+        return None
 
     def resolve_remote(self) -> None:
         """
         Fetches the remote archive, unpacks it, and stores it in the cache.
 
         This method downloads the file, detects the archive type (a tar compressed
-        with gzip, bzip2, xz or Zstandard, or a zip), and extracts it. It includes
-        special logic to handle the extra top-level directory that GitHub often
-        includes in its source archives.
+        with gzip, bzip2, xz or Zstandard, or a zip), and extracts it, moving up
+        the contents of the directory :meth:`_archive_root` names.
+
+        A username and password in the URL are sent as Basic auth. Otherwise a
+        token -- a username alone in the URL, else the first found under
+        :meth:`_token_prefixes` -- is sent as ``Authorization: Bearer <token>``.
+        A plain ``http://`` download sends no credential at all, since it would
+        cross the network in cleartext.
 
         Raises:
             FileNotFoundError: If the download fails. One of the
@@ -235,28 +300,36 @@ class HTTPResolver(RemoteResolver):
                 the bindings to unpack, which no retry can change.
         """
         data_url = self.download_url
+        url = urlparse(data_url)
 
         headers = self._get_headers()
-        if "Authorization" not in headers:
+        # A password in the URL makes it Basic auth, which requests builds from the
+        # URL itself and puts over any header set here.
+        basic_auth = url.password is not None
+        if "Authorization" not in headers and not basic_auth:
             auth_token = self.urlparse.username
             if not auth_token:
                 try:
-                    srvs = []
-                    if "github" in data_url:
-                        srvs.append("GITHUB")
-                        srvs.append("GH")
-                        srvs.append("GIT")
-                    srvs.extend(["HTTPS", "HTTP"])
-                    auth_token = self._get_auth_token(srvs)
+                    auth_token = self._get_auth_token(self._token_prefixes(data_url))
                 except ValueError:
                     pass
             if auth_token:
-                headers['Authorization'] = f'token {auth_token}'
+                headers['Authorization'] = f'Bearer {auth_token}'
+
+        auth = None
+        if url.scheme == "http" and (basic_auth or "Authorization" in headers):
+            self.logger.warning(
+                f'Not sending a credential for {self.display_name}: '
+                f'{Resolver._masked_uri(data_url)} is plain http://, which would '
+                'send it in cleartext. Use https:// to authenticate.')
+            headers.pop("Authorization", None)
+            auth = _no_auth
 
         self.logger.info(f'Downloading {self.display_name} data from '
                          f'{Resolver._masked_uri(data_url)}')
 
-        response = requests.get(data_url, stream=True, headers=headers)
+        response = requests.get(data_url, stream=True, headers=headers, auth=auth,
+                                timeout=self.request_timeout)
         if not response.ok:
             status = response.status_code
             error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \
@@ -272,36 +345,10 @@ class HTTPResolver(RemoteResolver):
         archive_format = _extract_archive(fileobj, self.cache_path, data_url)
         self.logger.debug(f'Unpacked {self.display_name} data as a {archive_format} archive')
 
-        # --- GitHub-specific directory flattening ---
-        # GitHub archives often have a single top-level directory like 'repo-v1.0'.
-        # This logic moves the contents of that directory up one level for a cleaner cache.
-        if 'github' in data_url and len(os.listdir(self.cache_path)) == 1:
-            # Heuristically determine the name of the top-level directory
-            gh_url = urlparse(data_url)
-            repo = gh_url.path.split('/')[2]
-
-            gh_ref = gh_url.path.split('/')[-1]
-            if repo.endswith('.git'):
-                gh_ref = self.reference
-            else:
-                for suffix in _ARCHIVE_SUFFIXES:
-                    if gh_ref.endswith(suffix):
-                        gh_ref = gh_ref[0:-len(suffix)]
-                        break
-                else:
-                    # An unrecognized name keeps the long-standing guess, which
-                    # gives up at its first '.' and so truncates a dotted release.
-                    gh_ref = gh_ref.split('.')[0]
-
-            if gh_ref.startswith('v'):
-                gh_ref = gh_ref[1:]
-
-            github_folder = f"{repo}-{gh_ref}"
-            potential_path = os.path.join(self.cache_path, github_folder)
-
-            if os.path.isdir(potential_path):
-                # Move all files from the subdirectory to the cache root
-                for data_file in os.listdir(potential_path):
-                    shutil.move(os.path.join(potential_path, data_file), self.cache_path)
-                # Clean up the now-empty directory
-                os.rmdir(potential_path)
+        entries = os.listdir(self.cache_path)
+        root = self._archive_root(data_url, entries)
+        root_path = os.path.join(self.cache_path, root) if root else None
+        if root and entries == [root] and os.path.isdir(root_path):
+            for data_file in os.listdir(root_path):
+                shutil.move(os.path.join(root_path, data_file), self.cache_path)
+            os.rmdir(root_path)
