@@ -2,6 +2,7 @@ import ast
 import hashlib
 import json
 import pytest
+import re
 import struct
 
 import os.path
@@ -201,6 +202,13 @@ def test_klayout_operations(datadir):
             assert hashlib.md5(data).hexdigest() == op_hash
 
 
+def __screenshot_boxes(proj):
+    '''The view boxes the screenshot node logged, as (left, bottom, right, top).'''
+    with open(os.path.join(workdir(proj, step="screenshot"), "screenshot.log")) as log:
+        saved = [line.split(" to ")[0] for line in log if "Saving screenshot" in line]
+    return [tuple(float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", line)) for line in saved]
+
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
@@ -233,6 +241,58 @@ def test_klayout_screenshot(datadir):
 
     # the margin frames the design differently, at the same resolution
     assert tight != wide
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_klayout_screenshot_margin():
+    '''The margin is a percentage of the width on the left and right, and of the
+    height on the top and bottom.'''
+    # a bare 40um x 10um die, so the two axes differ
+    with open("heartbeat.def", "w") as f:
+        f.write("VERSION 5.8 ;\n"
+                "DESIGN heartbeat ;\n"
+                "UNITS DISTANCE MICRONS 10000 ;\n"
+                "DIEAREA ( 0 0 ) ( 400000 100000 ) ;\n"
+                "END DESIGN\n")
+
+    proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask())
+
+    task = screenshot.ScreenshotTask.find_task(proj)
+    task.set_showfilepath(os.path.abspath("heartbeat.def"))
+    task.set_klayout_resolution(200, 200)
+    task.set_klayout_margin(25)
+
+    assert proj.run()
+
+    box, = __screenshot_boxes(proj)
+    assert box == pytest.approx((-10, -2.5, 50, 12.5))
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_klayout_screenshot_montage(datadir):
+    '''The tiles of a montage cover the same view as the untiled screenshot.'''
+    def render(xbins, ybins, jobname):
+        proj = __asic_heartbeat("screenshot", screenshot.ScreenshotTask(),
+                                import_file=os.path.join(datadir, 'heartbeat.gds'))
+        proj.option.set_jobname(jobname)
+
+        task = screenshot.ScreenshotTask.find_task(proj)
+        task.set_klayout_resolution(200, 200)
+        task.set_klayout_bins(xbins, ybins)
+
+        assert proj.run()
+        return __screenshot_boxes(proj)
+
+    view, = render(1, 1, "single")
+    tiles = render(2, 2, "montage")
+
+    assert len(tiles) == 4
+    assert (min(t[0] for t in tiles), min(t[1] for t in tiles),
+            max(t[2] for t in tiles), max(t[3] for t in tiles)) == pytest.approx(view)
 
 
 @pytest.mark.eda
