@@ -1069,6 +1069,18 @@ def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
                                             "version_package": None}
 
 
+def test_the_registry_command_records_the_distribution_a_version_is_read_from(store, capsys):
+    '''`add-software -version-package` is stored, not only echoed: the
+    probe reads slang's version through `pyslang` by it.'''
+    from siliconcompiler.remote.server.software import registry as command
+
+    assert command.main(["-datadir", ".", "add-software", "slang", "-kind", "tool",
+                         "-version-package", "pyslang"]) == 0
+    assert "version read from the pyslang distribution" in capsys.readouterr().out
+
+    assert _recorded(store, "slang") == {"driver": None, "version_package": "pyslang"}
+
+
 def _recorded(store, name):
     return dict(store.one("SELECT driver, version_package FROM software WHERE name = ?",
                           (name,)))

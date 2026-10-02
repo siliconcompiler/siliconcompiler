@@ -334,6 +334,21 @@ def test_no_fetch_once_probe_remains():
         assert not hasattr(module, name) and not hasattr(module.Results, name), name
 
 
+def test_only_what_landed_is_counted_as_retrieved(fake_v1, results, caplog):
+    '''A kind with no home here writes nothing, and is not "retrieved".'''
+    fake_v1.route(responses.GET, "jobs/j1/artifacts", {"items": [
+        artifact("manifest"), artifact("reports")]})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-manifest-None-None", "{}",
+                  content_type="application/json")
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/art-reports-None-None", "x",
+                  content_type="text/plain")
+
+    with caplog.at_level("INFO"):
+        results.fetch("j1")
+
+    assert "Retrieved 1 objects" in caplog.text
+
+
 def test_the_cases_are_different_sentences(results):
     '''Collapsing them answers "where did my results go" with the one sentence
     that fits none of the cases.'''

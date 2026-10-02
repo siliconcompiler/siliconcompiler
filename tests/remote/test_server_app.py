@@ -406,6 +406,25 @@ def test_a_misspelled_limit_is_refused_too():
         create_app("datadir")
 
 
+@pytest.mark.parametrize("limit,refused", [
+    ("max_job_nodes", True), ("concurrent_log_streams", True), ("max_upload_bytes", True),
+    ("pending_uploads", False), ("concurrent_jobs", False), ("max_download_bytes", False),
+])
+def test_a_null_limit_is_refused_where_this_server_compares_against_it(limit, refused):
+    '''Null is unlimited only where the server treats it so; anywhere else it
+    would fail the first request the limit applies to.'''
+    from siliconcompiler.remote.server.app import create_app
+
+    Path("datadir").mkdir()
+    Path("datadir/config.json").write_text(json.dumps({"limits": {limit: None}}))
+
+    if refused:
+        with pytest.raises(ValueError, match=f"limits.{limit} may not be null"):
+            create_app("datadir")
+    else:
+        assert create_app("datadir").config["SC_CONFIG"].limits[limit] is None
+
+
 def test_terms_url_is_published_when_an_operator_sets_one():
     from siliconcompiler.remote.server.app import create_app
 
@@ -607,6 +626,13 @@ def test_a_broken_config_is_reported_and_exits_non_zero(caplog):
     Path("datadir/config.json").write_text("{not json")
 
     assert entry.main(["-datadir", "datadir"]) == 1
+
+
+def test_a_detail_carries_no_terminal_control_of_either_set():
+    '''C0 and C1 alike: U+009B is a terminal's escape in one character.'''
+    from siliconcompiler.remote.server import errors
+
+    assert errors.bound("a\x1b[2Jb\x9b31mc\x07d\x85e") == "a[2Jb31mcde"
 
 
 def test_the_detail_bound_binds_and_is_not_published(tmp_path, monkeypatch):

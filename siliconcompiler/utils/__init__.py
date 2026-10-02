@@ -169,13 +169,19 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     return {"filter": filter}
 
 
+class UnsafeArchiveError(ValueError):
+    """An archive member that would land, or link, outside where the archive
+    is extracted, or that is a device node or a FIFO. Permanent: the same
+    archive is refused the same way every time."""
+
+
 def extract_safely(tar: tarfile.TarFile, path: str, members=None) -> None:
     """Extracts ``tar`` into ``path`` with nothing landing outside it.
 
     Uses the ``data`` filter where the interpreter has one. Where it does not
-    (3.10.0-3.10.11, 3.11.0-3.11.3), the same rules are checked here first:
-    nothing outside the destination, no link resolving outside it, no device
-    node or FIFO, and no ownership, setuid or setgid bits.
+    (3.10.0-3.10.11, 3.11.0-3.11.3), the same rules are checked here: nothing
+    outside the destination, no link resolving outside it, no device node or
+    FIFO, and no ownership, setuid or setgid bits.
 
     Args:
         tar (tarfile.TarFile): The open archive.
@@ -183,20 +189,32 @@ def extract_safely(tar: tarfile.TarFile, path: str, members=None) -> None:
         members (list, optional): The members to extract; all by default.
 
     Raises:
-        ValueError: If a member would break one of those rules.
+        UnsafeArchiveError: If a member would break one of those rules.
     """
     kwargs = tar_extract_kwargs()
     if kwargs:
         tar.extractall(path=path, members=members, **kwargs)
         return
-    checked = [_checked_member(member, path)
-               for member in (members if members is not None else tar.getmembers())]
-    tar.extractall(path=path, members=checked)
+    # One member at a time, each checked against what is already on disk: a
+    # path can run through a link an earlier member made (`b -> .`, then
+    # `a -> b/..`, then `a/x`), which no check made before extracting can see.
+    # Directories take their mode last, as `extractall` does, so a read-only
+    # one does not refuse what goes in it.
+    directories = []
+    for member in (members if members is not None else tar.getmembers()):
+        member = _checked_member(member, path)
+        if member.isdir():
+            os.makedirs(os.path.join(path, member.name), exist_ok=True)
+            directories.append(member)
+        else:
+            tar.extract(member, path=path)
+    if directories:
+        tar.extractall(path=path, members=directories)
 
 
 def _checked_member(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
-    """One member, refused where it would leave ``path``, and stripped of what
-    it should not carry."""
+    """One member, refused where it would leave ``path`` as the files already
+    extracted resolve, and stripped of what it should not carry."""
     root = os.path.realpath(path)
 
     def inside(target: str) -> bool:
@@ -204,18 +222,20 @@ def _checked_member(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
 
     name = member.name
     if os.path.isabs(name) or not inside(os.path.join(root, name)):
-        raise ValueError(f"{name} would extract outside {path}")
+        raise UnsafeArchiveError(f"{name} would extract outside {path}")
     if member.isdev() or member.isfifo():
-        raise ValueError(f"{name} is a device node or a FIFO")
+        raise UnsafeArchiveError(f"{name} is a device node or a FIFO")
     if member.issym() and (os.path.isabs(member.linkname) or not inside(
             os.path.join(root, os.path.dirname(name), member.linkname))):
-        raise ValueError(f"{name} links outside {path}")
+        raise UnsafeArchiveError(f"{name} links outside {path}")
     if member.islnk() and (os.path.isabs(member.linkname) or not inside(
             os.path.join(root, member.linkname))):
-        raise ValueError(f"{name} links outside {path}")
+        raise UnsafeArchiveError(f"{name} links outside {path}")
 
-    # No ownership: whoever extracts owns what lands.
-    member.uid, member.gid, member.uname, member.gname = os.getuid(), os.getgid(), "", ""
+    # No ownership: whoever extracts owns what lands. Windows has no uid.
+    if hasattr(os, "getuid"):
+        member.uid, member.gid = os.getuid(), os.getgid()
+    member.uname, member.gname = "", ""
     member.mode &= 0o755
     return member
 

@@ -199,6 +199,7 @@ def _cmd_add_software(store, args) -> int:
     try:
         images.register_software(store, args.name, args.display or args.name,
                                  _operator(store), kind, driver=args.driver,
+                                 version_package=args.version_package,
                                  allowed_drivers=allowed)
     except ValueError as e:
         raise SystemExit(str(e))

@@ -221,7 +221,7 @@ def verify_proof(proof: str, method: str, url: str,
     except jwt.PyJWTError as e:
         raise DPoPError(f"proof does not verify: {e}") from None
 
-    if claims["htm"].upper() != method.upper():
+    if not isinstance(claims["htm"], str) or claims["htm"].upper() != method.upper():
         raise DPoPError("proof htm does not match the request method")
     # Both sides canonical: a client that signed `:443`, or a mixed-case host,
     # still names this request.

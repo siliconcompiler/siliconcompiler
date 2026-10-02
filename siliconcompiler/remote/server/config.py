@@ -495,6 +495,10 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
 S3_ONE_PUT_BYTES = 5 * 1024 ** 3
 
 
+# The limits this server treats null as unlimited for.
+UNLIMITED_ALLOWED = ("pending_uploads", "concurrent_jobs", "max_download_bytes")
+
+
 def _check_policy(values: Dict[str, Any]) -> None:
     '''Refuse a policy value that would silently mean nothing.
 
@@ -505,12 +509,17 @@ def _check_policy(values: Dict[str, Any]) -> None:
 
     # 🔴 A limit is a count or a size, or null for none; nothing negative is
     # ever published (surface D177). `-1` is the store's spelling of unlimited
-    # in `user_limits`, never the wire's or this file's.
+    # in `user_limits`, never the wire's or this file's. Null only where this
+    # server treats it as unlimited: every other limit is a number it compares
+    # against, and a null there would fail the first request it applies to.
     for name, value in (values["limits"] or {}).items():
+        if value is None and name not in UNLIMITED_ALLOWED:
+            raise ValueError(f"limits.{name} may not be null: only "
+                             f"{', '.join(UNLIMITED_ALLOWED)} may be unlimited here")
         if value is not None and (isinstance(value, bool) or not isinstance(value, int)
                                   or value < 0):
-            raise ValueError(f"limits.{name} is a whole number of zero or more, or null "
-                             f"for unlimited; not {value!r}")
+            raise ValueError(f"limits.{name} is a whole number of zero or more; "
+                             f"not {value!r}")
 
     for name in ("manifest_read_timeout_seconds", "manifest_read_cpu_seconds",
                  "manifest_read_memory_bytes"):

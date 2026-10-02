@@ -298,9 +298,12 @@ class Results:
                 continue
 
             try:
-                landed += self._retrieve(job_id, item)
+                got = self._retrieve(job_id, item)
+                landed += got
                 self._fetched.add(item["id"])
-                self._landed += 1
+                # Counted where something landed: a kind with no home here
+                # writes nothing, and is not "retrieved".
+                self._landed += 1 if got else 0
             except Exception as e:                               # noqa: BLE001
                 # It will be tried again by the sweep at the end of the run.
                 logger.debug(f"{self._name(item)} not taken yet: {e}")
@@ -358,9 +361,10 @@ class Results:
                 withheld.append(item)
                 continue
             try:
-                landed += self._retrieve(job_id, item)
+                got = self._retrieve(job_id, item)
+                landed += got
                 self._fetched.add(item["id"])
-                self._landed += 1
+                self._landed += 1 if got else 0
             except Exception as e:                               # noqa: BLE001
                 # One object failing does not abort the others: a node whose
                 # bytes went missing must not cost the caller the rest of the

@@ -173,6 +173,21 @@ def test_a_proof_signed_by_a_clock_ahead_is_held_to_the_same_window(key, ahead, 
             dpop.verify_proof(proof, "GET", URL)
 
 
+@pytest.mark.parametrize("claim", ["htm", "htu"])
+def test_a_claim_that_is_not_a_string_is_refused_not_a_crash(key, claim):
+    '''A signed proof is still the caller's input: a number where a string
+    belongs is a refused proof, never an exception the server answers 500.'''
+    import jwt
+
+    claims = {"jti": "x", "htm": "GET", "htu": URL, "iat": int(time.time())}
+    claims[claim] = 7
+    proof = jwt.encode(claims, key, algorithm="ES256",
+                       headers={"typ": "dpop+jwt", "jwk": dpop.public_jwk(key)})
+
+    with pytest.raises(dpop.DPoPError, match=claim):
+        dpop.verify_proof(proof, "GET", URL)
+
+
 def test_the_wrong_key_is_refused(key):
     '''What the first-contact binding is made of: the presented key must be the
     bound one.'''

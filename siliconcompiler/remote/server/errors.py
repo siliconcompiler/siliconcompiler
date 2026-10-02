@@ -321,10 +321,11 @@ def scrub(detail: str) -> str:
     return text
 
 
-# Everything that is not text: NUL, the escapes a terminal acts on, and the
-# rest of C0 and C1's delete. Tab, newline and carriage return are handled by
-# the whitespace collapse instead, because they are ordinary in an exception.
-_UNPRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+# Everything that is not text: NUL, the rest of C0, DEL, and C1 -- whose
+# U+009B is a terminal's escape in one character. Tab, newline and carriage
+# return are handled by the whitespace collapse instead, because they are
+# ordinary in an exception.
+_UNPRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 def bound(detail: Optional[str]) -> Optional[str]:

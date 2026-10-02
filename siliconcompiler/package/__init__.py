@@ -31,7 +31,7 @@ from pathlib import Path, PureWindowsPath
 
 from siliconcompiler.package.cache import PathCache, DataRootResolutionError, \
     PermanentResolutionError
-from siliconcompiler.utils import get_plugins
+from siliconcompiler.utils import UnsafeArchiveError, get_plugins
 from siliconcompiler.utils.paths import cwdirsafe, datarootdir
 from siliconcompiler.utils.multiprocessing import MPManager, FileLockTimeout, \
     get_file_lock
@@ -336,7 +336,9 @@ class Resolver:
           by a resolver that has itself established the answer will not change --
           an HTTP status saying the data is not there, for instance.
         * ``tarfile.FilterError``, raised when the extraction filter refuses a
-          member of a downloaded archive. That verdict is a property of the
+          member of a downloaded archive, and
+          :class:`~siliconcompiler.utils.UnsafeArchiveError`, its equivalent
+          where the interpreter has no filter. That verdict is a property of the
           archive's contents, so a fresh copy of the same archive earns it again.
 
         Anything else counts as transient, deliberately: this decides how much
@@ -350,7 +352,8 @@ class Resolver:
         Returns:
             bool: True if the source should be abandoned without further attempts.
         """
-        return isinstance(error, (PermanentResolutionError, *_TAR_FILTER_ERRORS))
+        return isinstance(error, (PermanentResolutionError, UnsafeArchiveError,
+                                  *_TAR_FILTER_ERRORS))
 
     @property
     def is_indirect(self) -> bool:
