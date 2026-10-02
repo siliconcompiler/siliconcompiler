@@ -178,7 +178,7 @@ class Resolver:
         Scans for and registers all available resolver plugins.
 
         This method populates the internal `_RESOLVERS` dictionary with both
-        built-in resolvers (file, key, python, http, git, github, scp) and any
+        built-in resolvers (file, key, python, http, git, github, gitlab, scp) and any
         resolvers provided by external plugins. Built-ins are registered first,
         so a plugin claiming the same scheme takes precedence.
 
@@ -190,7 +190,7 @@ class Resolver:
         """
         # Imported here because each of these modules imports RemoteResolver from
         # this module.
-        from siliconcompiler.package import git, github, https, scp
+        from siliconcompiler.package import git, github, gitlab, https, scp
 
         settings = MPManager().get_transient_settings()
         with settings.lock_category("resolvers"):
@@ -207,7 +207,7 @@ class Resolver:
             settings.set("resolvers", "file+private", FileResolver)
 
             builtins = (https.get_resolver, git.get_resolver, github.get_resolver,
-                        scp.get_resolver)
+                        gitlab.get_resolver, scp.get_resolver)
             for resolver in (*builtins, *get_plugins("path_resolver")):
                 for scheme, res in resolver().items():
                     settings.set("resolvers", scheme, res)
@@ -219,6 +219,10 @@ class Resolver:
     def find_resolver(source: str) -> Type["Resolver"]:
         """
         Finds the appropriate resolver class for a given source URI.
+
+        The resolver registered for the source's scheme is asked for the one to
+        use (:meth:`subresolver`), so a scheme can hand one host's URLs to a
+        more specific class.
 
         Args:
             source (str): The source URI (e.g., 'file:///path/to/file', 'git://...').
@@ -242,9 +246,28 @@ class Resolver:
         settings = MPManager().get_transient_settings()
         resolver = settings.get("resolvers", url.scheme, None)
         if resolver:
-            return resolver
+            return resolver.subresolver(url)
 
         raise ValueError(f"Source URI '{source}' is not supported")
+
+    @classmethod
+    def subresolver(cls, url: "url_parse.ParseResult") -> Type["Resolver"]:
+        """
+        The resolver to use for ``url``, which :meth:`find_resolver` asks the
+        resolver registered for the scheme.
+
+        The base is that resolver itself. A scheme whose URLs need handling per
+        host overrides this to hand those hosts to a more specific class: an
+        archive on ``github.com`` is still ``https``, but GitHub's resolver
+        handles it.
+
+        Args:
+            url (urllib.parse.ParseResult): The parsed source URI.
+
+        Returns:
+            type: The resolver class to use.
+        """
+        return cls
 
     @property
     def name(self) -> str:
@@ -713,15 +736,34 @@ class RemoteResolver(Resolver):
 
         # Wait a maximum of 10 minutes for other processes to finish
         self.__max_lock_wait: int = 60 * 10
+        # Give up on a remote server once it has gone a minute without answering
+        self.__request_timeout: int = 60
 
     @property
-    def timeout(self) -> int:
+    def lock_timeout(self) -> int:
         """The maximum time in seconds to wait for a lock."""
         return self.__max_lock_wait
 
-    def set_timeout(self, value: int) -> None:
+    def set_lock_timeout(self, value: int) -> None:
         """Sets the maximum time in seconds to wait for a lock."""
         self.__max_lock_wait = value
+
+    @property
+    def request_timeout(self) -> int:
+        """
+        The maximum time in seconds a request to a remote server may wait to
+        connect, or between one part of the answer and the next.
+
+        It bounds a stall, not a transfer: a large download that keeps arriving
+        takes as long as it takes. A request that times out is retried, as a
+        dropped connection is.
+        """
+        return self.__request_timeout
+
+    def set_request_timeout(self, value: int) -> None:
+        """Sets the maximum time in seconds a request to a remote server may
+        stall (see :attr:`request_timeout`)."""
+        self.__request_timeout = value
 
     @property
     def cache_dir(self) -> Path:
@@ -777,7 +819,7 @@ class RemoteResolver(Resolver):
         lock = self.thread_lock()
         lock_acquired = False
         try:
-            timeout = self.timeout
+            timeout = self.lock_timeout
             while timeout > 0:
                 if lock.acquire_lock(timeout=1):
                     lock_acquired = True
@@ -812,7 +854,7 @@ class RemoteResolver(Resolver):
         """
         lock = get_file_lock(self.cache_path)
         try:
-            lock.acquire(self.timeout)
+            lock.acquire(self.lock_timeout)
         except FileLockTimeout as e:
             if e.fallback:
                 raise RuntimeError(f'Failed to access {self.cache_path}. '
@@ -998,6 +1040,61 @@ class RemoteResolver(Resolver):
             current_mode = os.stat(path).st_mode
             new_mode = current_mode | stat.S_IWUSR
             os.chmod(path, new_mode)
+
+    @staticmethod
+    def _host_forge(hostname: Optional[str]) -> Optional[str]:
+        """
+        Identifies which forge a hostname belongs to.
+
+        Matches whole dot-separated labels, so a self-hosted instance
+        (``gitlab.example.com``, ``github.mycorp.com``) is recognised while an
+        unrelated host that merely contains the name (``mygithub.internal``) is
+        not. Not an ownership check: see :meth:`_saas_forge` for that.
+
+        Args:
+            hostname (str or None): The host from the source URL.
+
+        Returns:
+            str or None: The forge key, or None if the host is unrecognised.
+        """
+        if not hostname:
+            return None
+        labels = hostname.lower().split('.')
+        for forge in ("github", "gitlab", "bitbucket"):
+            if forge in labels:
+                return forge
+        return None
+
+    @staticmethod
+    def _saas_forge(hostname: Optional[str]) -> Optional[str]:
+        """
+        Identifies a forge's own hosted service, by exact domain.
+
+        This is the ownership check that decides whether a forge's own variables
+        -- ``GITHUB_TOKEN`` and the rest, set ambiently on CI runners and
+        developer machines -- may be sent to a host. It is deliberately stricter
+        than :meth:`_host_forge`. Matching a forge name in any label is fine for
+        choosing a username, or how to unpack an archive -- neither is a secret
+        -- but it is not evidence of who owns a host, and
+        ``gitlab.attacker.example`` must not be handed the ambient
+        ``GITLAB_TOKEN``. A self-hosted instance supplies its credential through
+        a generic variable, or through a username in the URL.
+
+        Args:
+            hostname (str or None): The host from the source URL.
+
+        Returns:
+            str or None: The forge key, or None if the host is not that forge's.
+        """
+        if not hostname:
+            return None
+        host = hostname.lower()
+        for forge, domain in (("github", "github.com"),
+                              ("gitlab", "gitlab.com"),
+                              ("bitbucket", "bitbucket.org")):
+            if host == domain or host.endswith(f".{domain}"):
+                return forge
+        return None
 
     def _get_auth_token(self, prefix: List[str]) -> str:
         """

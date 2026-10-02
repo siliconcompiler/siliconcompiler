@@ -268,6 +268,7 @@ class PathSchema(PathSchemaBase):
                     * ``https://github.com/xyz/xyz/archive``
                     * ``https://zeroasic.com/xyz.tar.gz``
                     * ``github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz``
+                    * ``gitlab://gitlab.com/xyz/xyz/v1.0/asset.tar.gz``
                     * ``python://siliconcompiler``
                     * ``python://siliconcompiler/tools/openroad``
                     """)))

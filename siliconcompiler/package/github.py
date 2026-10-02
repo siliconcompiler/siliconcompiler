@@ -1,21 +1,37 @@
 """
-This module provides a GitHub-based resolver for SiliconCompiler packages.
+This module provides the GitHub resolvers for SiliconCompiler packages.
 
-It defines the `GithubResolver` class, which is responsible for downloading
-release assets from public or private GitHub repositories.
+It defines `GithubArchiveResolver`, which handles plain ``http(s)://`` URLs on
+GitHub's own hosts, and `GithubResolver`, which downloads release assets named
+by a ``github://`` URI from public or private repositories.
 """
 import shutil
 import subprocess
 
-from typing import Dict, Type, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Type, Optional, Tuple, TYPE_CHECKING
 
 from github import Github, Auth
 from github.GithubException import UnknownObjectException
+from urllib.parse import ParseResult, urlparse
 
 from siliconcompiler.package.https import HTTPResolver
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
+
+#: Archive suffixes stripped from a GitHub archive's filename to recover the
+#: release reference its top-level directory is named after.
+#:
+#: The fallback for a name matching none of these gives up at the first '.', which
+#: truncates any release carrying a dotted version -- 'v1.0.2.tar.zst' would look
+#: for 'repo-1' rather than 'repo-1.0.2'. No entry is a suffix of another, so the
+#: first match is the whole extension.
+#:
+#: One format is deliberately absent: a plain, uncompressed '.tar' is not among the
+#: formats :func:`siliconcompiler.package.https._archive_formats` can read, so an
+#: archive named that way never reaches the flattening this table serves.
+_ARCHIVE_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
+                     ".tgz", ".tbz2", ".txz", ".tzst", ".zip")
 
 
 def get_resolver() -> Dict[str, Type["GithubResolver"]]:
@@ -23,7 +39,9 @@ def get_resolver() -> Dict[str, Type["GithubResolver"]]:
     Returns a dictionary mapping GitHub URI schemes to the GithubResolver class.
 
     This function is used by the resolver system to discover and register this
-    resolver for handling `github` and `github+private` protocols.
+    resolver for handling `github` and `github+private` protocols. Plain
+    ``http(s)://`` URLs on GitHub's hosts need no entry: `HTTPResolver` hands
+    them to `GithubArchiveResolver`.
 
     Returns:
         dict: A dictionary mapping scheme names to the GithubResolver class.
@@ -34,13 +52,94 @@ def get_resolver() -> Dict[str, Type["GithubResolver"]]:
     }
 
 
-class GithubResolver(HTTPResolver):
+class GithubArchiveResolver(HTTPResolver):
+    """
+    A resolver for archives downloaded from GitHub's own hosts over HTTP(S).
+
+    `HTTPResolver` hands it every ``http(s)://`` URL on a GitHub host, so a plain
+    ``https://github.com/<owner>/<repo>/archive/...`` dataroot gets what GitHub
+    needs without being written as ``github://``: the source archive is
+    unwrapped from its ``<repo>-<ref>`` directory, a release asset is asked for
+    as a file rather than as its JSON description, and -- on a host GitHub owns
+    -- GitHub's tokens are sent.
+    """
+
+    @classmethod
+    def claims(cls, url: ParseResult) -> bool:
+        """
+        Whether ``url`` is on a GitHub host, GitHub Enterprise included.
+
+        Matched by label (:meth:`_host_forge`), so ``github.mycorp.com`` is
+        claimed: it packs its archives as github.com does. That is not evidence
+        that GitHub owns the host, which :meth:`_token_prefixes` checks for
+        itself.
+        """
+        return cls._host_forge(url.hostname) == "github"
+
+    def _get_headers(self) -> Dict[str, str]:
+        headers = super()._get_headers()
+        # A release asset by its API URL answers with JSON unless asked for the file.
+        headers['Accept'] = 'application/octet-stream'
+        return headers
+
+    def _token_prefixes(self, data_url: str) -> List[str]:
+        prefixes = super()._token_prefixes(data_url)
+        # Ownership, not the label match that claimed the URL: GitHub's variables
+        # are set ambiently -- GITHUB_TOKEN in every Actions job -- so GitHub
+        # Enterprise, or github.attacker.example, must not be handed them.
+        if self._saas_forge(urlparse(data_url).hostname) == "github":
+            prefixes = ["GITHUB", "GH", "GIT", *prefixes]
+        return prefixes
+
+    def _archive_root(self, data_url: str, entries: List[str]) -> Optional[str]:
+        """
+        The directory a GitHub source archive wraps the repository in.
+
+        GitHub names it ``<repo>-<ref>``, with any leading ``v`` dropped from the
+        ref: ``github.com/<owner>/<repo>/archive/refs/tags/v1.0.tar.gz`` unpacks
+        into ``<repo>-1.0``. Both halves are read from the URL, the repository
+        from the path segment after the owner and the ref from the filename.
+
+        Args:
+            data_url (str): The archive's URL.
+            entries (list): The names the archive unpacked to. Unused: the
+                directory is named from the URL, so an archive that is not
+                GitHub's source archive is left alone.
+
+        Returns:
+            str or None: The directory's name, or None for a path too short to
+            name a repository.
+        """
+        path = urlparse(data_url).path.split('/')
+        if len(path) < 3:
+            return None
+        repo = path[2]
+
+        ref = path[-1]
+        for suffix in _ARCHIVE_SUFFIXES:
+            if ref.endswith(suffix):
+                ref = ref[0:-len(suffix)]
+                break
+        else:
+            # An unrecognized name keeps the long-standing guess, which gives up at
+            # its first '.' and so truncates a dotted release.
+            ref = ref.split('.')[0]
+
+        if ref.startswith('v'):
+            ref = ref[1:]
+
+        return f"{repo}-{ref}"
+
+
+class GithubResolver(GithubArchiveResolver):
     """
     A resolver for fetching release assets from GitHub repositories.
 
-    This class extends the `HTTPResolver` to interact with the GitHub API
+    This class extends `GithubArchiveResolver` to interact with the GitHub API
     for locating and downloading release assets. It supports both public
-    and private repositories.
+    and private repositories. A source archive (`<release>.tar.gz` or
+    `<release>.zip`) is unwrapped as any GitHub source archive is; a release asset
+    is left as its author packed it.
 
     The expected source URI format is:
     `github://<owner>/<repository>/<release_tag>/<asset_name>`
@@ -104,13 +203,18 @@ class GithubResolver(HTTPResolver):
     def _get_headers(self):
         headers = super()._get_headers()
 
-        headers['Accept'] = 'application/octet-stream'
         try:
             headers['Authorization'] = f'token {self.__get_gh_token()}'
         except ValueError:
             pass
 
         return headers
+
+    def _archive_root(self, data_url: str, entries: List[str]) -> Optional[str]:
+        _, _, release, artifact = self.gh_path
+        if artifact in (f"{release}.tar.gz", f"{release}.zip"):
+            return super()._archive_root(data_url, entries)
+        return None
 
     def __get_release_url(self, repository: str, release: str, artifact: str, private: bool) -> str:
         """
@@ -186,6 +290,7 @@ class GithubResolver(HTTPResolver):
             Github: An initialized PyGithub client instance.
         """
         if private:
-            return Github(auth=Auth.Token(self.__get_gh_token()))
+            return Github(auth=Auth.Token(self.__get_gh_token()),
+                          timeout=self.request_timeout)
         else:
-            return Github()
+            return Github(timeout=self.request_timeout)

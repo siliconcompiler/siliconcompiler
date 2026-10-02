@@ -1,17 +1,22 @@
 import pytest
 import logging
+import os
 import subprocess
+import tarfile
+import zipfile
 
+from io import BytesIO
 from unittest.mock import patch, MagicMock
 
-from siliconcompiler.package.github import GithubResolver
+from siliconcompiler.package import Resolver
+from siliconcompiler.package.github import GithubArchiveResolver, GithubResolver
 from siliconcompiler import Project
 
 
 @pytest.fixture(autouse=True)
 def clear_env(monkeypatch):
     """Clear relevant environment variables before each test."""
-    for var in ["GITHUB", "GH", "GIT"]:
+    for var in ["GITHUB", "GH", "GIT", "HTTPS", "HTTP"]:
         monkeypatch.delenv(f"{var}_MYPACKAGE_TOKEN", raising=False)
         monkeypatch.delenv(f"{var}_TEST_TOKEN", raising=False)
         monkeypatch.delenv(f"{var}_TOKEN", raising=False)
@@ -283,7 +288,7 @@ def test_github_resolver_gh_unauthenticated():
 
     with patch("siliconcompiler.package.github.Github") as mock_gh_class:
         resolver._GithubResolver__gh(private=False)
-        mock_gh_class.assert_called_once_with()
+        mock_gh_class.assert_called_once_with(timeout=60)
 
 
 def test_github_resolver_gh_authenticated(monkeypatch):
@@ -296,7 +301,7 @@ def test_github_resolver_gh_authenticated(monkeypatch):
          patch("siliconcompiler.package.github.Auth.Token") as mock_auth:
         resolver._GithubResolver__gh(private=True)
         mock_auth.assert_called_once_with("test_token")
-        mock_gh_class.assert_called_once()
+        mock_gh_class.assert_called_once_with(auth=mock_auth.return_value, timeout=60)
 
 
 def test_github_resolver_download_url_fallback_to_private(monkeypatch):
@@ -762,3 +767,277 @@ def test_github_resolver_get_gh_token_rejects_carriage_returns():
 
         with pytest.raises(ValueError, match="authorization token"):
             resolver._GithubResolver__get_gh_token()
+
+
+# ============================================================================
+# GitHub archives, as a dataroot reaches them: through the resolver registry
+# ============================================================================
+
+_SHA = "938df309b4803fd79b10de6d3c7d7aa4645c39f5"
+
+
+def _archive(members, fmt):
+    """An archive holding one byte at each path in ``members``."""
+    buffer = BytesIO()
+    if fmt == "zip":
+        with zipfile.ZipFile(buffer, "w") as zip_ref:
+            for member in members:
+                zip_ref.writestr(member, "x")
+    else:
+        with tarfile.open(fileobj=buffer, mode=f"w:{fmt}") as tar:
+            for member in members:
+                info = tarfile.TarInfo(name=member)
+                info.size = 1
+                tar.addfile(info, BytesIO(b"x"))
+    return buffer.getvalue()
+
+
+def _fetch(source, ref, members, fmt="gz"):
+    """
+    Resolves ``source`` with the resolver the registry picks for it, downloading
+    an archive of ``members``.
+
+    Returns:
+        tuple: the cache root's entries, the request's headers, and the
+        warnings logged.
+    """
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+    resolver = Resolver.find_resolver(source)("test", project, source, ref)
+    with patch("siliconcompiler.package.https.requests.get") as get, \
+         patch.object(resolver.logger, "warning") as warning:
+        get.return_value.ok = True
+        get.return_value.content = _archive(members, fmt)
+        resolver.resolve_remote()
+    return sorted(os.listdir(resolver.cache_path)), get.call_args.kwargs["headers"], \
+        [call.args[0] for call in warning.call_args_list]
+
+
+@pytest.mark.parametrize("source,ref,members,fmt", [
+    # lambdapdk's release form: a tag directory, with the reference appended.
+    ("https://github.com/o/r/archive/refs/tags/", "v1.0.2", ["r-1.0.2/f"], "gz"),
+    # lambdapdk's development form: the reference is a commit.
+    ("https://github.com/o/r/archive/", _SHA, [f"r-{_SHA}/f"], "gz"),
+    ("https://github.com/o/r/archive/refs/tags/v1.0.2.zip", "v1.0.2", ["r-1.0.2/f"], "zip"),
+    ("https+private://github.com/o/r/archive/refs/tags/v1.0.tar.gz", "v1.0", ["r-1.0/f"], "gz"),
+    ("http://github.com/o/r/archive/refs/tags/v1.0.tar.gz", "v1.0", ["r-1.0/f"], "gz"),
+    ("https://codeload.github.com/o/r/tar.gz/refs/tags/v1", "v1", ["r-1/f"], "gz"),
+    ("github://o/r/v1.0/v1.0.tar.gz", "v1.0", ["r-1.0/f"], "gz"),
+    ("github://o/r/v1.0/v1.0.zip", "v1.0", ["r-1.0/f"], "zip"),
+])
+def test_github_archive_is_flattened(source, ref, members, fmt):
+    """A GitHub source archive wraps the repository in '<repo>-<ref>', which is
+    moved up so the cache root is the repository root."""
+    entries, _, warnings = _fetch(source, ref, members, fmt)
+    assert entries == ["f"]
+    assert warnings == []
+
+
+@pytest.mark.parametrize("source,members,expect", [
+    # GitHub's shape, on a host that is not GitHub's.
+    ("https://example.com/o/r/archive/refs/tags/v1.0.tar.gz", ["r-1.0/f"], ["r-1.0"]),
+    # A single top directory, but not the one GitHub names.
+    ("https://github.com/o/r/archive/refs/tags/v1.0.tar.gz", ["other/f"], ["other"]),
+    # The '<repo>-<ref>' directory, but not alone.
+    ("https://github.com/o/r/archive/refs/tags/v1.0.tar.gz", ["r-1.0/f", "g"], ["g", "r-1.0"]),
+])
+def test_archive_not_flattened(source, members, expect):
+    entries, _, warnings = _fetch(source, "v1.0", members)
+    assert entries == expect
+    assert warnings == []
+
+
+def test_github_release_asset_is_not_flattened():
+    """A release asset is laid out however its author built it, so even a top
+    directory named like a source archive's stays."""
+    asset = MagicMock()
+    asset.name = "asset.tar.gz"
+    asset.url = "https://api.github.com/repos/o/r/releases/assets/1"
+    gh = MagicMock()
+    gh.get_repo.return_value.get_release.return_value.assets = [asset]
+
+    with patch.object(GithubResolver, "_GithubResolver__gh", return_value=gh):
+        entries, headers, _ = _fetch("github://o/r/v1.0/asset.tar.gz", "v1.0", ["r-1.0/f"])
+    assert entries == ["r-1.0"]
+    assert headers["Accept"] == "application/octet-stream"
+
+
+def test_github_enterprise_archive_is_flattened():
+    """GitHub Enterprise packs its archives as github.com does."""
+    entries, _, warnings = _fetch("https://github.mycorp.com/o/r/archive/refs/tags/v1.0.tar.gz",
+                                  "v1.0", ["r-1.0/f"])
+    assert entries == ["f"]
+    assert warnings == []
+
+
+@pytest.mark.parametrize("source,resolver", [
+    ("https://github.com/o/r/archive/refs/tags/", "GithubArchiveResolver"),
+    ("https+private://github.com/o/r/archive/refs/tags/", "GithubArchiveResolver"),
+    ("http://github.com/o/r/archive/refs/tags/", "GithubArchiveResolver"),
+    ("https://codeload.github.com/o/r/tar.gz/refs/tags/v1", "GithubArchiveResolver"),
+    ("https://api.github.com/repos/o/r/releases/assets/1", "GithubArchiveResolver"),
+    ("https://GitHub.com/o/r/archive/refs/tags/", "GithubArchiveResolver"),
+    # GitHub Enterprise, matched by label; its tokens are a separate question.
+    ("https://github.mycorp.com/o/r/archive/refs/tags/", "GithubArchiveResolver"),
+    ("github://o/r/v1.0/v1.0.tar.gz", "GithubResolver"),
+    # The owner sits where a host would, and is no reason to leave github://.
+    ("github://github/r/v1.0/v1.0.tar.gz", "GithubResolver"),
+    ("https://notgithub.com/o/r/archive/refs/tags/", "HTTPResolver"),
+    ("https://mygithub.internal/o/r/archive/refs/tags/", "HTTPResolver"),
+    ("https://example.com/github.com/x.tar.gz", "HTTPResolver"),
+])
+def test_find_resolver_by_host(source, resolver):
+    assert Resolver.find_resolver(source).__name__ == resolver
+
+
+@pytest.mark.parametrize("source,accept", [
+    ("https://github.com/o/r/archive/refs/tags/v1.0.tar.gz", True),
+    # A release asset by its API URL answers with JSON unless asked for the file.
+    ("https://api.github.com/repos/o/r/releases/assets/1", True),
+    ("https://example.com/x.tar.gz", False),
+])
+def test_github_accept_header(source, accept):
+    resolver = Resolver.find_resolver(source)("test", None, source, "v1.0")
+    headers = resolver._get_headers()
+    assert (headers.get("Accept") == "application/octet-stream") is accept
+
+
+# ============================================================================
+# GithubArchiveResolver: plain URLs on GitHub's hosts
+# ============================================================================
+
+def test_github_archive_resolver_resolve_remote_header():
+    """Test resolve_remote sets GitHub-specific Accept header."""
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver = GithubArchiveResolver(
+        "test", project,
+        "https://github.com/owner/repo/releases/download/v1.0/file.tar.gz", "v1.0")
+
+    tar_buffer = BytesIO()
+    with tarfile.open(fileobj=tar_buffer, mode='w:gz'):
+        pass
+    tar_buffer.seek(0)
+
+    import siliconcompiler.package.https as https_module
+    with patch.object(https_module, "requests") as mock_requests:
+
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.content = tar_buffer.getvalue()
+        mock_requests.get.return_value = mock_response
+
+        resolver.resolve_remote()
+
+        call_args = mock_requests.get.call_args
+        headers = call_args[1]["headers"]
+        assert headers.get("Accept") == "application/octet-stream"
+
+
+def test_github_archive_resolver_resolve_remote_flatten():
+    """Test resolve_remote flattens GitHub archive structure."""
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver = GithubArchiveResolver(
+        "test", project,
+        "https://github.com/owner/repo/archive/refs/tags/v1.0.tar.gz", "v1.0")
+
+    tar_buffer = BytesIO()
+    with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+        info = tarfile.TarInfo(name="repo-1.0/test.txt")
+        info.size = 4
+        tar.addfile(info, BytesIO(b"test"))
+    tar_buffer.seek(0)
+
+    import siliconcompiler.package.https as https_module
+    with patch.object(https_module, "requests") as mock_requests:
+
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.content = tar_buffer.getvalue()
+        mock_requests.get.return_value = mock_response
+
+        resolver.resolve_remote()
+
+        # Verify file was moved to cache root
+        assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
+        assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
+
+
+def test_github_archive_resolver_resolve_remote_flatten_tgz():
+    """Test resolve_remote flattens GitHub archive structure with .tgz extension."""
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver = GithubArchiveResolver(
+        "test", project,
+        "https://github.com/owner/repo/archive/refs/tags/v1.0.tgz", "v1.0")
+
+    tar_buffer = BytesIO()
+    with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
+        info = tarfile.TarInfo(name="repo-1.0/test.txt")
+        info.size = 4
+        tar.addfile(info, BytesIO(b"test"))
+    tar_buffer.seek(0)
+
+    import siliconcompiler.package.https as https_module
+    with patch.object(https_module, "requests") as mock_requests:
+
+        mock_response = MagicMock()
+        mock_response.ok = True
+        mock_response.content = tar_buffer.getvalue()
+        mock_requests.get.return_value = mock_response
+
+        resolver.resolve_remote()
+
+        # Verify file was moved to cache root
+        assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
+        assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
+
+
+def test_github_archive_resolver_resolve_remote_flatten_zip():
+    """
+    A GitHub source zip flattens like the tarballs do.
+
+    ``github://`` builds these itself, as '<release>.zip' -- so the dotted release
+    that defeats the fallback guess is the normal case, not an exotic one.
+    """
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver = GithubArchiveResolver(
+        "test", project,
+        "https://github.com/owner/repo/archive/refs/tags/v1.0.2.zip", "v1.0.2")
+
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, 'w') as zf:
+        zf.writestr("repo-1.0.2/test.txt", "test")
+
+    import siliconcompiler.package.https as https_module
+    with patch.object(https_module, "requests") as mock_requests:
+        mock_requests.get.return_value.ok = True
+        mock_requests.get.return_value.content = archive.getvalue()
+        resolver.resolve_remote()
+
+    assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
+    assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0.2"))
+
+
+def test_github_archive_resolver_get_headers_release_url():
+    """Test _get_headers adds Accept header for GitHub URLs."""
+    resolver = GithubArchiveResolver(
+        "test", None,
+        "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Accept"] == "application/octet-stream"
+
+
+def test_github_archive_resolver_get_headers_archive_url():
+    """Test _get_headers adds Accept header for GitHub archive URLs."""
+    resolver = GithubArchiveResolver(
+        "test", None,
+        "https://github.com/owner/repo/archive/refs/tags/v1.0.tar.gz", "v1.0")
+    headers = resolver._get_headers()
+    assert headers["Accept"] == "application/octet-stream"
