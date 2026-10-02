@@ -26,6 +26,7 @@ from siliconcompiler.package import _RESOLVERS_POPULATED
 from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler.package.git import GitResolver
 from siliconcompiler.package.github import GithubResolver
+from siliconcompiler.package.gitlab import GitlabResolver
 from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler import utils
@@ -345,6 +346,10 @@ def test_safe_source_keeps_project_env_unexpanded():
      GithubResolver, False, "github://org/repo/v1/archive.tar.gz"),
     ("github+private://org/repo/v1/archive.tar.gz", "v1",
      GithubResolver, True, "github://org/repo/v1/archive.tar.gz"),
+    ("gitlab://gitlab.com/org/repo/v1/archive.tar.gz", "v1",
+     GitlabResolver, False, "gitlab://gitlab.com/org/repo/v1/archive.tar.gz"),
+    ("gitlab+private://gitlab.com/org/repo/v1/archive.tar.gz", "v1",
+     GitlabResolver, True, "gitlab://gitlab.com/org/repo/v1/archive.tar.gz"),
     ("python://siliconcompiler", None,
      PythonPathResolver, False, "python://siliconcompiler"),
 ])
@@ -649,6 +654,8 @@ def test_find_resolver_python():
     ("ssh://host/repo", "GitResolver"),
     ("github://owner/repo/ref/file", "GithubResolver"),
     ("github+private://owner/repo/ref/file", "GithubResolver"),
+    ("gitlab://host/group/project/ref/file", "GitlabResolver"),
+    ("gitlab+private://host/group/project/ref/file", "GitlabResolver"),
     ("scp://host/file", "SCPResolver"),
     ("http+private://host/file", "HTTPResolver"),
     ("https+private://host/file", "HTTPResolver"),

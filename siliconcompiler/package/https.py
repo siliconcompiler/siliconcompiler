@@ -256,17 +256,18 @@ class HTTPResolver(RemoteResolver):
         """
         return ["HTTPS", "HTTP"]
 
-    def _archive_root(self, data_url: str) -> Optional[str]:
+    def _archive_root(self, data_url: str, entries: List[str]) -> Optional[str]:
         """
         The directory the archive from ``data_url`` wraps its contents in, if
         any.
 
-        When the unpacked archive holds that directory and nothing else, its
-        contents are moved up, so the cache root is the archive's own root. The
-        base expects no wrapper.
+        Asked once the archive is unpacked. When it unpacked to that directory
+        and nothing else, the directory's contents are moved up, so the cache
+        root is the archive's own root. The base expects no wrapper.
 
         Args:
             data_url (str): The URL the archive was downloaded from.
+            entries (list): The names the archive unpacked to, at its top level.
 
         Returns:
             str or None: The directory's name, or None to leave the archive as
@@ -343,9 +344,10 @@ class HTTPResolver(RemoteResolver):
         archive_format = _extract_archive(fileobj, self.cache_path, data_url)
         self.logger.debug(f'Unpacked {self.display_name} data as a {archive_format} archive')
 
-        root = self._archive_root(data_url)
+        entries = os.listdir(self.cache_path)
+        root = self._archive_root(data_url, entries)
         root_path = os.path.join(self.cache_path, root) if root else None
-        if root and os.listdir(self.cache_path) == [root] and os.path.isdir(root_path):
+        if root and entries == [root] and os.path.isdir(root_path):
             for data_file in os.listdir(root_path):
                 shutil.move(os.path.join(root_path, data_file), self.cache_path)
             os.rmdir(root_path)

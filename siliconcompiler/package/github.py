@@ -91,7 +91,7 @@ class GithubArchiveResolver(HTTPResolver):
             prefixes = ["GITHUB", "GH", "GIT", *prefixes]
         return prefixes
 
-    def _archive_root(self, data_url: str) -> Optional[str]:
+    def _archive_root(self, data_url: str, entries: List[str]) -> Optional[str]:
         """
         The directory a GitHub source archive wraps the repository in.
 
@@ -102,6 +102,9 @@ class GithubArchiveResolver(HTTPResolver):
 
         Args:
             data_url (str): The archive's URL.
+            entries (list): The names the archive unpacked to. Unused: the
+                directory is named from the URL, so an archive that is not
+                GitHub's source archive is left alone.
 
         Returns:
             str or None: The directory's name, or None for a path too short to
@@ -207,10 +210,10 @@ class GithubResolver(GithubArchiveResolver):
 
         return headers
 
-    def _archive_root(self, data_url: str) -> Optional[str]:
+    def _archive_root(self, data_url: str, entries: List[str]) -> Optional[str]:
         _, _, release, artifact = self.gh_path
         if artifact in (f"{release}.tar.gz", f"{release}.zip"):
-            return super()._archive_root(data_url)
+            return super()._archive_root(data_url, entries)
         return None
 
     def __get_release_url(self, repository: str, release: str, artifact: str, private: bool) -> str:
