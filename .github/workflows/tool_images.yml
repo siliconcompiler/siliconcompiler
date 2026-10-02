@@ -5,7 +5,8 @@ name: 'Tool images'
 # images; a package that adds tools to sc-install calls it with an image-prefix.
 #
 # For a package, the package is installed from the calling repository and the
-# images are worked out by the SiliconCompiler it brings with it: every image whose
+# images are worked out by the SiliconCompiler it brings with it, or by the one at
+# siliconcompiler-ref for a package ahead of SiliconCompiler's release: every image whose
 # tag matches SiliconCompiler's is pulled from ghcr.io, the rest are built and
 # pushed under the prefix, and the image of all of them is <prefix>tools.
 #
@@ -40,6 +41,10 @@ on:
         description: 'Rebuild every tool image, whether or not it exists'
         type: boolean
         default: false
+      siliconcompiler-ref:
+        description: 'For a package, git ref of SiliconCompiler to plan with instead of the release the package installs; empty for that release'
+        type: string
+        default: ''
     secrets:
       registry-password:
         description: 'Password for the registry, default GITHUB_TOKEN'
@@ -106,12 +111,19 @@ jobs:
           password: ${{ secrets.registry-password || github.token }}
 
       - name: Install
+        env:
+          SC_REF: ${{ inputs.siliconcompiler-ref }}
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
           python3 -m pip install --upgrade pip
           # Editable, so a package's data resolves to this checkout
           python3 -m pip install -e .
+          # A package ahead of SiliconCompiler's release plans, and so pairs its
+          # tools with sc_tools, as that ref does
+          if [ -n "$SC_REF" ]; then
+            python3 -m pip install "siliconcompiler @ git+https://github.com/siliconcompiler/siliconcompiler.git@${SC_REF}"
+          fi
 
       - name: Plan
         id: plan
