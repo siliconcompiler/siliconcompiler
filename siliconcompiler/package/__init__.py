@@ -1078,10 +1078,23 @@ class RemoteResolver(Resolver):
 
 class FileResolver(Resolver):
     """
-    A resolver for local file system paths.
+    A directory on this machine.
 
-    It handles both absolute paths and paths relative to the project's CWD.
-    It normalizes the source string to a `file://` URI.
+    Format:
+        ``<path>`` or ``file://<path>``
+
+        A relative path is relative to the project's working directory. Given a
+        file -- most often ``__file__`` -- ``set_dataroot`` roots the dataroot at
+        the directory holding it, so a design's files are found wherever the
+        script defining it is run from. A path that starts with an environment
+        variable is how foundry data is referenced without committing its
+        location.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("heartbeat", __file__)
+            design.set_dataroot("foundry", "$FOUNDRY_ROOT/pdk/v1")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
@@ -1128,13 +1141,25 @@ class FileResolver(Resolver):
 
 class PythonPathResolver(Resolver):
     """
-    A resolver for locating installed Python packages.
+    A directory inside an installed Python package.
 
-    This resolver uses Python's import machinery to find the installation
-    directory of a given Python module, as in ``python://siliconcompiler``, or
-    of a directory inside it, as in ``python://siliconcompiler/tools/openroad``.
-    It also includes helper methods to determine if a package is installed in
-    "editable" mode.
+    Format:
+        ``python://<module>`` or ``python://<module>/<path>``
+
+        ``<module>`` is imported, and stands for the directory holding it -- for
+        a package, the package's own directory -- so the data is found wherever
+        the package is installed. ``<path>`` names a directory inside it; it is
+        not imported, and need not be a package.
+
+        A package whose data does not ship in its wheel can call
+        ``PythonPathResolver.set_dataroot`` instead, which picks ``python://``
+        for an editable install and a fallback source, typically a git
+        repository keyed to the package version, for any other.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("mylib", "python://mylib/data")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
@@ -1258,10 +1283,21 @@ class PythonPathResolver(Resolver):
 
 class KeyPathResolver(Resolver):
     """
-    A resolver for finding file paths stored within the project schema itself.
+    The directory another schema parameter names.
 
-    This resolver takes a keypath (e.g., 'tool,openroad,exe') and uses the
-    `find_files` method of the root project object to locate the corresponding file.
+    Format:
+        ``key://<keypath>``
+
+        ``<keypath>`` is a comma-separated keypath from the project, such as
+        ``library,<design>,fileset,rtl,idir``, and the dataroot is the first path
+        that parameter holds. A parameter set per node is read for the step and
+        index being run. The dataroot follows the parameter: change it, and the
+        files rooted here move with it.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("includes", "key://library,mydesign,fileset,rtl,idir")
     """
 
     @property
@@ -1300,7 +1336,22 @@ class KeyPathResolver(Resolver):
 
 class DatarootResolver(Resolver):
     """
-    A resolver for finding file paths stored with other dataroots.
+    A directory inside another dataroot.
+
+    Format:
+        ``dataroot://<name>`` or ``dataroot://<name>/<path>``
+
+        ``<name>`` is another dataroot defined alongside this one, resolved by
+        its own scheme and ``tag``, and ``<path>`` is a directory inside it. One
+        remote source can then be split into several dataroots while its URL and
+        tag are written once. A chain of dataroots that leads back to itself is
+        an error.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("pdk", "git+https://github.com/org/pdk.git", tag="v1.0")
+            design.set_dataroot("pdk-lef", "dataroot://pdk/lef")
     """
 
     @property

@@ -62,12 +62,71 @@ def get_resolver() -> Dict[str, Type["GitResolver"]]:
 
 class GitResolver(RemoteResolver):
     """
-    A resolver for fetching data from remote Git repositories.
+    A Git repository, cloned and checked out at a branch, tag or commit.
 
-    This class handles cloning repositories, checking out specific references,
-    and managing the local cache. It supports authentication via environment
-    tokens (e.g., GITHUB_TOKEN) for HTTPS and assumes SSH keys are configured
-    for SSH-based URLs.
+    Format:
+        ``git+https://<host>/<path>``, ``git+ssh://<user>@<host>/<path>`` or
+        ``ssh://<user>@<host>/<path>``
+
+        ``git://`` is cloned over HTTPS, as ``git+https://`` is. Submodules are
+        checked out, and Git LFS files fetched, when the repository has them;
+        ``?submodules=false`` or ``?lfs=false`` on the URL skips either. A
+        repository that uses LFS needs ``git-lfs`` installed.
+
+    Tag:
+        The branch, tag or commit checked out after cloning.
+
+    Authentication:
+        ``git+ssh://`` and ``ssh://`` use this machine's SSH keys. Prefer them
+        where you can: they keep the credential out of the URL entirely, while a
+        token sent over HTTPS is written into the cached clone's
+        ``.git/config``.
+
+        Over HTTPS the token is read from the environment and sent as the
+        basic-auth password, under the username the host expects:
+
+        .. list-table::
+           :header-rows: 1
+           :widths: 15 40 45
+
+           * - Host
+             - Environment variable
+             - Sent to the server as
+           * - ``github.com``
+             - ``GITHUB_TOKEN``, ``GH_TOKEN``, then ``GIT_TOKEN``
+             - ``x-access-token:<token>``
+           * - ``gitlab.com``
+             - ``GITLAB_TOKEN``, ``GL_TOKEN``, then ``GIT_TOKEN``
+             - ``oauth2:<token>``
+           * - ``bitbucket.org``
+             - ``BITBUCKET_TOKEN``, then ``GIT_TOKEN``
+             - ``x-token-auth:<token>``
+           * - anything else
+             - ``GIT_TOKEN``
+             - the username above for a host named after a forge
+               (``gitlab.example.com``), else ``<token>`` as the username with
+               an empty password
+
+        The username matters: a GitHub App installation token is accepted only
+        in the form above, while a classic personal access token is accepted
+        either way.
+
+        A forge's own variables unlock only for that forge's own domains. A
+        self-hosted GitHub Enterprise or GitLab -- ``gitlab.example.com`` --
+        still gets the right username, but takes its token from ``GIT_TOKEN``:
+        a forge name in a host label is not evidence that the forge owns the
+        host, and ``GITLAB_TOKEN`` must not be handed to
+        ``gitlab.attacker.example`` on the strength of one.
+
+        For a host that needs some other username, write it into the URL and
+        the token becomes its password, as in
+        ``git+https://<user>@git.example.com/<owner>/<repo>``. A password
+        written into the URL is used as it is.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("ip", "git+https://github.com/org/ip.git", tag="v1.0")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):

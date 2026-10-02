@@ -34,8 +34,9 @@ because they change with the technology and the RTL does not:
 
 :meth:`.Design.set_dataroot` with ``__file__`` makes every path relative to the
 script, so the design still builds when someone clones it somewhere else. That
-is worth doing from the start -- see :ref:`dataroot <glossary>` for the other
-kinds, including sources fetched from a git repository at a pinned commit.
+is worth doing from the start -- see :ref:`Data Sources <builtin_resolvers>` for
+the other kinds, including sources fetched from a git repository at a pinned
+commit.
 
 Parameters and defines belong to the fileset too:
 

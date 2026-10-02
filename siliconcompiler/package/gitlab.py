@@ -43,29 +43,41 @@ def get_resolver() -> Dict[str, Type["GitlabResolver"]]:
 
 class GitlabResolver(HTTPResolver):
     """
-    A resolver for fetching release assets and source archives from GitLab.
+    A release asset or source archive from a GitLab project.
 
-    The expected source URI format is:
-    `gitlab://<host>/<namespace...>/<project>/<tag>/<asset>`
+    Format:
+        ``gitlab://<host>/<namespace...>/<project>/<tag>/<asset>``
 
-    The host is always written out, ``gitlab.com`` included. The project may sit
-    in nested groups (``group/subgroup/project``): the last two segments are the
-    tag and the asset, and everything before them is the project's path. A tag
-    or asset name holding a ``/`` writes it as ``%2F``. An empty tag
-    (``.../<project>//<asset>``) means the latest release.
+        The host is always written out, ``gitlab.com`` included. The project may
+        sit in nested groups (``group/subgroup/project``): the last two segments
+        are the tag and the asset, and everything before them is the project's
+        path. A tag or asset name holding a ``/`` writes it as ``%2F``. An empty
+        tag (``.../<project>//<asset>``) means the latest release.
 
-    An asset named ``<tag>.tar.gz``, ``<tag>.tar.bz2`` or ``<tag>.zip`` is the
-    project's source at that tag, downloaded through the API and unwrapped from
-    the directory GitLab packs it in. Any other name is a link on the release,
-    downloaded as its author published it.
+        An asset named ``<tag>.tar.gz``, ``<tag>.tar.bz2`` or ``<tag>.zip`` is
+        the project's source at that tag, downloaded through the API and
+        unwrapped from the directory GitLab packs it in. Any other name is a
+        link on the release to an archive, unpacked as its author published it.
 
-    A project that cannot be read anonymously is read with a token, as
-    ``Authorization: Bearer <token>`` and only ever to the GitLab host itself.
-    gitlab.com takes ``GITLAB_TOKEN`` or ``GL_TOKEN``, then ``GIT_TOKEN``; a
-    self-hosted instance takes ``GIT_TOKEN`` alone, so that a host which only
-    calls itself GitLab is never handed the ambient ``GITLAB_TOKEN``. Each also
-    has its dataroot-specific form, ``GITLAB_<DATAROOT>_TOKEN`` and so on. The
-    ``gitlab+private`` scheme skips the anonymous attempt.
+    Tag:
+        Required, but it does not choose what is fetched: the tag in the URL
+        does. It keys the cache entry along with the URL, so with an empty tag
+        in the URL, changing this one is what fetches the latest release again.
+
+    Authentication:
+        A project that cannot be read anonymously is read with a token, sent as
+        ``Authorization: Bearer <token>`` and only ever to the GitLab host
+        itself. gitlab.com takes ``GITLAB_TOKEN`` or ``GL_TOKEN``, then
+        ``GIT_TOKEN``; a self-hosted instance takes ``GIT_TOKEN`` alone, so that
+        a host which only calls itself GitLab is never handed the ambient
+        ``GITLAB_TOKEN``. ``gitlab+private://`` skips the anonymous attempt. The
+        URL cannot carry a credential of its own.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("ip", "gitlab://gitlab.com/org/ip/v1.0/v1.0.tar.gz",
+                                tag="v1.0")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
