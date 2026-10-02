@@ -65,6 +65,35 @@ machine: a :ref:`remote run <remote_processing>` is not to upload it, so the
 SiliconCompiler server has to hold its own copy. Mark a source ``+private`` only if
 it must stay here; a repository this machine can fetch needs no marker.
 
+.. _howto_s3_dataroot:
+
+Dataroot: fetch from S3 or an S3-compatible store
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Install the ``s3`` extra (``pip install "siliconcompiler[s3]"``), then name one
+archive object, or a prefix whose ``<tag>.tar.gz`` is the archive:
+
+.. code-block:: python
+
+   design.set_dataroot("<name>", "s3://<bucket>/<key>.tar.gz", tag="<version>")
+   design.set_dataroot("<name>", "s3://<bucket>/<prefix>/", tag="<version>")
+
+The object is unpacked as an ``https://`` archive is, in the same formats.
+
+Credentials come from the AWS chain, as for the AWS CLI: ``AWS_PROFILE``,
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``, ``~/.aws/credentials``, SSO,
+or an instance role. With none found, the request goes unsigned, which reads a
+public bucket. An ``s3+private://`` source requires credentials instead.
+
+For a store other than AWS -- MinIO, Ceph, Cloudflare R2 -- set its endpoint, and
+its keys as the AWS variables:
+
+.. code-block:: bash
+
+   export AWS_ENDPOINT_URL_S3=https://<account>.r2.cloudflarestorage.com
+   export AWS_ACCESS_KEY_ID=<key>
+   export AWS_SECRET_ACCESS_KEY=<secret>
+
 Dataroot relative to my current file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

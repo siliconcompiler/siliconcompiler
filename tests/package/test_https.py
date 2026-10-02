@@ -18,7 +18,8 @@ from siliconcompiler import utils
 from siliconcompiler.package import DataRootResolutionError, Resolver
 from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
 from siliconcompiler.package.github import GithubArchiveResolver
-from siliconcompiler.package.https import HTTPResolver, _extract_archive
+from siliconcompiler.package._archive import extract_archive
+from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler import Project
 
 
@@ -476,10 +477,10 @@ def test_http_resolver_signed_url_not_logged():
 ])
 def test_extract_archive_masks_signed_url(zstd_header, error_type):
     source = "https://example.com/archive?X-Amz-Signature=secret"
-    with patch("siliconcompiler.package.https.zstd_available", return_value=False), \
-         patch("siliconcompiler.package.https.is_zstd", return_value=zstd_header):
+    with patch("siliconcompiler.package._archive.zstd_available", return_value=False), \
+         patch("siliconcompiler.package._archive.is_zstd", return_value=zstd_header):
         with pytest.raises(error_type) as error:
-            _extract_archive(BytesIO(b"invalid archive"), ".", source)
+            extract_archive(BytesIO(b"invalid archive"), ".", source)
 
     assert "X-Amz-Signature=***" in str(error.value)
     assert "secret" not in str(error.value)
@@ -657,7 +658,7 @@ def test_extract_archive_reports_the_format_it_found(compression, expected):
     """
     archive = BytesIO(_tarball({"test.txt": b"test"}, compression))
 
-    assert _extract_archive(archive, ".", "https://example.com/data") == expected
+    assert extract_archive(archive, ".", "https://example.com/data") == expected
 
 
 def test_extract_archive_reports_zip():
@@ -666,7 +667,7 @@ def test_extract_archive_reports_zip():
     with zipfile.ZipFile(archive, 'w') as zf:
         zf.writestr("test.txt", "test")
 
-    assert _extract_archive(archive, ".", "https://example.com/data") == "zip"
+    assert extract_archive(archive, ".", "https://example.com/data") == "zip"
 
 
 def test_http_resolver_resolve_remote_zstd_identified_by_contents():

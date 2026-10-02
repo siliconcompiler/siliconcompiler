@@ -216,6 +216,9 @@ features below are packaged as extras, installed by naming them in brackets:
      - Running your own :ref:`remote server <custom-servers>` with
        :ref:`sc-server <app-sc-server>`. Submitting jobs to someone else's
        server does not need it.
+   * - ``s3``
+     - Fetching a :term:`dataroot` from an ``s3://`` source: Amazon S3, or a
+       store that speaks its API. See :ref:`howto_s3_dataroot`.
    * - ``cocotb``
      - The `cocotb <https://www.cocotb.org/>`_ testbench flow.
    * - ``optimizer``

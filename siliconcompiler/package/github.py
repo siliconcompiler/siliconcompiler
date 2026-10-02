@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 #: first match is the whole extension.
 #:
 #: One format is deliberately absent: a plain, uncompressed '.tar' is not among the
-#: formats :func:`siliconcompiler.package.https._archive_formats` can read, so an
+#: formats :func:`siliconcompiler.package._archive.archive_formats` can read, so an
 #: archive named that way never reaches the flattening this table serves.
 _ARCHIVE_SUFFIXES = (".tar.gz", ".tar.bz2", ".tar.xz", ".tar.zst",
                      ".tgz", ".tbz2", ".txz", ".tzst", ".zip")
