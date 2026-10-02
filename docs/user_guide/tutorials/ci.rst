@@ -73,7 +73,7 @@ are convenient and reproducible only until someone releases.
 for ``runner``, or a digest-pinned ``sc_tools:af23682…`` for ``tools`` -- so the
 job moves forward only when you change ``sc_version``. Behind
 `docker_image.yml <https://github.com/siliconcompiler/siliconcompiler/blob/main/.github/workflows/docker_image.yml>`_
-is ``setup/docker/builder.py``, which derives the image from the tool versions
+is ``siliconcompiler.utils.toolimages``, which derives the image from the tool versions
 pinned in ``_tools.json``, so the container and the tool pins cannot disagree.
 
 Two images are published and they are **not** interchangeable:

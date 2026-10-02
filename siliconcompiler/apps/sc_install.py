@@ -1,9 +1,7 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 import argparse
-import glob
 import hashlib
 import json
-import re
 import shutil
 import subprocess
 import sys
@@ -15,10 +13,9 @@ from typing import Dict, List, Optional, Set
 from collections.abc import Container
 from pathlib import Path
 
-import siliconcompiler
-
 from siliconcompiler.schema_support.record import RecordSchema
-from siliconcompiler.utils import get_plugins
+from siliconcompiler.utils import get_plugins, toolimages
+from siliconcompiler.utils.toolimages import get_install_tools
 
 
 def get_install_groups() -> Dict[str, List[str]]:
@@ -39,25 +36,6 @@ def get_install_groups() -> Dict[str, List[str]]:
         "digital-simulation": ["verilator", "icarus", "surfer"],
         "analog-simulation": ["xyce"]
     }
-
-
-def get_install_tools(osname: Optional[str]) -> Dict[str, str]:
-    tools_root = _get_tool_script_dir()
-
-    script_dir = None
-    if osname:
-        script_dir = tools_root / osname
-        if not script_dir.exists():
-            script_dir = None
-
-    tools = {}
-    if script_dir:
-        for script in glob.glob(str(script_dir / "install-*.sh")):
-            tool = re.match(r"install-(.*)\.sh", os.path.basename(script).lower())
-            if tool:
-                tools[tool.group(1)] = script
-
-    return tools
 
 
 class ChoiceOptional(Container):
@@ -205,29 +183,25 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
     # The install scripts source _prereqs.sh, so a change to how prerequisites are
     # resolved has to invalidate the fingerprint the same way an edit to the script
     # itself does.
-    prereqs = _get_tool_script_dir() / "_prereqs.sh"
+    prereqs = toolimages.get_tool_script_dir() / "_prereqs.sh"
     try:
         with open(prereqs, "rb") as f:
             h.update(f.read())
     except OSError:
         pass
 
-    tools_json = _get_tool_script_dir() / "_tools.json"
-    if tools_json.exists():
-        try:
-            with open(tools_json) as f:
-                data = json.load(f)
-            # Also fold in tools that this install script builds in-image but does not
-            # ``docker-depends`` on (e.g. sby builds its SMT solvers), so bumping their
-            # pinned version invalidates the image instead of leaving a stale build.
-            extra = data.get(tool, {}).get("build-depends", [])
-            if isinstance(extra, str):
-                extra = [extra]
-            names = _expand_docker_depends({tool, *extra}, data)
-            subset = {name: data[name] for name in sorted(names) if name in data}
-            h.update(json.dumps(subset, sort_keys=True).encode("utf-8"))
-        except (OSError, json.JSONDecodeError):
-            pass
+    # Merged with the packages' pins, so one of theirs -- or their override of one of
+    # ours -- is tracked like a built-in one.
+    data = toolimages.get_tools_manifest(_get_os_name())
+    # Also fold in tools that this install script builds in-image but does not
+    # ``docker-depends`` on (e.g. sby builds its SMT solvers), so bumping their
+    # pinned version invalidates the image instead of leaving a stale build.
+    extra = data.get(tool, {}).get("build-depends", [])
+    if isinstance(extra, str):
+        extra = [extra]
+    names = _expand_docker_depends({tool, *extra}, data)
+    subset = {name: data[name] for name in sorted(names) if name in data}
+    h.update(json.dumps(subset, sort_keys=True).encode("utf-8"))
 
     return h.hexdigest()
 
@@ -281,8 +255,27 @@ def install_tool(tool: str, script: str, build_dir: str, prefix: str,
     shutil.rmtree(str(build_path), ignore_errors=True)
     build_path.mkdir(parents=True, exist_ok=True)
 
+    # A package's scripts find _prereqs.sh and _tools.py through SC_TOOLSCRIPTS, since
+    # none are installed next to them, and the _tools.py there reads the merged pins.
+    # Absolute, since the script runs from inside build_path
+    toolscripts_dir = (build_path / "toolscripts").resolve()
+    toolscripts_dir.mkdir()
+    for helper in ("_tools.py", "_prereqs.sh"):
+        shutil.copy(toolimages.get_tool_script_dir() / helper, toolscripts_dir)
+    with open(toolscripts_dir / "_tools.json", "w") as f:
+        json.dump(toolimages.get_tools_manifest(_get_os_name()), f, indent=2)
+
+    # SiliconCompiler's own scripts read their pins through the _tools.py one directory
+    # up, so they run from a copy in SC_TOOLSCRIPTS, where that is the merged pins and a
+    # package's override of one reaches them.
+    if Path(script).resolve().is_relative_to(toolimages.get_tool_script_dir().resolve()):
+        script_dir = toolscripts_dir / Path(script).parent.name
+        script_dir.mkdir()
+        script = shutil.copy2(script, script_dir)
+
     # setup environment
     env = os.environ.copy()
+    env["SC_TOOLSCRIPTS"] = str(toolscripts_dir)
     path = env.get("PATH", "").split(":")
     path.insert(0, os.path.join(prefix, "bin"))
     env["PATH"] = ":".join(path)
@@ -379,7 +372,7 @@ def print_machine_info() -> None:
     print("Distro:   ", machine_info.get('distro', None))
     print("Version:  ", machine_info.get('osversion', None))
     print("Mapped OS:", mapped_os)
-    print("Scripts:  ", _get_tool_script_dir())
+    print("Scripts:  ", toolimages.get_tool_script_dir())
 
 
 def __print_summary(successful: Optional[Set[str]],
@@ -420,15 +413,13 @@ def __print_summary(successful: Optional[Set[str]],
     print("#"*max_len)
 
 
-def _get_tool_script_dir() -> Path:
-    return Path(siliconcompiler.__file__).parent / "toolscripts"
-
-
 def _get_tools_list() -> Dict[str, str]:
     os = _get_os_name()
 
-    # Built-in tools first, so plugins can override the scripts they supply.
+    # Built-in tools first, so packages and plugins can override the scripts they supply.
     tools = get_install_tools(os)
+    _, scripts = toolimages.get_package_tools(os)
+    tools.update(scripts)
     for plugin in get_plugins("install", name="tools"):
         tools.update(plugin(os))
 
@@ -471,7 +462,12 @@ def main() -> int:
     """
     progname = "sc-install"
 
-    tools = _get_tools_list()
+    try:
+        tools = _get_tools_list()
+    except ValueError as e:
+        # Two packages supplying one tool, or a package's _tools.json that does not parse
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     group_desc = "\n".join(
         [f"    {grp}: {', '.join(grp_tools)}"
          for grp, grp_tools in _recommended_tool_groups(tools).items()])

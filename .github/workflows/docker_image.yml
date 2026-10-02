@@ -69,5 +69,12 @@ jobs:
         id: docker
         run: |
           . .venv/bin/activate
-          sc_tool_name=$(python3 setup/docker/builder.py --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
+          # The builder ships in the wheel now; a release checked out above from before
+          # that carries it as this script instead.
+          if python3 -c "import siliconcompiler.utils.toolimages" 2> /dev/null; then
+            builder="-m siliconcompiler.utils.toolimages"
+          else
+            builder="setup/docker/builder.py"
+          fi
+          sc_tool_name=$(python3 $builder --tool ${{ inputs.tool }} --registry ${{ env.REGISTRY }})
           echo "sc_tool=${sc_tool_name}" >> $GITHUB_OUTPUT
