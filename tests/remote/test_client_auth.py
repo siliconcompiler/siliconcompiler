@@ -687,84 +687,45 @@ def test_a_store_in_a_directory_others_can_read_is_refused(tmp_path):
         Credentials(shared / "remote.json")
 
 
-def _legacy_home(tmp_path, ci_secret=None):
-    '''What an older client left: its configuration file and, beside it, the
-    old store's three files and its lock.'''
+def _legacy_home(tmp_path):
+    '''What a released client left: its configuration file, which held the
+    server, its username and password, and the whitelist.'''
     home = tmp_path / "home" / ".sc"
-    auth = home / "auth"
-    auth.mkdir(parents=True, mode=0o700)
+    home.mkdir(parents=True)
     (home / "credentials").write_text(json.dumps({
-        "address": "https://sc-server.test", "port": 443, "user_id": "u1",
-        "directory_whitelist": ["/proj"], "open_portal": False}))
-    files = {
-        "sessions.json": json.dumps({"https://sc-server.test:443/v1": {
-            "refresh_token": "kept", "scope": "jobs:read", "login": "client_credentials",
-            "grant_types_supported": ["client_credentials"]}}),
-        "headers.json": json.dumps({"https://sc-server.test:443": {"CF-Access-Client-Id": "id"}}),
-        "lock": ""}
-    if ci_secret:
-        files["ci-credential"] = ci_secret + "\n"
-    for name, body in files.items():
-        (auth / name).write_text(body)
-        (auth / name).chmod(0o600)
+        "address": "https://sc-server.test", "port": 443, "username": "someone",
+        "password": "hunter2", "directory_whitelist": ["/proj"]}))
     return home
 
 
-def test_an_older_clients_files_are_moved_in_once(tmp_path, monkeypatch):
-    '''🔴 Each piece to its place, the preference to settings.json, and every
-    old file removed: nothing an older client wrote is read twice.'''
-    from siliconcompiler.remote.client import credentials as module
-
-    moved = {}
-    monkeypatch.setattr(module, "_set_preference",
-                        lambda name, value: moved.update({name: value}))
+def test_an_older_clients_file_is_moved_in_once(tmp_path):
+    '''🔴 The server and the whitelist to their places, and the old file
+    removed: nothing an older client wrote is read twice. Its username and
+    password are not the credential any more, and are not kept.'''
     home = _legacy_home(tmp_path)
 
     store = Credentials(home / "auth" / "remote.json")
 
-    assert _store_file(store) == {
-        "store": {"version": 1, "server": "https://sc-server.test:443/v1",
-                  "directory_whitelist": ["/proj"]},
-        "servers": {"https://sc-server.test:443/v1": {
-            "refresh_token": "kept", "user_id": "u1",
-            "headers": {"CF-Access-Client-Id": "id"}}}}
-    assert moved == {"open_portal": False}
+    assert _store_file(store)["store"] == {
+        "version": 1, "server": "https://sc-server.test:443/v1",
+        "directory_whitelist": ["/proj"]}
+    assert "hunter2" not in store.path.read_text()
     assert not (home / "credentials").exists()
     assert sorted(entry.name for entry in (home / "auth").iterdir()) == \
         ["remote.json", "remote.json.lock"]
 
 
-def test_an_older_ci_credential_goes_to_the_configured_server(tmp_path, ci_secret,
-                                                              monkeypatch):
-    '''It named no server, so it is the configured one's -- in place of the
-    refresh token beside it.'''
-    from siliconcompiler.remote.client import credentials as module
-
-    monkeypatch.setattr(module, "_set_preference", lambda name, value: None)
-    monkeypatch.delenv("SC_CI_CREDENTIAL")
-    home = _legacy_home(tmp_path, ci_secret=ci_secret)
-
-    store = Credentials(home / "auth" / "remote.json")
-
-    entry = _store_file(store)["servers"]["https://sc-server.test:443/v1"]
-    assert entry["ci_credential"] == ci_secret and "refresh_token" not in entry
-
-
-def test_credentials_naming_an_older_file_finds_the_store_it_moved_to(
-        tmp_path, monkeypatch, caplog):
+def test_credentials_naming_an_older_file_finds_the_store_it_moved_to(tmp_path, caplog):
     '''`-credentials ~/.sc/credentials` in a script still works: the file is
     moved into the `auth/` beside it, and once it is gone the path finds that
     store, saying where to point it.'''
-    from siliconcompiler.remote.client import credentials as module
-
-    monkeypatch.setattr(module, "_set_preference", lambda name, value: None)
     home = _legacy_home(tmp_path)
 
     first = Credentials(home / "credentials")
     again = Credentials(home / "credentials")
 
     assert first.path == again.path == home / "auth" / "remote.json"
-    assert again.refresh_token == "kept"
+    assert again.server == "https://sc-server.test:443/v1"
     assert "point -credentials there" in caplog.text
 
 

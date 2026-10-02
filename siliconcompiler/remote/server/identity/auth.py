@@ -24,7 +24,7 @@ from typing import Dict, Optional
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.server.errors import OAuthError, ProblemError
-from siliconcompiler.remote.server.state.store import Store, now, stamp
+from siliconcompiler.remote.server.state.store import Store, now, parse, stamp
 
 __all__ = [
     "SCOPES", "expand_scope", "TokenIssuer", "Session",
@@ -451,8 +451,8 @@ class TokenIssuer:
         # handed the very same refresh token, not a second one.
         refresh = jwt.encode(
             {"iss": "sc-server", "jti": refresh_jti, "family": family_id,
-             "iat": int(_parse(refresh_issued)),
-             "exp": int(_parse(refresh_expires))},
+             "iat": int(parse(refresh_issued).timestamp()),
+             "exp": int(parse(refresh_expires).timestamp())},
             self._secret, algorithm="HS256")
 
         return {
@@ -683,22 +683,14 @@ def _load_or_create_secret(path: Path) -> bytes:
 
 
 def _plus(timestamp: str, seconds: int) -> str:
-    from datetime import datetime, timedelta, timezone
+    from datetime import timedelta
 
-    return stamp(datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").replace(
-        tzinfo=timezone.utc) + timedelta(seconds=seconds))
-
-
-def _parse(timestamp: str) -> float:
-    from datetime import datetime, timezone
-
-    return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ").replace(
-        tzinfo=timezone.utc).timestamp()
+    return stamp(parse(timestamp) + timedelta(seconds=seconds))
 
 
 def _seconds_since(earlier: str, later: str) -> float:
-    return _parse(later) - _parse(earlier)
+    return (parse(later) - parse(earlier)).total_seconds()
 
 
 def _seconds_between(timestamp: str) -> int:
-    return int(_parse(timestamp) - time.time())
+    return int(parse(timestamp).timestamp() - time.time())

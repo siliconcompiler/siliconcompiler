@@ -9,11 +9,16 @@ import json
 
 from siliconcompiler.remote.server.errors import TYPE_BASE
 from siliconcompiler.remote.server.jobs.common import (
-    SCHEDULER_QUERY_FLOOR, TERMINAL_NODE_STATES, TERMINAL_STATES, _after, _ago,
-    _members_json, _node_error, _node_metrics, logger)
+    SCHEDULER_QUERY_FLOOR, _after, _ago, _members_json, _node_error, _node_metrics, logger)
 from siliconcompiler.remote.server.outputs import artifacts, record
 from siliconcompiler.remote.server.running import runspec
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import (
+    PENDING_STATES, TERMINAL_NODE_STATES, TERMINAL_STATES, now)
+
+# A node the run has not finished with, as a condition on `job_nodes` and the
+# parameters it binds.
+_UNFINISHED = f"state NOT IN ({', '.join('?' * len(TERMINAL_NODE_STATES))})"
+_TERMINAL_NODES = tuple(sorted(TERMINAL_NODE_STATES))
 
 
 class ReconcileMixin:
@@ -135,11 +140,10 @@ class ReconcileMixin:
             self._store.execute(
                 'UPDATE job_nodes SET state = ?, started_at = ?, finished_at = ?, '
                 '  exit_code = ?, error_type = ?, error_members = ? '
-                'WHERE job_id = ? AND step = ? AND "index" = ? '
-                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
+                f'WHERE job_id = ? AND step = ? AND "index" = ? AND {_UNFINISHED}',
                 (state, node.get("started_at"), node.get("finished_at"),
                  None if state == "cancelled" else runspec.exit_code(node.get("exit_code")),
-                 error_type, error_members, job["id"], step, index))
+                 error_type, error_members, job["id"], step, index, *_TERMINAL_NODES))
 
     @staticmethod
     def _final(job, reported: str) -> str:
@@ -165,16 +169,10 @@ class ReconcileMixin:
         without a transition: *nothing written lately* and *dead* had to be
         told apart, and only a clock can do it.
 
-        ⚠️ **No heartbeat means no opinion**: `reconcile` asks the scheduler
-        instead. The runner stamps one on every write, so only a progress file
-        it did not write lacks one.
+        ⚠️ **No heartbeat is silence**: the runner stamps one on every write,
+        so only a progress file it did not write lacks one.
         '''
-        beat = progress.get("heartbeat")
-        if not beat:
-            return False
-
-        patience = self._config["run_heartbeat_seconds"]
-        return beat < _ago(patience)
+        return (progress.get("heartbeat") or "") < _ago(self._config["run_heartbeat_seconds"])
 
     def abandon_if_expired(self, job) -> bool:
         '''A job whose upload never arrived reaches a terminal state.
@@ -193,7 +191,7 @@ class ReconcileMixin:
 
         Returns whether it moved, so a caller can stop looking at it.
         '''
-        if job["state"] not in ("created", "awaiting_input"):
+        if job["state"] not in PENDING_STATES:
             return False
 
         # The later of the two: old enough by the operator's clock, AND not
@@ -344,7 +342,7 @@ class ReconcileMixin:
         if not nodes:
             return
         row = self._row(job["id"])
-        if row is None or row["state"] not in TERMINAL_STATES or row["deleted_at"]:
+        if row["state"] not in TERMINAL_STATES or row["deleted_at"]:
             return
         root = self.job_root(row["user_id"], row["id"])
         if not root.is_dir():
@@ -353,8 +351,7 @@ class ReconcileMixin:
             try:
                 said = self._dispatcher.describe(scheduler_id)
                 if said:
-                    record.keep(root, "slurm.txt", said, step=step, index=index,
-                                logger=logger)
+                    record.keep(root, "slurm.txt", said, step=step, index=index)
                 artifacts.collect_diagnostics(self._store, self._storage, self._config,
                                               row, root, step, index)
             except Exception as e:                               # noqa: BLE001
@@ -443,8 +440,8 @@ class ReconcileMixin:
             # Everything the run never reached. These really did end before
             # they started.
             self._store.execute(
-                "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL WHERE job_id = ? "
-                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')", (job["id"],))
+                "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL "
+                f"WHERE job_id = ? AND {_UNFINISHED}", (job["id"], *_TERMINAL_NODES))
             self._transition(
                 job["id"], job["state"], "failed",
                 reason="the scheduler no longer has this job and the run never "
@@ -461,16 +458,15 @@ class ReconcileMixin:
             self._index(job)
         with self._store.transaction():
             current = self._row(job["id"])
-            if current is None or current["state"] != "cancelling":
+            if current["state"] != "cancelling":
                 return
             said = current["state_reason"] or "cancelled"
             self._store.execute(
                 "UPDATE jobs SET finished_at = ? WHERE id = ?", (now(), job["id"]))
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL, "
-                "  state_reason = ? WHERE job_id = ? "
-                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
-                (said, job["id"]))
+                f"  state_reason = ? WHERE job_id = ? AND {_UNFINISHED}",
+                (said, job["id"], *_TERMINAL_NODES))
             self._transition(job["id"], "cancelling", "cancelled", reason=said,
                              state_reason=said)
 
@@ -524,9 +520,8 @@ class ReconcileMixin:
             said = (job["state_reason"] or "cancelled") if state == "cancelled" else None
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL, "
-                "  state_reason = ? WHERE job_id = ? "
-                "AND state NOT IN ('completed', 'failed', 'skipped', 'cancelled')",
-                (said, job["id"]))
+                f"  state_reason = ? WHERE job_id = ? AND {_UNFINISHED}",
+                (said, job["id"], *_TERMINAL_NODES))
             # 🔴 A cancelled job's transition carries the cancel's reason, and
             # nothing of the server's: that is what `_transitions` serves whole.
             self._transition(job["id"], job["state"], state,
@@ -588,14 +583,13 @@ class ReconcileMixin:
         if job["scheduler_job_id"]:
             said = self._dispatcher.describe(job["scheduler_job_id"])
             if said:
-                record.keep(root, "slurm.txt", said, logger=logger)
+                record.keep(root, "slurm.txt", said)
         for row in self._store.all(
                 'SELECT step, "index", scheduler_job_id FROM job_nodes '
                 "WHERE job_id = ? AND scheduler_job_id IS NOT NULL", (job["id"],)):
             said = self._dispatcher.describe(row["scheduler_job_id"])
             if said:
-                record.keep(root, "slurm.txt", said, step=row["step"],
-                            index=row["index"], logger=logger)
+                record.keep(root, "slurm.txt", said, step=row["step"], index=row["index"])
 
     def _index_node(self, job, step: str, index: str) -> None:
         """Index one node's log, reports and archive, as it finishes."""

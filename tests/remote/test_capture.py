@@ -831,32 +831,3 @@ def test_what_the_job_ran_in_place_of_a_listed_version_is_said_once(
     said = [record.getMessage() for record in caplog.records
             if "in place of" in record.getMessage()]
     assert said == ["This job runs scfakeumi 0.3.4, in place of 0.3.1 as installed here"]
-
-
-def test_the_reuse_hash_carries_each_uploaded_wheels_digest(
-        site, fake_v1, logged_in, capabilities):
-    '''A wheel is built from whatever its source holds now, and the same
-    version is often different code: two runs alike in all but the wheel's
-    bytes are different jobs.'''
-    import responses
-
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    fake_v1.replace(responses.GET, "", dict(
-        capabilities, features=capabilities["features"] + ["jobs.reuse", "python.env"]))
-    _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"),
-                  files={"data.txt": "one\n"})
-    project = cocotb_project("import scfakeloose\n")
-
-    def sent(run):
-        run._run_hash = lambda: "h-1"
-        return run._reuse_hash()
-
-    first = sent(RemoteRun(project, logged_in))
-    again = sent(RemoteRun(project, logged_in))
-    open(os.path.join(site, "scfakeloose", "data.txt"), "w").write("two\n")
-    changed = sent(RemoteRun(project, logged_in))
-
-    assert first == again != "h-1"
-    assert changed != first
-    assert sent(RemoteRun(cocotb_project("import cocotb\n"), logged_in)) == "h-1"

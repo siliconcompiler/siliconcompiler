@@ -58,7 +58,7 @@ __all__ = ["ANSWER_BYTES", "INTERPRETER", "KINDS", "MARKER", "MAX_OUTPUT", "comm
 # The closed set, and each is a mechanism rather than a label.
 KINDS = ("python", "tool", "interpreter")
 
-# The one name of the interpreter kind: the image's own Python.
+# The one name of the interpreter kind: the image's own Python (surface D293).
 INTERPRETER = "python"
 
 # What a caller greps for when it wants only the answer. One line, JSON after.

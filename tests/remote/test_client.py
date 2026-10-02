@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import stat
 import sys
 
@@ -608,24 +609,6 @@ def test_a_dead_refresh_token_falls_back_to_enrolling(fake_v1, tmp_credentials,
     assert grants == ["refresh_token", "client_credentials"]
 
 
-def test_an_access_token_left_by_an_older_client_is_never_kept(tmp_path):
-    '''An older client's files are moved into the store, and an access token
-    any of them held is not: the store keeps none.'''
-    home = tmp_path / "home"
-    (home / "auth").mkdir(parents=True, mode=0o700)
-    (home / "credentials").write_text(json.dumps(
-        {"address": "https://sc-server.test", "access_token": "left-behind"}))
-    sessions = home / "auth" / "sessions.json"
-    sessions.write_text(json.dumps({"https://sc-server.test/v1": {
-        "refresh_token": "kept", "access_token": "left-behind", "access_expires_at": 9e9}}))
-    sessions.chmod(0o600)
-
-    store = Credentials(home / "auth" / "remote.json")
-
-    assert store.refresh_token == "kept"
-    assert "left-behind" not in store.path.read_text()
-
-
 ###########################
 # The three things a 401 means
 ###########################
@@ -730,7 +713,7 @@ def test_an_invalid_proof_fails_rather_than_refreshing(fake_v1, tmp_credentials,
 
 
 # Clear of each unit's boundary: `Date` has one-second resolution.
-@pytest.mark.parametrize("offset,said", [(330, "5 minutes behind"), (-7500, "2 hours ahead"),
+@pytest.mark.parametrize("offset,said", [(330, r"5m \d\ds behind"), (-7530, "2h 05m ahead"),
                                          (20, None)])
 def test_a_refused_proof_says_when_the_clock_is_off(fake_v1, tmp_credentials,
                                                     client_credentials, offset, said):
@@ -752,7 +735,7 @@ def test_a_refused_proof_says_when_the_clock_is_off(fake_v1, tmp_credentials,
         client.me()
 
     if said:
-        assert said in str(raised.value) and "clock" in str(raised.value)
+        assert re.search(said, str(raised.value)) and "clock" in str(raised.value)
     else:
         assert "clock is" not in str(raised.value)
 
@@ -1094,8 +1077,8 @@ def test_a_refresh_cannot_start_inside_a_refresh(fake_v1, tmp_credentials):
     refresh is the one failure here that costs the SERVER rather than this
     process, so it is impossible by construction rather than by one condition
     being right.'''
+    tmp_credentials.save_tokens({"refresh_token": "a-token"})
     client = Client(tmp_credentials)
-    client.transport.set_tokens(None, "a-token")
 
     client.transport._refreshing = True
     assert client.transport.refresh() is False

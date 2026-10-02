@@ -404,17 +404,6 @@ DEFAULTS: Dict[str, Any] = {
     "software_drivers": [],
 }
 
-# Keys this server once read and no longer does, and why. A config.json that
-# still sets one starts, with a warning, rather than refusing as it would an
-# unknown key: the operator set it on purpose, and it now means nothing.
-RETIRED_KEYS = {
-    "portal_plaintext_peers": "the portal is served wherever the API is, and this "
-                              "server warns at startup where that is plain http "
-                              "beyond this machine",
-    "env_build_timeout_seconds": "a build is bounded by the job's limits."
-                                 "max_staging_seconds, with the rest of staging",
-}
-
 # A notice's shape (surface §1). `starts_at` and `ends_at` are REQUIRED on the
 # wire and nullable, so where config leaves one out it is null.
 NOTICE_LEVELS = ("info", "warning")
@@ -537,8 +526,6 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 f"{', '.join(sorted(unknown))}")
 
     features = values["features"]
-    if "logs" in features:
-        raise ValueError("features lists logs, which is folded into logs.stream")
     # 🔴 `features` is a registry, not free text (surface *features is a
     # registry*): a string it does not hold would be advertised in `GET /v1`,
     # and a client that knows it would rely on what nothing here serves.
@@ -651,12 +638,7 @@ def _check_private_dataroots(private) -> None:
         raise ValueError(shape)
     unknown = sorted(set(private) - {"library", "tool", "task"})
     if unknown:
-        # 🔴 Said plainly: the shape before keypaths was {name: {root: path}},
-        # which is `library`'s now, and a tool's root was never named by its
-        # task at all.
-        raise ValueError(f"{shape}; {unknown[0]!r} is none of library, tool and task. "
-                         "An entry of the old {name: {root: path}} shape goes under "
-                         '"library", or under "tool" where it is a tool\'s')
+        raise ValueError(f"{shape}; {unknown[0]!r} is none of library, tool and task")
     for section in ("library", "tool"):
         held = private.get(section) or {}
         if not isinstance(held, dict) or not all(roots(value) for value in held.values()):
@@ -744,12 +726,6 @@ class Config:
             if not isinstance(overlay, dict):
                 raise ValueError(f"{path} must hold a JSON object")
 
-            for key in set(overlay) & set(RETIRED_KEYS):
-                import logging
-                logging.getLogger("sc-server").warning(
-                    f"{path} sets {key}, which is no longer read: {RETIRED_KEYS[key]}")
-                overlay.pop(key)
-
             unknown = set(overlay) - set(DEFAULTS)
             if unknown:
                 # Refused rather than ignored: a misspelled key that silently
@@ -789,9 +765,6 @@ class Config:
 
     def __getitem__(self, key: str) -> Any:
         return self._values[key]
-
-    def get(self, key: str, default: Any = None) -> Any:
-        return self._values.get(key, default)
 
     @property
     def limits(self) -> Dict[str, int]:

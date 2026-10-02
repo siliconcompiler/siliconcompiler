@@ -11,9 +11,18 @@ from typing import Any, Dict, List, Optional, Tuple
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
-    SURFACES, TERMINAL_NODE_STATES, TERMINAL_STATES, _ALERTED, _WITHOUT, _decode_cursor,
-    _encode_cursor, _limit, logger)
+    SURFACES, _ALERTED, _WITHOUT, _decode_cursor, _encode_cursor, _limit, logger)
 from siliconcompiler.remote.server.outputs import artifacts, confine
+from siliconcompiler.remote.server.state.store import TERMINAL_NODE_STATES, TERMINAL_STATES
+
+# The kinds that are not a `node` archive's members: other archives, the
+# `input` the archive leaves out, and the server's own records, which are never
+# in a node's tree.
+_NOT_MEMBERS = ("node", "issue", "input", "staging", "diagnostics")
+_NOT_A_MEMBER = f"kind NOT IN ({', '.join('?' * len(_NOT_MEMBERS))})"
+
+# A node's states before it starts: nothing to stream yet.
+_NOT_STARTED = ("pending", "queued", "preparing")
 
 
 class ResultsMixin:
@@ -42,12 +51,9 @@ class ResultsMixin:
         not. Returns the WORST member's refusal (D120), or None.'''
         if row["kind"] != "node":
             return None
-        # `input` is not a member either: the node archive leaves `inputs/`
-        # out. Nor the server's own records, which are never in a node's tree.
         members = self._store.all(
             'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
-            "AND kind NOT IN ('node', 'issue', 'input', 'staging', 'diagnostics')",
-            (row["job_id"], row["step"], row["index"]))
+            f"AND {_NOT_A_MEMBER}", (row["job_id"], row["step"], row["index"], *_NOT_MEMBERS))
         refusals = [artifacts.ladder(member, self._surface_allows(surface, member["kind"]),
                                      admin=surface == "portal")
                     for member in members]
@@ -102,9 +108,9 @@ class ResultsMixin:
                  "NOT (kind = 'node' AND EXISTS (SELECT 1 FROM artifacts AS member "
                  "  WHERE member.job_id = artifacts.job_id AND member.step = artifacts.step "
                  '  AND member."index" = artifacts."index" '
-                 "  AND member.kind NOT IN ('node', 'issue', 'input', 'staging', 'diagnostics') "
+                 f"  AND member.{_NOT_A_MEMBER} "
                  "  AND member.provenance = 'pending'))"]
-        params: List[Any] = [job["id"]]
+        params: List[Any] = [job["id"], *_NOT_MEMBERS]
 
         kind = args.get("kind")
         if kind:
@@ -166,11 +172,6 @@ class ResultsMixin:
             (artifact_id, job["id"]))
         if row is None:
             raise ProblemError("not-found", detail="no such artifact")
-
-        if row["deleted_at"]:
-            # The bytes are gone. 404 rather than 403: there is nothing to be
-            # entitled to.
-            raise ProblemError("not-found", detail="these bytes were deleted")
 
         self._refuse_by_ladder(row, surface)
 
@@ -237,7 +238,7 @@ class ResultsMixin:
         if node is None:
             raise ProblemError("not-found", detail=f"no node {step}/{index} in this job")
 
-        if node["state"] in ("pending", "queued", "preparing"):
+        if node["state"] in _NOT_STARTED:
             raise ProblemError(
                 "not-ready", artifact_kind="logs",
                 detail=f"{step}/{index} has not started",
@@ -290,8 +291,8 @@ class ResultsMixin:
 
         started = self._store.one(
             "SELECT 1 FROM job_nodes WHERE job_id = ? "
-            "AND state NOT IN ('pending', 'queued', 'preparing') LIMIT 1",
-            (job["id"],))
+            f"AND state NOT IN ({', '.join('?' * len(_NOT_STARTED))}) LIMIT 1",
+            (job["id"], *_NOT_STARTED))
         if started is None:
             # The same answer a node gives before it starts: transient.
             raise ProblemError(
@@ -314,8 +315,7 @@ class ResultsMixin:
             'SELECT step, "index", state FROM job_nodes WHERE job_id = ?', (job_id,))}
 
     def job_over(self, job_id: str) -> bool:
-        row = self._store.one("SELECT state FROM jobs WHERE id = ?", (job_id,))
-        return row is None or row["state"] in TERMINAL_STATES
+        return self._row(job_id)["state"] in TERMINAL_STATES
 
     def node_logs(self, session, job_id: str, step: str, index: str):
         '''Every log one node left, as (name, path).
@@ -389,9 +389,7 @@ class ResultsMixin:
         so a client that follows the `end` event straight to `/logs` is told
         there is no log for a node whose log it has just finished reading.
         '''
-        job = self._row(job_id)
-        if job is not None:
-            self._index_node(job, step, index)
+        self._index_node(self._row(job_id), step, index)
 
         row = self._store.one(
             "SELECT id FROM artifacts WHERE job_id = ? AND step = ? "

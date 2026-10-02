@@ -8,6 +8,7 @@ CLI rename off the critical path.
 
 import logging
 import os
+import re
 import sys
 import time
 
@@ -18,7 +19,8 @@ from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, clean, describe)
 from siliconcompiler.remote.client.identity import local_subject, display_name
 from siliconcompiler.remote.client.transport import (
-    EdgeRefused, LoginRequired, OAuthRefusal, Transport, normalize_server, origin_of)
+    EdgeRefused, LoginRequired, OAuthRefusal, Transport, _retry_after, normalize_server,
+    origin_of)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
@@ -51,6 +53,9 @@ PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
 # takes whole (surface D288).
 MAX_CANCEL_REASON = 300
 
+# What a cancel's reason may not hold: a control character (surface D306).
+_UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
 
 class Client:
     '''One machine talking to one server.'''
@@ -82,11 +87,7 @@ class Client:
         self._transport = self._make_transport(credentials.server)
 
     def _make_transport(self, base_url: str) -> Transport:
-        transport = Transport(base_url, self.credentials.key(),
-                              credentials=self.credentials)
-        # No access token: it is never written down, so a command starts with
-        # the refresh token and spends it once.
-        transport.set_tokens(None, self.credentials.refresh_token)
+        transport = Transport(base_url, self.credentials.key(), self.credentials)
         transport.relogin = self._relogin
         transport.fingerprint = self._fingerprint
         transport.warn = self.logger.warning
@@ -321,7 +322,7 @@ class Client:
             try:
                 return self._login_with(mode)
             except OAuthRefusal as e:
-                if e.error != "unsupported_grant_type" or mode in tried:
+                if e.error != "unsupported_grant_type":
                     raise self._refused(e, mode) from None
                 # Not offered after all: drop it, and read what is offered again.
                 tried.add(mode)
@@ -458,12 +459,8 @@ class Client:
 
     def _trade_login(self) -> Dict[str, Any]:
         body = self._trade()
-        self.transport.trade = self._trade_again
+        self.transport.trade = self._trade
         return body
-
-    def _trade_again(self) -> bool:
-        self._trade()
-        return True
 
     def _trade(self) -> Dict[str, Any]:
         '''Token exchange: the CI credential traded for one access token.
@@ -476,7 +473,6 @@ class Client:
         import jwt
 
         from siliconcompiler.remote import dpop
-        from siliconcompiler.remote.client.transport import origin_of
 
         if not self.transport.base_url.startswith("https://"):
             raise RemoteError("a CI credential is exchanged only over https, and "
@@ -552,7 +548,7 @@ class Client:
         if self._mode == GRANT_TOKEN_EXCHANGE:
             return {}
         _, machine_hash, source = local_subject()
-        if source == "none" or not machine_hash:
+        if not machine_hash:
             return {}
         return {"machine_id_hash": machine_hash, "machine_id_source": source}
 
@@ -624,7 +620,7 @@ class Client:
                 "server may refuse the new key until its operator releases the binding.")
         finally:
             self.credentials.forget_tokens()
-            self.transport.set_tokens(None, None)
+            self.transport.set_tokens(None)
 
     def logout(self) -> None:
         '''End this session on the server, then forget it here.
@@ -643,7 +639,7 @@ class Client:
             logger.debug(f"could not revoke on the server: {e}")
         finally:
             self.credentials.forget_tokens()
-            self.transport.set_tokens(None, None)
+            self.transport.set_tokens(None)
 
     ######################################################################
     # CI and operator headers
@@ -829,10 +825,8 @@ class Client:
                    needs: Optional[List[str]] = None,
                    requested_versions: Optional[Dict[str, Any]] = None,
                    sources: Optional[List[Dict[str, Any]]] = None,
-                   run_hash: Optional[str] = None,
                    continues_from: Optional[List[Dict[str, str]]] = None,
-                   python_packages: Optional[Dict[str, List[str]]] = None,
-                   idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+                   python_packages: Optional[Dict[str, List[str]]] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs``: the job exists, and nothing has moved yet.
         Returns the job object, in `created`.
 
@@ -858,14 +852,6 @@ class Client:
         ``needs`` is the feature strings the job relies on; a server lacking
         one refuses here rather than after the upload.
 
-        ``run_hash`` is the client's opaque hash of the work, for job reuse --
-        top level, beside ``design``: the descriptor is what submit re-derives,
-        and nothing recomputes this. A server advertising ``jobs.reuse`` looks
-        it up owner-scoped and hands back the caller's own earlier result, with
-        a ``200``. 🔴 **Nothing in this client computes one yet** -- what
-        SiliconCompiler should hash is its own decision, and a hash that is
-        wrong in the direction of *the same* is a wrong answer.
-
         ``python_packages`` is the run's Python packages an index can supply,
         ``{"requirements": [...], "constraints": [...]}`` of ``name==version``
         -- top level and authoritative, since nothing in the manifest records
@@ -889,8 +875,6 @@ class Client:
         # using one names that project on every create.
         if os.environ.get(PROJECT_VARIABLE):
             body["project"] = os.environ[PROJECT_VARIABLE]
-        if run_hash:
-            body["run_hash"] = run_hash
         if continues_from:
             # For a run that starts part-way through its flow: each node whose
             # results this run takes from the job that ran it (surface D175).
@@ -898,7 +882,7 @@ class Client:
         if python_packages:
             body["python_packages"] = python_packages
 
-        headers = {"Idempotency-Key": idempotency_key or _fresh_key()}
+        headers = {"Idempotency-Key": _fresh_key()}
 
         return self._waiting_for_a_slot(lambda: self.transport.request(
             "POST", "jobs", json_body=body, headers=headers).json())
@@ -932,8 +916,7 @@ class Client:
                    if name.lower() != "content-length"}
         self.transport.put_object(grant["url"], headers, path)
 
-    def submit_job(self, job_id: str,
-                   idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def submit_job(self, job_id: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/submit``, with no body (surface §15; D277).
 
         The grant fixed the archive's size and digest, and the server checks
@@ -945,7 +928,7 @@ class Client:
 
         # A fresh key on every submit, a resubmit after the job was sent back
         # included; a retry of this one reuses it.
-        headers = {"Idempotency-Key": idempotency_key or _fresh_key()}
+        headers = {"Idempotency-Key": _fresh_key()}
 
         return self._waiting_for_a_slot(lambda: self.transport.request(
             "POST", f"jobs/{job_id}/submit", json_body={}, headers=headers).json())
@@ -1026,17 +1009,9 @@ class Client:
                               "to another project than the job's.") from None
             raise
 
-        # The pace is the server's, in whole seconds and never below 1: a
-        # value below 1 is waited as 1, and no longer floor is added here.
-        retry_after = None
-        header = response.headers.get("Retry-After")
-        if header:
-            try:
-                retry_after = max(1.0, float(header))
-            except ValueError:
-                retry_after = None
-
-        return response.json(), retry_after
+        # The pace is the server's: no floor is added here beyond the 1 second
+        # `_retry_after` holds any value to.
+        return response.json(), _retry_after(response)
 
     def jobs(self, **filters) -> list:
         '''``GET /v1/jobs``, following ``Link`` to the end.
@@ -1064,7 +1039,7 @@ class Client:
         if reason is not None and len(reason) > MAX_CANCEL_REASON:
             raise RemoteError(f"a cancel's reason is at most {MAX_CANCEL_REASON} "
                               f"characters, and this one is {len(reason)}")
-        if reason is not None and any(ord(c) < 32 or 127 <= ord(c) < 160 for c in reason):
+        if reason is not None and _UNPRINTABLE.search(reason):
             raise RemoteError("a cancel's reason is one line, with no control "
                               "character, and this one has one")
         self.ensure_session()
@@ -1246,7 +1221,6 @@ class Client:
         self.credentials.set_server(normalize_server(address, port))
         self._transport = self._make_transport(self.credentials.server)
         self.credentials.forget_tokens()
-        self._transport.set_tokens(None, None)
 
         capabilities = self.capabilities()
         self.login()
@@ -1329,8 +1303,7 @@ class Client:
             return False
         return self._show(answer, what, require_tty=require_tty)
 
-    def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True,
-              open_browser: bool = True) -> bool:
+    def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True) -> bool:
         '''Open the page endpoint 6 answered, and print it where it may be.
 
         ⚠️ **`expires_at` says what came back.** `null` is the page itself,
@@ -1347,7 +1320,7 @@ class Client:
 
         if expires is None:
             self.logger.info(f"{what[:1].upper()}{what[1:]}: {clean(url)}")
-        opened = open_browser and self.open_url(url, what, require_tty=require_tty)
+        opened = self.open_url(url, what, require_tty=require_tty)
         if expires is not None and not opened:
             print(f"No browser was opened for {what}. Open this in one on this machine; "
                   f"it signs you in once, until {clean(expires)}:\n  {clean(url)}",
@@ -1360,7 +1333,7 @@ class Client:
         return self.open_browser and sys.stdout.isatty() and \
             not (self.ci_session or os.environ.get("CI"))
 
-    def portal(self, open_browser: bool = True) -> bool:
+    def portal(self) -> bool:
         '''`sc-remote -portal`: the portal's home, signed in as this machine.
 
         🔴 The browser has none of what this client has. Identity here is a
@@ -1369,8 +1342,7 @@ class Client:
         a sign-in that lands on the page, where the portal has none of its
         own. Asked for on purpose, so a refusal fails the command.
         '''
-        return self._show(self.browser_page(), "the portal", require_tty=False,
-                          open_browser=open_browser)
+        return self._show(self.browser_page(), "the portal", require_tty=False)
 
     def configure_whitelist(self, add=None, remove=None) -> None:
         '''Which directories may be uploaded from.
@@ -1378,8 +1350,6 @@ class Client:
         Entries are absolute, added once, and removing one that was never there
         is not an error.
         '''
-        import os.path
-
         entries = list(self.credentials.directory_whitelist)
 
         for path in add or []:
@@ -1394,16 +1364,6 @@ class Client:
 
         self.credentials.set_directory_whitelist(entries)
         self.logger.info(f"Directory whitelist saved to {self.credentials.path}")
-
-
-def _is_stream(response) -> bool:
-    '''🔴 The ONLY thing that says a live tail from a finished file.
-
-    Deliberately not a flag on the 303: a node can finish between the redirect
-    and the fetch, so anything the server computed at `/logs` can be stale by
-    the time it is used. What was actually served cannot be.
-    '''
-    return response.headers.get("Content-Type", "").startswith("text/event-stream")
 
 
 def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:

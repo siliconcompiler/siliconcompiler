@@ -34,7 +34,7 @@ from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.remote.server.running.runspec import (
     IMAGES_FILENAME, PROGRESS_FILENAME, RUN_FILENAME, apply_run, node_image, node_state,
     read_bundles, read_images, read_run, state_dir, exit_code as published_exit_code,
-    write_progress)
+    write_json)
 from siliconcompiler.remote.server.software import images
 from siliconcompiler.remote.server.state.store import now
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
@@ -56,7 +56,6 @@ _image_mounts = []
 # Each job bundle's shared bundle, and what the job's own bundles mount over it.
 _image_shared = {}
 _job_mounts = []
-_image_drop = []
 
 # Each placement whose pull failed before the flow started, and what the
 # runtime said; and each node the docker daemon reported killed for memory.
@@ -73,7 +72,7 @@ HEARTBEAT_SECONDS = 60
 def _publish() -> None:
     if _progress_path is not None:
         _progress["heartbeat"] = now()
-        write_progress(_progress_path, _progress)
+        write_json(_progress_path, _progress)
 
 
 def _beat() -> None:
@@ -174,10 +173,9 @@ def run(manifest: Path) -> int:
     # In the job root, above the tree the upload expanded into, where the
     # server looks without being told a second path.
     _progress_path = state_dir(manifest) / PROGRESS_FILENAME
-    global _image_sources, _image_mounts, _image_shared, _job_mounts, _image_drop
+    global _image_sources, _image_mounts, _image_shared, _job_mounts
     _image_sources, _image_mounts = read_images(state_dir(manifest) / IMAGES_FILENAME)
-    _image_shared, _job_mounts, _image_drop = read_bundles(
-        state_dir(manifest) / IMAGES_FILENAME)
+    _image_shared, _job_mounts = read_bundles(state_dir(manifest) / IMAGES_FILENAME)
 
     _progress = {
         "state": "running",
@@ -457,7 +455,7 @@ def _unpack_bundle(bundle: str) -> None:
     common = Path(_image_shared.get(bundle) or bundle)
     images.stage_bundle(common.parent, source, common.name, mounts=_image_mounts)
     if common != Path(bundle):
-        images.job_bundle(common, bundle, _job_mounts, drop=_image_drop)
+        images.job_bundle(common, bundle, _job_mounts)
 
 
 def _silence_console(project) -> None:

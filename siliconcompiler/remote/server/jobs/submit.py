@@ -8,19 +8,21 @@ A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which
 import json
 import os
 import shutil
+import time
 
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from siliconcompiler.remote import environment, owners
+from siliconcompiler.remote.server.config import RESOURCE_KINDS
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
-    _RESOURCE_KINDS, _SHA256, _bounded, _epoch, _expired_key, _from_epoch, _only,
-    _python_names, _resources, _same_version, logger)
+    _SHA256, _bounded, _expired_key, _from_epoch, _only, _python_names, _resources,
+    _same_version, logger)
 from siliconcompiler.remote.server.outputs import artifacts
 from siliconcompiler.remote.server.staging import archive
 from siliconcompiler.remote.server.state.storage import grant_seconds
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import PENDING_STATES, now
 
 
 class SubmitMixin:
@@ -31,7 +33,7 @@ class SubmitMixin:
     ######################################################################
 
     def grant(self, session, job_id: str, url_root: str,
-              body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+              body: Dict[str, Any]) -> Dict[str, Any]:
         '''Endpoint 14: a grant for the archive about to be uploaded.
 
         🔴 **`size_bytes` and `digest` are REQUIRED, and the first grant for
@@ -42,12 +44,11 @@ class SubmitMixin:
         '''
         job = self.owned(session, job_id)
 
-        if job["state"] not in ("created", "awaiting_input"):
+        if job["state"] not in PENDING_STATES:
             raise ProblemError(
                 "job-state-conflict",
                 detail=f"a job in {job['state']} takes no upload")
 
-        body = body if isinstance(body, dict) else {}
         _only(body, ("size_bytes", "digest"), "the grant request")
         size = body.get("size_bytes")
         if not isinstance(size, int) or isinstance(size, bool) or size <= 0:
@@ -74,7 +75,7 @@ class SubmitMixin:
                 detail="this archive's first grant fixed its size and digest; a "
                        "re-issue must repeat both")
 
-        expires = int(_epoch()) + grant_seconds(self._config.limits["max_upload_bytes"])
+        expires = int(time.time()) + grant_seconds(self._config.limits["max_upload_bytes"])
         signature = self._storage.sign_upload(job["id"], size, expires)
         ceiling = size
 
@@ -136,7 +137,7 @@ class SubmitMixin:
         # digest, storage enforced the size on the PUT, and the upload is
         # checked against the digest the grant bound. A body with a member is
         # refused under the strict rule, never ignored.
-        _only(body if isinstance(body, dict) else {}, (), "the submit request")
+        _only(body, (), "the submit request")
         digest = job["grant_digest"]
         if not digest:
             raise ProblemError(
@@ -271,11 +272,11 @@ class SubmitMixin:
         summary = self._read(job, root)
         if not follow_up:
             self._check_members(job, summary, unpacked)
-        self._check_wheels(None, job, unpacked, tally)
-        self._check_denied(None, job, summary)
-        entries = self._account(None, job, summary, unpacked)
+        self._check_wheels(job, unpacked, tally)
+        self._check_denied(job, summary)
+        entries = self._account(job, summary, unpacked)
         asked = [entry for entry in entries if entry.status == owners.ASK]
-        self._check_owed(None, job, summary, asked)
+        self._check_owed(job, summary, asked)
 
         with self._store.transaction():
             self._store.execute(
@@ -342,11 +343,11 @@ class SubmitMixin:
     # What a run's files are, and where the server's copies come from
     ######################################################################
 
-    def _account(self, session, job, summary, unpacked: Path):
+    def _account(self, job, summary, unpacked: Path):
         '''Every file the manifest names, as how it reaches the run; refuse
         what nobody can supply.
 
-        🔴 **No path the job names is read** (D112) -- see `owners.account`.
+        🔴 **No path the job names is read** (D112) -- see `owners.account_records`.
         `resource-unavailable` is raised only for what the caller could not
         send either (D127): a private dataroot this server has no copy of and
         cannot fetch, or a path that escapes the root it is supplied under.
@@ -361,7 +362,7 @@ class SubmitMixin:
         if carried:
             keypath, member = carried[0]
             more = len(carried) - 1
-            raise self._refuse(session, job, ProblemError(
+            raise self._refuse(job, ProblemError(
                 "archive-rejected", reason="unrequested_member", keypath=list(keypath),
                 detail=f"{member} is under the private dataroot {owners.shown(keypath)}, "
                        "which never leaves the submitter's machine: this server "
@@ -373,11 +374,11 @@ class SubmitMixin:
                 continue
             # `resource_kind` only where the read names a resource kind: never
             # the design, which is no resource (surface D285).
-            kind = entry.kind if entry.kind in _RESOURCE_KINDS else None
+            kind = entry.kind if entry.kind in RESOURCE_KINDS else None
             # A dataroot's refusal says which of its owner's (surface D298).
             where = f" in the dataroot {owners.shown(entry.keypath)}" \
                 if entry.keypath else ""
-            raise self._refuse(session, job, ProblemError(
+            raise self._refuse(job, ProblemError(
                 "resource-unavailable",
                 resource=owners.keypath_owner(entry.keypath) if entry.keypath
                 else entry.name or "",
@@ -394,7 +395,7 @@ class SubmitMixin:
                             "from this server")
         return entries
 
-    def _check_wheels(self, session, job, unpacked: Path, tally=None) -> None:
+    def _check_wheels(self, job, unpacked: Path, tally=None) -> None:
         '''The job's wheels, under `sc_collected_files/python/`, every archive
         (surface *Uploaded wheels*): each pure and well formed, one per
         distribution, none for a distribution `python_packages` or
@@ -414,7 +415,7 @@ class SubmitMixin:
             return
 
         def refuse(detail):
-            return self._refuse(session, job, ProblemError(
+            return self._refuse(job, ProblemError(
                 "archive-rejected", reason="python_package", detail=_bounded(detail)))
 
         if "python.env" not in (self._config["features"] or ()):
@@ -443,7 +444,7 @@ class SubmitMixin:
                     archive.check_inside(tally, self._config.limits, name,
                                          wheel.members, wheel.expanded)
                 except archive.ArchiveRejected as rejected:
-                    raise self._refuse(session, job, ProblemError(
+                    raise self._refuse(job, ProblemError(
                         "archive-rejected", reason=rejected.reason,
                         detail=rejected.detail)) from None
             if wheel.name in seen:
@@ -463,7 +464,7 @@ class SubmitMixin:
                              f"python_packages lists at {listed[wheel.name]}: the wheel "
                              "that answers an entry is at its version")
 
-    def _check_owed(self, session, job, summary, asked) -> None:
+    def _check_owed(self, job, summary, asked) -> None:
         '''Refuse a required value the client should have sent and did not.
 
         🔴 **Before anything dispatches (D129)**, rather than a node failing
@@ -485,7 +486,7 @@ class SubmitMixin:
                             or entry.keypath in before)):
                 continue
             where = f" ({entry.dataroot})" if entry.dataroot else ""
-            raise self._refuse(session, job, ProblemError(
+            raise self._refuse(job, ProblemError(
                 "archive-rejected", reason="missing_member",
                 detail=f"the flow reads [{','.join(entry.key or ())}] of {entry.kind} "
                        f"{entry.name}{where}, {entry.path}, and the archive does "
@@ -530,9 +531,8 @@ class SubmitMixin:
                 or path.startswith(f"{inside}/") for path in paths)
         return allowed
 
-    def _forget_upload(self, job, slug: str = "upload-forbidden") -> None:
-        '''🔴 Delete an upload refused for what it must not carry: restricted
-        material, `upload-forbidden` on either detection (surface D133), or a
+    def _forget_upload(self, job, slug: str) -> None:
+        '''🔴 Delete an upload refused for what it must not carry: a
         credential or a private dataroot's value (surface D307, D308) -- each
         is not kept. The row and the tree it expanded into go too: what
         remains is the job, its reason and the transition, which name the

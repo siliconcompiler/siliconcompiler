@@ -142,11 +142,6 @@ To set a header the operator's access layer requires, use:
         return 1
 
 
-def _credentials(remote) -> Credentials:
-    '''Where this machine keeps its key and its session.'''
-    return Credentials.for_project(remote)
-
-
 def _dispatch(remote):
     # Sanity checks.
     exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal',
@@ -167,7 +162,7 @@ def _dispatch(remote):
                             f'{", ".join(["-"+e for e in cfg_only])}')
         return 2
 
-    client = Client(_credentials(remote), logger=remote.logger,
+    client = Client(Credentials.for_project(remote), logger=remote.logger,
                     open_browser=not remote.get("cmdarg", "no_browser"))
 
     if remote.get("cmdarg", 'ci_setup'):

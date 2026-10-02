@@ -20,6 +20,8 @@ Both live in the job root, beside the progress file and above the tree an
 upload expands into, so nothing a job uploads or runs can write them.
 '''
 
+import logging
+
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -30,6 +32,9 @@ __all__ = ["STAGING_LOG", "DIAGNOSTICS_DIR", "begin_pass", "note", "keep",
            "diagnostics_files"]
 
 
+logger = logging.getLogger("sc-server")
+
+
 # The job's `staging` record, as it is written.
 STAGING_LOG = "sc-server-staging.log"
 
@@ -38,7 +43,7 @@ STAGING_LOG = "sc-server-staging.log"
 DIAGNOSTICS_DIR = "sc-server-diagnostics"
 
 
-def begin_pass(job_root, logger=None) -> None:
+def begin_pass(job_root) -> None:
     '''A new section of the `staging` record: this pass of staging starts.'''
     root = Path(job_root)
     passes = 0
@@ -47,18 +52,17 @@ def begin_pass(job_root, logger=None) -> None:
             passes = sum(1 for line in f if line.startswith("==> staging, pass "))
     except OSError:
         pass
-    _append(root, [f"==> staging, pass {passes + 1}, from {now()} <=="], logger,
-            stamp=False)
+    _append(root, [f"==> staging, pass {passes + 1}, from {now()} <=="], stamp=False)
 
 
-def note(job_root, lines: Iterable[str], logger=None) -> None:
+def note(job_root, lines: Iterable[str]) -> None:
     '''Lines of the `staging` record, each scrubbed and bounded like
     `detail`.'''
-    _append(Path(job_root), [bound(str(line)) for line in lines], logger)
+    _append(Path(job_root), [bound(str(line)) for line in lines])
 
 
 def keep(job_root, name: str, text: str, step: Optional[str] = None,
-         index: Optional[str] = None, logger=None) -> None:
+         index: Optional[str] = None) -> None:
     '''One named file of `diagnostics`: the job's, or a node's. Appended to,
     since a job may stage more than once, and kept as it was written.'''
     where = Path(job_root) / DIAGNOSTICS_DIR
@@ -69,8 +73,7 @@ def keep(job_root, name: str, text: str, step: Optional[str] = None,
         with open(where / name, "a", errors="replace") as f:
             f.write(text if text.endswith("\n") else f"{text}\n")
     except OSError as e:
-        if logger is not None:
-            logger.warning(f"could not keep {name} for the operators: {e}")
+        logger.warning(f"could not keep {name} for the operators: {e}")
 
 
 def diagnostics_files(job_root, step: Optional[str] = None,
@@ -94,12 +97,11 @@ def diagnostics_files(job_root, step: Optional[str] = None,
     return found
 
 
-def _append(root: Path, lines, logger, stamp: bool = True) -> None:
+def _append(root: Path, lines, stamp: bool = True) -> None:
     try:
         root.mkdir(parents=True, exist_ok=True)
         with open(root / STAGING_LOG, "a") as f:
             for line in lines:
                 f.write(f"{now()} {line}\n" if stamp else f"{line}\n")
     except OSError as e:
-        if logger is not None:
-            logger.warning(f"could not write the job's staging record: {e}")
+        logger.warning(f"could not write the job's staging record: {e}")

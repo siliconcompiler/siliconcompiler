@@ -36,6 +36,7 @@ from siliconcompiler import __version__
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, _slug, clean)
+from siliconcompiler.utils.units import format_duration
 
 __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
            "OAuthRefusal", "LoginRequired", "USER_AGENT"]
@@ -160,17 +161,15 @@ class Transport:
     '''Signs, sends, retries and renders. Holds the key and the tokens; knows
     nothing about jobs.'''
 
-    def __init__(self, base_url: str, key, credentials=None,
-                 session: Optional[requests.Session] = None):
+    def __init__(self, base_url: str, key, credentials):
         self.base_url = base_url.rstrip("/")
         self._key = key
         self._credentials = credentials
-        self._session = session or requests.Session()
+        self._session = requests.Session()
         # Never netrc, never a credential from the environment (surface D305).
         self._session.auth = _NoEnvironmentCredential()
 
         self._access_token: Optional[str] = None
-        self._refresh_token: Optional[str] = None
         # When the access token runs out, from its response's `expires_in`,
         # never assumed.
         self._access_expires: Optional[float] = None
@@ -188,7 +187,7 @@ class Transport:
         # Set by the client: how a fresh login is had, how a CI session trades
         # again, and what fingerprint a refresh carries.
         self.relogin: Optional[Callable[[Optional[str]], None]] = None
-        self.trade: Optional[Callable[[], bool]] = None
+        self.trade: Optional[Callable[[], Any]] = None
         self.fingerprint: Callable[[], Dict[str, str]] = dict
 
         # Where messages go, so they reach the run's own log.
@@ -209,22 +208,15 @@ class Transport:
         return self._access_token
 
     def set_tokens(self, access_token: Optional[str],
-                   refresh_token: Optional[str],
                    expires_in: Optional[int] = None) -> None:
+        '''Hold an access token, until its ``expires_in``. The refresh token
+        is the store's, and never held here.'''
         self._access_token = access_token
-        self._refresh_token = refresh_token
         self._access_expires = (time.monotonic() + max(0, int(expires_in) - 5)
                                 if access_token and expires_in else None)
 
     def url(self, path: str = "") -> str:
         return join_url(self.base_url, path)
-
-    @property
-    def origin(self) -> str:
-        '''The server without the version prefix, where its signed routes, the
-        upload PUT among them, live outside ``/v1``.'''
-        base = self.base_url
-        return base[:-len("/v1")] if base.endswith("/v1") else base
 
     @property
     def api_origin(self) -> str:
@@ -242,7 +234,7 @@ class Transport:
         requires one, so a stream or storage URL elsewhere gets none, whatever
         a redirect names.
         '''
-        if self._credentials is None or origin_of(url) != self.api_origin:
+        if origin_of(url) != self.api_origin:
             return {}
         return self._credentials.headers()
 
@@ -258,7 +250,6 @@ class Transport:
                 headers: Optional[Dict[str, str]] = None,
                 expect_redirect: bool = False,
                 stream: bool = False,
-                on_v1: bool = True,
                 oauth: bool = False,
                 absolute: bool = False,
                 _attempt: int = 0,
@@ -270,7 +261,7 @@ class Transport:
         itself; a redirect nobody expected is the edge. ``absolute`` takes
         ``path`` as a whole URL the server gave, such as a `Link` target.
         '''
-        url = path if absolute else self.url(path) if on_v1 else join_url(self.origin, path)
+        url = path if absolute else self.url(path)
 
         if authenticated and self.access_token is None:
             # Expired by its own `expires_in`, or never had: one refresh, or a
@@ -295,7 +286,7 @@ class Transport:
 
         again = dict(method=method, path=path, authenticated=authenticated, data=data,
                      json_body=json_body, params=params, headers=headers,
-                     expect_redirect=expect_redirect, stream=stream, on_v1=on_v1,
+                     expect_redirect=expect_redirect, stream=stream,
                      oauth=oauth, absolute=absolute, _nonced=_nonced)
 
         try:
@@ -329,14 +320,12 @@ class Transport:
         if 300 <= response.status_code < 400:
             if expect_redirect and response.status_code in (301, 302, 303, 307, 308):
                 return response
-            if on_v1:
-                raise EdgeRefused(self.api_origin)
-            return response
+            raise EdgeRefused(self.api_origin)
 
         # An HTML page in place of an answer is an access layer's refusal. A
         # gateway's 5xx is HTML too, but it says the server is unwell, not that
         # the request was refused, and it is handled as the failure it is.
-        if on_v1 and response.status_code < 500 and response.status_code != 204 and \
+        if response.status_code < 500 and response.status_code != 204 and \
                 (response.headers.get("Content-Type") or "").lower().startswith("text/html"):
             raise EdgeRefused(self.api_origin)
 
@@ -387,9 +376,8 @@ class Transport:
             if again["authenticated"] and slug == "session-ended" and self.relogin:
                 # Re-authenticate, and never refresh: the refresh token is the
                 # session that ended.
-                self.set_tokens(None, None)
-                if self._credentials is not None:
-                    self._credentials.forget_tokens()
+                self.set_tokens(None)
+                self._credentials.forget_tokens()
                 self.relogin(problem.get("reason"))
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
@@ -444,18 +432,18 @@ class Transport:
         '''Get an access token: refresh where there is a session, trade again
         where this is CI, and log in where neither works.'''
         if self.trade is not None:
-            if self.trade():
+            self.trade()
+            return
+        try:
+            if self.refresh():
                 return
-        else:
-            try:
-                if self.refresh():
-                    return
-            except (SessionEnded, LoginRequired) as e:
-                reason = e.reason if isinstance(e, SessionEnded) else None
-                if self.relogin is None:
-                    raise
-                self.relogin(reason)
-                return
+        except (SessionEnded, LoginRequired) as e:
+            reason = e.reason if isinstance(e, SessionEnded) else None
+            if self.relogin is None:
+                raise
+            self.relogin(reason)
+            return
+        # No refresh token to spend.
         if self.relogin is not None:
             self.relogin(None)
 
@@ -471,7 +459,7 @@ class Transport:
             return False
         self._clock_offset = -skew
         self.warn(
-            f"This machine's clock is {_duration(abs(skew))} "
+            f"This machine's clock is {format_duration(abs(skew))} "
             f"{'ahead of' if skew > 0 else 'behind'} the server's; proofs are being "
             "corrected for it. Turn on time synchronization.")
         return True
@@ -481,7 +469,7 @@ class Transport:
         skew = _skew(response)
         if skew is None or abs(skew) <= dpop.PROOF_LIFETIME_SECONDS:
             return None
-        return (f"This machine's clock is {_duration(abs(skew))} "
+        return (f"This machine's clock is {format_duration(abs(skew))} "
                 f"{'ahead of' if skew > 0 else 'behind'} the server's, and a proof is "
                 f"accepted only within {dpop.PROOF_LIFETIME_SECONDS} seconds of it. Correct the "
                 "clock -- turn on time synchronization -- and try again.")
@@ -523,7 +511,7 @@ class Transport:
         if response.status_code >= 400:
             raise ServerProblem(_problem_body(response), response.status_code)
 
-    def follow(self, response, headers=None, stream: bool = True, kind: str = "storage"):
+    def follow(self, response, headers=None, kind: str = "storage"):
         '''Follow a 303 by hand, with this session left behind.
 
         No `Authorization` and no proof, whatever the target's origin; never
@@ -553,7 +541,7 @@ class Transport:
                 **dict(headers or {})}
         try:
             return self._session.get(
-                target, headers=sent, stream=stream,
+                target, headers=sent, stream=True,
                 timeout=TIMEOUT_SECONDS, allow_redirects=False)
         except requests.RequestException as e:
             raise RemoteError(f"could not reach the {kind} the server named: "
@@ -604,8 +592,7 @@ class Transport:
     def login(self, form: Dict[str, str]) -> Dict[str, Any]:
         '''Exchange a grant for a session, and hold it.'''
         body = self.token(form)
-        self.set_tokens(body.get("access_token"), body.get("refresh_token"),
-                        body.get("expires_in"))
+        self.set_tokens(body.get("access_token"), body.get("expires_in"))
         return body
 
     def refresh(self) -> bool:
@@ -624,16 +611,10 @@ class Transport:
             logger.debug("declining to refresh inside a refresh")
             return False
 
-        import contextlib
-
         self._refreshing = True
         try:
-            held = self._credentials.transaction() if self._credentials is not None \
-                else contextlib.nullcontext()
-            with held:
-                refresh_token = (self._credentials.refresh_token
-                                 if self._credentials is not None else None) \
-                    or self._refresh_token
+            with self._credentials.transaction():
+                refresh_token = self._credentials.refresh_token
                 if not refresh_token:
                     return False
 
@@ -648,18 +629,14 @@ class Transport:
                         raise
                     refused = e
                 else:
-                    self.set_tokens(body.get("access_token"),
-                                    body.get("refresh_token") or refresh_token,
-                                    body.get("expires_in"))
-                    if self._credentials is not None:
-                        self._credentials.save_tokens(body)
+                    self.set_tokens(body.get("access_token"), body.get("expires_in"))
+                    self._credentials.save_tokens(body)
                     return True
 
             # Out of the transaction: forgetting the dead token inside it would
             # be rolled back by the raise that follows.
-            self.set_tokens(None, None)
-            if self._credentials is not None:
-                self._credentials.forget_tokens()
+            self.set_tokens(None)
+            self._credentials.forget_tokens()
             if refused.reason:
                 raise SessionEnded(
                     {"type": "https://siliconcompiler.com/server-errors/session-ended",
@@ -696,20 +673,9 @@ def _skew(response) -> Optional[float]:
         theirs = email.utils.parsedate_to_datetime(response.headers.get("Date") or "")
     except (TypeError, ValueError):
         return None
-    if theirs is None:
-        return None
     if theirs.tzinfo is None:
         theirs = theirs.replace(tzinfo=timezone.utc)
     return (datetime.now(timezone.utc) - theirs).total_seconds()
-
-
-def _duration(seconds: float) -> str:
-    seconds = int(round(seconds))
-    if seconds < 120:
-        return f"{seconds} seconds"
-    if seconds < 7200:
-        return f"{seconds // 60} minutes"
-    return f"{seconds // 3600} hours"
 
 
 def _why(exc: Exception) -> str:

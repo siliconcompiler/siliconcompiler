@@ -32,9 +32,7 @@ One module per step of a job's life, composed into
 ``common``          constants, small helpers and exceptions they share
 '''
 
-from siliconcompiler.remote.server.jobs.common import (
-    MAX_REASON, REUSABLE_STATES, TERMINAL_STATES, requirements)
+from siliconcompiler.remote.server.jobs.common import MAX_REASON
 from siliconcompiler.remote.server.jobs.service import JobService
 
-__all__ = ["JobService", "TERMINAL_STATES", "REUSABLE_STATES", "MAX_REASON",
-           "requirements"]
+__all__ = ["JobService", "MAX_REASON"]

@@ -12,10 +12,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
-    MAX_REASON, TERMINAL_STATES, _CONTROL, _decode_cursor, _encode_cursor, _flag, _limit,
-    logger)
+    MAX_REASON, _CONTROL, _decode_cursor, _encode_cursor, _flag, _limit, logger)
 from siliconcompiler.remote.server.outputs import artifacts
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import ACTIVE_STATES, TERMINAL_STATES, now
 
 
 class LifecycleMixin:
@@ -149,7 +148,7 @@ class LifecycleMixin:
             # Idempotent: the caller's intent is already satisfied.
             return self.wire(job)
 
-        in_flight = job["state"] in ("staging", "queued", "running")
+        in_flight = job["state"] in ACTIVE_STATES
         target = "cancelling" if in_flight else "cancelled"
         said = reason or "cancelled"
 
@@ -174,8 +173,7 @@ class LifecycleMixin:
 
     def _transition_if(self, job_id: str, from_state: str, to_state: str, **kwargs) -> bool:
         '''`_transition`, only where the job is still in ``from_state``.'''
-        current = self._row(job_id)
-        if current is None or current["state"] != from_state:
+        if self._row(job_id)["state"] != from_state:
             return False
         self._transition(job_id, from_state, to_state, **kwargs)
         return True
@@ -185,7 +183,7 @@ class LifecycleMixin:
         their job -- that they own it. Never the device, and never an id."""
         row = self._store.one("SELECT display_name FROM users WHERE id = ?",
                               (session.user_id,))
-        name = ((row["display_name"] if row else None) or "").strip()
+        name = (row["display_name"] or "").strip()
         if job is not None and job["user_id"] == session.user_id:
             return f"{name}, its owner" if name else "its owner"
         return name or "another user"

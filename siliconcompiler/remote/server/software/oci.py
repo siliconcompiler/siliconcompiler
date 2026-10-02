@@ -84,7 +84,7 @@ def layer_from(directory: Path, inside: str) -> Tuple[bytes, str, str]:
             info = tarfile.TarInfo("/".join(parts[:depth]))
             info.type, info.mode = tarfile.DIRTYPE, 0o755
             tar.addfile(info)
-        for path in sorted([Path(directory)] + sorted(Path(directory).rglob("*"))):
+        for path in sorted([Path(directory), *Path(directory).rglob("*")]):
             relative = path.relative_to(directory).as_posix()
             name = "/".join(parts) + ("" if relative == "." else f"/{relative}")
             if path.is_symlink():

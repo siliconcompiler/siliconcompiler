@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Dict, Iterator, Optional
 
 from siliconcompiler.remote.server.outputs import confine
+from siliconcompiler.remote.server.state.store import TERMINAL_NODE_STATES
 
 try:
     import fcntl
@@ -38,15 +39,11 @@ except ImportError:                                 # Windows: one process only
     fcntl = None
 
 __all__ = ["EventIndex", "events", "job_events", "resume_from", "resume_job",
-           "TERMINAL_NODE_STATES", "POLL_SECONDS", "RETRY_MS"]
+           "POLL_SECONDS", "RETRY_MS"]
 
 
 logger = logging.getLogger("sc-server")
 
-
-# A node's closed set, repeated here rather than imported, because this module
-# is about files and must not depend on the job model.
-TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled"))
 
 # How often the file is looked at while it is quiet. Short enough that a tail
 # feels live, long enough that a hundred idle streams are not a hundred stats a
@@ -62,15 +59,10 @@ RETRY_MS = 2000
 # burst becomes several events rather than one that no reader can buffer.
 MAX_CHUNK = 64 * 1024
 
-# Sent while the log is silent, so that a connection nothing is writing to is
-# still visibly alive. A comment rather than an event: SSE ignores it, and it
-# costs a client nothing to receive.
-HEARTBEAT_SECONDS = 15
-
 
 def events(path: Path, step: str, index: str, node_state, start: int,
-           deadline: float, artifact_id=None, root=None,
-           keepalive: float = HEARTBEAT_SECONDS, ended: bool = False) -> Iterator[bytes]:
+           deadline: float, keepalive: float, artifact_id=None, root=None,
+           ended: bool = False) -> Iterator[bytes]:
     '''Yield SSE frames for one node's log until it ends or time runs out.
 
     ``node_state`` is called to ask what the node is doing now -- a callable
@@ -78,6 +70,8 @@ def events(path: Path, step: str, index: str, node_state, start: int,
     run for hours. ``deadline`` is when this capability expires; reaching it
     ends the stream cleanly so the client re-requests ``/logs`` and gets a fresh
     authorization, which is the whole reason the URL has its own lifetime.
+    Every ``keepalive`` seconds the log is silent, a comment says the stream is
+    still alive: SSE ignores it, and it costs a client nothing to receive.
     '''
     offset = max(0, int(start))
     pending = b""
@@ -152,9 +146,8 @@ def events(path: Path, step: str, index: str, node_state, start: int,
         time.sleep(POLL_SECONDS)
 
 
-def job_events(nodes, path_of, node_states, job_over, start, deadline,
-               artifact_id, index, root=None,
-               keepalive: float = HEARTBEAT_SECONDS) -> Iterator[bytes]:
+def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive: float,
+               artifact_id, index, root=None) -> Iterator[bytes]:
     '''Yield SSE frames for every node of a job, merged, until it ends.
 
     ``nodes`` is the job's node list in a fixed order -- the store's -- because
@@ -538,8 +531,6 @@ class StreamLimiter:
     '''
 
     def __init__(self, ceiling: int):
-        import threading
-
         self._ceiling = ceiling
         self._open: dict = {}
         self._lock = threading.Lock()

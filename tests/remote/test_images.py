@@ -893,13 +893,13 @@ def test_the_digests_a_descriptor_resolves_to_need_no_upload(registry, store):
     '''🔴 What lets create fold them into the job identity and skip the
     upload: resolution needs the declared versions and the registry, and
     nothing else.'''
-    assert images.digests_for(store, py("siliconcompiler", ">=0.39,<0.40")) == \
-        [digest("a")]
+    assert images.job_image_for(
+        store, py("siliconcompiler", ">=0.39,<0.40"))["digest"] == digest("a")
 
 
 def test_a_descriptor_nothing_can_run_is_refused_at_create(registry, store):
     with pytest.raises(ProblemError):
-        images.digests_for(store, py("siliconcompiler", "==9.9.9"))
+        images.job_image_for(store, py("siliconcompiler", "==9.9.9"))
 
 
 def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
@@ -1014,7 +1014,7 @@ def test_requested_versions_is_the_one_member_and_every_value_is_a_list():
     superseded): the client names every distribution the job imports in
     `requested_versions`, exactly pinned. A bare string is refused.'''
     from siliconcompiler.remote.server.errors import ProblemError
-    from siliconcompiler.remote.server.jobs import requirements
+    from siliconcompiler.remote.server.jobs.common import requirements
 
     found = requirements({
         "versions": {"python": {"za-sclib": "1.4.0"}},        # ignored

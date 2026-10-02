@@ -99,21 +99,6 @@ def test_a_sign_in_link_is_never_plain_http_beside_an_https_origin(tmp_path, bas
         create_app(datadir, public_origins=origins)
 
 
-def test_a_retired_peer_list_is_ignored_with_a_warning(tmp_path, caplog):
-    '''An operator who set it did so on purpose, so it is named, and the
-    server still starts.'''
-    import json
-
-    from siliconcompiler.remote.server.config import Config
-
-    (tmp_path / "config.json").write_text(json.dumps({"portal_plaintext_peers": ["lab"]}))
-    with caplog.at_level("WARNING", logger="sc-server"):
-        config = Config.load(tmp_path)
-
-    assert config.get("portal_plaintext_peers") is None
-    assert "portal_plaintext_peers, which is no longer read" in caplog.text
-
-
 def csrf(client, path="/portal/"):
     page = client.get(path).get_data(as_text=True)
     marker = 'name="csrf" value="'
@@ -477,7 +462,7 @@ def finished(server, server_client, key, token, job_archive, dispatcher, me):
         (node / f"sc_{step}_0.log").write_text(f"siliconcompiler says {step}\n")
         (node / f"{step}.log").write_text(f"the tool says {step}\n")
 
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:05.000Z",
         "nodes": {"stepone/0": {"state": "completed"},
@@ -504,7 +489,7 @@ def test_a_nodes_metrics_come_from_the_table_the_jobs_end_filled(
     (root / "gcd.pkg.json").write_text(json.dumps({
         "metric": {"cellarea": {"node": {"stepone": {"0": {"value": 12.5}}}}},
         "record": {"status": {"node": {"stepone": {"0": {"value": "success"}}}}}}))
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:05.000Z",
         "nodes": {"stepone/0": {"state": "completed"},
@@ -744,7 +729,7 @@ def died(server, server_client, key, token, job_archive, dispatcher, me):
         "Traceback (most recent call last):\n"
         "RuntimeError: git is required to import GitPython\n")
 
-    runspec.write_progress(jobroot / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(jobroot / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:02.000Z",
         "error": "RuntimeError: git is required to import GitPython",
@@ -791,14 +776,15 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
     the note would contradict the page.'''
     from test_server_jobs import stage, submit
     from siliconcompiler.remote.server.running import runspec
+    from siliconcompiler.remote.server.state.store import now
 
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-23T10:00:00.000Z", "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"},
                   "steptwo/0": {"state": "pending"}}})
 
@@ -866,7 +852,7 @@ def test_a_node_whose_scheduler_id_arrives_late_still_gets_its_diagnostics(
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
     for step in ("stepone", "steptwo"):
         (root / step / "0").mkdir(parents=True, exist_ok=True)
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:05.000Z",
         "nodes": {"stepone/0": {"state": "completed"},

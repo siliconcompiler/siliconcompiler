@@ -73,7 +73,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     # extracted archive is. Nothing there may be importable in this process
     # (contract §1), so the working directory comes off before anything else.
     import os
-    import sys
 
     here = os.path.realpath(os.getcwd())
     sys.path[:] = [entry for entry in sys.path

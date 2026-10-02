@@ -832,8 +832,7 @@ for. Nothing in it is required.
   300 seconds, 300 CPU seconds and 4 GiB by default. A read past any of them
   has not read the manifest, and the job is rejected `invalid_manifest`.
 - `public_origins`, `web_url_base`: where this server is reached, and the
-  origin a job's page is published under. `portal_plaintext_peers` is no longer
-  read, and a `config.json` that still sets it starts with a warning.
+  origin a job's page is published under.
 - `notices`: each `{"level", "message", "starts_at", "ends_at"}`, published from
   when the server starts until its `ends_at` passes. `level` is `info` or
   `warning` and `message` is 1 to 500 characters, with no customer name,

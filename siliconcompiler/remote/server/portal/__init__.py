@@ -119,7 +119,7 @@ class Sessions:
             return cookie, csrf, landing
 
     def lookup(self, cookie: Optional[str]):
-        '''``(user_id, csrf)`` for a live session, or None.'''
+        '''``(user_id, csrf, when it ends)`` for a live session, or None.'''
         if not cookie:
             return None
         with self._lock:
@@ -131,13 +131,7 @@ class Sessions:
             if expires < time.time():
                 del self._sessions[cookie]
                 return None
-            return user_id, csrf
-
-    def expires(self, cookie: Optional[str]) -> Optional[float]:
-        '''When a live session ends, or None.'''
-        with self._lock:
-            held = self._sessions.get(cookie or "")
-            return held[1] if held else None
+            return user_id, csrf, expires
 
     def end(self, cookie: Optional[str]) -> None:
         with self._lock:
@@ -169,6 +163,15 @@ def _store():
     return flask.current_app.config["SC_STORE"]
 
 
+def _held():
+    '''This request's live session, as `Sessions.lookup` answers: looked up
+    once per request, by whichever of the sign-in check, the CSRF check and
+    the templates asks first.'''
+    if "sc_portal_session" not in flask.g:
+        flask.g.sc_portal_session = _sessions().lookup(flask.request.cookies.get(COOKIE))
+    return flask.g.sc_portal_session
+
+
 def caller():
     '''The signed-in user, as the SAME Session object the API builds.
 
@@ -181,14 +184,13 @@ def caller():
     person. What it is NOT is a credential: nothing here can be presented to
     ``/v1``.
     '''
-    held = _sessions().lookup(flask.request.cookies.get(COOKIE))
+    held = _held()
     if held is None:
         return None
 
-    user_id, _csrf = held
+    user_id, _csrf, expires = held
     return Session(user_id=user_id, scope=" ".join(SCOPES),
-                   family_id=None, device_id=None, jkt=None,
-                   expires_at=_sessions().expires(flask.request.cookies.get(COOKIE)))
+                   family_id=None, device_id=None, jkt=None, expires_at=expires)
 
 
 def screen(handler):
@@ -212,7 +214,8 @@ def screen(handler):
                     samesite="Strict", secure=flask.request.is_secure)
             return page
 
-        if flask.request.method == "POST" and not _csrf_ok():
+        if flask.request.method == "POST" and not secrets.compare_digest(
+                flask.request.form.get("csrf", ""), _held()[1]):
             # A form posted from somewhere else. SameSite=Strict already
             # refuses the cookie on a cross-site POST; this is the half that
             # does not depend on the browser being recent.
@@ -228,13 +231,6 @@ def screen(handler):
                 detail=refusal.detail or ""), refusal.status
 
     return guarded
-
-
-def _csrf_ok() -> bool:
-    held = _sessions().lookup(flask.request.cookies.get(COOKIE))
-    if held is None:
-        return False
-    return secrets.compare_digest(flask.request.form.get("csrf", ""), held[1])
 
 
 @blueprint.app_template_filter("runtime")
@@ -321,21 +317,19 @@ def _when(timestamp) -> markupsafe.Markup:
 
 
 def _epoch(stamp: Optional[str]) -> Optional[float]:
-    from datetime import datetime, timezone
+    from siliconcompiler.remote.server.state.store import parse
 
     if not stamp:
         return None
     try:
-        return datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%S.%fZ").replace(
-            tzinfo=timezone.utc).timestamp()
+        return parse(stamp).timestamp()
     except ValueError:
         return None
 
 
 @blueprint.app_context_processor
 def _csrf_for_templates():
-    held = _sessions().lookup(flask.request.cookies.get(COOKIE)) \
-        if flask.has_request_context() else None
+    held = _held() if flask.has_request_context() else None
     return {"csrf": held[1] if held else ""}
 
 
@@ -943,13 +937,9 @@ def _show_one(detail, row, path):
     import gzip
 
     try:
-        # Gzipped, like every artifact; a row from before that is plain.
-        try:
-            with gzip.open(path, "rb") as handle:
-                data = handle.read(MAX_INLINE_BYTES + 1)
-        except gzip.BadGzipFile:
-            with open(path, "rb") as handle:
-                data = handle.read(MAX_INLINE_BYTES + 1)
+        # Gzipped, like every artifact.
+        with gzip.open(path, "rb") as handle:
+            data = handle.read(MAX_INLINE_BYTES + 1)
     except OSError as e:
         raise ProblemError(
             "not-found", detail=f"those bytes could not be read: {e}") from None
@@ -1019,6 +1009,8 @@ def metrics(session, job_id, step, index):
 @screen
 def log(session, job_id, step, index):
     '''One node's log: the archived bytes, or the live tail as it is written.'''
+    from siliconcompiler.remote.server.state.store import TERMINAL_NODE_STATES
+
     detail = _jobs().get(session, job_id)
 
     # Every log this node left, so somebody looking for the TOOL's complaint is
@@ -1029,7 +1021,7 @@ def log(session, job_id, step, index):
                   available[0][0] if available else None)
 
     node = _jobs().node_log(session, job_id, step, index, surface="portal")
-    finished = node["state"] in ("completed", "failed", "skipped", "cancelled")
+    finished = node["state"] in TERMINAL_NODE_STATES
 
     text, stream = "", None
     picked = dict(available).get(chosen)
@@ -1136,8 +1128,7 @@ def deployment(session):
 
     # The same read the liveness probe makes, and the same three answers. It is
     # cheap on purpose -- a probe is scraped every few seconds.
-    with flask.current_app.test_request_context("/v1/healthz"):
-        health = json.loads(meta.healthz().get_data())
+    health = {"status": meta.health_status(store)}
 
     return flask.render_template(
         "server.html", published=published, health=health,
@@ -1221,17 +1212,9 @@ def register_image(session):
                 in (flask.request.form.get("contains") or "").splitlines()
                 if line.strip()]
 
-    pairs = []
-    for entry in contains:
-        name, sep, version = entry.partition("==")
-        if not sep:
-            raise ProblemError("invalid-request",
-                               detail=f"{entry!r} is not name==version")
-        pairs.append((name.strip(), version.strip()))
-
     try:
         image_id = images.register_image(
-            _store(), ref, digest, pairs, session.user_id,
+            _store(), ref, digest, images._contains(contains), session.user_id,
             note=flask.request.form.get("note") or None)
     except ValueError as e:
         raise ProblemError("invalid-request", detail=str(e)) from None

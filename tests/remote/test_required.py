@@ -136,8 +136,8 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
     assert [item["keypath"][1] for item in owners.sources(project)] == ["lambda"]
     assert owners.sources(project, required) == []
 
-    from test_owners import Supply
-    names = {entry.name for entry in owners.account(project, "none", Supply(), required)}
+    from test_owners import Supply, account
+    names = {entry.name for entry in account(project, "none", Supply(), required)}
     assert "lambda" not in names and "mylib" in names
 
 

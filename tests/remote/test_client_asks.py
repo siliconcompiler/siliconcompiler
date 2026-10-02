@@ -223,12 +223,16 @@ def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
 
 
 def test_a_long_reason_is_fitted_to_what_the_server_takes(fake_v1, logged_in, nop_project):
+    '''An item that would not fit even alone is cut, so the reason names
+    something.'''
     import responses
+
+    from siliconcompiler.remote.client.run import _CannotSupply
 
     fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
                   {"id": "01J9-job", "state": "cancelled", "terminal": True}, status=202)
 
-    RemoteRun(nop_project, logged_in)._abandon("01J9-job", RuntimeError(), why="x" * 2000)
+    RemoteRun(nop_project, logged_in)._abandon("01J9-job", _CannotSupply(["x" * 2000]))
 
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
     assert len(json.loads(cancel.request.body)["reason"]) <= 300

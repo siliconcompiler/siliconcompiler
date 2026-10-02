@@ -431,7 +431,7 @@ def job_archive(nop_project):
             from siliconcompiler.utils.curation import collect
 
             chosen = owners.collection(project, lambda one: owners.uploads(
-                project, one.key, one.dataroot, one.resolvers, one.value.get()))
+                project, one.key, one.dataroot, one.resolvers))
             collect(project, verbose=False, keys=chosen.keys, select=chosen.select)
         project.write_manifest(os.path.join(root, f"{project.name}.pkg.json"))
 

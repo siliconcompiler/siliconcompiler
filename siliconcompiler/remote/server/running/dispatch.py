@@ -186,7 +186,7 @@ class LocalDispatcher(Dispatcher):
             # The whole session: the run forks node processes, and signalling
             # only the parent leaves them running with nothing to report them.
             os.killpg(pid, signal.SIGTERM)
-        except (OSError, ProcessLookupError) as e:
+        except OSError as e:
             logger.debug(f"could not signal {scheduler_job_id}: {e}")
 
 

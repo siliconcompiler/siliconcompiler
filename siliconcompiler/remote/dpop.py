@@ -174,14 +174,14 @@ def _htu(url: str) -> str:
 
 def verify_proof(proof: str, method: str, url: str,
                  access_token: Optional[str] = None,
-                 expected_jkt: Optional[str] = None,
-                 nonce: Optional[str] = None,
                  now: Optional[int] = None) -> str:
     '''Check a proof and return the thumbprint it was signed with. Server side.
 
     Raises :class:`DPoPError` for every way a proof can fail to hold up, which
     the handler renders as `invalid-dpop-proof`. Replay is the caller's problem:
     this remembers nothing, and the caller checks the proof's `jti` itself.
+    So is the key: the token endpoint and `TokenIssuer.authenticate` each
+    compare the returned thumbprint with the bound key themselves.
     '''
     import jwt
 
@@ -235,17 +235,8 @@ def verify_proof(proof: str, method: str, url: str,
     if abs(current - issued) > PROOF_LIFETIME_SECONDS:
         raise DPoPError("proof iat is outside the acceptable window")
 
-    if nonce is not None and claims.get("nonce") != nonce:
-        raise DPoPError("proof carries the wrong nonce")
-
     if access_token is not None:
         if claims.get("ath") != access_token_hash(access_token):
             raise DPoPError("proof ath does not match the access token")
-
-    if expected_jkt is not None and thumbprint != expected_jkt:
-        # The bound key and the presenting key differ. No server path passes
-        # it: the token endpoint and `TokenIssuer.authenticate` each compare
-        # the returned thumbprint with the bound key themselves.
-        raise DPoPError("proof key does not match the bound key")
 
     return thumbprint

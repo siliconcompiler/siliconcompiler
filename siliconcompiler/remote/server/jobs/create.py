@@ -17,6 +17,7 @@ from siliconcompiler.remote.server.jobs.common import (
     CREATE_MEMBERS, DESCRIPTOR_MEMBERS, REUSABLE_STATES, _continuations, _declared_sources,
     _expired_key, _name, _only, _python_packages, _run_hash, logger, requirements)
 from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.state.store import ACTIVE_STATES, PENDING_STATES
 
 
 class CreateMixin:
@@ -40,8 +41,6 @@ class CreateMixin:
             return self._create(session, body, idempotency_key)
 
     def _create(self, session, body, idempotency_key):
-        if not isinstance(body, dict):
-            raise ProblemError("invalid-request", detail="the body must be a JSON object")
         _only(body, CREATE_MEMBERS, "the create body")
 
         if body.get("project") is not None:
@@ -122,7 +121,10 @@ class CreateMixin:
         # 🔴 Before the reuse lookup, because the answer is part of what the
         # lookup is keyed on -- and before the upload, which is the whole point
         # of resolving here at all.
-        identity = self._identity(run_hash, requires, stored_packages) if reuses else None
+        image = images.job_image_for(self._store, requires) \
+            if reuses and run_hash and self._config["containers"] else None
+        identity = self._identity(run_hash, requires, stored_packages, image) \
+            if reuses else None
 
         if identity:
             hit = self._reuse(session.user_id, identity)
@@ -147,8 +149,10 @@ class CreateMixin:
         # is uploaded (surface §13; database D145): whether ONE image holds the
         # python set together is only the join's to say. Node images wait for
         # the manifest's read, which is what says which tools the nodes run.
-        image_id = images.job_image_for(self._store, requires)["id"] \
-            if self._config["containers"] else None
+        # Resolved once: above, where the reuse lookup needed it.
+        if image is None and self._config["containers"]:
+            image = images.job_image_for(self._store, requires)
+        image_id = image["id"] if image else None
 
         job_id = str(uuid.uuid4())
         device_id = session.device_id
@@ -265,9 +269,11 @@ class CreateMixin:
         return asked
 
     def _identity(self, run_hash: Optional[str], requires,
-                  packages: Optional[str] = None) -> Optional[str]:
+                  packages: Optional[str] = None, image=None) -> Optional[str]:
         '''``H(client hash, the digests it resolved to, python_packages, the
         interpreter it asked for, the index configuration)``, or None.
+        ``image`` is the job's image (`images.job_image_for`), where this
+        deployment runs containers.
 
         🔴 **The client's hash alone is not the job's identity, and treating it
         as one hands back a result produced by different code.** The client
@@ -290,9 +296,7 @@ class CreateMixin:
         if not run_hash:
             return None
 
-        digests: List[str] = []
-        if self._config["containers"]:
-            digests = images.digests_for(self._store, requires)
+        digests = [image["digest"]] if image else []
 
         # 🔴 What else decides what the install gives the run, which the
         # client's hash may not cover (job-reuse D23): the job's Python
@@ -381,7 +385,8 @@ class CreateMixin:
             return
         held = [row["id"] for row in self._store.all(
             "SELECT id FROM jobs WHERE user_id = ? "
-            "AND state IN ('created', 'awaiting_input') ORDER BY created_at", (user_id,))]
+            f"AND state IN ({', '.join('?' * len(PENDING_STATES))}) ORDER BY created_at",
+            (user_id, *PENDING_STATES))]
         if len(held) >= ceiling:
             # Which jobs hold the slots, so the client can cancel one it abandoned.
             raise ProblemError(
@@ -428,7 +433,7 @@ class CreateMixin:
                 [(kind, name) for kind in owners.RESOURCE_KINDS]
         wanted += [("tool", name) for name in sorted(requires["tools"])]
         for kind, name in wanted:
-            if kind is not None and self._config.denied(kind, name):
+            if self._config.denied(kind, name):
                 raise ProblemError(
                     "entitlement-denied", resource_kind=kind, resource=name,
                     detail=f"this job names a {kind} this deployment does not allow")
@@ -447,13 +452,12 @@ class CreateMixin:
         bucket while the image join is over combinations, so a client resolving
         each requirement on its own can name a set no single image holds --
         every version published, every one satisfiable, and nothing to run them
-        in. ⚠️ A bare version means `==`, which is what every client sent
-        before the wire carried ranges.
+        in. ⚠️ A bare version means `==`, which is what a person writes.
 
         ⚠️ **This is the per-name check and not the resolution.** It answers
         *does this server have anything matching* for each name on its own;
-        *does ONE image hold all of them* is `digests_for`, which runs beside
-        it at create. Both are needed: this one gives a name-specific
+        *does ONE image hold all of them* is `images.job_image_for`, which
+        runs beside it at create. Both are needed: this one gives a name-specific
         `software-unavailable` where the join could only say the combination
         failed.
 
@@ -556,7 +560,8 @@ class CreateMixin:
             return
         active = self._store.one(
             "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
-            "AND state IN ('staging', 'queued', 'running', 'cancelling')", (user_id,))["n"]
+            f"AND state IN ({', '.join('?' * len(ACTIVE_STATES))})",
+            (user_id, *ACTIVE_STATES))["n"]
         if active >= ceiling:
             raise ProblemError(
                 "limit-exceeded", limit="concurrent_jobs",

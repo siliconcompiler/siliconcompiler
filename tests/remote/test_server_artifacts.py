@@ -67,7 +67,7 @@ def ran(server, server_client, key, token, job_archive, prepare=None,
     }
     if error is not None:
         progress["error"] = error
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, progress)
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, progress)
 
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == state
@@ -1180,11 +1180,11 @@ def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
     assert kept["digest"] == digest and kept["upload_seq"] == 1
 
 
-def test_an_upload_refused_as_restricted_is_deleted_and_the_reason_kept(
+def test_an_upload_refused_for_a_private_value_is_deleted_and_the_reason_kept(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 `upload-forbidden`, on either detection: the bytes are not kept
-    (surface D133). The job, its reason, and the member and hash the reason
-    names are what remains.'''
+    '''🔴 A private dataroot's value is not kept (surface D308): the bytes go.
+    The job, its reason, and the member and hash the reason names are what
+    remains.'''
     from siliconcompiler.remote.server.errors import ProblemError
 
     archive, digest, size = job_archive()
@@ -1196,10 +1196,11 @@ def test_an_upload_refused_as_restricted_is_deleted_and_the_reason_kept(
 
     jobs = server.config["SC_JOBS"]
     row = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (job["id"],))
-    jobs._refuse(None, row, ProblemError(
-        "upload-forbidden", resource_kind="pdk", detected="content",
-        member="sc_collected_files/cells.lef",
-        detail="sc_collected_files/cells.lef (sha256:abc) matches a controlled pdk"))
+    jobs._refuse(row, ProblemError(
+        "archive-rejected", reason="unrequested_member",
+        keypath=["library", "acme", "dataroot", "cells"],
+        detail="sc_collected_files/cells.lef (sha256:abc) is under the private dataroot "
+               "library,acme,dataroot,cells"))
 
     assert _uploads(server, job["id"]) == [] and not stored.exists()
     reason = server.config["SC_STORE"].one(

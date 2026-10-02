@@ -322,8 +322,8 @@ def test_a_notice_is_refused_unless_it_has_the_published_shape(notice, complaint
 
 
 @pytest.mark.parametrize("private,complaint", [
-    # The shape before keypaths, which is `library`'s now: said how to move it.
-    ({"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}, "goes under \"library\""),
+    # A section that is none of the three.
+    ({"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}}, "is none of library, tool and task"),
     ({"library": {"acme_pdk": {"acme_pdk": "opt/pdks/acme"}}}, "each path absolute"),
     ({"tool": {"acme_sim": "/opt/acme"}}, "each path absolute"),
     ({"task": {"acme_sim": {"scripts": "/opt/acme"}}}, "each path absolute"),

@@ -230,9 +230,9 @@ def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, mon
     more to waste. The test fails if the collection runs at all.'''
     from siliconcompiler.remote.client import run as run_module
 
-    def explode(self):
+    def explode(self, *args, **kwargs):
         raise AssertionError("the job was packed before the server was checked")
-    monkeypatch.setattr(run_module.RemoteRun, "_preprocess", explode)
+    monkeypatch.setattr(run_module.RemoteRun, "_collect", explode)
 
     project = build_project(gcd_design, "remote-build")
     project.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))

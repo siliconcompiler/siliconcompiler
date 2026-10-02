@@ -129,7 +129,7 @@ def add_tree(tar: tarfile.TarFile, root, top, base, skip: Iterable[str] = (),
     try:
         if arcname != os.curdir:
             tar.addfile(_dir_info(tar, arcname, os.fstat(fd)))
-        _walk(tar, root, fd, top, arcname, skip, packing)
+        _walk(tar, fd, top, arcname, skip, packing)
     finally:
         os.close(fd)
 
@@ -248,7 +248,7 @@ def _regular(fd: int, path) -> int:
     return fd
 
 
-def _walk(tar, root, dir_fd, dir_path: Path, arcdir: str, skip, packing) -> None:
+def _walk(tar, dir_fd, dir_path: Path, arcdir: str, skip, packing) -> None:
     with os.scandir(dir_fd) as entries:
         names = sorted(entry.name for entry in entries)
     for name in names:
@@ -267,7 +267,7 @@ def _walk(tar, root, dir_fd, dir_path: Path, arcdir: str, skip, packing) -> None
                 continue            # swapped for a link or removed underneath
             try:
                 tar.addfile(_dir_info(tar, arcname, os.fstat(sub)))
-                _walk(tar, root, sub, dir_path / name, arcname, skip, packing)
+                _walk(tar, sub, dir_path / name, arcname, skip, packing)
             finally:
                 os.close(sub)
         elif stat.S_ISREG(info.st_mode):

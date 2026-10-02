@@ -83,21 +83,13 @@ _SERVERS = "servers"    # each server's entry, by its URL
 # across its request, which the transport gives 30 seconds.
 LOCK_SECONDS = 60
 
-# What older clients left, moved into the store once and removed: a
-# configuration file beside the store's directory, and three files and a lock
-# inside it.
+# What an older client left, moved into the store once and removed: a
+# configuration file beside the store's directory.
 _LEGACY_CONFIG = "credentials"
-_LEGACY_SESSIONS = "sessions.json"
-_LEGACY_HEADERS = "headers.json"
-_LEGACY_CI = "ci-credential"
-_LEGACY_LOCKS = ("lock", "sessions.json.lock")
-_LEGACY_KEY = "credentials.key"         # beside the old configuration file
 # The keys an old configuration file held.
-_LEGACY_FIELDS = ("address", "port", "directory_whitelist", "user_id", "refresh_token",
-                  "access_token", "open_portal")
+_LEGACY_FIELDS = ("address", "port", "directory_whitelist")
 
-# Where a preference the old configuration file held now lives: the user's
-# settings.json.
+# Where the remote client's preferences live: the user's settings.json.
 SETTINGS_CATEGORY = "remote"
 
 _PRIVATE_DIR = 0o700
@@ -375,11 +367,9 @@ class Credentials:
 
     def _owns(self, name: str) -> bool:
         '''Whether a file in the store's directory is the store's: the store,
-        its lock, the key, a temporary file either is written through, or a
-        file an older client left there.'''
+        its lock, the key, or a temporary file either is written through.'''
         store = self.path.name
-        if name in (store, f"{store}.lock", f"{store}.sc_lock", KEY_FILENAME,
-                    _LEGACY_SESSIONS, _LEGACY_HEADERS, _LEGACY_CI, *_LEGACY_LOCKS):
+        if name in (store, f"{store}.lock", f"{store}.sc_lock", KEY_FILENAME):
             return True
         return name.endswith(".tmp") and name.startswith((f".{store}.", f".{KEY_FILENAME}."))
 
@@ -408,34 +398,17 @@ class Credentials:
         _write_atomic(path, payload)
 
     ######################################################################
-    # What older clients left
+    # What an older client left
     ######################################################################
 
     def _migrate(self, config: Optional[Path]) -> None:
-        '''Move an older client's files into the store, once, and remove them.
+        '''Move an older client's configuration file into the store, once,
+        and remove it: the server and the whitelist.'''
+        from siliconcompiler.remote.client.transport import normalize_server
 
-        From the configuration file: the server, the whitelist and the id it
-        last reported, and `open_portal`, a preference, into the user's
-        settings. From the old store's directory: each server's refresh token,
-        each origin's headers into the server on that origin, and the CI
-        credential into the configured server, in place of its refresh token.
-        A key file that predates the store becomes the key.
-        '''
-        from siliconcompiler.remote.client.transport import normalize_server, origin_of
-
-        values = _read_json(config) if config is not None else {}
-        sessions = _read_json(self.auth_dir / _LEGACY_SESSIONS)
-        headers = _read_json(self.auth_dir / _LEGACY_HEADERS)
-        ci_path = self.auth_dir / _LEGACY_CI
-        ci = ci_path.read_text().strip() if ci_path.exists() else ""
-        legacy_key = config.parent / _LEGACY_KEY if config is not None else None
-        leftovers = [self.auth_dir / name for name in _LEGACY_LOCKS]
-        if not (values or sessions or headers or ci or any(p.exists() for p in leftovers)
-                or (legacy_key is not None and legacy_key.exists())):
+        if config is None:
             return
-
-        if legacy_key is not None and legacy_key.exists() and not self.key_path.exists():
-            self._write(self.key_path, legacy_key.read_bytes())
+        values = _read_json(config)
 
         with self.transaction():
             if values.get("address") and not self.server:
@@ -444,38 +417,8 @@ class Credentials:
             if values.get("directory_whitelist") and not self.directory_whitelist:
                 self._store.set(_STORE, "directory_whitelist",
                                 list(values["directory_whitelist"]))
-            server = self.server
-            entries = {url: dict(entry) for url, entry
-                       in (self._store.get_category(_SERVERS) or {}).items()
-                       if isinstance(entry, dict)}
-            for url, old in sessions.items():
-                if isinstance(old, dict) and old.get("refresh_token"):
-                    entries.setdefault(url, {}).setdefault("refresh_token", old["refresh_token"])
-            if server:
-                if values.get("user_id"):
-                    entries.setdefault(server, {}).setdefault("user_id", values["user_id"])
-                if values.get("refresh_token"):
-                    entries.setdefault(server, {}).setdefault("refresh_token",
-                                                              values["refresh_token"])
-                if ci:
-                    entries.setdefault(server, {})["ci_credential"] = ci
-                    entries[server].pop("refresh_token", None)
-            for origin, named in headers.items():
-                if not isinstance(named, dict):
-                    continue
-                for url in [url for url in {*entries, *([server] if server else [])}
-                            if origin_of(url) == origin]:
-                    entries.setdefault(url, {}).setdefault("headers", {}).update(named)
-            for url, entry in entries.items():
-                self._store.set(_SERVERS, url, entry)
 
-        if values.get("open_portal") is not None:
-            _set_preference("open_portal", values["open_portal"])
-
-        for stale in [config, self.auth_dir / _LEGACY_SESSIONS, self.auth_dir / _LEGACY_HEADERS,
-                      ci_path, legacy_key, *leftovers]:
-            if stale is not None and stale.exists():
-                stale.unlink()
+        config.unlink(missing_ok=True)
         logger.info(f"Moved the remote configuration into {self.path}")
 
 
@@ -484,14 +427,6 @@ def preference(name: str, default: Any = None) -> Any:
     from siliconcompiler.utils.multiprocessing import MPManager
 
     return MPManager.get_settings().get(SETTINGS_CATEGORY, name, default)
-
-
-def _set_preference(name: str, value: Any) -> None:
-    from siliconcompiler.utils.multiprocessing import MPManager
-
-    settings = MPManager.get_settings()
-    with settings.transaction():
-        settings.set(SETTINGS_CATEGORY, name, value)
 
 
 def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
@@ -547,9 +482,8 @@ def parse_ci_secret(secret: str):
     without padding -- which may itself contain `_`, so only the first two
     separate.
     '''
-    import base64
-
     from cryptography.hazmat.primitives.serialization import load_der_private_key
+    from jwt.utils import base64url_decode
 
     parts = (secret or "").strip().split("_", 2)
     if len(parts) != 3 or not all(parts):
@@ -557,32 +491,29 @@ def parse_ci_secret(secret: str):
                           "<prefix>_<credential id>_<key>")
     _, credential_id, encoded = parts
     try:
-        der = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
-        key = load_der_private_key(der, password=None)
+        key = load_der_private_key(base64url_decode(encoded), password=None)
     except Exception:                                           # noqa: BLE001
         raise RemoteError(f"the key in {CI_SECRET_VARIABLE} does not decode") from None
     return credential_id, key
 
 
-def _write_atomic(path: Path, payload: bytes) -> None:
-    '''Write through a temporary file in the same directory, created with the
-    mode set, and rename it over the target. The live file is never truncated,
-    and its contents are never readable by anyone else, not even briefly.'''
-    import secrets
+def _write_atomic(path, payload: bytes, mode: int = _PRIVATE_FILE) -> None:
+    '''Write through a temporary file in the same directory, created with
+    ``mode`` set, and rename it over the target. The live file is never
+    truncated, and a private one's contents are never readable by anyone
+    else, not even briefly.'''
+    from siliconcompiler.utils.settings import _create_temp, _replace
 
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{secrets.token_hex(6)}.tmp")
-    fd = os.open(str(temporary), os.O_WRONLY | os.O_CREAT | os.O_EXCL, _PRIVATE_FILE)
+    fd, temporary = _create_temp(str(path), mode)
     try:
-        os.write(fd, payload)
-        os.fsync(fd)
-    finally:
-        os.close(fd)
-    try:
-        os.replace(temporary, path)
+        with os.fdopen(fd, "wb") as f:
+            f.write(payload)
+            f.flush()
+            os.fsync(f.fileno())
+        _replace(temporary, str(path))
     except BaseException:
-        temporary.unlink(missing_ok=True)
+        with contextlib.suppress(OSError):
+            os.unlink(temporary)
         raise
 
 

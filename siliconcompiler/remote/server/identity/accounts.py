@@ -15,7 +15,7 @@ page, and what they share is the question underneath.
 from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.state.store import now, stamp
+from siliconcompiler.remote.server.state.store import ACTIVE_STATES, now, stamp
 
 __all__ = ["account_limits", "devices_for", "effective_limits", "lifetime",
            "owned_device", "set_limit", "usage", "user", "OVERRIDABLE"]
@@ -123,7 +123,8 @@ def usage(store, user_id: str) -> Dict[str, Any]:
     '''
     active = store.one(
         "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
-        "AND state IN ('staging', 'queued', 'running', 'cancelling')", (user_id,))["n"]
+        f"AND state IN ({', '.join('?' * len(ACTIVE_STATES))})",
+        (user_id, *ACTIVE_STATES))["n"]
 
     stored = store.one(
         "SELECT coalesce(sum(a.size_bytes), 0) AS n FROM artifacts a "
@@ -178,7 +179,7 @@ def session_view(store, session) -> Dict[str, Any]:
     access = None
     if session.expires_at is not None:
         access = stamp(datetime.fromtimestamp(session.expires_at, tz=timezone.utc))
-    kind = family["kind"] if family else "interactive"
+    kind = family["kind"]
     return {
         "kind": kind,
         # As a token's scope string, in the registry's own order.
@@ -186,7 +187,7 @@ def session_view(store, session) -> Dict[str, Any]:
         "device_id": session.device_id if kind == "interactive" else None,
         "access_expires_at": access,
         "refresh_expires_at": refresh["expires_at"] if refresh else None,
-        "session_expires_at": family["expires_at"] if family else access,
+        "session_expires_at": family["expires_at"],
     }
 
 

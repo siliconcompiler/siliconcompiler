@@ -22,6 +22,7 @@ network and user namespaces where the kernel lets it, and its own CPU, memory
 and file-size limits.
 '''
 
+import functools
 import json
 import os
 import shutil
@@ -223,19 +224,14 @@ def _summary_in(stdout_path: Path, stderr_path: Path) -> Any:
                          + (f": {tail}" if tail else "")) from None
 
 
-_probed: Optional[Dict[str, bool]] = None
-
-
 def probe() -> Dict[str, bool]:
     '''What a read's containment achieves on this host: a real read's
     process, with an empty request, asked only to contain itself. Once per
     process.'''
-    global _probed
-    if _probed is None:
-        _probed = _probe()
-    return dict(_probed)
+    return dict(_probe())
 
 
+@functools.cache
 def _probe() -> Dict[str, bool]:
     import tempfile
 
@@ -287,7 +283,7 @@ def _environment(home: Path, cpu_seconds: Optional[int] = None,
 def _kill(process: subprocess.Popen) -> None:
     try:
         os.killpg(process.pid, signal.SIGKILL)
-    except (OSError, ProcessLookupError):
+    except OSError:
         pass
     try:
         process.wait(timeout=10)

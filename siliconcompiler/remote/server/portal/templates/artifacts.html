@@ -17,12 +17,6 @@
     #}
     <span class="muted">gone {{ item.deleted_at | when }}{%
       if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
-  {% elif item.blocked_by %}
-    {#
-      Each document in the way, by its terms id. This profile has no terms,
-      so nothing here builds one; the shared screen still renders the shape.
-    #}
-    <span class="muted">held back until signed: {{ item.blocked_by | join(', ') }}</span>
   {% else %}
     <span class="muted">not available</span>
   {% endif %}

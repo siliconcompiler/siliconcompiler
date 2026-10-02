@@ -11,11 +11,11 @@ from typing import Any, Dict, List, Optional
 
 from siliconcompiler.remote.server.errors import bound, ProblemError
 from siliconcompiler.remote.server.jobs.common import (
-    MAX_REASON, TERMINAL_NODE_STATES, TERMINAL_STATES, _CANCELS, _NoLongerStaging, _bounded,
-    _error, _members_json, logger)
+    MAX_REASON, _CANCELS, _NoLongerStaging, _bounded, _error, _members_json, logger)
 from siliconcompiler.remote.server.outputs import artifacts
 from siliconcompiler.remote.server.software import images
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import (
+    PENDING_STATES, TERMINAL_NODE_STATES, TERMINAL_STATES, now)
 
 
 class RowsMixin:
@@ -115,8 +115,6 @@ class RowsMixin:
         transaction; a run's own output is indexed before it, by
         `_index`.'''
         job = self._row(job_id)
-        if job is None:
-            return
         root = self.job_root(job["user_id"], job_id)
         try:
             artifacts.collect_staging(self._store, self._storage, self._config, job, root)
@@ -151,8 +149,7 @@ class RowsMixin:
             "flow": job["manifest_flow"],
             # The user id is what GET /v1/me returns, so a client compares it;
             # the name is display only. Nothing here verifies who anybody is.
-            "owner": {"id": job["user_id"],
-                      "name": (owner["display_name"] if owner else None) or job["user_id"]},
+            "owner": {"id": job["user_id"], "name": owner["display_name"] or job["user_id"]},
             "project": None,
             "created_at": job["created_at"],
             "submitted_at": job["submitted_at"],
@@ -195,7 +192,7 @@ class RowsMixin:
         # 🔴 Present only while the server is asking -- in `created` or
         # `awaiting_input` -- and never `[]` (D127): what to send, and nothing
         # else.
-        if job["state"] in ("created", "awaiting_input") and job["upload_sources"]:
+        if job["state"] in PENDING_STATES and job["upload_sources"]:
             asking = json.loads(job["upload_sources"])
             if asking:
                 body["upload_sources"] = asking
@@ -262,7 +259,7 @@ class RowsMixin:
             entries.append(entry)
         return entries or [{"state": job["state"], "at": job["state_changed_at"]}]
 
-    def _refuse(self, session, job, problem: ProblemError) -> ProblemError:
+    def _refuse(self, job, problem: ProblemError) -> ProblemError:
         '''Record a refusal, and hand back the problem for the caller to raise.
 
         A refused job is `rejected` and never `failed`: a refused job never ran,
@@ -298,7 +295,6 @@ class RowsMixin:
                 "WHERE id = ?",
                 (problem.error.uri, _members_json(problem.members), now(), job["id"]))
             self._transition(job["id"], job["state"], "rejected",
-                             actor=session.user_id if session else None,
                              reason=problem.detail or problem.error.slug)
         self._storage.discard_upload(job["id"])
         return problem
@@ -306,11 +302,8 @@ class RowsMixin:
 
 def _kept(problem: ProblemError) -> bool:
     '''Whether a refused job's upload is kept: not where it was refused for
-    what it must not carry -- `upload-forbidden`, a `credential`, or a private
-    dataroot's value, the `unrequested_member` that names its `keypath`
-    (surface D307, D308).'''
-    if problem.error.slug == "upload-forbidden":
-        return False
+    what it must not carry -- a `credential`, or a private dataroot's value,
+    the `unrequested_member` that names its `keypath` (surface D307, D308).'''
     if problem.error.slug != "archive-rejected":
         return True
     reason = problem.members.get("reason")

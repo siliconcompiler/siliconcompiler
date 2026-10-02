@@ -58,12 +58,12 @@ JOB_FILE = "sc_remote_job.json"
 
 def record_job(directory: str, job_id: str) -> None:
     '''Record the job ``directory``'s results came from.'''
+    from siliconcompiler.remote.client.credentials import _write_atomic
+
     os.makedirs(directory, exist_ok=True)
-    path = os.path.join(directory, JOB_FILE)
-    partial = f"{path}.part"
-    with open(partial, "w") as f:
-        json.dump({"job_id": job_id}, f)
-    os.replace(partial, path)
+    # The mode `open()` would give it: a job id is no secret.
+    _write_atomic(os.path.join(directory, JOB_FILE),
+                  json.dumps({"job_id": job_id}).encode(), mode=0o666)
 
 
 def recorded_job(directory: str) -> Optional[str]:
@@ -604,11 +604,12 @@ class Results:
         from siliconcompiler.remote.runflow import runtime_nodes
 
         try:
-            ran = set(runtime_nodes(self.project))
+            nodes = runtime_nodes(self.project)
         except Exception:                                        # noqa: BLE001
             return
+        ran = set(nodes)
 
-        for path in self._manifests():
+        for path in self._manifests(nodes):
             try:
                 self._fold_in_journal(path, ran)
             except Exception as e:                               # noqa: BLE001
@@ -636,7 +637,7 @@ class Results:
             write = self.project.set if action["type"] == "set" else self.project.add
             write(*key, action.get("value"), step=step, index=index)
 
-    def _fold_in_final(self, path: str, ran=None) -> None:
+    def _fold_in_final(self, path: str, ran) -> None:
         '''Copy the run's per-node record and metrics out of the job manifest.
 
         🔴 **Not a journal replay, because the job manifest has no journal.**
@@ -647,11 +648,8 @@ class Results:
         Loaded with the classes already here, importing nothing it names.
         '''
         from siliconcompiler import Project
-        from siliconcompiler.remote.runflow import runtime_nodes
         from siliconcompiler.schema.baseschema import known_classes_only
 
-        if ran is None:
-            ran = set(runtime_nodes(self.project))
         with known_classes_only():
             final = Project.from_manifest(filepath=path)
         for group in ("record", "metric"):
@@ -678,23 +676,14 @@ class Results:
                 self.logger.error(f"{self._name(item)}: {e}")
         return landed
 
-    def _manifests(self) -> List[str]:
+    def _manifests(self, nodes) -> List[str]:
         '''Every node manifest on disk, whichever object brought it.'''
         found = []
-
-        from siliconcompiler.remote.runflow import runtime_nodes
-
-        try:
-            nodes = runtime_nodes(self.project)
-        except Exception:                                        # noqa: BLE001
-            return found
-
         for step, index in nodes:
             path = os.path.join(workdir(self.project, step=step, index=index),
                                 "outputs", f"{self.project.name}.pkg.json")
             if os.path.isfile(path):
                 found.append(path)
-
         return found
 
     @staticmethod

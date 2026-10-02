@@ -26,7 +26,7 @@ logger = logging.getLogger("sc-server")
 
 __all__ = ["normalize", "node_image", "node_state", "exit_code", "PROGRESS_FILENAME",
            "IMAGES_FILENAME", "read_images", "write_images", "read_progress",
-           "write_progress"]
+           "write_json"]
 
 
 # Written by the run, read by the API process, and the only channel between
@@ -268,7 +268,7 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
 
 
 def dataroot_targets(entries, collection, uploads=None) -> List[List[Optional[str]]]:
-    '''Where each dataroot the run reads is supplied, from `owners.account`'s
+    '''Where each dataroot the run reads is supplied, from `owners.account_records`'s
     answer: a supplied one as ``[keypath, target]``, at this server's own copy
     -- a held source, or an operator's private root -- and an uploaded one as
     ``[keypath, target, collection]``, at a directory of its own under
@@ -433,20 +433,19 @@ def read_images(path) -> Tuple[Dict[str, str], List[str]]:
     return body.get("sources") or {}, body.get("mounts") or []
 
 
-def read_bundles(path) -> Tuple[Dict[str, str], List[Any], List[str]]:
-    '''Each job bundle's shared bundle, what the job's own bundles mount,
-    and the bind sources they leave out of the shared configuration.'''
+def read_bundles(path) -> Tuple[Dict[str, str], List[Any]]:
+    '''Each job bundle's shared bundle, and what the job's own bundles
+    mount.'''
     try:
         with open(path) as f:
             body = json.load(f)
     except (OSError, ValueError):
-        return {}, [], []
+        return {}, []
 
     if not isinstance(body, dict):
-        return {}, [], []
+        return {}, []
 
-    return (body.get("shared") or {}, body.get("job_mounts") or [],
-            body.get("drop") or [])
+    return body.get("shared") or {}, body.get("job_mounts") or []
 
 
 def _mount(mount):
@@ -457,17 +456,13 @@ def _mount(mount):
 
 
 def write_images(path, sources: Dict[str, str], mounts, shared=None,
-                 job_mounts=(), drop=()) -> None:
+                 job_mounts=()) -> None:
     '''``mounts`` are baked into a shared bundle when the run unpacks it;
     ``shared`` maps each job bundle to its shared one, and ``job_mounts`` are
     what the job's own bundles add over it.'''
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump({"sources": sources, "mounts": [_mount(m) for m in mounts],
-                   "shared": dict(shared or {}),
-                   "job_mounts": [_mount(m) for m in job_mounts],
-                   "drop": [str(m) for m in drop]}, f)
+    write_json(path, {"sources": sources, "mounts": [_mount(m) for m in mounts],
+                      "shared": dict(shared or {}),
+                      "job_mounts": [_mount(m) for m in job_mounts]})
 
 
 def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
@@ -494,17 +489,8 @@ def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
 
 
 def write_json(path, body: Any) -> None:
-    '''Replace one of the server's own files atomically.'''
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    partial = path.with_name(path.name + ".part")
-    with open(partial, "w") as f:
-        json.dump(body, f)
-    os.replace(partial, path)
-
-
-def write_progress(path, body: Dict[str, Any]) -> None:
-    '''Replace the progress file atomically.
+    '''Replace one of the server's own files atomically -- the progress file
+    among them.
 
     A reader on the other side of a shared filesystem gets the previous
     complete answer or the next one, never half of either.

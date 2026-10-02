@@ -188,16 +188,6 @@ def test_a_claim_that_is_not_a_string_is_refused_not_a_crash(key, claim):
         dpop.verify_proof(proof, "GET", URL)
 
 
-def test_the_wrong_key_is_refused(key):
-    '''What the first-contact binding is made of: the presented key must be the
-    bound one.'''
-    proof = dpop.sign_proof(dpop.generate_key(), "GET", URL)
-    bound = dpop.jwk_thumbprint(dpop.public_jwk(key))
-
-    with pytest.raises(dpop.DPoPError, match="does not match the bound key"):
-        dpop.verify_proof(proof, "GET", URL, expected_jkt=bound)
-
-
 ###########################
 # Things that are not proofs
 ###########################
@@ -270,19 +260,3 @@ def test_garbage_is_refused_rather_than_raising_something_else():
 def test_a_jwk_missing_a_member_names_it():
     with pytest.raises(dpop.DPoPError, match="crv"):
         dpop.jwk_thumbprint({"kty": "EC", "x": "a", "y": "b"})
-
-
-###########################
-# Nonces
-###########################
-
-def test_a_nonce_round_trips(key):
-    '''The server challenges with `use_dpop_nonce`; the client re-sends the
-    same request carrying the nonce. A client that only refreshes on 401 loops
-    here forever, which is why this is not optional.'''
-    proof = dpop.sign_proof(key, "GET", URL, nonce="server-said-this")
-
-    dpop.verify_proof(proof, "GET", URL, nonce="server-said-this")
-
-    with pytest.raises(dpop.DPoPError, match="nonce"):
-        dpop.verify_proof(proof, "GET", URL, nonce="a-different-nonce")

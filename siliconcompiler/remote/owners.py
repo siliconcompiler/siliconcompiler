@@ -80,7 +80,7 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLE
            "dataroot_keypath", "is_dataroot_keypath", "keypath_owner", "shown",
            "Unnamed",
            "safe_source", "masked", "is_masked", "has_userinfo", "dataroot_paths",
-           "without_credentials", "account", "Entry", "confined",
+           "without_credentials", "Entry", "confined",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
            "private_holders", "collection", "Collection", "collected_path",
@@ -219,8 +219,7 @@ def owner(project, key) -> Tuple[str, Optional[str]]:
     return PROJECT, None
 
 
-def source(resolvers, dataroot: Optional[str], _seen=None,
-           path: Optional[str] = None) -> str:
+def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
     '''Where files under ``dataroot`` come from, judged by how it was
     REGISTERED. ``resolvers`` is the owning schema's
     ``_find_files_dataroot_resolvers(True)``.
@@ -263,13 +262,12 @@ def source(resolvers, dataroot: Optional[str], _seen=None,
     return LOCAL
 
 
-def uploads(project, key, dataroot: Optional[str], resolvers,
-            path: Optional[str] = None) -> bool:
+def uploads(project, key, dataroot: Optional[str], resolvers) -> bool:
     '''Whether one value of one parameter goes in the archive.'''
     if skipped(key):
         return False
 
-    kind = source(resolvers, dataroot, path=path)
+    kind = source(resolvers, dataroot)
     if kind == PRIVATE:
         return False
 
@@ -405,7 +403,7 @@ def _values(project) -> Iterator[_Value]:
                 yield _Value(tuple(key), one, resolvers,
                              DESIGN if who == PROJECT else who,
                              project.name if who == PROJECT else name,
-                             dataroot, source(resolvers, dataroot, path=one.get()),
+                             dataroot, source(resolvers, dataroot),
                              step, index, keypaths[dataroot])
 
 
@@ -607,7 +605,8 @@ class Entry(NamedTuple):
 
 def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]]:
     '''Every value the flow reads, as plain data: the manifest's half of
-    :func:`account`, which runs where the manifest is read.
+    the accounting, run where the manifest is read, and
+    :func:`account_records` the server's.
 
     One record per value -- its ``(key, step, index)``, the owner's kind and
     name, the dataroot, its keypath and where it comes from, the path, and where
@@ -674,16 +673,9 @@ def uploaded_private(records, collection_dir) -> List[Tuple[Tuple[str, ...], str
     return found
 
 
-def account(project, collection_dir, supply, required=None) -> List[Entry]:
-    '''Every file the flow reads, as how it reaches the run:
-    :func:`value_records`, then :func:`account_records`.'''
-    return account_records(value_records(project, collection_dir, required),
-                           collection_dir, supply, required)
-
-
 def account_records(records, collection_dir, supply, required=None) -> List[Entry]:
     '''Every file the flow reads, as how it reaches the run: the server's
-    half of :func:`account`, from :func:`value_records`.
+    half of the accounting, from :func:`value_records`.
 
     ``supply`` answers for this server: ``package(module)``,
     ``private_root(keypath)``, ``held(source, ref)`` and
@@ -759,8 +751,8 @@ def _one(record, collection_dir, supply, present: bool = False) -> Entry:
                                            ": its source is on the submitter's machine"))
 
     found = record.get("collected")
-    if found and collection_dir and confined(collection_dir, found) is not None \
-            and os.path.exists(confined(collection_dir, found)):
+    held = confined(collection_dir, found) if found and collection_dir else None
+    if held is not None and os.path.exists(held):
         return Entry(**base, status=UPLOADED)
 
     if record["origin"] in (LOCAL, EDITABLE):
@@ -948,8 +940,8 @@ class WorkedOut(NamedTuple):
     node whose setup could not run here, with why.'''
     required: Dict[Tuple[str, str], List[str]]
     environments: Dict[Tuple[str, str], Any]
-    tasks: Dict[Tuple[str, str], Any] = {}
-    failed: Dict[Tuple[str, str], str] = {}
+    tasks: Dict[Tuple[str, str], Any]
+    failed: Dict[Tuple[str, str], str]
 
 
 def work_out(project) -> WorkedOut:

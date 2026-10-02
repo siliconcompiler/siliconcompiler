@@ -404,7 +404,7 @@ def test_a_masked_source_is_never_fetched(project, tmp_path):
 def uploaded_by_owner(project):
     '''What a remote run hands `collect`, by the owner rule alone.'''
     return owners.collection(project, lambda one: owners.uploads(
-        project, one.key, one.dataroot, one.resolvers, one.value.get()))
+        project, one.key, one.dataroot, one.resolvers))
 
 
 def collect_by_owner(project):
@@ -475,7 +475,7 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
 
     shutil.move("proj", "moved")
     assert {(entry.dataroot, entry.status) for entry in
-            owners.account(project, collection, Supply())} == \
+            account(project, collection, Supply())} == \
         {("top", owners.UPLOADED), ("rtl", owners.UPLOADED)}
 
 
@@ -536,7 +536,7 @@ def test_a_private_parameter_alone_is_left_out_without_a_refusal(project, tmp_pa
 ###########################
 
 class Supply:
-    '''A server, as `account` asks it.'''
+    '''A server, as `account_records` asks it.'''
 
     def __init__(self, packages=(), private=None, held=None, allowed=()):
         self.packages, self.private = set(packages), private or {}
@@ -555,8 +555,15 @@ class Supply:
         return any(str(source).startswith(prefix) for prefix in self.allowed)
 
 
+def account(project, collection_dir, supply, required=None):
+    '''How a server accounts for ``project``: its `value_records`, read where
+    the manifest is, then `account_records`.'''
+    return owners.account_records(owners.value_records(project, collection_dir, required),
+                                  collection_dir, supply, required)
+
+
 def status(project, name, supply, collection="none"):
-    for entry in owners.account(project, collection, supply):
+    for entry in account(project, collection, supply):
         if entry.name == name:
             return entry
     raise AssertionError(f"{name} not accounted for")
@@ -631,7 +638,7 @@ def test_a_private_design_is_supplied_like_any_other(project, tmp_path):
     mine = ("library", "gcd", "dataroot", "mine")
 
     def entry(supply):
-        found, = [one for one in owners.account(project, "none", supply)
+        found, = [one for one in account(project, "none", supply)
                   if one.dataroot == "mine"]
         return found
 
@@ -934,7 +941,7 @@ def test_a_library_and_a_tool_of_one_name_do_not_collide(gcd_design):
     assert {tuple(item["keypath"]) for item in owners.sources(project)} == \
         {library, RUN, CHECK}
     # The server's accounting keeps them apart too: three dataroots to ask for.
-    asked = [entry.wire for entry in owners.account(project, "none", Supply())
+    asked = [entry.wire for entry in account(project, "none", Supply())
              if entry.origin == owners.REMOTE]
     assert sorted(tuple(item["keypath"]) for item in asked) == sorted([library, RUN, CHECK])
 
@@ -1002,7 +1009,7 @@ def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(tmp_p
     tree = tmp_path / "job" / "top" / "job0"
     collection = tree / "sc_collected_files"
     chosen = owners.collection(project, lambda one: owners.uploads(
-        project, one.key, one.dataroot, one.resolvers, one.value.get()))
+        project, one.key, one.dataroot, one.resolvers))
     collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
             select=chosen.select)
     project.write_manifest(str(tree / "top.pkg.json"))
@@ -1055,7 +1062,7 @@ def test_a_queried_dataroots_upload_is_found_from_the_masked_manifest(tmp_path, 
     tree = tmp_path / "job" / "top" / "job0"
     collection = tree / "sc_collected_files"
     chosen = owners.collection(project, lambda one: owners.uploads(
-        project, one.key, one.dataroot, one.resolvers, one.value.get()))
+        project, one.key, one.dataroot, one.resolvers))
     collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
             select=chosen.select)
     owners.without_credentials(project).write_manifest(str(tree / "top.pkg.json"))
@@ -1101,7 +1108,7 @@ def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_fo
     assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
 
     def status(supply):
-        entry, = [one for one in owners.account(project, "none", supply)
+        entry, = [one for one in account(project, "none", supply)
                   if one.keypath == keypath]
         return entry.status
 

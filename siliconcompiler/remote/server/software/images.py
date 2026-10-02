@@ -32,11 +32,12 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
 from siliconcompiler.remote.environment import IMAGE_SITE, canonical
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.running.runspec import write_json
+from siliconcompiler.remote.server.software.probe import INTERPRETER, KINDS
 from siliconcompiler.remote.server.state.store import now
 
 __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
-           "catalogue", "contents_of", "declared_requirements", "digests_for",
-           "sweep_bundles", "matches", "normalize", "specifiers", "LAYER_PATH",
+           "catalogue", "contents_of", "declared_requirements",
+           "sweep_bundles", "matches", "normalize", "specifiers",
            "derivation", "derived_image", "register_derived", "stage_derived_bundle",
            "job_bundle", "is_staged", "live_images", "live_software", "pinned_ref",
            "plan_for_job", "register_image", "register_software", "register_version",
@@ -67,9 +68,6 @@ BUCKETS = {"python": "python", "tool": "tools", "interpreter": "interpreter"}
 # A requirement's `kind` on a `software-unavailable` `unresolved` entry
 # (surface D311): the `requested_versions` key it is under, as spelled.
 UNRESOLVED_KIND = {"library": "python", "tool": "tools", "interpreter": "interpreter"}
-
-# The interpreter bucket's one name: the image's own Python (surface D293).
-INTERPRETER = "python"
 
 
 class Requirement(NamedTuple):
@@ -233,17 +231,6 @@ class Plan(NamedTuple):
 
     def ref(self, image_id: Optional[str]) -> Optional[str]:
         return self.refs.get(image_id) if image_id else None
-
-    def digests(self) -> Dict[Tuple[str, str], str]:
-        '''Every node that has an image, as the digest that identifies it.
-
-        Taken back off the pinned reference rather than carried separately: the
-        reference IS repository-at-digest, so a second copy could only ever
-        disagree with it.
-        '''
-        return {node: self.refs[image].split("@", 1)[1]
-                for node, image in self.nodes.items()
-                if image and image in self.refs}
 
     def placements(self) -> Dict[Tuple[str, str], str]:
         '''Every node that has an image, as the reference to pull.
@@ -423,7 +410,7 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
 # The resolution
 ######################################################################
 
-def resolve(store_or_images, requirements: Sequence[Requirement]):
+def resolve(images, requirements: Sequence[Requirement]):
     '''The one image that fits, or None.
 
     Ranked, because more than one image may satisfy a job:
@@ -438,9 +425,6 @@ def resolve(store_or_images, requirements: Sequence[Requirement]):
        framework distributions and no tool.
     3. The registry reference, so the answer is the same every time.
     '''
-    images = (store_or_images if isinstance(store_or_images, list)
-              else live_images(store_or_images))
-
     fits = [image for image in images if _satisfies(image, requirements)]
     if not fits:
         return None
@@ -721,25 +705,6 @@ def job_image_for(store, requires: Dict[str, Any]) -> Dict[str, Any]:
                             declared_requirements(live_software(store), requires))
 
 
-def digests_for(store, requires: Dict[str, Any]) -> List[str]:
-    '''What this descriptor's declared versions resolve to, as digests.
-
-    🔴 **The server's half of the job identity.** The client keeps computing
-    its own hash over the work and tracks nothing extra; this is folded in, so
-    two runs asking for the same thing and resolved to different images are
-    correctly different jobs -- and re-registering an image invalidates reuse
-    exactly when it should, because a new digest is precisely *the code
-    changed*.
-
-    Raises the same refusal submit would, which is the point of doing it at
-    create: a descriptor nothing can run is refused before the upload rather
-    than after it.
-    '''
-    images = live_images(store)
-    requirements = declared_requirements(live_software(store), requires)
-    return [resolve_declared(images, requirements)["digest"]]
-
-
 def contents_of(store, image_ids: Sequence[Optional[str]],
                 interpreter_ids: Sequence[Optional[str]] = ()) -> Dict[str, List[str]]:
     '''Every version the given images declare, keyed by distribution -- and,
@@ -935,8 +900,6 @@ def bundle_path(root, digest: str):
     filesystem is read-only and identical for everybody, and per-user copies of
     a twelve-gigabyte image would be the one cost this design exists to avoid.
     '''
-    from pathlib import Path
-
     return Path(root) / digest.replace("sha256:", "")
 
 
@@ -1037,7 +1000,7 @@ def sweep_bundles(root, store) -> int:
     '''
     import shutil
 
-    from pathlib import Path
+    from siliconcompiler.remote.server.state.store import TERMINAL_STATES
 
     root = Path(root)
     if not root.is_dir():
@@ -1053,17 +1016,15 @@ def sweep_bundles(root, store) -> int:
     # An image whose bytes something might still start in, retired or not, and
     # the base under it. Both columns, because a job records the framework
     # image and each node records its own.
+    terminal = tuple(sorted(TERMINAL_STATES))
+    live = f"j.state NOT IN ({', '.join('?' * len(terminal))})"
     busy = set()
     for row in store.all(
             "SELECT i.digest, b.digest AS base FROM images i "
             "LEFT JOIN images b ON b.id = i.derived_from WHERE ("
-            "  EXISTS (SELECT 1 FROM jobs j WHERE j.image_id = i.id"
-            "          AND j.state NOT IN ('completed', 'failed', 'cancelled',"
-            "                              'rejected', 'abandoned'))"
+            f"  EXISTS (SELECT 1 FROM jobs j WHERE j.image_id = i.id AND {live})"
             "  OR EXISTS (SELECT 1 FROM job_nodes n JOIN jobs j ON j.id = n.job_id"
-            "             WHERE n.image_id = i.id"
-            "             AND j.state NOT IN ('completed', 'failed', 'cancelled',"
-            "                                 'rejected', 'abandoned')))"):
+            f"             WHERE n.image_id = i.id AND {live}))", terminal * 2):
         busy.add(row["digest"].replace("sha256:", ""))
         if row["base"]:
             busy.add(row["base"].replace("sha256:", ""))
@@ -1128,8 +1089,6 @@ def _prepare_spec(config, mounts) -> None:
     every node of the flow it is driving -- and wrong for a task that needs a
     licence server. A compute job belongs on the cluster's network.
     '''
-    import json
-
     with open(config) as f:
         spec = json.load(f)
 
@@ -1171,7 +1130,18 @@ def _add_mounts(spec, mounts) -> None:
         })
 
 
-def job_bundle(shared, target, mounts, drop=()):
+def _borrowed_root(spec, bundle, readonly: Optional[bool] = None) -> Dict[str, Any]:
+    '''``spec``'s root filesystem as an absolute path -- its ``root.path``
+    read against ``bundle``, the bundle ``spec`` came from -- so another
+    bundle's configuration can run it in place rather than copy it.
+    Read-only where ``readonly`` says so, and otherwise as ``spec`` has it.'''
+    root = spec.get("root") or {}
+    where = Path(root.get("path") or "rootfs")
+    return {"path": str((where if where.is_absolute() else Path(bundle) / where).resolve()),
+            "readonly": bool(root.get("readonly", False)) if readonly is None else readonly}
+
+
+def job_bundle(shared, target, mounts):
     '''One job's bundle: a shared one's configuration over its root
     filesystem, with this job's own mounts. Returns ``target``.
 
@@ -1180,31 +1150,17 @@ def job_bundle(shared, target, mounts, drop=()):
     baked into it is every job's. What a job may see -- its own tree and cache
     read-write, the roots this server supplies read-only -- goes here, in a
     configuration of its own that borrows the shared root filesystem, as a
-    derived image's does. ``drop`` names bind sources to leave out of the
-    shared configuration: the whole data directory, which a bundle staged
-    before this rule had baked in.
+    derived image's does.
 
     ⚠️ ``target`` must be somewhere no job can write, or a node could rewrite
     what the next one is started with. It is rewritten whole each time, through
     a temporary file.
     '''
-    import os
-    from pathlib import Path
-
-    shared, target = Path(shared), Path(target)
-    with open(shared / "config.json") as f:
+    target = Path(target)
+    with open(Path(shared) / "config.json") as f:
         spec = json.load(f)
 
-    root = spec.get("root") or {}
-    where = Path(root.get("path") or "rootfs")
-    spec["root"] = {"path": str((where if where.is_absolute() else shared / where).resolve()),
-                    "readonly": bool(root.get("readonly", False))}
-
-    dropped = {os.path.realpath(str(path)) for path in drop}
-    spec["mounts"] = [
-        entry for entry in spec.get("mounts", [])
-        if not (_is_bind(entry) and entry.get("source")
-                and os.path.realpath(entry["source"]) in dropped)]
+    spec["root"] = _borrowed_root(spec, shared)
     _add_mounts(spec, mounts)
 
     write_json(target / "config.json", spec)
@@ -1223,16 +1179,11 @@ def read_bundle(shared, target, tree):
     shared bundle with every bind mount taken away, since a mount baked into a
     shared bundle is every job's.
     '''
-    from pathlib import Path
-
-    shared, target = Path(shared), Path(target)
-    with open(shared / "config.json") as f:
+    target = Path(target)
+    with open(Path(shared) / "config.json") as f:
         spec = json.load(f)
 
-    root = spec.get("root") or {}
-    where = Path(root.get("path") or "rootfs")
-    spec["root"] = {"path": str((where if where.is_absolute() else shared / where).resolve()),
-                    "readonly": True}
+    spec["root"] = _borrowed_root(spec, shared, readonly=True)
     spec["mounts"] = [entry for entry in spec.get("mounts", []) if not _is_bind(entry)]
     # /tmp is the read's HOME, and the root filesystem is read-only.
     spec["mounts"].append({"destination": "/tmp", "type": "tmpfs", "source": "tmpfs",
@@ -1255,10 +1206,6 @@ def _is_bind(entry) -> bool:
 ######################################################################
 # Derived images: a job's Python packages, layered on a node's image (§L)
 ######################################################################
-
-# Where a derived image's layer puts a job's Python packages. On the tool's
-# PYTHONPATH only -- see `Task.get_runtime_environmental_variables`.
-LAYER_PATH = IMAGE_SITE
 
 
 def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
@@ -1366,7 +1313,7 @@ def stage_derived_bundle(root, base_digest: str, digest: str, layer):
     🔴 **Not a second unpack of the base.** A derived image is its base plus
     one layer, so its bundle is the base's configuration -- its mounts, its
     environment -- with the base's root filesystem and the layer bound in at
-    `LAYER_PATH`. The same files the image would unpack to, without a copy of a
+    `IMAGE_SITE`. The same files the image would unpack to, without a copy of a
     tool image per environment. The base bundle has to be staged first.
 
     Built through a `.part` directory and renamed, as `stage_bundle` is.
@@ -1387,10 +1334,11 @@ def stage_derived_bundle(root, base_digest: str, digest: str, layer):
 
     with open(base / "config.json") as f:
         spec = json.load(f)
-    spec["root"] = {"path": str((base / "rootfs").resolve()),
-                    "readonly": bool((spec.get("root") or {}).get("readonly", False))}
+    spec["root"] = _borrowed_root(spec, base)
+    # Where a derived image's layer puts a job's Python packages. On the tool's
+    # PYTHONPATH only -- see `Task.get_runtime_environmental_variables`.
     spec.setdefault("mounts", []).append({
-        "destination": LAYER_PATH, "type": "bind", "source": str(target / "layer"),
+        "destination": IMAGE_SITE, "type": "bind", "source": str(target / "layer"),
         "options": ["rbind", "ro", "nosuid", "nodev"]})
     with open(staging / "config.json", "w") as f:
         json.dump(spec, f, indent=1)
@@ -1410,8 +1358,6 @@ def is_staged(bundle) -> bool:
     An OCI bundle is a directory, so its existence says nothing: the config is
     what a finished one has, and the unpack renames it into place last.
     '''
-    from pathlib import Path
-
     return (Path(bundle) / "config.json").is_file()
 
 
@@ -1474,12 +1420,10 @@ def register_software(store, name: str, display_name: str, actor: str,
 
     Returns the kind that was recorded.
     '''
-    from siliconcompiler.remote.server.software import probe
-
-    if kind not in probe.KINDS:
+    if kind not in KINDS:
         raise ValueError(
             f"{kind!r} is not a software kind; try "
-            f"{' or '.join(probe.KINDS)}")
+            f"{' or '.join(KINDS)}")
     if kind == "interpreter" and name != INTERPRETER:
         raise ValueError(
             f"the interpreter kind has one name, {INTERPRETER}: the image's own "
@@ -1561,6 +1505,26 @@ def register_version(store, name: str, version: str, actor: str,
             "  preference = excluded.preference, retired_at = NULL, retired_by = NULL",
             (name, stored, source, preference, actor))
     return stored
+
+
+def _contains(values: Optional[Sequence[str]]) -> List[Tuple[str, str]]:
+    '''An image's declared contents as an operator writes them --
+    ``siliconcompiler==0.38.9``, to ``registry add-image -contains`` or the
+    portal's form -- as the pairs :func:`register_image` takes. Raises
+    ValueError naming the first that is not ``name==version``.
+
+    ``==`` and nothing else: no ranges anywhere in this registry. A range needs
+    a version-comparison grammar that the client, the server and every tool
+    agree on, and two implementations disagreeing about what ``>=0.38`` covers
+    is a job dispatched into the wrong container.
+    '''
+    pairs = []
+    for value in values or []:
+        name, sep, version = value.partition("==")
+        if not sep or not name or not version:
+            raise ValueError(f"{value!r} is not name==version")
+        pairs.append((name.strip(), version.strip()))
+    return pairs
 
 
 def register_image(store, registry_ref: str, digest: str,

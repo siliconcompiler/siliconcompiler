@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from siliconcompiler.remote.server.config import Config
-from siliconcompiler.remote.server.software import images
+from siliconcompiler.remote.server.software import images, probe
 from siliconcompiler.remote.server.state.store import Store, StoreVersionError
 
 __all__ = ["main"]
@@ -57,29 +57,12 @@ def _operator(store) -> str:
     return user["id"]
 
 
-def _contains(values: Optional[List[str]]):
-    '''``-contains siliconcompiler==0.38.9`` into pairs.
-
-    ``==`` and nothing else: no ranges anywhere in this registry. A range needs
-    a version-comparison grammar that the client, the server and every tool
-    agree on, and two implementations disagreeing about what ``>=0.38`` covers
-    is a job dispatched into the wrong container.
-    '''
-    pairs = []
-    for value in values or []:
-        name, sep, version = value.partition("==")
-        if not sep or not name or not version:
-            raise SystemExit(f"{value!r} is not name==version")
-        pairs.append((name.strip(), version.strip()))
-    return pairs
-
-
 def _wants(values: Optional[List[str]]):
     '''``-requires openroad>=26.3`` into pairs, with any PEP 440 operator.
 
-    🔴 Not `_contains`, and the difference is the *no ranges* rule's scope: a
-    STORED version is exact, because a stored range is a promise nobody can
-    check, while a REQUIREMENT is a range by nature. Using the storage parser
+    🔴 Not `images._contains`, and the difference is the *no ranges* rule's
+    scope: a STORED version is exact, because a stored range is a promise
+    nobody can check, while a REQUIREMENT is a range by nature. Using the storage parser
     here refused `>=26.3` as "not name==version", which is the registry
     rejecting the one shape this command exists to try.
     '''
@@ -242,8 +225,9 @@ def _cmd_add_image(store, args) -> int:
     digest = args.digest or _resolve_digest(args.ref)
 
     try:
+        contents = images._contains(args.contains)
         image_id = images.register_image(
-            store, args.ref, digest, _contains(args.contains), _operator(store),
+            store, args.ref, digest, contents, _operator(store),
             note=args.note, built_at=args.built)
     except ValueError as e:
         raise SystemExit(str(e))
@@ -254,8 +238,7 @@ def _cmd_add_image(store, args) -> int:
 
     # 🔴 One SiliconCompiler, the one this server runs (profile §5): an image
     # holding another is registered and then neither advertised nor used.
-    held = [version for name, version in _contains(args.contains)
-            if name == images.PRIMARY]
+    held = [version for name, version in contents if name == images.PRIMARY]
     if not any(images.normalize(version) == images.normalize(images.own_version())
                for version in held):
         print(f"warning: this image holds siliconcompiler "
@@ -403,7 +386,6 @@ def _cmd_limits(store, args) -> int:
     and no form, and this is the whole of the write path.
     """
     from siliconcompiler.remote.server.identity import accounts
-    from siliconcompiler.remote.server.config import Config
 
     config = Config.load(Path(args.datadir).resolve())
 
@@ -490,7 +472,7 @@ def _parser() -> argparse.ArgumentParser:
         help="declare that this deployment curates images for a distribution")
     software.add_argument("name", help="the distribution name: siliconcompiler, openroad")
     software.add_argument(
-        "-kind", choices=("python", "tool", "interpreter"),
+        "-kind", choices=probe.KINDS,
         help="python, tool, or interpreter for the one name python -- an image's "
              "own Python, which a node running the user's Python is matched on. "
              "Required unless -driver is given, which implies tool")

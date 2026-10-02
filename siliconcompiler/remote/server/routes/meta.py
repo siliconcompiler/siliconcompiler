@@ -106,6 +106,23 @@ def capabilities():
     return response
 
 
+def health_status(store) -> str:
+    '''`pass` or `fail`: what `healthz` answers, and the portal's server
+    screen shows.'''
+    try:
+        # Reads a real table rather than a constant: `SELECT 1` is evaluated
+        # without touching the database at all, so it would answer `pass` for a
+        # store that had been deleted out from under the process. job_states is
+        # one row per job state, is required for the server to do anything, and
+        # reading it exercises the connection, the file and the schema together.
+        if store.one("SELECT count(*) AS n FROM job_states")["n"] == 0:
+            return "fail"
+    except Exception as e:                                       # noqa: BLE001
+        logger.error(f"health check could not read the store: {e}")
+        return "fail"
+    return "pass"
+
+
 @blueprint.route("/v1/healthz", methods=["GET"])
 def healthz():
     '''Endpoint 2. Liveness, and it says as little as it possibly can.
@@ -121,20 +138,7 @@ def healthz():
     fine. Nothing produces it yet; it gets its producer when there is a
     scheduler to probe.
     '''
-    store = flask.current_app.config["SC_STORE"]
-
-    status = "pass"
-    try:
-        # Reads a real table rather than a constant: `SELECT 1` is evaluated
-        # without touching the database at all, so it would answer `pass` for a
-        # store that had been deleted out from under the process. job_states is
-        # one row per job state, is required for the server to do anything, and
-        # reading it exercises the connection, the file and the schema together.
-        if store.one("SELECT count(*) AS n FROM job_states")["n"] == 0:
-            status = "fail"
-    except Exception as e:                                       # noqa: BLE001
-        logger.error(f"health check could not read the store: {e}")
-        status = "fail"
+    status = health_status(flask.current_app.config["SC_STORE"])
 
     response = flask.jsonify({"status": status})
     response.mimetype = "application/health+json"

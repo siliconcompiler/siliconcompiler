@@ -16,7 +16,6 @@ import base64
 import hashlib
 import hmac
 import os
-import shutil
 
 from pathlib import Path
 from typing import Optional, Tuple
@@ -229,9 +228,6 @@ class Storage:
                         signature: str, when: float) -> None:
         self._verify(lambda deadline: f"download\n{artifact_id}\n{deadline}",
                      expires_at, signature, when, "this link has expired")
-
-    def discard_artifacts(self, job_id: str) -> None:
-        shutil.rmtree(self.artifact_dir(job_id), ignore_errors=True)
 
     ######################################################################
 

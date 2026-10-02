@@ -149,7 +149,7 @@ def test_a_derived_image_is_the_base_with_one_layer_more(registry, tmp_path):
     registry already holds there -- and only three small blobs move.'''
     (tmp_path / "site").mkdir()
     (tmp_path / "site" / "x.py").write_text("")
-    layer = oci.layer_from(tmp_path / "site", images.LAYER_PATH)
+    layer = oci.layer_from(tmp_path / "site", environment.IMAGE_SITE)
 
     ref, derived = oci.derive(f"registry:5000/sc-tools@{digest('b')}", layer,
                               comment="a node's Python")
@@ -572,7 +572,7 @@ BASE = {
 
 
 def test_the_build_container_reaches_nothing_but_its_three_directories(tmp_path):
-    config = envbuild.build_config(BASE, tmp_path / "rootfs", tmp_path / "req",
+    config = envbuild.build_config(BASE, tmp_path, tmp_path / "req",
                                    tmp_path / "out", tmp_path / "sock", ["python3", "x"])
 
     assert config["root"] == {"path": str((tmp_path / "rootfs").resolve()), "readonly": True}
@@ -692,7 +692,7 @@ def test_a_build_pushes_one_layer_and_stages_a_bundle_on_the_base(
     config = json.loads((bundle / "config.json").read_text())
     assert config["root"]["path"] == str((images.bundle_path(base_bundle.root, digest("b"))
                                           / "rootfs").resolve())
-    layer = next(m for m in config["mounts"] if m["destination"] == images.LAYER_PATH)
+    layer = next(m for m in config["mounts"] if m["destination"] == environment.IMAGE_SITE)
     assert "ro" in layer["options"]
     assert (bundle / "layer" / "numpy" / "__init__.py").is_file()
     assert {mount["destination"] for mount in config["mounts"]} >= {"/sc_server"}

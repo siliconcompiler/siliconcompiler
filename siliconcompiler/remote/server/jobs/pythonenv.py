@@ -83,7 +83,7 @@ class PythonEnvMixin:
                 indexes=list(self._config["package_indexes"] or []),
                 timeout=max(1, self._staging_left(job["id"])),
                 # pip's own output, whole, for the operators.
-                echo=lambda said: record.keep(root, "builder.log", said, logger=logger))
+                echo=lambda said: record.keep(root, "builder.log", said))
         except envinstall.InstallFailed as e:
             if e.result.get("timed_out"):
                 raise _StagingTimedOut("installing the job's Python packages") from None
@@ -270,5 +270,5 @@ class PythonEnvMixin:
             if log.is_file():
                 record.keep(self.job_root(job["user_id"], job["id"]), "builder.log",
                             f"==> the build on {base_ref} <==\n"
-                            + log.read_text(errors="replace"), logger=logger)
+                            + log.read_text(errors="replace"))
             shutil.rmtree(workspace, ignore_errors=True)

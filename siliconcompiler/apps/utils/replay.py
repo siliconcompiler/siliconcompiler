@@ -148,7 +148,7 @@ def main():
     required = owners.required(job)
     chosen = owners.collection(
         job, lambda one: owners.needed(one.key, required) and owners.uploads(
-            job, one.key, one.dataroot, one.resolvers, one.value.get()))
+            job, one.key, one.dataroot, one.resolvers))
 
     with tempfile.TemporaryDirectory() as collectdir:
         collect(job, keys=chosen.keys, select=chosen.select, directory=collectdir,

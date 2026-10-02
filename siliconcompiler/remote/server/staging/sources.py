@@ -110,16 +110,6 @@ class SourceStore:
             return None
         return str(copy / "data")
 
-    def commit(self, source: Optional[str], ref: Optional[str]) -> Optional[str]:
-        '''The commit the held copy resolved to, where it came from git.'''
-        found = self.held(source, ref)
-        if not found:
-            return None
-        try:
-            return json.loads((Path(found).parent / _COMPLETE).read_text()).get("commit")
-        except (OSError, ValueError):
-            return None
-
     def allowlisted(self, source: Optional[str], ref: Optional[str]) -> bool:
         '''Whether this server would fetch the source itself.
 

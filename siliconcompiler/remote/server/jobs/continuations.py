@@ -27,7 +27,7 @@ class ContinuationsMixin:
     # A run that starts part-way through its flow (surface D175)
     ######################################################################
 
-    def _account_upstream(self, session, job, summary, unpacked: Path):
+    def _account_upstream(self, job, summary, unpacked: Path):
         '''Every node the run reads and does not run: in the archive, or
         copied from the job `continues_from` names -- and none in neither.
         Returns the nodes to copy, as ``((step, index), from_job)``.
@@ -43,7 +43,7 @@ class ContinuationsMixin:
             if runflow.outputs_present(unpacked / step / index, job["design"]):
                 continue
             if (step, index) not in continued:
-                raise self._refuse(session, job, ProblemError(
+                raise self._refuse(job, ProblemError(
                     "archive-rejected", reason="missing_member",
                     detail=f"the run reads the results of {step}/{index}, which it does "
                            "not run, and they are neither in the archive nor named in "
@@ -53,7 +53,7 @@ class ContinuationsMixin:
             self._check_continuations(
                 job["user_id"], [(step, index, from_job) for (step, index), from_job in copies])
         except ProblemError as problem:
-            raise self._refuse(session, job, problem) from None
+            raise self._refuse(job, problem) from None
         return copies
 
     def _copy_results(self, job, unpacked: Path, copies) -> None:
@@ -278,12 +278,9 @@ class ContinuationsMixin:
     def _resources_of(self, job_id: str) -> List[Tuple[str, str]]:
         '''What one job's results were built from: its PDK and libraries as
         its manifest's read found them, and its tools.'''
-        row = self._store.one("SELECT manifest_resources, manifest_pdk, manifest_tools "
+        row = self._store.one("SELECT manifest_resources, manifest_tools "
                               "FROM jobs WHERE id = ?", (job_id,))
         if row is None:
             return []
-        found = [tuple(pair) for pair in json.loads(row["manifest_resources"] or "[]")]
-        if not found and row["manifest_pdk"] and row["manifest_pdk"] != "none":
-            found.append(("pdk", row["manifest_pdk"]))
-        found += [("tool", name) for name in json.loads(row["manifest_tools"] or "[]")]
-        return found
+        return [tuple(pair) for pair in json.loads(row["manifest_resources"] or "[]")] + \
+            [("tool", name) for name in json.loads(row["manifest_tools"] or "[]")]

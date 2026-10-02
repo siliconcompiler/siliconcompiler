@@ -36,16 +36,16 @@ from pathlib import Path
 from typing import Any, Dict
 
 from siliconcompiler.remote.server.software import images
-from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.remote.server.state.store import PENDING_STATES, TERMINAL_STATES, now
 
 __all__ = ["sweep"]
 
 
 logger = logging.getLogger("sc-server")
 
-# The five states a job can be in and never leave: those `job_states` marks
-# terminal, bound into the reaper's SQL as parameters.
-_TERMINAL = ("completed", "failed", "cancelled", "rejected", "abandoned")
+# Bound into the reaper's SQL as parameters.
+_TERMINAL = tuple(sorted(TERMINAL_STATES))
+_PENDING = f"state IN ({', '.join('?' * len(PENDING_STATES))})"
 
 
 def sweep(store, storage, config, datadir) -> Dict[str, Any]:
@@ -217,8 +217,8 @@ def _uploads(store, storage, config, datadir) -> int:
     the upload themselves; this is the sweep behind them.
     '''
     rows = store.all(
-        "SELECT id FROM jobs WHERE state NOT IN ('created', 'awaiting_input') "
-        "  AND upload_grant_expires_at IS NOT NULL")
+        f"SELECT id FROM jobs WHERE NOT {_PENDING} AND upload_grant_expires_at IS NOT NULL",
+        PENDING_STATES)
 
     freed = 0
     for row in rows:
@@ -255,8 +255,7 @@ def _abandoned(store, storage, config, datadir) -> int:
     jobs = JobService(store, config, storage, None, datadir)
 
     moved = 0
-    for row in store.all(
-            "SELECT * FROM jobs WHERE state IN ('created', 'awaiting_input')"):
+    for row in store.all(f"SELECT * FROM jobs WHERE {_PENDING}", PENDING_STATES):
         if jobs.abandon_if_expired(row):
             moved += 1
 

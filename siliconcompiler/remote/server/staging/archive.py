@@ -24,6 +24,7 @@ second non-directory member with a name already extracted, are ``traversal``.
 '''
 
 import os
+import shutil
 import tarfile
 
 from pathlib import Path
@@ -346,11 +347,7 @@ def _write(tar: tarfile.TarFile, member: tarfile.TarInfo, target: Path) -> None:
         return
 
     with open(target, "wb") as f:
-        while True:
-            chunk = source.read(1024 * 1024)
-            if not chunk:
-                break
-            f.write(chunk)
+        shutil.copyfileobj(source, f)
 
     # Executability is the one bit worth carrying: a collected script that
     # arrives non-executable fails at the point of use, a long way from here.

@@ -659,7 +659,9 @@ def test_a_held_copy_records_its_commit_and_holds_no_moving_ref(tmp_path, monkey
     store._resolve = resolve(True)
     fetched = store.fetch("https://example.com/ip.git", "main", 10)
     assert store.held("https://example.com/ip.git", "main") == fetched
-    assert store.commit("https://example.com/ip.git", "main") == "a" * 40
+    marker = os.path.join(os.path.dirname(fetched), sources._COMPLETE)
+    with open(marker) as f:
+        assert json.load(f)["commit"] == "a" * 40
 
     monkeypatch.setattr(sources, "MOVING_HOLD_SECONDS", -1)
     assert store.held("https://example.com/ip.git", "main") is None

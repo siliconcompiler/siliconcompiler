@@ -14,8 +14,6 @@ create body is for, and it is why the job is created before anything is
 packed.
 '''
 
-import hashlib
-import json
 import logging
 import os
 import posixpath
@@ -26,7 +24,6 @@ import tarfile
 import tempfile
 import threading
 import time
-import uuid
 
 from importlib import metadata
 from pathlib import Path
@@ -41,8 +38,9 @@ from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, _slug, clean, describe)
-from siliconcompiler.remote.client import MAX_CANCEL_REASON
+from siliconcompiler.remote.client import MAX_CANCEL_REASON, _UNPRINTABLE
 from siliconcompiler.remote.client.results import Results, record_job, recorded_job
+from siliconcompiler.remote.environment import canonical
 from siliconcompiler.utils.units import format_binary, format_duration
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
@@ -175,7 +173,7 @@ class RemoteRun:
         # 🔴 Everything that would only fail at the server is said here, before
         # a job exists or a byte is packed.
         self._preflight()
-        self._preprocess()
+        self._collect()
 
         design = self.project.name
         jobname = self.project.option.get_jobname()
@@ -187,7 +185,6 @@ class RemoteRun:
         flow, node_count = self._flow_descriptor()
         job = self.client.create_job(
             design=design, jobname=jobname,
-            run_hash=self._reuse_hash(),
             # Every node this run reads and does not run, whose results are
             # not here and are held by the job that ran it.
             continues_from=self._upstream()[1] or None,
@@ -205,24 +202,17 @@ class RemoteRun:
             # other end, never a fetch, and credentials stripped -- and only
             # what the flow reads.
             sources=[item for item in owners.sources(self.project, self._needs()[1])
-                     if tuple(item["keypath"]) not in self._uploaded_packages()] or None,
-            idempotency_key=_key())
+                     if tuple(item["keypath"]) not in self._uploaded_packages()] or None)
 
         job_id = job["id"]
         self.project.set('record', 'remoteid', job_id)
         record_job(jobdir(self.project), job_id)
 
-        if job["state"] in ("completed", "failed"):
-            # A job this server already has. Nothing was uploaded and nothing
-            # will run; the results are whatever it kept.
-            self.logger.info(f"Server returned an existing job: {job_id}")
-            return job_id
-
         self.logger.info(f"Your job's reference ID is: {job_id}")
 
         self._open_portal(job_id)
 
-        self._save_manifest()
+        self.project.write_manifest(os.path.join(jobdir(self.project), REMOTE_MANIFEST))
 
         try:
             with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
@@ -242,9 +232,9 @@ class RemoteRun:
                 self.client.upload(grant, upload)
 
                 # `202` in `staging`: what staging finds arrives on the job.
-                self.client.submit_job(job_id, idempotency_key=_key())
+                self.client.submit_job(job_id)
         except BaseException as e:
-            self._abandon(job_id, e, why=e.reason if isinstance(e, _CannotSupply) else None)
+            self._abandon(job_id, e)
             raise
         finally:
             self._drop_wheels()
@@ -252,19 +242,19 @@ class RemoteRun:
         self.logger.info("Job submitted")
         return job_id
 
-    def _abandon(self, job_id: str, error: BaseException, why: Optional[str] = None) -> None:
+    def _abandon(self, job_id: str, error: BaseException) -> None:
         '''Cancel a job that will not be submitted -- an interrupt, an upload
         or submit that failed, or something asked for that cannot be sent -- so
         it holds no slot until it is abandoned.'''
-        if why is None:
-            why = "interrupted before it was submitted" \
-                if isinstance(error, KeyboardInterrupt) else "its upload or submit failed"
         if isinstance(error, _CannotSupply):
+            why = error.reason
             # The items that fit, then how many more: the whole list is what
             # this run already printed.
             reason = _fitted(f"cancelled from sc-remote: {_CannotSupply.LEAD}",
                              error.failures)
         else:
+            why = "interrupted before it was submitted" \
+                if isinstance(error, KeyboardInterrupt) else "its upload or submit failed"
             reason = _fitted("cancelled from sc-remote: ", [why])
         try:
             self.client.cancel_job(job_id, reason=reason)
@@ -289,9 +279,9 @@ class RemoteRun:
 
         # A task class no installed distribution provides cannot run anywhere
         # but here: the server runs only what a package provides.
-        from importlib import metadata
+        from siliconcompiler.remote.client import capture
 
-        provided = metadata.packages_distributions()
+        provided = capture._module_distributions()
         flow = project.get_flow()
         missing = {}
         for step, index in runtime_flow(project).get_nodes():
@@ -565,7 +555,7 @@ class RemoteRun:
             try:
                 report = self._answer(asked, str(collection), only_asked=True)
             except _CannotSupply as e:
-                self._abandon(job_id, e, why=e.reason)
+                self._abandon(job_id, e)
                 raise
 
             upload = Path(tmpdir) / "follow-up.tar.gz"
@@ -577,7 +567,7 @@ class RemoteRun:
             self._report_upload(os.path.getsize(upload),
                                 owners.upload_report(self.project, collection) + report)
             self.client.upload(grant, upload)
-            self.client.submit_job(job_id, idempotency_key=_key())
+            self.client.submit_job(job_id)
 
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page, where a person is plainly watching.
@@ -618,30 +608,6 @@ class RemoteRun:
                 return
 
         self.client.open_page("the job's page", require_tty=False, job_id=job_id)
-
-    def _preprocess(self) -> None:
-        '''Collect what the server will need and cannot have, by what owns it.
-
-        🔴 **The design always; a PDK's, library's, FPGA device's or tool's
-        files only where their source is local or editable** -- see
-        `siliconcompiler.remote.owners`. **No flag is consulted, and nothing is
-        advertised:** the server either holds what was left out or refuses the
-        job at submit, naming it (`resource-unavailable`).
-
-        It used to mark `copy=True` on anything reached through a local path,
-        a Python package or another key, and let `collect` read the flag. Two
-        things were wrong with that: a flag set by this client was written into
-        the caller's own project, and "a Python package" included one installed
-        normally -- the same package the server's image already has -- while
-        leaving a design file with no dataroot at all behind. `copy=True` still
-        drives `collect()` everywhere else, `sc-issue` included; it just does
-        not decide what a remote run uploads.
-
-        ⚠️ **Hashes are not required.** Where the caller set `option,hash` the
-        manifest carries them; nothing here computes one, because hashing a PDK
-        takes minutes.
-        '''
-        self._collect()
 
     def _needs(self):
         '''``(manifest project, required keys)``, worked out once per run.
@@ -705,6 +671,7 @@ class RemoteRun:
         distribution excepted.'''
         if self._python_pins is None:
             from siliconcompiler.remote import owners
+            from siliconcompiler.remote.client import capture
             from siliconcompiler.remote.runflow import runtime_flow
 
             project, required = self._needs()
@@ -715,7 +682,7 @@ class RemoteRun:
             pins = {"siliconcompiler": [_pin(sc_version)]}
 
             def exact(distribution):
-                name = _canonical(distribution)
+                name = canonical(distribution)
                 if name in pins:
                     return
                 try:
@@ -723,7 +690,7 @@ class RemoteRun:
                 except metadata.PackageNotFoundError:
                     return
 
-            installed = metadata.packages_distributions()
+            installed = capture._module_distributions()
             flow = project.get_flow()
             framework = {name for env in self._environments.values()
                          for name in env.framework}
@@ -744,7 +711,7 @@ class RemoteRun:
                 declared = _framework_range(name)
                 # Any version, where neither SiliconCompiler nor this machine
                 # says which.
-                pins[_canonical(name)] = [declared] if declared else []
+                pins[canonical(name)] = [declared] if declared else []
 
             for _, distribution in owners.installed_dataroots(project, required):
                 if self._supplied(distribution):
@@ -766,7 +733,7 @@ class RemoteRun:
                 self._software = self.client.capabilities().get("software") or {}
             except RemoteError:
                 self._software = {}
-        listed = (self._software.get("python") or {}).get(_canonical(distribution)) or []
+        listed = (self._software.get("python") or {}).get(canonical(distribution)) or []
         try:
             mine = Version(metadata.version(distribution))
             return any(Version(version) == mine for version in listed)
@@ -954,6 +921,25 @@ class RemoteRun:
         '''Collect by owner -- plus, where the server asked, those sources too
         -- and of either, only what the flow reads.
 
+        🔴 **The design always; a PDK's, library's, FPGA device's or tool's
+        files only where their source is local or editable** -- see
+        `siliconcompiler.remote.owners`. **No flag is consulted, and nothing is
+        advertised:** the server either holds what was left out or refuses the
+        job at submit, naming it (`resource-unavailable`).
+
+        It used to mark `copy=True` on anything reached through a local path,
+        a Python package or another key, and let `collect` read the flag. Two
+        things were wrong with that: a flag set by this client was written into
+        the caller's own project, and "a Python package" included one installed
+        normally -- the same package the server's image already has -- while
+        leaving a design file with no dataroot at all behind. `copy=True` still
+        drives `collect()` everywhere else, `sc-issue` included; it just does
+        not decide what a remote run uploads.
+
+        ⚠️ **Hashes are not required.** Where the caller set `option,hash` the
+        manifest carries them; nothing here computes one, because hashing a PDK
+        takes minutes.
+
         ``asked`` is an `upload_sources` list, and an entry there selects the
         required values under that dataroot, never all of it. A private
         dataroot is never collected, asked or not: it must not leave this
@@ -980,7 +966,7 @@ class RemoteRun:
             if not owners.needed(one.key, required):
                 return False
             if not only_asked and owners.uploads(self.project, one.key, one.dataroot,
-                                                 one.resolvers, one.value.get()):
+                                                 one.resolvers):
                 return True
             return one.keypath in wanted
 
@@ -1216,44 +1202,6 @@ class RemoteRun:
             raise _Unsupplied(f"the Python package {name}: "
                               f"{str(e).splitlines()[0]}") from None
 
-    def _run_hash(self) -> Optional[str]:
-        '''This run's hash for job reuse, or None -- which it always is today.
-
-        🔴 **Nothing computes one yet.** What SiliconCompiler should hash is
-        its own decision (run-hash.md), and a hash wrong in the direction of
-        *the same* hands back a result produced by different work.
-        '''
-        return None
-
-    def _reuse_hash(self) -> Optional[str]:
-        '''The hash to send, where there is one and the server reuses jobs.
-
-        Only to a deployment advertising `jobs.reuse`: elsewhere the member is
-        validated and ignored, and sending it would claim a reuse nobody does.
-        A hit comes back as the job already there, which `_start` returns
-        without a grant or an upload.
-        '''
-        run_hash = self._run_hash()
-        if not run_hash:
-            return None
-        try:
-            features = self.client.capabilities().get("features") or []
-        except RemoteError:
-            return None
-        if "jobs.reuse" not in features:
-            return None
-        built = self._python()[1]
-        if not built:
-            return run_hash
-        # 🔴 Each uploaded wheel's digest, which a hash of the work cannot
-        # know: a wheel is built here from whatever its source holds now, and
-        # the same version is often different code.
-
-        return hashlib.sha256(json.dumps(
-            {"run_hash": run_hash,
-             "wheels": sorted(file_digest(path).hexdigest() for path in built.values())},
-            sort_keys=True).encode()).hexdigest()
-
     def _flow_descriptor(self) -> Tuple[Optional[str], Optional[int]]:
         '''The flowgraph's name and how many nodes the run has: what the
         server can refuse us on before the upload moves.
@@ -1343,15 +1291,11 @@ class RemoteRun:
                 found.append(normalized)
         return found
 
-    def _save_manifest(self) -> None:
-        path = os.path.join(jobdir(self.project), REMOTE_MANIFEST)
-        self.project.write_manifest(path)
-
     ######################################################################
     # Watching
     ######################################################################
 
-    def reconnect(self, job_id: Optional[str] = None) -> None:
+    def reconnect(self, job_id: str) -> None:
         '''Re-enter the wait for a job that is already running.
 
         🔴 This is the answer to Ctrl-C, and the only way back to a detached
@@ -1359,11 +1303,6 @@ class RemoteRun:
         -- which is why the job id goes into the manifest before the upload
         rather than after the submit.
         '''
-        job_id = job_id or self.project.get('record', 'remoteid')
-        if not job_id:
-            raise RemoteError(
-                "this manifest names no remote job: it was never submitted, "
-                "or it was submitted by a different run")
         self._watch(job_id)
 
     def _watch(self, job_id: str) -> None:
@@ -1472,7 +1411,7 @@ class RemoteRun:
         if not member or not isinstance(held, dict):
             return
         self._substituted_said = True
-        held = {_canonical(name): versions for name, versions in held.items()
+        held = {canonical(name): versions for name, versions in held.items()
                 if isinstance(versions, list) and versions}
 
         def same(one, other) -> bool:
@@ -1483,7 +1422,7 @@ class RemoteRun:
 
         for entry in member["requirements"] + member["constraints"]:
             name, _, listed = entry.partition("==")
-            versions = held.get(_canonical(name))
+            versions = held.get(canonical(name))
             if versions and not any(same(listed, str(version)) for version in versions):
                 self.logger.warning(
                     f"This job runs {name} {', '.join(str(one) for one in versions)}, "
@@ -1530,7 +1469,7 @@ class RemoteRun:
         def moved(item):
             when, step, index, _ = item
             place = order.get((step, index), len(order))
-            return (0, when, place) if when else (1, place)
+            return (0, when, place) if when is not None else (1, place)
 
         return [(step, index, state) for _, step, index, state in sorted(changed, key=moved)]
 
@@ -1550,33 +1489,32 @@ class RemoteRun:
 
     def _report(self, job: Dict[str, Any], changed=None) -> None:
         with self.output_lock:
-            self._report_locked(job, changed)
+            if self._dashboard():
+                # 🔴 The dashboard is already rendering every node's state, so
+                # the full table underneath it is the same information twice.
+                # What it cannot show is the moment something moved, and why a
+                # node failed.
+                details = _node_details(job)
+                for step, index, state in changed or []:
+                    said = details.get((step, index)) if state == "failed" else None
+                    self.logger.info(f"  {step}/{index} -> {state}"
+                                     + (f": {said}" if said else ""))
+                return
 
-    def _report_locked(self, job: Dict[str, Any], changed=None) -> None:
-        if self._dashboard():
-            # 🔴 The dashboard is already rendering every node's state, so the
-            # full table underneath it is the same information twice. What it
-            # cannot show is the moment something moved, and why a node failed.
-            details = _node_details(job)
-            for step, index, state in changed or []:
-                said = details.get((step, index)) if state == "failed" else None
-                self.logger.info(f"  {step}/{index} -> {state}" + (f": {said}" if said else ""))
-            return
+            # In the flow's order, not the server's, which is by name.
+            order = self._flow_order()
+            by_state: Dict[str, list] = {}
+            for node in sorted(job.get("nodes") or [], key=lambda node: order.get(
+                    (node.get("step"), node.get("index")), len(order))):
+                by_state.setdefault(node.get("state", "unknown"), []).append(node)
 
-        # In the flow's order, not the server's, which is by name.
-        order = self._flow_order()
-        by_state: Dict[str, list] = {}
-        for node in sorted(job.get("nodes") or [], key=lambda node: order.get(
-                (node.get("step"), node.get("index")), len(order))):
-            by_state.setdefault(node.get("state", "unknown"), []).append(node)
+            progress = job.get("progress") or {}
+            self.logger.info(
+                f"Job is still running ({_state_line(job)}): "
+                f"{progress.get('completed_count', 0)}/{progress.get('total_count', 0)} nodes")
 
-        progress = job.get("progress") or {}
-        self.logger.info(
-            f"Job is still running ({_state_line(job)}): "
-            f"{progress.get('completed_count', 0)}/{progress.get('total_count', 0)} nodes")
-
-        for state in sorted(by_state):
-            self._report_state(state, by_state[state])
+            for state in sorted(by_state):
+                self._report_state(state, by_state[state])
 
     def _report_state(self, state: str, nodes: list) -> None:
         '''One line per state, truncated, with the count in the label.'''
@@ -1625,7 +1563,7 @@ class RemoteRun:
         except Exception:                                        # noqa: BLE001
             return None
 
-    def _finish(self, job: Dict[str, Any], results=None) -> None:
+    def _finish(self, job: Dict[str, Any], results: Results) -> None:
         state = job.get("state")
 
         if state == "completed":
@@ -1650,7 +1588,6 @@ class RemoteRun:
         # run is the one whose log and manifest a user most wants, and a client
         # that fetches nothing when a job fails has hidden the evidence at the
         # moment it became useful.
-        results = results or Results(self.project, self.client)
         try:
             results.fetch(job["id"])
             # 🔴 The local job directory is the whole job: a node this run
@@ -1699,10 +1636,6 @@ class _Tails:
         self._over_ceiling: set = set()
         self._lock = threading.Lock()
         self._stop = threading.Event()
-
-        # Every archived log's id, as the job stream's `node_state` events name
-        # them.
-        self.artifact_ids: Dict[Tuple[str, str], str] = {}
 
         self._enabled, self._ceiling, self._whole_job = self._decide()
 
@@ -1797,7 +1730,6 @@ class _Tails:
             # The log is still fetched with the results.
             logger.debug(f"stopped following the job's log: {e}")
         finally:
-            self.artifact_ids.update(tail.artifact_ids)
             with self._lock:
                 self._threads.pop(JOB, None)
 
@@ -2103,7 +2035,6 @@ class _LinkPacker:
 
     def _add_dir(self, path: str, arcname: str) -> None:
         import stat
-        import time
 
         info = tarfile.TarInfo(arcname)
         info.type, info.mode, info.mtime = tarfile.DIRTYPE, 0o755, time.time()
@@ -2198,11 +2129,6 @@ def _uploadable(project):
 _NOT_YET_SUBMITTED = ("created", "awaiting_input", "staging")
 
 
-def _canonical(name: str) -> str:
-    from packaging.utils import canonicalize_name
-    return canonicalize_name(name)
-
-
 def _framework_range(name: str) -> str:
     """The range SiliconCompiler declares for a framework distribution --
     cocotb's, in its `cocotb` extra -- or, where it declares none, the version
@@ -2218,7 +2144,7 @@ def _framework_range(name: str) -> str:
             requirement = Requirement(line)
         except InvalidRequirement:
             continue
-        if _canonical(requirement.name) == _canonical(name) and str(requirement.specifier):
+        if canonical(requirement.name) == canonical(name) and str(requirement.specifier):
             return str(requirement.specifier)
     try:
         return _pin(metadata.version(name))
@@ -2271,12 +2197,6 @@ def _pin(version: str) -> str:
     return f"=={version}"
 
 
-# What the server takes as a cancel's reason, at most (surface D288).
-_MAX_REASON = MAX_CANCEL_REASON
-
-# What a cancel's reason may not hold.
-_UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
-
 # A URL's `user:secret@`, wherever it sits in a message.
 _USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@]+@")
 
@@ -2304,44 +2224,35 @@ class _CannotSupply(RemoteError):
                          "job is cancelled:\n" + "\n".join(f"  {one}" for one in failures))
 
 
-def _fitted(lead: str, items: List[str], limit: int = _MAX_REASON) -> str:
-    '''``lead`` and as many of ``items`` as fit within ``limit`` characters,
-    then *and N more* for the rest (surface D288). An item that would not fit
-    even alone is cut, so the reason names something. One line: the server
-    takes no control character, so each item is made one first.'''
+def _fitted(lead: str, items: List[str]) -> str:
+    '''``lead`` and as many of ``items`` as fit within `MAX_CANCEL_REASON`
+    characters, then *and N more* for the rest (surface D288). An item that
+    would not fit even alone is cut, so the reason names something. One line:
+    the server takes no control character, so each item is made one first.'''
     items = [" ".join(_UNPRINTABLE.sub(" ", str(item)).split()) for item in items]
     for count in range(len(items), 0, -1):
         rest = len(items) - count
         tail = f"; and {rest} more" if rest else ""
         text = lead + "; ".join(items[:count]) + tail
-        if len(text) <= limit:
+        if len(text) <= MAX_CANCEL_REASON:
             return text
     rest = len(items) - 1
     tail = f"; and {rest} more" if rest else ""
-    room = limit - len(lead) - len(tail) - 3
+    room = MAX_CANCEL_REASON - len(lead) - len(tail) - 3
     return lead + items[0][:max(room, 0)] + "..." + tail
 
 
-def _moved_at(node: Dict[str, Any]):
+def _moved_at(node: Dict[str, Any]) -> Optional[float]:
     '''When a node reached the state it is in, where the job object says: a
     finished node's finish, a running one's start; None otherwise, or where
     the time cannot be read.'''
-    from datetime import datetime, timezone
-
     if node.get("terminal"):
         when = node.get("finished_at")
     elif node.get("state") == "running":
         when = node.get("started_at")
     else:
         return None
-    if not isinstance(when, str):
-        return None
-    try:
-        # `fromisoformat` takes a trailing Z only from 3.11.
-        parsed = datetime.fromisoformat(when[:-1] + "+00:00" if when.endswith("Z") else when)
-    except ValueError:
-        return None
-    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+    return _epoch(when) if when else None
 
 
 def _named(asked) -> str:
@@ -2350,7 +2261,3 @@ def _named(asked) -> str:
                      if item.get("kind") == "dataroot" else
                      f"the Python package {item.get('name')}"
                      for item in asked)
-
-
-def _key() -> str:
-    return str(uuid.uuid4())

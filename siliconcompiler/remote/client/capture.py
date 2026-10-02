@@ -42,11 +42,7 @@ from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
 from siliconcompiler.remote import environment
 
-__all__ = ["Reach", "Lists", "CannotForward", "reach", "lists", "place", "direct_url",
-           "COMPILED"]
-
-
-COMPILED = environment.COMPILED
+__all__ = ["Reach", "Lists", "CannotForward", "reach", "lists", "place", "direct_url"]
 
 
 class CannotForward(ValueError):
@@ -141,7 +137,7 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
             warnings.append(f"{requirement} is not a PEP 508 requirement; it is not "
                             "listed")
             continue
-        distributions.setdefault(_canonical(parsed.name), set()).update(parsed.extras)
+        distributions.setdefault(environment.canonical(parsed.name), set()).update(parsed.extras)
 
     for test in sorted({os.path.abspath(path) for path in sources}):
         folder = os.path.dirname(test)
@@ -168,7 +164,7 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
                     continue
                 if name in owned:
                     for owner in owned[name]:
-                        distributions.setdefault(_canonical(owner), set())
+                        distributions.setdefault(environment.canonical(owner), set())
                     continue
                 warnings.append(f"{os.path.basename(path)} imports {name}, which no "
                                 "installed distribution provides and is not beside "
@@ -265,7 +261,7 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
     '''
     from packaging.version import InvalidVersion, Version
 
-    image = {_canonical(name) for name in provided} | {"siliconcompiler"}
+    image = {environment.canonical(name) for name in provided} | {"siliconcompiler"}
     installed = _installed()
     warnings: List[str] = []
 
@@ -332,7 +328,7 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
 def place(files: Dict[str, str], path: str, source: str, what: str) -> None:
     '''One of the user's files into the tree, refusing what would not import
     on the node or would overwrite another source's file.'''
-    if source.lower().endswith(COMPILED):
+    if source.lower().endswith(environment.COMPILED):
         # 🔴 Refused, not warned about: one built for this machine will not
         # import on the node.
         raise CannotForward(
@@ -352,18 +348,14 @@ def _module_distributions() -> Dict[str, List[str]]:
     return metadata.packages_distributions()
 
 
-def _canonical(name: str) -> str:
-    return environment.canonical(name)
-
-
 def _installed() -> Dict[str, metadata.Distribution]:
     '''Every distribution installed here, by canonical name: the first of a
     name on ``sys.path`` wins, as it does for an import.'''
     found: Dict[str, metadata.Distribution] = {}
     for dist in metadata.distributions():
         name = dist.metadata["Name"]
-        if name and _canonical(name) not in found:
-            found[_canonical(name)] = dist
+        if name and environment.canonical(name) not in found:
+            found[environment.canonical(name)] = dist
     return found
 
 
@@ -379,7 +371,7 @@ def _closure(roots: Dict[str, Set[str]], stop: Set[str] = frozenset()) \
 
     while todo:
         name, extras = todo.pop()
-        key = _canonical(name)
+        key = environment.canonical(name)
         if key in found or key in stop:
             continue
         try:

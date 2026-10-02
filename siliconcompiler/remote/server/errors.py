@@ -15,7 +15,7 @@ each mint a slug for the same condition cost a client a second table.
 
 import re
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, NamedTuple, Optional
 
 __all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "OAuthError", "ProblemError",
            "bound", "problem", "set_detail_max"]
@@ -25,27 +25,20 @@ __all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "OAuthError", "ProblemError",
 TYPE_BASE = "https://siliconcompiler.com/server-errors"
 
 
-class _Error:
+class _Error(NamedTuple):
     '''One row of the registry.
 
     ``status`` is None for the slugs that are never HTTP responses: they are
     ``type`` values on a job's or a node's ``error`` object.
     '''
-
-    def __init__(self, slug: str, status: Optional[int], title: str,
-                 members: tuple = ()):
-        self.slug = slug
-        self.status = status
-        self.title = title
-        self.members = members
+    slug: str
+    status: Optional[int]
+    title: str
+    members: tuple = ()
 
     @property
     def uri(self) -> str:
         return f"{TYPE_BASE}/{self.slug}"
-
-
-def _e(slug, status, title, members=()):
-    return _Error(slug, status, title, members)
 
 
 # Every slug, grouped by kind. `title` is the part of the body that must be
@@ -53,25 +46,25 @@ def _e(slug, status, title, members=()):
 # raise site.
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # -- ceilings ------------------------------------------------------------
-    _e("limit-exceeded", 429, "Limit exceeded", ("limit",)),
+    _Error("limit-exceeded", 429, "Limit exceeded", ("limit",)),
     # `limit` only over max_upload_bytes; a body over its endpoint's cap has none.
-    _e("upload-too-large", 413, "Upload too large"),
-    _e("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
+    _Error("upload-too-large", 413, "Upload too large"),
+    _Error("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
     # 🆕 D117: `max_download_bytes`, which never refills -- so not
     # `limit-exceeded`, whose `Retry-After` a client would obey for ever.
-    _e("download-too-large", 403, "Download too large", ("limit",)),
-    _e("rate-limited", 429, "Too many requests"),
+    _Error("download-too-large", 403, "Download too large", ("limit",)),
+    _Error("rate-limited", 429, "Too many requests"),
 
     # -- entitlement and resolution -----------------------------------------
-    _e("entitlement-denied", 403, "Not entitled to this resource",
-       ("resource_kind", "resource")),
-    _e("resource-unresolved", 422, "Could not resolve what this flow needs",
-       ("resource_kind",)),
+    _Error("entitlement-denied", 403, "Not entitled to this resource",
+           ("resource_kind", "resource")),
+    _Error("resource-unresolved", 422, "Could not resolve what this flow needs",
+           ("resource_kind",)),
     # 🆕 D91, reshaped by D110: no live image satisfies the job's software
     # requirements. `unresolved` lists each failed one with its alternatives
     # and what is available; `reason` is "unavailable" or "combination".
-    _e("software-unavailable", 422, "No image provides that software",
-       ("reason", "unresolved")),
+    _Error("software-unavailable", 422, "No image provides that software",
+           ("reason", "unresolved")),
     # 🆕 D105, widened by D116: the job needs a resource -- any kind, a tool
     # included -- this deployment does not hold and cannot supply. It retired
     # `unsatisfiable-request`, which meant the same with the same members. Not
@@ -79,8 +72,8 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # where the deployment can name the kind (surface D285), so it is not
     # required; nor is `keypath`, which says which of an owner's dataroots it
     # is, where it is one (surface D298).
-    _e("resource-unavailable", 422, "This server does not hold that resource",
-       ("resource",)),
+    _Error("resource-unavailable", 422, "This server does not hold that resource",
+           ("resource",)),
     # 🆕 D105, D115: crucible's, raised while staging for restricted material
     # the caller may not upload. `detected` is "content", found during
     # extraction, or "attribution", once the manifest's read reports what each
@@ -88,59 +81,59 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # holder, so it is not REQUIRED. Registered because the registry is the
     # contract's; this profile allows every upload (profile D26) and never
     # raises it.
-    _e("upload-forbidden", 422, "Upload of that resource is not allowed",
-       ("resource_kind", "detected", "member")),
-    _e("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
-    _e("artifact-not-approved", 403, "Artifact not approved"),
+    _Error("upload-forbidden", 422, "Upload of that resource is not allowed",
+           ("resource_kind", "detected", "member")),
+    _Error("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
+    _Error("artifact-not-approved", 403, "Artifact not approved"),
 
     # -- the request itself --------------------------------------------------
-    _e("declared-mismatch", 422, "The manifest contradicts the descriptor"),
-    _e("upload-digest-mismatch", 422, "Upload digest does not match"),
-    _e("archive-rejected", 422, "Archive rejected", ("reason",)),
-    _e("idempotency-key-reuse", 422, "Idempotency key reused with a different request"),
-    _e("invalid-cursor", 400, "Invalid cursor"),
-    _e("invalid-request", 400, "Invalid request"),
-    _e("method-not-allowed", 405, "Method not allowed"),
-    _e("unsupported-media-type", 415, "Unsupported media type"),
-    _e("not-acceptable", 406, "Not acceptable"),
+    _Error("declared-mismatch", 422, "The manifest contradicts the descriptor"),
+    _Error("upload-digest-mismatch", 422, "Upload digest does not match"),
+    _Error("archive-rejected", 422, "Archive rejected", ("reason",)),
+    _Error("idempotency-key-reuse", 422, "Idempotency key reused with a different request"),
+    _Error("invalid-cursor", 400, "Invalid cursor"),
+    _Error("invalid-request", 400, "Invalid request"),
+    _Error("method-not-allowed", 405, "Method not allowed"),
+    _Error("unsupported-media-type", 415, "Unsupported media type"),
+    _Error("not-acceptable", 406, "Not acceptable"),
 
     # -- state ---------------------------------------------------------------
-    _e("job-state-conflict", 409, "The job is not in a state that allows this"),
+    _Error("job-state-conflict", 409, "The job is not in a state that allows this"),
     # A write on a job the caller can read and may not act on, and a create
     # naming an archived project.
-    _e("not-permitted", 403, "Not permitted on this job"),
-    _e("not-found", 404, "Not found"),
-    _e("not-ready", 409, "Not ready yet", ("artifact_kind",)),
-    _e("feature-unsupported", 501, "This deployment does not support that", ("feature",)),
+    _Error("not-permitted", 403, "Not permitted on this job"),
+    _Error("not-found", 404, "Not found"),
+    _Error("not-ready", 409, "Not ready yet", ("artifact_kind",)),
+    _Error("feature-unsupported", 501, "This deployment does not support that", ("feature",)),
 
     # -- credentials ---------------------------------------------------------
-    _e("invalid-token", 401, "Invalid access token"),
-    _e("invalid-dpop-proof", 401, "Invalid DPoP proof"),
-    _e("dpop-nonce-required", 401, "DPoP nonce required"),
-    _e("insufficient-scope", 403, "Insufficient scope"),
-    _e("session-ended", 401, "Session ended", ("reason",)),
-    _e("insecure-transport", 426, "Upgrade required"),
+    _Error("invalid-token", 401, "Invalid access token"),
+    _Error("invalid-dpop-proof", 401, "Invalid DPoP proof"),
+    _Error("dpop-nonce-required", 401, "DPoP nonce required"),
+    _Error("insufficient-scope", 403, "Insufficient scope"),
+    _Error("session-ended", 401, "Session ended", ("reason",)),
+    _Error("insecure-transport", 426, "Upgrade required"),
 
     # -- job outcomes, and two refusals registered beside them ---------------
     # A row with no status is never an HTTP response: it is a `type` value on
     # a job's or a node's `error` object.
     # The environment ended the run: the scheduler lost it, preemption, a
     # failed compute node, an image that could not be pulled.
-    _e("run-interrupted", None, "The run was interrupted"),
+    _Error("run-interrupted", None, "The run was interrupted"),
     # A `continues_from` entry whose results cannot be used (surface D175).
-    _e("prior-results-unavailable", 422, "Those earlier results cannot be used",
-       ("step", "index", "job_id", "reason")),
+    _Error("prior-results-unavailable", 422, "Those earlier results cannot be used",
+           ("step", "index", "job_id", "reason")),
     # Registered for a caller with no POSIX account (identity D58). This
     # profile provisions on first contact and never raises it.
-    _e("account-not-provisioned", 403, "Your account is not set up on this deployment"),
+    _Error("account-not-provisioned", 403, "Your account is not set up on this deployment"),
     # 🔴 A job-level type like run-interrupted (surface D169): a staging the
     # server could not complete for its own reasons, after retrying -- an
     # image the manifest is read in that could not be pulled among them.
-    _e("staging-failed", None, "The server could not get this job ready"),
+    _Error("staging-failed", None, "The server could not get this job ready"),
     # The job's own limit, not the server's failure (surface D294): staging ran
     # past the caller's `max_staging_seconds`, counted each time it stages.
-    _e("staging-timed-out", None, "The job took too long to get ready", ("limit",)),
-    _e("run-failed", None, "The run failed"),
+    _Error("staging-timed-out", None, "The job took too long to get ready", ("limit",)),
+    _Error("run-failed", None, "The run failed"),
 )}
 
 

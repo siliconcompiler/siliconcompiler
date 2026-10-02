@@ -21,6 +21,7 @@ from siliconcompiler.remote.server.routes import next_page
 from siliconcompiler.remote.server.routes.auth import public_url, require
 from siliconcompiler.remote.server.routes.errorpages import help_link
 from siliconcompiler.remote.server.state.storage import SignatureError
+from siliconcompiler.remote.server.state.store import PENDING_STATES
 
 __all__ = ["blueprint"]
 
@@ -220,7 +221,7 @@ def upload(job_id):
     job = store.one("SELECT state, deleted_at FROM jobs WHERE id = ?", (job_id,))
     if job is None or job["deleted_at"]:
         raise ProblemError("not-found", detail="no such job")
-    if job["state"] not in ("created", "awaiting_input"):
+    if job["state"] not in PENDING_STATES:
         raise ProblemError(
             "job-state-conflict",
             detail=f"a job in {job['state']} takes no upload")

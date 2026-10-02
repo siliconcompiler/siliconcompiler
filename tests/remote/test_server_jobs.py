@@ -508,13 +508,17 @@ def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
     '''
     import uuid
 
+    from siliconcompiler.remote.server.software import images
+
+    image = images.job_image_for(store, declared or {}) \
+        if jobs._config["containers"] else None
     job_id = str(uuid.uuid4())
     store.execute(
         "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
         "                  run_hash, job_identity, manifest_pdk) "
         "VALUES (?, ?, ?, 'gcd', 'old', '{}', ?, ?, 'none')",
         (job_id, user_id, state, run_hash,
-         jobs._identity(run_hash, declared or {})))
+         jobs._identity(run_hash, declared or {}, image=image)))
     if columns:
         # One statement, because the archived_at/archived_by CHECK is on the
         # pair: setting them one at a time fails on the first.
@@ -1341,14 +1345,14 @@ def test_a_job_that_finished_while_we_looked_is_not_lost(
     progress = root.parents[1] / runspec.PROGRESS_FILENAME
 
     # What the poll reads first: still going.
-    runspec.write_progress(progress, {
-        "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
+    runspec.write_json(progress, {
+        "state": "running", "started_at": "2026-09-22T10:00:00.000Z", "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"}}})
 
     # The scheduler has already forgotten it, and the run writes its result
     # while the server is between the two readings.
     def gone(scheduler_job_id):
-        runspec.write_progress(progress, {
+        runspec.write_json(progress, {
             "state": "completed",
             "started_at": "2026-09-22T10:00:00.000Z",
             "finished_at": "2026-09-22T10:01:00.000Z",
@@ -1383,14 +1387,14 @@ def test_a_cancel_still_wins_when_the_run_finished_while_we_looked(
 
     root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
     progress = root.parents[1] / runspec.PROGRESS_FILENAME
-    runspec.write_progress(progress, {
-        "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
+    runspec.write_json(progress, {
+        "state": "running", "started_at": "2026-09-22T10:00:00.000Z", "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"}}})
     call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
     call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})
 
     def gone(scheduler_job_id):
-        runspec.write_progress(progress, {
+        runspec.write_json(progress, {
             "state": "completed",
             "started_at": "2026-09-22T10:00:00.000Z",
             "finished_at": "2026-09-22T10:01:00.000Z",
@@ -1414,8 +1418,8 @@ def test_a_job_that_really_is_gone_is_still_reported_lost(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-22T10:00:00.000Z",
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-22T10:00:00.000Z", "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"}}})
 
     dispatcher.alive = False
@@ -1912,19 +1916,15 @@ def test_a_deployment_that_runs_no_containers_places_nothing(
 
 def fake_unpack(root, ref, digest, mounts=()):
     '''What `images.stage_bundle` leaves, without skopeo and umoci: a
-    shared bundle whose configuration binds what it was staged with -- and,
-    as one staged before per-job bundles did, the whole data directory.'''
+    shared bundle whose configuration binds what it was staged with.'''
     import json
 
     from siliconcompiler.remote.server.software import images
 
     bundle = images.bundle_path(root, digest)
     (bundle / "rootfs").mkdir(parents=True, exist_ok=True)
-    datadir = str(Path(root).resolve().parent)
     spec = {"root": {"path": "rootfs"}, "process": {"args": ["sh"]}, "mounts": [
-        {"destination": "/proc", "type": "proc", "source": "proc"},
-        {"destination": datadir, "source": datadir, "type": "none",
-         "options": ["rbind", "rw"]}]}
+        {"destination": "/proc", "type": "proc", "source": "proc"}]}
     images._add_mounts(spec, mounts)
     (bundle / "config.json").write_text(json.dumps(spec))
     return bundle
@@ -1993,7 +1993,7 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     # cannot say, and what the job's own bundle mounts.
     state = runspec.state_dir(manifest) / runspec.IMAGES_FILENAME
     sources, mounts = runspec.read_images(state)
-    shared, job_mounts, drop = runspec.read_bundles(state)
+    shared, job_mounts = runspec.read_bundles(state)
     assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"
     assert "/images/" in shared[bundle]
     # 🔴 Never the data directory, in the shared bundle or the job's: it holds
@@ -2001,7 +2001,6 @@ def test_a_cluster_gets_a_bundle_and_never_a_partition(
     datadir = str(Path("container-datadir").resolve())
     assert datadir not in [str(m) for m in mounts]
     assert [str(runspec.state_dir(manifest)), "rw"] in job_mounts
-    assert drop == [datadir]
 
     # 🔴 And the batch job itself runs in the framework image, which is what
     # makes version matching real: the process that INTERPRETS the manifest is
@@ -2063,10 +2062,9 @@ def test_a_container_job_cannot_read_the_signing_key_or_the_store(
     state = runspec.state_dir(manifest) / runspec.IMAGES_FILENAME
     monkeypatch.setattr(runner, "_image_sources", runspec.read_images(state)[0])
     monkeypatch.setattr(runner, "_image_mounts", runspec.read_images(state)[1])
-    shared, job_mounts, drop = runspec.read_bundles(state)
+    shared, job_mounts = runspec.read_bundles(state)
     monkeypatch.setattr(runner, "_image_shared", shared)
     monkeypatch.setattr(runner, "_job_mounts", job_mounts)
-    monkeypatch.setattr(runner, "_image_drop", drop)
 
     bundle, = set(runner._image_sources)
     runner._unpack_bundle(bundle)
@@ -2269,8 +2267,8 @@ def running(server, server_client, key, token, job_archive, me):
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-23T10:00:00.000Z", "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"},
                   "steptwo/0": {"state": "pending"}}})
     return job
@@ -2453,7 +2451,7 @@ def test_a_failed_run_publishes_the_reason_the_run_gave(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "failed",
         "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:10.000Z",
@@ -2498,7 +2496,7 @@ def test_a_reason_that_only_repeats_the_slug_is_not_published(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:10.000Z",
         "nodes": {"stepone/0": {"state": "failed"},
@@ -2554,7 +2552,7 @@ def test_a_failed_node_carries_the_type_that_says_so(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:00:10.000Z",
         "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
@@ -2607,8 +2605,8 @@ def test_a_node_turns_failed_only_after_its_log_is_listed(
     node = root / "stepone" / "0"
     node.mkdir(parents=True, exist_ok=True)
     (node / "sc_stepone_0.log").write_text("it went wrong\n")
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-23T10:00:00.000Z",
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
+        "state": "running", "started_at": "2026-09-23T10:00:00.000Z", "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
                   "steptwo/0": {"state": "pending"}}})
     seen = _states_when_indexed(monkeypatch, server, "_index_node")
@@ -2714,7 +2712,7 @@ def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": "2026-09-24T10:00:00.000Z",     # long ago
         "nodes": {"stepone/0": {"state": "running"},
@@ -2740,35 +2738,12 @@ def test_a_beating_run_is_left_alone(server, server_client, key, token,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": now(),
         "nodes": {"stepone/0": {"state": "running"},
                   "steptwo/0": {"state": "pending"}}})
 
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "running"
-
-
-def test_no_heartbeat_means_no_opinion(server, server_client, key, token,
-                                       job_archive, dispatcher, me):
-    '''⚠️ A run started by a runner older than this writes none, and the honest
-    answer for it is the one this server always gave -- ask the scheduler.
-    Treating a missing field as silence would declare every in-flight job of an
-    upgrade dead.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
-        "nodes": {"stepone/0": {"state": "running"},
-                  "steptwo/0": {"state": "pending"}}})
-
-    dispatcher.alive = True
     read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
     assert read["state"] == "running"
 
@@ -2888,7 +2863,7 @@ def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
                                       "steptwo/0": {"state": "pending"}}})
@@ -2914,7 +2889,7 @@ def test_a_cancel_never_takes_a_stale_answer(server, server_client, key, token,
     submit(server_client, key, token, job["id"], digest, size)
 
     root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_progress(root.parents[1] / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
         "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
         "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
                                       "steptwo/0": {"state": "pending"}}})
@@ -3105,7 +3080,7 @@ def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
             cancelled["transitions"][-1]["reason"]) == ("cancelling", "wrong corner")
 
     root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
         "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:01:00.000Z",
         "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
@@ -3146,7 +3121,7 @@ def test_a_300_character_reason_is_served_whole(
                                             "state": "cancelling", "reason": LONG_REASON}
 
     root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
         "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:01:00.000Z", "error": "the run's own words",
         "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
@@ -3211,7 +3186,7 @@ def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:01:00.000Z",
         "nodes": {"stepone/0": {"state": "failed", "exit_code": -9, "limit": "time"},
@@ -3233,7 +3208,7 @@ def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:01:00.000Z",
         "nodes": {"stepone/0": {"state": "failed", "exit_code": 125, "interrupted": {
@@ -3257,7 +3232,7 @@ def test_a_memory_limit_is_run_failed_naming_it(server, server_client, key, toke
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:01:00.000Z",
         "nodes": {"stepone/0": {"state": "failed", "exit_code": 137, "limit": "memory"},
@@ -3279,7 +3254,7 @@ def test_a_time_limit_is_run_failed_and_the_node_names_it(
 
     job = running(server, server_client, key, token, job_archive, me)
     root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_progress(root / runspec.PROGRESS_FILENAME, {
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
         "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
         "finished_at": "2026-09-23T10:01:00.000Z",
         "nodes": {"stepone/0": {"state": "failed", "exit_code": None, "limit": "time"},

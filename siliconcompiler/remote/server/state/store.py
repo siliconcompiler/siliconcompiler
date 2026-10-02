@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 
-__all__ = ["Store", "STORE_VERSION", "now"]
+__all__ = ["Store", "STORE_VERSION", "now", "stamp", "parse", "TERMINAL_STATES",
+           "TERMINAL_NODE_STATES", "PENDING_STATES", "ACTIVE_STATES"]
 
 
 # Bumped whenever schema.sql changes shape, or the JSON a column holds does --
@@ -38,6 +39,19 @@ ADMISSION_ATTEMPTS = 5
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
+# The closed sets of states schema.sql's `job_states` and `node_states` hold,
+# named once for every module that reads one.
+#
+# A job's terminal five, published on the job object, so a client reads
+# `terminal` and never switches on the name. The set has grown twice already.
+TERMINAL_STATES = frozenset(
+    ("completed", "failed", "cancelled", "rejected", "abandoned"))
+TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled"))
+# Waiting for its upload: what `pending_uploads` counts.
+PENDING_STATES = ("created", "awaiting_input")
+# Work in flight, `staging` included: what `concurrent_jobs` counts.
+ACTIVE_STATES = ("staging", "queued", "running", "cancelling")
+
 
 def stamp(moment: datetime) -> str:
     '''A UTC ``moment`` in the one format this store writes: RFC 3339 to
@@ -47,6 +61,12 @@ def stamp(moment: datetime) -> str:
     # %f is microseconds and the column holds milliseconds; the slice is what
     # keeps a Python write byte-comparable with a DEFAULT.
     return moment.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def parse(text: str) -> datetime:
+    '''The UTC moment a timestamp in this store's format names: `stamp`'s
+    inverse. ValueError where ``text`` is not one.'''
+    return datetime.strptime(text, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
 
 
 def now() -> str:

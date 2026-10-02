@@ -75,15 +75,18 @@ def known():
 def _dependents():
     '''The top-level packages of every installed distribution that requires
     SiliconCompiler: where a PDK, a library or a tool driver comes from.'''
+    from packaging.requirements import InvalidRequirement, Requirement
+
+    def requires_us(line) -> bool:
+        try:
+            return Requirement(line).name.lower() == "siliconcompiler"
+        except InvalidRequirement:
+            return False
+
     tops = metadata.packages_distributions()
     wanted = set()
     for dist in metadata.distributions():
-        requires = [(requirement or "").split(";")[0].strip().lower()
-                    for requirement in dist.requires or []]
-        if any(requirement.startswith("siliconcompiler") and
-               requirement[len("siliconcompiler"):len("siliconcompiler") + 1] in
-               ("", " ", "=", ">", "<", "!", "~", "[", "(")
-               for requirement in requires):
+        if any(requires_us(line) for line in dist.requires or []):
             wanted.add((dist.metadata["Name"] or "").lower())
     found = set()
     for top, owners in tops.items():

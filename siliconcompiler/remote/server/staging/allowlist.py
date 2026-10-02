@@ -209,8 +209,13 @@ def public_host(host: str, port: Optional[int] = None) -> bool:
         infos = socket.getaddrinfo(host, port or 443, proto=socket.IPPROTO_TCP)
     except (socket.gaierror, UnicodeError):
         return False
-    if not infos:
-        return False
+    return bool(infos) and _all_public(infos)
+
+
+def _all_public(infos) -> bool:
+    '''Whether every address in ``infos``, `socket.getaddrinfo`'s answer, is
+    a public one: :func:`public_host`'s rule, and the envbuild proxy's for the
+    connection it then makes to one of those addresses.'''
     for info in infos:
         try:
             address = ipaddress.ip_address(info[4][0])

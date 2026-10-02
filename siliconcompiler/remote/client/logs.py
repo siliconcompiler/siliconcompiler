@@ -17,7 +17,7 @@ import json
 import logging
 import time
 
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 from siliconcompiler.remote.client.errors import ServerProblem, clean
 
@@ -50,10 +50,6 @@ class LogTail:
         self.index = index
         self.last_event_id: Optional[str] = None
         self.artifact_id: Optional[str] = None
-        # Every node's archived log id, collected off `node_state` as each
-        # node completes: on a job stream `end` names none, since there is no
-        # single archive.
-        self.artifact_ids: Dict[Tuple[str, str], str] = {}
         # What the server asked us to wait before reconnecting, from the SSE
         # `retry` field. Per tail, not per class: two tails against different
         # servers must not set each other's pace.
@@ -80,8 +76,6 @@ class LogTail:
             response = self.client.follow_log(
                 self.job_id, self.step, self.index,
                 last_event_id=self.last_event_id)
-
-            from siliconcompiler.remote.client import _is_stream
 
             if not _is_stream(response):
                 # 🔴 After the `303` only an event stream is the log: anything
@@ -125,12 +119,12 @@ class LogTail:
                         produced = True
 
                 elif event == "node_state":
-                    # Keyed by node: a job stream names every node's archive.
+                    # This node's archive only: a job stream names every
+                    # node's.
                     node = (data.get("step"), data.get("index"))
-                    if data.get("artifact_id") and None not in node:
-                        self.artifact_ids[node] = data["artifact_id"]
-                        if node == (self.step, self.index):
-                            self.artifact_id = data["artifact_id"]
+                    if data.get("artifact_id") and None not in node and \
+                            node == (self.step, self.index):
+                        self.artifact_id = data["artifact_id"]
 
                 elif event == "end":
                     self.artifact_id = data.get("artifact_id") or self.artifact_id
@@ -150,6 +144,16 @@ class LogTail:
         return produced, False
 
 
+def _is_stream(response) -> bool:
+    '''🔴 The ONLY thing that says a live tail from a finished file.
+
+    Deliberately not a flag on the 303: a node can finish between the redirect
+    and the fetch, so anything the server computed at `/logs` can be stale by
+    the time it is used. What was actually served cannot be.
+    '''
+    return response.headers.get("Content-Type", "").startswith("text/event-stream")
+
+
 def _frames(response, tail):
     '''Parse ``text/event-stream`` into (event, id, data) triples.
 
@@ -160,8 +164,6 @@ def _frames(response, tail):
     event, identifier, payload = "message", None, []
 
     for raw in response.iter_lines(decode_unicode=True):
-        if raw is None:
-            continue
         line = raw.rstrip("\r")
 
         if not line:

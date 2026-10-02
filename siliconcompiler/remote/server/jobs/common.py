@@ -17,16 +17,10 @@ from siliconcompiler.remote import environment, owners
 from siliconcompiler.remote.server.errors import bound, ERRORS, ProblemError, TYPE_BASE
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.staging import archive, manifestread
-from siliconcompiler.remote.server.state.store import stamp
+from siliconcompiler.remote.server.state.store import parse, stamp
 
 logger = logging.getLogger("sc-server")
 
-
-# Published on the job object, so a client reads `terminal` and never switches
-# on the name. The set has grown twice already.
-TERMINAL_STATES = frozenset(
-    ("completed", "failed", "cancelled", "rejected", "abandoned"))
-TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled"))
 
 # `sha256` is the only algorithm v1 accepts, and the prefix is always written.
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -427,10 +421,6 @@ def _same_version(one: str, other: str) -> bool:
 _CANCELS = ("cancelling", "cancelled")
 
 
-# The contract's closed `resource_kinds`.
-_RESOURCE_KINDS = ("pdk", "library", "tool", "fpga")
-
-
 class _NoLongerStaging(Exception):
     '''The job left `staging` while it was being prepared.'''
 
@@ -615,16 +605,13 @@ def _after(when: str, seconds: int) -> str:
     The first version of this truncated one digit too far and every deadline
     read as *not yet*.
     """
-    from datetime import datetime, timedelta, timezone
+    from datetime import timedelta
 
     try:
-        moment = datetime.fromisoformat(str(when).replace("Z", "+00:00"))
-    except (TypeError, ValueError):
+        moment = parse(when)
+    except ValueError:
         # Unreadable is not a licence to abandon somebody's job.
         return "9999-12-31T23:59:59.999Z"
-
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
     return stamp(moment + timedelta(seconds=seconds))
 
 
@@ -762,11 +749,6 @@ def _decode_cursor(cursor: str) -> Tuple[str, str]:
     if not created_at or not job_id:
         raise ProblemError("invalid-cursor")
     return created_at, job_id
-
-
-def _epoch() -> float:
-    import time
-    return time.time()
 
 
 def _from_epoch(value: float) -> str:

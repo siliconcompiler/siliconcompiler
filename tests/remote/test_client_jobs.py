@@ -195,35 +195,6 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     assert json.loads(submitted.request.body) == {}
 
 
-@pytest.mark.parametrize("advertised", [True, False])
-def test_a_hash_goes_only_to_a_server_that_reuses_jobs(fake_v1, run, capabilities,
-                                                       monkeypatch, advertised):
-    '''Top level, and only where `GET /v1` advertises `jobs.reuse`: anywhere
-    else the member is validated and ignored. A hit is the job already there,
-    so nothing is granted or uploaded.'''
-    import copy
-
-    published = copy.deepcopy(capabilities)
-    if advertised:
-        published["features"] = list(published.get("features") or []) + ["jobs.reuse"]
-    fake_v1.replace(responses.GET, "", published)
-    monkeypatch.setattr(type(run), "_run_hash", lambda self: "the-hash")
-    fake_v1.route(responses.POST, "jobs", job_body("completed"),
-                  status=200 if advertised else 201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-
-    run._start()
-
-    created = [call for call in fake_v1.calls if call.request.path_url == "/v1/jobs"][0]
-    body = json.loads(created.request.body)
-    assert body.get("run_hash") == ("the-hash" if advertised else None)
-    assert "run_hash" not in body.get("descriptor", {})
-    assert not [call for call in fake_v1.calls if "upload-grant" in call.request.path_url]
-
-
 def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     '''🔴 Exactly: `siliconcompiler`, the distribution behind each executed
     node's task class, and -- where they apply -- a framework distribution,
@@ -361,17 +332,6 @@ def test_cocotbs_range_is_siliconcompilers():
     assert _framework_range("cocotb") == declared[0]
 
 
-def test_a_reused_job_skips_the_upload(fake_v1, run):
-    '''The prize is the upload: a hit skips the presigned PUT entirely.'''
-    fake_v1.route(responses.POST, "jobs", job_body("completed"), status=200)
-
-    job_id = run._start()
-
-    assert job_id == "01J9-job"
-    assert not [call for call in fake_v1.calls
-                if "upload-grant" in call.request.path_url]
-
-
 ###########################
 # Polling
 ###########################
@@ -409,7 +369,7 @@ def test_an_unreadable_retry_after_is_not_a_failed_poll(fake_v1, run, monkeypatc
     monkeypatch.setattr("time.sleep", lambda s: slept.append(s))
 
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"),
-                  headers={"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"})
+                  headers={"Retry-After": "soon"})
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
     run._poll("01J9-job")
@@ -526,19 +486,11 @@ def test_a_failed_job_ends_the_run(fake_v1, run):
 # Reconnect
 ###########################
 
-def test_reconnect_needs_a_job_to_reconnect_to(run):
-    with pytest.raises(RemoteError) as raised:
-        run.reconnect()
-
-    assert "never submitted" in str(raised.value)
-
-
-def test_reconnect_re_enters_the_wait(fake_v1, run, nop_project):
+def test_reconnect_re_enters_the_wait(fake_v1, run):
     '''🔴 The answer to Ctrl-C, and the only way back to a detached job.'''
-    nop_project.set('record', 'remoteid', "01J9-job")
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
-    run.reconnect()
+    run.reconnect("01J9-job")
 
 
 ###########################
@@ -958,7 +910,7 @@ def test_an_archive_refusal_names_the_rule_that_was_broken(fake_v1, logged_in):
                   status=422, content_type="application/problem+json")
 
     with pytest.raises(ServerProblem) as raised:
-        logged_in.submit_job("01J9-job", "sha256:" + "0" * 64)
+        logged_in.submit_job("01J9-job")
 
     assert "reason: link_member" in str(raised.value)
 
@@ -2203,7 +2155,9 @@ def test_an_asic_project_with_no_pdk_stops_before_create(fake_v1, logged_in, gcd
 
 def test_a_task_class_no_package_provides_stops_before_create(
         fake_v1, run, nop_project, monkeypatch):
-    monkeypatch.setattr("importlib.metadata.packages_distributions", lambda: {})
+    from siliconcompiler.remote.client import capture
+
+    monkeypatch.setattr(capture, "_module_distributions", lambda: {})
 
     with pytest.raises(RemoteError, match="installed package"):
         run._preflight()

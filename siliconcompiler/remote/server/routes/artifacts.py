@@ -23,6 +23,7 @@ from siliconcompiler.remote.server.outputs import logstream
 from siliconcompiler.remote.server.routes import next_page
 from siliconcompiler.remote.server.routes.auth import public_url, require
 from siliconcompiler.remote.server.state.storage import DOWNLOAD_SECONDS, SignatureError
+from siliconcompiler.remote.server.state.store import TERMINAL_NODE_STATES
 
 __all__ = ["blueprint"]
 
@@ -113,7 +114,7 @@ def logs(session, job_id):
                    "for the whole job")
 
     node = _jobs().node_log(session, job_id, step, index)
-    ended = node["state"] in ("completed", "failed", "skipped", "cancelled")
+    ended = node["state"] in TERMINAL_NODE_STATES
     return _stream_redirect(job_id, step, index, _until(session), ended)
 
 
@@ -385,7 +386,7 @@ def _download_name(store, row) -> str:
     job = store.one("SELECT design, jobname FROM jobs WHERE id = ?",
                     (row["job_id"],))
 
-    parts = [job["design"], job["jobname"]] if job else []
+    parts = [job["design"], job["jobname"]]
     if row["step"]:
         # Hyphenated, because `elaborate0` cannot be read back: it is step
         # `elaborate` index `0` and also a step called `elaborate0`.

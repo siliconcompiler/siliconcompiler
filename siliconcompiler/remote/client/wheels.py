@@ -23,7 +23,6 @@ node. Every wheel is held to the server's own check,
 import base64
 import hashlib
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -129,8 +128,10 @@ def repack(dist: metadata.Distribution, directory: str) -> str:
         raise CannotForward(f"{what} records no list of its installed files, so it "
                             "cannot be repacked as a wheel")
 
-    escaped = re.sub(r"[-_.]+", "_", name)
-    dist_info = f"{escaped}-{version.replace('-', '_')}.dist-info"
+    # A canonical name separates with `-` alone, which a wheel's file name
+    # writes as `_`; a normalised version holds no `-`.
+    stem = f"{name.replace('-', '_')}-{version}"
+    dist_info = f"{stem}.dist-info"
     members: Dict[str, str] = {}
     for entry in files:
         parts = entry.parts
@@ -162,7 +163,7 @@ def repack(dist: metadata.Distribution, directory: str) -> str:
 
     wheel = ("Wheel-Version: 1.0\nGenerator: siliconcompiler\n"
              "Root-Is-Purelib: true\nTag: py3-none-any\n").encode()
-    path = os.path.join(directory, f"{escaped}-{version.replace('-', '_')}-py3-none-any.whl")
+    path = os.path.join(directory, f"{stem}-py3-none-any.whl")
     record = []
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         def add(arcname, data):

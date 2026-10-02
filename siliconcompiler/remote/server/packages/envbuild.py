@@ -93,6 +93,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
     ``run`` starts the build container and waits for it; the default is
     `_run_container`. Tests hand in their own.
     '''
+    from siliconcompiler.remote.environment import IMAGE_SITE
     from siliconcompiler.remote.server.packages import pipbuild
     from siliconcompiler.remote.server.software import images, oci
 
@@ -138,7 +139,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
             command += ["--index-url", index]
         if spec.get("source_builds"):
             command.append("--allow-source")
-        config = build_config(base_spec, base / "rootfs", req, out, sockets, command)
+        config = build_config(base_spec, base, req, out, sockets, command)
         with open(bundle / "config.json", "w") as f:
             json.dump(config, f, indent=1)
 
@@ -184,7 +185,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
 
     site = out / "site"
     site.mkdir(exist_ok=True)
-    layer = oci.layer_from(site, images.LAYER_PATH)
+    layer = oci.layer_from(site, IMAGE_SITE)
     ref, digest = oci.derive(spec["base_ref"], layer,
                              comment=spec.get("comment") or "sc-server environment")
     images.stage_derived_bundle(root, spec["base_digest"], digest, site)
@@ -194,20 +195,22 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
             "substituted": pip.get("substituted") or {}, **facts}
 
 
-def build_config(base: Dict[str, Any], rootfs: Path, req: Path, out: Path,
+def build_config(base: Dict[str, Any], bundle: Path, req: Path, out: Path,
                  sockets: Path, command: List[str]) -> Dict[str, Any]:
-    '''The build container's OCI configuration, from its base image's.
+    '''The build container's OCI configuration, from its base image's,
+    staged as ``bundle``.
 
     The base's process, namespaces and devices, with what makes it a builder:
     its root read-only, none of its bind mounts, a private /tmp, the three
     directories the build uses bound under it, and a network namespace of its
     own. Absolute ``root.path``, so it needs no copy of the base's filesystem.
     '''
-    spec = copy.deepcopy(base)
-    spec["root"] = {"path": str(Path(rootfs).resolve()), "readonly": True}
-    spec["hostname"] = "sc-envbuild"
+    from siliconcompiler.remote.server.software.images import (
+        _borrowed_root, _is_bind, drop_capabilities)
 
-    from siliconcompiler.remote.server.software.images import drop_capabilities
+    spec = copy.deepcopy(base)
+    spec["root"] = _borrowed_root(base, bundle, readonly=True)
+    spec["hostname"] = "sc-envbuild"
 
     drop_capabilities(spec)
     process = spec.setdefault("process", {})
@@ -219,8 +222,7 @@ def build_config(base: Dict[str, Any], rootfs: Path, req: Path, out: Path,
 
     kept = []
     for mount in spec.get("mounts") or []:
-        options = mount.get("options") or []
-        if mount.get("type") == "bind" or "bind" in options or "rbind" in options:
+        if _is_bind(mount):
             continue
         if mount.get("type") == "cgroup" or mount.get("destination") == "/sys/fs/cgroup":
             continue
@@ -446,20 +448,14 @@ def _open_public(host: str, port: int, public_only: bool = True):
     '''A connection to ``host`` -- where every address it resolves to is
     public, unless ``public_only`` is off -- and to one of the addresses
     checked, never a second lookup.'''
-    import ipaddress
+    from siliconcompiler.remote.server.staging.allowlist import _all_public
 
     try:
         infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
     except (socket.gaierror, UnicodeError):
         return None
-    if public_only:
-        for info in infos:
-            try:
-                address = ipaddress.ip_address(info[4][0])
-            except ValueError:
-                return None
-            if not address.is_global or address.is_multicast:
-                return None
+    if public_only and not _all_public(infos):
+        return None
     for family, kind, proto, _, where in infos:
         connection = socket.socket(family, kind, proto)
         connection.settimeout(_CONNECT_TIMEOUT)

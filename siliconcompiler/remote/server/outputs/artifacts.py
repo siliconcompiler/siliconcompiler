@@ -162,7 +162,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     # node. A client with the archive does not fetch it twice.
     manifest = workdir / "outputs" / f"{job['design']}.pkg.json"
     written += _index(store, storage, job, location, floor, "manifest",
-                      step, index, manifest, "application/json", root)
+                      step, index, manifest, root)
 
     # 🔴 Indexed before the node archive, not after. If a node finishes and
     # something goes wrong partway through indexing it, the small object a
@@ -284,13 +284,13 @@ def collect(store, storage, config, job, build_root) -> int:
 
     manifest = root / f"{job['design']}.pkg.json"
     written += _index(store, storage, job, location, floor, "manifest",
-                      None, None, manifest, "application/json", build_root)
+                      None, None, manifest, build_root)
 
     # The run's own log, SiliconCompiler's `job.log`, and nothing of this
     # server's: that is `staging` and `diagnostics` (surface D295). Read
     # through `confine`, since the run wrote it.
     written += _index(store, storage, job, location, floor, "logs",
-                      None, None, root / "job.log", "text/plain", build_root)
+                      None, None, root / "job.log", build_root)
 
     # Every node again, because a node whose archive was missed while the run
     # was going still has to be indexed -- the nodes that were caught cost one
@@ -410,7 +410,7 @@ def _exists(store, job, kind, step, index) -> bool:
 
 
 def _index(store, storage, job, location, floor, kind, step, index,
-           source: Path, media_type: str, root) -> int:
+           source: Path, root) -> int:
     '''One file, copied into the artifact store and recorded -- where it is a
     regular file under ``root`` reached through no link.'''
     if _exists(store, job, kind, step, index):

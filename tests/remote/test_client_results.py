@@ -7,6 +7,7 @@ import pytest
 import responses
 
 from siliconcompiler.remote.client.results import Results
+from siliconcompiler.remote.runflow import runtime_nodes
 
 from conftest import problem
 
@@ -962,7 +963,7 @@ def test_a_run_from_part_way_folds_in_only_the_nodes_it_ran(results, nop_project
     final.set("metric", "tasktime", 9.0, step="steptwo", index="0")
     final.write_manifest("final.pkg.json")
 
-    results._fold_in_final("final.pkg.json")
+    results._fold_in_final("final.pkg.json", set(runtime_nodes(nop_project)))
 
     assert nop_project.get("record", "status", step="stepone", index="0") == "success"
     assert nop_project.get("metric", "tasktime", step="stepone", index="0") == 3.0
@@ -1061,7 +1062,7 @@ def test_a_returned_manifest_imports_nothing_and_sets_no_job_id(results, nop_pro
     with open("final.pkg.json", "w") as f:
         json.dump(body, f)
 
-    results._fold_in_final("final.pkg.json")
+    results._fold_in_final("final.pkg.json", set(runtime_nodes(nop_project)))
 
     assert "planted_module_never_imported" not in sys.modules
     assert nop_project.get("record", "remoteid") == "the-real-job"

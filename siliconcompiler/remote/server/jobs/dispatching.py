@@ -22,19 +22,19 @@ from siliconcompiler.remote.server.state.store import now
 class DispatchMixin:
     '''Handing a staged job to the scheduler.'''
 
-    def _dispatch(self, session, job, summary, entries, plan=None) -> None:
+    def _dispatch(self, job, summary, entries, plan=None) -> None:
         '''Resolve images, write the manifest the run will load, and hand
         the job to the scheduler. ``plan`` is the images already resolved
         while staging, with any the job's Python packages were built into.'''
         root = self.job_root(job["user_id"], job["id"])
         if plan is None:
-            plan = self._resolve_images(session, job, summary)
+            plan = self._resolve_images(job, summary)
         manifest = self._write_run(job, root, summary, plan, entries)
 
         try:
             bundle = self._framework_bundle(job, plan)
         except ProblemError as problem:
-            raise self._refuse(session, job, problem) from None
+            raise self._refuse(job, problem) from None
 
         try:
             # The job's own root, so the batch script and the run's stdout land
@@ -52,7 +52,7 @@ class DispatchMixin:
             raise _NoLongerStaging(job["id"])
         logger.info(f"submitted {job['id']} as {scheduler_job_id}")
 
-    def _resolve_images(self, session, job, summary):
+    def _resolve_images(self, job, summary):
         '''Which container every node of this job runs in.
 
         🔴 Before the dispatcher is called and after the archive is open, which
@@ -81,7 +81,7 @@ class DispatchMixin:
             # Its own slug, not a guessed one: `plan_for_job` refuses for more
             # than one reason and the job must record the one the caller was
             # given.
-            raise self._refuse(session, job, problem) from None
+            raise self._refuse(job, problem) from None
         # Each image the job's nodes run in, in its `staging` record.
         placed: Dict[str, list] = {}
         for (step, index), image_id in sorted(plan.nodes.items()):
@@ -122,7 +122,7 @@ class DispatchMixin:
             # This job's own view of it, beside its nodes' bundles.
             return str(images.job_bundle(
                 common, self.job_bundles(job["id"]) / Path(common).name,
-                self.framework_mounts(job), drop=[str(self._datadir)]))
+                self.framework_mounts(job)))
         except Exception as e:                                   # noqa: BLE001
             # Refused rather than dispatched without it. Dropping the image
             # silently would run the job against whatever SiliconCompiler this
@@ -211,7 +211,6 @@ class DispatchMixin:
             root / runspec.IMAGES_FILENAME,
             sources, self.container_mounts() if sources else [],
             shared=shared,
-            job_mounts=self.job_mounts(job) if sources else [],
-            drop=[str(self._datadir)] if sources else [])
+            job_mounts=self.job_mounts(job) if sources else [])
 
         return unpacked / f"{job['design']}.pkg.json"

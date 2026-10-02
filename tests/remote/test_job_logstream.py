@@ -54,7 +54,7 @@ class Job:
         return logstream.job_events(
             self.nodes, self.path, node_states=lambda: dict(self.states),
             job_over=lambda: self.over, start=start,
-            deadline=deadline or time.monotonic() + 30,
+            deadline=deadline or time.monotonic() + 30, keepalive=15,
             artifact_id=lambda step, index: f"art-{step}", index=self.index())
 
 
@@ -505,22 +505,6 @@ def test_the_client_follows_the_whole_job_to_its_end(live):
         # Everything each node wrote, in its own order.
         assert [line for line in text.splitlines() if line.startswith(step)] == \
             log.read_text().splitlines()
-
-
-def test_the_client_collects_every_nodes_archive_as_it_goes(live):
-    from siliconcompiler.remote.client.logs import LogTail
-
-    client, app, job_id, logs = live
-    for log in logs.values():
-        log.write_text("done\n")
-    app.config["SC_STORE"].execute(
-        "UPDATE job_nodes SET state = 'completed' WHERE job_id = ?", (job_id,))
-
-    tail = LogTail(client, job_id)
-    tail.follow()
-
-    # The server indexes each log as its node's stream reaches the end.
-    assert set(tail.artifact_ids) == {("place", "0"), ("route", "0")}
 
 
 def test_a_finished_job_is_an_ordinary_end_to_the_client(live):
