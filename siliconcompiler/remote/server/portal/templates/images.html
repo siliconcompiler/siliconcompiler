@@ -45,10 +45,8 @@
       {%- for version in catalogue.versions if version.software_name == row.name -%}
       <span class="mono muted">{{ version.version }}</span>
       {#-
-        🔴 Marked, because the number alone is a trap: a tool that reports no
-        version is recorded with its image's publish date, and 20260924 beats
-        2.0.1 under every comparison there is. Such a row can never satisfy a
-        version requirement, and it always sorts below a reported one.
+        🔴 Marked, because the number alone is a trap: it is the image's
+        publish date (`images.matches`).
       -#}
       {%- if version.version_source != 'reported' %}
       <span class="tag" title="the tool reports no version, so this is when its
@@ -74,12 +72,7 @@
     </td>
     <td>
       {% if not row.retired_at %}
-      {#
-        🔴 Not the same as retiring its last version. Retiring a VERSION says
-        *not this one*, and a flow needing that tool is still refused unless an
-        image holds another. Retiring the SOFTWARE says *not any more*, and the
-        tool stops raising a requirement at all.
-      #}
+      {# 🔴 Not the same as retiring its last version (`images.live_software`). #}
       <form method="post" class="inline"
             action="{{ url_for('portal.retire_software', name=row.name) }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -98,12 +91,7 @@
   <div class="grid">
     <label>Distribution name
       <input type="text" name="name" placeholder="siliconcompiler" required></label>
-    {#
-      🔴 Stated and not derived. It decides which bucket the name is published
-      in, and therefore whether ONE image has to hold it -- everything Python
-      shares the run's interpreter -- or each node's image does. Deriving it
-      would be this process guessing about an image it is not.
-    #}
+    {# 🔴 Stated and not derived (`images.register_software`). #}
     <label>Kind
       <select name="kind" required>
         <option value="python">Python distribution — one image holds all of them</option>
@@ -119,9 +107,7 @@
     <span class="muted">
       {#
         The module a probe inside an image imports to ask this tool its
-        version. It cannot be worked out there: a driver can live in any
-        package, and the in-tree path is not reliable in-tree either --
-        kepler-formal is driven from siliconcompiler.tools.keplerformal.
+        version, which cannot be worked out there (`images.register_software`).
       #}
       Where its Task driver lives. Leave it empty and no version can be read
       from an image for it.
@@ -132,9 +118,7 @@
     <span class="muted">
       {#
         slang is the case: its driver runs pyslang in SiliconCompiler's own
-        process, so there is nothing to run and ask -- and the distribution is
-        not called what the tool is called, which is why this is typed rather
-        than worked out.
+        process, so there is nothing to run and ask.
       #}
       Read the version from a python distribution of this name instead of by
       running the tool.
@@ -190,8 +174,7 @@
 <p class="muted">
   {#
     Apart from the table above, because nobody registered these: the builder
-    made each one from a job's Python packages, and a job reaches one only
-    through the packages it was built from -- no requirement resolves to it.
+    made each one from a job's Python packages.
   #}
   A job's Python packages, installed by this server on one of the images
   above. Built once for each image and set of packages, and shared by every job

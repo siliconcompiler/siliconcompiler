@@ -37,10 +37,9 @@ def runtime_flow(project):
 def runtime_nodes(project) -> List[Tuple[str, str]]:
     '''The nodes this run will execute, in flowgraph order.
 
-    The same derivation on both ends: the server writes a row per node at
-    submit, and the run reports against the same list. Deriving it twice from
-    the same manifest is what keeps the job object's ``progress`` counts
-    matching what actually ran.
+    The server writes a row per node at submit, and the run reports against
+    the same list, which keeps the job object's ``progress`` counts matching
+    what actually ran.
     '''
     return list(runtime_flow(project).get_nodes())
 
@@ -50,11 +49,6 @@ def upstream_nodes(project, skipped=()) -> List[Tuple[str, str]]:
     that a node in it takes inputs from (surface D175). A node in ``skipped``
     -- skipped in the job that ran it -- is looked through to its own inputs,
     since it has no results to read.
-
-    🔴 **One derivation for both ends.** The client decides from it what to
-    upload or name in `continues_from`, and the server what must be in the
-    upload or copied in; two copies of it would be two answers to which
-    results a `-from` run needs.
     '''
     runtime = runtime_flow(project)
     flow = project.get_flow()
@@ -106,12 +100,6 @@ def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
     images and not one: an `import` node needing nothing but Python has no
     business pulling a twelve-gigabyte OpenROAD image, and the only thing that
     can tell them apart is what each node declares.
-
-    ⚠️ **Here rather than in the server, because both ends derive it.** The
-    server needs it to place nodes; the client needs it to say what its flow
-    will reach for, which is what lets the server refuse before the archive
-    moves. Two copies of this would be two answers to *which image does this
-    node need*.
 
     ⚠️ Read off a BARE task -- no setup, no project -- so a forty-node flow
     costs forty attribute reads and nothing else.

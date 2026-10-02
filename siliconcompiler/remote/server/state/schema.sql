@@ -269,9 +269,9 @@ CREATE TABLE jobs (
                                                     -- and is unchanged in every other respect
     archived_by       text REFERENCES users(id),
     deleted_at        text,                         -- the job stays readable after DELETE;
-                                                    -- subresources 404. A `deleted` state was
-                                                    -- refused because it would erase whether the
-                                                    -- job had completed, failed or been rejected
+                                                    -- subresources 404. Not a `deleted` state,
+                                                    -- which would erase whether the job had
+                                                    -- completed, failed or been rejected
     deleted_by        text REFERENCES users(id),
     deleted_reason    text,                         -- prose naming who acted, never the device
 
@@ -662,10 +662,10 @@ CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version
 --   -1    UNLIMITED
 --   >= 0  that value
 -- `-1` never reaches a client -- the resolver turns it into the wire's `null`,
--- because the wire had already spent `null` on *unlimited* while this table
--- needed it for *inherit*. A CHECK on every column, because a sentinel with no
--- constraint is a typo away from a negative limit that reads as unlimited to
--- one path and refuse-everything to another.
+-- because the wire spends `null` on *unlimited* and this table needs it for
+-- *inherit*. A CHECK on every column, because a sentinel with no constraint is
+-- a typo away from a negative limit that reads as unlimited to one path and
+-- refuse-everything to another.
 --
 -- ⚠️ Written by the OPERATOR and never by the portal. A ceiling is policy, and
 -- this deployment has no admin mode: the only writer is the operator CLI, the

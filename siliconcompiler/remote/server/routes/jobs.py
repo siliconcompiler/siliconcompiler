@@ -6,10 +6,8 @@ every state transition is in :mod:`siliconcompiler.remote.server.jobs`, because
 those are the parts a second implementation has to agree with; what is left in
 this file is which verb goes where and which scope guards it.
 
-One route is not an endpoint: the signed ``PUT`` the upload grant points at. It
-carries no ``Authorization`` header and no DPoP proof, because that is what a
-presigned URL is -- the signature is the credential. It lives outside ``/v1`` so
-that the version prefix stays exactly the contract's surface.
+One route is not an endpoint: the signed ``PUT`` the upload grant points at
+(see `upload`).
 '''
 
 import time
@@ -84,9 +82,9 @@ def create(session):
     '''
     body, status = _jobs().create(session, _body(), _idempotency_key())
 
-    # 🔴 The job object itself, in `created` -- the separate create shape is
-    # gone, so the create-time `upload_sources` and the later one are the same
-    # member in the same place, and absent means nothing to send either way.
+    # 🔴 The job object itself, in `created`, so the create-time
+    # `upload_sources` and the later one are the same member in the same
+    # place, and absent means nothing to send either way.
     response = _private(body, status)
     if status == 201:
         response.headers["Location"] = f"/v1/jobs/{body['id']}"
@@ -100,8 +98,7 @@ def upload_grant(session, job_id):
 
     200 rather than 201, because re-issue is the point of the endpoint: the row
     already exists, and a 201 on the second call claims a creation that did not
-    happen. Without this call a grant that expired left the job in a state with
-    no way back.
+    happen. Without it a grant that expires leaves the job with no way back.
     '''
     return _private(_jobs().grant(session, job_id, public_url(""),
                                   _body(required=False)))
@@ -147,8 +144,7 @@ def get(session, job_id):
     '''Endpoint 17.
 
     `Retry-After` while the job is still going, so a client never guesses an
-    interval. The old client took one from a server field at the start of the
-    run and used it until the end.
+    interval.
     '''
     job = _jobs().get(session, job_id)
 

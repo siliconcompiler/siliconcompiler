@@ -64,9 +64,9 @@ MAX_REASON = 300
 # character is refused at the boundary rather than stripped on the way out.
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
-# `design` and `jobname` become path segments under the job's own root, so they
-# are checked rather than trusted. The manifest's own copies are checked again
-# at submit against the same rule -- an upload is the other end of this.
+# `design` and `jobname`, which become path segments under the job's own root
+# (see `_name`). The manifest's own copies are checked again at submit against
+# the same rule -- an upload is the other end of this.
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 # How long an `Idempotency-Key` is honoured (surface §6).
@@ -144,8 +144,8 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 
     🔴 **The one member, and it names every Python distribution the job
     imports**, pinned exactly -- a name not in `requested_versions` is not
-    required, and the job may land in an image without it. `versions` is
-    gone; so is the fallback to it (D126, superseded).
+    required, and the job may land in an image without it. There is no
+    `versions` member and no fallback to one (D126, superseded).
 
     🔴 **Each value is a LIST of PEP 440 specifier sets, any one of which
     satisfies**, and a bare string is refused: that is what SiliconCompiler
@@ -602,8 +602,6 @@ def _after(when: str, seconds: int) -> str:
     are compared as STRINGS against stored timestamps, so a fraction of the
     wrong length does not compare wrong by a rounding error -- it compares
     wrong by character: `.12Z` sorts after `.123Z`, because `Z` is above `3`.
-    The first version of this truncated one digit too far and every deadline
-    read as *not yet*.
     """
     from datetime import timedelta
 
@@ -640,8 +638,7 @@ def _error(error_type: Optional[str],
     and identical on every deployment and for every occurrence -- *The run
     failed* is true of every failed run there has ever been -- so without a
     `detail` the object says only that something went wrong, which the `state`
-    already said. The specific reason was being recorded on the transition and
-    published nowhere, so a person on the CLI could not reach it at all.
+    already said.
 
     ⚠️ Bounded like every other `detail`, and this is the path that needs it
     most: a run's reason can be a tool's own exception text, which carries

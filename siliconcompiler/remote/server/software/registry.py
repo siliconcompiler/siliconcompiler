@@ -4,13 +4,10 @@
 The operator's side of the image registry: which distributions this deployment
 curates, at which versions, and which containers hold them.
 
-🔴 **Registering an image is the most dangerous write this server has.** It
-chooses what code executes on the cluster -- higher stakes than any read
-permission, because a permission decides who may see something and this decides
-what runs as the account a job maps to. So every write here names the person who
-made it, taken from the account running the command on the server host, and the
-tag is resolved to a digest once, here, rather than re-resolved at every
-dispatch.
+🔴 **Registering an image is the most dangerous write this server has**
+(`images.register_image`). So every write here names the person who made it,
+taken from the account running the command on the server host, and the tag is
+resolved to a digest once, here, rather than re-resolved at every dispatch.
 
 ⚠️ **A separate entry point rather than more flags on the server**, which has
 three, and a fourth for testing, and should keep them. This one runs against a
@@ -60,11 +57,9 @@ def _operator(store) -> str:
 def _wants(values: Optional[List[str]]):
     '''``-requires openroad>=26.3`` into pairs, with any PEP 440 operator.
 
-    🔴 Not `images._contains`, and the difference is the *no ranges* rule's
-    scope: a STORED version is exact, because a stored range is a promise
-    nobody can check, while a REQUIREMENT is a range by nature. Using the storage parser
-    here refused `>=26.3` as "not name==version", which is the registry
-    rejecting the one shape this command exists to try.
+    🔴 Not `images._contains`: a STORED version is exact, while a REQUIREMENT
+    is a range by nature, and the storage parser would refuse `>=26.3` as
+    "not name==version" -- the one shape this command exists to try.
     '''
     pairs = []
     for value in values or []:
@@ -79,10 +74,8 @@ def _wants(values: Optional[List[str]]):
 def _resolve_digest(registry_ref: str) -> str:
     '''Pin a tag to the bytes it names right now.
 
-    🔴 Once, here, and never again. Rebuilding ``sc-runtime:0.39.1`` must not
-    silently change what a job runs -- that takes a re-registration, which is a
-    decision somebody made. Two jobs a month apart running different code off
-    the same tag is the failure this prevents.
+    🔴 Once, here, and never again: what a job runs changes only by a
+    re-registration (`images.pinned_ref`).
     '''
     try:
         import docker
@@ -333,10 +326,10 @@ def _cmd_resolve(store, args) -> int:
     the alternative -- submitting a job to find out -- is a slow way to learn
     that a tool has no image.
     '''
-    # 🔴 The python and tools buckets, because they resolve differently: the
-    # python set has to be held by ONE image and a tool is satisfied per node.
-    # `-versions` names python requirements and `-requires` names tool ones,
-    # the same split the descriptor carries. No interpreter is asked for.
+    # 🔴 The python and tools buckets, because they resolve differently
+    # (`images.live_software`). `-versions` names python requirements and
+    # `-requires` names tool ones, the same split the descriptor carries. No
+    # interpreter is asked for.
     requires = {"python": dict(_wants(args.versions)),
                 "tools": dict(_wants(args.requires))}
     tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}

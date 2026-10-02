@@ -531,8 +531,6 @@ class Client:
     def _relogin(self, reason: Optional[str]) -> None:
         '''The session is over: re-authenticate, and never refresh.'''
         if reason == "reused":
-            # The rotation revokes the old device with the old key first, so a
-            # server that binds a subject to one key takes the new one too.
             self.logger.warning(
                 "This session was ended because its refresh token was used twice: your "
                 "credentials were used elsewhere. Replace this machine's key with "
@@ -993,8 +991,7 @@ class Client:
         '''``GET /v1/jobs/{id}``, and the interval the server asked for.
 
         The pace is the server's: `Retry-After` is read per response rather than
-        once at the start of a run, which is what the client this replaces did
-        with a single number.
+        once at the start of a run.
         '''
         self.ensure_session()
         try:
@@ -1139,11 +1136,8 @@ class Client:
         With a step and an index, that node; with neither, the whole job as one
         live stream (`logs.stream.job`).
 
-        🔴 Re-requested on every reconnect and never reused. Authorization is
-        evaluated here, at the endpoint that takes the token and the proof, and
-        the URL it hands back carries a lifetime of its own -- so a six-hour log
-        is a sequence of capability-length streams rather than one connection
-        outliving the credential that opened it.
+        🔴 Re-requested on every reconnect and never reused; the `logs` module
+        says why.
         '''
         self.ensure_session()
 
@@ -1164,8 +1158,7 @@ class Client:
         '''Read one node's log as it is written, to the end.
 
         Returns the text it emitted. Reconnects for as long as the node is
-        running, because a capability expiring is the ordinary way a long tail
-        ends rather than a failure.
+        running.
         '''
         from siliconcompiler.remote.client.logs import LogTail
 
@@ -1207,9 +1200,9 @@ class Client:
         address, port, had_credentials = _split_address(server.strip())
 
         if had_credentials:
-            # Under v1 a username and password are not the credential -- the
-            # key is. Dropping them silently would leave a user believing they
-            # had configured something.
+            # A username and password are not the credential -- the key is.
+            # Dropping them silently would leave a user believing they had
+            # configured something.
             self.logger.warning(
                 "Ignoring the username and password in that address: this "
                 "server authenticates with a key held on this machine, which "
@@ -1447,8 +1440,7 @@ def _split_address(server: str):
     '''Split an address into its parts, keeping the scheme it was given.
 
     A port in the address is split out; a username and password in it are
-    reported as ignored rather than stored, because they are not the credential
-    any more.
+    reported as ignored rather than stored, because the credential is the key.
     '''
     from urllib3.exceptions import LocationParseError
     from urllib3.util import parse_url

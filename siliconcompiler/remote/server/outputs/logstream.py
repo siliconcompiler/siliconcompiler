@@ -81,7 +81,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
 
     # 🔴 `/logs` is live output only: a node already over when `/logs` was
     # asked gets a stream that ends at once, naming its archived log. One that
-    # finished between the `303` and the connect is drained below as before.
+    # finished between the `303` and the connect is drained below.
     state = node_state()
     if ended and state in TERMINAL_NODE_STATES:
         yield _event("node_state", _with_artifact(
@@ -166,10 +166,10 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
     entries in the job's event index that this caller has been sent. The index
     records every `log` event the job's stream has ever carried -- which node,
     where in its log, how long -- so every reader of the job is sent the same
-    events under the same ids, and resuming is one seek. ⚠️ It replaces a
-    vector of per-node offsets, which even sparse could pass what common
-    proxies accept for one `Last-Event-ID` header on a thousand-node flow. The
-    index is state about the JOB; this host still keeps none about its callers.
+    events under the same ids, and resuming is one seek. ⚠️ Not a vector of
+    per-node offsets: even sparse, that could pass what common proxies accept
+    for one `Last-Event-ID` header on a thousand-node flow. The index is state
+    about the JOB; this host still keeps none about its callers.
 
     Ordering is kept within a node and is arrival order across them: an entry
     is appended when a reader finds a node's log has grown, node by node.
@@ -259,10 +259,9 @@ _JOB_ID_PREFIX = "e"
 def resume_job(header: Optional[str], fallback, index: "EventIndex") -> int:
     '''How many of the index's entries the caller already has, or 0.
 
-    ⚠️ An id that does not fit the job -- a per-node id, the vector this used
-    to emit, or a position past the end of this job's index -- starts from the
-    beginning: a stream that replays is a nuisance, one that skips is a lost
-    log.
+    ⚠️ An id that does not fit the job -- a per-node id, or a position past
+    the end of this job's index -- starts from the beginning, as in
+    `resume_from`.
     '''
     for candidate in (header, fallback):
         if not candidate:
@@ -322,9 +321,9 @@ class EventIndex:
     def extend(self, nodes, path_of, states, root=None) -> bool:
         '''Index what each node's log has gained. True if anything was.
 
-        Whole lines only while a node runs -- a reader that prints what it is
-        given would otherwise show a line in two pieces -- and everything once
-        it is over, since nothing more is coming to finish the last line.
+        Whole lines only while a node runs, as `_split` keeps them, and
+        everything once it is over, since nothing more is coming to finish the
+        last line.
         '''
         with _locked(self.path):
             self._catch_up()

@@ -7,8 +7,7 @@ server lives in :mod:`siliconcompiler.remote.server` and runs as
 ``python -m siliconcompiler.remote.server``.
 
 `ClientScheduler` is what `Project.run()` reaches when `option,remote` is set.
-See ``tests/remote/BEHAVIOUR.md`` for what the client this replaces did and what
-the rewrite owes back.
+See ``tests/remote/BEHAVIOUR.md`` for the behaviours the client owes.
 '''
 
 from siliconcompiler.scheduler import Scheduler

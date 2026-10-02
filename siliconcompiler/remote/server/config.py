@@ -36,9 +36,9 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "pending_uploads": 8,                   # jobs held in created or awaiting_input
     "concurrent_jobs": 4,                   # jobs staging, queued, running or cancelling
     # Open /logs streams per caller, and the number is chosen rather than
-    # inherited. What one costs, now that there is something to measure: a
-    # worker thread and an open file for as long as it lives, which is up to
-    # the token that opened it, plus a stat twice a second while the log is quiet.
+    # inherited. What one costs: a worker thread and an open file for as long
+    # as it lives, which is up to the token that opened it, plus a stat twice a
+    # second while the log is quiet.
     # Under a threaded WSGI server there is no fixed pool to exhaust, so what
     # runs out is memory and descriptors rather than capacity.
     #
@@ -53,15 +53,13 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # The largest single object this server will hand over an API fetch.
     #
     # 🔴 **A real ceiling that refuses, not advice a client applies to
-    # itself.** It began as the latter and that was the defect: it was the only
-    # published limit with no refusal behind it, so an operator who set it was
-    # setting policy that any client could ignore by not reading it. An
-    # over-ceiling fetch is `limit-exceeded` naming this key, and `null` means
-    # unlimited exactly as it does everywhere else on the wire.
+    # itself.** Advice would be policy that any client could ignore by not
+    # reading it. An over-ceiling fetch is `download-too-large` naming this
+    # key, and `null` means unlimited exactly as it does everywhere else on the
+    # wire.
     #
     # 🔴 **There is no API override -- not a query parameter, not a header.**
-    # The portal is the only way past it, because the portal is a different
-    # surface with a person on it who has just clicked the thing.
+    # The portal is the only way past it (see `ResultsMixin.artifact`).
     #
     # 🔴 It is deliberately not `fetchable: false`. `fetchable` answers *may
     # this caller have these bytes*, and a client renders a false one as
@@ -78,9 +76,7 @@ DEFAULT_LIMITS: Dict[str, int] = {
 
     # The most of a refusal's `detail` a caller is given.
     #
-    # 🔴 **CHARACTERS and not bytes, which is the one place this contract's
-    # usual `_bytes` is wrong.** Truncating UTF-8 by byte count splits a
-    # codepoint, and what comes out is not text.
+    # 🔴 **CHARACTERS and not bytes** -- see `errors.DETAIL_MAX`.
     #
     # 🔴 Enforced and not published (`_NOT_PUBLISHED`): it bounds this
     # server's own output and no client acts on it, so it stays off `GET /v1`.
@@ -95,9 +91,8 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # only an operator knows which their deployment has more of.
     #
     # ⚠️ It is the floor and not the whole answer -- a job holding a grant that
-    # has not yet lapsed is never abandoned, however old it is. Otherwise
-    # setting this below the grant's own lifetime would abandon uploads that
-    # were still legitimately in flight.
+    # has not yet lapsed is never abandoned, however old it is
+    # (`ReconcileMixin.abandon_if_expired`).
     "abandon_after_seconds": 900,           # seconds
 
     # How long a job may spend staging, each time it stages: fetching its
@@ -148,9 +143,7 @@ DEFAULTS: Dict[str, Any] = {
 
     "limits": DEFAULT_LIMITS,
 
-    # Where bytes go. A URI, so file:// is a first-class deployment -- the
-    # artifact 303 is then a signed route on this server's own host rather than
-    # a presigned URL somewhere else.
+    # Where bytes go, as a URI (see `state.storage`).
     "storage_location_id": "primary",
     "storage_uri_base": None,               # defaults to file://<datadir>/artifacts/
 
@@ -164,10 +157,8 @@ DEFAULTS: Dict[str, Any] = {
     # machinery on the other side of the API. It is the state reconciler's
     # tuning parameter, which is what deployment config is for.
     #
-    # 🔴 The backstop for a scheduler that is wrong. Until this existed the
-    # ONLY way a dead run was noticed was the scheduler forgetting it, so a
-    # node that vanished without deleting itself left Slurm reporting RUNNING
-    # for ever and the job with it.
+    # 🔴 The backstop for a scheduler that is wrong: see
+    # `ReconcileMixin._silent`.
     #
     # ⚠️ Generously larger than the runner's own 60s beat. A missed beat is a
     # busy filesystem; fifteen minutes of silence from a process whose only job
@@ -177,7 +168,7 @@ DEFAULTS: Dict[str, Any] = {
     # How long a client is told to wait before polling a job again, served as
     # `Retry-After`.
     #
-    # 🔴 One second, and it is affordable only because a poll no longer costs a
+    # 🔴 One second, and it is affordable only because a poll does not cost a
     # scheduler query. Reading a job is a SQLite read plus a stat of the run's
     # progress file -- cheap, local, and the thing that actually changes second
     # to second. Asking Slurm which job each node became is the expensive half,
@@ -277,7 +268,7 @@ DEFAULTS: Dict[str, Any] = {
     # the listing with `fetchable: false` and `can_request_access: false` -- it
     # exists, and there is no path to yes from here -- and fetching it is the
     # ladder's own answer for a kind that needs an approval, row 7:
-    # `403 artifact-not-approved`. The portal lists and serves it as before,
+    # `403 artifact-not-approved`. The portal still lists and serves it,
     # which is the surface split `max_download_bytes` already makes: a person
     # clicking one object is not an automated sweep.
     #
@@ -802,10 +793,8 @@ class Config:
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
-            # Every one REQUIRED (surface §1): `max_detail_chars` bounds
-            # this server's own output and no client acts on it -- the test
-            # `run_heartbeat_seconds` failed -- so it stays in config and off
-            # the wire.
+            # Every one REQUIRED (surface §1), less what `_NOT_PUBLISHED`
+            # keeps off the wire.
             "limits": {name: value for name, value in self._values["limits"].items()
                        if name not in _NOT_PUBLISHED},
             "features": list(self._values["features"]),

@@ -60,10 +60,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     token issuer, and which scheduler a job is dispatched through.
 
     ``bind_keys`` is the first-contact key binding, and it is on by default.
-    Turning it off declares the deployment a single trust domain -- which a
-    container fleet has to do, because /etc/machine-id is per image and every
-    container derives the same subject, so with binding on the first one binds
-    and every later one is refused.
+    Turning it off declares the deployment a single trust domain, which a
+    container fleet has to do (see `TokenIssuer`).
 
     ``test_mode`` is one of ``config.TEST_MODES``, applied under config.json.
 
@@ -137,9 +135,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     @app.teardown_request
     def _release_connection(_error=None):
         # 🔴 Every request runs on a thread of its own, so the connection it
-        # opened is released as it ends -- otherwise each one held three file
-        # descriptors for the life of the process. A log stream's generator
-        # runs after this, on the same thread, and releases its own.
+        # opened is released as it ends (see `Store.release`). A log stream's
+        # generator runs after this, on the same thread, and releases its own.
         store.release()
 
     from siliconcompiler.remote.server import portal
@@ -258,13 +255,7 @@ def _report_read_containment() -> None:
 
 def _check_an_image_holds_this_version(store, config) -> None:
     '''With containers on, a live image holds this server's own
-    SiliconCompiler, or this server does not start.
-
-    🔴 **It replaces refusing to start while a newer version was advertised.**
-    That check existed because this process read every manifest; now the read
-    is this server's own SiliconCompiler, a job resolves to no other, and an
-    image holding another version is neither advertised nor used.
-    '''
+    SiliconCompiler, or this server does not start.'''
     from siliconcompiler.remote.server.software import images
 
     if not config["containers"]:

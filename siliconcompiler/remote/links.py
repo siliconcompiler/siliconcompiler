@@ -167,10 +167,9 @@ class Homes:
         hard-links a node's outputs into the next node's inputs as that node
         starts, which is the moment the node that finished is archived.
         Counted against the first walk alone, a file whose every name is in the
-        job had one more link than names, and was left out as if it had one
-        outside: a compiled testbench went missing from its node's results
-        that way. Once per file, since one that still has more links than
-        names after a second walk does have a name outside.
+        job has one more link than names, and is left out of its node's
+        results as if it had one outside. Once per file, since one that still
+        has more links than names after a second walk does have a name outside.
         '''
         if info.st_nlink <= max(1, len(self.names(info))):
             return False

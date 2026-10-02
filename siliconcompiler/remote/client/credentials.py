@@ -203,8 +203,7 @@ class Credentials:
     def transaction(self):
         '''Hold the store for one change: the file is re-read under its lock
         first, so what this sees is what another process last wrote, and saved
-        on a clean exit. A refresh holds it across its request, so a process
-        that waited uses the token the refresh wrote, never the one it held.
+        on a clean exit.
 
         Nests: a change made inside another joins it.
 

@@ -48,12 +48,9 @@
 <h3>Software it can run</h3>
 <p class="muted">
   {#
-    🔴 Python and tools apart because they are satisfied differently, not for
-    tidiness. Everything under Python shares one interpreter, so ONE image has
-    to hold all of it; a tool is satisfied per node, by an image holding the
-    Python set and that tool. Flattened, nothing says which names have to land
-    together, which is the question the image join asks. The third bucket,
-    `interpreter`, is not tabled here; it is in the raw block below.
+    🔴 Python and tools apart because they are satisfied differently
+    (`images.live_software`). The third bucket, `interpreter`, is not tabled
+    here; it is in the raw block below.
   #}
   Python distributions share the run's interpreter, so one image holds all of
   them. A tool is resolved per node.
@@ -130,10 +127,6 @@
 
 <h3>The block itself</h3>
 <p class="muted">
-  {#
-    This deployment is a reference implementation, so "what does GET /v1
-    actually return" is a question its own portal should answer without curl.
-  #}
   Exactly what <span class="mono">GET /v1</span> serves. It carries no
   credential and is identical for every caller.
 </p>

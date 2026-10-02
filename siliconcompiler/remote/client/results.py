@@ -1,11 +1,8 @@
 '''
 Bringing a finished run home.
 
-🔴 **This is a different model from the one it replaces, not a tolerance check
-bolted onto it.** The old client fetched one ``result.tar.gz`` per node and had
-a single message -- *"Could not fetch results for node"* -- for every way that
-could go wrong. Under ``v1`` results are a listing, and the listing is the
-answer even when the bytes are not there.
+🔴 **Results are a listing, and the listing is the answer even when the bytes
+are not there.**
 
 Two rules follow from that and they are the whole of this file:
 
@@ -190,8 +187,8 @@ class Results:
         more. The ceiling that applies to THIS caller is in the identity block,
         which is the only place a per-user override can be seen.
 
-        A server that publishes neither leaves this `None`, and everything is
-        fetched exactly as before.
+        A server that publishes neither leaves this `None`, and nothing is held
+        back for its size.
         '''
         if self._ceiling is False:
             self._ceiling = None
@@ -311,13 +308,11 @@ class Results:
         # 🔴 Every node that had just finished has now been LOOKED FOR, and
         # that is what is recorded -- not which ones were found.
         #
-        # Recording only the ones that were found meant a terminal node with no
-        # archive stayed outstanding for ever, and a node the run skipped never
-        # has one: it produces no working directory, so there is nothing to
-        # archive. Three skipped nodes were enough to make this listing happen
-        # on every single poll for the length of the run, per client. On a
-        # server with a few hundred of those, that is the whole cost of
-        # watching a job.
+        # Recording only the ones found would leave a terminal node with no
+        # archive outstanding for ever, and a node the run skipped never has
+        # one: it produces no working directory, so there is nothing to
+        # archive. Each would repeat this listing on every poll for the length
+        # of the run.
         #
         # Anything that appears late is picked up by the sweep at the end,
         # which is what that sweep is for.

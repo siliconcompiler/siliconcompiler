@@ -66,8 +66,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("software-unavailable", 422, "No image provides that software",
            ("reason", "unresolved")),
     # 🆕 D105, widened by D116: the job needs a resource -- any kind, a tool
-    # included -- this deployment does not hold and cannot supply. It retired
-    # `unsatisfiable-request`, which meant the same with the same members. Not
+    # included -- this deployment does not hold and cannot supply. Not
     # `resource-unresolved`, which is not knowing WHICH. `resource_kind` only
     # where the deployment can name the kind (surface D285), so it is not
     # required; nor is `keypath`, which says which of an owner's dataroots it
@@ -388,9 +387,7 @@ def problem(slug: str, detail: Optional[str] = None,
     condition is identical; ``detail`` is prose and may be reworded, which is
     why a client branches on ``type`` and never on it.
 
-    🔴 `detail` is bounded here and nowhere else -- see `bound`. It is the one
-    funnel every refusal passes through, which is what makes the rule hold for
-    the call site nobody has written yet.
+    🔴 `detail` is bounded here and nowhere else -- see `DETAIL_MAX`.
     '''
     err = ERRORS[slug]
 

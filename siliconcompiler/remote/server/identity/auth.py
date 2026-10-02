@@ -3,8 +3,8 @@ Sessions: minting them, presenting them, and ending them.
 
 Nothing here verifies who a caller is -- this is the unauthenticated profile,
 and the identity is self-asserted namespacing rather than a boundary. What it
-does buy is the thing that was actually broken: a job has an owner, and a
-stranger holding its id is not that owner.
+does buy is ownership: a job has an owner, and a stranger holding its id is not
+that owner.
 
 The one real control is the key. On the first `client_credentials` issuance for
 a subject the server records the presented thumbprint, and thereafter that
@@ -395,9 +395,9 @@ class TokenIssuer:
             # 🔴 A rotation is the device being used, and it is the ONLY signal
             # most of them give. The client refreshes rather than logging in
             # again -- deliberately, so a session lasts its twelve days instead
-            # of a new family per command -- so writing this only at
-            # `client_credentials` left `last_seen_at` NULL for a machine that
-            # had been running jobs all day.
+            # of a new family per command -- so written only at
+            # `client_credentials`, `last_seen_at` would stay NULL for a machine
+            # that has been running jobs all day.
             #
             # Once per rotation rather than per request: a write on every
             # authenticated call would cost a transaction each time to sharpen
@@ -562,8 +562,7 @@ class TokenIssuer:
     ######################################################################
 
     def revoke(self, session: Session) -> None:
-        '''End this session. No scope gates it: a logout that can be scoped
-        away is a session nobody can close.'''
+        '''End this session.'''
         self._revoke_family(session.family_id, "user_logout")
 
     def _revoke_family(self, family_id: str, reason: str) -> None:

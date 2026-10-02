@@ -38,11 +38,8 @@
 </div>
 {% else %}
 {#
-  🔴 Grouped by node, because the node is the unit of deletion. A node's logs,
-  its reports and its archive are three rows over ONE set of bytes -- the
-  archive holds the other two -- so a flat table of kinds would suggest a row
-  could be removed on its own. It cannot: doing that frees nothing and leaves a
-  "deleted" that the disk disagrees with.
+  🔴 Grouped by node, because the node is the unit of deletion
+  (`portal._by_node`).
 #}
 {% if uploads %}
 <div class="panel">
@@ -123,18 +120,12 @@
 
 {#
   🔴 At the bottom of the page that lists what it would destroy, and not on the
-  job page next to the things you press all the time. It was one button away
-  from "Artifacts" there, and the two do opposite things.
+  job page beside "Artifacts", which does the opposite.
 #}
 {% if job.terminal and not job.deleted_at %}
 <div class="panel warn" style="margin-top:32px">
   <p><b>Discard everything this run produced</b></p>
   <p class="muted">
-    {#
-      🔴 The OBJECTS, not the job. Deleting the job sets `jobs.deleted_at`,
-      which takes it out of every listing -- far more than somebody means when
-      they ask to reclaim the space a finished run is using.
-    #}
     Every node above and the job's own objects with them, and the build
     directory behind all of it. The job stays where it is, with its states, its
     timings and this list -- the rows remain and say the bytes are gone, so

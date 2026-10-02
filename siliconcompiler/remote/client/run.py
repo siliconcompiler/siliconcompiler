@@ -54,8 +54,7 @@ logger = logging.getLogger(__name__)
 REMOTE_MANIFEST = "sc_remote.pkg.json"
 
 # How long to wait when the server names no interval. Only ever a fallback: the
-# server sets the pace with `Retry-After`, which is the field that replaced the
-# client reading one number at the start of a run and using it to the end.
+# server sets the pace with `Retry-After`.
 DEFAULT_POLL_SECONDS = 5
 
 # A server error is transient and a refusal is not, so the loop keeps going
@@ -69,8 +68,7 @@ MAX_LINE = 70
 
 # The contract's eight node states, as SiliconCompiler's seven. An unrecognised
 # state is NOT an error: the rule is read `terminal` and do not switch on the
-# name, which is what made `preparing` an additive change rather than a breaking
-# one.
+# name, so a new state is an additive change rather than a breaking one.
 _NODE_STATES = {
     "pending": SCNodeStatus.PENDING,
     "queued": SCNodeStatus.QUEUED,
@@ -150,7 +148,7 @@ class RemoteRun:
                 "the whole flow is submitted as one job")
 
         # 🔴 Before anything is collected or packed. A missing server address is
-        # the ordinary case now that there is no default one, and finding out
+        # the ordinary case, since there is no default one, and finding out
         # after a gigabyte has been tarred up is the wrong end of the run.
         self.client.transport
 
@@ -587,8 +585,7 @@ class RemoteRun:
           way of saying *do not pop anything up* and is already honoured by the
           dashboard and the layout viewers
         - stdout is a terminal, which is the cheap proxy for *a person ran
-          this*. A CI job that opened a browser on a build agent would be a
-          small mystery at best
+          this*
 
         ⚠️ `open_portal`, in the `remote` category of `settings.json`, overrides
         the last two either way, because a proxy is a guess and somebody will
@@ -613,13 +610,12 @@ class RemoteRun:
         '''``(manifest project, required keys)``, worked out once per run.
 
         🔴 **The owner table says whether a value MAY go up; this says whether
-        the flow NEEDS it (D129).** `require` is empty until setup runs, so
-        every node is set up here on a copy and the result carried in the
-        manifest -- which is where the server reads the same set from.
+        the flow NEEDS it (D129)**, worked out by `owners.work_out` and carried
+        in the manifest, which is where the server reads the same set from.
 
         ⚠️ A setup that cannot run here -- a task needing what only its image
-        has -- leaves the set unknown: every file goes up by owner alone, as it
-        did before, and the manifest carries nothing for the server to check.
+        has -- leaves the set unknown: every file goes up by owner alone, and
+        the manifest carries nothing for the server to check.
         '''
         from siliconcompiler.remote import owners
 
@@ -634,8 +630,7 @@ class RemoteRun:
                 return self._needed
 
             # 🔴 Each node on its own: one setup that cannot run here drops no
-            # other node's Python. The set of files the flow reads is
-            # then unknown, so every file goes up by owner alone.
+            # other node's Python.
             self._environments = worked.environments
             self._tasks = worked.tasks
             self._failed = worked.failed
@@ -927,14 +922,9 @@ class RemoteRun:
         advertised:** the server either holds what was left out or refuses the
         job at submit, naming it (`resource-unavailable`).
 
-        It used to mark `copy=True` on anything reached through a local path,
-        a Python package or another key, and let `collect` read the flag. Two
-        things were wrong with that: a flag set by this client was written into
-        the caller's own project, and "a Python package" included one installed
-        normally -- the same package the server's image already has -- while
-        leaving a design file with no dataroot at all behind. `copy=True` still
-        drives `collect()` everywhere else, `sc-issue` included; it just does
-        not decide what a remote run uploads.
+        `copy=True` still drives `collect()` everywhere else, `sc-issue`
+        included; it does not decide what a remote run uploads, since a flag
+        set by this client would be written into the caller's own project.
 
         ⚠️ **Hashes are not required.** Where the caller set `option,hash` the
         manifest carries them; nothing here computes one, because hashing a PDK
@@ -993,13 +983,11 @@ class RemoteRun:
         a second copy of the truth arriving on a different path from the bytes
         it describes.
 
-        🔴 **Named, not the whole directory.** It used to be `tar.add(jobdir)`,
-        and a job directory that has run before holds far more than a run
-        needs: the last run's `sc_remote.pkg.json`, its `remote-job.log`, the
-        rotated `job.<time>.log` files, and every node directory fetched back
-        from it. A four-file design uploaded three quarters of a megabyte, most
-        of it the previous run's logs -- and `job.log` itself, which this very
-        run has open and is appending to.
+        🔴 **Named, not the whole directory.** A job directory that has run
+        before holds far more than a run needs: the last run's
+        `sc_remote.pkg.json`, its `remote-job.log`, the rotated
+        `job.<time>.log` files, every node directory fetched back from it --
+        and `job.log` itself, which this very run has open and is appending to.
 
         🔴 **No manifest in it carries a credential** (surface D302): every
         dataroot's path, the history's included, goes without its userinfo and
@@ -1044,8 +1032,7 @@ class RemoteRun:
             + self._asked_rows
         if collected and os.path.isdir(collected):
             # It is in the archive now, and it is the largest thing in the build
-            # directory. Keeping a second copy on this machine is what the old
-            # client did and nobody asked for.
+            # directory, so no second copy is kept on this machine.
             shutil.rmtree(collected, ignore_errors=True)
 
         return f"sha256:{file_digest(upload).hexdigest()}", os.path.getsize(upload)
@@ -1224,9 +1211,8 @@ class RemoteRun:
 
         🔴 **The point is the refusal BEFORE the upload.** The server derives
         the same tool list from the manifest at submit, so this changes no
-        placement -- what it changes is when a deployment that curates images
-        for OpenROAD and has none says so: at create, for free, instead of
-        after the whole archive has moved.
+        placement -- only when a deployment with no image for a tool says so:
+        at create, instead of after the whole archive has moved.
 
         ⚠️ **Every value is a LIST, because a version requirement is one.**
         `Task.get('version')` holds alternative specifier sets and
@@ -1237,9 +1223,8 @@ class RemoteRun:
         a task's requirement is set in `setup()` and setup happens in the
         image.
 
-        ⚠️ Advisory, like the rest of the descriptor, and never worth failing
-        a run over. A flow this cannot walk sends nothing and is checked at
-        submit like every other sparse descriptor.
+        ⚠️ Advisory, like the rest of the descriptor: a flow this cannot walk
+        sends nothing and is checked at submit.
         """
         wanted: Dict[str, Any] = {}
         try:
@@ -1537,12 +1522,9 @@ class RemoteRun:
         started: the record is updated on this project, and nothing tells the
         board to look at it again.
 
-        ``starttimes`` is what makes the per-node timer run. The client this
-        replaces had to derive it -- the old server sent an elapsed string like
-        ``0:01:05`` and the client subtracted it from now, which restarted the
-        clock at every poll and drifted. `v1` publishes ``started_at`` as an
-        instant, so a node's timer is continuous across a poll, across a
-        reconnect, and across a client restart.
+        ``starttimes`` is what makes the per-node timer run. It comes from
+        ``started_at``, an instant, so a node's timer is continuous across a
+        poll, across a reconnect, and across a client restart.
         '''
         board = self._dashboard()
         if board is None:
@@ -1756,7 +1738,7 @@ class _Tails:
 
         🔴 Emitted with a blank formatter, because these lines are already
         formatted: they come out of a node's own log, which carries
-        ``job | step | index`` on every line. Logging them normally produced
+        ``job | step | index`` on every line. Logged normally, they would read
         ``| INFO | job0 | remote | - | | INFO | job0 | route.detailed | 0 | …``
         -- this run's prefix stamped on top of the prefix that says which node
         it actually came from.
@@ -1910,14 +1892,8 @@ def _node_details(job: Dict[str, Any]) -> Dict[Tuple[str, str], str]:
 def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str:
     '''Three lines about the failure, without opening a URL.
 
-    The `type` pages are static and identical on every deployment, so the server
-    cannot say anything specific through them -- which leaves the client holding
-    the only copy of the specific failure.
-
-    🔴 The advice is chosen from the job and not from the slug alone. A run can
-    fail with no failed node at all -- it died before the first one, or in
-    setup, and every node reads `cancelled` -- and *read the failing node's
-    log* then names a file nobody can open.
+    🔴 The advice is chosen from the job and not from the slug alone: a run can
+    fail with no failed node at all, and then gets `NO_NODE_FAILED`.
     '''
     error = job.get("error") or {}
     if not error.get("type"):
@@ -2167,10 +2143,6 @@ def _pin(version: str) -> str:
     BACK is written by that newer version and read by this one, which is the
     unsupported direction. The node states and the metrics `summary()` prints
     come out of those.
-
-    ⚠️ So the ceiling is not caution, it is the same rule in the other
-    direction. A deployment that wants a range here is asking this client to
-    read manifests it cannot.
 
     🔴 **A development version asks by prefix instead.** `0.38.10.dev43+g20db`
     carries a commit in its local segment, so an exact pin from a checkout can

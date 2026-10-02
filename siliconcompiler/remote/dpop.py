@@ -140,8 +140,7 @@ def sign_proof(key, method: str, url: str,
         claims["ath"] = access_token_hash(access_token)
     if nonce is not None:
         # The server asked for one with `use_dpop_nonce`; the client retries the
-        # same request carrying it. A client that only refreshes on 401 loops
-        # forever here, which is why this is not optional to implement.
+        # same request carrying it.
         claims["nonce"] = nonce
 
     return jwt.encode(
@@ -215,7 +214,7 @@ def verify_proof(proof: str, method: str, url: str,
         claims = jwt.decode(proof, key, algorithms=[ALGORITHM],
                             # 🔴 The window below is the only `iat` check:
                             # PyJWT's own refuses any `iat` ahead of this
-                            # clock, so a client a second fast was refused.
+                            # clock, so a client a second fast would fail.
                             options={"verify_exp": False, "verify_iat": False,
                                      "require": ["jti", "htm", "htu", "iat"]})
     except jwt.PyJWTError as e:

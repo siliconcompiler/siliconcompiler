@@ -8,9 +8,6 @@ person's browser.
 transport-level refusals raised before it (405, 415, 426, 429; this server
 raises only the first two there) stay problem+json, as everywhere.
 `/v1/auth/revoke` is an ordinary endpoint and answers problem+json.
-
-The device grant is routed and refuses `unsupported_grant_type`, which is the
-login algorithm's cue to use `client_credentials`.
 '''
 
 from urllib.parse import urlsplit

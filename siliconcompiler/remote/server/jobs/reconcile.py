@@ -125,10 +125,10 @@ class ReconcileMixin:
                 self._index_node(job, step, index)
 
             # 🔴 A published field with no writer is a published field that
-            # lies. A node's error was null on every node this server had ever
-            # run, including the ones that failed, so a client could not tell
-            # *this node is why* from *this node is fine* without re-deriving
-            # it from the state it already had. `run-failed` is registered
+            # lies: without this a node's error is null on every node, the
+            # failed ones included, so a client cannot tell *this node is why*
+            # from *this node is fine* without re-deriving it from the state it
+            # already has. `run-failed` is registered
             # precisely for this: it is one of the slugs that are never an
             # HTTP response and only ever a `type` on an error object.
             # A node whose image would not pull was interrupted, not failed
@@ -157,16 +157,14 @@ class ReconcileMixin:
     def _silent(self, progress) -> bool:
         '''Whether a run that claims to be going has stopped saying so.
 
-        🔴 **The backstop for a scheduler that is wrong, which is not
-        hypothetical.** A dynamic node killed without deleting itself leaves
-        Slurm reporting its jobs RUNNING for ever on a machine that is gone --
-        observed, for thirteen minutes, on a container that no longer existed.
-        Every other check here asks the scheduler, so every other check
-        believed it.
+        🔴 **The backstop for a scheduler that is wrong.** A dynamic node
+        killed without deleting itself leaves Slurm reporting its jobs RUNNING
+        for ever on a machine that is gone. Every other check here asks the
+        scheduler, so every other check believes it.
 
         The runner writes a heartbeat on a timer rather than on node
         transitions, because a single OpenROAD node runs for half an hour
-        without a transition: *nothing written lately* and *dead* had to be
+        without a transition: *nothing written lately* and *dead* have to be
         told apart, and only a clock can do it.
 
         ⚠️ **No heartbeat is silence**: the runner stamps one on every write,
@@ -224,9 +222,7 @@ class ReconcileMixin:
         🔴 Marking a node `cancelled` in the store does not cancel anything. A
         node is a scheduler job of its own, so a run that died abruptly leaves
         its nodes running with nobody watching -- and the record then says
-        `cancelled` about work that is still burning a compute slot. Seen for
-        real: an orchestrator that failed left an OpenROAD detailed route
-        running for another fifty-five minutes.
+        `cancelled` about work that is still burning a compute slot.
 
         ⚠️ Only the jobs the scheduler still HAS. scancel answers an error for
         one that has finished, and a warning per finished node is how an
@@ -277,17 +273,14 @@ class ReconcileMixin:
         '''Write down which scheduler job each node became.
 
         🔴 Two things need it and neither can be done without it. A cancel has
-        to stop the work and not only the process coordinating it, now that a
+        to stop the work and not only the process coordinating it, since a
         node is a job of its own; and *which Slurm job was that* is the question
         a person brings to a support thread, which nothing else can answer.
 
-        🔴 **Throttled, because this is the only part of a poll that leaves the
-        machine.** Every call is a `squeue`, and every `squeue` is one or more
-        RPCs into slurmctld -- so at a one-second poll interval it would be one
-        per second per running job, against the one controller the whole
-        cluster shares. `force` is for the two callers that cannot accept a
-        stale answer: a cancel, which needs the ids to reach the work, and the
-        last look before a job goes terminal.
+        🔴 **Throttled** (`SCHEDULER_QUERY_FLOOR`): every call is a `squeue`.
+        `force` is for the two callers that cannot accept a stale answer: a
+        cancel, which needs the ids to reach the work, and the last look before
+        a job goes terminal.
 
         ⚠️ Asked for once and then never again. Only the nodes still missing an
         id are looked up, so a job whose nodes are all recorded costs nothing --
@@ -480,8 +473,7 @@ class ReconcileMixin:
         # 🔴 One more look before nothing looks again. The LAST node to finish
         # is dispatched after the second-to-last poll and finishes before the
         # job does, so the poll that records the others has nothing to find for
-        # it -- and once the job is terminal no poll runs at all. A diamond
-        # flow came back with three of its four nodes carrying a scheduler id.
+        # it -- and once the job is terminal no poll runs at all.
         self._record_node_jobs(job, force=True)
 
         if job["state"] == state:

@@ -6,12 +6,12 @@ which dataroots it expects the server to supply; the server asks it to decide,
 for every file the manifest names, whether it arrived or can be supplied -- and
 never by looking at the path the job names.
 
-🔴 **Every file is uploaded or supplied by identity (D112).** The server used to
-look for a file the client left out at the same path on its own disk, expanding
-variables from its own environment. A manifest could root a library at `/etc` or
-`$HOME/.aws`, leave it out of the archive, and have the server supply it -- on an
-unauthenticated server, anyone reading the host's files into a job. It no longer
-reads any path a job names.
+🔴 **Every file is uploaded or supplied by identity (D112).** The server never
+reads a path a job names. A server that looked for a file the client left out at
+the same path on its own disk, expanding variables from its own environment,
+would let a manifest root a library at `/etc` or `$HOME/.aws`, leave it out of
+the archive, and have the server supply it -- on an unauthenticated server,
+anyone reading the host's files into a job.
 
 ==============================  ===============  =================================
 Dataroot source                 Outcome          How the server finds its copy
@@ -57,8 +57,8 @@ job, the exact opposite of the rule, and silently.
 🔴 **The table says whether a value MAY go up; the flow says whether it is
 NEEDED (D129).** A value goes in the archive, is fetched, or is asked for only
 when its key is in :func:`required` -- the union of every running node's
-`require`. A local library with views for ten tools used to upload all ten for a
-flow that runs three. Both ends read the set from the same manifest; the client
+`require`, so a local library with views for ten tools sends only the views a
+flow's nodes read. Both ends read the set from the same manifest; the client
 works it out by running each node's setup on a copy (:func:`work_out`)
 and carries it there.
 

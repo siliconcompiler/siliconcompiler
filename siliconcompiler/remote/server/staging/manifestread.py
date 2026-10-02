@@ -20,14 +20,12 @@ directory, the signing key, the store, a private root or a held source.
 
 🔴 **Contained as far as the host allows** (profile §5, *The subprocess is
 sandboxed as crucible's staging step is*; implementation-notes §E, *The staging
-sandbox*). The server starts it with an empty environment, its own empty
-``HOME`` and working directory, no inherited descriptor and ``stdin`` closed,
-and kills it at a wall-clock limit or when the job is cancelled
-(`sandbox.run_read`). The process then contains itself before it opens
-anything (:func:`contain`): new user and network namespaces, where the kernel
-lets an unprivileged process have them, and CPU, memory and file-size limits.
-In the job's own container, where the deployment runs containers, the
-container is the boundary instead.
+sandbox*). The server starts it with nothing of its own and kills it at a
+wall-clock limit or when the job is cancelled (`sandbox`). The process then
+contains itself before it opens anything (:func:`contain`): new user and
+network namespaces, where the kernel lets an unprivileged process have them,
+and CPU, memory and file-size limits. In the job's own container, where the
+deployment runs containers, the container is the boundary instead.
 
 ⚠️ **Where nodes run on the host there is no filesystem boundary.** A read that
 tries to fetch a dataroot fails here, which is the point: fix the read, not the
@@ -47,8 +45,6 @@ __all__ = ["SUMMARY_VERSION", "Invalid", "request", "validate", "read", "contain
 
 # The summary's own version: a shape change is a new number, and the server
 # refuses a number it does not know as it refuses any other malformed summary.
-# 3 added `credentials`; 4 has them from every manifest the archive carries,
-# so a summary that only looked at the root one is read again.
 SUMMARY_VERSION = 4
 
 # 🔴 Bounds on what the read may say. A summary is written by whatever the

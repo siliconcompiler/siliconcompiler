@@ -216,9 +216,9 @@ class LifecycleMixin:
             "AND deleted_at IS NULL AND legal_hold_at IS NULL", (job["id"],))
         self._unlink(going)
 
-        # The row stays, with `deleted_at` set: a `deleted` state was refused
-        # because it would erase whether the job had completed, failed or been
-        # rejected, which is the one fact you want when somebody asks where
+        # The row stays, with `deleted_at` set, rather than taking a `deleted`
+        # state, which would erase whether the job had completed, failed or
+        # been rejected -- the one fact you want when somebody asks where
         # their results went.
         with self._store.transaction():
             who = f"deleted by {self.whodunnit(session, job)}"
@@ -274,10 +274,9 @@ class LifecycleMixin:
                 "  AND kind <> 'diagnostics'",
                 (now(), session.user_id, reason, job_id, step, index))
 
-        # 🔴 The node's working tree goes with them, for the same reason the
-        # whole-job version takes the job's: it is what these were indexed
-        # FROM, so leaving it reclaims the smaller copy and keeps the larger
-        # one. Only this node's directory, so the rest of the run is untouched.
+        # 🔴 The node's working tree goes with them, for the reason
+        # `discard_artifacts` takes the job's. Only this node's directory, so
+        # the rest of the run is untouched.
         work = (self.job_root(job["user_id"], job["id"]) / job["design"] /
                 job["jobname"] / step / index)
         shutil.rmtree(work, ignore_errors=True)

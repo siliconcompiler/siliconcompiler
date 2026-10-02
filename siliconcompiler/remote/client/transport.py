@@ -129,9 +129,8 @@ def join_url(base: str, path: str = "") -> str:
 def normalize_server(address: str, port: Optional[int] = None) -> str:
     '''The base URL for a configured server address.
 
-    The scheme comes from the address, never from the port. A server on :8000
-    reached over plaintext because of its port number is every local
-    deployment of the client this replaces.
+    The scheme comes from the address, never from the port: a server on :8000
+    is not plaintext because of its port number.
     '''
     from urllib3.exceptions import LocationParseError
     from urllib3.util import Url, parse_url

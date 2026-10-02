@@ -4,9 +4,8 @@ Who a caller is, what they are allowed, and which machines act as them.
 🔴 **Extracted so that the API and the portal cannot drift.** The rule the
 portal exists under is that every authorization decision goes through the same
 code the handlers call -- and a decision written inside a route handler is a
-decision the portal has to re-implement to reuse. This project has shipped a
-missing ``WHERE user_id =`` once already; the mitigation is that there is one
-place to forget it, not two.
+decision the portal has to re-implement to reuse. A missing ``WHERE user_id =``
+is the failure this guards against: there is one place to forget it, not two.
 
 Nothing here builds a response. A route renders JSON and the portal renders a
 page, and what they share is the question underneath.
@@ -39,8 +38,8 @@ def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
 
     🔴 **Sparse, three-valued, and `-1` never reaches a client.** A missing row
     or a NULL column inherits the deployment's number; `-1` means unlimited and
-    the resolver turns it into the wire's `null`, because the wire had already
-    spent `null` on *unlimited* while the table needed it for *inherit*.
+    the resolver turns it into the wire's `null`, because the wire spends
+    `null` on *unlimited* and the table needs it for *inherit*.
     '''
     limits = dict(config.limits)
 
@@ -203,8 +202,7 @@ def lifetime(store, user_id: str) -> Dict[str, Any]:
 
     ⚠️ Derived from `jobs`, like `usage`, and with the same limitation: a job
     that is still running contributes nothing until it finishes, because what
-    is being summed is `finished_at - started_at`. A metering table would fix
-    that and buy a billing history nobody here bills against.
+    is being summed is `finished_at - started_at`.
     '''
     compute = store.one(
         "SELECT coalesce(sum(julianday(finished_at) - julianday(started_at)), 0) "

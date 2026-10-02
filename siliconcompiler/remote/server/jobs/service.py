@@ -175,7 +175,6 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         '''The build directory for one job of one user.
 
         Per user as well as per job. The ownership record is `jobs.user_id`, in
-        the store, rather than a file inside the directory it protects -- which
-        is what the tree it replaces did.
+        the store, rather than a file inside the directory it protects.
         '''
         return self.user_root(user_id) / "builds" / job_id

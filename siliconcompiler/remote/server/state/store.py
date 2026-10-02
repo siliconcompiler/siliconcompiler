@@ -21,11 +21,9 @@ __all__ = ["Store", "STORE_VERSION", "now", "stamp", "parse", "TERMINAL_STATES",
            "TERMINAL_NODE_STATES", "PENDING_STATES", "ACTIVE_STATES"]
 
 
-# Bumped whenever schema.sql changes shape, or the JSON a column holds does --
-# 21: a dataroot in `jobs.upload_sources` and in the descriptor's `sources` is
-# named by its keypath. A store written by a newer server is refused rather than
-# opened: an unrecognised column is a silent wrong answer, where a refusal is a
-# message.
+# Bumped whenever schema.sql changes shape, or the JSON a column holds does. A
+# store written by a newer server is refused rather than opened: an
+# unrecognised column is a silent wrong answer, where a refusal is a message.
 #
 # Deliberately not `schemaversion`, which is SiliconCompiler's build schema and
 # moves for unrelated reasons. This is the third independent version in the
@@ -42,8 +40,7 @@ _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 # The closed sets of states schema.sql's `job_states` and `node_states` hold,
 # named once for every module that reads one.
 #
-# A job's terminal five, published on the job object, so a client reads
-# `terminal` and never switches on the name. The set has grown twice already.
+# A job's terminal five, published as `terminal` on the job object.
 TERMINAL_STATES = frozenset(
     ("completed", "failed", "cancelled", "rejected", "abandoned"))
 TERMINAL_NODE_STATES = frozenset(("completed", "failed", "skipped", "cancelled"))
@@ -102,10 +99,9 @@ class Store:
         # 🔴 **And each is closed when its thread is done with it.** The
         # threaded server starts a thread per request, so a connection per
         # thread is a connection per request -- three file descriptors each
-        # under WAL, the database, `-wal` and `-shm`. They were kept in a list
-        # for `close()` and never taken out, so none was ever released: a
-        # client polling once a second ran the process out of descriptors in
-        # minutes, and it answered `Too many open files` to everything. See
+        # under WAL, the database, `-wal` and `-shm`. Kept for the life of the
+        # process, a client polling once a second runs it out of descriptors in
+        # minutes, and it answers `Too many open files` to everything. See
         # `release` and `_reap`.
         self._local = threading.local()
         self._connections: List[Tuple[threading.Thread, sqlite3.Connection]] = []
@@ -117,9 +113,8 @@ class Store:
 
     def _connect(self) -> sqlite3.Connection:
         # `check_same_thread=False` so that `_reap` and `close` can close a
-        # connection from another thread -- which the default refuses, and
-        # which `close()` used to attempt and silently fail at. Each connection
-        # is still only USED by the thread that opened it.
+        # connection from another thread, which the default refuses. Each
+        # connection is still only USED by the thread that opened it.
         con = sqlite3.connect(str(self.path), isolation_level=None,
                               check_same_thread=False)
         con.row_factory = sqlite3.Row
@@ -186,12 +181,6 @@ class Store:
         of the bells it does without. What it may not do is stop with a version
         number and no next step -- a server that will not start is the worst
         moment to make somebody read the source.
-
-        ⚠️ The 1 -> 2 bump is why a migration would not have been free anyway.
-        It adds the unique index that stops an artifact being indexed twice,
-        and a store written before it HAS those duplicates, so creating the
-        index fails on exactly the data that needs it. Migrating would mean
-        deciding which of two rows to drop and unlinking the other's bytes.
         '''
         found = self.connection.execute("PRAGMA user_version").fetchone()[0]
         if found == STORE_VERSION:
@@ -296,7 +285,6 @@ class Store:
                 con.execute("BEGIN IMMEDIATE")
                 break
             except sqlite3.OperationalError as e:
-                # Only SQLite's lock not being had in time is tried again.
                 text = str(e).lower()
                 if not ("locked" in text or "busy" in text) or attempt == attempts - 1:
                     raise
@@ -316,10 +304,8 @@ class Store:
     def upsert_user(self, issuer: str, subject: str, **fields) -> sqlite3.Row:
         '''Find the user for an (issuer, subject), creating it if new.
 
-        Identity here is self-asserted namespacing rather than a boundary --
-        anyone who can present the same derivation is the same principal
-        already. What it buys is the thing that was actually broken: a job has
-        an owner, and a stranger holding its id is not that owner.
+        Identity here is self-asserted namespacing rather than a boundary
+        (see `identity.auth`).
         '''
         found = self.one(
             "SELECT * FROM users WHERE issuer = ? AND subject = ?", (issuer, subject))
@@ -336,11 +322,7 @@ class Store:
             "SELECT * FROM users WHERE issuer = ? AND subject = ?", (issuer, subject))
 
     def ensure_storage_location(self, location_id: str, uri_base: str) -> None:
-        '''Declare where this deployment keeps bytes.
-
-        The location is a row and ``uri_base`` is a URI, so ``file://`` needs no
-        second shape -- this is the deployment that argument was made for.
-        '''
+        '''Declare where this deployment keeps bytes.'''
         self.execute(
             "INSERT INTO storage_locations (id, uri_base, writable) VALUES (?, ?, 1) "
             "ON CONFLICT (id) DO UPDATE SET uri_base = excluded.uri_base",
@@ -357,14 +339,11 @@ class Store:
         🔴 **`python`, `tools` and `interpreter`, a CLOSED set, and every one
         is always present** (`images.BUCKETS`). A client branches on them, and
         a bucket may be `{}` -- a deployment running no containers publishes
-        no tools. Inside a bucket nothing changes: distribution name to a
-        non-empty array of versions.
+        no tools. Inside a bucket: distribution name to a non-empty array of
+        versions.
 
-        🔴 **They are separate buckets because they are satisfied differently.**
-        The whole `python` set has to be held by ONE image, because those names
-        share an interpreter; a tool is satisfied per node. Flattened, nothing
-        says which names have to land together, which is the question the image
-        join asks.
+        🔴 **They are separate buckets because they are satisfied differently**
+        (see `jobs.common.requirements`).
 
         🔴 **On a deployment that runs containers a version is advertised only
         where a live image holds it**, so this is a join and not a listing.
@@ -440,7 +419,7 @@ class _Transaction:
     deferred transaction that has read and then writes, after another
     connection committed, is refused at once -- `SQLITE_BUSY_SNAPSHOT`, which
     the busy timeout never waits out -- so a cancel racing a staging thread's
-    write failed with *database is locked* under load. Taking the lock at
+    write fails with *database is locked* under load. Taking the lock at
     `BEGIN` is the one place the busy timeout applies.
     '''
 

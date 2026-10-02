@@ -4,9 +4,8 @@ The portal: ten screens over the same decisions the API makes.
 🔴 **Every authorization decision here goes through the code the API handlers
 call** -- ``JobService.owned``, ``accounts.owned_device``, and the rest. Not
 because duplication is untidy, but because a portal query that forgets
-``WHERE user_id =`` answers ``200`` and looks correct, and this project has
-shipped exactly that defect once. There is one place to forget it, and it is
-shared.
+``WHERE user_id =`` answers ``200`` and looks correct. There is one place to
+forget it, and it is shared.
 
 ⚠️ **The portal does not call its own API over HTTP.** A browser holds no device
 key, and an HTTP client that could reach ``/v1`` would need a credential that is
@@ -203,9 +202,8 @@ def screen(handler):
         if session is None:
             # 🔴 Remember where they were going. A portal link opened cold --
             # a bookmark, or one pasted from elsewhere -- would otherwise land
-            # on the jobs list after signing in, so the answer to "here is your
-            # job" was "here is a list, go and find it". It goes in a cookie
-            # because the CLI mints the handover and never sees this request.
+            # on the jobs list after signing in. It goes in a cookie because
+            # the CLI mints the handover and never sees this request.
             page = flask.make_response(flask.render_template("signin.html"), 401)
             if flask.request.method == "GET":
                 page.set_cookie(
@@ -302,7 +300,7 @@ def _when(timestamp) -> markupsafe.Markup:
     the text to local. ⚠️ **That spends half of "server-rendered Python, no
     JavaScript build": there is still no build, no dependency and no
     toolchain, and the page is correct and readable with scripting off**,
-    which is the half that was actually load-bearing.
+    which is the half that is load-bearing.
     '''
     if not timestamp:
         return markupsafe.Markup('<span class="muted">\u2014</span>')
@@ -393,8 +391,7 @@ def jobs(session):
     # 🔴 `archived` is the one filter here whose default is not *everything*:
     # absent means the unarchived list, `true` means only the archived ones,
     # and there is deliberately no value meaning both -- a mixed list is the
-    # state archiving exists to end. So the screen needs a way back, or
-    # archiving a job hides it with no way to find it again.
+    # state archiving exists to end. So the screen needs a way back (jobs.html).
     return flask.render_template(
         "jobs.html", jobs=items,
         state=flask.request.args.get("state", ""),
@@ -447,9 +444,9 @@ def job(session, job_id):
 # One box, and the numbers are the whole layout engine.
 #
 # ⚠️ Laid out DOWNWARDS, not across. A flow is deep and narrow -- asicflow is
-# twenty-three nodes in about as many stages -- so left-to-right made a picture
-# wider than any page and one box tall, which is a scrollbar rather than a
-# diagram. Downwards it is narrow enough to sit beside the tables.
+# twenty-three nodes in about as many stages -- so left-to-right makes a
+# picture wider than any page and one box tall, which is a scrollbar rather
+# than a diagram. Downwards it is narrow enough to sit beside the tables.
 _BOX_W, _BOX_H, _GAP_X, _GAP_Y, _PAD = 132, 28, 14, 22, 12
 
 
@@ -510,10 +507,8 @@ def running_order(job, edges):
 def _graph(job, edges):
     '''The flowgraph, as inline SVG.
 
-    🔴 Drawn on the server, in about forty lines, because the alternative is a
-    JavaScript graph library -- and SiliconCompiler ships as a pip wheel, so a
-    node toolchain in the release pipeline would be paid by every release for
-    one picture.
+    🔴 Drawn on the server, in about forty lines, rather than by a JavaScript
+    graph library: the portal has no build (`base.html` says why).
 
     A layered layout: a node's ROW is the longest path to it, which for a
     flowgraph is exactly the order the work happens in, read top to bottom.
@@ -624,8 +619,7 @@ def archive(session, job_id):
     """Put a job away, or take it back out.
 
     ⚠️ The portal is the writer because the contract gives archiving no
-    endpoint: it is a view preference, not an operation on the run. `archived_at`
-    was published on every job object and nothing had ever set it.
+    endpoint: it is a view preference, not an operation on the run.
     """
     _jobs().archive(session, job_id,
                     archived=flask.request.form.get("archived") == "1")
@@ -637,10 +631,10 @@ def archive(session, job_id):
 def discard(session, job_id):
     """Throw away what a run produced, and keep the run.
 
-    🔴 Distinct from `delete` below, and the distinction is the one that was
-    missing. This reclaims the bytes; the job stays in the list with its
-    states, its timings and its artifact rows, so *where did my results go* is
-    still answerable. Deleting the JOB takes it out of the collection.
+    🔴 Distinct from `delete` below. This reclaims the bytes; the job stays in
+    the list with its states, its timings and its artifact rows, so *where did
+    my results go* is still answerable. Deleting the JOB takes it out of the
+    collection.
     """
     job = _jobs().get(session, job_id)
     expected = f"{job['design']}/{job['jobname']}"
@@ -691,9 +685,8 @@ def delete(session, job_id):
     '''Remove the job itself, which takes it out of every listing.
 
     ⚠️ The confirmation is a speed bump and not a security control -- CSRF is
-    what stops somebody else pressing this. It is here because the button used
-    to sit next to "Artifacts" on the job page, one position away from the link
-    people click constantly, and the two do opposite things.
+    what stops somebody else pressing this. It is here because one wrong click
+    would take the job out of every listing.
 
     🔴 This is the heavier of the two. `jobs.deleted_at` removes the job from
     the collection, so it is reachable only by id afterwards -- which is more
@@ -752,10 +745,9 @@ def _uploads(items, job):
 def _by_node(items):
     """The listing grouped by the node each object came from.
 
-    🔴 **Because the node is the unit of deletion**, and a flat table of kinds
-    makes it look as though a row could go on its own. It cannot: a node's
-    archive holds its logs and its reports, so the three rows are one set of
-    bytes and the button that removes them has to sit against all three.
+    🔴 **Because the node is the unit of deletion** (`discard_node`), and a
+    flat table of kinds makes it look as though a row could go on its own. The
+    button that removes a node's rows has to sit against all of them.
 
     Job-level objects come first, under no node -- the manifest and the run's
     own log belong to the run and are not any node's to discard. Nodes follow
@@ -1089,9 +1081,8 @@ def account(session):
         user=accounts.user(_store(), session.user_id),
         limits=accounts.account_limits(
             config, accounts.effective_limits(_store(), config, session.user_id)),
-        # Read-only, and the two numbers together are the whole story: what
-        # this account gets, and what the deployment gives by default. A single
-        # figure cannot say whether somebody set it.
+        # Beside this account's own, so the screen can say whether somebody
+        # set one.
         default_limits=config.limits,
         overridable=accounts.OVERRIDABLE,
         usage=accounts.usage(_store(), session.user_id),
@@ -1161,9 +1152,7 @@ def add_software(session):
     if not name:
         raise ProblemError("invalid-request", detail="a distribution name is required")
 
-    # 🔴 Stated, not derived. It decides which bucket the name is published in
-    # and therefore whether ONE image has to hold it or each node's does, and
-    # a derivation would be this process guessing about an image it is not.
+    # 🔴 Stated, not derived (`images.register_software`).
     kind = flask.request.form.get("kind")
     driver = (flask.request.form.get("driver") or "").strip() or None
     if kind not in ("python", "tool"):
@@ -1198,13 +1187,8 @@ def add_software(session):
 @blueprint.route("/portal/images/register", methods=["POST"])
 @screen
 def register_image(session):
-    '''🔴 The most dangerous write this server has: it chooses what code runs
-    on the cluster.
-
-    Which is why it takes a person and records them. There is no CI path here
-    -- that is crucible's -- so every image registered on this deployment has
-    somebody's id on it. The only images without one are those the server
-    derived itself.
+    '''🔴 The most dangerous write this server has (`images.register_image`),
+    so it takes a person and records them.
     '''
     ref = (flask.request.form.get("ref") or "").strip()
     digest = (flask.request.form.get("digest") or "").strip()
@@ -1246,11 +1230,7 @@ def retire_image(session, image_id):
 def retire_software(session, name):
     '''Withdraw the claim that this deployment curates a distribution.
 
-    🔴 Not the same as retiring its last version, and the difference is
-    load-bearing: retiring a VERSION says *not this one*, and a flow needing
-    that tool is still refused unless an image holds another. Retiring the
-    SOFTWARE says *not any more*, and the tool stops raising a requirement at
-    all -- which hands its nodes back to the job's own image.
+    🔴 Not the same as retiring its last version (`images.live_software`).
     '''
     version = flask.request.form.get("version")
     if version:

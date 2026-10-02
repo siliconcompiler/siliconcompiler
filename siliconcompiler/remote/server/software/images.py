@@ -9,9 +9,9 @@ that names ``siliconcompiler==0.38.9`` is naming *data*, which either matches a
 row an operator added on purpose or does not.
 
 🔴 **The registry is also the switch.** A deployment that registers nothing runs
-jobs the way it always has, with both ``image_id`` columns NULL for the life of
-every job -- and a bare Slurm cluster with no container runtime is conforming,
-not degraded. What turns the other behaviour on is ``containers`` in the
+jobs on the host, with both ``image_id`` columns NULL for the life of every
+job -- and a bare Slurm cluster with no container runtime is conforming, not
+degraded. What turns the other behaviour on is ``containers`` in the
 deployment's config, because whether the compute nodes can run a container is
 not something the API process can find out by looking.
 
@@ -87,12 +87,11 @@ class Requirement(NamedTuple):
     intersection nobody asked for. ⚠️ Alternatives are OR; a single set's
     commas are still AND.
 
-    🔴 **A range on the wire and never in storage.** The *no ranges* rule is
-    about what a row records -- a stored range is a promise nobody can check --
-    and the client half is the opposite problem: ``GET /v1``'s ``software`` map
-    is flat per name, while the image join is over combinations, so a client
-    resolving each requirement on its own can name a set no single image holds,
-    with every version published and satisfiable and nothing to run them in.
+    🔴 **A range on the wire and never in storage** (:func:`register_version`
+    keeps storage exact). ``GET /v1``'s ``software`` map is flat per name,
+    while the image join is over combinations, so a client resolving each
+    requirement on its own can name a set no single image holds, with every
+    version published and satisfiable and nothing to run them in.
     Only the server can answer *which image has both*, so only the server
     resolves.
     '''
@@ -139,11 +138,8 @@ def specifiers(declared) -> Tuple[str, ...]:
 def normalize(version: str) -> str:
     '''One version, in PEP 440's own spelling, or unchanged.
 
-    🔴 **At registration and not at request time.** It keeps per-tool version
-    handling out of the request path, and it removes a skew risk that would
-    otherwise be invisible: a client and a server on different SC releases
-    normalising the same string differently would disagree about whether an
-    image matched, and neither would say so.
+    🔴 **At registration and not at request time** -- see
+    :func:`register_version`.
 
     A value that is not PEP 440 comes back unchanged -- a `published_date`
     row, or an image's declared contents being looked up. A `reported` one is
@@ -207,8 +203,8 @@ def matches(version: str, source: str, wanted: Sequence[str]) -> bool:
 class Held(NamedTuple):
     '''One distribution an image declares, as the resolution reads it.
 
-    A named tuple rather than a bare one because it grew past two members and a
-    positional unpack of five is how the wrong field gets compared.
+    A named tuple rather than a bare one: a positional unpack of five is how
+    the wrong field gets compared.
     '''
     name: str
     version: str
@@ -236,8 +232,8 @@ class Plan(NamedTuple):
         '''Every node that has an image, as the reference to pull.
 
         What goes into the manifest the compute node loads. Empty on a
-        deployment that runs no containers, which is what leaves every node
-        running the way it always did.
+        deployment that runs no containers, which leaves every node running on
+        the host.
         '''
         return {node: self.refs[image]
                 for node, image in self.nodes.items()
@@ -334,7 +330,7 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
         image["contents"] = holds.get(image["id"], [])
 
     # The server's own, apart from what an operator registered: a derived image
-    # is a node's Python layered on one of those, and is no one's to resolve to.
+    # is a node's Python layered on one of those.
     images = [row for row in rows if not row.get("derived_from")]
     derived = [row for row in rows if row.get("derived_from")]
     bases = {row["id"]: row["registry_ref"] for row in store.all(
@@ -353,10 +349,9 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
     three buckets.
 
     🔴 **`python` and `tools`, and the split is structural rather than
-    cosmetic: the two are satisfied differently.** Everything in `python`
-    shares one interpreter, so ONE image has to hold all of it -- which is what
-    `jobs.image_id` has always meant. A tool is satisfied PER NODE, by an image
-    holding the python set and that tool, which is `job_nodes.image_id`.
+    cosmetic: the two are satisfied differently.** The python set by ONE image,
+    `jobs.image_id` (:func:`declared_requirements`); a tool PER NODE, by an
+    image holding the python set and that tool, `job_nodes.image_id`.
     Flattened, you cannot tell which names have to land together, and that is
     the question the join asks. `interpreter` holds the one name `python`, an
     image's own Python, which only a node running the user's Python is matched
@@ -376,10 +371,7 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
     back to the host it was meant to stop running on.
 
     🔴 **A `reported` version sorts above a `published_date` one whatever the
-    numbers say.** That is the whole reason the mark exists: a tool recorded
-    from its image's publish date is `20260924`, which beats `2.0.1` under
-    every comparison there is, so without the ordering an unversioned build
-    from years ago would head this list for ever.
+    numbers say**, for the reason in :func:`matches`.
 
     ⚠️ **Both kinds appear here, and `GET /v1`'s `software` has nowhere to
     carry the mark**, so a client's preflight can say yes to a version
@@ -413,17 +405,14 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
 def resolve(images, requirements: Sequence[Requirement]):
     '''The one image that fits, or None.
 
-    Ranked, because more than one image may satisfy a job:
+    Ranked, because more than one image may satisfy a job (:func:`_rank`):
 
     1. 🔴 **The `preference` of its `siliconcompiler` version**, which is the
-       operator's own ordering. ⚠️ Newest-wins is the tempting default and it is
-       wrong: a rebuilt image is newer and not necessarily preferred.
-    2. 🔴 **The fewest declared contents.** The most specific image that still
-       fits wins, which is what gets an `import` node into a python-only image
-       instead of a twelve-gigabyte OpenROAD one -- with no `python_only` flag
-       to drift, because a python-only image is one whose contents are
-       framework distributions and no tool.
-    3. The registry reference, so the answer is the same every time.
+       operator's own ordering -- never newest-wins.
+    2. 🔴 **The fewest declared contents**: the most specific image that still
+       fits wins.
+    3. The tiebreaks, ending at the registry reference, so the answer is the
+       same every time.
     '''
     fits = [image for image in images if _satisfies(image, requirements)]
     if not fits:
@@ -543,8 +532,7 @@ def plan_for_job(store, requires: Dict[str, Any],
     python_nodes = set(python_nodes)
     interpreter = interpreter_requirement(requires)
 
-    # 🔴 The python set alone decides the JOB image, because those names share
-    # one interpreter and one container therefore has to hold all of them --
+    # 🔴 The python set alone decides the JOB image (`declared_requirements`):
     # picked at create (`job_image_for`), and kept while it is still live.
     pinned = declared_requirements(software, requires)
     job_image = next((image for image in images if image["id"] == job_image_id), None) \
@@ -588,14 +576,9 @@ def plan_for_job(store, requires: Dict[str, Any],
             # 🔴 **A requirement no live image holds is fatal.** Where every
             # node runs in a container the registry IS the world: there is
             # nowhere for it to run, and placing it anywhere means dispatching
-            # a node that cannot work.
-            #
-            # Observed: a Bluespec design submitted to a deployment that had
-            # never heard of `bsc` was accepted, its `convert` node placed in
-            # the PYTHON-ONLY image because nothing raised a requirement,
-            # dispatched, and died on the first node with every other node
-            # cancelled behind it. The cluster was paid for to learn something
-            # submit already knew.
+            # a node that cannot work: with nothing raising a requirement it
+            # would land in the PYTHON-ONLY image and die there, with every
+            # other node cancelled behind it.
             #
             # ⚠️ What a node needs is DECLARED by its task, so nothing here
             # infers it: `Task._remote_toolname` says `openroad` for an
@@ -617,7 +600,7 @@ def plan_for_job(store, requires: Dict[str, Any],
                        "'registry add-software' and 'registry add-image'")
 
         # 🔴 The python set PLUS this node's tool, which is exactly what
-        # `job_nodes.image_id` has always meant. Resolved per node, because two
+        # `job_nodes.image_id` means. Resolved per node, because two
         # tools need not be in one image and requiring that would mean one
         # image holding everything -- and because two NODES may want different
         # versions of the same tool.
@@ -768,9 +751,9 @@ def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
     '''No live image holds the python set -- and which way it failed.
 
     🔴 **`software-unavailable`, carrying `unresolved` and a `reason`** (D110).
-    One string could not say which of several requirements failed, nor
-    describe the python set failing as a COMBINATION: these names share one
-    process, so every one of them has to be in the same image.
+    One string cannot say which of several requirements failed, nor describe
+    the python set failing as a COMBINATION: every one of them has to be in
+    the same image.
 
     - ``reason: "unavailable"`` -- a requirement no image satisfies on its
       own. Every such requirement is listed, not only the first.
@@ -980,11 +963,10 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
 def sweep_bundles(root, store) -> int:
     '''Reclaim the unpacked bundles nothing can run any more. Returns bytes.
 
-    🔴 **Without this a rig fills its disk, quietly and fast.** A bundle is an
-    image unpacked onto the filesystem, so the tools one is six and a half
-    gigabytes -- and a rebuild produces a new digest, which supersedes the old
-    row and leaves the old bundle exactly where it was. Twelve of them, 28 GB,
-    is what one afternoon of rebuilds measured.
+    🔴 **Without this a rig fills its disk: each rebuild leaves a
+    multi-gigabyte bundle behind.** A bundle is an image unpacked onto the
+    filesystem, and a rebuild produces a new digest, which supersedes the old
+    row and leaves the old bundle where it was.
 
     ⚠️ **Superseded is not the same as unused, and that is what the query is
     for.** An image row is never deleted, because *what did this run in* has to
@@ -1368,10 +1350,10 @@ def is_staged(bundle) -> bool:
 def driver_allowed(driver: str, allowed: Sequence[str] = ()) -> bool:
     '''Whether ``driver`` is a module this server will import (D95).
 
-    🔴 **The probe imports it on the server**, so an open field let whoever
-    registers software choose what the server imports -- on this profile,
-    anyone. A driver is a module under ``siliconcompiler.tools`` or one the
-    deployment's configuration names; SiliconCompiler has no tools
+    🔴 **The probe imports it on the server**, so an open field would let
+    whoever registers software choose what the server imports -- on this
+    profile, anyone. A driver is a module under ``siliconcompiler.tools`` or
+    one the deployment's configuration names; SiliconCompiler has no tools
     entry-point group, so an out-of-tree driver is configuration, never a form
     field.
     '''
@@ -1575,8 +1557,7 @@ def register_image(store, registry_ref: str, digest: str,
     # between them arbitrarily, and a rebuild would appear to have no effect
     # while the old bytes went on running.
     #
-    # ⚠️ Superseded and not deleted. A job from last year names that row, and
-    # *what did this run in* has to stay answerable.
+    # ⚠️ Superseded and not deleted, as `retire_image` says.
     superseded = [row["id"] for row in store.all(
         "SELECT id FROM images WHERE registry_ref = ? AND digest <> ? "
         "  AND retired_at IS NULL", (registry_ref, digest))]

@@ -83,7 +83,6 @@
            border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
 </style>
 <header>
-  {# Alpha, as the v1 client and this server are: what it shows may change. #}
   <h1>sc-server <span class="tag" title="The v1 client, this server and its portal are alpha">alpha</span></h1>
   <nav>
     <a href="{{ url_for('portal.jobs') }}" class="{{ 'on' if active == 'jobs' }}">Jobs</a>
@@ -115,12 +114,8 @@
 {% if refresh %}<meta http-equiv="refresh" content="{{ refresh }}">{% endif %}
 <main>{% block body %}{% endblock %}</main>
 {#
-  Every timestamp goes out as UTC in a <time datetime>, because that is what
-  the server knows. This rewrites it to the reader's own clock.
-
-  🔴 Ten lines, inline, no build and no dependency -- and the page is correct
-  without it: with scripting off every one of these still reads
-  "2026-09-24 01:34:12 UTC", which is true, just not local.
+  Every UTC <time datetime> (the `when` filter), rewritten to the reader's own
+  clock.
 #}
 <script>
   for (const el of document.querySelectorAll("time.ts")) {

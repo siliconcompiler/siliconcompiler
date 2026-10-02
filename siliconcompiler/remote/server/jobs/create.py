@@ -235,7 +235,7 @@ class CreateMixin:
         =================================  =================================
 
         🔴 No network: probing hundreds of dataroots against a slow git host
-        put latency inside a request behind gateway timeouts, and turned one
+        puts latency inside a request behind gateway timeouts, and turns one
         `POST` into hundreds of outbound requests.
         '''
         asked = []
@@ -398,10 +398,9 @@ class CreateMixin:
         '''The early reject, on whatever is present.
 
         Client-asserted, so this is a hint and not a boundary -- every value is
-        checked again against the manifest's read. It exists to save an upload, and it
-        never refuses
-        a descriptor for being sparse: a missing field skips the check it would
-        have answered.
+        checked again against the manifest's read. It exists to save an upload,
+        and it never refuses a descriptor for being sparse: a missing field
+        skips the check it would have answered.
         '''
         limits = self._config.limits
 

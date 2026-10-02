@@ -17,9 +17,7 @@ it, given one request, killed at a wall-clock limit or when the job leaves
 - no inherited descriptor and ``stdin`` closed;
 - one request naming the extracted tree, and nothing else of the server's.
 
-It then contains itself (`manifestread.contain`) before it opens anything:
-network and user namespaces where the kernel lets it, and its own CPU, memory
-and file-size limits.
+It then contains itself before it opens anything (`manifestread.contain`).
 '''
 
 import functools

@@ -82,14 +82,13 @@ def _beat() -> None:
     scheduler can be wrong.** A node killed without deleting itself leaves
     Slurm reporting its jobs RUNNING for ever on a machine that is gone -- and
     the API believes the scheduler, so those jobs never leave `running`
-    either. Observed exactly that: two jobs RUNNING for thirteen minutes on a
-    container that no longer existed.
+    either.
 
-    ⚠️ It cannot be the node transitions, which is what `_publish` already
-    wrote on. A single OpenROAD node runs for half an hour without one, so
-    *nothing written lately* and *dead* were indistinguishable. A timer
-    separates them: the file moves every minute whatever the flow is doing,
-    and stops the moment this process does.
+    ⚠️ It cannot be the node transitions `_publish` also writes on. A single
+    OpenROAD node runs for half an hour without one, so *nothing written
+    lately* and *dead* would be indistinguishable. A timer separates them: the
+    file moves every minute whatever the flow is doing, and stops the moment
+    this process does.
 
     A daemon thread, so it never keeps the process alive a moment past the run.
     '''
@@ -199,9 +198,8 @@ def run(manifest: Path) -> int:
     # callback fired for looks like one the run never reached.
     # 🔴 Registered on BOTH ends of the run. SiliconCompiler decides which
     # nodes it will not execute during setup, before the first one starts, so
-    # settling only at the end left a node the run had already written off
-    # reading `pending` for the whole run -- and the client showed it as
-    # pending right up until the job finished.
+    # settling only at the end would leave a node the run has already written
+    # off reading `pending` until the job finishes.
     TaskScheduler.register_callback("pre_run", _before_the_flow)
     TaskScheduler.register_callback("post_run", _settle)
 
@@ -461,11 +459,9 @@ def _unpack_bundle(bundle: str) -> None:
 def _silence_console(project) -> None:
     '''Stop this run writing to stdout.
 
-    🔴 The lever the server actually wants, in place of setting `quiet` on
-    somebody else's project. `quiet` mutes the console sink and nothing else --
-    file sinks ignore it, which is why a quiet run's logs were always complete
-    -- so using it here rewrote a caller's setting to achieve something it does
-    not do.
+    🔴 Not by setting `quiet`, which is the submitter's: it mutes the console
+    sink and nothing else -- file sinks ignore it -- so setting it would
+    rewrite a caller's setting to do no more than this does.
 
     ⚠️ **Suppressed with a filter rather than detached, and that distinction is
     load-bearing.** `TaskScheduler` captures this handler OBJECT at
@@ -505,9 +501,9 @@ def _settle(project) -> None:
     `pending` here. It was not cancelled: the run considered it and skipped it,
     and `record,status` says so.
 
-    ⚠️ Reporting those as `cancelled` read as *the job ended before this node
-    started*, which the client then mapped to an error -- so a perfectly
-    successful run showed two failures for work nobody ever intended to do.
+    ⚠️ Reporting those as `cancelled` would read as *the job ended before this
+    node started*, which a client maps to an error -- so a successful run
+    would show failures for work nobody intended to do.
 
     Nothing is written off here: a node the record says nothing about is left
     as it is, because this runs before the flow starts as well as after it

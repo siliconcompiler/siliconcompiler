@@ -38,11 +38,8 @@ def _jobs():
 def _redirect(row):
     '''A 303 to where the bytes actually are.
 
-    🔴 The target's shape is deliberately not announced here. A client branches
-    on the `Content-Type` it is served after following, because a node can
-    finish between this redirect and the fetch -- so anything computed at this
-    end can be stale by the time it is used, and the type of the thing actually
-    served cannot be.
+    🔴 The target's shape is deliberately not announced here: a client
+    branches on the `Content-Type` it is served after following (see `tail`).
     '''
     storage = flask.current_app.config["SC_STORAGE"]
 

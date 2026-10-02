@@ -46,13 +46,8 @@ def advertised_software(store, config=None):
 
 
 def advertised_reported(store, config=None):
-    '''The same map, less every version that no tool actually reported.
-
-    🔴 **What a version REQUIREMENT is matched against.** A tool recorded from
-    its image's publish date belongs in `software` -- a complete tool list
-    beats a partial one -- and must never satisfy a range, because `20260924`
-    beats `2.0.1` under every comparison there is. The two readers are
-    different and so are their lists.
+    '''The same map, less every version that no tool actually reported:
+    what a version REQUIREMENT is matched against (`Store.reported_versions`).
     '''
     return _advertised(store, config, store.reported_versions)
 
@@ -65,10 +60,8 @@ def _advertised(store, config, read):
 
     software = read(containers=containers)
     if not (containers or software["python"] or software["tools"]):
-        # A deployment that runs no containers runs what this process was
-        # installed with. `tools` stays empty -- which is the true answer for
-        # a deployment that runs no containers and therefore advertises no
-        # tool image.
+        # `tools` stays empty: a deployment that runs no containers
+        # advertises no tool image.
         software = {bucket: {} for bucket in BUCKETS.values()}
 
     # 🔴 **One SiliconCompiler: the one this server runs**, whatever the

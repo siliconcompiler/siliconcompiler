@@ -1,10 +1,7 @@
 '''Taking back the disk, once, at startup.
 
-🔴 **Nothing here was reclaiming anything, and a rig fills its disk fast.**
-Measured on one afternoon of rebuilds: 28 GB on the data volume, 25 of it
-bundles nothing could run any more. Every `--build` produces a new image
-digest, which supersedes the old registry row and leaves the old six-and-a-half
-gigabyte unpacked bundle exactly where it was.
+🔴 **Without this a rig fills its disk fast**, bundles first: every rebuild
+leaves a multi-gigabyte one behind (`images.sweep_bundles`).
 
 Four things accumulate, and they go in this order because each one makes the
 next cheaper to decide:
@@ -94,21 +91,16 @@ def _bundles(store, storage, config, datadir) -> int:
 def _artifacts(store, storage, config, datadir) -> int:
     '''Bytes past their retention. The row stays; only the bytes go.
 
-    🔴 **`deleted_at` IS set, and the tempting alternative breaks the ladder.**
-    Leaving the row untouched reads better -- the column means *the bytes are
-    gone* and a client renders it "deleted on 24 Sep", which sounds like a
-    person -- but `fetchable` is decided by an ordered ladder whose first row is
-    `deleted_at`. `retained_until` passing is deliberately NOT a row on it,
-    because retention lapsing is followed by this, and this is where it lands.
-    Take the write away and a reaped artifact falls through to the entitlement
-    rows and reports `fetchable: true` for bytes that are not there.
+    🔴 **`deleted_at` IS set, though a client renders it "deleted on 24 Sep".**
+    `fetchable` is decided by an ordered ladder whose first row is
+    `deleted_at`, and `retained_until` passing is deliberately NOT a row on it.
+    Without this write a reaped artifact falls through to the entitlement rows
+    and reports `fetchable: true` for bytes that are not there.
 
-    ✅ **The real defect the alternative was aimed at is that a client could
-    not tell an expiry from a deletion, and the fix is to say which.**
-    `deleted_by` stays NULL, which the listing publishes as `deleted_cause:
-    "expired"`, so *aged out on 24 Sep* and *deleted on 24 Sep* are two
-    different answers -- without `fetchable` having to lie for it. No
-    `deleted_reason`: that is prose, and only where a person deleted it.
+    ✅ **An expiry is told from a deletion by `deleted_by`**, which stays NULL:
+    the listing publishes that as `deleted_cause: "expired"`. No
+    `deleted_reason`: that is prose, and only where a person deleted it
+    (surface §21).
 
     A legal hold is skipped. It is not only policy -- the table would refuse
     the write, since an artifact cannot be both held and deleted.
@@ -138,9 +130,6 @@ def _artifacts(store, storage, config, datadir) -> int:
         # 🔴 Recorded whether or not a file was there to unlink. The row is the
         # claim that these bytes are unavailable, and an artifact whose file
         # had already vanished is the case where that claim matters most.
-        # `deleted_by` stays NULL, which is how the table says *the reaper*,
-        # and so does `deleted_reason`: it is prose, and only where a person
-        # deleted it (surface §21). `deleted_cause` says `expired`.
         store.execute(
             "UPDATE artifacts SET deleted_at = ? WHERE id = ?", (now(), row["id"]))
         gone += 1

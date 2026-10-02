@@ -81,7 +81,7 @@ class RowsMixin:
         The runner writes it into the progress file as the exception that
         ended the run, and the reaper and the refusal path write theirs the
         same way, so every terminal state has one and it is the same string
-        the portal has always rendered in the history table.
+        the portal renders in the history table.
         '''
         if not job["error_type"]:
             return None
@@ -172,7 +172,7 @@ class RowsMixin:
         # `POST /v1/auth/browser`, when a client is about to open it (surface
         # D309).
 
-        # 🔴 What it actually ran in. Once a request can carry a range, nothing
+        # 🔴 What it actually ran in. Since a request can carry a range, nothing
         # else answers *what did this job run* -- the descriptor says what was
         # asked for and this says what the server chose.
         #
@@ -266,19 +266,16 @@ class RowsMixin:
         and keeping it out of `failed` is what stops a run of entitlement
         denials reading as a run of broken designs.
 
-        🔴 **What is stored is the problem the caller was handed, whole.** The
-        two used to be written separately and drifted: a job the scheduler
-        would not take was recorded as `run-failed` while its submitter was
-        told `not-ready`, so the person and the page they were looking at
-        disagreed about a job neither of them could re-read. Taking the
-        `ProblemError` itself is what makes that impossible rather than
-        unlikely.
+        🔴 **What is stored is the problem the caller was handed, whole.**
+        Written separately, the two drift, and the person and the page they
+        are looking at disagree about a job neither of them can re-read.
+        Taking the `ProblemError` itself is what makes that impossible rather
+        than unlikely.
 
         🔴 **And the stored reason is the problem's `detail`, not its slug.**
         The slug is already `jobs.error_type` and is published as `error.type`;
-        writing it a second time as prose told a person nothing they could not
-        already see, while `detail` -- *which* limit, *which* mismatch -- was
-        computed one line later and thrown away.
+        writing it a second time as prose tells a person nothing they cannot
+        already see, where `detail` says *which* limit, *which* mismatch.
         '''
         kept = _kept(problem)
         if not kept:

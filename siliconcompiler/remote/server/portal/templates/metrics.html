@@ -8,10 +8,6 @@
   &middot; <a href="{{ url_for('portal.log', job_id=job.id, step=step, index=index) }}">log</a>
 </p>
 
-{#
-  🔴 Filled once, when the job ended, from its final manifest read as plain
-  JSON -- never the manifest artifact, and never through SiliconCompiler.
-#}
 {% if not metrics and not records %}
 <p class="muted">Nothing was recorded for this node: it did not run, or the job
 ended before its manifest was written.</p>

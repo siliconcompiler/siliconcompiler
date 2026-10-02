@@ -27,10 +27,9 @@ __all__ = ["main"]
 
 
 # How a job is handed over, and the list is short because the job is the unit
-# of submission: one batch job per run, not one dispatch per node. `docker` was
-# offered here while the server ran the flow in its own process and put each
-# node in a container; under batch submission the container is the cluster's
-# business rather than this server's, so it is not a choice this flag makes.
+# of submission: one batch job per run, not one dispatch per node. There is no
+# `docker`: under batch submission the container is the cluster's business
+# rather than this server's, so it is not a choice this flag makes.
 CLUSTERS = ("local", "slurm")
 
 

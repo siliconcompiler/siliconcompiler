@@ -5,10 +5,6 @@
 {% set refresh = 15 if running else 0 %}
 {% block title %}Jobs · sc-server{% endblock %}
 {% block body %}
-{#
-  The same rule as the job page: refresh only while something is actually
-  moving. A list of finished runs has no reason to reload itself.
-#}
 <h2>{{ 'Archived jobs' if archived else 'Jobs' }}</h2>
 <p class="lede">
   Yours, newest first.

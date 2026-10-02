@@ -18,23 +18,20 @@ each image it registers, and the CLI below asks this machine.
                  on (surface D293)
 
 🔴 **The command runs in the image and the PARSING happens here, and that split
-is the whole design.** An earlier version ran this module inside the image,
-which works only for an image that has SiliconCompiler installed -- and most
-tool images do not. ``ghcr.io/siliconcompiler/sc_tools`` is the obvious case: it
-is the image SiliconCompiler's own CI runs its tools in, and CI installs the
-framework into it at test time. Requiring the framework in every image an
-operator wants to register is requiring them to rebuild somebody else's image.
+is the whole design.** Running this module inside the image would work only for
+an image that has SiliconCompiler installed -- and most tool images do not.
+``ghcr.io/siliconcompiler/sc_tools`` is the obvious case: it is the image
+SiliconCompiler's own CI runs its tools in, and CI installs the framework into
+it at test time. Requiring the framework in every image an operator wants to
+register is requiring them to rebuild somebody else's image.
 
 So :func:`script` produces a shell script that runs the tools and frames each
 answer, and :func:`read_output` turns what came back into versions. The caller
 in between is whatever can start a container.
 
 🔴 **Neither the kind nor the driver is guessed.** Both are columns on
-``software``, set when the name is registered. A guess would work for
-SiliconCompiler's own in-tree drivers and quietly fail for everything else -- a
-driver can live in any package, and the in-tree path is not even reliable
-in-tree, where ``kepler-formal`` is driven from
-``siliconcompiler.tools.keplerformal``.
+``software``, set when the name is registered (`images.register_software`
+says why).
 '''
 
 import argparse
@@ -77,11 +74,7 @@ _END = "--sc-probe-end:"
 # whole image registration, because writing the row says the image holds
 # something it does not, and then a node is placed in it and dies.
 #
-# ⚠️ **Never told apart by the version failing to parse.** An unguarded
-# missing tool leaves the shell's own `openroad: not found` in the frame, and
-# OpenROAD's `parse_version` takes the last word -- so a parse-failure test
-# would register a missing tool at version `0` instead of refusing it, which
-# is the exact bug this rule exists to prevent wearing the rule's own clothes.
+# ⚠️ **Never told apart by the version failing to parse** (see `script`).
 # Presence is the driver's own check: the executable existing, or
 # `PackageNotFoundError` not being raised.
 _HERE = "--sc-probe-here:"
@@ -172,12 +165,11 @@ def executable_for(name: str, kind: str, driver: Optional[str] = None,
                    version_package: Optional[str] = None) -> Optional[str]:
     '''The program whose existence means this name is THERE.
 
-    🔴 **Separate from the version command, and that separation is the bug
-    fix.** Tying presence to being able to ask a version made every tool whose
-    driver names no version switch untestable -- so nothing declared it, no
-    image held it, and a flow reaching for it was refused although the binary
-    was right there. That is the `bsc` failure inverted: refusing a tool the
-    image has.
+    🔴 **Separate from the version command.** Tied to being able to ask a
+    version, presence would make every tool whose driver names no version
+    switch untestable -- nothing would declare it, no image would hold it, and
+    a flow reaching for it would be refused although the binary is right
+    there.
 
     None where presence is decided some other way -- a python distribution
     answers for itself -- or cannot be decided at all.
@@ -244,9 +236,7 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
         lines.append(f"echo {shlex.quote(_BEGIN + name)}")
 
         if kind in ("python", "interpreter") or package:
-            # The python check reports its own presence: it prints the marker
-            # only once `importlib.metadata` has answered, so absence is
-            # `PackageNotFoundError` and nothing else.
+            # The python check reports its own presence (`_PYTHON_CHECK`).
             #
             # ⚠️ A wrapper's program is not asked for: an image holding the
             # graphviz distribution holds `dot` too, because the image build
@@ -258,8 +248,8 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
             # belt-and-braces. Without it a missing tool leaves the shell's own
             # `openroad: not found` inside the frame, and OpenROAD's
             # `parse_version` takes the last word of what it is given -- so an
-            # absent tool was registered at version `0`, parsed out of the
-            # error message saying it was absent. An empty frame is the honest
+            # absent tool would be registered at version `0`, parsed out of the
+            # error message saying it is absent. An empty frame is the honest
             # answer and the one that ends in `published_date`.
             lines.append(f"if command -v {shlex.quote(exe)} "
                          "> /dev/null 2>&1; then")
@@ -312,11 +302,10 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
         # 🔴 An answer that is not a PEP 440 version is no version, and it is
         # said rather than rewritten. The presence check can be right and the
         # parse wrong -- gtkwave without a display prints `Could not
-        # initialize GTK!`, and a parser counting words took `initialize` --
-        # and nothing downstream can tell. Such a value could never satisfy a
-        # range, and the store refuses it as `reported`, so the tool is
-        # present and mute: `published_date`. `unparsed` keeps what it said
-        # for the operator; never coerce it into a version.
+        # initialize GTK!`, and a parser counting words takes `initialize`.
+        # The store refuses such a value as `reported`
+        # (`images.register_version`), so the tool is present and mute:
+        # `published_date`. `unparsed` keeps what it said for the operator.
         unparsed = None
         from siliconcompiler.remote.server.software.images import _is_pep440
 
@@ -392,9 +381,9 @@ def _split(output: str):
 
     for line in output.splitlines():
         # ⚠️ Escapes stripped before the marker is looked for. A tool that
-        # thinks it is on a terminal colours its output, and klayout put
-        # `\x1b[0m` in front of the marker closing its own frame -- so the
-        # frame never closed and a tool that had answered read as absent.
+        # thinks it is on a terminal colours its output -- klayout puts
+        # `\x1b[0m` in front of the marker closing its own frame -- and a
+        # frame that never closes reads a tool that answered as absent.
         # Giving the container no TTY is the real fix and this is the belt:
         # nothing says a tool checks before colouring.
         stripped = _ANSI.sub("", line).strip()

@@ -128,22 +128,18 @@ To set a header the operator's access layer requires, use:
                   '-logout',
                   '-no_browser']
 
-    # Argument Parser
     remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
                                           use_sources=False)
 
     try:
         return _dispatch(remote)
     except (RemoteError, SCRuntimeError) as e:
-        # A refusal is a message and an exit code, never a traceback. The
-        # client already renders a server's problem+json in three lines, so
-        # printing it is the whole job here.
+        # A refusal is a message and an exit code, never a traceback.
         remote.logger.error(str(e))
         return 1
 
 
 def _dispatch(remote):
-    # Sanity checks.
     exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal',
                  'rotate_key', 'ci_setup', 'header', 'remove_header', 'logout']
     cfg_only = ['reconnect', 'cancel', 'delete', 'tail']
@@ -272,8 +268,6 @@ def _act_on_job(remote, client, project_cfg):
         return 1
 
     if remote.get("cmdarg", 'cancel'):
-        # Refused here, naming the limit, where it is too long: the server
-        # would refuse it too, never cut it.
         job = client.cancel_job(job_id, reason=remote.get("cmdarg", 'reason'))
         remote.logger.info(f"Job {job_id} is {job['state']}")
         return 0

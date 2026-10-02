@@ -69,12 +69,7 @@ def me(session):
 @blueprint.route("/v1/devices", methods=["GET"])
 @require("devices:read")
 def list_devices(session):
-    '''Endpoint 10.
-
-    Non-empty in this profile, which is not incidental: the key binding on
-    first contact is the only real control the mode has, and this list plus the
-    revoke button is its visible half.
-    '''
+    '''Endpoint 10.'''
     from siliconcompiler.remote.server.errors import only_query
 
     only_query(flask.request.args, (), "GET /v1/devices")

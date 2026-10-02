@@ -317,10 +317,10 @@ class StagingMixin:
         ``(name, why)`` for each Python package the install could not have from
         an index -- a version none lists, or one offered only as a source --
         which the client answers with its wheel (surface *How it is built,
-        while the job is staging*). The
-        transition says why for each: a job going backwards is the one move a
-        person watching it will not expect, and "a source could not be
-        fetched" tells them nothing about which or what to do.
+        while the job is staging*). The transition says why for each: a job
+        going backwards is the one move a person watching it will not expect,
+        and "a source could not be fetched" tells them nothing about which or
+        what to do.
 
         ⚠️ The job counts against `pending_uploads` again and frees its
         `concurrent_jobs` slot, both because those count by state; and

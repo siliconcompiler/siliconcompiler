@@ -1,90 +1,70 @@
 '''
 What a finished run left behind, as rows.
 
-🔴 **The results tarball does not disappear -- it stops being an endpoint and
-becomes an artifact.** The old server answered `get_results` with one archive
-per node and no record of it; a tarball is not a row, so it carries no kind, no
-retention and no per-object gate. Here every object is indexed, and the listing
-is the answer to *where did my results go* even when the bytes are gone.
+🔴 **The results tarball is an artifact, not an endpoint.** A tarball endpoint
+carries no kind, no retention and no per-object gate. Here every object is a
+row, and the listing answers *where did my results go* even when the bytes are
+gone.
 
 The kinds this server produces, every one stored and served gzipped (surface
 §21):
 
-``manifest``  the job's own ``<design>.pkg.json``, gzipped. Job-level, so no step. **The
+``manifest``  the job's own ``<design>.pkg.json``. Job-level, so no step. **The
               kind most likely to be the only one there is**: it is small, and
               it carries the record -- node states, metrics, tool versions --
               so *what happened* is answerable with no outputs on disk at all
 ``logs``      one node's log files, as a gzip tar with paths relative to
               the node's directory. A finished node's stream names it.
-              **One more is job-level**: SiliconCompiler's own ``job.log``, the
-              run's record of the flow as a whole, and nothing else -- this
-              server's record of the job is never in it
+              **One more is job-level**: SiliconCompiler's own ``job.log``, and
+              nothing else -- this server's record of the job is never in it
 ``staging``   this server's record of the job, for its submitter, from create
               to dispatch, scrubbed like ``detail``: job-level, one per job, a
               section each time the job stages (`record`)
 ``diagnostics`` the operators' record, not scrubbed: a gzip tar of named files,
               job-level and per node (`record`). Never handed over the API
 ``node``      🔴 **one node's whole working directory, indexed the moment that
-              node finishes.** *"The results tarball does not disappear -- it
-              stops being an endpoint and becomes an artifact, assembled during
-              the run and indexed like everything else."* Per node rather than
-              per job precisely so that it IS assembled during the run: a
-              client can take each node's results as they appear instead of
-              waiting for the last node to decide whether the first one's work
-              is available.
-
-              🔴 **It is ALWAYS bound to a step and an index, and there is no
-              job-level one.** The kind is named for the thing it is, so a row
-              of this kind with no coordinates would be a contradiction rather
-              than a broader archive.
+              node finishes**, so a client takes each node's results as they
+              appear instead of waiting for the last node.
+              🔴 **ALWAYS bound to a step and an index; there is no job-level
+              one.**
 ``reports``   one node's ``reports/`` directory, as its own archive. 🔴 **A
-              second copy of bytes the node archive already holds, and that is
-              the point rather than an oversight.** A node's reports are
-              kilobytes and its whole working directory is often gigabytes, so
-              above ``limits.max_download_bytes`` the node archive is refused
-              outright while the reports are still served -- which is the case
-              this kind exists for. On a deployment with approvals it is also
-              the object that can be granted when the whole node cannot.
+              second copy of bytes the node archive already holds, on
+              purpose.** Reports are kilobytes and a working directory is often
+              gigabytes, so above ``limits.max_download_bytes`` the node archive
+              is refused while the reports are still served. On a deployment
+              with approvals it is also the object that can be granted when the
+              whole node cannot.
 
-⚠️ **The cost, stated: roughly what the reports occupy, twice.** Measured
-rather than assumed -- on an asicflow node it is the difference between the
-node archive and the node archive plus a few hundred kilobytes, because the
-heavy things in a working directory are the DEF and the database, not the
-reports.
+⚠️ **The cost: the reports, twice** -- a few hundred kilobytes on an asicflow
+node, because the heavy things in a working directory are the DEF and the
+database, not the reports.
 
-⚠️ **`outputs` is still deliberately NOT produced.** THAT would be a second
-copy of the large half.
+⚠️ **`outputs` is deliberately NOT produced.** THAT would be a second copy of
+the large half.
 
 ``input``     🆕 **what went IN, so it can be inspected.** Two shapes:
 
-              - **job-level, one per upload.** Every archive the server
-                accepted into the job -- the first, and each follow-up a job
-                sent back for its sources carries -- is its own row, in the
-                order they arrived, with the digest the submit verified as its
-                hash. Kept even when the job is then refused, which is when
-                somebody wants to see what was sent -- but for an upload
-                refused for what it must not carry, which is deleted
-                (`jobs.rows._kept`). **Not a copy**: the upload is MOVED into
-                the store rather than deleted, so the cost is the upload
-                itself, held for the kind's retention.
+              - **job-level, one per upload**, in the order they arrived, with
+                the digest the submit verified as its hash. Kept even when the
+                job is then refused, which is when somebody wants to see what
+                was sent -- but for an upload refused for what it must not
+                carry, which is deleted (`jobs.rows._kept`). The upload is
+                MOVED into the store, not copied.
               - **one node's ``inputs/``**, bound to the node: what its
                 upstream handed it. A link stays a link to the upstream output
                 it names, so the archive holds no second copy of those bytes.
 
-              ⚠️ **Neither is a member of the node archive** -- that leaves
-              ``inputs/`` out -- so neither decides whether it may be fetched.
-              And the client fetches neither: it has its upload, and a node's
-              inputs are its upstream's outputs, which it already takes.
+              ⚠️ **Neither is a member of the node archive**, so neither
+              decides whether it may be fetched. The client fetches neither: it
+              has its upload, and a node's inputs are its upstream's outputs.
 
 ⚠️ **A `node` artifact IS grantable, and this deployment has nothing to grant
-with.** Where a server does, the way to hold one back is ``withheld_at``, which
-lowers the derived policy without claiming the bytes are gone. 🔴 And an
-``issue`` at a node's coordinates is excluded from what a node archive is
-considered to contain, by kind: ``issue`` is never fetchable, so a ladder that
-derived a node's entitlement from everything at its coordinates would make one
-click of a generate-an-issue button turn a node archive undownloadable over a
-file that is not inside it. Nothing here derives that ladder -- ``fetchable``
-is per row -- so the exclusion is a note for the deployment that does.
+with.** Where a server does, ``withheld_at`` holds one back without claiming
+the bytes are gone. 🔴 An ``issue`` at a node's coordinates is not a member of
+the node archive: ``issue`` is never fetchable, so counting it would let one
+generate-an-issue click make a node archive undownloadable over a file that is
+not inside it. Nothing here derives that ladder -- ``fetchable`` is per row --
+so this is a note for the deployment that does.
 '''
 
 import gzip
@@ -112,10 +92,9 @@ logger = logging.getLogger("sc-server")
 
 # The ten are the contract's; these are what this deployment produces and a
 # surface may hand over. Expected of the profile: manifest, logs, staging,
-# reports, node. Optional: input, outputs, final, issue -- `input` moved there
-# because the owner already has the bytes it would hold, which is what
-# `artifact_kinds` had said all along. `diagnostics` is produced too and is not
-# here: no surface setting hands it over the API (ladder row 3).
+# reports, node. Optional: input, outputs, final, issue -- `input` because the
+# owner already has the bytes it would hold. `diagnostics` is produced too and
+# is not here: no surface setting hands it over the API (ladder row 3).
 KINDS = ("manifest", "logs", "staging", "reports", "node")
 
 
@@ -154,9 +133,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     # job's. It is what carries that node's record and metrics -- with the
     # journal a client replays them from -- so a deployment that hands over
     # manifests and no bulk output can still show a finished node's runtime,
-    # warnings and errors while the rest of the run goes on. Inside the node
-    # archive only, it went wherever the archive went, and a server that
-    # withholds archives withheld the record with them.
+    # warnings and errors while the rest of the run goes on.
     #
     # ⚠️ It is a second copy of a file the node archive holds, a few MB per
     # node. A client with the archive does not fetch it twice.
@@ -608,15 +585,14 @@ def ladder(row, surface_allows: bool = True,
     see a job is its owner.
 
     🔴 **`pending` is `not-ready` and never a permanent refusal.** It is still
-    being described, and answering it `403` told a client to abandon an
-    artifact that would shortly be fetchable. The surface row sits above it so
-    that a kind this surface never hands over is not answered *try again*.
+    being described, and a `403` would tell a client to abandon an artifact
+    that will shortly be fetchable. The surface row sits above it so that a
+    kind this surface never hands over is not answered *try again*.
 
     ⚠️ **Retention passing is deliberately not a row.** The reaper follows it by
     setting ``deleted_at``, which is row 1; between the instant and the sweep
     the bytes are still here and still fetchable -- a promise to keep data at
-    least that long says nothing about the minute after it. This used to answer
-    *not fetchable* the moment the date passed.
+    least that long says nothing about the minute after it.
 
     Per caller, never cached across callers -- which is why it is computed
     rather than stored.
@@ -627,8 +603,8 @@ def ladder(row, surface_allows: bool = True,
         return "artifact-not-approved"
     if row["kind"] == "node" and members:
         # 🔴 Withholding a member withholds the archive, and an archive held
-        # back only by a PENDING member is `not-ready` -- the D107 mistake one
-        # level down answered it a permanent `artifact-not-approved`.
+        # back only by a PENDING member is `not-ready`, not a permanent
+        # `artifact-not-approved` -- D107, one level down.
         return members
     if not surface_allows:
         return "artifact-not-approved"

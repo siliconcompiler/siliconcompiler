@@ -36,9 +36,7 @@ class ResultsMixin:
         '''Whether ``surface`` hands over artifacts of ``kind``.
 
         🔴 **`api_fetchable_kinds` binds the API and not the portal**, for the
-        reason `max_download_bytes` does: the portal is a person choosing one
-        object. Both disagreements between the surfaces are decided from the
-        one ``surface`` argument so that they are written down in one place.
+        reason `max_download_bytes` does (see `artifact`).
         '''
         if surface not in SURFACES:
             raise ValueError(f"{surface} is not a surface")

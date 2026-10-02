@@ -2,10 +2,9 @@
 Handing a job to whatever runs it.
 
 🔴 **The job is the unit of submission.** One batch job per run, its id recorded
-in ``jobs.scheduler_job_id``, polled once per run. That is a deliberate change
-from the shape this replaces -- a blocking ``srun`` per node, held open by the
-API process for the length of the run -- and it is what makes the API process
-something other than a Slurm submit host.
+in ``jobs.scheduler_job_id``, polled once per run -- never a blocking ``srun``
+per node held open by the API process for the length of the run, which would
+make the API process a Slurm submit host.
 
 ✅ **It is also what makes a REST transport a swap rather than a rewrite.**
 ``slurmrestd`` submits *batch* jobs only: ``POST /slurm/vX/job/submit`` is the
@@ -368,7 +367,7 @@ class SlurmDispatcher(Dispatcher):
     def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
         '''Stop the run, and stop the work it started.
 
-        🔴 The nodes are jobs of their own now, so cancelling the orchestrator
+        🔴 The nodes are jobs of their own, so cancelling the orchestrator
         alone leaves them to Slurm's own cleanup -- which usually does end them,
         because a job dies with the ``srun`` that allocated it, but "usually"
         is not what a cancel should rest on when the alternative is naming them.
@@ -401,11 +400,6 @@ class SlurmDispatcher(Dispatcher):
         job id -- ``SlurmSchedulerNode.get_job_name`` spells it
         ``<remoteid>_<step>_<index>`` -- so nothing has to be passed back from
         the compute node to know what to ask for.
-
-        ⚠️ Two queries and not one per node. ``squeue`` answers for the jobs
-        that still exist, which is what a cancel needs; ``sacct`` is asked only
-        for whatever is left, which is what the record needs after a node has
-        finished and squeue has forgotten it.
         '''
         return self._by_name(job_id, nodes, remembered=True)
 
@@ -413,9 +407,8 @@ class SlurmDispatcher(Dispatcher):
         '''The node jobs the scheduler still has, as ids.
 
         🔴 Still has, which is the whole difference from `node_jobs`. This is
-        what a reaper needs: a job that already finished must not be scancelled,
-        because scancel answers an error for it and a warning per finished node
-        would train an operator to ignore them.
+        what a reaper needs: a job that already finished must not be
+        scancelled (see `cancel`).
         '''
         return list(self._by_name(job_id, nodes, remembered=False).values())
 
@@ -423,8 +416,9 @@ class SlurmDispatcher(Dispatcher):
         '''Look node jobs up by the name the server can derive for them.
 
         ⚠️ Two queries and not one per node. `squeue` answers for the jobs that
-        still exist; `sacct` is asked only for whatever is left, and only when
-        a caller wants the ones it has forgotten.
+        still exist, which is what a cancel needs; `sacct` is asked only for
+        whatever is left, and only when a caller wants the ones squeue has
+        forgotten -- the record, after a node has finished.
         '''
         wanted = {f"{job_id}_{step}_{index}": (step, index) for step, index in nodes}
         if not wanted:
