@@ -2,11 +2,11 @@
 The Flask application.
 
 Flask rather than an async framework because the criterion is testability:
-seventeen of this profile's eighteen endpoints are request-in, response-out, and
-against ``app.test_client()`` those tests have no port, no event loop and no
-teardown. The one that is not is the log stream, and the contract already lets
-the stream host be a separate origin -- so if SSE under WSGI proves awkward it
-moves out without a client change.
+every one of this profile's endpoints is request-in, response-out, and against
+``app.test_client()`` those tests have no port, no event loop and no teardown.
+The one route that is not is the log stream `/logs` redirects to, and the
+contract already lets the stream host be a separate origin -- so if SSE under
+WSGI proves awkward it moves out without a client change.
 '''
 
 import logging
@@ -164,13 +164,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     _check_an_image_holds_this_version(store, config)
     _report_read_containment()
 
-    # 🔴 Last, and after the checks, because it is the one step whose failure
-    # must not be the reason this server does not start. A full disk says what
-    # it is; a server that refused to come up because it could not delete
-    # something does not.
-    # Before anything can refuse: the bound is published in `limits`, and a
-    # server whose refusals were longer than it advertises is worse than one
-    # that truncates harder.
+    # Before anything can refuse, so every `detail` this server publishes is
+    # held to the deployment's `limits.max_detail_chars`.
     errors.set_detail_max(config.limits["max_detail_chars"])
     # What a published `detail` must never say about this deployment (D122).
     import socket
@@ -179,6 +174,10 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
         + private_paths(config["private_dataroots"] or {}),
         names=[socket.gethostname(), socket.getfqdn()])
 
+    # 🔴 Last, and after the checks, because it is the one step whose failure
+    # must not be the reason this server does not start. A full disk says what
+    # it is; a server that refused to come up because it could not delete
+    # something does not.
     reaper.sweep(store, storage, config, datadir)
 
     return app

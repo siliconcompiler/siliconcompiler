@@ -35,8 +35,8 @@ _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 # Deliberately decoupled from `poll_interval_seconds`: reading a job is a local
 # SQLite read and a stat, and can be answered as fast as anybody asks, while
 # `squeue` is one or more RPCs into slurmctld and is the only part that leaves
-# the machine. Without this, shortening the poll interval multiplied scheduler
-# load by the same factor -- the load `--max-connections` exists to throttle.
+# the machine. Without this, shortening the poll interval would multiply the
+# load on slurmctld by the same factor.
 SCHEDULER_QUERY_FLOOR = 5
 
 # Job reuse returns a result the hash determines and never a refusal it does
@@ -145,7 +145,7 @@ class _Supply:
 ######################################################################
 
 def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-    """What a job needs from its image, in the two buckets:
+    """What a job needs from its image, by bucket:
     `descriptor.requested_versions`.
 
     🔴 **The one member, and it names every Python distribution the job
@@ -159,7 +159,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     tasks of one tool contribute two entries. `[]` is *any version*, which is
     not the same as leaving the name out.
 
-    🔴 **Both buckets, and a flat map is refused.** The whole `python` set
+    🔴 **By bucket, and a flat map is refused.** The whole `python` set
     shares an interpreter and must be held by ONE image, while a tool is
     satisfied per node; accepting a flat map would mean guessing which.
     """
@@ -178,8 +178,8 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     if unknown:
         raise ProblemError(
             "invalid-request",
-            detail=f"requested_versions is keyed on {' and '.join(buckets)}; "
-                   f"{', '.join(sorted(unknown))} is neither")
+            detail=f"requested_versions is keyed on {', '.join(buckets)}; "
+                   f"{', '.join(sorted(unknown))} is none of them")
 
     for bucket in buckets:
         inner = given.get(bucket)

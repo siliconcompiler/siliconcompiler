@@ -16,8 +16,7 @@ next cheaper to decide:
 ``builds``     a job's working tree, once nothing it produced is left. It is
                the source the artifacts were indexed FROM, so it may only go
                after them
-``uploads``    a staged archive for a job that was created and never submitted,
-               past the expiry its own grant was issued with
+``uploads``    an upload left behind by a job no longer waiting for one
 
 ⚠️ **At startup and nowhere else, deliberately.** A background thread is
 machinery this profile does not need: a demo rig is restarted constantly, and a
@@ -44,8 +43,8 @@ __all__ = ["sweep"]
 
 logger = logging.getLogger("sc-server")
 
-# The five states a job can be in and never leave. Spelled out because the
-# reaper reads them in SQL, where it cannot consult `job_states.terminal`.
+# The five states a job can be in and never leave: those `job_states` marks
+# terminal, bound into the reaper's SQL as parameters.
 _TERMINAL = ("completed", "failed", "cancelled", "rejected", "abandoned")
 
 
@@ -99,10 +98,10 @@ def _artifacts(store, storage, config, datadir) -> int:
     Leaving the row untouched reads better -- the column means *the bytes are
     gone* and a client renders it "deleted on 24 Sep", which sounds like a
     person -- but `fetchable` is decided by an ordered ladder whose first row is
-    `deleted_at`. `expires_at` passing is deliberately NOT a row on it, because
-    retention lapsing is followed by this, and this is where it lands. Take the
-    write away and a reaped artifact falls through to the entitlement rows and
-    reports `fetchable: true` for bytes that are not there.
+    `deleted_at`. `retained_until` passing is deliberately NOT a row on it,
+    because retention lapsing is followed by this, and this is where it lands.
+    Take the write away and a reaped artifact falls through to the entitlement
+    rows and reports `fetchable: true` for bytes that are not there.
 
     ✅ **The real defect the alternative was aimed at is that a client could
     not tell an expiry from a deletion, and the fix is to say which.**

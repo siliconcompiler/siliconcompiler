@@ -6,9 +6,10 @@ A job's remote dataroot -- lambdapdk's PDKs are the common case -- is supplied
 by (source, ref), never by a path the job names. This module holds those
 copies under ``<datadir>/sources/`` and fetches the ones it does not hold.
 
-🔴 **The run never fetches.** The server's normalised manifest points a supplied
-dataroot at the held copy, so nothing in the run reaches the network on a job's
-behalf. What does is here, and it is SiliconCompiler's own resolver -- so the
+🔴 **The run never fetches.** The run points a supplied dataroot at the held
+copy, from what the server wrote beside its manifest
+(`runspec.point_dataroots`), so nothing in the run reaches the network on a
+job's behalf. What does is here, and it is SiliconCompiler's own resolver -- so the
 server's copy is the user's, submodules and LFS objects included (surface
 D164) -- under a fetch policy:
 

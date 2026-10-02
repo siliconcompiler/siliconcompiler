@@ -31,8 +31,10 @@ about where the server may get them** (surface D299). A private dataroot is
 never uploaded -- one that arrives in an archive anyway is refused -- and never
 asked for; the server supplies it from the first of three that answers: the
 operator's copy (`private_dataroots`), a copy of its source it already holds,
-or a fetch of that source from the allowlist. The source is the manifest's own,
-read while the job stages; the create body does not carry it.
+or a fetch of that source from the allowlist. The create body's `sources` entry
+carries its cleaned source and ref wherever it has a remote one, so create
+decides all three before anything uploads (surface D308); staging reads the
+manifest's own.
 
 🔴 **A dataroot is named by its keypath** (surface D298), where the schema that
 defines it keeps it: a library's ``library,<name>,dataroot,<root>`` or a task's
@@ -685,8 +687,9 @@ def account_records(records, collection_dir, supply, required=None) -> List[Entr
 
     ``supply`` answers for this server: ``package(module)``,
     ``private_root(keypath)``, ``held(source, ref)`` and
-    ``allowlisted(source, ref)``. ``required`` is :func:`required`'s set; None
-    accounts for every file the manifest names, as before the set existed.
+    ``allowlisted(source, ref)``. ``required`` is :func:`required`'s set; None,
+    where the set was not worked out, accounts for every file the manifest
+    names.
 
     🔴 **No path the job names is read.** A file is in the archive, or it is
     supplied by identity -- a package by name, a private dataroot by its
@@ -913,9 +916,9 @@ def required(project) -> Optional[Set[Tuple[str, ...]]]:
     did not.
 
     ⚠️ **None means the set was not worked out** -- the client could not run
-    setup, or a manifest written before it did -- and nothing is filtered. It is
-    never the empty set: a flow whose every node reads nothing has no files to
-    filter either.
+    a node's setup, so its manifest carries no `require` -- and nothing is
+    filtered. It is never the empty set: a flow whose every node reads nothing
+    has no files to filter either.
     '''
     from siliconcompiler.remote.runflow import runtime_flow
 

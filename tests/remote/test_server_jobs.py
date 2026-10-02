@@ -2870,8 +2870,8 @@ def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key,
                                                    dispatcher, me):
     '''🔴 Reading a job is a local SQLite read and a stat; asking Slurm which
     job each node became is one or more RPCs into slurmctld. Without a floor,
-    shortening the poll interval multiplies scheduler load by the same factor
-    -- which is the load `--max-connections` exists to throttle.'''
+    shortening the poll interval multiplies the load on slurmctld by the same
+    factor.'''
     from siliconcompiler.remote.server.running import runspec
 
     asked = []

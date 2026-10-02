@@ -58,9 +58,9 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-test-mode", type=int, choices=sorted(TEST_MODES), default=None,
         metavar="<n>",
-        help="FOR TESTING: serve one of three preset deployments, from what "
-             "this server does by default (1) to the most it withholds (3). "
-             "config.json still applies on top")
+        help="FOR TESTING: serve one of the preset deployments: what this "
+             "server does by default (1), up to the most it withholds (3), or "
+             "one that can fetch nothing (4). config.json still applies on top")
     parser.add_argument(
         "-version", action="version", version=sc_version)
 

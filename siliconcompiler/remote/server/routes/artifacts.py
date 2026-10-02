@@ -326,7 +326,7 @@ def download(job_id, artifact_id):
     '''The bytes, on this host, standing in for a presigned URL.
 
     Outside `/v1` for the same reason the upload route is: the contract's
-    surface is the eighteen endpoints, not wherever a deployment's storage
+    surface is its endpoints under `/v1`, not wherever a deployment's storage
     happens to live. The signature is the credential and it names one artifact
     -- authorization was decided at the endpoint that issued it, which is where
     the token and the proof were presented.

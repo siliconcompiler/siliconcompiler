@@ -50,10 +50,9 @@ class LogTail:
         self.index = index
         self.last_event_id: Optional[str] = None
         self.artifact_id: Optional[str] = None
-        # Every node's archived log, collected off `node_state` as each node
-        # completes. On a job stream `end` names none -- there is no single
-        # archive -- so by the time it arrives this already holds them all,
-        # and no listing call is needed to find them.
+        # Every node's archived log id, collected off `node_state` as each
+        # node completes: on a job stream `end` names none, since there is no
+        # single archive.
         self.artifact_ids: Dict[Tuple[str, str], str] = {}
         # What the server asked us to wait before reconnecting, from the SSE
         # `retry` field. Per tail, not per class: two tails against different

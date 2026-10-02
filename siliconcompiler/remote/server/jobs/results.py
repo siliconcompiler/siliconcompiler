@@ -264,10 +264,10 @@ class ResultsMixin:
         that is running AND for one that is over, whose stream sends `end` at
         once. Everything else is a refusal.
 
-        🔴 **A missing capability is named at its broadest**: `logs`, then
-        `logs.stream`, then `logs.stream.job`. A client told only that the job
-        stream is missing, on a deployment that serves no logs at all, would
-        fall back to per-node requests that fail too.
+        🔴 **A missing capability is named at its broadest**: `logs.stream`,
+        then `logs.stream.job`. A client told only that the job stream is
+        missing, on a deployment that serves no live log at all, would fall
+        back to per-node requests that fail too.
 
         ⚠️ The terminal answer is deliberately not a refusal. A job can end
         between the `303` and the connect, and the stream already answers that

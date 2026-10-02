@@ -28,6 +28,3 @@ CONTRACT-CHANGES item 2 names them.
   a job's helper modules where a Slurm-dispatched run collects before it
   starts. Planned:
   [`collect/uploaded-collection-rebuilt.md`](../../../plans/siliconcompiler/collect/uploaded-collection-rebuilt.md).
-- **10. A package's dataroot is decided again wherever the object is built**,
-  where the node should resolve the uploaded copy. Planned:
-  [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).

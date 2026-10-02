@@ -6,9 +6,10 @@ used starts a server which serves a complete ``GET /v1``. An optional
 ``<datadir>/config.json`` overrides any subset of them; anything it does not
 mention keeps its default.
 
-Limits come from here rather than from a table because there are no plans and
-no per-user overrides in this profile -- a ceiling is the operator's policy, not
-an account's data.
+Limits come from here rather than from a table because there are no plans in
+this profile -- a ceiling is the operator's policy, not an account's data. The
+one exception is `max_download_bytes`, which an operator may override per
+account in `user_limits` (`identity.accounts`).
 '''
 
 import json
@@ -81,10 +82,9 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # usual `_bytes` is wrong.** Truncating UTF-8 by byte count splits a
     # codepoint, and what comes out is not text.
     #
-    # 🔴 Published, because otherwise every deployment truncates differently
-    # and a client rendering a refusal in a fixed box, or a log pipeline
-    # indexing on it, sees a different answer from each server -- which reads
-    # as a client bug. `detail` is a single line.
+    # 🔴 Enforced and not published (`_NOT_PUBLISHED`): it bounds this
+    # server's own output and no client acts on it, so it stays off `GET /v1`.
+    # `detail` is a single line.
     "max_detail_chars": 300,
 
     # 🆕 How long a job may sit with no upload before it is `abandoned`.
@@ -117,8 +117,8 @@ DEFAULTS: Dict[str, Any] = {
 
     # A registry, not free text: absent and unrecognised mean the same thing to
     # a client, so a value is only listed once it is served. `logs.stream` is
-    # one node's live tail and `logs.stream.job` every node's, merged; the old
-    # `logs` is folded into the first. A finished node's log is an artifact.
+    # one node's live tail and `logs.stream.job` every node's, merged. A
+    # finished node's log is an artifact.
     #
     # ✅ `logs.stream.job` is advertised because the stream host IS this host,
     # so the merge is N tails in one process -- and one connection per job is
@@ -201,7 +201,8 @@ DEFAULTS: Dict[str, Any] = {
     # The origins this deployment is reached at, one or several, as
     # scheme://host[:port]: what a DPoP proof's `htu` is checked against, and
     # what every URL this server hands out is built on -- the upload PUT, the
-    # artifact 303, the stream URL and the portal handover.
+    # artifact 303 and the stream URL, and the portal handover where
+    # `web_url_base` is None.
     #
     # 🔴 **Config, and never `Host` or `X-Forwarded-Host`**, for the reason
     # `web_url_base` is. None takes the ones the server was started with: this
@@ -535,7 +536,6 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 f"api_fetchable_kinds names unknown kinds: "
                 f"{', '.join(sorted(unknown))}")
 
-    # A client reading `logs.stream.job` falls back to per-node streams.
     features = values["features"]
     if "logs" in features:
         raise ValueError("features lists logs, which is folded into logs.stream")
@@ -546,6 +546,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
     if unregistered:
         raise ValueError(f"features lists {', '.join(unregistered)}, which is not a "
                          f"registered features string: {', '.join(FEATURES)}")
+    # A client reading `logs.stream.job` falls back to per-node streams.
     if "logs.stream.job" in features and "logs.stream" not in features:
         raise ValueError("features lists logs.stream.job without logs.stream, "
                          "which it implies")
@@ -828,7 +829,7 @@ class Config:
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
-            # Ten, every one REQUIRED (surface §1): `max_detail_chars` bounds
+            # Every one REQUIRED (surface §1): `max_detail_chars` bounds
             # this server's own output and no client acts on it -- the test
             # `run_heartbeat_seconds` failed -- so it stays in config and off
             # the wire.

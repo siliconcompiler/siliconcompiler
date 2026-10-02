@@ -185,9 +185,10 @@ class SubmitMixin:
                         "UPDATE jobs SET submit_idempotency_key = NULL, submit_reply = NULL "
                         "WHERE id = ?", (other["id"],))
 
-        # 🔴 Kept from here on, as its own `input`, whatever staging finds:
-        # every upload the job took can be looked at afterwards -- a refused one
-        # most of all (surface D133).
+        # 🔴 Kept from here on, as its own `input`: every upload the job took
+        # can be looked at afterwards -- a refused one most of all (surface
+        # D133) -- but one refused for what it must not carry, which
+        # `_forget_upload` deletes (`rows._kept`).
         def admit():
             # 🔴 `concurrent_jobs` counted again inside the transaction that
             # moves the job into `staging`, which is what it counts, and the

@@ -124,8 +124,8 @@ class ReconcileMixin:
             # run, including the ones that failed, so a client could not tell
             # *this node is why* from *this node is fine* without re-deriving
             # it from the state it already had. `run-failed` is registered
-            # precisely for this: it is one of the three slugs that are never
-            # an HTTP response and only ever a `type` on an error object.
+            # precisely for this: it is one of the slugs that are never an
+            # HTTP response and only ever a `type` on an error object.
             # A node whose image would not pull was interrupted, not failed
             # (implementation-notes §10): the runner says so from the
             # runtime's own pull error, and `detail` names the image, or the
@@ -165,10 +165,9 @@ class ReconcileMixin:
         without a transition: *nothing written lately* and *dead* had to be
         told apart, and only a clock can do it.
 
-        ⚠️ **No heartbeat means no opinion.** A run started by a runner older
-        than this writes none, and the honest answer for it is the one this
-        server always gave -- ask the scheduler. Treating a missing field as
-        silence would declare every in-flight job of an upgrade dead.
+        ⚠️ **No heartbeat means no opinion**: `reconcile` asks the scheduler
+        instead. The runner stamps one on every write, so only a progress file
+        it did not write lacks one.
         '''
         beat = progress.get("heartbeat")
         if not beat:
@@ -180,12 +179,11 @@ class ReconcileMixin:
     def abandon_if_expired(self, job) -> bool:
         '''A job whose upload never arrived reaches a terminal state.
 
-        🔴 **`abandoned` is the tenth state and this is the only thing that
-        writes it.** Until now a job created and never uploaded to sat in
-        `created` for ever: it held a `pending_uploads` slot, it appeared on
-        every listing, and -- because the portal refreshes until a job is
-        terminal -- its page reloaded itself indefinitely for a run that was
-        never going to happen.
+        🔴 **This is the only thing that writes `abandoned`.** Without it a job
+        created and never uploaded to would sit in `created` for ever: it would
+        hold a `pending_uploads` slot, appear on every listing, and -- because
+        the portal refreshes until a job is terminal -- its page would reload
+        itself indefinitely for a run that was never going to happen.
 
         ⚠️ **Two ways to expire, because there are two ways to stall.** A job
         that asked for a grant has one that lapses, which is the contract's
@@ -288,10 +286,10 @@ class ReconcileMixin:
         🔴 **Throttled, because this is the only part of a poll that leaves the
         machine.** Every call is a `squeue`, and every `squeue` is one or more
         RPCs into slurmctld -- so at a one-second poll interval it would be one
-        per second per running job, which is exactly the load
-        `--max-connections` exists to throttle. `force` is for the two callers
-        that cannot accept a stale answer: a cancel, which needs the ids to
-        reach the work, and the last look before a job goes terminal.
+        per second per running job, against the one controller the whole
+        cluster shares. `force` is for the two callers that cannot accept a
+        stale answer: a cancel, which needs the ids to reach the work, and the
+        last look before a job goes terminal.
 
         ⚠️ Asked for once and then never again. Only the nodes still missing an
         id are looked up, so a job whose nodes are all recorded costs nothing --

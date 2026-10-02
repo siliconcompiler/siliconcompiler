@@ -13,12 +13,12 @@ tag is resolved to a digest once, here, rather than re-resolved at every
 dispatch.
 
 ⚠️ **A separate entry point rather than more flags on the server**, which has
-three and should keep them. This one runs against a datadir, not against a
-running server, and needs nothing from the ``server`` extra: a deployment can be
-curated before it is first started, and from a shell on the host rather than
-over the API. When the portal arrives it calls the same functions in
-:mod:`~siliconcompiler.remote.server.software.images`, so there is one implementation of
-each of these writes and not two.
+three, and a fourth for testing, and should keep them. This one runs against a
+datadir, not against a running server, and needs nothing from the ``server``
+extra: a deployment can be curated before it is first started, and from a shell
+on the host rather than over the API. The portal's images screen calls the same
+functions in :mod:`~siliconcompiler.remote.server.software.images`, so there is
+one implementation of each of these writes and not two.
 '''
 
 import argparse
@@ -188,8 +188,8 @@ def _cmd_add_software(store, args) -> int:
         # or each node's image does -- a default would make that a silent
         # guess about what a client's job needs.
         raise SystemExit(
-            f"{args.name}: say -kind python or -kind tool. A tool with a "
-            "driver can say -driver instead, which implies it")
+            f"{args.name}: say -kind python, -kind tool or -kind interpreter. A "
+            "tool with a driver can say -driver instead, which implies it")
 
     # The deployment's own out-of-tree drivers, from its config.
     try:
@@ -350,10 +350,10 @@ def _cmd_resolve(store, args) -> int:
     the alternative -- submitting a job to find out -- is a slow way to learn
     that a tool has no image.
     '''
-    # 🔴 The two buckets, because they resolve differently: the python set has
-    # to be held by ONE image and a tool is satisfied per node. `-versions`
-    # names python requirements and `-requires` names tool ones, which is the
-    # same split the descriptor carries.
+    # 🔴 The python and tools buckets, because they resolve differently: the
+    # python set has to be held by ONE image and a tool is satisfied per node.
+    # `-versions` names python requirements and `-requires` names tool ones,
+    # the same split the descriptor carries. No interpreter is asked for.
     requires = {"python": dict(_wants(args.versions)),
                 "tools": dict(_wants(args.requires))}
     tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}
@@ -493,11 +493,10 @@ def _parser() -> argparse.ArgumentParser:
         "-kind", choices=("python", "tool", "interpreter"),
         help="python, tool, or interpreter for the one name python -- an image's "
              "own Python, which a node running the user's Python is matched on. "
-             "Derived by probing this process when omitted, which is the right "
-             "answer unless you are describing an image this process is not")
+             "Required unless -driver is given, which implies tool")
     software.add_argument(
         "-driver", metavar="<module>",
-        help="the module carrying this tool's Task driver. 🔴 Spelled out and "
+        help="the module carrying this tool's Task driver. Spelled out and "
              "never defaulted from the name: kepler-formal is driven from "
              "siliconcompiler.tools.keplerformal, so a convention that is "
              "right most of the time is wrong exactly where nobody looks")

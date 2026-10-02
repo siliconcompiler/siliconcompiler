@@ -67,8 +67,8 @@ To set a header the operator's access layer requires, use:
             self._add_commandline_argument("configure", "bool",
                                            "create configuration file for the remote")
             self._add_commandline_argument("server", "str",
-                                           "address of server for configure (only valid with "
-                                           "-configure)")
+                                           "address of server (only valid with -configure "
+                                           "or -ci_setup)")
             self._add_commandline_argument("add", "[dir]",
                                            "path to add to the upload whitelist (only valid "
                                            "with -configure)")
@@ -204,8 +204,9 @@ def _dispatch(remote):
         try:
             client.configure_server(server=remote.get("cmdarg", 'server'))
         except RemoteError as e:
-            # An answer that is needed and was not given, most often the server
-            # address, which has no default to fall back on.
+            # Any configure failure: an unreachable server, a refused login, or
+            # an answer that is needed and was not given -- most often the
+            # server address, which has no default to fall back on.
             remote.logger.error(str(e))
             return 3
         return 0
@@ -266,9 +267,9 @@ def _act_on_job(remote, client, project_cfg):
             "or it was submitted by a different run")
         return 1
 
-    # The server is confirmed before it is acted on, which is the order the
-    # client this replaces used and the reason a cancel against an unreachable
-    # server says so rather than reporting the job as gone.
+    # The server is named before anything is sent to it, so whatever follows
+    # -- a refusal, an unreachable host -- reads against the address it came
+    # from. Nothing here contacts it.
     remote.logger.info(f"Server: {client.base_url}")
 
     if remote.get("cmdarg", 'reason') and not remote.get("cmdarg", 'cancel'):

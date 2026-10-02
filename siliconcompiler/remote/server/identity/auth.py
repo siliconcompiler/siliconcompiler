@@ -655,8 +655,8 @@ def _wire_reason(stored: Optional[str]) -> str:
     """Translate a stored revocation reason into the one the client branches on.
 
     An unrecognised value maps to `revoked` rather than passing through: the
-    wire vocabulary is closed, and a client that meets a fourth value has no
-    branch for it.
+    wire vocabulary is closed, and a client that meets a value outside it has
+    no branch for it.
     """
     return _WIRE_REASON.get(stored or "", "revoked")
 

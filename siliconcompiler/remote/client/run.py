@@ -6,7 +6,7 @@ Four calls to start it and one to watch it:
     POST /v1/jobs                     the job exists, and can be refused here
     POST /v1/jobs/{id}/upload-grant   where to put the bytes
     PUT  <the grant's url>            the bytes move, never through the API
-    POST /v1/jobs/{id}/submit         carrying the digest of what was PUT
+    POST /v1/jobs/{id}/submit         no body: the grant bound the digest
     GET  /v1/jobs/{id}                until `terminal`
 
 🔴 **The refusal comes before the bytes.** That is what the descriptor on the
@@ -1711,9 +1711,9 @@ class _Tails:
         stream for the whole job.
 
         Three things can switch it off, and only one of them is an opinion:
-        the deployment does not serve a live tail, or the caller asked for
-        quiet -- which means the same thing here as it does locally, *do not
-        put tool output on my terminal*.
+        the caller asked for quiet -- which means the same thing here as it
+        does locally, *do not put tool output on my terminal* -- `GET /v1`
+        cannot be read, or the deployment does not serve a live tail.
         '''
         if self._run.project.option.get_quiet():
             return False, 0, False

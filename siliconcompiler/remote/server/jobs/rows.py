@@ -139,8 +139,8 @@ class RowsMixin:
             "id": job["id"],
             "state": job["state"],
             # Published rather than derivable on purpose. The rule is read
-            # `terminal`, do not switch on the name -- which is what makes an
-            # eleventh state additive instead of breaking.
+            # `terminal`, do not switch on the name -- which is what makes a
+            # new state additive instead of breaking.
             "terminal": job["state"] in TERMINAL_STATES,
             # 🔴 Every state the job has entered, oldest first (surface §17;
             # D278): how long it spent in each, and why it moved where the

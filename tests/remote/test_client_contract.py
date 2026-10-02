@@ -222,8 +222,8 @@ def test_a_blocked_document_is_named_by_its_title_or_its_id(fake_v1, logged_in):
                      "sign Export Control Statement"]
     # Where there is no `/me`, by its id.
     assert blocked_lines(["tos"]) == ["sign tos"]
-    # The keyed object this used to be is no longer read.
-    assert blocked_lines({"tos": {}}) == []
+    # An entry that is not a terms id names nothing.
+    assert blocked_lines(["tos", {"id": "export"}, ""]) == ["sign tos"]
 
 
 def test_the_stream_url_is_never_printed(logged_in, fake_v1, monkeypatch, caplog):

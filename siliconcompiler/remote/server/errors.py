@@ -28,8 +28,8 @@ TYPE_BASE = "https://siliconcompiler.com/server-errors"
 class _Error:
     '''One row of the registry.
 
-    ``status`` is None for the three slugs that are never HTTP responses: they
-    are ``type`` values on a job's or a node's ``error`` object.
+    ``status`` is None for the slugs that are never HTTP responses: they are
+    ``type`` values on a job's or a node's ``error`` object.
     '''
 
     def __init__(self, slug: str, status: Optional[int], title: str,
@@ -48,9 +48,9 @@ def _e(slug, status, title, members=()):
     return _Error(slug, status, title, members)
 
 
-# The 37 slugs, grouped by kind. `title` is the part of the body that
-# must be identical on every occurrence, so it is fixed here rather than written
-# per raise site.
+# Every slug, grouped by kind. `title` is the part of the body that must be
+# identical on every occurrence, so it is fixed here rather than written per
+# raise site.
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # -- ceilings ------------------------------------------------------------
     _e("limit-exceeded", 429, "Limit exceeded", ("limit",)),
@@ -121,7 +121,9 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _e("session-ended", 401, "Session ended", ("reason",)),
     _e("insecure-transport", 426, "Upgrade required"),
 
-    # -- never HTTP responses: these are `type` values on an error object -----
+    # -- job outcomes, and two refusals registered beside them ---------------
+    # A row with no status is never an HTTP response: it is a `type` value on
+    # a job's or a node's `error` object.
     # The environment ended the run: the scheduler lost it, preemption, a
     # failed compute node, an image that could not be pulled.
     _e("run-interrupted", None, "The run was interrupted"),

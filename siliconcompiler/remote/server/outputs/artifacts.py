@@ -7,9 +7,8 @@ per node and no record of it; a tarball is not a row, so it carries no kind, no
 retention and no per-object gate. Here every object is indexed, and the listing
 is the answer to *where did my results go* even when the bytes are gone.
 
-Five kinds are produced, and every byte is stored once:
-
-Every artifact is stored and served gzipped (surface §21).
+The kinds this server produces, every one stored and served gzipped (surface
+§21):
 
 ``manifest``  the job's own ``<design>.pkg.json``, gzipped. Job-level, so no step. **The
               kind most likely to be the only one there is**: it is small, and
@@ -63,12 +62,14 @@ copy of the large half.
                 sent back for its sources carries -- is its own row, in the
                 order they arrived, with the digest the submit verified as its
                 hash. Kept even when the job is then refused, which is when
-                somebody wants to see what was sent. **Not a copy**: the upload
-                is MOVED into the store rather than deleted, so the cost is the
-                upload itself, held for the kind's retention.
+                somebody wants to see what was sent -- but for an upload
+                refused for what it must not carry, which is deleted
+                (`jobs.rows._kept`). **Not a copy**: the upload is MOVED into
+                the store rather than deleted, so the cost is the upload
+                itself, held for the kind's retention.
               - **one node's ``inputs/``**, bound to the node: what its
-                upstream handed it. Links are followed, so the archive holds the
-                bytes the node read.
+                upstream handed it. A link stays a link to the upstream output
+                it names, so the archive holds no second copy of those bytes.
 
               ⚠️ **Neither is a member of the node archive** -- that leaves
               ``inputs/`` out -- so neither decides whether it may be fetched.

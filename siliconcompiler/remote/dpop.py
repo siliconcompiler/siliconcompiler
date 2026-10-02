@@ -181,7 +181,7 @@ def verify_proof(proof: str, method: str, url: str,
 
     Raises :class:`DPoPError` for every way a proof can fail to hold up, which
     the handler renders as `invalid-dpop-proof`. Replay is the caller's problem:
-    this returns the `jti` check's input rather than remembering anything.
+    this remembers nothing, and the caller checks the proof's `jti` itself.
     '''
     import jwt
 
@@ -243,10 +243,9 @@ def verify_proof(proof: str, method: str, url: str,
             raise DPoPError("proof ath does not match the access token")
 
     if expected_jkt is not None and thumbprint != expected_jkt:
-        # The bound key and the presenting key differ. On the token endpoint
-        # this is the first-contact binding refusing an impostor; on an ordinary
-        # request it is a token being presented by something that does not hold
-        # its key.
+        # The bound key and the presenting key differ. No server path passes
+        # it: the token endpoint and `TokenIssuer.authenticate` each compare
+        # the returned thumbprint with the bound key themselves.
         raise DPoPError("proof key does not match the bound key")
 
     return thumbprint

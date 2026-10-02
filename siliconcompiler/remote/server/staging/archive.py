@@ -9,9 +9,9 @@ it the other way round is how an archive bomb gets opened -- the bytes would be
 examined before anything had established they are the bytes that were declared.
 
 Every refusal is ``archive-rejected`` with a ``reason`` naming which rule was
-broken. One slug and six discriminators rather than six slugs: the registry is
-frozen at v1 and a member's value can be added after the freeze where a slug
-cannot.
+broken. One slug and a discriminator per rule rather than a slug per rule: the
+registry is frozen at v1 and a member's value can be added after the freeze
+where a slug cannot.
 
 🔴 **An upload may carry links that resolve inside it** (contract.md's Member
 types and Links rows; D65): a symlink whose target, joined to its own
@@ -34,8 +34,7 @@ __all__ = ["ArchiveRejected", "check_inside", "extract", "VIOLATIONS",
 
 
 # The vocabulary, and it is closed. `member_count` and `expanded_bytes` are the
-# two that name a published limit; the other four are structural and have no
-# number to publish.
+# two that name a published limit; the rest have no number to publish.
 # The registry's own list, not a copy: two copies drift the moment one grows.
 from siliconcompiler.remote.server.errors import ARCHIVE_VIOLATIONS as VIOLATIONS  # noqa: E402
 

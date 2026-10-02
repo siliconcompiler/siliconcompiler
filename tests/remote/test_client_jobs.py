@@ -784,10 +784,9 @@ def test_delete_is_a_204_with_no_body(fake_v1, logged_in):
 
 
 def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path):
-    '''🔴 The grant publishes the byte count it was issued for, and where the
-    descriptor carried no size that is the server's ceiling rather than this
-    archive's length. Forwarding it announces a gigabyte and sends twenty
-    kilobytes, and the server waits for the rest for ever.'''
+    '''🔴 The length sent is the file's own, whatever the grant's
+    `content-length` says: a header announcing a gigabyte over twenty bytes
+    would leave the server waiting for the rest for ever.'''
     payload = tmp_path / "upload.tar.gz"
     payload.write_bytes(b"x" * 20)
 

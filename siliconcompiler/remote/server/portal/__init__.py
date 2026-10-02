@@ -1,5 +1,5 @@
 '''
-The portal: six screens over the same decisions the API makes.
+The portal: ten screens over the same decisions the API makes.
 
 🔴 **Every authorization decision here goes through the code the API handlers
 call** -- ``JobService.owned``, ``accounts.owned_device``, and the rest. Not
@@ -72,8 +72,8 @@ class Sessions:
     '''Browser sessions, in memory and nowhere else.
 
     🔴 Deliberately not a table. crucible's portal session is its identity
-    provider's and is in none of the 41 either -- session state is not what
-    this schema is for. A handover token that lives under a minute has no
+    provider's and is in none of its tables either -- session state is not
+    what this schema is for. A handover token that lives under a minute has no
     business surviving a restart, and a browser session that does not survive
     one is a person running ``sc-remote -portal`` again.
     '''
@@ -417,9 +417,9 @@ def job(session, job_id):
         "SELECT * FROM job_state_transitions WHERE job_id = ? "
         "ORDER BY occurred_at", (job_id,))
 
-    # 🔴 Returns (items, cursor). Handing the tuple straight to a template
-    # renders a page with nothing on it and no error, which is how this shipped
-    # once already.
+    # 🔴 A list, every page followed. `JobService.artifacts` returns
+    # (items, cursor), and handing that tuple straight to a template renders a
+    # page with nothing on it and no error.
     items = _all_artifacts(session, job_id)
 
     per_node = {}
@@ -1211,8 +1211,9 @@ def register_image(session):
     on the cluster.
 
     Which is why it takes a person and records them. There is no CI path here
-    -- ``registered_via`` is crucible's -- so every image on this deployment
-    has somebody's id on it.
+    -- that is crucible's -- so every image registered on this deployment has
+    somebody's id on it. The only images without one are those the server
+    derived itself.
     '''
     ref = (flask.request.form.get("ref") or "").strip()
     digest = (flask.request.form.get("digest") or "").strip()

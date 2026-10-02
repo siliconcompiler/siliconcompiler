@@ -24,7 +24,7 @@ CAPABILITIES_MAX_AGE = 60
 
 
 def advertised_software(store, config=None):
-    '''What this deployment can actually run, in its two buckets.
+    '''What this deployment can actually run, by bucket.
 
     Normally the registry, rendered: every live version this deployment tracks,
     best first, and where it runs containers only the ones a live image holds.
@@ -128,8 +128,8 @@ def healthz():
         # Reads a real table rather than a constant: `SELECT 1` is evaluated
         # without touching the database at all, so it would answer `pass` for a
         # store that had been deleted out from under the process. job_states is
-        # ten rows, is required for the server to do anything, and reading it
-        # exercises the connection, the file and the schema together.
+        # one row per job state, is required for the server to do anything, and
+        # reading it exercises the connection, the file and the schema together.
         if store.one("SELECT count(*) AS n FROM job_states")["n"] == 0:
             status = "fail"
     except Exception as e:                                       # noqa: BLE001

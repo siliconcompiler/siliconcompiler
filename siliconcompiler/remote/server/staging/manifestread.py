@@ -23,7 +23,7 @@ sandboxed as crucible's staging step is*; implementation-notes §E, *The staging
 sandbox*). The server starts it with an empty environment, its own empty
 ``HOME`` and working directory, no inherited descriptor and ``stdin`` closed,
 and kills it at a wall-clock limit or when the job is cancelled
-(`staging.run_read`). The process then contains itself before it opens
+(`sandbox.run_read`). The process then contains itself before it opens
 anything (:func:`contain`): new user and network namespaces, where the kernel
 lets an unprivileged process have them, and CPU, memory and file-size limits.
 In the job's own container, where the deployment runs containers, the

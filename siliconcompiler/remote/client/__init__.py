@@ -139,8 +139,9 @@ class Client:
     ######################################################################
 
     def capabilities(self, notices: bool = True) -> Dict[str, Any]:
-        '''``GET /v1``: the first call on every path, and it carries no
-        credential.
+        '''``GET /v1``, sent with no credential. Read by each login, by a
+        run's checks and by `sc-remote` with no job; a command that already
+        holds a session goes straight to its own call.
 
         A JSON capabilities block means this is a ``v1`` server. What a client
         branches on inside it is ``grant_types_supported`` and never
@@ -218,9 +219,10 @@ class Client:
         # status; once per session everywhere else.
         self._show_notices(published, always=True)
 
-        # Two buckets, a closed set, and both always present. They are shown
-        # apart because they are satisfied apart: the whole python set has to
-        # be in ONE image and a tool is resolved per node.
+        # `python` and `tools`, two of the three buckets `software` always
+        # carries; `interpreter` is not shown here. The two are shown apart
+        # because they are satisfied apart: the whole python set has to be in
+        # ONE image and a tool is resolved per node.
         software = published.get("software") or {}
         for bucket, label in (("python", "Python distributions"),
                               ("tools", "Tools")):
@@ -256,8 +258,9 @@ class Client:
 
     def print_identity(self, identity: Dict[str, Any]) -> None:
         '''Who the server says you are, the session this machine holds, and
-        what you have used -- all from one `GET /v1/me`, which rotates
-        nothing, so showing a session never refreshes it (surface §5).'''
+        what you have used -- all from one `GET /v1/me`, which itself rotates
+        nothing (surface §5): the only refresh is the one any command spends
+        on its first access token.'''
         from siliconcompiler.utils.units import format_binary, format_duration
 
         self.logger.info(f"Server reports you as {identity['id']} "
@@ -296,13 +299,14 @@ class Client:
 
         🔴 **The login algorithm** (identity §3): token exchange where this
         caller holds a CI credential; otherwise `client_credentials` where it is
-        offered, and the device grant. What is offered is cached beside the
-        credential, per server, and `unsupported_grant_type` -- from either
-        OAuth endpoint -- is the only thing that says the cache is stale. A
-        `401`, a timeout or a `503` means try again later, never switch.
+        offered, and the device grant. What is offered is read from `GET /v1`
+        for each login, and `unsupported_grant_type` -- from either OAuth
+        endpoint -- is the only thing that says to switch: that grant is
+        dropped and `GET /v1` read again. A `401`, a timeout or a `503` means
+        try again later, never switch.
 
-        🔴 **A caller holding a CI key tries token exchange first, whatever
-        the cache says, and never prints a `user_code`** (identity §2): which
+        🔴 **A caller holding a CI key tries token exchange first, before
+        reading `GET /v1`, and never prints a `user_code`** (identity §2): which
         credential it holds is something this client knows, and whether a
         browser exists is not.
         '''
@@ -319,7 +323,7 @@ class Client:
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type" or mode in tried:
                     raise self._refused(e, mode) from None
-                # Stale: switch, and read what is offered again.
+                # Not offered after all: drop it, and read what is offered again.
                 tried.add(mode)
                 offered = [grant for grant in self._grant_types() if grant not in tried]
 
@@ -329,10 +333,10 @@ class Client:
         return list(self.capabilities().get("grant_types_supported") or [])
 
     def _ci_login(self) -> Dict[str, Any]:
-        '''Token exchange, for a caller holding a CI key: tried first whatever
-        the cached grant list says, and on `unsupported_grant_type` once more
-        after re-reading `GET /v1`. A deployment that still offers none fails
-        here -- never a `user_code` nobody reads, and never another grant.'''
+        '''Token exchange, for a caller holding a CI key: tried before
+        `GET /v1` is read, and on `unsupported_grant_type` once more if
+        `GET /v1` then offers it. A deployment that does not fails here --
+        never a `user_code` nobody reads, and never another grant.'''
         try:
             return self._login_with(GRANT_TOKEN_EXCHANGE)
         except OAuthRefusal as e:
@@ -840,12 +844,16 @@ class Client:
         ``flow`` and ``node_count`` are the flowgraph's name and how many nodes
         it has, so a flow over ``max_job_nodes`` is refused before it uploads.
 
-        ``requested_versions`` is what the image must HOLD, keyed on ``python`` and
-        ``tools``, every value a list of PEP 440 specifier sets. 🔴 It names
-        every Python distribution the job imports, pinned exactly: a name left
-        out is not required, and the job may land in an image without it. The
-        split is structural -- the whole ``python`` set shares an interpreter,
-        so ONE image has to hold all of it, while a tool is satisfied per node.
+        ``requested_versions`` is what the image must HOLD, keyed on ``python``
+        and ``tools`` -- and ``interpreter``, for a job with a node that runs
+        the user's own Python -- every value a list of PEP 440 specifier sets.
+        🔴 ``python`` names each distribution the run's own process needs from
+        the image (`RemoteRun._requested_python`), pinned exactly but for a
+        framework distribution: a name left out is not required, and the job
+        may land in an image without it. The split is structural -- the whole
+        ``python`` set shares an interpreter, so ONE image has to hold all of
+        it, while a tool is satisfied per node, and ``interpreter`` by the
+        image of each node that runs the user's Python.
 
         ``needs`` is the feature strings the job relies on; a server lacking
         one refuses here rather than after the upload.
@@ -898,9 +906,10 @@ class Client:
     def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
 
-        Its own call rather than a member of the create response, which is what
-        gives an expired grant a way back: re-issuing is this endpoint, where
-        before it meant creating a second job and leaking the first.
+        Its own call rather than a member of the create response, so a grant
+        that expires can be re-issued here without a second job. This client
+        asks once per archive: an upload that fails cancels the job
+        (`RemoteRun._abandon`).
 
         🔴 ``size`` and ``digest`` are the exact bytes about to go up, and the
         first grant for them fixes both: a re-issue must repeat them, and the
@@ -914,13 +923,10 @@ class Client:
     def upload(self, grant: Dict[str, Any], path) -> None:
         '''Send the archive to wherever the grant points.
 
-        🔴 ``content-length`` is dropped and recomputed from the file. The grant
-        publishes the byte count it was issued for, and on a deployment whose
-        descriptor carried no size that number is the server's ceiling rather
-        than this archive's length -- sending it verbatim would announce a
-        gigabyte and then send twenty kilobytes, and the server would wait for
-        the rest for ever. The count the server enforces is in the signature,
-        not in this header.
+        🔴 ``content-length`` is dropped and recomputed from the file, so the
+        header always matches the body: one announcing more than is sent
+        leaves the server waiting for the rest for ever. The count the server
+        enforces is in the signature, not in this header.
         '''
         headers = {name: value for name, value in (grant.get("headers") or {}).items()
                    if name.lower() != "content-length"}
@@ -1215,7 +1221,8 @@ class Client:
                 return
 
         if not server and prompt:
-            server = _ask("Remote server address: ")
+            server = _ask("Remote server address: ",
+                          hint="choose a server address with -server")
 
         if not server or not server.strip():
             raise RemoteError(
@@ -1451,14 +1458,16 @@ def _notice(notice) -> tuple:
     return level, line
 
 
-def _ask(question: str) -> str:
-    '''A prompt that a scripted run answers by failing rather than hanging.'''
+def _ask(question: str, hint: Optional[str] = None) -> str:
+    '''A prompt that a scripted run answers by failing rather than hanging.
+    The failure names the question, and ``hint``, where the caller has one,
+    says how to give the answer without a prompt.'''
     try:
         return input(question)
     except EOFError:
         raise RemoteError(
-            "no answer available and no default to fall back on: "
-            "choose a server address with -server") from None
+            f"no answer was given to \"{question.strip()}\", and it has no default"
+            + (f": {hint}" if hint else "")) from None
 
 
 def read_secret(name: str) -> str:

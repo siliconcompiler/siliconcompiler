@@ -199,7 +199,7 @@ def upload(job_id):
 
     Deliberately outside ``/v1``: it is this deployment's storage, standing in
     for the presigned PUT another deployment would hand out, and the contract's
-    surface is the eighteen endpoints rather than wherever a grant points.
+    surface is its endpoints under ``/v1`` rather than wherever a grant points.
 
     No scope guards it and no session is looked up. The signature names one job,
     expires, and carries the byte ceiling the grant was issued for -- and the

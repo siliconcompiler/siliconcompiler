@@ -253,10 +253,10 @@ CREATE TABLE jobs (
                                                     -- job_nodes instead. At most one level
     submit_trace_id   text CHECK (submit_trace_id IS NULL OR length(submit_trace_id) = 32),
     error_type        text,                         -- the RFC 9457 `type` URI
-    error_members     text,                         -- JSON: the rest of the job's `error`:
-                                                    -- `detail` and the type's own members, as
-                                                    -- the refusal carried them. NULL when
-                                                    -- error_type is NULL
+    error_members     text,                         -- JSON: the type's own members of the
+                                                    -- job's `error`, as the refusal carried
+                                                    -- them; its `detail` is the transition's
+                                                    -- reason. NULL when error_type is NULL
     state_reason      text,                         -- display only: the staging phase, or a
                                                     -- cancel's reason. Bounded and scrubbed
 
@@ -351,8 +351,8 @@ CREATE TABLE job_nodes (
     exit_code   integer,
     error_type  text,                               -- the same taxonomy as jobs.error_type
     error_members text,                             -- JSON: the rest of the node's `error`:
-                                                    -- `detail` and the type's own members, as
-                                                    -- for jobs. NULL when error_type is NULL
+                                                    -- `detail` and the type's own members.
+                                                    -- NULL when error_type is NULL
     state_reason text,                              -- display only: a cancel's reason
     metrics     text,                               -- what the node's portal panel shows, as JSON:
     records     text,                               -- the run's final manifest read ONCE as plain
@@ -484,8 +484,7 @@ CREATE INDEX artifacts_live_object_idx ON artifacts (location_id, storage_key)
 -- Indexing is driven from reconcile, which runs on whichever request thread
 -- got there first -- and a client polling its job while tailing two logs has
 -- three of them. Every writer checks before inserting, and two that check
--- together both pass: the aes flow came back with 38 bundles for 23 nodes, and
--- the portal showed a node owning "logs, bundle, bundle".
+-- together both pass, which would leave a node owning two rows of one kind.
 --
 -- coalesce because the job-level rows carry NULL for both, and SQLite counts
 -- NULLs as distinct in a unique index -- which would leave exactly the rows

@@ -331,15 +331,16 @@ class Store:
     ######################################################################
 
     def advertised_software(self, containers: bool = True) -> dict:
-        '''``GET /v1``'s ``software``: every runnable version, best first, in
-        two buckets.
+        '''``GET /v1``'s ``software``: every runnable version, best first, by
+        bucket.
 
-        🔴 **`python` and `tools`, a CLOSED set, and both are always present.**
-        A client branches on them, and a bucket may be `{}` -- a deployment
-        running no containers publishes no tools. Inside a bucket nothing
-        changes: distribution name to a non-empty array of versions.
+        🔴 **`python`, `tools` and `interpreter`, a CLOSED set, and every one
+        is always present** (`images.BUCKETS`). A client branches on them, and
+        a bucket may be `{}` -- a deployment running no containers publishes
+        no tools. Inside a bucket nothing changes: distribution name to a
+        non-empty array of versions.
 
-        🔴 **They are two buckets because they are satisfied differently.**
+        🔴 **They are separate buckets because they are satisfied differently.**
         The whole `python` set has to be held by ONE image, because those names
         share an interpreter; a tool is satisfied per node. Flattened, nothing
         says which names have to land together, which is the question the image

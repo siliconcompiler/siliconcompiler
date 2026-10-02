@@ -383,8 +383,9 @@ class StagingMixin:
         hear the answer that does not change when an image is added.
 
         ⚠️ The first one found is the one named, in the order PDK, library,
-        tool, because the slug carries one `resource`. The detail says how many
-        more there are, so fixing one is not followed by a surprise.
+        FPGA device, tool, because the slug carries one `resource`. The detail
+        says how many more there are, so fixing one is not followed by a
+        surprise.
 
         ⚠️ **A summary that lies can evade this**, since the names are the
         read's (contract §1, *The summary cannot widen access*). That widens
@@ -531,7 +532,8 @@ class StagingMixin:
 
     def _stored_summary(self, job, root: Path) -> Dict[str, Any]:
         '''The summary the job's last read stored, validated again; the read
-        run once more where there is none -- a job staged before one was kept.'''
+        run once more where there is none that validates -- a restart while the
+        read was running, after the upload was unpacked.'''
         path = root / runspec.SUMMARY_FILENAME
         try:
             with open(path, "rb") as f:

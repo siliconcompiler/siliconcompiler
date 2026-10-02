@@ -127,7 +127,7 @@ handover: follow-on 23's route outside `/v1` is replaced by `POST
 
 Nothing to port: it goes when its plan lands on `main` and is merged here.
 
-#### 2. SiliconCompiler's side of the upload is short of the contract in two places
+#### 2. SiliconCompiler's side of the upload is short of the contract in one place
 
 - **The user's own modules go on the tool's path** (surface *A node's own
   Python packages*). Where a Slurm-dispatched run collects before it starts,
@@ -135,11 +135,6 @@ Nothing to port: it goes when its plan lands on `main` and is merged here.
   manifest's values, and a helper module, which is no value, is left behind
   (CORE-FOLLOWUPS item 9). Host mode and Docker are unaffected.
   **Tracked in:** [`collect/uploaded-collection-rebuilt.md`](../../../plans/siliconcompiler/collect/uploaded-collection-rebuilt.md).
-- **A dataroot the client resolved to local files resolves on the node to the
-  uploaded copy, never by asking whether the package there is installed
-  editable** (surface *Uploaded wheels*). The node's resolver may still ask
-  (CORE-FOLLOWUPS item 10).
-  **Tracked in:** [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
 
 ---
 

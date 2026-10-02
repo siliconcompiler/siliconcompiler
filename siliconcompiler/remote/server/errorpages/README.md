@@ -54,5 +54,5 @@ the job's `id` for a type that arrives on a job's `error`; rendering the
 specific failure is the client's job. One stylesheet, no build step, no external
 requests, light and dark.
 
-⚠️ The plans docs link to this folder on GitHub's `server-v1` branch, so those
-links resolve only once the branch is pushed.
+⚠️ The plans docs link to this folder on GitHub's `server-v1` branch, not on
+`main`, so those links stop resolving once that branch is deleted.

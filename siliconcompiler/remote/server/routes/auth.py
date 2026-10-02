@@ -5,9 +5,9 @@ person's browser.
 🔴 **Two shapes, keyed on the endpoint.** What OAuth processing refuses at
 `/v1/auth/token` and `/v1/auth/device` is answered in the OAuth shape --
 `{"error", "error_description"}`, with `reason` where one applies -- and the
-transport-level refusals raised before it (405, 415, 429) stay problem+json,
-as everywhere. `/v1/auth/revoke` is an ordinary endpoint and answers
-problem+json.
+transport-level refusals raised before it (405, 415, 426, 429; this server
+raises only the first two there) stay problem+json, as everywhere.
+`/v1/auth/revoke` is an ordinary endpoint and answers problem+json.
 
 The device grant is routed and refuses `unsupported_grant_type`, which is the
 login algorithm's cue to use `client_credentials`.

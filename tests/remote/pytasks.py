@@ -20,11 +20,7 @@ class RunsPython(NOPTask):
 class AcmeTask(NOPTask):
     '''One tool's task with a dataroot of its own, `scripts`, from wherever
     ``SOURCE`` says: every task of the tool registers one of that name, from a
-    source of its own (surface D298).
-
-    ⚠️ Each task's `refdir` is its own path, `tcl/<task>`: the collection is
-    laid out by dataroot NAME and path, never by owner, so two tasks' `tcl` in
-    two `scripts` would be one directory there (CORE-FOLLOWUPS item 13).'''
+    source of its own (surface D298).'''
 
     SOURCE = None
 

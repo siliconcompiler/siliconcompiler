@@ -121,9 +121,10 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
               cluster: str = "local", track: bool = False) -> None:
     '''Everything the server decides about how a submitted run executes.
 
-    Applied once, at submit, after the digest has been verified and after the
-    archive limits have bound. A client's manifest asserts what to build; every
-    setting here is the server's answer to how, and none of them is negotiable:
+    Applied by the run itself as it starts (:func:`apply_run`): after submit
+    has verified the digest and staging has bound the archive limits. A
+    client's manifest asserts what to build; every setting here is the
+    server's answer to how, and none of them is negotiable:
 
     - **no dashboard** -- there is no terminal on the server
     - **the build directory** -- ``<datadir>/users/<user>/builds/<job>/``, per
@@ -138,6 +139,10 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     - 🔴 **remote off** -- the one setting whose absence is an infinite loop.
       Left on, the compute node submits the job again
     - **no display** -- there is none on a compute node
+    - **the remote id** -- the server-owned job id, which is what a user pastes
+      back into ``sc-remote``
+    - **tracking**, where ``track`` -- the deployment's ``track_provenance``:
+      each node records the machine it ran on. Only ever turned on here
 
     🔴 **`quiet` is deliberately NOT set, and that is a change.** It used to be,
     on the grounds that *the server's own logging is the record*. It is not what
@@ -149,14 +154,11 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     is a manifest that does not describe their run.
 
     ⚠️ **The thing it was reaching for is real** and is solved where it belongs:
-    the runner detaches the project's console handler, so nothing writes to
-    stdout on the server. That keeps every node log complete, keeps the server's
-    own run log to the run's own messages instead of a concatenation of every
-    node's output, and leaves the caller's `quiet` meaning what they set it to.
-    - **the remote id** -- the server-owned job id, which is what a user pastes
-      back into ``sc-remote``
-    - **tracking**, where ``track`` -- the deployment's ``track_provenance``:
-      each node records the machine it ran on. Only ever turned on here
+    the runner suppresses the project's console handler with a filter
+    (`runner._silence_console`), so nothing writes to stdout on the server.
+    That keeps every node log complete, keeps the server's own run log to the
+    run's own messages instead of a concatenation of every node's output, and
+    leaves the caller's `quiet` meaning what they set it to.
 
     🔴 **On a cluster every node is its own Slurm job, and that is set here.**
     The API process still submits exactly one thing and polls one id -- the

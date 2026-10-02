@@ -1,10 +1,12 @@
 '''
 What is actually inside an image, asked rather than declared.
 
-🔴 **The registry's one unverified claim was `image_contents`.** An operator
-typed what an image held and nothing ever opened it to check, so a wrong row
-meant a job ran in a container without what it asked for and failed at run time
-rather than at submit. This is the other half: ask the image.
+🔴 **The registry's one unverified claim is `image_contents`.** The
+``registry add-image`` command and the portal record what an operator types,
+and nothing opens the image to check, so a wrong row means a job runs in a
+container without what it asked for and fails at run time rather than at
+submit. This asks the image instead: ``setup/server/bootstrap.py`` runs it in
+each image it registers, and the CLI below asks this machine.
 
 **Three mechanisms, and the registry says which applies to which name:**
 
