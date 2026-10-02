@@ -562,6 +562,29 @@ of your checks, and that token cannot read another private repository. The App
 needs contents and pull requests write on your repository, and contents read on
 each repository listed in ``repositories``.
 
+SiliconCompiler builds a docker image of each tool, tagged by a hash of
+everything that goes into it, and yours can be built the same way, on
+SiliconCompiler's images:
+
+.. code-block:: bash
+
+   python3 -m siliconcompiler.utils.toolimages --image_prefix myorg/mylib_ --plan
+   python3 -m siliconcompiler.utils.toolimages --image_prefix myorg/mylib_ \
+       --generate_files --output_dir docker
+
+The tags are computed over your pins merged into SiliconCompiler's. An image
+that would come out the same as SiliconCompiler's is taken from ghcr.io, where
+SiliconCompiler publishes it; the rest are built as ``ghcr.io/myorg/mylib_<tool>``,
+or under another registry given with ``--registry``: your own tools, any tool you
+override, and everything built against one. ``--plan`` lists both, and
+``--json_tools``, without and then with ``--with_dependencies``, gives the order
+to build them in. Each generated directory is a build context. A token that can
+read a private source goes in the ``git_token`` build secret:
+
+.. code-block:: bash
+
+   docker build --secret id=git_token,env=GIT_TOKEN docker/mylib_mytool
+
 Publishing to PyPI
 ------------------
 

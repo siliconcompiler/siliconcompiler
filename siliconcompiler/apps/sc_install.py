@@ -1,24 +1,21 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 import argparse
-import glob
 import hashlib
 import json
-import re
 import shutil
 import subprocess
 import sys
 
 import os.path
 
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 from collections.abc import Container
 from pathlib import Path
 
-import siliconcompiler
-
 from siliconcompiler.schema_support.record import RecordSchema
-from siliconcompiler.utils import get_plugins
+from siliconcompiler.utils import get_plugins, toolimages
+from siliconcompiler.utils.toolimages import get_install_tools
 
 
 def get_install_groups() -> Dict[str, List[str]]:
@@ -39,26 +36,6 @@ def get_install_groups() -> Dict[str, List[str]]:
         "digital-simulation": ["verilator", "icarus", "surfer"],
         "analog-simulation": ["xyce"]
     }
-
-
-def get_install_tools(osname: Optional[str], tools_root: Optional[Path] = None) -> Dict[str, str]:
-    if tools_root is None:
-        tools_root = _get_tool_script_dir()
-
-    script_dir = None
-    if osname:
-        script_dir = tools_root / osname
-        if not script_dir.exists():
-            script_dir = None
-
-    tools = {}
-    if script_dir:
-        for script in glob.glob(str(script_dir / "install-*.sh")):
-            tool = re.match(r"install-(.*)\.sh", os.path.basename(script).lower())
-            if tool:
-                tools[tool.group(1)] = script
-
-    return tools
 
 
 class ChoiceOptional(Container):
@@ -206,7 +183,7 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
     # The install scripts source _prereqs.sh, so a change to how prerequisites are
     # resolved has to invalidate the fingerprint the same way an edit to the script
     # itself does.
-    prereqs = _get_tool_script_dir() / "_prereqs.sh"
+    prereqs = toolimages.get_tool_script_dir() / "_prereqs.sh"
     try:
         with open(prereqs, "rb") as f:
             h.update(f.read())
@@ -215,7 +192,7 @@ def compute_fingerprint(tool: str, script: str) -> Optional[str]:
 
     # Merged with the packages' pins, so one of theirs -- or their override of one of
     # ours -- is tracked like a built-in one.
-    data = _get_tools_manifest()
+    data = toolimages.get_tools_manifest(_get_os_name())
     # Also fold in tools that this install script builds in-image but does not
     # ``docker-depends`` on (e.g. sby builds its SMT solvers), so bumping their
     # pinned version invalidates the image instead of leaving a stale build.
@@ -280,24 +257,24 @@ def install_tool(tool: str, script: str, build_dir: str, prefix: str,
 
     # A package's scripts find _prereqs.sh and _tools.py through SC_TOOLSCRIPTS, since
     # none are installed next to them, and the _tools.py there reads the merged pins.
-    toolscripts = build_path / "toolscripts"
-    toolscripts.mkdir()
+    toolscripts_dir = build_path / "toolscripts"
+    toolscripts_dir.mkdir()
     for helper in ("_tools.py", "_prereqs.sh"):
-        shutil.copy(_get_tool_script_dir() / helper, toolscripts)
-    with open(toolscripts / "_tools.json", "w") as f:
-        json.dump(_get_tools_manifest(), f, indent=2)
+        shutil.copy(toolimages.get_tool_script_dir() / helper, toolscripts_dir)
+    with open(toolscripts_dir / "_tools.json", "w") as f:
+        json.dump(toolimages.get_tools_manifest(_get_os_name()), f, indent=2)
 
     # SiliconCompiler's own scripts read their pins through the _tools.py one directory
     # up, so they run from a copy in SC_TOOLSCRIPTS, where that is the merged pins and a
     # package's override of one reaches them.
-    if Path(script).resolve().is_relative_to(_get_tool_script_dir().resolve()):
-        script_dir = toolscripts / Path(script).parent.name
+    if Path(script).resolve().is_relative_to(toolimages.get_tool_script_dir().resolve()):
+        script_dir = toolscripts_dir / Path(script).parent.name
         script_dir.mkdir()
         script = shutil.copy2(script, script_dir)
 
     # setup environment
     env = os.environ.copy()
-    env["SC_TOOLSCRIPTS"] = str(toolscripts)
+    env["SC_TOOLSCRIPTS"] = str(toolscripts_dir)
     path = env.get("PATH", "").split(":")
     path.insert(0, os.path.join(prefix, "bin"))
     env["PATH"] = ":".join(path)
@@ -394,7 +371,7 @@ def print_machine_info() -> None:
     print("Distro:   ", machine_info.get('distro', None))
     print("Version:  ", machine_info.get('osversion', None))
     print("Mapped OS:", mapped_os)
-    print("Scripts:  ", _get_tool_script_dir())
+    print("Scripts:  ", toolimages.get_tool_script_dir())
 
 
 def __print_summary(successful: Optional[Set[str]],
@@ -435,75 +412,12 @@ def __print_summary(successful: Optional[Set[str]],
     print("#"*max_len)
 
 
-def _get_tool_script_dir() -> Path:
-    return Path(siliconcompiler.__file__).parent / "toolscripts"
-
-
-def _get_package_tools(osname: Optional[str]) -> Tuple[Dict[str, dict], Dict[str, str]]:
-    """
-    Collect the pins and install scripts from the ``toolscripts`` directories packages
-    register, each laid out like SiliconCompiler's own: ``_tools.json`` beside one
-    directory of ``install-<tool>.sh`` per OS.
-
-    Parameters:
-        osname (Optional[str]): OS identifier whose install scripts are collected.
-
-    Returns:
-        tuple: The packages' ``_tools.json`` entries, and their install scripts by tool.
-
-    Raises:
-        ValueError: if an entry point returns something that is not a directory, a
-            ``_tools.json`` does not parse, or two packages supply the same tool.
-    """
-    pins = {}
-    scripts = {}
-    owners = {}
-    for plugin in get_plugins("install", name="toolscripts"):
-        root = Path(plugin())
-        if not root.is_dir():
-            raise ValueError(f"toolscripts entry point returned {root}, which is not a directory")
-
-        package_pins = {}
-        manifest = root / "_tools.json"
-        if manifest.exists():
-            try:
-                with open(manifest) as f:
-                    package_pins = json.load(f)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"{manifest} is not valid JSON: {e}") from e
-        package_scripts = get_install_tools(osname, root)
-
-        for tool in sorted({*package_pins, *package_scripts}):
-            if tool in owners:
-                raise ValueError(f"{tool} is supplied by both {owners[tool]} and {root}")
-            owners[tool] = root
-
-        pins.update(package_pins)
-        scripts.update(package_scripts)
-
-    return pins, scripts
-
-
-def _get_tools_manifest() -> Dict[str, dict]:
-    """
-    SiliconCompiler's ``_tools.json`` with the packages' entries applied on top. An
-    entry for a tool SiliconCompiler pins changes only the fields it names.
-    """
-    with open(_get_tool_script_dir() / "_tools.json") as f:
-        manifest = json.load(f)
-
-    pins, _ = _get_package_tools(_get_os_name())
-    for tool, fields in pins.items():
-        manifest[tool] = {**manifest.get(tool, {}), **fields}
-    return manifest
-
-
 def _get_tools_list() -> Dict[str, str]:
     os = _get_os_name()
 
     # Built-in tools first, so packages and plugins can override the scripts they supply.
     tools = get_install_tools(os)
-    _, scripts = _get_package_tools(os)
+    _, scripts = toolimages.get_package_tools(os)
     tools.update(scripts)
     for plugin in get_plugins("install", name="tools"):
         tools.update(plugin(os))

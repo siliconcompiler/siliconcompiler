@@ -7,6 +7,7 @@ from pathlib import Path
 from siliconcompiler.apps import sc_install
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.apps.sc_install import os as os_imported
+from siliconcompiler.utils import toolimages
 
 
 @pytest.fixture(autouse=True)
@@ -172,7 +173,7 @@ def test_fingerprint_tracks_docker_depends(monkeypatch, tmp_path):
     script = scripts_dir / "install-parent.sh"
     script.write_text("#!/bin/sh\n_tools.py --tool parent --field git-commit\n")
 
-    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+    monkeypatch.setattr(toolimages, "get_tool_script_dir", lambda: scripts_dir)
 
     fp_before = sc_install.compute_fingerprint("parent", str(script))
 
@@ -202,7 +203,7 @@ def test_fingerprint_tracks_build_depends(monkeypatch, tmp_path):
     script = scripts_dir / "install-parent.sh"
     script.write_text("#!/bin/sh\n_tools.py --tool solver --field git-commit\n")
 
-    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+    monkeypatch.setattr(toolimages, "get_tool_script_dir", lambda: scripts_dir)
 
     fp_before = sc_install.compute_fingerprint("parent", str(script))
 
@@ -230,7 +231,7 @@ def test_fingerprint_tracks_tool_without_self_reference(monkeypatch, tmp_path):
     script = scripts_dir / "install-montage.sh"
     script.write_text("#!/bin/sh\nsudo apt-get install -y imagemagick\n")
 
-    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+    monkeypatch.setattr(toolimages, "get_tool_script_dir", lambda: scripts_dir)
 
     fp_before = sc_install.compute_fingerprint("montage", str(script))
 
@@ -856,12 +857,12 @@ def _make_package(name, manifest=None, scripts=None):
 
 def _builtin_manifest():
     import json as _json
-    with open(sc_install._get_tool_script_dir() / "_tools.json") as f:
+    with open(toolimages.get_tool_script_dir() / "_tools.json") as f:
         return _json.load(f)
 
 
 def test_get_tools_manifest_without_packages(fake_plugins):
-    assert sc_install._get_tools_manifest() == _builtin_manifest()
+    assert toolimages.get_tools_manifest("ubuntu24") == _builtin_manifest()
 
 
 def test_get_tools_manifest_adds_and_overrides(fake_plugins):
@@ -872,7 +873,7 @@ def test_get_tools_manifest_adds_and_overrides(fake_plugins):
     fake_plugins("install", "toolscripts", lambda: root)
 
     builtin = _builtin_manifest()
-    manifest = sc_install._get_tools_manifest()
+    manifest = toolimages.get_tools_manifest("ubuntu24")
     assert manifest["mytool"] == {"git-url": "https://example.com/mytool.git",
                                   "git-commit": "v1"}
     assert manifest["yosys"] == {**builtin["yosys"], "git-commit": "v0.70"}
@@ -888,7 +889,7 @@ def test_get_package_tools_rejects_pin_in_two_packages(monkeypatch, fake_plugins
 
     msg = f"mytool is supplied by both {first} and {second}"
     with pytest.raises(ValueError, match=f"^{re.escape(msg)}$"):
-        sc_install._get_tools_manifest()
+        toolimages.get_tools_manifest("ubuntu24")
 
 
 def test_get_package_tools_rejects_script_in_two_packages(fake_plugins):
@@ -900,7 +901,7 @@ def test_get_package_tools_rejects_script_in_two_packages(fake_plugins):
 
     msg = f"yosys is supplied by both {first} and {second}"
     with pytest.raises(ValueError, match=f"^{re.escape(msg)}$"):
-        sc_install._get_package_tools("ubuntu24")
+        toolimages.get_package_tools("ubuntu24")
 
 
 def test_get_package_tools_rejects_missing_directory(fake_plugins):
@@ -909,7 +910,7 @@ def test_get_package_tools_rejects_missing_directory(fake_plugins):
 
     msg = f"toolscripts entry point returned {missing}, which is not a directory"
     with pytest.raises(ValueError, match=f"^{re.escape(msg)}$"):
-        sc_install._get_package_tools("ubuntu24")
+        toolimages.get_package_tools("ubuntu24")
 
 
 def test_get_package_tools_rejects_bad_json(fake_plugins):
@@ -919,7 +920,7 @@ def test_get_package_tools_rejects_bad_json(fake_plugins):
 
     msg = f"{root / '_tools.json'} is not valid JSON"
     with pytest.raises(ValueError, match=f"^{re.escape(msg)}"):
-        sc_install._get_package_tools("ubuntu24")
+        toolimages.get_package_tools("ubuntu24")
 
 
 def test_get_tools_list_includes_package_scripts(monkeypatch, fake_plugins):
@@ -1007,7 +1008,7 @@ def test_install_builtin_script_uses_package_pin(monkeypatch, fake_plugins, capf
     builtin = Path("sc_toolscripts").resolve()
     (builtin / "ubuntu24").mkdir(parents=True)
     for helper in ("_tools.py", "_prereqs.sh"):
-        _shutil.copy(sc_install._get_tool_script_dir() / helper, builtin)
+        _shutil.copy(toolimages.get_tool_script_dir() / helper, builtin)
     (builtin / "_tools.json").write_text(_json.dumps({
         "mytool": {"git-url": "https://example.com/mytool.git", "git-commit": "v1"}}))
     script = builtin / "ubuntu24" / "install-mytool.sh"
@@ -1022,7 +1023,7 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 echo "MYTOOL $(python3 ${src_path}/_tools.py --tool mytool --field git-commit)"
 """)
     script.chmod(0o755)
-    monkeypatch.setattr(sc_install, '_get_tool_script_dir', lambda: builtin)
+    monkeypatch.setattr(toolimages, 'get_tool_script_dir', lambda: builtin)
 
     argv = ['sc-install', 'mytool', '-build_dir', os.path.abspath("build_override")]
 
@@ -1063,7 +1064,7 @@ def test_fingerprint_tracks_package_override(monkeypatch, fake_plugins, tmp_path
     script = scripts_dir / "install-parent.sh"
     script.write_text("#!/bin/sh\n_tools.py --tool parent --field git-commit\n")
 
-    monkeypatch.setattr(sc_install, "_get_tool_script_dir", lambda: scripts_dir)
+    monkeypatch.setattr(toolimages, "get_tool_script_dir", lambda: scripts_dir)
 
     fp_before = sc_install.compute_fingerprint("parent", str(script))
 
