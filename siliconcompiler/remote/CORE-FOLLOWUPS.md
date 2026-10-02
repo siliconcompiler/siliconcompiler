@@ -31,7 +31,3 @@ CONTRACT-CHANGES item 2 names them.
 - **10. A package's dataroot is decided again wherever the object is built**,
   where the node should resolve the uploaded copy. Planned:
   [`dataroots/decided-once.md`](../../../plans/siliconcompiler/dataroots/decided-once.md).
-- **14. A dataroot whose source carries a query is collected under one
-  `collection_id` and looked for under another**, since the client hashes the
-  query as written and the server the masked one. Planned:
-  [`dataroots/masked-query-bucket.md`](../../../plans/siliconcompiler/dataroots/masked-query-bucket.md).

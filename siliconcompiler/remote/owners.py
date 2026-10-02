@@ -341,9 +341,9 @@ def without_credentials(project):
     🔴 **Nothing reads a masked path back to resolve it**: a server points
     every dataroot it supplies at its own copy by keypath. A collected file is
     found by its resolver's `collection_id`, which hashes the source without
-    its userinfo, so removing that keeps the id. ⚠️ Masking a query does not:
-    the server computes another id and misses the file (CORE-FOLLOWUPS item
-    14, `dataroots/masked-query-bucket.md`).'''
+    its userinfo and with every query value masked, as this writes it -- so
+    the server, reading the manifest as sent, finds each upload where it
+    arrived.'''
     import copy
 
     changed = [(keypath, masked(path)) for keypath, path in dataroot_paths(project)

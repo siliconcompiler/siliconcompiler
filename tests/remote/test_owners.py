@@ -1027,6 +1027,58 @@ def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(tmp_p
         assert f.read() == "module top; endmodule\n"
 
 
+def test_a_queried_dataroots_upload_is_found_from_the_masked_manifest(tmp_path, monkeypatch):
+    '''🔴 What was CORE-FOLLOWUPS item 14, end to end. A design's dataroot on a tokened
+    source always uploads; the client collects it under the source as it
+    registered it, and sends the manifest with the token masked. The server
+    reads that manifest, and finds the upload where it arrived -- from the
+    masked source alone (#5471) -- and so does the run.'''
+    from siliconcompiler import Design, Lint
+    from siliconcompiler.package.https import HTTPResolver
+    from siliconcompiler.remote.server.running import runspec
+    from siliconcompiler.schema import BaseSchema
+    from siliconcompiler.utils.curation import collect
+
+    fetched = tmp_path / "fetched"
+    (fetched / "rtl").mkdir(parents=True)
+    (fetched / "rtl" / "top.v").write_text("module top; endmodule\n")
+    # The download, on the client: no network here.
+    monkeypatch.setattr(HTTPResolver, "resolve", lambda self: str(fetched))
+
+    design = Design("top")
+    design.set_dataroot("top", "https://example.com/ip/archive/?token=SECRET", tag="v1")
+    design.set_topmodule("top", fileset="rtl")
+    design.add_file("rtl/top.v", dataroot="top", fileset="rtl")
+    project = Lint(design)
+    project.add_fileset("rtl")
+
+    tree = tmp_path / "job" / "top" / "job0"
+    collection = tree / "sc_collected_files"
+    chosen = owners.collection(project, lambda one: owners.uploads(
+        project, one.key, one.dataroot, one.resolvers, one.value.get()))
+    collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
+            select=chosen.select)
+    owners.without_credentials(project).write_manifest(str(tree / "top.pkg.json"))
+    assert "SECRET" not in (tree / "top.pkg.json").read_text()
+
+    # The server's half: the manifest as sent, and nothing fetched.
+    monkeypatch.setattr(HTTPResolver, "resolve",
+                        lambda self: pytest.fail("the server fetched a masked source"))
+    run = Lint.from_manifest(filepath=str(tree / "top.pkg.json"))
+    keypath = ("library", "top", "dataroot", "top")
+    record, = [one for one in owners.value_records(run, str(collection))
+               if one["key"][:2] == ["library", "top"]]
+    assert record["collected"], "the upload is not where the masked manifest looks"
+
+    targets = runspec.dataroot_targets(
+        [owners.Entry("design", "top", "top", owners.UPLOADED, keypath=keypath)], collection)
+    assert runspec.point_dataroots(run, targets) == 1
+    found, = BaseSchema._find_files(run, "library", "top", "fileset", "rtl", "file", "verilog",
+                                    collection_dir=str(collection))
+    with open(found) as f:
+        assert f.read() == "module top; endmodule\n"
+
+
 def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
         project, tmp_path):
     '''Surface D299: the operator's copy, then a copy of its source this
