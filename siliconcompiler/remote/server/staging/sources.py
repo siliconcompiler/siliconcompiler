@@ -9,16 +9,12 @@ copies under ``<datadir>/sources/`` and fetches the ones it does not hold.
 🔴 **The run never fetches.** The run points a supplied dataroot at the held
 copy, from what the server wrote beside its manifest
 (`runspec.point_dataroots`), so nothing in the run reaches the network on a
-job's behalf. What does is here, and it is SiliconCompiler's own resolver -- so the
-server's copy is the user's, submodules and LFS objects included (surface
-D164) -- under a fetch policy:
-
-- no credentials at all: no token, no credential helper, no SSH agent or key,
-  an empty ``HOME``, https only;
-- every URL it contacts on the allowlist and to a public address: each
-  redirect hop, each submodule's URL, the LFS endpoint -- and everything git
-  and git-lfs connect to through a proxy that applies the same rules, for what
-  cannot be seen from here, such as an LFS object's storage host.
+job's behalf. What does is here, and it is SiliconCompiler's own resolver -- so
+the server's copy is the user's, submodules and LFS objects included (surface
+D164) -- run unchanged in a process of its own (`staging.fetch`), which has no
+credential to send and one way out: a proxy admitting the allowlist's hosts,
+never a non-public address, and at most `MAX_SOURCE_BYTES`. The source a job
+names is checked against the allowlist, path and all, before it starts.
 
 A submodule or LFS store off the allowlist fails the fetch for good, which
 sends the source to the ask loop like any other the server cannot fetch.
@@ -60,8 +56,6 @@ MOVING_HOLD_SECONDS = 3600
 
 _COMPLETE = ".complete"
 _CURRENT = "current"
-
-_PERMANENT = (401, 403, 404, 410)
 
 
 class Transient(Exception):
@@ -119,8 +113,9 @@ class SourceStore:
         if not source or urlsplit(source).query:
             return False
         scheme = urlsplit(source).scheme.lower()
-        if scheme not in ("https", "http", "git+https", "git+http"):
-            # ssh and git:// want a key this server has not got.
+        if scheme not in ("https", "http", "git+https"):
+            # ssh and git:// want a key this server has not got, and no
+            # resolver clones over plain http.
             return False
         return allowlist.allows(self.rules, download_url(source, ref)
                                 if not scheme.startswith("git+") else source)
@@ -167,84 +162,98 @@ class SourceStore:
     ######################################################################
 
     def _resolve(self, source: str, ref: Optional[str], into: Path, timeout: float):
-        '''SiliconCompiler's resolver for ``source``, run under the fetch
-        policy, its result moved into ``into``. Returns ``(commit, moving)``:
-        the commit a git source resolved to, and whether its ref moves.'''
-        from siliconcompiler import Project
-        from siliconcompiler.package import FetchPolicy, RemoteResolver, Resolver, fetch_policy
+        '''SiliconCompiler's resolver for ``source``, run in a process of its
+        own (`staging.fetch`), its result moved into ``into``. Returns
+        ``(commit, moving)``: the commit a git source resolved to, and whether
+        its ref moves. Raises `Transient` or `Permanent`.'''
+        from siliconcompiler.package import RemoteResolver
         from siliconcompiler.remote.server.packages.envbuild import Proxy
 
         work = into.parent
-        home = work / "home"
-        home.mkdir()
-        project = Project("sc-server-source")
-        project.option.set_cachedir(str(work / "cache"))
-        resolver = Resolver.find_resolver(source)("source", project, source, ref or "HEAD")
-
-        proxy = Proxy(("127.0.0.1", 0), [rule.text for rule in self.rules])
+        # A unix socket's path is bounded (108 bytes), and a data directory's
+        # is not; so the socket gets a short directory of its own.
+        sockets = Path(tempfile.mkdtemp(prefix="sc-fetch-"))
+        proxy = Proxy(str(sockets / "proxy.sock"), [rule.text for rule in self.rules],
+                      max_bytes=MAX_SOURCE_BYTES)
         proxy.start()
         try:
-            policy = FetchPolicy(check_url=self._check, home=str(home), proxy=proxy.url,
-                                 timeout=timeout, max_bytes=MAX_SOURCE_BYTES)
-            with fetch_policy(policy):
-                resolved = Path(resolver.resolve())
-        except BaseException as e:
-            raise _classified(e, proxy.refused) from None
+            answer = _run_fetch(source, ref, work, timeout, str(sockets / "proxy.sock"))
+        except Transient:
+            answer = None
+            if not (proxy.refused or proxy.oversize):
+                raise
         finally:
             proxy.close()
+            shutil.rmtree(sockets, ignore_errors=True)
 
+        # What the proxy refused explains the failure better than how the
+        # resolver reported it.
+        if proxy.refused:
+            raise Permanent(f"it reaches {', '.join(proxy.refused)}, which this server "
+                            "will not connect to: off its allowlist, or not a public "
+                            "address")
+        if proxy.oversize:
+            raise Permanent(f"it is larger than {MAX_SOURCE_BYTES} bytes")
+        if "error" in answer:
+            failure = Permanent if answer["error"]["permanent"] else Transient
+            raise failure(answer["error"]["message"])
+
+        resolved = Path(answer["path"])
         commit, moving = _pin(resolved, ref)
         # The resolver leaves its cache read-only; this copy is moved out of it.
         _remove(resolved / ".git")
         RemoteResolver._make_writable(resolved)
         for child in list(resolved.iterdir()):
             shutil.move(str(child), str(into / child.name))
+        for left in ("home", "cache"):
+            _remove(work / left)
+        for left in ("fetch.json", "result.json", "fetch.log"):
+            (work / left).unlink(missing_ok=True)
         return commit, moving
 
-    def _check(self, url: str) -> None:
-        '''Every URL the resolver contacts: on the allowlist, and to a public
-        address.'''
-        from siliconcompiler.package import FetchRefused
 
-        if not allowlist.allows(self.rules, url):
-            raise FetchRefused(f"{url} is off this server's allowlist")
-        parts = urlsplit(url)
-        if not allowlist.public_host(parts.hostname or "", parts.port):
-            raise FetchRefused(f"{parts.hostname} is not a public address")
+def _run_fetch(source: str, ref: Optional[str], work: Path, timeout: float,
+               proxy_socket: str) -> dict:
+    '''Run `staging.fetch` for one source in ``work``, and return what it
+    wrote. Raises `Transient` where it ran past ``timeout`` or wrote nothing.'''
+    import subprocess
 
+    from siliconcompiler.remote.server.staging import sandbox
 
-def _classified(error: BaseException, refused) -> BaseException:
-    '''A resolver's failure, as what the job does about it: `Permanent` goes
-    back to the client, `Transient` is retried until the job's deadline.'''
-    import requests
+    home = work / "home"
+    home.mkdir()
+    result = work / "result.json"
+    spec = work / "fetch.json"
+    spec.write_text(json.dumps({"source": source, "ref": ref, "cachedir": str(work / "cache"),
+                                "proxy": proxy_socket, "result": str(result)}))
+    # 🔴 Nothing of the server's: no token, no git configuration but the
+    # repository's own, no prompt. PATH is where git is, and is no secret.
+    env = {**sandbox._environment(home), "PATH": os.environ.get("PATH", os.defpath),
+           "XDG_CONFIG_HOME": str(home), "GIT_CONFIG_NOSYSTEM": "1",
+           "GIT_TERMINAL_PROMPT": "0"}
 
-    from siliconcompiler.package import FetchRefused
-    from siliconcompiler.package.cache import PermanentResolutionError
+    log = work / "fetch.log"
+    with open(log, "wb") as out:
+        process = subprocess.Popen(
+            [*sandbox._python(), "-m", "siliconcompiler.remote.server.staging.fetch",
+             str(spec)],
+            env=env, cwd=str(home), stdin=subprocess.DEVNULL, stdout=out,
+            stderr=subprocess.STDOUT, close_fds=True, start_new_session=True)
+    try:
+        process.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        sandbox._kill(process)
+        raise Transient(f"the fetch ran past its {int(timeout)}s") from None
+    finally:
+        if process.poll() is None:
+            sandbox._kill(process)
 
-    if isinstance(error, (Permanent, Transient, KeyboardInterrupt, SystemExit)):
-        return error
-    if refused:
-        return Permanent(f"it reaches {', '.join(refused)}, which this server's "
-                         "allowlist does not name")
-    if isinstance(error, (FetchRefused, PermanentResolutionError)):
-        return Permanent(str(error))
-    status = getattr(error, "status", None)
-    if status is not None:
-        if status in _PERMANENT:
-            return Permanent(f"the source answered {status}")
-        if status == 429 or status >= 500:
-            return Transient(f"the source answered {status}")
-        return Permanent(f"the source answered {status}")
-    if isinstance(error, requests.RequestException):
-        return Transient(f"could not reach the source: {type(error).__name__}")
-    said = str(error).lower()
-    if any(word in said for word in ("not found", "authentication", "could not read username",
-                                     "couldn't find remote ref", "did not match any",
-                                     "403", "401", "not a plain https", "only https")):
-        return Permanent("the git source refused, or has no such ref")
-    if isinstance(error, TypeError):
-        return Permanent(f"the source is not an archive this server can unpack: {error}")
-    return Transient(f"the source failed: {type(error).__name__}")
+    try:
+        return json.loads(result.read_text())
+    except (OSError, ValueError):
+        tail = sandbox._tail(log)
+        raise Transient(f"the fetch ended {sandbox._signal_name(process.returncode)}"
+                        + (f": {tail}" if tail else "")) from None
 
 
 def _pin(resolved: Path, ref: Optional[str]):

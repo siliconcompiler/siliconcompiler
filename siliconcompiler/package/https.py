@@ -18,10 +18,9 @@ import os.path
 from typing import Dict, List, Optional, Type
 
 from io import BytesIO
-from urllib.parse import ParseResult, urljoin, urlparse
+from urllib.parse import ParseResult, urlparse
 
-from siliconcompiler.package import FetchRefused, RemoteResolver, Resolver, \
-    current_fetch_policy
+from siliconcompiler.package import RemoteResolver, Resolver
 from siliconcompiler.package._archive import extract_archive
 from siliconcompiler.package.cache import DataSourceUnavailableError
 
@@ -37,10 +36,6 @@ from siliconcompiler.package.cache import DataSourceUnavailableError
 #: also block a later resolver that does have credentials. A 5xx stays retryable
 #: too: a server having a bad minute may not be having a bad hour.
 _TERMINAL_STATUSES = (400, 404, 405, 410, 414, 451)
-
-# How many redirects a download under a fetch policy follows. GitHub's archive
-# takes one.
-_MAX_REDIRECTS = 5
 
 
 def _no_auth(request: requests.PreparedRequest) -> requests.PreparedRequest:
@@ -235,28 +230,6 @@ class HTTPResolver(RemoteResolver):
         data_url = self.download_url
         url = urlparse(data_url)
 
-        policy = current_fetch_policy()
-        if policy is not None:
-            import tempfile
-
-            # The URL asked for, not the last hop: GitHub's flattening below
-            # reads the repository and ref out of it.
-            response = self._get_under_policy(policy, data_url)
-            if not response.ok:
-                self._extract_response(response, data_url)
-            # Streamed to disk against the policy's ceiling, not held in memory.
-            with tempfile.TemporaryFile() as body:
-                size = 0
-                for chunk in response.iter_content(1024 * 1024):
-                    size += len(chunk)
-                    if policy.max_bytes and size > policy.max_bytes:
-                        raise FetchRefused(f"{self.display_name}: larger than "
-                                           f"{policy.max_bytes} bytes")
-                    body.write(chunk)
-                body.seek(0)
-                self._extract_response(response, data_url, body)
-            return
-
         headers = self._get_headers()
         # A password in the URL makes it Basic auth, which requests builds from the
         # URL itself and puts over any header set here.
@@ -285,55 +258,17 @@ class HTTPResolver(RemoteResolver):
 
         response = requests.get(data_url, stream=True, headers=headers, auth=auth,
                                 timeout=self.request_timeout)
-        self._extract_response(response, data_url)
-
-    def _get_under_policy(self, policy, url: str):
-        """
-        The response for ``url`` under a :class:`~siliconcompiler.package.FetchPolicy`:
-        nothing sent but the resolver's own headers, and every redirect hop
-        checked before it is followed. Returns the response.
-        """
-        if urlparse(url).username or urlparse(url).password:
-            raise FetchRefused(f"{self.display_name}: the source URL carries a credential")
-
-        session = requests.Session()
-        # No proxy, no .netrc and no CA override from the environment: nothing
-        # of this process's is sent on the source's behalf.
-        session.trust_env = False
-        headers = {name: value for name, value in self._get_headers().items()
-                   if name.lower() != "authorization"}
-        for _ in range(_MAX_REDIRECTS + 1):
-            policy.check_url(url)
-            response = session.get(url, stream=True, headers=headers,
-                                   allow_redirects=False, timeout=policy.timeout)
-            if response.status_code in (301, 302, 303, 307, 308):
-                location = response.headers.get("Location")
-                response.close()
-                if not location:
-                    raise FetchRefused(f"{self.display_name}: redirected without saying where")
-                url = urljoin(url, location)
-                continue
-            return response
-        raise FetchRefused(f"{self.display_name}: too many redirects")
-
-    def _extract_response(self, response, data_url: str, fileobj=None) -> None:
-        """Unpack a download -- ``fileobj`` where it is already on disk -- into
-        the cache, or raise for what it answered."""
         if not response.ok:
             status = response.status_code
             error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \
                 else FileNotFoundError
-            error = error(f'Failed to download {self.display_name} data source from '
-                          f'{Resolver._masked_uri(data_url)}. Status code: {status}')
-            # What the source answered, for a caller deciding whether to retry.
-            error.status = status
-            raise error
+            raise error(f'Failed to download {self.display_name} data source from '
+                        f'{Resolver._masked_uri(data_url)}. Status code: {status}')
 
         os.makedirs(self.cache_path, exist_ok=True)
 
         # Download content into an in-memory buffer
-        if fileobj is None:
-            fileobj = BytesIO(response.content)
+        fileobj = BytesIO(response.content)
 
         archive_format = extract_archive(fileobj, self.cache_path, data_url)
         self.logger.debug(f'Unpacked {self.display_name} data as a {archive_format} archive')

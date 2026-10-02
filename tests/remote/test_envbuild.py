@@ -1364,11 +1364,3 @@ def test_only_an_exact_index_host_may_be_a_private_address(
         running.close()
 
     assert asked == [public_only]
-
-
-def test_a_source_fetch_proxy_listens_on_loopback():
-    running = envbuild.Proxy(("127.0.0.1", 0), ["https://github.com/siliconcompiler/"])
-    try:
-        assert running.url.startswith("http://127.0.0.1:")
-    finally:
-        running.close()

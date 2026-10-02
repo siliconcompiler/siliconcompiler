@@ -47,7 +47,7 @@ import threading
 import time
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit
 
 __all__ = ["SPEC", "RESULT", "REQUIREMENTS", "CONSTRAINTS", "WHEELS", "LOG", "build",
@@ -294,12 +294,12 @@ def _tail(text: str, lines: int = 20) -> str:
 class Proxy:
     '''An HTTP proxy that admits an allowlist, and nothing else.
 
-    On a unix socket (``address`` a path) for the build container, or on
-    loopback (``address`` a ``(host, port)``) for the git a source fetch runs.
-    ``CONNECT host:port`` for HTTPS, admitted when an https entry names that
-    host and port; a plain ``GET``/``HEAD`` for an ``http://`` URL, admitted
-    when the whole URL is under an entry. Served by the standard library's
-    `http.server`; what is admitted, and where it may connect, is this class's.
+    On a unix socket at ``address``, for the build container and for a
+    source fetch (`staging.fetch`). ``CONNECT host:port`` for HTTPS, admitted
+    when an https entry names that host and port; a plain ``GET``/``HEAD`` for
+    an ``http://`` URL, admitted when the whole URL is under an entry. Served
+    by the standard library's `http.server`; what is admitted, and where it
+    may connect, is this class's.
 
     🔴 **Never to a private, loopback or link-local address**, whatever
     resolves to one -- `allowlist.public_host`'s rule, for every fetch this
@@ -310,9 +310,12 @@ class Proxy:
     source-allowlist entry does.
 
     ``refused`` lists every host it said no to, for the result to name.
+    ``max_bytes``, where given, is the most it relays back across every
+    connection; past it the connection is cut and ``oversize`` set.
     '''
 
-    def __init__(self, address, entries, private_exact_hosts: bool = False):
+    def __init__(self, address, entries, private_exact_hosts: bool = False,
+                 max_bytes: Optional[int] = None):
         import socketserver
 
         from siliconcompiler.remote.server.staging import allowlist
@@ -322,15 +325,16 @@ class Proxy:
                        if rule.scheme == "https"]
         self._private_exact = private_exact_hosts
         self.refused: List[str] = []
+        self._max_bytes = max_bytes
+        self._received = 0
+        self._counting = threading.Lock()
+        self.oversize = False
 
-        base = socketserver.ThreadingTCPServer if isinstance(address, tuple) \
-            else socketserver.ThreadingUnixStreamServer
+        base = socketserver.ThreadingUnixStreamServer
         server = type("_ProxyServer", (base,), {
             "daemon_threads": True, "block_on_close": False, "request_queue_size": 64})
         self._server = server(address, _ProxyHandler)
         self._server.proxy = self
-        self.url = "http://%s:%d" % self._server.server_address[:2] \
-            if isinstance(address, tuple) else None
         self._serving = None
 
     def start(self) -> None:
@@ -359,6 +363,16 @@ class Proxy:
             if allowlist.allows([rule], url):
                 return rule
         return None
+
+    def _relayed(self, size: int) -> bool:
+        '''Count ``size`` bytes relayed back; False once past ``max_bytes``.'''
+        if self._max_bytes is None:
+            return True
+        with self._counting:
+            self._received += size
+            if self._received > self._max_bytes:
+                self.oversize = True
+            return not self.oversize
 
     def _public_only(self, rules, url: str) -> bool:
         '''Whether the address rule binds this connection: always, but for
@@ -421,7 +435,7 @@ class _ProxyHandler(http.server.BaseHTTPRequestHandler):
 
     def _splice(self, upstream) -> None:
         self.close_connection = True
-        _splice(self.connection, upstream)
+        _splice(self.connection, upstream, self.server.proxy._relayed)
 
     def _refuse(self, host: str, why: str = "is not on the allowlist") -> None:
         refused = self.server.proxy.refused
@@ -468,12 +482,15 @@ def _open_public(host: str, port: int, public_only: bool = True):
     return None
 
 
-def _splice(one, other) -> None:
-    def pipe(source, sink):
+def _splice(one, other, relayed=None) -> None:
+    '''Relay both ways until both ends close; ``relayed``, where given, is
+    told the size of each block from ``other`` and stops the relay by
+    answering False.'''
+    def pipe(source, sink, count=None):
         try:
             while True:
                 data = source.recv(65536)
-                if not data:
+                if not data or (count is not None and not count(len(data))):
                     break
                 sink.sendall(data)
         except OSError:
@@ -484,7 +501,7 @@ def _splice(one, other) -> None:
             except OSError:
                 pass
 
-    back = threading.Thread(target=pipe, args=(other, one), daemon=True)
+    back = threading.Thread(target=pipe, args=(other, one, relayed), daemon=True)
     back.start()
     pipe(one, other)
     back.join()

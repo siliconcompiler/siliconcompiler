@@ -7,5 +7,6 @@ manifest read, and the sources the run needs fetched.
 ``sandbox.py``        starting that read, and holding it to its limits
 ``schemaclasses.py``  the classes a manifest may name, and nothing imported for it
 ``sources.py``        the server's own copies of remote sources, and fetching them
+``fetch.py``          one source fetched in a process of its own, held in from outside
 ``allowlist.py``      where the server will fetch from, and where an install may reach
 '''
