@@ -18,7 +18,9 @@ class ScreenshotParams(Task):
                            "If greater than 1, splits the image into multiple segments along "
                            "x-axis and y-axis", defvalue=(1, 1))
         self.add_parameter("show_margin", "float<0.0..>",
-                           "Margin around design in microns", defvalue=10, unit="um")
+                           "Margin around the design, as a percentage of its width on the "
+                           "left and right and of its height on the top and bottom",
+                           defvalue=1, unit="%")
         self.add_parameter("show_linewidth", "int<0..>",
                            "Width of lines in detailed screenshots", defvalue=0, unit="px")
         self.add_parameter("show_oversampling", "int<1..3>",
@@ -43,7 +45,8 @@ class ScreenshotParams(Task):
         Set the margin for KLayout screenshotting.
 
         Args:
-            margin (float): Margin around the design in microns.
+            margin (float): Margin around the design, as a percentage of its width
+                on the left and right and of its height on the top and bottom.
             step (Optional[str]): Flow step to set the parameter for. Defaults to None.
             index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
         """
