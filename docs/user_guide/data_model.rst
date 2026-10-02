@@ -95,6 +95,36 @@ The typed accessor is a thin, named wrapper around the keypath call.
    a keypath for a parameter that already has an accessor, because the accessor
    carries the type and the name checking that a bare string list cannot.
 
+.. _data_model_dataroots:
+
+Files and Dataroots
+^^^^^^^^^^^^^^^^^^^
+
+A file parameter does not hold a path on this machine. It holds a path relative
+to a :term:`dataroot` -- a named source of files -- together with that
+dataroot's name, and the path is resolved against the dataroot only when the
+file is needed:
+
+.. code-block:: python
+
+    >>> from siliconcompiler import Design
+    >>> design = Design("picorv32")
+
+    >>> design.set_dataroot("picorv32", "git+https://github.com/YosysHQ/picorv32.git",
+    ...                     tag="c0acaebf0d50afc6e4d15ea9973b60f5f4d03c42")
+    >>> with design.active_dataroot("picorv32"), design.active_fileset("rtl"):
+    ...     design.add_file("picorv32.v")
+
+    >>> print(design.get("fileset", "rtl", "file", "verilog", field="dataroot"))
+    ['picorv32']
+
+This is what lets a :term:`manifest` be rebuilt on another machine: it records
+where each file comes from, not where it happened to sit. A dataroot can be a
+local directory, an installed Python package, a git repository, an archive
+download and more, chosen by the scheme its path starts with. Every scheme,
+what it takes and how it authenticates is listed in :ref:`Data Sources
+<builtin_resolvers>`.
+
 The Manifest: Saving and Loading the Schema
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

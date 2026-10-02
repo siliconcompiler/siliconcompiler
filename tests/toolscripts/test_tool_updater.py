@@ -1,6 +1,8 @@
 import importlib.util
+import json
 import os
 import re
+import subprocess
 import sys
 
 import pytest
@@ -202,3 +204,95 @@ def test_bump_commit_routes_tags_to_tag_selection(monkeypatch):
     # A sha pin clones and reads HEAD instead, and must not reach the tag path.
     assert sc_tools.bump_commit(tools, "sha")[0] == "0" * 40
     assert tagged == ["tagged"]
+
+
+def _run_tools(*args):
+    return subprocess.run([sys.executable, os.path.join(TOOLSCRIPTS, "_tools.py"), *args],
+                          capture_output=True, text=True)
+
+
+def test_manifest_reads_given_file():
+    with open("manifest.json", "w") as f:
+        json.dump({"mytool": {"git-url": "https://example.invalid/mytool.git",
+                              "git-commit": "v1", "auto-update": True},
+                   "pinned": {"git-url": "https://example.invalid/pinned.git",
+                              "git-commit": "v2", "auto-update": False}}, f)
+
+    proc = _run_tools("--manifest", "manifest.json", "--tool", "mytool", "--field", "git-commit")
+    assert proc.returncode == 0, proc.stdout
+    assert proc.stdout.strip() == "v1"
+
+    proc = _run_tools("--manifest", "manifest.json", "--json_tools")
+    assert json.loads(proc.stdout) == {"include": [{"tool": "mytool"}]}
+
+    # A tool only the default manifest knows is not looked up there
+    proc = _run_tools("--manifest", "manifest.json", "--tool", "yosys", "--field", "git-commit")
+    assert proc.returncode == 1
+    assert "Supported tools are: mytool, pinned" in proc.stdout
+
+
+def test_manifest_help_lists_its_tools():
+    with open("manifest.json", "w") as f:
+        json.dump({"mytool": {"git-commit": "v1", "mineonly": True}}, f)
+
+    proc = _run_tools("--manifest", "manifest.json", "--help")
+    assert proc.returncode == 0, proc.stdout
+    help_text = " ".join(proc.stdout.split())
+    assert "supported tools: mytool " in help_text
+    assert "mineonly" in help_text
+    assert "--manifest" in help_text
+    assert "yosys" not in help_text
+
+
+def test_manifest_loads_on_first_use():
+    """Importing reads no manifest, so a caller can name one before anything is read."""
+    module = _load_tools()
+    assert module._tools is None
+
+    with open("manifest.json", "w") as f:
+        json.dump({"mytool": {"git-commit": "v1"}}, f)
+    module.load_manifest("manifest.json")
+    assert module.get_tools() == ["mytool"]
+    assert module.get_field("mytool", "git-commit") == "v1"
+
+    # Without a path, the manifest next to the module
+    module = _load_tools()
+    assert module.get_field("yosys", "git-commit") == sc_tools.get_field("yosys", "git-commit")
+    assert module.has_tool("yosys")
+
+
+def test_manifest_defaults_to_the_file_beside_it():
+    proc = _run_tools("--tool", "yosys", "--field", "git-commit")
+    assert proc.returncode == 0, proc.stdout
+    assert proc.stdout.strip() == sc_tools.get_field("yosys", "git-commit")
+
+
+# The updater runs only in the Linux bot workflow. On Windows the clone it bumps
+# from cannot be removed afterwards while GitPython's git processes hold it open.
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_manifest_bump_writes_given_file():
+    """A bump lands in the manifest it read, and leaves SiliconCompiler's alone."""
+    import git
+
+    repo = git.Repo.init("upstream")
+    with open(os.path.join("upstream", "README"), "w") as f:
+        f.write("upstream\n")
+    repo.index.add(["README"])
+    head = repo.index.commit("initial").hexsha
+
+    with open("manifest.json", "w") as f:
+        json.dump({"mytool": {"git-url": os.path.abspath("upstream"),
+                              "git-commit": "0" * 40}}, f)
+
+    builtin = os.path.join(TOOLSCRIPTS, "_tools.json")
+    with open(builtin, "rb") as f:
+        builtin_before = f.read()
+
+    proc = _run_tools("--manifest", "manifest.json", "--tool", "mytool", "--bump_commit")
+    assert proc.returncode == 0, proc.stdout
+    assert f"Updating mytool from {'0' * 40} to {head}" in proc.stdout
+
+    with open("manifest.json") as f:
+        assert json.load(f)["mytool"]["git-commit"] == head
+    with open(builtin, "rb") as f:
+        assert f.read() == builtin_before

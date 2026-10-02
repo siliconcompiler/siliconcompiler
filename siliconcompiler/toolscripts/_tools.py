@@ -8,10 +8,10 @@ import tempfile
 import subprocess
 import re
 
-tools = None
-data_file = os.path.join(os.path.dirname(__file__), "_tools.json")
-with open(data_file, "r") as f:
-    tools = json.load(f)
+# Loaded on first use rather than on import, so the command line below can name
+# the manifest to read before anything reads one.
+_data_file = None
+_tools = None
 
 
 # Tags that name a pre-release. Both spellings turn up in the repositories these
@@ -184,21 +184,47 @@ def bump_version(tools, tool):
     return (None, None)
 
 
+def load_manifest(path=None):
+    """Loads the manifest at path, or the _tools.json next to this file, and returns it."""
+    global _data_file, _tools
+
+    _data_file = path or os.path.join(os.path.dirname(__file__), "_tools.json")
+    with open(_data_file, "r") as f:
+        _tools = json.load(f)
+    return _tools
+
+
+def _get_manifest():
+    if _tools is None:
+        load_manifest()
+    return _tools
+
+
 def has_tool(tool):
-    return tool in tools
+    return tool in _get_manifest()
 
 
 def get_field(tool, field):
+    tools = _get_manifest()
     if field not in tools[tool]:
         return None
     return tools[tool][field]
 
 
 def get_tools():
-    return list(tools.keys())
+    return list(_get_manifest().keys())
 
 
 if __name__ == "__main__":
+    # Read --manifest ahead of the rest, so the help below lists that manifest's
+    # tools and fields.
+    manifest_parser = argparse.ArgumentParser(add_help=False)
+    manifest_parser.add_argument("--manifest", type=str,
+                                 help="Manifest to read, and to write with --bump_commit, in "
+                                      "place of the _tools.json next to this script")
+    manifest_args, _ = manifest_parser.parse_known_args()
+    tools = load_manifest(manifest_args.manifest)
+
     supported_tools = ", ".join(get_tools())
     supported_fields = set()
     for tool, fields in tools.items():
@@ -208,7 +234,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         prog="SiliconCompiler Tool Helper",
-        description="Maintains current known good versions for all install scripts to use")
+        description="Maintains current known good versions for all install scripts to use",
+        parents=[manifest_parser])
     parser.add_argument("--tool", type=str,
                         help=f"Tool name, supported tools: {supported_tools}")
     parser.add_argument("--json_tools", action="store_true",
@@ -268,7 +295,7 @@ if __name__ == "__main__":
         print('Unsupported update tool')
         exit(1)
 
-    with open(data_file, "w") as f:
+    with open(_data_file, "w") as f:
         f.write(json.dumps(tools, indent=2))
 
     exit(0)

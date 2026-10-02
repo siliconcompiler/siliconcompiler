@@ -179,6 +179,8 @@ packages from one place:
 Both areas are safe to delete; anything missing is downloaded or rebuilt on the
 next run. Deleting either while a run is in progress is not.
 
+.. _dataroot_cache:
+
 Data sources
 ^^^^^^^^^^^^
 

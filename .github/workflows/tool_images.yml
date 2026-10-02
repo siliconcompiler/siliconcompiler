@@ -1,0 +1,441 @@
+name: 'Tool images'
+
+# Builds the docker images of the tools sc-install builds, and the image of all of
+# them, whichever do not exist yet. tools_ci.yml runs it for SiliconCompiler's own
+# images; a package that adds tools to sc-install calls it with an image-prefix.
+#
+# For a package, the package is installed from the calling repository and the
+# images are worked out by the SiliconCompiler it brings with it: every image whose
+# tag matches SiliconCompiler's is pulled from ghcr.io, the rest are built and
+# pushed under the prefix, and the image of all of them is <prefix>tools.
+#
+# The calling job has to grant contents: read and packages: write. A pin cloned from
+# a private repository needs a GitHub App, named with source-app-client-id and
+# source-app-private-key, with contents read on each repository listed in
+# repositories.
+on:
+  workflow_call:
+    inputs:
+      image-prefix:
+        description: 'Namespace and name prefix of a package''s images, as in myorg/mylib_; empty for SiliconCompiler''s own'
+        type: string
+        default: ''
+      registry:
+        description: 'Registry the images are pushed to'
+        type: string
+        default: 'ghcr.io'
+      registry-username:
+        description: 'User to log in to the registry as, default the workflow actor'
+        type: string
+        default: ''
+      repositories:
+        description: 'Comma-separated private repositories, of the same owner, the pins are cloned from'
+        type: string
+        default: ''
+      source-app-client-id:
+        description: 'Client ID of the GitHub App that reads those repositories'
+        type: string
+        default: ''
+      rebuild-all:
+        description: 'Rebuild every tool image, whether or not it exists'
+        type: boolean
+        default: false
+    secrets:
+      registry-password:
+        description: 'Password for the registry, default GITHUB_TOKEN'
+        required: false
+      source-app-private-key:
+        description: 'Private key of that GitHub App'
+        required: false
+    outputs:
+      image:
+        description: 'The image with every tool in it'
+        value: ${{ jobs.plan.outputs.tools_image }}
+      runner-image:
+        description: 'SiliconCompiler''s sc_runner image, empty for a package'
+        value: ${{ jobs.plan.outputs.runner_image }}
+      all-tool-images:
+        description: 'Every tool image of SiliconCompiler''s, by version, empty for a package'
+        value: ${{ jobs.plan.outputs.all_tool_images }}
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ${{ inputs.registry }}
+  PREFIX: ${{ inputs.image-prefix }}
+
+jobs:
+  plan:
+    name: 'Plan images'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: read
+
+    outputs:
+      stage_1_matrix: ${{ steps.plan.outputs.stage_1_matrix }}
+      stage_2_matrix: ${{ steps.plan.outputs.stage_2_matrix }}
+      stage_3_matrix: ${{ steps.plan.outputs.stage_3_matrix }}
+      tools_image: ${{ steps.plan.outputs.tools_image }}
+      has_tools_image: ${{ steps.plan.outputs.has_tools_image }}
+      builder_image: ${{ steps.plan.outputs.builder_image }}
+      has_builder: ${{ steps.plan.outputs.has_builder }}
+      runner_image: ${{ steps.plan.outputs.runner_image }}
+      all_tool_images: ${{ steps.plan.outputs.all_tool_images }}
+
+    steps:
+      # The whole history, so the version setuptools_scm derives, which names
+      # sc_runner, is the release's
+      # Without the job token in .git/config, where installing the package's code
+      # could read it
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Which images exist is asked of the registry, and a refusal is an error
+      # rather than a missing image, so log in before asking.
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      - name: Install
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python3 -m pip install --upgrade pip
+          # Editable, so a package's data resolves to this checkout
+          python3 -m pip install -e .
+
+      - name: Plan
+        id: plan
+        env:
+          REBUILD_ALL: ${{ inputs.rebuild-all }}
+        run: |
+          . .venv/bin/activate
+          args=(--registry "$REGISTRY")
+          if [ -n "$PREFIX" ]; then
+            args+=(--image_prefix "$PREFIX")
+          fi
+          builder() {
+            python3 -m siliconcompiler.utils.toolimages "${args[@]}" "$@"
+          }
+          report=()
+          if [ "$REBUILD_ALL" = "true" ]; then
+            report=(--reportall)
+          fi
+
+          builder --plan
+          tools_image=$(builder --tool tools)
+          {
+            echo "tools_image=${tools_image}"
+            echo "has_tools_image=$(builder --check_image "$tools_image")"
+            for stage in 1 2 3; do
+              echo "stage_${stage}_matrix=$(builder "${report[@]}" --json_tools --stage $stage)"
+            done
+          } >> "$GITHUB_OUTPUT"
+
+          # An image is built after every built image it is built on, one stage per
+          # link; deeper than the stages below would build one before its base exists
+          if [ "$(builder --reportall --json_tools --stage 4)" != "{}" ]; then
+            echo "::error::The built images are chained deeper than the 3 build stages"
+            exit 1
+          fi
+
+          # SiliconCompiler's own builds the builder image and names sc_runner too
+          if [ -z "$PREFIX" ]; then
+            builder_image=$(builder --tool builder)
+            {
+              echo "builder_image=${builder_image}"
+              echo "has_builder=$(builder --check_image "$builder_image")"
+              echo "runner_image=$(builder --tool runner)"
+              echo "all_tool_images=$(builder --all_tool_images)"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+          builder --generate_files --output_dir docker
+
+      - name: Upload docker artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: tool-images
+          path: docker/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  build_builder:
+    name: 'Build base tool builder image'
+    needs: plan
+    if: inputs.image-prefix == '' && needs.plan.outputs.has_builder != 'true'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tool-images
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      - name: Build and push the builder image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./sc_tool_builder/
+          push: true
+          provenance: false
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          tags: ${{ needs.plan.outputs.builder_image }}
+
+  build_tool_stage_1:
+    name: Build ${{ matrix.tool }} tool
+    needs: [plan, build_builder]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      needs.build_builder.result != 'failure' && needs.plan.outputs.stage_1_matrix != '{}'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.stage_1_matrix) }}
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tool-images
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      # Passed to the build as the git_token secret, which tool.docker hands to git
+      # for the clone and keeps out of every layer. An empty one is ignored.
+      - name: Mint a source token
+        id: source-token
+        if: inputs.repositories != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.source-app-client-id }}
+          private-key: ${{ secrets.source-app-private-key }}
+          repositories: ${{ inputs.repositories }}
+          permission-contents: read
+
+      - name: Find the build context
+        id: context
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          name="${NAME%%:*}"
+          echo "context=${name##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the tool image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./${{ steps.context.outputs.context }}/
+          push: true
+          provenance: false
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          secrets: git_token=${{ steps.source-token.outputs.token }}
+          tags: |
+            ${{ matrix.name }}
+            ${{ matrix.check_name }}
+
+  build_tool_stage_2:
+    name: Build ${{ matrix.tool }} tool
+    needs: [plan, build_tool_stage_1]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.stage_2_matrix != '{}'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.stage_2_matrix) }}
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tool-images
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      - name: Mint a source token
+        id: source-token
+        if: inputs.repositories != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.source-app-client-id }}
+          private-key: ${{ secrets.source-app-private-key }}
+          repositories: ${{ inputs.repositories }}
+          permission-contents: read
+
+      - name: Find the build context
+        id: context
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          name="${NAME%%:*}"
+          echo "context=${name##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the tool image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./${{ steps.context.outputs.context }}/
+          push: true
+          provenance: false
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          secrets: git_token=${{ steps.source-token.outputs.token }}
+          tags: |
+            ${{ matrix.name }}
+            ${{ matrix.check_name }}
+
+  build_tool_stage_3:
+    name: Build ${{ matrix.tool }} tool
+    needs: [plan, build_tool_stage_2]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.stage_3_matrix != '{}'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.stage_3_matrix) }}
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tool-images
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      - name: Mint a source token
+        id: source-token
+        if: inputs.repositories != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.source-app-client-id }}
+          private-key: ${{ secrets.source-app-private-key }}
+          repositories: ${{ inputs.repositories }}
+          permission-contents: read
+
+      - name: Find the build context
+        id: context
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          name="${NAME%%:*}"
+          echo "context=${name##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the tool image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./${{ steps.context.outputs.context }}/
+          push: true
+          provenance: false
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          secrets: git_token=${{ steps.source-token.outputs.token }}
+          tags: |
+            ${{ matrix.name }}
+            ${{ matrix.check_name }}
+
+  build_tools_image:
+    name: Build the image of every tool
+    needs: [plan, build_builder, build_tool_stage_1, build_tool_stage_2, build_tool_stage_3]
+    # Not when a tool image failed: it would be missing from the image of all of them
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      !contains(needs.*.result, 'failure') && needs.plan.outputs.has_tools_image != 'true'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tool-images
+
+      # It is assembled from every tool's image, or starts from sc_tools, and both
+      # are large
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v2.0.0
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          buildkitd-flags: --debug
+
+      - name: Find the build context
+        id: context
+        env:
+          NAME: ${{ needs.plan.outputs.tools_image }}
+        run: |
+          name="${NAME%%:*}"
+          echo "context=${name##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the image of every tool
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./${{ steps.context.outputs.context }}/
+          push: true
+          provenance: false
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          tags: ${{ needs.plan.outputs.tools_image }}

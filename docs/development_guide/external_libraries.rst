@@ -129,13 +129,15 @@ Points worth calling out:
   the exact release you develop against using an ``==`` constraint; the current
   release is |release|.
 
+.. _ext_lib_entry_points:
+
 .. note::
 
    More advanced packages can also register SiliconCompiler *entry points* to plug into
-   documentation source links, ``show``/``open`` tasks, data source resolvers, and
-   tool-install helpers, plus ``[project.scripts]`` for CLI apps. SiliconCompiler
-   registers its own built-ins in code before consulting these groups, so an entry point
-   you provide takes precedence wherever the two overlap.
+   documentation source links, ``show``/``open`` tasks, :ref:`data source resolvers
+   <builtin_resolvers>`, and tool-install helpers, plus ``[project.scripts]`` for CLI
+   apps. SiliconCompiler registers its own built-ins in code before consulting these
+   groups, so an entry point you provide takes precedence wherever the two overlap.
 
    .. code-block:: toml
 
@@ -150,12 +152,13 @@ Points worth calling out:
       linkcode = "mylib.docs:get_codeurl"
 
       [project.entry-points."siliconcompiler.install"]
-      tools = "mylib.install:get_install_tools"
+      toolscripts = "mylib.install:get_toolscripts_dir"
       groups = "mylib.install:get_install_groups"
       fingerprint = "mylib.install:compute_fingerprint"
 
    The names in the ``siliconcompiler.docs`` and ``siliconcompiler.install`` groups are
-   fixed, since SiliconCompiler looks them up by name. Names in the
+   fixed, since SiliconCompiler looks them up by name. :ref:`ext_lib_toolscripts`
+   covers ``toolscripts``. Names in the
    ``siliconcompiler.showtask`` and ``siliconcompiler.path_resolver`` groups are
    free-form; pick something unique to your package.
 
@@ -198,7 +201,7 @@ from clashing when several libraries are combined into one project.
    ``mylib`` package, and ``python://mylib/libs/mymacro`` to a directory inside
    it. To additionally fetch large data files that are *not*
    shipped in the wheel, give the dataroot a git fallback keyed to the package
-   version with ``PythonPathResolver.set_dataroot``.
+   version with ``PythonPathResolver.set_dataroot`` (see :ref:`resolver-python`).
 
 .. _ext_lib_dataroots:
 
@@ -456,6 +459,182 @@ environment variable the modules depend on:
 If a module points a dataroot at an environment variable such as
 ``$FOUNDRY_ROOT``, setting it here with ``project.option.set_env`` means users
 get a working default without configuring anything themselves.
+
+.. _ext_lib_toolscripts:
+
+Adding tools to sc-install
+--------------------------
+
+A package that drives a tool SiliconCompiler does not build can make it
+installable with :ref:`sc-install <app-sc-install>`. Lay out a directory the
+way SiliconCompiler lays out its own ``toolscripts``, and return it from a
+``toolscripts`` entry point:
+
+.. code-block:: text
+
+   mylib/toolscripts/
+   ├── _tools.json                  <- pins, in the same fields as SiliconCompiler's
+   └── ubuntu24/
+       └── install-mytool.sh        <- one directory per supported OS
+
+.. code-block:: toml
+
+   # pyproject.toml
+   [project.entry-points."siliconcompiler.install"]
+   toolscripts = "mylib.install:get_toolscripts_dir"
+
+.. code-block:: python
+
+   # mylib/install.py
+   import os.path
+
+
+   def get_toolscripts_dir():
+       return os.path.join(os.path.dirname(__file__), "toolscripts")
+
+``sc-install`` runs each script where it is installed, with ``SC_TOOLSCRIPTS``
+naming a directory that holds the shared helpers, ``_prereqs.sh`` and
+``_tools.py``, beside a ``_tools.json`` that merges your pins into
+SiliconCompiler's. An install script finds the helpers there and reads its pins
+through ``_tools.py``:
+
+.. code-block:: bash
+
+   #!/bin/bash
+
+   set -ex
+
+   src_path="${SC_TOOLSCRIPTS:?run this script through sc-install}"
+
+   . "${src_path}/_prereqs.sh"
+   install_prereqs git
+
+   git clone $(python3 ${src_path}/_tools.py --tool mytool --field git-url) mytool
+   cd mytool
+   git checkout $(python3 ${src_path}/_tools.py --tool mytool --field git-commit)
+
+Commit the script executable (``git update-index --chmod=+x``), since it is run
+directly.
+
+* **Overriding a pin.** An entry for a tool SiliconCompiler already pins changes
+  only the fields it names: ``{"yosys": {"git-commit": "v0.70"}}`` builds yosys
+  v0.70 with SiliconCompiler's own script. Ship ``ubuntu24/install-yosys.sh`` as
+  well only to replace the recipe on that OS.
+* **Rebuilds.** A tool's fingerprint covers its own pin and the pins of what it
+  lists in ``docker-depends``, so ``sc-install`` rebuilds it when either moves,
+  including when the move comes from your override.
+* **One package per tool.** Two installed packages supplying the same tool,
+  whether by pin or by script, are an error.
+
+The older ``tools`` entry point, which maps tool names straight to scripts,
+still works, and its scripts are given ``SC_TOOLSCRIPTS`` too.
+
+To keep your pins current the way SiliconCompiler keeps its own, call its tool
+updater from a workflow of yours. Every entry in your ``_tools.json`` that has a
+``git-url`` and ``"auto-update": true`` gets a pull request moving it to the
+newest commit or release tag. An override is read on its own, without
+SiliconCompiler's fields, so it is updated only if it carries both itself.
+
+.. code-block:: yaml
+
+   # .github/workflows/tool_updater.yml
+   name: 'Tool Updater'
+
+   on:
+     workflow_dispatch:
+     schedule:
+       - cron: '0 0 * * *'
+
+   jobs:
+     update:
+       permissions:
+         contents: read
+         pull-requests: read
+       uses: siliconcompiler/siliconcompiler/.github/workflows/update_tools.yml@main
+       with:
+         manifest: mylib/toolscripts/_tools.json
+         app-client-id: ${{ vars.MYLIB_BOT_CLIENT_ID }}
+         # Only for pins cloned from private repositories of the same owner
+         repositories: mytool
+         source-app-client-id: ${{ vars.MYLIB_READ_BOT_CLIENT_ID }}
+       secrets:
+         app-private-key: ${{ secrets.MYLIB_BOT_PRIVATE_KEY }}
+         source-app-private-key: ${{ secrets.MYLIB_READ_BOT_PRIVATE_KEY }}
+
+The pull requests are opened by a GitHub App you name with ``app-client-id`` and
+``app-private-key``, which needs contents and pull requests write on your
+repository. A pull request opened with ``GITHUB_TOKEN`` would run none of your
+checks, and that token cannot read another private repository. The repositories
+listed in ``repositories`` are read through ``source-app-client-id`` and
+``source-app-private-key``, an App that needs only contents read on them; without
+one, the App that opens the pull requests reads them too.
+
+SiliconCompiler builds a docker image of each tool, tagged by a hash of
+everything that goes into it, and yours can be built the same way, on
+SiliconCompiler's images:
+
+.. code-block:: bash
+
+   python3 -m siliconcompiler.utils.toolimages --image_prefix myorg/mylib_ --plan
+   python3 -m siliconcompiler.utils.toolimages --image_prefix myorg/mylib_ \
+       --generate_files --output_dir docker
+
+The tags are computed over your pins merged into SiliconCompiler's. An image
+that would come out the same as SiliconCompiler's is taken from ghcr.io, where
+SiliconCompiler publishes it; the rest are built as ``ghcr.io/myorg/mylib_<tool>``,
+or under another registry given with ``--registry``: your own tools, any tool you
+override, and everything built against one. ``--plan`` lists both, and
+``--json_tools --stage 1``, then ``2`` and so on, gives the order to build them
+in: an image is built after every built image it is built on. Each generated
+directory is a build context. A token that can read a private source goes in the
+``git_token`` build secret, where every install script built with it can read it:
+
+.. code-block:: bash
+
+   docker build --secret id=git_token,env=GIT_TOKEN docker/mylib_mytool
+
+The image your CI runs in is ``mylib_tools``, and ``--plan`` says which of three
+it is:
+
+* ``sc_tools`` itself, when you build nothing.
+* ``sc_tools`` with your tools added as one layer, when you only add tools.
+* Assembled from every tool's image, the way ``sc_tools`` is, when you change a
+  pin or a recipe of one of SiliconCompiler's: the version it replaces would
+  otherwise survive underneath.
+
+SiliconCompiler's workflow builds whatever does not exist yet and returns the
+image's name:
+
+.. code-block:: yaml
+
+   jobs:
+     images:
+       permissions:
+         contents: read
+         packages: write
+       uses: siliconcompiler/siliconcompiler/.github/workflows/tool_images.yml@main
+       with:
+         image-prefix: myorg/mylib_
+         # Only for pins cloned from private repositories of the same owner
+         repositories: mytool
+         source-app-client-id: ${{ vars.MYLIB_READ_BOT_CLIENT_ID }}
+       secrets:
+         source-app-private-key: ${{ secrets.MYLIB_READ_BOT_PRIVATE_KEY }}
+
+     test:
+       needs: images
+       runs-on: ubuntu-latest
+       container:
+         image: ${{ needs.images.outputs.image }}
+         credentials:
+           username: ${{ github.actor }}
+           password: ${{ secrets.GITHUB_TOKEN }}
+
+It installs your package from the calling repository, editable so that its data
+resolves to the checkout, and pushes to ghcr.io with ``GITHUB_TOKEN``; another
+registry is named with ``registry``, logged in to with ``registry-username`` and
+the ``registry-password`` secret. SiliconCompiler's images are always pulled from
+ghcr.io.
 
 Publishing to PyPI
 ------------------

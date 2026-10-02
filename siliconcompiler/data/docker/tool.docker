@@ -27,11 +27,23 @@ COPY _prereqs.sh $SC_BUILD/..
 # Copy and run install script
 # The final remove in the same RUN command
 # is important to keep the docker image size low
+#
+# A package's install script finds _prereqs.sh and _tools.py through
+# SC_TOOLSCRIPTS, as it does under sc-install. A private source is cloned with the
+# token in the git_token build secret, when a non-empty one is given: it is read
+# from the mount and handed to git through the environment, so it reaches neither a
+# layer nor a config file.
 COPY {{ install_script }} $SC_BUILD
 WORKDIR $SC_BUILD
-RUN apt-get update && \
+RUN --mount=type=secret,id=git_token \
+    if [ -s /run/secrets/git_token ]; then \
+        export GIT_CONFIG_COUNT=1 \
+               GIT_CONFIG_KEY_0="url.https://x-access-token:$(cat /run/secrets/git_token)@github.com/.insteadOf" \
+               GIT_CONFIG_VALUE_0="https://github.com/"; \
+    fi && \
+    apt-get update && \
     chmod +x ./{{ install_script }} && \
-    ./{{ install_script }} && \
+    SC_TOOLSCRIPTS=$SC_BUILD/.. ./{{ install_script }} && \
     rm -rf $SC_BUILD/* && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \

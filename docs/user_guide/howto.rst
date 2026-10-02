@@ -36,68 +36,63 @@ Dataroot: register a new source of files
 
 The path may be a local directory, a git URL, or an archive URL. ``tag`` applies
 to remote sources only, and is a git commit, branch, or tag. See
-:term:`dataroot`.
+:term:`dataroot`, and :ref:`Data Sources <builtin_resolvers>` for every scheme a
+path can take.
 
 Dataroot: authenticate against a private repository
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A ``git+https`` dataroot takes its credential from the environment. Set whichever
-variable matches the host. A dataroot-specific variable, ``GITHUB_<DATAROOT>_TOKEN``,
-outranks the general one, and ``GIT_TOKEN`` is the fallback for every host.
+Put the token in the environment variable for its host, and keep it out of the
+script:
 
-.. list-table::
-   :header-rows: 1
-   :widths: 15 40 45
+.. code-block:: bash
 
-   * - Host
-     - Environment variable
-     - Sent to the server as
-   * - ``github.com``
-     - ``GITHUB_TOKEN``, ``GH_TOKEN``
-     - ``x-access-token:<token>``
-   * - ``gitlab.com``
-     - ``GITLAB_TOKEN``, ``GL_TOKEN``
-     - ``oauth2:<token>``
-   * - ``bitbucket.org``
-     - ``BITBUCKET_TOKEN``
-     - ``x-token-auth:<token>``
-   * - anything else
-     - ``GIT_TOKEN``
-     - the host's username above if it has one, else ``<token>`` as the
-       username with an empty password
+   export GITHUB_TOKEN=<token>   # github.com
+   export GITLAB_TOKEN=<token>   # gitlab.com
+   export GIT_TOKEN=<token>      # a git repository or GitLab instance on any other host
+   export HTTPS_TOKEN=<token>    # an https:// archive on any other host
 
-The token travels as the basic-auth password, under the username that host
-expects. The username matters: a GitHub App installation token is accepted only
-in the form above, while a classic personal access token is accepted either way.
-
-A forge's own variable unlocks only for that forge's own domains. A **self-hosted**
-GitHub Enterprise or GitLab -- ``gitlab.example.com`` -- still gets the right
-username, but takes its credential from ``GIT_TOKEN``: a forge name in a host
-label is not evidence that the forge owns the host, and ``GITLAB_TOKEN`` must not
-be handed to ``gitlab.attacker.example`` on the strength of one.
-
-For a host that needs some other username, write it into the URL and the token
-becomes its password:
-
-.. code-block:: python
-
-   design.set_dataroot("<name>", "git+https://<user>@git.example.com/<owner>/<repo>")
-
-Prefer ``git+ssh://`` where you can. A token supplied this way is written into
-the cached clone's ``.git/config``, whereas SSH keeps the credential out of the
-URL entirely.
-
-A ``gitlab://<host>/<group>/<project>/<tag>/<asset>`` dataroot takes the same
-variables for the same hosts: ``GITLAB_TOKEN`` or ``GL_TOKEN`` for ``gitlab.com``,
-``GIT_TOKEN`` for a self-hosted instance. It sends the token as
-``Authorization: Bearer <token>``, only to the GitLab host, and only once the
-project turns out not to be readable without one.
+A ``git+ssh://`` dataroot needs no token: it uses this machine's SSH keys, and is
+the better choice where you can use it. Each scheme's entry in :ref:`Data Sources
+<builtin_resolvers>` lists the variables it reads and how it sends the token, with
+the full table for ``git+https://`` under :ref:`git <resolver-git>`. Every variable
+also has a :ref:`dataroot-specific form <resolver_tokens>`, for when two dataroots
+on one host need different tokens.
 
 A private repository does not need the ``+private`` marker (``git+ssh+private://``,
 ``file+private://`` and the rest). The marker says a source must never leave this
 machine: a :ref:`remote run <remote_processing>` is not to upload it, so the
 SiliconCompiler server has to hold its own copy. Mark a source ``+private`` only if
 it must stay here; a repository this machine can fetch needs no marker.
+
+.. _howto_s3_dataroot:
+
+Dataroot: fetch from S3 or an S3-compatible store
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Install the ``s3`` extra (``pip install "siliconcompiler[s3]"``), then name one
+archive object, or a prefix whose ``<tag>.tar.gz`` is the archive:
+
+.. code-block:: python
+
+   design.set_dataroot("<name>", "s3://<bucket>/<key>.tar.gz", tag="<version>")
+   design.set_dataroot("<name>", "s3://<bucket>/<prefix>/", tag="<version>")
+
+The object is unpacked as an ``https://`` archive is, in the same formats.
+
+Credentials come from the AWS chain, as for the AWS CLI: ``AWS_PROFILE``,
+``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``, ``~/.aws/credentials``, SSO,
+or an instance role. With none found, the request goes unsigned, which reads a
+public bucket. An ``s3+private://`` source requires credentials instead.
+
+For a store other than AWS -- MinIO, Ceph, Cloudflare R2 -- set its endpoint, and
+its keys as the AWS variables:
+
+.. code-block:: bash
+
+   export AWS_ENDPOINT_URL_S3=https://<account>.r2.cloudflarestorage.com
+   export AWS_ACCESS_KEY_ID=<key>
+   export AWS_SECRET_ACCESS_KEY=<secret>
 
 Dataroot relative to my current file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

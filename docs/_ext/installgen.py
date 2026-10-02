@@ -53,7 +53,7 @@ class InstallScripts(SphinxDirective):
                 if not script.startswith('install-'):
                     continue
 
-                # Ignore directories such as 'setup/docker/'.
+                # Only scripts: anything else named install-* is not one.
                 if os.path.isfile(os.path.join(ls_path, script)):
                     components, _ = os.path.splitext(script)
                     components = components.split("-")

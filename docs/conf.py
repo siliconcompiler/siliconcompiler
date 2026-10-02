@@ -67,6 +67,7 @@ extensions = [
     'installgen',
     'graphgen',
     'examplegen',
+    'resolvergen',
     'llmstxt',
     'schemadump'
 ]

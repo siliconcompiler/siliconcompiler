@@ -355,7 +355,7 @@ sc_remove_prereqs() {
 #
 # The tool declares them in _tools.json instead -- "docker-keep-pkgs" for a
 # package it needs at run time, "docker-drop-pkgs" for one only its build needs
-# -- and setup/docker/tool.docker passes them here.
+# -- and siliconcompiler/data/docker/tool.docker passes them here.
 _sc_keep_pkgs=""
 _sc_drop_pkgs=""
 

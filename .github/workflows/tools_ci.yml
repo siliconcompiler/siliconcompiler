@@ -40,204 +40,25 @@ permissions:
   packages: read
 
 jobs:
-  build_tool_builder:
-    name: 'Build base tool builder image'
-
-    runs-on: ubuntu-latest
-
+  # Every tool image and sc_tools, built where they do not exist yet, through the
+  # same workflow a package that adds tools to sc-install calls, so these runs are
+  # its test too.
+  #
+  # Pushed with GITHUB_TOKEN, scoped by this job's packages: write. On a pull
+  # request from a fork the token is read-only, so a run that has to build a new
+  # image fails at the push and a repo member has to run it; pulls, and any run
+  # whose images already exist, work for external contributors.
+  images:
+    name: 'Tool images'
     permissions:
       contents: read
       packages: write
-
-    outputs:
-      tools_matrix: ${{ steps.docker.outputs.tools_matrix }}
-      tools_with_deps_matrix: ${{ steps.docker.outputs.tools_with_deps_matrix }}
-      sc_tools: ${{ steps.docker.outputs.sc_tools }}
-      sc_runner: ${{ steps.docker.outputs.sc_runner }}
-      has_sc_tools: ${{ steps.docker.outputs.has_sc_tools }}
-      all_tool_images: ${{ steps.docker.outputs.all_tool_images }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      # GITHUB_TOKEN, scoped by this job's packages: write. On a pull request
-      # from a fork the token is read-only, so a run that has to build a new
-      # image fails at the push and a repo member has to run it; pulls, and any
-      # run whose images already exist, work for external contributors.
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Check if rebuild all is needed
-        if: inputs.rebuildall
-        run: echo 'REBUILDALL=--reportall' >> "$GITHUB_ENV"
-
-      - name: Generate tool docker files
-        id: docker
-        run: |
-          python3 -m venv .venv
-          . .venv/bin/activate
-          pip install .
-          builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
-          sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
-          sc_runner_name=$(python3 setup/docker/builder.py --tool runner --registry ${{ env.REGISTRY }})
-          echo "builder=${builder_name}" >> $GITHUB_OUTPUT
-          echo "has_builder=$(python3 setup/docker/builder.py --check_image ${builder_name})" >> $GITHUB_OUTPUT
-          echo "sc_tools=${sc_tools_name}" >> $GITHUB_OUTPUT
-          echo "sc_runner=${sc_runner_name}" >> $GITHUB_OUTPUT
-          echo "has_sc_tools=$(python3 setup/docker/builder.py --check_image ${sc_tools_name})" >> $GITHUB_OUTPUT
-          echo "all_tool_images=$(python3 setup/docker/builder.py --all_tool_images --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
-          echo "tools_matrix=$(python3 setup/docker/builder.py $REBUILDALL --json_tools --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
-          echo "tools_with_deps_matrix=$(python3 setup/docker/builder.py $REBUILDALL --json_tools --with_dependencies --registry ${{ env.REGISTRY }})" >> $GITHUB_OUTPUT
-          python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
-
-      - name: Upload docker artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: tools
-          path: docker/
-          retention-days: 1
-
-      - name: Build and Push SiliconCompiler Builder Docker image
-        if: steps.docker.outputs.has_builder != 'true'
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: docker/sc_tool_builder
-          push: true
-          provenance: false
-          tags: ${{ steps.docker.outputs.builder }}
-
-  build_tool:
-    if: ${{ needs.build_tool_builder.outputs.tools_matrix != '{}' }}
-
-    name: Build ${{ matrix.tool }} tool
-    runs-on: ubuntu-latest
-    needs: build_tool_builder
-
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-        fail-fast: false
-        matrix: ${{ fromJson(needs.build_tool_builder.outputs.tools_matrix) }}
-
-    steps:
-      - name: Download docker artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: tools
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: ./sc_${{ matrix.tool }}/
-          push: true
-          provenance: false
-          tags: |
-            ${{ matrix.name }}
-            ${{ matrix.check_name }}
-
-  build_tool_with_deps:
-    name: Build ${{ matrix.tool }} tool
-    runs-on: ubuntu-latest
-    needs: [build_tool_builder, build_tool]
-
-    if: always() && !cancelled() && needs.build_tool_builder.outputs.tools_with_deps_matrix != '{}'
-
-    permissions:
-      contents: read
-      packages: write
-
-    strategy:
-        fail-fast: false
-        matrix: ${{ fromJson(needs.build_tool_builder.outputs.tools_with_deps_matrix) }}
-
-    steps:
-      - name: Download docker artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: tools
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: ./sc_${{ matrix.tool }}/
-          push: true
-          provenance: false
-          tags: |
-            ${{ matrix.name }}
-            ${{ matrix.check_name }}
-
-  build_sc_tools:
-    name: Build SC Tools
-    runs-on: ubuntu-latest
-    needs: [build_tool_builder, build_tool, build_tool_with_deps]
-
-    if: always() && !cancelled() && needs.build_tool_builder.outputs.has_sc_tools != 'true'
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Download docker artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: tools
-
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@v2.0.0
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          swap-storage: true
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-        with:
-          buildkitd-flags: --debug
-
-      - name: Build and Push Tool Docker image
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: ./sc_tools/
-          push: true
-          provenance: false
-          tags: ${{ needs.build_tool_builder.outputs.sc_tools }}
+    uses: ./.github/workflows/tool_images.yml
+    with:
+      rebuild-all: ${{ inputs.rebuildall == true }}
 
   tag_release_images:
-    needs: [build_tool_builder, build_tool, build_tool_with_deps, build_sc_tools]
+    needs: images
     name: Tag release images
     if: always() && !cancelled() && github.event_name == 'release'
 
@@ -273,13 +94,13 @@ jobs:
         # sc_tools is tagged by content hash, so the SC version stands on its own,
         # while the tool images carry the tool's own version and need the 'sc-' prefix
         # to keep the two apart
-        retag ${{ needs.build_tool_builder.outputs.sc_tools }} ${{ github.ref_name }}
-        for image in ${{ needs.build_tool_builder.outputs.all_tool_images }}; do
+        retag ${{ needs.images.outputs.image }} ${{ github.ref_name }}
+        for image in ${{ needs.images.outputs.all-tool-images }}; do
           retag $image sc-${{ github.ref_name }}
         done
 
   runner_image:
-    needs: [build_tool_builder, build_sc_tools]
+    needs: images
     name: Build SC runner image
     if: always() && !cancelled() && github.event_name == 'release'
 
@@ -293,7 +114,7 @@ jobs:
     - name: Download docker artifacts
       uses: actions/download-artifact@v8
       with:
-        name: tools
+        name: tool-images
 
     - name: Free Disk Space (Ubuntu)
       uses: jlumbroso/free-disk-space@v2.0.0
@@ -314,7 +135,7 @@ jobs:
 
     - name: Determine runner latest tag
       run: |
-        runner_latest_tag=$(echo ${{ needs.build_tool_builder.outputs.sc_runner }} | sed s/:.*/:latest/g)
+        runner_latest_tag=$(echo ${{ needs.images.outputs.runner-image }} | sed s/:.*/:latest/g)
         echo "RUNNER_TAG=${runner_latest_tag}" >> $GITHUB_ENV
 
     - name: Build and Push Tool Docker image
@@ -324,7 +145,7 @@ jobs:
         push: true
         provenance: false
         tags: |
-          ${{ needs.build_tool_builder.outputs.sc_runner }}
+          ${{ needs.images.outputs.runner-image }}
           ${{ env.RUNNER_TAG }}
 
   cache:
@@ -358,7 +179,7 @@ jobs:
           retention-days: 1
 
   tool_based_tests:
-    needs: [build_tool_builder, build_sc_tools, cache]
+    needs: [images, cache]
     runs-on: ubuntu-latest
 
     if: always() && !cancelled()
@@ -370,7 +191,7 @@ jobs:
       id-token: write
 
     container:
-      image: ${{ needs.build_tool_builder.outputs.sc_tools }}
+      image: ${{ needs.images.outputs.image }}
 
     env:
       SCTESTCACHE: ${{ github.workspace }}/.sc/cache/
@@ -422,7 +243,7 @@ jobs:
           verbose: true
 
   daily_tests_job_docker_linux:
-    needs: [cache, build_tool_builder, build_sc_tools]
+    needs: [cache, images]
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
@@ -451,7 +272,7 @@ jobs:
 
       - name: Fetch runner image
         run: |
-          docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
+          docker pull ${{ needs.images.outputs.image }}
 
       - name: Restore cache
         uses: actions/download-artifact@v8
@@ -470,7 +291,7 @@ jobs:
 
       - name: Run tests
         env:
-          SC_IMAGE: ${{ needs.build_tool_builder.outputs.sc_tools }}
+          SC_IMAGE: ${{ needs.images.outputs.image }}
         run: |
           source .venv/bin/activate
 
@@ -506,6 +327,6 @@ jobs:
 
   run_daily_asic:
     name: Run daily ASIC CI
-    needs: [build_sc_tools, tools_changed_check]
+    needs: [images, tools_changed_check]
     if: always() && !cancelled() && needs.tools_changed_check.outputs.asic_changed == 'Yes'
     uses: ./.github/workflows/daily_ci.yml

@@ -20,6 +20,7 @@ To learn how to use SiliconCompiler, see the :ref:`user guide <user_guide>`.
    PDKs <predef_modules/pdks>
    Libraries <predef_modules/libs>
    Checklists <predef_modules/checklists>
+   Data Sources <predef_modules/resolvers>
 
 .. _api_refs:
 
