@@ -1,5 +1,6 @@
 import os
 import pytest
+import requests
 import responses
 import tarfile
 
@@ -193,6 +194,23 @@ def test_release_lookup_failure(gitlab, status, error):
         resolver.download_url
     # A server error stays retryable.
     assert resolver.is_permanent_failure(raised.value) is (status == 404)
+
+
+def test_api_requests_time_out(gitlab):
+    """A stalled API request gives up rather than holding the run, and is retried."""
+    gitlab.add(responses.GET, _API, json={})
+    gitlab.add(responses.GET, f"{_API}/releases/v1.0", json=_release(_link("asset.tar.gz")))
+    resolver = _resolver("gitlab://gitlab.com/g/p/v1.0/asset.tar.gz")
+    resolver.download_url
+    assert [call.request.req_kwargs["timeout"] for call in gitlab.calls] == [30, 30]
+
+
+def test_api_timeout_is_retryable(gitlab):
+    gitlab.add(responses.GET, _API, body=requests.exceptions.ReadTimeout())
+    resolver = _resolver("gitlab://gitlab.com/g/p/v1.0/asset.tar.gz")
+    with pytest.raises(requests.exceptions.Timeout) as raised:
+        resolver.download_url
+    assert not resolver.is_permanent_failure(raised.value)
 
 
 def test_latest_release(gitlab):

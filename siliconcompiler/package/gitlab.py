@@ -24,6 +24,11 @@ if TYPE_CHECKING:
 #: reads.
 _SOURCE_FORMATS = ("tar.gz", "tar.bz2", "zip")
 
+#: Seconds an API request may wait to connect, or between bytes of the answer.
+#: The answers are small JSON documents, so a stall this long means none is
+#: coming; the timeout it raises is retried like any dropped connection.
+_API_TIMEOUT = 30
+
 
 def get_resolver() -> Dict[str, Type["GitlabResolver"]]:
     """
@@ -139,7 +144,7 @@ class GitlabResolver(HTTPResolver):
         else:
             # An anonymous request first: a token is only sent where one is
             # needed, and a stale token gets 401 even from a public project.
-            self.__public = requests.get(self.__api_root).ok
+            self.__public = requests.get(self.__api_root, timeout=_API_TIMEOUT).ok
             if not self.__public:
                 self.logger.info("Could not find public project, trying private.")
 
@@ -189,7 +194,7 @@ class GitlabResolver(HTTPResolver):
         except ValueError:
             pass
 
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=_API_TIMEOUT)
         if not response.ok:
             status = response.status_code
             error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \
