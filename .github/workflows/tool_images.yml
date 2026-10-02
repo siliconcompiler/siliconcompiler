@@ -10,8 +10,9 @@ name: 'Tool images'
 # pushed under the prefix, and the image of all of them is <prefix>tools.
 #
 # The calling job has to grant contents: read and packages: write. A pin cloned from
-# a private repository needs a GitHub App, named with app-client-id and
-# app-private-key, with contents read on each repository listed in repositories.
+# a private repository needs a GitHub App, named with source-app-client-id and
+# source-app-private-key, with contents read on each repository listed in
+# repositories.
 on:
   workflow_call:
     inputs:
@@ -31,7 +32,7 @@ on:
         description: 'Comma-separated private repositories, of the same owner, the pins are cloned from'
         type: string
         default: ''
-      app-client-id:
+      source-app-client-id:
         description: 'Client ID of the GitHub App that reads those repositories'
         type: string
         default: ''
@@ -43,7 +44,7 @@ on:
       registry-password:
         description: 'Password for the registry, default GITHUB_TOKEN'
         required: false
-      app-private-key:
+      source-app-private-key:
         description: 'Private key of that GitHub App'
         required: false
     outputs:
@@ -236,8 +237,8 @@ jobs:
         if: inputs.repositories != ''
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ inputs.app-client-id }}
-          private-key: ${{ secrets.app-private-key }}
+          client-id: ${{ inputs.source-app-client-id }}
+          private-key: ${{ secrets.source-app-private-key }}
           repositories: ${{ inputs.repositories }}
           permission-contents: read
 
@@ -295,8 +296,8 @@ jobs:
         if: inputs.repositories != ''
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ inputs.app-client-id }}
-          private-key: ${{ secrets.app-private-key }}
+          client-id: ${{ inputs.source-app-client-id }}
+          private-key: ${{ secrets.source-app-private-key }}
           repositories: ${{ inputs.repositories }}
           permission-contents: read
 
@@ -354,8 +355,8 @@ jobs:
         if: inputs.repositories != ''
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ inputs.app-client-id }}
-          private-key: ${{ secrets.app-private-key }}
+          client-id: ${{ inputs.source-app-client-id }}
+          private-key: ${{ secrets.source-app-private-key }}
           repositories: ${{ inputs.repositories }}
           permission-contents: read
 

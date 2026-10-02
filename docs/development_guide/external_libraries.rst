@@ -550,17 +550,21 @@ SiliconCompiler's fields, so it is updated only if it carries both itself.
        uses: siliconcompiler/siliconcompiler/.github/workflows/update_tools.yml@main
        with:
          manifest: mylib/toolscripts/_tools.json
+         app-client-id: ${{ vars.MYLIB_BOT_CLIENT_ID }}
          # Only for pins cloned from private repositories of the same owner
          repositories: mytool
-         app-client-id: ${{ vars.MYLIB_BOT_CLIENT_ID }}
+         source-app-client-id: ${{ vars.MYLIB_READ_BOT_CLIENT_ID }}
        secrets:
          app-private-key: ${{ secrets.MYLIB_BOT_PRIVATE_KEY }}
+         source-app-private-key: ${{ secrets.MYLIB_READ_BOT_PRIVATE_KEY }}
 
 The pull requests are opened by a GitHub App you name with ``app-client-id`` and
-``app-private-key``. A pull request opened with ``GITHUB_TOKEN`` would run none
-of your checks, and that token cannot read another private repository. The App
-needs contents and pull requests write on your repository, and contents read on
-each repository listed in ``repositories``.
+``app-private-key``, which needs contents and pull requests write on your
+repository. A pull request opened with ``GITHUB_TOKEN`` would run none of your
+checks, and that token cannot read another private repository. The repositories
+listed in ``repositories`` are read through ``source-app-client-id`` and
+``source-app-private-key``, an App that needs only contents read on them; without
+one, the App that opens the pull requests reads them too.
 
 SiliconCompiler builds a docker image of each tool, tagged by a hash of
 everything that goes into it, and yours can be built the same way, on
@@ -610,9 +614,9 @@ image's name:
          image-prefix: myorg/mylib_
          # Only for pins cloned from private repositories of the same owner
          repositories: mytool
-         app-client-id: ${{ vars.MYLIB_BOT_CLIENT_ID }}
+         source-app-client-id: ${{ vars.MYLIB_READ_BOT_CLIENT_ID }}
        secrets:
-         app-private-key: ${{ secrets.MYLIB_BOT_PRIVATE_KEY }}
+         source-app-private-key: ${{ secrets.MYLIB_READ_BOT_PRIVATE_KEY }}
 
      test:
        needs: images
