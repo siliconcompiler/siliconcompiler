@@ -417,6 +417,17 @@ def test_http_resolver_no_token_over_plain_http(no_http_tokens, monkeypatch, sou
     assert "SECRET" not in warnings[0]
 
 
+@responses.activate
+def test_http_resolver_download_times_out():
+    """A download that stalls gives up after the request timeout."""
+    responses.add(responses.GET, "https://example.com/data.tar.gz", status=404)
+    resolver = HTTPResolver("test", Project("testproj"), "https://example.com/data.tar.gz", "v1")
+    resolver.set_request_timeout(7)
+    with pytest.raises(DataSourceUnavailableError):
+        resolver.resolve_remote()
+    assert responses.calls[0].request.req_kwargs["timeout"] == 7
+
+
 def test_http_resolver_plain_http_without_token_is_quiet(no_http_tokens):
     authorization, warnings = _sent_authorization("http://files.example.com/x.tar.gz")
     assert authorization is None

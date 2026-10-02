@@ -290,6 +290,7 @@ class GithubResolver(GithubArchiveResolver):
             Github: An initialized PyGithub client instance.
         """
         if private:
-            return Github(auth=Auth.Token(self.__get_gh_token()))
+            return Github(auth=Auth.Token(self.__get_gh_token()),
+                          timeout=self.request_timeout)
         else:
-            return Github()
+            return Github(timeout=self.request_timeout)

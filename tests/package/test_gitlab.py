@@ -201,8 +201,9 @@ def test_api_requests_time_out(gitlab):
     gitlab.add(responses.GET, _API, json={})
     gitlab.add(responses.GET, f"{_API}/releases/v1.0", json=_release(_link("asset.tar.gz")))
     resolver = _resolver("gitlab://gitlab.com/g/p/v1.0/asset.tar.gz")
+    resolver.set_request_timeout(7)
     resolver.download_url
-    assert [call.request.req_kwargs["timeout"] for call in gitlab.calls] == [30, 30]
+    assert [call.request.req_kwargs["timeout"] for call in gitlab.calls] == [7, 7]
 
 
 def test_api_timeout_is_retryable(gitlab):

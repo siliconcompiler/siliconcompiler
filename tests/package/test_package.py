@@ -1621,6 +1621,19 @@ def test_remote_lock_after_lock():
     assert not os.path.exists(resolver.sc_lock_file)
 
 
+def test_remote_timeout_defaults():
+    resolver = RemoteResolver("thisname", None, "https://filepath", "ref")
+    assert resolver.lock_timeout == 600
+    assert resolver.request_timeout == 60
+
+
+def test_remote_request_timeout():
+    resolver = RemoteResolver("thisname", None, "https://filepath", "ref")
+    resolver.set_request_timeout(5)
+    assert resolver.request_timeout == 5
+    assert resolver.lock_timeout == 600
+
+
 def test_remote_lock_within_lock_thread():
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -1629,8 +1642,8 @@ def test_remote_lock_within_lock_thread():
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     # change second resolver to wait 1 second
-    resolver1.set_timeout(1)
-    assert resolver1.timeout == 1
+    resolver1.set_lock_timeout(1)
+    assert resolver1.lock_timeout == 1
 
     thread_lock = resolver0.thread_lock()
 
@@ -1664,8 +1677,8 @@ def test_remote_lock_timeout_does_not_release_holder():
     waiter = RemoteResolver("thisname", project, "https://filepath", "ref")
     intruder = RemoteResolver("thisname", project, "https://filepath", "ref")
 
-    waiter.set_timeout(1)
-    intruder.set_timeout(1)
+    waiter.set_lock_timeout(1)
+    intruder.set_lock_timeout(1)
 
     # Isolate the thread lock from the inter-process lock
     @contextlib.contextmanager
@@ -1713,8 +1726,8 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     # change second resolver to wait 10 second
-    resolver1.set_timeout(10)
-    assert resolver1.timeout == 10
+    resolver1.set_lock_timeout(10)
+    assert resolver1.lock_timeout == 10
 
     # Allow filelock to pass
     @contextlib.contextmanager
@@ -1766,8 +1779,8 @@ def test_remote_lock_within_lock_file(monkeypatch):
     resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     # change second resolver to wait 1 second
-    resolver1.set_timeout(1)
-    assert resolver1.timeout == 1
+    resolver1.set_lock_timeout(1)
+    assert resolver1.lock_timeout == 1
 
     # Isolate the file lock from the thread lock
     @contextlib.contextmanager
@@ -1831,7 +1844,7 @@ def test_remote_lock_failed():
     project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
-    resolver.set_timeout(1)
+    resolver.set_lock_timeout(1)
 
     with patch("fasteners.InterProcessLock.acquire") as acquire:
         acquire.return_value = False
@@ -1870,7 +1883,7 @@ def test_remote_lock_revert_to_file_failed():
     project.option.set_cachedir(".")
 
     resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
-    resolver.set_timeout(1)
+    resolver.set_lock_timeout(1)
 
     with patch("fasteners.InterProcessLock.acquire") as acquire:
         def fail_lock(*args, **kwargs):

@@ -328,7 +328,8 @@ class HTTPResolver(RemoteResolver):
         self.logger.info(f'Downloading {self.display_name} data from '
                          f'{Resolver._masked_uri(data_url)}')
 
-        response = requests.get(data_url, stream=True, headers=headers, auth=auth)
+        response = requests.get(data_url, stream=True, headers=headers, auth=auth,
+                                timeout=self.request_timeout)
         if not response.ok:
             status = response.status_code
             error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \

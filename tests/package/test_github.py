@@ -288,7 +288,7 @@ def test_github_resolver_gh_unauthenticated():
 
     with patch("siliconcompiler.package.github.Github") as mock_gh_class:
         resolver._GithubResolver__gh(private=False)
-        mock_gh_class.assert_called_once_with()
+        mock_gh_class.assert_called_once_with(timeout=60)
 
 
 def test_github_resolver_gh_authenticated(monkeypatch):
@@ -301,7 +301,7 @@ def test_github_resolver_gh_authenticated(monkeypatch):
          patch("siliconcompiler.package.github.Auth.Token") as mock_auth:
         resolver._GithubResolver__gh(private=True)
         mock_auth.assert_called_once_with("test_token")
-        mock_gh_class.assert_called_once()
+        mock_gh_class.assert_called_once_with(auth=mock_auth.return_value, timeout=60)
 
 
 def test_github_resolver_download_url_fallback_to_private(monkeypatch):

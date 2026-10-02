@@ -682,15 +682,34 @@ class RemoteResolver(Resolver):
 
         # Wait a maximum of 10 minutes for other processes to finish
         self.__max_lock_wait: int = 60 * 10
+        # Give up on a remote server once it has gone a minute without answering
+        self.__request_timeout: int = 60
 
     @property
-    def timeout(self) -> int:
+    def lock_timeout(self) -> int:
         """The maximum time in seconds to wait for a lock."""
         return self.__max_lock_wait
 
-    def set_timeout(self, value: int) -> None:
+    def set_lock_timeout(self, value: int) -> None:
         """Sets the maximum time in seconds to wait for a lock."""
         self.__max_lock_wait = value
+
+    @property
+    def request_timeout(self) -> int:
+        """
+        The maximum time in seconds a request to a remote server may wait to
+        connect, or between one part of the answer and the next.
+
+        It bounds a stall, not a transfer: a large download that keeps arriving
+        takes as long as it takes. A request that times out is retried, as a
+        dropped connection is.
+        """
+        return self.__request_timeout
+
+    def set_request_timeout(self, value: int) -> None:
+        """Sets the maximum time in seconds a request to a remote server may
+        stall (see :attr:`request_timeout`)."""
+        self.__request_timeout = value
 
     @property
     def cache_dir(self) -> Path:
@@ -746,7 +765,7 @@ class RemoteResolver(Resolver):
         lock = self.thread_lock()
         lock_acquired = False
         try:
-            timeout = self.timeout
+            timeout = self.lock_timeout
             while timeout > 0:
                 if lock.acquire_lock(timeout=1):
                     lock_acquired = True
@@ -781,7 +800,7 @@ class RemoteResolver(Resolver):
         """
         lock = get_file_lock(self.cache_path)
         try:
-            lock.acquire(self.timeout)
+            lock.acquire(self.lock_timeout)
         except FileLockTimeout as e:
             if e.fallback:
                 raise RuntimeError(f'Failed to access {self.cache_path}. '
