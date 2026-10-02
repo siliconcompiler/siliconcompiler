@@ -1319,3 +1319,144 @@ def test_is_zstd_recognizes_what_it_cannot_read(monkeypatch):
     monkeypatch.setattr(utils, "_zstd", None)
 
     assert utils.is_zstd(blob) is True
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+def test_file_digest_matches_hashlib_on_every_python(monkeypatch, stdlib):
+    '''`hashlib.file_digest` where the interpreter has it (3.11+), and the
+    same answer from the chunked read before it.'''
+    import hashlib
+
+    data = bytes(range(256)) * 9000          # more than one chunk
+    with open("data.bin", "wb") as f:
+        f.write(data)
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    assert utils.file_digest("data.bin").hexdigest() == hashlib.sha256(data).hexdigest()
+    assert utils.file_digest("data.bin", "md5").hexdigest() == hashlib.md5(data).hexdigest()
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+def test_file_digest_continues_a_given_hash(monkeypatch, stdlib):
+    '''A callable in place of the name supplies the hash object to feed, as
+    `hashlib.file_digest` takes it, so a hash already holding data is continued
+    rather than restarted.'''
+    import hashlib
+
+    data = bytes(range(256)) * 9000          # more than one chunk
+    with open("data.bin", "wb") as f:
+        f.write(data)
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    hashobj = hashlib.sha256(b"prefix")
+    assert utils.file_digest("data.bin", lambda: hashobj) is hashobj
+    assert hashobj.hexdigest() == hashlib.sha256(b"prefix" + data).hexdigest()
+
+    assert utils.file_digest("data.bin", hashlib.sha1).hexdigest() == \
+        hashlib.sha1(data).hexdigest()
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+@pytest.mark.parametrize("size", [
+    0, 1,
+    2**18,                                   # one hashlib.file_digest buffer
+    2**20 - 1, 2**20, 2**20 + 1,             # either side of one fallback chunk
+    3 * 2**20 + 7])
+def test_file_digest_chunk_boundaries(monkeypatch, stdlib, size):
+    '''An empty file, and files ending on or either side of a chunk, hash the
+    same as their bytes do.'''
+    import hashlib
+
+    data = (bytes(range(256)) * (size // 256 + 1))[:size]
+    with open("data.bin", "wb") as f:
+        f.write(data)
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    assert utils.file_digest("data.bin").hexdigest() == hashlib.sha256(data).hexdigest()
+
+
+def test_file_digest_accepts_pathlib_path():
+    import hashlib
+    import pathlib
+
+    pathlib.Path("data.bin").write_bytes(b"payload")
+
+    assert utils.file_digest(pathlib.Path("data.bin")).hexdigest() == \
+        hashlib.sha256(b"payload").hexdigest()
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+def test_file_digest_returns_the_live_hash_object(monkeypatch, stdlib):
+    '''The hash object itself, as `hashlib.file_digest` returns it, so a caller
+    can take `digest()` or keep feeding it.'''
+    import hashlib
+
+    with open("data.bin", "wb") as f:
+        f.write(b"payload")
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    digest = utils.file_digest("data.bin", "sha512")
+    assert digest.name == "sha512"
+    assert digest.digest() == hashlib.sha512(b"payload").digest()
+
+    digest.update(b" and more")
+    assert digest.hexdigest() == hashlib.sha512(b"payload and more").hexdigest()
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+def test_file_digest_unknown_algorithm(monkeypatch, stdlib):
+    import hashlib
+
+    with open("data.bin", "wb") as f:
+        f.write(b"payload")
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    with pytest.raises(ValueError):
+        utils.file_digest("data.bin", "md56")
+
+
+@pytest.mark.parametrize("stdlib", [True, False])
+def test_file_digest_missing_file(monkeypatch, stdlib):
+    import hashlib
+
+    if not stdlib:
+        monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    with pytest.raises(FileNotFoundError):
+        utils.file_digest("missing.bin")
+
+
+def test_file_digest_fallback_reads_in_chunks(monkeypatch):
+    '''Before 3.11 the file is read a chunk at a time, never whole, so a
+    multi-gigabyte GDS does not have to fit in memory to be hashed.'''
+    import builtins
+    import hashlib
+
+    data = b"x" * (3 * 2**20)
+    with open("data.bin", "wb") as f:
+        f.write(data)
+    monkeypatch.delattr(hashlib, "file_digest", raising=False)
+
+    reads = []
+
+    def recording_open(*args, **kwargs):
+        f = builtins.open(*args, **kwargs)
+        read = f.read
+
+        def recording_read(size=-1):
+            reads.append(size)
+            return read(size)
+
+        f.read = recording_read
+        return f
+
+    monkeypatch.setattr(utils, "open", recording_open, raising=False)
+
+    assert utils.file_digest("data.bin").hexdigest() == hashlib.sha256(data).hexdigest()
+    assert len(reads) > 1
+    assert all(0 < size <= 2**20 for size in reads)
