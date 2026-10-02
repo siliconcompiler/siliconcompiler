@@ -12,20 +12,17 @@ URLs to.
 """
 import requests
 import shutil
-import tarfile
-import zipfile
 
 import os.path
 
-from typing import Callable, Dict, IO, List, Optional, Tuple, Type
+from typing import Dict, List, Optional, Type
 
 from io import BytesIO
 from urllib.parse import ParseResult, urlparse
 
 from siliconcompiler.package import RemoteResolver, Resolver
-from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
-from siliconcompiler.utils import is_zstd, open_zstd_stream, tar_extract_kwargs, \
-    zstd_available, zstd_errors, zstd_unavailable_message
+from siliconcompiler.package._archive import extract_archive
+from siliconcompiler.package.cache import DataSourceUnavailableError
 
 #: HTTP statuses that answer the request completely enough that asking again can
 #: only collect the same answer: the data is not there (404, 410) or the request
@@ -49,98 +46,6 @@ def _no_auth(request: requests.PreparedRequest) -> requests.PreparedRequest:
     username and password from the URL and sends them as Basic auth.
     """
     return request
-
-
-def _extract_tar(fileobj: IO[bytes], path: str, mode: str) -> None:
-    """Extracts a tar archive, applying the PEP 706 extraction filter."""
-    with tarfile.open(fileobj=fileobj, mode=mode) as tar_ref:
-        tar_ref.extractall(path=path, **tar_extract_kwargs())
-
-
-def _extract_zstd_tar(fileobj: IO[bytes], path: str) -> None:
-    """Extracts a Zstandard-compressed tar archive.
-
-    Decompression and extraction are separate steps here, rather than the single
-    ``mode="r:zst"`` that Python 3.14 offers, so that one ``tarfile`` reads the
-    archive on every supported release. See
-    :func:`siliconcompiler.utils.open_zstd_stream` for why that matters.
-    """
-    with open_zstd_stream(fileobj) as stream:
-        _extract_tar(stream, path, "r:")
-
-
-def _extract_zip(fileobj: IO[bytes], path: str) -> None:
-    """Extracts a zip archive."""
-    with zipfile.ZipFile(fileobj) as zip_ref:
-        zip_ref.extractall(path=path)
-
-
-def _archive_formats() -> List[Tuple[str, Callable[[IO[bytes], str], None]]]:
-    """The archive formats an HTTP download may arrive in, in the order tried.
-
-    A download is identified by attempting it, not by reading its URL, because the
-    URL is under the server's control and an archive's name is free to disagree
-    with its contents. Order between formats is otherwise immaterial -- each is
-    ruled out by its own magic number within the first few bytes -- so the
-    long-standing formats keep their long-standing precedence.
-
-    Zstandard appears only where the bindings for it do; the format is recognized
-    either way, so a download that needs them still gets an error saying so rather
-    than being called invalid (see :func:`_extract_archive`).
-
-    Returns:
-        list: ``(name, extract)`` pairs, where ``extract`` takes the downloaded
-            stream and the destination directory.
-    """
-    formats: List[Tuple[str, Callable[[IO[bytes], str], None]]] = [
-        ("gzip tar", lambda fileobj, path: _extract_tar(fileobj, path, "r:gz")),
-        ("bzip2 tar", lambda fileobj, path: _extract_tar(fileobj, path, "r:bz2")),
-        ("xz tar", lambda fileobj, path: _extract_tar(fileobj, path, "r:xz")),
-    ]
-    if zstd_available():
-        formats.append(("zstd tar", _extract_zstd_tar))
-    formats.append(("zip", _extract_zip))
-    return formats
-
-
-def _extract_archive(fileobj: IO[bytes], path: str, data_url: str) -> str:
-    """Unpacks a downloaded archive, identifying its format by trial.
-
-    Args:
-        fileobj (IO[bytes]): The downloaded archive, open and seekable.
-        path (str): The directory to extract into.
-        data_url (str): Where the archive came from, for error messages.
-
-    Returns:
-        str: The name of the format that read the archive.
-
-    Raises:
-        PermanentResolutionError: If the archive is Zstandard and this environment
-            has no bindings to read it with. Settled rather than transient: the
-            download worked and what is missing is local, so retrying would spend a
-            second full transfer -- hundreds of megabytes, for a PDK artifact -- to
-            re-learn that a package is not installed.
-        TypeError: If the archive is in no format known here.
-        tarfile.FilterError: If the extraction filter refuses a member.
-    """
-    for name, extract in _archive_formats():
-        fileobj.seek(0)
-        try:
-            extract(fileobj, path)
-        except (tarfile.ReadError, zipfile.BadZipFile, *zstd_errors()):
-            # Not this format: the next one gets the same bytes from the start.
-            continue
-        return name
-
-    fileobj.seek(0)
-    header = fileobj.read(8)
-    if not zstd_available() and is_zstd(header):
-        raise PermanentResolutionError(
-            f"Could not extract file from {Resolver._masked_uri(data_url)}. "
-            f"{zstd_unavailable_message()}")
-
-    raise TypeError(f"Could not extract file from {Resolver._masked_uri(data_url)}. "
-                    "File is not a valid tar (gzip, bzip2, xz or zstd) or zip archive.")
 
 
 def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
@@ -365,7 +270,7 @@ class HTTPResolver(RemoteResolver):
         # Download content into an in-memory buffer
         fileobj = BytesIO(response.content)
 
-        archive_format = _extract_archive(fileobj, self.cache_path, data_url)
+        archive_format = extract_archive(fileobj, self.cache_path, data_url)
         self.logger.debug(f'Unpacked {self.display_name} data as a {archive_format} archive')
 
         entries = os.listdir(self.cache_path)

@@ -51,3 +51,4 @@ python:
         - cocotb
         - dashboard
         - server
+        - s3

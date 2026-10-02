@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 #: The source archive formats the GitLab API serves that can be unpacked here.
 #: An asset named '<tag>.<format>' is the project's source at that tag rather
 #: than a link on the release. The API also serves a plain '.tar', which is not
-#: among the formats :func:`siliconcompiler.package.https._archive_formats`
+#: among the formats :func:`siliconcompiler.package._archive.archive_formats`
 #: reads.
 _SOURCE_FORMATS = ("tar.gz", "tar.bz2", "zip")
 

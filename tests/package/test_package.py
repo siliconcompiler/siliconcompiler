@@ -27,6 +27,7 @@ from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler.package.git import GitResolver
 from siliconcompiler.package.github import GithubResolver
 from siliconcompiler.package.gitlab import GitlabResolver
+from siliconcompiler.package.s3 import S3Resolver
 from siliconcompiler.package import DataRootResolutionError
 from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUnavailableError
 from siliconcompiler import utils
@@ -350,6 +351,10 @@ def test_safe_source_keeps_project_env_unexpanded():
      GitlabResolver, False, "gitlab://gitlab.com/org/repo/v1/archive.tar.gz"),
     ("gitlab+private://gitlab.com/org/repo/v1/archive.tar.gz", "v1",
      GitlabResolver, True, "gitlab://gitlab.com/org/repo/v1/archive.tar.gz"),
+    ("s3://bucket/pdks/archive.tar.gz", "v1",
+     S3Resolver, False, "s3://bucket/pdks/archive.tar.gz"),
+    ("s3+private://bucket/pdks/archive.tar.gz", "v1",
+     S3Resolver, True, "s3://bucket/pdks/archive.tar.gz"),
     ("python://siliconcompiler", None,
      PythonPathResolver, False, "python://siliconcompiler"),
 ])
@@ -656,6 +661,8 @@ def test_find_resolver_python():
     ("github+private://owner/repo/ref/file", "GithubResolver"),
     ("gitlab://host/group/project/ref/file", "GitlabResolver"),
     ("gitlab+private://host/group/project/ref/file", "GitlabResolver"),
+    ("s3://bucket/key", "S3Resolver"),
+    ("s3+private://bucket/key", "S3Resolver"),
     ("scp://host/file", "SCPResolver"),
     ("http+private://host/file", "HTTPResolver"),
     ("https+private://host/file", "HTTPResolver"),
