@@ -15,8 +15,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from siliconcompiler import utils
-from siliconcompiler.package import DataRootResolutionError
+from siliconcompiler.package import DataRootResolutionError, Resolver
 from siliconcompiler.package.cache import DataSourceUnavailableError, PermanentResolutionError
+from siliconcompiler.package.github import GithubArchiveResolver
 from siliconcompiler.package.https import HTTPResolver, _extract_archive
 from siliconcompiler import Project
 
@@ -317,9 +318,9 @@ def no_http_tokens(monkeypatch):
 
 
 def _sent_authorization(source):
-    """The ``Authorization`` header a download of ``source`` sends, and the
-    warnings it logs."""
-    resolver = HTTPResolver("test", Project("testproj"), source, "v1.0")
+    """The ``Authorization`` header a download of ``source`` sends, by the
+    resolver the registry picks for it, and the warnings it logs."""
+    resolver = Resolver.find_resolver(source)("test", Project("testproj"), source, "v1.0")
     with patch("siliconcompiler.package.https.requests.get") as get, \
          patch.object(resolver.logger, "warning") as warning:
         get.return_value.ok = False
@@ -394,35 +395,6 @@ def test_http_resolver_plain_http_without_token_is_quiet(no_http_tokens):
     authorization, warnings = _sent_authorization("http://files.example.com/x.tar.gz")
     assert authorization is None
     assert warnings == []
-
-
-def test_http_resolver_resolve_remote_github_header():
-    """Test resolve_remote sets GitHub-specific Accept header."""
-    project = Project("testproj")
-    project.option.set_cachedir(".")
-
-    resolver = HTTPResolver("test", project,
-                            "https://github.com/owner/repo/releases/download/v1.0/file.tar.gz",
-                            "v1.0")
-
-    tar_buffer = BytesIO()
-    with tarfile.open(fileobj=tar_buffer, mode='w:gz'):
-        pass
-    tar_buffer.seek(0)
-
-    import siliconcompiler.package.https as https_module
-    with patch.object(https_module, "requests") as mock_requests:
-
-        mock_response = MagicMock()
-        mock_response.ok = True
-        mock_response.content = tar_buffer.getvalue()
-        mock_requests.get.return_value = mock_response
-
-        resolver.resolve_remote()
-
-        call_args = mock_requests.get.call_args
-        headers = call_args[1]["headers"]
-        assert headers.get("Accept") == "application/octet-stream"
 
 
 def test_http_resolver_resolve_remote_download_failed():
@@ -522,36 +494,6 @@ def test_http_resolver_resolve_remote_zip_file():
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test_file.txt"))
 
 
-def test_http_resolver_resolve_remote_github_flatten():
-    """Test resolve_remote flattens GitHub archive structure."""
-    project = Project("testproj")
-    project.option.set_cachedir(".")
-
-    resolver = HTTPResolver("test", project,
-                            "https://github.com/owner/repo/archive/refs/tags/v1.0.tar.gz", "v1.0")
-
-    tar_buffer = BytesIO()
-    with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
-        info = tarfile.TarInfo(name="repo-1.0/test.txt")
-        info.size = 4
-        tar.addfile(info, BytesIO(b"test"))
-    tar_buffer.seek(0)
-
-    import siliconcompiler.package.https as https_module
-    with patch.object(https_module, "requests") as mock_requests:
-
-        mock_response = MagicMock()
-        mock_response.ok = True
-        mock_response.content = tar_buffer.getvalue()
-        mock_requests.get.return_value = mock_response
-
-        resolver.resolve_remote()
-
-        # Verify file was moved to cache root
-        assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
-        assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
-
-
 def test_http_resolver_resolve_remote_bz2_tarball():
     """Test resolve_remote extracts bz2 tarballs."""
     project = Project("testproj")
@@ -577,36 +519,6 @@ def test_http_resolver_resolve_remote_bz2_tarball():
         resolver.resolve_remote()
 
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
-
-
-def test_http_resolver_resolve_remote_github_flatten_tgz():
-    """Test resolve_remote flattens GitHub archive structure with .tgz extension."""
-    project = Project("testproj")
-    project.option.set_cachedir(".")
-
-    resolver = HTTPResolver("test", project,
-                            "https://github.com/owner/repo/archive/refs/tags/v1.0.tgz", "v1.0")
-
-    tar_buffer = BytesIO()
-    with tarfile.open(fileobj=tar_buffer, mode='w:gz') as tar:
-        info = tarfile.TarInfo(name="repo-1.0/test.txt")
-        info.size = 4
-        tar.addfile(info, BytesIO(b"test"))
-    tar_buffer.seek(0)
-
-    import siliconcompiler.package.https as https_module
-    with patch.object(https_module, "requests") as mock_requests:
-
-        mock_response = MagicMock()
-        mock_response.ok = True
-        mock_response.content = tar_buffer.getvalue()
-        mock_requests.get.return_value = mock_response
-
-        resolver.resolve_remote()
-
-        # Verify file was moved to cache root
-        assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
-        assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0"))
 
 
 # ============================================================================
@@ -910,35 +822,11 @@ def test_http_resolver_resolve_remote_github_flatten_compressed(suffix, compress
     project = Project("testproj")
     project.option.set_cachedir(".")
 
-    resolver = HTTPResolver(
+    resolver = GithubArchiveResolver(
         "test", project,
         f"https://github.com/owner/repo/archive/refs/tags/v1.0.2{suffix}", "v1.0.2")
 
     _resolve_with_content(resolver, _tarball({"repo-1.0.2/test.txt": b"test"}, compression))
-
-    assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
-    assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0.2"))
-
-
-def test_http_resolver_resolve_remote_github_flatten_zip():
-    """
-    A GitHub source zip flattens like the tarballs do.
-
-    ``github://`` builds these itself, as '<release>.zip' -- so the dotted release
-    that defeats the fallback guess is the normal case, not an exotic one.
-    """
-    project = Project("testproj")
-    project.option.set_cachedir(".")
-
-    resolver = HTTPResolver(
-        "test", project,
-        "https://github.com/owner/repo/archive/refs/tags/v1.0.2.zip", "v1.0.2")
-
-    archive = BytesIO()
-    with zipfile.ZipFile(archive, 'w') as zf:
-        zf.writestr("repo-1.0.2/test.txt", "test")
-
-    _resolve_with_content(resolver, archive.getvalue())
 
     assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
     assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0.2"))
@@ -956,24 +844,6 @@ def test_http_resolver_get_headers_non_github_url(monkeypatch):
     assert isinstance(headers, dict)
     assert "Accept" not in headers
     assert "Authorization" not in headers
-
-
-def test_http_resolver_get_headers_github_url_accept_header():
-    """Test _get_headers adds Accept header for GitHub URLs."""
-    resolver = HTTPResolver("test", None,
-                            "https://github.com/owner/repo/releases/download/v1.0/asset.tar.gz",
-                            "v1.0")
-    headers = resolver._get_headers()
-    assert headers["Accept"] == "application/octet-stream"
-
-
-def test_http_resolver_get_headers_github_archive_url():
-    """Test _get_headers adds Accept header for GitHub archive URLs."""
-    resolver = HTTPResolver("test", None,
-                            "https://github.com/owner/repo/archive/refs/tags/v1.0.tar.gz",
-                            "v1.0")
-    headers = resolver._get_headers()
-    assert headers["Accept"] == "application/octet-stream"
 
 
 def test_http_resolver_get_headers_no_accept_for_other_urls():

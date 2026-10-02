@@ -104,30 +104,6 @@ class GitResolver(RemoteResolver):
                 return False
         return False
 
-    @staticmethod
-    def _host_forge(hostname: Optional[str]) -> Optional[str]:
-        """
-        Identifies which forge a hostname belongs to.
-
-        Matches whole dot-separated labels, so a self-hosted instance
-        (``gitlab.example.com``, ``github.mycorp.com``) is recognised while an
-        unrelated host that merely contains the name (``mygithub.internal``) is
-        not.
-
-        Args:
-            hostname (str or None): The host from the source URL.
-
-        Returns:
-            str or None: The forge key, or None if the host is unrecognised.
-        """
-        if not hostname:
-            return None
-        labels = hostname.lower().split('.')
-        for forge in ("github", "gitlab", "bitbucket"):
-            if forge in labels:
-                return forge
-        return None
-
     @classmethod
     def _token_username(cls, hostname: Optional[str]) -> Optional[str]:
         """

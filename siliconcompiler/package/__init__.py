@@ -166,6 +166,10 @@ class Resolver:
         """
         Finds the appropriate resolver class for a given source URI.
 
+        The resolver registered for the source's scheme is asked for the one to
+        use (:meth:`subresolver`), so a scheme can hand one host's URLs to a
+        more specific class.
+
         Args:
             source (str): The source URI (e.g., 'file:///path/to/file', 'git://...').
 
@@ -188,9 +192,28 @@ class Resolver:
         settings = MPManager().get_transient_settings()
         resolver = settings.get("resolvers", url.scheme, None)
         if resolver:
-            return resolver
+            return resolver.subresolver(url)
 
         raise ValueError(f"Source URI '{source}' is not supported")
+
+    @classmethod
+    def subresolver(cls, url: "url_parse.ParseResult") -> Type["Resolver"]:
+        """
+        The resolver to use for ``url``, which :meth:`find_resolver` asks the
+        resolver registered for the scheme.
+
+        The base is that resolver itself. A scheme whose URLs need handling per
+        host overrides this to hand those hosts to a more specific class: an
+        archive on ``github.com`` is still ``https``, but GitHub's resolver
+        handles it.
+
+        Args:
+            url (urllib.parse.ParseResult): The parsed source URI.
+
+        Returns:
+            type: The resolver class to use.
+        """
+        return cls
 
     @property
     def name(self) -> str:
@@ -946,6 +969,30 @@ class RemoteResolver(Resolver):
             os.chmod(path, new_mode)
 
     @staticmethod
+    def _host_forge(hostname: Optional[str]) -> Optional[str]:
+        """
+        Identifies which forge a hostname belongs to.
+
+        Matches whole dot-separated labels, so a self-hosted instance
+        (``gitlab.example.com``, ``github.mycorp.com``) is recognised while an
+        unrelated host that merely contains the name (``mygithub.internal``) is
+        not. Not an ownership check: see :meth:`_saas_forge` for that.
+
+        Args:
+            hostname (str or None): The host from the source URL.
+
+        Returns:
+            str or None: The forge key, or None if the host is unrecognised.
+        """
+        if not hostname:
+            return None
+        labels = hostname.lower().split('.')
+        for forge in ("github", "gitlab", "bitbucket"):
+            if forge in labels:
+                return forge
+        return None
+
+    @staticmethod
     def _saas_forge(hostname: Optional[str]) -> Optional[str]:
         """
         Identifies a forge's own hosted service, by exact domain.
@@ -953,10 +1000,10 @@ class RemoteResolver(Resolver):
         This is the ownership check that decides whether a forge's own variables
         -- ``GITHUB_TOKEN`` and the rest, set ambiently on CI runners and
         developer machines -- may be sent to a host. It is deliberately stricter
-        than :meth:`~siliconcompiler.package.git.GitResolver._host_forge`.
-        Matching a forge name in any label is fine for choosing a username --
-        that is a fixed, public string -- but it is not evidence of who owns a
-        host, and ``gitlab.attacker.example`` must not be handed the ambient
+        than :meth:`_host_forge`. Matching a forge name in any label is fine for
+        choosing a username, or how to unpack an archive -- neither is a secret
+        -- but it is not evidence of who owns a host, and
+        ``gitlab.attacker.example`` must not be handed the ambient
         ``GITLAB_TOKEN``. A self-hosted instance supplies its credential through
         a generic variable, or through a username in the URL.
 
