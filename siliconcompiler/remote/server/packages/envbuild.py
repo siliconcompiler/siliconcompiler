@@ -34,6 +34,7 @@ wrote from what parsed, and the job's wheels under ``wheels/``.
 '''
 
 import copy
+import http
 import http.server
 import json
 import os
@@ -428,13 +429,13 @@ class _ProxyHandler(http.server.BaseHTTPRequestHandler):
         self._answer(403, f"{host} {why}")
 
     def _answer(self, status: int, why: str) -> None:
+        # In one write, head and body together: a client reading up to the end
+        # of the head still has the reason, never a body still in flight.
         body = f"{why}\n".encode()
         self.close_connection = True
-        self.send_response(status)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Connection", "close")
-        self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(f"{self.protocol_version} {status} {http.HTTPStatus(status).phrase}\r\n"
+                         f"Content-Length: {len(body)}\r\nConnection: close\r\n\r\n"
+                         .encode("latin-1") + body)
 
     def log_message(self, format, *args) -> None:
         # Refusals are said by `_refuse`; nothing else is worth a line.
