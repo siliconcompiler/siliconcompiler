@@ -35,6 +35,16 @@ from siliconcompiler.utils import is_zstd, open_zstd_stream, tar_extract_kwargs,
 _TERMINAL_STATUSES = (400, 404, 405, 410, 414, 451)
 
 
+def _no_auth(request: requests.PreparedRequest) -> requests.PreparedRequest:
+    """
+    A requests auth hook that adds nothing.
+
+    Passed where no credential may be sent: given no hook, requests takes a
+    username and password from the URL and sends them as Basic auth.
+    """
+    return request
+
+
 def _extract_tar(fileobj: IO[bytes], path: str, mode: str) -> None:
     """Extracts a tar archive, applying the PEP 706 extraction filter."""
     with tarfile.open(fileobj=fileobj, mode=mode) as tar_ref:
@@ -272,9 +282,11 @@ class HTTPResolver(RemoteResolver):
         with gzip, bzip2, xz or Zstandard, or a zip), and extracts it, moving up
         the contents of the directory :meth:`_archive_root` names.
 
-        The credential is a username in the URL, else the first token found
-        under :meth:`_token_prefixes`. A plain ``http://`` download sends no
-        credential at all, since it would cross the network in cleartext.
+        A username and password in the URL are sent as Basic auth. Otherwise a
+        token -- a username alone in the URL, else the first found under
+        :meth:`_token_prefixes` -- is sent as ``Authorization: Bearer <token>``.
+        A plain ``http://`` download sends no credential at all, since it would
+        cross the network in cleartext.
 
         Raises:
             FileNotFoundError: If the download fails. One of the
@@ -290,25 +302,32 @@ class HTTPResolver(RemoteResolver):
         url = urlparse(data_url)
 
         headers = self._get_headers()
-        if "Authorization" not in headers:
+        # A password in the URL makes it Basic auth, which requests builds from the
+        # URL itself and puts over any header set here.
+        basic_auth = url.password is not None
+        if "Authorization" not in headers and not basic_auth:
             auth_token = self.urlparse.username
             if not auth_token:
                 try:
                     auth_token = self._get_auth_token(self._token_prefixes(data_url))
                 except ValueError:
                     pass
-            if auth_token and url.scheme == "http":
-                self.logger.warning(
-                    f'Not sending an authorization token for {self.display_name}: '
-                    f'{Resolver._masked_uri(data_url)} is plain http://, which would '
-                    'send it in cleartext. Use https:// to authenticate.')
-            elif auth_token:
-                headers['Authorization'] = f'token {auth_token}'
+            if auth_token:
+                headers['Authorization'] = f'Bearer {auth_token}'
+
+        auth = None
+        if url.scheme == "http" and (basic_auth or "Authorization" in headers):
+            self.logger.warning(
+                f'Not sending a credential for {self.display_name}: '
+                f'{Resolver._masked_uri(data_url)} is plain http://, which would '
+                'send it in cleartext. Use https:// to authenticate.')
+            headers.pop("Authorization", None)
+            auth = _no_auth
 
         self.logger.info(f'Downloading {self.display_name} data from '
                          f'{Resolver._masked_uri(data_url)}')
 
-        response = requests.get(data_url, stream=True, headers=headers)
+        response = requests.get(data_url, stream=True, headers=headers, auth=auth)
         if not response.ok:
             status = response.status_code
             error = DataSourceUnavailableError if status in _TERMINAL_STATUSES \

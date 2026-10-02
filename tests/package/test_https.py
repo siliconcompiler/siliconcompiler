@@ -318,17 +318,22 @@ def no_http_tokens(monkeypatch):
 
 
 def _sent_authorization(source):
-    """The ``Authorization`` header a download of ``source`` sends, by the
-    resolver the registry picks for it, and the warnings it logs."""
+    """
+    The ``Authorization`` header a download of ``source`` sends, by the resolver
+    the registry picks for it, and the warnings it logs.
+
+    Read off the request as requests finished preparing it, rather than the
+    headers handed to it: requests adds the Basic auth for a password in the URL
+    itself.
+    """
     resolver = Resolver.find_resolver(source)("test", Project("testproj"), source, "v1.0")
-    with patch("siliconcompiler.package.https.requests.get") as get, \
+    with responses.RequestsMock() as mock, \
          patch.object(resolver.logger, "warning") as warning:
-        get.return_value.ok = False
-        get.return_value.status_code = 404
+        mock.add(responses.GET, re.compile(".*"), status=404)
         with pytest.raises(DataSourceUnavailableError):
             resolver.resolve_remote()
-    return get.call_args.kwargs["headers"].get("Authorization"), \
-        [call.args[0] for call in warning.call_args_list]
+        sent = mock.calls[0].request.headers.get("Authorization")
+    return sent, [call.args[0] for call in warning.call_args_list]
 
 
 @pytest.mark.parametrize("source", [
@@ -359,15 +364,34 @@ def test_http_resolver_github_tokens_sent_to_github(no_http_tokens, monkeypatch,
     monkeypatch.setenv(var, "SECRET_GH")
 
     authorization, _ = _sent_authorization(source)
-    assert authorization == "token SECRET_GH"
+    assert authorization == "Bearer SECRET_GH"
 
 
-@pytest.mark.parametrize("var", ("HTTPS_TOKEN", "HTTP_TOKEN"))
+@pytest.mark.parametrize("var", ("HTTPS_TOKEN", "HTTPS_TEST_TOKEN", "HTTP_TOKEN"))
 def test_http_resolver_generic_token_sent_to_any_https_host(no_http_tokens, monkeypatch, var):
     monkeypatch.setenv(var, "SECRET")
 
     authorization, warnings = _sent_authorization("https://files.example.com/x.tar.gz")
-    assert authorization == "token SECRET"
+    assert authorization == "Bearer SECRET"
+    assert warnings == []
+
+
+@pytest.mark.parametrize("source,env,expect", [
+    # A username alone is a token.
+    ("https://tok@files.example.com/x.tar.gz", None, "Bearer tok"),
+    ("https://tok@files.example.com/x.tar.gz", "SECRET", "Bearer tok"),
+    # A username and password are Basic auth, whatever the environment holds.
+    ("https://user:pass@files.example.com/x.tar.gz", None, "Basic dXNlcjpwYXNz"),
+    ("https://user:pass@files.example.com/x.tar.gz", "SECRET", "Basic dXNlcjpwYXNz"),
+    ("https://user:@files.example.com/x.tar.gz", "SECRET", "Basic dXNlcjo="),
+])
+def test_http_resolver_url_credential(no_http_tokens, monkeypatch, source, env, expect):
+    """A credential written into the URL outranks one from the environment."""
+    if env:
+        monkeypatch.setenv("HTTPS_TOKEN", env)
+
+    authorization, warnings = _sent_authorization(source)
+    assert authorization == expect
     assert warnings == []
 
 
@@ -377,10 +401,12 @@ def test_http_resolver_generic_token_sent_to_any_https_host(no_http_tokens, monk
     ("http+private://files.example.com/x.tar.gz", "HTTPS_TOKEN"),
     ("http://github.com/o/r/archive/refs/tags/v1.0.tar.gz", "GITHUB_TOKEN"),
     ("http://SECRET@files.example.com/x.tar.gz", None),
+    # requests would send this one by itself, as Basic auth.
+    ("http://user:SECRET@files.example.com/x.tar.gz", None),
 ])
 def test_http_resolver_no_token_over_plain_http(no_http_tokens, monkeypatch, source, var):
-    """A token over plain http:// would cross the network in cleartext, so it is
-    withheld, and the warning says why without repeating it."""
+    """A credential over plain http:// would cross the network in cleartext, so
+    it is withheld, and the warning says why without repeating it."""
     if var:
         monkeypatch.setenv(var, "SECRET")
 
