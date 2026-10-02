@@ -177,6 +177,21 @@ def test_client_signed_with_credentials(credentials):
     assert client.meta.config.signature_version is not UNSIGNED
 
 
+@pytest.mark.parametrize("variables", [
+    {"AWS_PROFILE": "missing"},
+    {"AWS_ACCESS_KEY_ID": "AKIDEXAMPLE"}])
+def test_client_misconfigured_credentials(monkeypatch, variables):
+    pytest.importorskip("boto3", reason="the s3 extra is not installed")
+    for name, value in variables.items():
+        monkeypatch.setenv(name, value)
+    resolver = _resolver("s3://bucket/a.tar.gz")
+    with pytest.raises(PermanentResolutionError, match="credentials are misconfigured") \
+            as error:
+        resolver._client()
+    assert resolver.is_permanent_failure(error.value)
+    assert error.value.__cause__ is not None
+
+
 def test_client_private_needs_credentials():
     pytest.importorskip("boto3", reason="the s3 extra is not installed")
     resolver = _resolver("s3+private://bucket/a.tar.gz")
@@ -291,10 +306,14 @@ def test_server_error_is_retryable(s3):
     assert not resolver.is_permanent_failure(error.value)
 
 
-def test_failed_resolve_leaves_no_cache(s3):
-    s3.objects[("bucket", "a.tar.gz")] = (403, "AccessDenied")
+@pytest.mark.parametrize("stored,error", [
+    ((403, "AccessDenied"), FileNotFoundError),
+    # Fails once the cache directory is made, part way through extracting
+    (b"not an archive", TypeError)])
+def test_failed_resolve_leaves_no_cache(s3, stored, error):
+    s3.objects[("bucket", "a.tar.gz")] = stored
     resolver = _resolver("s3://bucket/a.tar.gz")
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(error):
         resolver.resolve()
     assert not os.path.exists(resolver.cache_path)
 

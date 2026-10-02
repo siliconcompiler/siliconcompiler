@@ -39,27 +39,38 @@ def get_resolver() -> Dict[str, Type["S3Resolver"]]:
 
 class S3Resolver(RemoteResolver):
     """
-    A resolver for fetching and unpacking an archive stored in S3.
+    An archive stored in Amazon S3, or in any store that speaks its API.
 
-    The expected source URI format is:
-    `s3://<bucket>/<key>`
+    Format:
+        ``s3://<bucket>/<key>``
 
-    The key names one archive object, in any format
-    :func:`~siliconcompiler.package._archive.archive_formats` reads. A source
-    ending in ``/`` names a prefix instead, and the object is
-    ``<prefix>/<reference>.tar.gz``, as for an ``https://`` source. A ``?`` or
-    ``#`` in a key is written ``%3F`` or ``%23``.
+        The key names one archive object, unpacked into the cache as an
+        ``https://`` download is: a tar compressed with gzip, bzip2, xz or
+        Zstandard, or a zip. A ``?`` or ``#`` in a key is written ``%3F`` or
+        ``%23``.
 
-    Any store that speaks the S3 API works -- MinIO, Ceph, Cloudflare R2 and the
-    rest -- once boto3 is pointed at it with ``AWS_ENDPOINT_URL_S3`` or
-    ``AWS_ENDPOINT_URL``. Credentials come from boto3's own chain: environment
-    variables, ``~/.aws``, ``AWS_PROFILE``, SSO, and an instance or task role.
-    Never from the source, which takes no userinfo. With no credentials found the
-    request goes unsigned, which reads a public bucket. The ``s3+private`` scheme
-    requires credentials instead.
+        A store other than AWS -- MinIO, Ceph, Cloudflare R2 and the rest -- is
+        chosen with ``AWS_ENDPOINT_URL_S3`` or ``AWS_ENDPOINT_URL``, not with a
+        host in the URL. Needs boto3, which comes with the ``s3`` extra:
+        ``pip install siliconcompiler[s3]``.
 
-    boto3 is not installed with SiliconCompiler: it comes with the ``s3`` extra,
-    ``pip install siliconcompiler[s3]``.
+    Tag:
+        Appended to a key that ends in ``/`` as ``<tag>.tar.gz``:
+        ``s3://bucket/ip/`` with the tag ``v1.0`` downloads
+        ``s3://bucket/ip/v1.0.tar.gz``. A key naming its object outright uses
+        the tag only to key its cache entry.
+
+    Authentication:
+        boto3's own credential chain, as the AWS CLI reads it: ``AWS_PROFILE``,
+        ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_ACCESS_KEY``, ``~/.aws``, SSO, and
+        an instance or task role. With none found the request is sent unsigned,
+        which reads a public bucket; ``s3+private://`` requires credentials
+        instead. The URL cannot carry a credential of its own.
+
+    Example:
+        .. code-block:: python
+
+            design.set_dataroot("pdk", "s3://bucket/pdks/sky130/", tag="v1.0")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
@@ -139,8 +150,9 @@ class S3Resolver(RemoteResolver):
             botocore.client.BaseClient: The client.
 
         Raises:
-            PermanentResolutionError: If boto3 is not installed, which no retry
-                can change.
+            PermanentResolutionError: If boto3 is not installed, or the AWS
+                configuration names a profile that does not exist or half a
+                credential, which no retry can change.
             ValueError: If the source is ``s3+private`` and no credentials are
                 found.
         """
@@ -148,16 +160,27 @@ class S3Resolver(RemoteResolver):
             import boto3
             from botocore import UNSIGNED
             from botocore.config import Config
+            from botocore.exceptions import PartialCredentialsError, ProfileNotFound
         except ImportError:
             raise PermanentResolutionError(
                 f"Unable to fetch {self.display_name} from {self.download_url}: an "
                 "s3:// source needs boto3. Install it with: "
                 "pip install siliconcompiler[s3]") from None
 
-        session = boto3.session.Session()
+        try:
+            # Session() is what reads AWS_PROFILE, so it raises ProfileNotFound
+            session = boto3.session.Session()
+            credentials = session.get_credentials()
+        except (ProfileNotFound, PartialCredentialsError) as e:
+            # Local configuration, which no retry changes. A failure to fetch
+            # credentials from a remote provider, such as SSO, stays retryable.
+            raise PermanentResolutionError(
+                f"Unable to fetch {self.display_name} from {self.download_url}: "
+                f"the AWS credentials are misconfigured: {e}") from e
+
         config = Config(connect_timeout=self.request_timeout,
                         read_timeout=self.request_timeout)
-        if session.get_credentials() is None:
+        if credentials is None:
             if self.is_private:
                 raise ValueError(
                     f"Unable to fetch {self.display_name} from {self.download_url}: "
@@ -216,8 +239,9 @@ class S3Resolver(RemoteResolver):
                 :class:`~siliconcompiler.package.cache.DataSourceUnavailableError`
                 subclass, so the source is abandoned rather than re-requested;
                 every other status, 403 included, stays retryable.
-            PermanentResolutionError: If boto3 is not installed, or the archive
-                is in a format this environment lacks the bindings to unpack.
+            PermanentResolutionError: If boto3 is not installed, the AWS
+                credentials are misconfigured, or the archive is in a format
+                this environment lacks the bindings to unpack.
             TypeError: If the object is in no archive format known here.
             ValueError: If the source is ``s3+private`` and no credentials are
                 found.

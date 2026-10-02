@@ -22,7 +22,8 @@ Some rules hold for every source:
   <remote_processing>` does not upload it, so the server has to hold its own
   copy. A private repository does not need the marker, which is about where the
   data may go rather than how it is fetched; ``github+private://`` and
-  ``gitlab+private://`` also skip their anonymous attempt.
+  ``gitlab+private://`` also skip their anonymous attempt, and
+  ``s3+private://`` never sends an unsigned request.
 * A remote source requires a ``tag`` and is fetched once into the
   :ref:`dataroot cache <dataroot_cache>`, then reused by every project.
 
