@@ -585,6 +585,49 @@ read a private source goes in the ``git_token`` build secret:
 
    docker build --secret id=git_token,env=GIT_TOKEN docker/mylib_mytool
 
+The image your CI runs in is ``mylib_tools``, and ``--plan`` says which of three
+it is:
+
+* ``sc_tools`` itself, when you build nothing.
+* ``sc_tools`` with your tools added as one layer, when you only add tools.
+* Assembled from every tool's image, the way ``sc_tools`` is, when you change a
+  pin or a recipe of one of SiliconCompiler's: the version it replaces would
+  otherwise survive underneath.
+
+SiliconCompiler's workflow builds whatever does not exist yet and returns the
+image's name:
+
+.. code-block:: yaml
+
+   jobs:
+     images:
+       permissions:
+         contents: read
+         packages: write
+       uses: siliconcompiler/siliconcompiler/.github/workflows/tool_images.yml@main
+       with:
+         image-prefix: myorg/mylib_
+         # Only for pins cloned from private repositories of the same owner
+         repositories: mytool
+         app-client-id: ${{ vars.MYLIB_BOT_CLIENT_ID }}
+       secrets:
+         app-private-key: ${{ secrets.MYLIB_BOT_PRIVATE_KEY }}
+
+     test:
+       needs: images
+       runs-on: ubuntu-latest
+       container:
+         image: ${{ needs.images.outputs.image }}
+         credentials:
+           username: ${{ github.actor }}
+           password: ${{ secrets.GITHUB_TOKEN }}
+
+It installs your package from the calling repository, editable so that its data
+resolves to the checkout, and pushes to ghcr.io with ``GITHUB_TOKEN``; another
+registry is named with ``registry``, logged in to with ``registry-username`` and
+the ``registry-password`` secret. SiliconCompiler's images are always pulled from
+ghcr.io.
+
 Publishing to PyPI
 ------------------
 

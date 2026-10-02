@@ -398,10 +398,65 @@ class ToolImages:
                                           copy_files=copy_files)
         self._write_manifest(docker_dir)
 
-    def make_sc_tools_docker(self, output_dir):
+    def overrides_sc_tool(self):
         '''
-        Generate sc_tools dockerfile which contains all the tools
+        True when the pin or the recipe of one of SiliconCompiler's tools is changed
+        here. The old version's files would then survive underneath anything layered
+        over sc_tools, so the image of every tool is assembled the way sc_tools is.
         '''
+        if not self.base:
+            return False
+        return any(self.manifest.get(tool) != fields or
+                   self.scripts.get(tool) != self.base.scripts.get(tool)
+                   for tool, fields in self.base.manifest.items())
+
+    def _layers_on_sc_tools(self):
+        return self.base is not None and not self.overrides_sc_tool()
+
+    def _get_layered_images(self):
+        return [self.tool_image(tool, True) for tool, _ in self.get_built_tools()]
+
+    def _tools_image_details(self):
+        if self._layers_on_sc_tools():
+            docker_file = os.path.join(_docker_path, 'tools_extend.docker')
+            hash = hashlib.sha1()
+            hash.update(self.base.tools_image(False).encode('utf-8'))
+            for image in sorted(self._get_layered_images()):
+                hash.update(image.encode('utf-8'))
+            hash.update(get_file_hash(docker_file).encode('utf-8'))
+            return f'{self.name_prefix}tools', hash.hexdigest(), docker_file
+
+        return self.tools_image_details(self._get_tool_images(), self._get_tool_versions())
+
+    def tools_image(self, is_check_image):
+        '''
+        Returns the image name of the image holding every tool.
+
+        SiliconCompiler's is sc_tools. A package's is sc_tools itself when it builds
+        nothing, sc_tools with the package's images layered on when it only adds
+        tools, and otherwise assembled from every tool's image as sc_tools is.
+        '''
+        if self._layers_on_sc_tools() and not self.get_built_tools():
+            return self.base.tools_image(is_check_image)
+
+        name, tag, _ = self._tools_image_details()
+        return self.get_image_name(name, tag, is_check_image)
+
+    def make_tools_docker(self, output_dir):
+        '''
+        Generate the dockerfile of the image holding every tool, when there is one
+        to build here
+        '''
+        if self._layers_on_sc_tools():
+            if self.get_built_tools():
+                name, tag, docker_file = self._tools_image_details()
+                template_opts = {
+                    'sc_tools_image': self.base.tools_image(False),
+                    'tools': self._get_layered_images()
+                }
+                assemble_docker_file(name, tag, docker_file, template_opts, output_dir)
+            return
+
         tools = self._get_tool_images()
         name, tag, docker_file = self.tools_image_details(tools, self._get_tool_versions())
 
@@ -625,12 +680,10 @@ class ToolImages:
                 'builder_name': builder_name
             }
 
-        tools_name, tools_tag, _ = self.tools_image_details(self._get_tool_images(),
-                                                            self._get_tool_versions())
         images['tools'] = {
             'tool': "tools",
-            'name': self.get_image_name(tools_name, tools_tag, False),
-            'check_name': self.get_image_name(tools_name, tools_tag, True),
+            'name': self.tools_image(False),
+            'check_name': self.tools_image(True),
             'builder_name': None
         }
         images['runner'] = {
@@ -715,8 +768,9 @@ def main():
 
     parser.add_argument('--plan',
                         action='store_true',
-                        help='List the images that are built, and the images of '
-                             'SiliconCompiler\'s they are built from')
+                        help='List the images that are built, the images of '
+                             'SiliconCompiler\'s they are built from, and the image of '
+                             'every tool')
 
     parser.add_argument('--generate_files',
                         action='store_true',
@@ -737,11 +791,11 @@ def main():
                 print(f'{tool} is not a valid tool. Valid tools are: {", ".join(all_tools)}')
                 return 1
 
-    # A package builds only the images it changes; sc_tools and sc_runner stay
-    # SiliconCompiler's.
+    # A package builds only the images it changes, and the image of every tool
+    # from them; sc_runner stays SiliconCompiler's.
     built_tools = images.get_built_tools()
-    if args.image_prefix and (args.all_tool_images or args.tool in ('tools', 'runner')):
-        print('sc_tools and sc_runner are only built for SiliconCompiler itself')
+    if args.image_prefix and (args.all_tool_images or args.tool == 'runner'):
+        print('sc_runner is only built for SiliconCompiler itself')
         return 1
 
     if args.json_tools:
@@ -787,6 +841,14 @@ def main():
                     reused.append(depend)
         for tool in reused:
             print(f'reuse  {tool:<16} {images.tool_image(tool, True)}')
+
+        if not args.image_prefix or images.overrides_sc_tool():
+            how = 'assembled'
+        elif built_tools:
+            how = 'layered'
+        else:
+            how = 'sc_tools'
+        print(f'tools  {how:<16} {images.tools_image(False)}')
         return 0
 
     if args.generate_files:
@@ -797,10 +859,9 @@ def main():
         for tool, _ in built_tools:
             images.make_tool_docker(tool, args.output_dir)
 
-        if not args.image_prefix:
-            images.make_sc_tools_docker(args.output_dir)
-            if not args.include_tools:
-                images.make_sc_runner_docker(args.output_dir)
+        images.make_tools_docker(args.output_dir)
+        if not args.image_prefix and not args.include_tools:
+            images.make_sc_runner_docker(args.output_dir)
         return 0
 
     return 0

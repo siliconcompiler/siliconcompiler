@@ -1,0 +1,41 @@
+# Copyright (C) 2026 Zero ASIC
+
+# A package's tools on top of SiliconCompiler's sc_tools, as one layer: the files
+# the package's images add or change, and the packages they need at run time.
+#
+# Only for a package that adds tools and leaves SiliconCompiler's as they are. One
+# that changes a pin or a recipe is assembled from every tool's image instead, with
+# sc_tools.docker, since the old version's files would survive underneath a layer.
+FROM {{ sc_tools_image }} AS assemble
+
+RUN apt-get update && \
+    apt-get install -y rsync && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+{% for tool in tools %}
+COPY --from={{ tool }} $SC_PREFIX /sc_new
+# Read straight from the tool image, so the prefix COPY above cannot overwrite
+# one tool's apt.txt with the next one's.
+COPY --from={{ tool }} $SC_PREFIX/apt.txt /apt/{{ loop.index }}.txt
+{% endfor %}
+
+# Content rather than size and time decides what is unchanged: a dependency a tool
+# was built against arrives with it, and is the same file sc_tools already has.
+RUN rm -f /sc_new/apt.txt && \
+    rsync -a --checksum --prune-empty-dirs --compare-dest=$SC_PREFIX/ /sc_new/ /sc_delta/ && \
+    mkdir -p /sc_delta && \
+    cat /apt/*.txt | sort -u > /apt.txt
+
+FROM {{ sc_tools_image }}
+
+COPY --from=assemble /sc_delta $SC_PREFIX
+COPY --from=assemble /apt.txt /apt.txt
+RUN apt-get update && \
+    xargs -a /apt.txt apt-get install --ignore-missing -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /apt.txt
+
+# Execute scripts needed by tools
+RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} \; && \
+    rm -f $SC_PREFIX/*.sh

@@ -30,13 +30,13 @@ COPY _prereqs.sh $SC_BUILD/..
 #
 # A package's install script finds _prereqs.sh and _tools.py through
 # SC_TOOLSCRIPTS, as it does under sc-install. A private source is cloned with the
-# token in the git_token build secret, when one is given: it is read from the
-# mount and handed to git through the environment, so it reaches neither a layer
-# nor a config file.
+# token in the git_token build secret, when a non-empty one is given: it is read
+# from the mount and handed to git through the environment, so it reaches neither a
+# layer nor a config file.
 COPY {{ install_script }} $SC_BUILD
 WORKDIR $SC_BUILD
 RUN --mount=type=secret,id=git_token \
-    if [ -f /run/secrets/git_token ]; then \
+    if [ -s /run/secrets/git_token ]; then \
         export GIT_CONFIG_COUNT=1 \
                GIT_CONFIG_KEY_0="url.https://x-access-token:$(cat /run/secrets/git_token)@github.com/.insteadOf" \
                GIT_CONFIG_VALUE_0="https://github.com/"; \

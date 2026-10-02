@@ -10,7 +10,7 @@ from unittest import mock
 from siliconcompiler.utils import toolimages
 
 
-_PREFIX = "zeroasiccorp/sclib_"
+_PREFIX = "myorg/mylib_"
 
 
 def _make_package(manifest=None, scripts=None):
@@ -51,47 +51,47 @@ def test_package_tool_builds_on_sc_dependency(fake_plugins):
     sc = toolimages.get_tool_images()
     images = _package_images(
         fake_plugins,
-        manifest={"tardigrade": {"git-url": "https://example.com/tardigrade.git",
-                                 "git-commit": "v0.1.0", "docker-depends": "yosys"}},
-        scripts={"ubuntu24/install-tardigrade.sh": "#!/bin/bash\n"})
+        manifest={"newtool": {"git-url": "https://example.com/newtool.git",
+                              "git-commit": "v0.1.0", "docker-depends": "yosys"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
 
-    assert _built(images) == {"tardigrade"}
+    assert _built(images) == {"newtool"}
     assert images.is_reused("yosys")
-    assert images.tool_image("tardigrade", False) == \
-        "ghcr.io/zeroasiccorp/sclib_tardigrade:v0.1.0"
-    assert images.tool_image("tardigrade", True).startswith(
-        "ghcr.io/zeroasiccorp/sclib_tardigrade:sc-check-")
+    assert images.tool_image("newtool", False) == \
+        "ghcr.io/myorg/mylib_newtool:v0.1.0"
+    assert images.tool_image("newtool", True).startswith(
+        "ghcr.io/myorg/mylib_newtool:sc-check-")
 
-    images.make_tool_docker("tardigrade", "out")
-    context = Path("out") / "sclib_tardigrade"
+    images.make_tool_docker("newtool", "out")
+    context = Path("out") / "mylib_newtool"
     dockerfile = (context / "Dockerfile").read_text()
     assert f"FROM {sc.builder_image(False)}\n" in dockerfile
     assert f"COPY --from={sc.tool_image('yosys', True)} $SC_PREFIX $SC_PREFIX" in dockerfile
-    assert (context / "install-tardigrade.sh").read_text() == "#!/bin/bash\n"
+    assert (context / "install-newtool.sh").read_text() == "#!/bin/bash\n"
     with open(context / "_tools.json") as f:
-        assert json.load(f)["tardigrade"]["git-commit"] == "v0.1.0"
+        assert json.load(f)["newtool"]["git-commit"] == "v0.1.0"
 
 
 @pytest.mark.parametrize("registry,expect", [
-    ("registry.example.com", "registry.example.com/zeroasiccorp/sclib_tardigrade:v0.1.0"),
+    ("registry.example.com", "registry.example.com/myorg/mylib_newtool:v0.1.0"),
     # Docker Hub: no registry in the name at all
-    ("", "zeroasiccorp/sclib_tardigrade:v0.1.0")])
+    ("", "myorg/mylib_newtool:v0.1.0")])
 def test_package_registry(fake_plugins, registry, expect):
     """A package's images go to its own registry, built on SiliconCompiler's from ghcr.io."""
     sc = toolimages.get_tool_images()
     root = _make_package(
-        manifest={"tardigrade": {"git-commit": "v0.1.0", "docker-depends": "yosys"}},
-        scripts={"ubuntu24/install-tardigrade.sh": "#!/bin/bash\n"})
+        manifest={"newtool": {"git-commit": "v0.1.0", "docker-depends": "yosys"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
     fake_plugins("install", "toolscripts", lambda: root)
     images = toolimages.get_tool_images(registry=registry, prefix=_PREFIX)
 
-    assert images.tool_image("tardigrade", False) == expect
+    assert images.tool_image("newtool", False) == expect
     assert images.builder_image(False) == sc.builder_image(False)
     assert images.builder_image(False).startswith("ghcr.io/siliconcompiler/sc_tool_builder:")
     assert images.tool_image("yosys", True) == sc.tool_image("yosys", True)
 
-    images.make_tool_docker("tardigrade", "out")
-    dockerfile = (Path("out") / "sclib_tardigrade" / "Dockerfile").read_text()
+    images.make_tool_docker("newtool", "out")
+    dockerfile = (Path("out") / "mylib_newtool" / "Dockerfile").read_text()
     assert f"FROM {sc.builder_image(False)}\n" in dockerfile
     assert f"COPY --from={sc.tool_image('yosys', True)} $SC_PREFIX" in dockerfile
 
@@ -102,13 +102,13 @@ def test_override_rebuilds_dependents(fake_plugins):
     images = _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
 
     assert _built(images) == {"yosys", "sby", "yosys-moosic", "wildebeest"}
-    assert images.tool_image("yosys", False) == "ghcr.io/zeroasiccorp/sclib_yosys:v0.70"
+    assert images.tool_image("yosys", False) == "ghcr.io/myorg/mylib_yosys:v0.70"
     assert images.tool_image("openroad", True) == sc.tool_image("openroad", True)
 
     images.make_tool_docker("wildebeest", "out")
-    dockerfile = (Path("out") / "sclib_wildebeest" / "Dockerfile").read_text()
+    dockerfile = (Path("out") / "mylib_wildebeest" / "Dockerfile").read_text()
     assert f"COPY --from={images.tool_image('yosys', True)} $SC_PREFIX" in dockerfile
-    with open(Path("out") / "sclib_wildebeest" / "_tools.json") as f:
+    with open(Path("out") / "mylib_wildebeest" / "_tools.json") as f:
         assert json.load(f)["yosys"]["git-commit"] == "v0.70"
 
 
@@ -132,8 +132,77 @@ def test_new_build_input_rebuilds_dependency(fake_plugins):
     assert _built(images) == {"mytool", "opensta"}
 
     images.make_tool_docker("opensta", "out")
-    dockerfile = (Path("out") / "sclib_opensta" / "Dockerfile").read_text()
+    dockerfile = (Path("out") / "mylib_opensta" / "Dockerfile").read_text()
     assert "sc_strip_prefix_managed" not in dockerfile
+
+
+def test_tools_image_without_package_is_sc_tools(fake_plugins):
+    """A package that builds nothing runs in sc_tools itself."""
+    sc = toolimages.get_tool_images()
+    images = _package_images(fake_plugins)
+
+    assert images.tools_image(False) == sc.tools_image(False)
+    images.make_tools_docker("out")
+    assert not Path("out").exists()
+
+
+def test_tools_image_layers_added_tools(fake_plugins):
+    """Tools added and none of SiliconCompiler's changed: sc_tools and one layer."""
+    sc = toolimages.get_tool_images()
+    images = _package_images(
+        fake_plugins,
+        manifest={"newtool": {"git-commit": "v0.1.0", "docker-depends": "yosys"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
+
+    assert not images.overrides_sc_tool()
+    assert images.tools_image(False).startswith("ghcr.io/myorg/mylib_tools:")
+
+    images.make_tools_docker("out")
+    dockerfile = (Path("out") / "mylib_tools" / "Dockerfile").read_text()
+    assert f"FROM {sc.tools_image(False)} AS assemble\n" in dockerfile
+    assert f"\nFROM {sc.tools_image(False)}\n" in dockerfile
+    assert f"COPY --from={images.tool_image('newtool', True)} $SC_PREFIX /sc_new" in dockerfile
+    # The dependency arrives inside the tool's image, not on its own
+    assert sc.tool_image("yosys", True) not in dockerfile
+
+
+def test_tools_image_tag_moves_with_package_pin(fake_plugins):
+    root = _make_package(
+        manifest={"newtool": {"git-commit": "v0.1.0", "docker-depends": "yosys"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
+    fake_plugins("install", "toolscripts", lambda: root)
+    before = toolimages.get_tool_images(prefix=_PREFIX).tools_image(False)
+
+    (root / "_tools.json").write_text(json.dumps(
+        {"newtool": {"git-commit": "v0.2.0", "docker-depends": "yosys"}}))
+    assert toolimages.get_tool_images(prefix=_PREFIX).tools_image(False) != before
+
+
+def test_tools_image_assembled_on_override(fake_plugins):
+    """
+    A changed pin is assembled from every tool's image, so nothing of the version it
+    replaces survives underneath.
+    """
+    sc = toolimages.get_tool_images()
+    images = _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
+
+    assert images.overrides_sc_tool()
+    images.make_tools_docker("out")
+    dockerfile = (Path("out") / "mylib_tools" / "Dockerfile").read_text()
+    assert "FROM ubuntu:24.04 AS assemble\n" in dockerfile
+    assert sc.tools_image(False) not in dockerfile
+    for tool in ("wildebeest", "sby", "yosys-moosic"):
+        assert f"COPY --from={images.tool_image(tool, True)} $SC_PREFIX" in dockerfile
+        assert f"COPY --from={sc.tool_image(tool, True)} " not in dockerfile
+    assert f"COPY --from={sc.tool_image('openroad', True)} $SC_PREFIX" in dockerfile
+    with open(Path("out") / "mylib_tools" / "_tools.json") as f:
+        assert json.load(f)["yosys"]["git-commit"] == "v0.70"
+
+
+def test_replaced_recipe_is_an_override(fake_plugins):
+    images = _package_images(fake_plugins, scripts={"ubuntu24/install-sv2v.sh": "#!/bin/bash\n"})
+
+    assert images.overrides_sc_tool()
 
 
 def test_check_image_not_found(monkeypatch):
@@ -165,13 +234,14 @@ def _main(monkeypatch, *args):
 def test_main_plan(monkeypatch, fake_plugins, capsys):
     images = _package_images(
         fake_plugins,
-        manifest={"tardigrade": {"git-commit": "v0.1.0", "docker-depends": "yosys"}},
-        scripts={"ubuntu24/install-tardigrade.sh": "#!/bin/bash\n"})
+        manifest={"newtool": {"git-commit": "v0.1.0", "docker-depends": "yosys"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
 
     assert _main(monkeypatch, "--image_prefix", _PREFIX, "--plan") == 0
     assert capsys.readouterr().out.splitlines() == [
-        f"build  tardigrade       {images.tool_image('tardigrade', True)}",
-        f"reuse  yosys            {images.tool_image('yosys', True)}"]
+        f"build  newtool          {images.tool_image('newtool', True)}",
+        f"reuse  yosys            {images.tool_image('yosys', True)}",
+        f"tools  layered          {images.tools_image(False)}"]
 
 
 def test_main_json_tools_lists_only_built(monkeypatch, fake_plugins, capsys):
@@ -193,14 +263,14 @@ def test_main_generate_files_only_built(monkeypatch, fake_plugins):
     assert _main(monkeypatch, "--image_prefix", _PREFIX, "--generate_files",
                  "--output_dir", "out") == 0
     assert sorted(path.name for path in Path("out").iterdir()) == \
-        ["sclib_sby", "sclib_wildebeest", "sclib_yosys", "sclib_yosys-moosic"]
+        ["mylib_sby", "mylib_tools", "mylib_wildebeest", "mylib_yosys", "mylib_yosys-moosic"]
 
 
-def test_main_no_sc_tools_for_package(monkeypatch, fake_plugins, capsys):
+def test_main_no_sc_runner_for_package(monkeypatch, fake_plugins, capsys):
     _package_images(fake_plugins)
 
-    assert _main(monkeypatch, "--image_prefix", _PREFIX, "--tool", "tools") == 1
-    assert "only built for SiliconCompiler itself" in capsys.readouterr().out
+    assert _main(monkeypatch, "--image_prefix", _PREFIX, "--tool", "runner") == 1
+    assert "sc_runner is only built for SiliconCompiler itself" in capsys.readouterr().out
 
 
 def test_main_ignores_packages_without_prefix(monkeypatch, fake_plugins, capsys):
