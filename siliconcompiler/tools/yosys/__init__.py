@@ -364,7 +364,7 @@ class YosysTask(Task):
             self.add_commandline_option("-C")
         self.add_commandline_option("-c")
 
-        self.set_dataroot("siliconcompiler-yosys", __file__)
+        self.set_dataroot("siliconcompiler-yosys", "python://siliconcompiler/tools/yosys")
 
         with self.active_dataroot("siliconcompiler-yosys"):
             self.set_refdir("scripts")

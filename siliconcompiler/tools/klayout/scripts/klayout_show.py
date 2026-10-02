@@ -92,6 +92,12 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
             layout_view.show_rdb(rdb_id, cell_view.index())
 
 
+def __add_margin(box, margin):
+    '''Grow box by margin percent of its width on the left and right, and of its
+    height on the top and bottom.'''
+    return box.enlarged(pya.DVector(box.width() * margin / 100, box.height() * margin / 100))
+
+
 def __screenshot(schema, layout_view, output_path):
     flow = schema.get('option', 'flow')
     step = schema.get('arg', 'step')
@@ -109,14 +115,10 @@ def __screenshot(schema, layout_view, output_path):
 
     layout_view.zoom_fit()
 
-    # expand the design bounding box so the margin is honored
-    view_box = layout_view.active_cellview().cell.dbbox()
-    view_box.left -= margin
-    view_box.bottom -= margin
-    view_box.right += margin
-    view_box.top += margin
+    view_box = __add_margin(layout_view.active_cellview().cell.dbbox(), margin)
 
-    print(f'[INFO] Saving screenshot to {output_path}')
+    print(f'[INFO] Saving screenshot (({view_box.left}, {view_box.bottom}), '
+          f'({view_box.right}, {view_box.top})) to {output_path}')
     layout_view.save_image_with_options(
         output_path,
         horizontal_resolution,
@@ -163,14 +165,10 @@ def __screenshot_montage(schema, view, xbins, ybins):
     view.zoom_fit()
     cell = view.active_cellview().cell
 
-    view_box = cell.dbbox()
-    view_box.left -= margin
-    view_box.bottom -= margin
-    view_box.right += margin
-    view_box.top += margin
+    view_box = __add_margin(cell.dbbox(), margin)
 
-    x_incr = int(view_box.width() / xbins)
-    y_incr = int(view_box.height() / ybins)
+    x_incr = view_box.width() / xbins
+    y_incr = view_box.height() / ybins
 
     if (view_box.width() > view_box.height()):
         y_px = vertical_resolution

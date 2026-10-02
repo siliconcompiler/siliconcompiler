@@ -51,7 +51,7 @@ class LVSTask(Task):
 
         self.set_threads()
 
-        self.set_dataroot("netgen", __file__)
+        self.set_dataroot("netgen", "python://siliconcompiler/tools/netgen")
         with self.active_dataroot("netgen"):
             self.set_refdir("scripts")
         self.set_script("sc_lvs.tcl")

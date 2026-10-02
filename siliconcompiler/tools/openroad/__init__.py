@@ -524,7 +524,7 @@ class OpenROADTask(ASICTask):
         self.set_exe("openroad", vswitch="-version", format="tcl")
         self.add_version(">=24Q3-2011")
 
-        self.set_dataroot("openroad-ref", __file__)
+        self.set_dataroot("openroad-ref", "python://siliconcompiler/tools/openroad")
         with self.active_dataroot("openroad-ref"):
             self.set_refdir("scripts")
 

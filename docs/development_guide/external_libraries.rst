@@ -195,7 +195,8 @@ from clashing when several libraries are combined into one project.
               self.set_dataroot("mylib", "python://mylib")
 
    The ``python://mylib`` dataroot resolves to the installed location of the
-   ``mylib`` package. To additionally fetch large data files that are *not*
+   ``mylib`` package, and ``python://mylib/libs/mymacro`` to a directory inside
+   it. To additionally fetch large data files that are *not*
    shipped in the wheel, give the dataroot a git fallback keyed to the package
    version with ``PythonPathResolver.set_dataroot``.
 

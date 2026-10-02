@@ -1,5 +1,3 @@
-import os.path
-
 from typing import Union, List, Optional
 
 from siliconcompiler.tools.openroad._apr import APRTask
@@ -32,8 +30,7 @@ class InitFloorplanTask(APRTask,
         self.add_parameter("routingblockage", "[(str,(float,float),(float,float))]",
                            "Routing blockage coordinates", units="um")
 
-        tools_root = os.path.dirname(os.path.dirname(__file__))
-        self.set_dataroot("sc-common", os.path.join(tools_root, "_common"))
+        self.set_dataroot("sc-common", "python://siliconcompiler/tools/_common")
         self.add_parameter(
             "sc_pin_constraints_tcl",
             "file",

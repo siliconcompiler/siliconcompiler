@@ -269,6 +269,7 @@ class PathSchema(PathSchemaBase):
                     * ``https://zeroasic.com/xyz.tar.gz``
                     * ``github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz``
                     * ``python://siliconcompiler``
+                    * ``python://siliconcompiler/tools/openroad``
                     """)))
 
         schema.insert(
@@ -286,7 +287,7 @@ class PathSchema(PathSchemaBase):
                     of the file that will be downloaded.
                     """)))
 
-    def __dataroot_section(self) -> "PathSchema":
+    def _dataroot_section(self) -> "PathSchema":
         """Finds the schema section that defines the 'dataroot'.
 
         This method traverses up the hierarchy of schema objects, starting from the
@@ -353,7 +354,7 @@ class PathSchema(PathSchemaBase):
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
-        schema = self.__dataroot_section()
+        schema = self._dataroot_section()
 
         if name in schema.getkeys("dataroot") and not clobber:
             if path != BaseSchema.get(schema, "dataroot", name, "path") or \
@@ -381,7 +382,7 @@ class PathSchema(PathSchemaBase):
             Returns the path to the root of the siliconcompiler data directory.
         """
 
-        schema = self.__dataroot_section()
+        schema = self._dataroot_section()
 
         if not BaseSchema.valid(schema, "dataroot", name):
             raise ValueError(f"{name} is not a recognized source")
@@ -400,7 +401,7 @@ class PathSchema(PathSchemaBase):
         Returns:
             dictionary of str to resolver mapping
         """
-        schema = self.__dataroot_section()
+        schema = self._dataroot_section()
 
         if not schema.valid("dataroot"):
             return {}
@@ -431,7 +432,7 @@ class PathSchema(PathSchemaBase):
             Sets the file to top.v and associates lambdalib as the dataroot.
         '''
 
-        schema = self.__dataroot_section()
+        schema = self._dataroot_section()
 
         if dataroot and not schema.valid("dataroot"):
             raise ValueError(f"{dataroot} is not a recognized dataroot")
@@ -470,7 +471,7 @@ class PathSchema(PathSchemaBase):
         if user_dataroot is not None:
             return user_dataroot
 
-        schema = self.__dataroot_section()
+        schema = self._dataroot_section()
 
         active_dataroot = schema._get_active("dataroot")
         if active_dataroot:
@@ -505,7 +506,7 @@ class PathSchema(PathSchemaBase):
         colspec = r'{|\X{1}{3}|\X{2}{3}|}'
 
         table = [[strong('Root'), strong('Specifications')]]
-        schema = self.__dataroot_section()
+        schema = self._dataroot_section()
         for dataroot in schema.getkeys("dataroot"):
             path = schema.get('dataroot', dataroot, 'path')
             tag = schema.get('dataroot', dataroot, 'tag')

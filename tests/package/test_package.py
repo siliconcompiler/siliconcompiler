@@ -31,8 +31,9 @@ from siliconcompiler.package.cache import PermanentResolutionError, DataSourceUn
 from siliconcompiler import utils
 from siliconcompiler.utils.multiprocessing import MPManager, forking
 
-from siliconcompiler import Project, Design
-from siliconcompiler.schema import BaseSchema
+from siliconcompiler import Project, Design, ASIC
+from siliconcompiler.schema import BaseSchema, EditableSchema
+from siliconcompiler.schema_support.pathschema import PathSchema
 
 
 def test_init():
@@ -438,11 +439,11 @@ def test_safe_uri_ipv6_cache_id():
     (KeyPathResolver, "key://tool,openroad,task,place,refdir", None,
      "4956e9c0d822c88ad0400e2f33ee4fb119303915"),
     (Resolver, "https://example.com/pdk.tar.gz?v=1", "v1",
-     "62839725fad6e97979c77c20ee760dfffb522d5f"),
+     "21d569e6d54d3666851be4f489be7a7d2174d970"),
     (Resolver, "https://user:token@example.com/pdk.tar.gz?v=1", "v1",
-     "62839725fad6e97979c77c20ee760dfffb522d5f"),
+     "21d569e6d54d3666851be4f489be7a7d2174d970"),
     (Resolver, "https://example.com/pdk.tar.gz?v=1", "v2",
-     "d97d4667a79303f621dd4377d83ef027f1dfbef7"),
+     "89bd5be6b4c9d20a112ea1a9ea8518faa5aa4071"),
     (Resolver, "git+ssh+private://git@github.com/org/repo.git", "abc",
      "87ab05a69a9315f25bd160f89c92acc2133461e6"),
     # An '@' in the path is not userinfo.
@@ -455,6 +456,30 @@ def test_collection_id_is_stable(monkeypatch, kind, source, reference, collectio
     monkeypatch.setenv("DATA_ROOT", "/data")
     assert kind("testpath", Project("testproj"), source, reference).collection_id == \
         collection_id
+
+
+@pytest.mark.parametrize("source", [
+    "https://user:token@example.com/archive.tar.gz?X-Amz-Signature=abc&v=1",
+    "https://example.com/archive.tar.gz?token",
+    "https://example.com/archive.tar.gz?a=1;b=2#part?x",
+])
+def test_collection_id_survives_masking(source):
+    """A manifest sent off this machine carries the source as safe_source, and its
+    reader must name the collection's files alike."""
+    sent = Resolver("testpath", None, source, "v1")
+    read = Resolver("testpath", None, sent.safe_source, "v1")
+
+    assert sent.safe_source != source
+    assert sent.collection_id == read.collection_id
+
+
+def test_collection_id_ignores_query_values():
+    """One object presigned twice is one collection, though two caches."""
+    first = Resolver("testpath", None, "https://example.com/archive?X-Amz-Signature=first")
+    second = Resolver("testpath", None, "https://example.com/archive?X-Amz-Signature=second")
+
+    assert first.cache_id != second.cache_id
+    assert first.collection_id == second.collection_id
 
 
 @pytest.mark.parametrize("source", ["src", "$DATA_ROOT/archive", "~/archive"])
@@ -1942,6 +1967,20 @@ def test_python_path_resolver_with_nested_module():
     assert os.path.exists(resolved)
 
 
+def test_python_path_resolver_with_path():
+    """A path after the module is a directory inside it, imported or not."""
+    root = PythonPathResolver("root", None, "python://siliconcompiler")
+    common = PythonPathResolver("common", None, "python://siliconcompiler/tools/_common")
+
+    assert common.urlpath == "siliconcompiler"
+    assert common.get_path() == \
+        os.path.join(os.path.dirname(siliconcompiler.__file__), "tools", "_common")
+    # Each is cached apart, so neither stands in for the other
+    assert root.get_path() == os.path.dirname(siliconcompiler.__file__)
+    assert common.cache_id != root.cache_id
+    assert common.collection_id != root.collection_id
+
+
 def test_python_path_resolver_reference_ignored():
     """Test that PythonPathResolver ignores the reference parameter."""
     resolver = PythonPathResolver("thisname", None, "python://siliconcompiler", reference="v1.0")
@@ -2910,31 +2949,49 @@ def test_dataroot_resolver_resolve_no_schema_context():
         resolver.resolve()
 
 
-def test_dataroot_resolver_resolve_no_root_schema():
-    """Test DatarootResolver.resolve() raises error when root schema is missing."""
-    class MockSchema:
-        _keypath = ()
-
-        def _parent(self, root=False):
-            return None
-
-    schema = MockSchema()
-    resolver = DatarootResolver("testdata", schema, "dataroot://mydata")
-
-    with pytest.raises(RuntimeError,
-                       match=r"^A root schema has not been defined for 'testdata'$"):
-        resolver.resolve()
-
-
 def test_dataroot_resolver_resolve_undefined_dataroot():
     """Test DatarootResolver.resolve() raises error when dataroot is not defined."""
-    project = Project("testproj")
+    design = Design("testdesign")
     # Don't set any dataroot, so 'mydata' will not be defined
-    resolver = DatarootResolver("testdata", project, "dataroot://mydata")
+    resolver = DatarootResolver("testdata", design, "dataroot://mydata")
 
     with pytest.raises(RuntimeError,
                        match=r"^Dataroot 'mydata' is not defined for 'testdata'$"):
         resolver.resolve()
+
+
+def test_dataroot_resolver_design_in_project():
+    """A design's dataroot:// resolves alike on its own and held by a project,
+    where the design's parent is the project's library section."""
+    os.makedirs("data/sub")
+    with open("data/sub/top.v", "w") as f:
+        f.write("module top(); endmodule\n")
+
+    design = Design("top")
+    design.set_dataroot("base", os.path.abspath("data"))
+    design.set_dataroot("alias", "dataroot://base/sub")
+    design.add_file("top.v", dataroot="alias", fileset="rtl")
+    alone_id = DatarootResolver("n", design, "dataroot://alias").collection_id
+
+    ASIC(design)
+    assert design._parent() is not design
+
+    assert design.find_files("fileset", "rtl", "file", "verilog") == \
+        [os.path.abspath("data/sub/top.v")]
+    assert design.get_dataroot("alias") == os.path.abspath("data/sub")
+    assert DatarootResolver("n", design, "dataroot://alias").collection_id == alone_id
+
+
+def test_dataroot_resolver_registry_above():
+    """A schema without a registry of its own uses its holder's, as find_files does."""
+    inner = PathSchema()
+    EditableSchema(inner).remove("dataroot")
+    outer = PathSchema()
+    EditableSchema(outer).insert("inner", inner)
+    outer.set_dataroot("base", os.path.abspath("."))
+    outer.set_dataroot("alias", "dataroot://base")
+
+    assert DatarootResolver("n", inner, "dataroot://alias").resolve() == os.path.abspath(".")
 
 
 def test_dataroot_resolver_resolve_with_file_path(tmp_path):

@@ -943,7 +943,6 @@ class PathNodeValue(NodeValue):
         for root, _, files in os.walk(dirname):
             all_files.extend([os.path.join(root, f) for f in files])
         dirhash = None
-        hashobj = hashfunc()
         for file in sorted(all_files):
             # Cast everything to a windows path and convert to posix.
             # https://stackoverflow.com/questions/73682260
@@ -980,10 +979,8 @@ class PathNodeValue(NodeValue):
                                    f"hash function: {hashfunction}")
             hashobj = hashfunc()
 
-        with open(filename, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
-                hashobj.update(byte_block)
-        return hashobj.hexdigest()
+        from siliconcompiler.utils import file_digest
+        return file_digest(filename, lambda: hashobj).hexdigest()
 
     @property
     def fields(self) -> Tuple[Optional[str], ...]:

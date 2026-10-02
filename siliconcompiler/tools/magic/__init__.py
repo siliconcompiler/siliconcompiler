@@ -51,7 +51,7 @@ class MagicTask(Task):
 
         self.set_threads()
 
-        self.set_dataroot("magic", __file__)
+        self.set_dataroot("magic", "python://siliconcompiler/tools/magic")
         with self.active_dataroot("magic"):
             self.set_refdir("scripts")
         self.set_script("sc_magic.tcl")

@@ -234,7 +234,7 @@ class KLayoutTask(ASICTask):
 
         self.add_commandline_option(['-z', '-nc', '-rx', '-r'], clobber=True)
 
-        self.set_dataroot("refdir", __file__)
+        self.set_dataroot("refdir", "python://siliconcompiler/tools/klayout")
         with self.active_dataroot("refdir"):
             self.set_refdir("scripts")
 

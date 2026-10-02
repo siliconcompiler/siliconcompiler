@@ -322,7 +322,7 @@ def open_zstd_stream(fileobj: IO[bytes]) -> IO[bytes]:
     return cast(IO[bytes], _zstd.ZstdFile(fileobj))
 
 
-def file_digest(path: Union[str, Path], algorithm: str = "sha256"):
+def file_digest(path: Union[str, Path], algorithm: Union[str, Callable] = "sha256"):
     '''
     The hash of the file at ``path``, read in chunks rather than whole.
 
@@ -331,7 +331,9 @@ def file_digest(path: Union[str, Path], algorithm: str = "sha256"):
 
     Args:
         path (path): the file to hash.
-        algorithm (str): a name ``hashlib.new`` takes.
+        algorithm (str or callable): a name ``hashlib.new`` takes, or, as
+            ``hashlib.file_digest`` also takes, a callable returning the hash
+            object to feed. Returning one that already holds data continues it.
 
     Returns:
         the ``hashlib`` hash object, as ``hashlib.file_digest`` returns.
@@ -341,7 +343,7 @@ def file_digest(path: Union[str, Path], algorithm: str = "sha256"):
     with open(path, "rb") as f:
         if hasattr(hashlib, "file_digest"):
             return hashlib.file_digest(f, algorithm)
-        digest = hashlib.new(algorithm)
+        digest = hashlib.new(algorithm) if isinstance(algorithm, str) else algorithm()
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             digest.update(chunk)
         return digest
