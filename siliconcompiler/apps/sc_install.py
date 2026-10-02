@@ -257,7 +257,8 @@ def install_tool(tool: str, script: str, build_dir: str, prefix: str,
 
     # A package's scripts find _prereqs.sh and _tools.py through SC_TOOLSCRIPTS, since
     # none are installed next to them, and the _tools.py there reads the merged pins.
-    toolscripts_dir = build_path / "toolscripts"
+    # Absolute, since the script runs from inside build_path
+    toolscripts_dir = (build_path / "toolscripts").resolve()
     toolscripts_dir.mkdir()
     for helper in ("_tools.py", "_prereqs.sh"):
         shutil.copy(toolimages.get_tool_script_dir() / helper, toolscripts_dir)

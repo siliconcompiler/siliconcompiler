@@ -1,5 +1,6 @@
 # Scoped to setup/server/Dockerfile, so the repo-root .dockerignore is left
-# alone -- it excludes /setup/docker/, which this build has no use for either.
+# alone -- it excludes /setup/docker/ and the Dockerfiles the tool image builder
+# writes to /docker/, which this build has no use for either.
 #
 # .git is deliberately NOT excluded: the first build stage needs it so
 # setuptools_scm can derive a real version, exactly as a local install does.
@@ -15,3 +16,4 @@ siliconcompiler.egg-info/
 /examples/
 /utils/
 /setup/docker/
+/docker/

@@ -577,9 +577,10 @@ that would come out the same as SiliconCompiler's is taken from ghcr.io, where
 SiliconCompiler publishes it; the rest are built as ``ghcr.io/myorg/mylib_<tool>``,
 or under another registry given with ``--registry``: your own tools, any tool you
 override, and everything built against one. ``--plan`` lists both, and
-``--json_tools``, without and then with ``--with_dependencies``, gives the order
-to build them in. Each generated directory is a build context. A token that can
-read a private source goes in the ``git_token`` build secret:
+``--json_tools --stage 1``, then ``2`` and so on, gives the order to build them
+in: an image is built after every built image it is built on. Each generated
+directory is a build context. A token that can read a private source goes in the
+``git_token`` build secret, where every install script built with it can read it:
 
 .. code-block:: bash
 

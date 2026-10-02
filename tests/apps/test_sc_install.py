@@ -1039,6 +1039,23 @@ echo "MYTOOL $(python3 ${src_path}/_tools.py --tool mytool --field git-commit)"
     assert "MYTOOL v2" in capfd.readouterr().out
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_relative_build_dir(monkeypatch, fake_plugins, capfd):
+    """A relative -build_dir still finds the helpers, from inside the build directory."""
+    monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu24")
+
+    root = _make_package("pkg",
+                         manifest={"mytool": {"git-commit": "v1"}},
+                         scripts={"ubuntu24/install-mytool.sh": _PACKAGE_SCRIPT})
+    (root / "ubuntu24" / "install-mytool.sh").chmod(0o755)
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'mytool', '-build_dir', 'relative_build',
+                                     '-prefix', os.path.abspath("prefix_relative")])
+    assert sc_install.main() == 0
+    assert "MYTOOL v1" in capfd.readouterr().out
+
+
 def test_install_reports_package_conflict(monkeypatch, fake_plugins, capfd):
     monkeypatch.setattr(sc_install, '_get_os_name', lambda: "ubuntu24")
 

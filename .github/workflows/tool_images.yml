@@ -74,8 +74,9 @@ jobs:
       packages: read
 
     outputs:
-      tools_matrix: ${{ steps.plan.outputs.tools_matrix }}
-      tools_with_deps_matrix: ${{ steps.plan.outputs.tools_with_deps_matrix }}
+      stage_1_matrix: ${{ steps.plan.outputs.stage_1_matrix }}
+      stage_2_matrix: ${{ steps.plan.outputs.stage_2_matrix }}
+      stage_3_matrix: ${{ steps.plan.outputs.stage_3_matrix }}
       tools_image: ${{ steps.plan.outputs.tools_image }}
       has_tools_image: ${{ steps.plan.outputs.has_tools_image }}
       builder_image: ${{ steps.plan.outputs.builder_image }}
@@ -86,10 +87,13 @@ jobs:
     steps:
       # The whole history, so the version setuptools_scm derives, which names
       # sc_runner, is the release's
+      # Without the job token in .git/config, where installing the package's code
+      # could read it
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # Which images exist is asked of the registry, and a refusal is an error
       # rather than a missing image, so log in before asking.
@@ -131,9 +135,17 @@ jobs:
           {
             echo "tools_image=${tools_image}"
             echo "has_tools_image=$(builder --check_image "$tools_image")"
-            echo "tools_matrix=$(builder "${report[@]}" --json_tools)"
-            echo "tools_with_deps_matrix=$(builder "${report[@]}" --json_tools --with_dependencies)"
+            for stage in 1 2 3; do
+              echo "stage_${stage}_matrix=$(builder "${report[@]}" --json_tools --stage $stage)"
+            done
           } >> "$GITHUB_OUTPUT"
+
+          # An image is built after every built image it is built on, one stage per
+          # link; deeper than the stages below would build one before its base exists
+          if [ "$(builder --reportall --json_tools --stage 4)" != "{}" ]; then
+            echo "::error::The built images are chained deeper than the 3 build stages"
+            exit 1
+          fi
 
           # SiliconCompiler's own builds the builder image and names sc_runner too
           if [ -z "$PREFIX" ]; then
@@ -188,12 +200,12 @@ jobs:
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           tags: ${{ needs.plan.outputs.builder_image }}
 
-  build_tool:
+  build_tool_stage_1:
     name: Build ${{ matrix.tool }} tool
     needs: [plan, build_builder]
     if: >-
       always() && !cancelled() && needs.plan.result == 'success' &&
-      needs.build_builder.result != 'failure' && needs.plan.outputs.tools_matrix != '{}'
+      needs.build_builder.result != 'failure' && needs.plan.outputs.stage_1_matrix != '{}'
     runs-on: ubuntu-latest
 
     permissions:
@@ -202,7 +214,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.plan.outputs.tools_matrix) }}
+      matrix: ${{ fromJson(needs.plan.outputs.stage_1_matrix) }}
 
     steps:
       - name: Download docker artifacts
@@ -249,12 +261,12 @@ jobs:
             ${{ matrix.name }}
             ${{ matrix.check_name }}
 
-  build_tool_with_deps:
+  build_tool_stage_2:
     name: Build ${{ matrix.tool }} tool
-    needs: [plan, build_tool]
+    needs: [plan, build_tool_stage_1]
     if: >-
       always() && !cancelled() && needs.plan.result == 'success' &&
-      needs.plan.outputs.tools_with_deps_matrix != '{}'
+      needs.plan.outputs.stage_2_matrix != '{}'
     runs-on: ubuntu-latest
 
     permissions:
@@ -263,7 +275,66 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.plan.outputs.tools_with_deps_matrix) }}
+      matrix: ${{ fromJson(needs.plan.outputs.stage_2_matrix) }}
+
+    steps:
+      - name: Download docker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: tool-images
+
+      - name: Log in to the registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ inputs.registry-username || github.actor }}
+          password: ${{ secrets.registry-password || github.token }}
+
+      - name: Mint a source token
+        id: source-token
+        if: inputs.repositories != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ inputs.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+          repositories: ${{ inputs.repositories }}
+          permission-contents: read
+
+      - name: Find the build context
+        id: context
+        env:
+          NAME: ${{ matrix.name }}
+        run: |
+          name="${NAME%%:*}"
+          echo "context=${name##*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push the tool image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./${{ steps.context.outputs.context }}/
+          push: true
+          provenance: false
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          secrets: git_token=${{ steps.source-token.outputs.token }}
+          tags: |
+            ${{ matrix.name }}
+            ${{ matrix.check_name }}
+
+  build_tool_stage_3:
+    name: Build ${{ matrix.tool }} tool
+    needs: [plan, build_tool_stage_2]
+    if: >-
+      always() && !cancelled() && needs.plan.result == 'success' &&
+      needs.plan.outputs.stage_3_matrix != '{}'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.plan.outputs.stage_3_matrix) }}
 
     steps:
       - name: Download docker artifacts
@@ -310,7 +381,7 @@ jobs:
 
   build_tools_image:
     name: Build the image of every tool
-    needs: [plan, build_builder, build_tool, build_tool_with_deps]
+    needs: [plan, build_builder, build_tool_stage_1, build_tool_stage_2, build_tool_stage_3]
     # Not when a tool image failed: it would be missing from the image of all of them
     if: >-
       always() && !cancelled() && needs.plan.result == 'success' &&

@@ -24,6 +24,10 @@ on:
         description: 'Client ID of the GitHub App that opens the pull requests'
         type: string
         required: true
+      base:
+        description: 'Branch the pins are updated on, default the repository''s default branch'
+        type: string
+        default: ''
     secrets:
       app-private-key:
         description: 'Private key of that GitHub App'
@@ -88,15 +92,21 @@ jobs:
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
+          # Asked of the repository, since a scheduled run's event does not carry it
+          if [ -z "$BASE" ]; then
+            BASE=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch)
+          fi
+          echo "base=${BASE}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
           TOOL: ${{ matrix.tool }}
+          BASE: ${{ inputs.base }}
 
       - name: Checkout repository
         if: steps.check.outputs.skip != 'true'
         uses: actions/checkout@v7
         with:
-          ref: main
+          ref: ${{ steps.check.outputs.base }}
 
       - name: Fetch the updater
         if: steps.check.outputs.skip != 'true'
@@ -181,5 +191,5 @@ jobs:
           # that lands in the tree out of the PR.
           add-paths: ${{ env.MANIFEST }}
           branch: bot/${{ matrix.tool }}-update
-          base: main
+          base: ${{ steps.check.outputs.base }}
           delete-branch: true

@@ -267,6 +267,9 @@ def test_manifest_defaults_to_the_file_beside_it():
     assert proc.stdout.strip() == sc_tools.get_field("yosys", "git-commit")
 
 
+# The updater runs only in the Linux bot workflow. On Windows the clone it bumps
+# from cannot be removed afterwards while GitPython's git processes hold it open.
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_manifest_bump_writes_given_file():
     """A bump lands in the manifest it read, and leaves SiliconCompiler's alone."""
     import git

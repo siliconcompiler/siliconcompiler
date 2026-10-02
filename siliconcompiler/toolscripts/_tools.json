@@ -446,7 +446,8 @@
     "_comment-keep-pkgs": [
       "yosys' \"show\" shells out to dot and opens the result in xdot. The images",
       "built on top of this one (sby, wildebeest, yosys-moosic) inherit this:",
-      "builder.py unions a tool's lists with those of the tools it is built on."
+      "siliconcompiler.utils.toolimages unions a tool's lists with those of the tools",
+      "it is built on."
     ],
     "docker-keep-pkgs": [
       "graphviz",

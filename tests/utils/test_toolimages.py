@@ -205,6 +205,103 @@ def test_replaced_recipe_is_an_override(fake_plugins):
     assert images.overrides_sc_tool()
 
 
+def test_layered_image_skips_carried_dependency(fake_plugins):
+    """
+    A dependency rebuilt for a package tool to build on arrives inside that tool's
+    image, and is not layered on its own with what the tool's image pruned.
+    """
+    images = _package_images(
+        fake_plugins,
+        manifest={"mytool": {"git-commit": "v1", "docker-depends": "opensta"}},
+        scripts={"ubuntu24/install-mytool.sh": "#!/bin/bash\n"})
+
+    assert _built(images) == {"mytool", "opensta"}
+    assert images._get_layered_images() == [images.tool_image("mytool", True)]
+
+    images.make_tools_docker("out")
+    dockerfile = (Path("out") / "mylib_tools" / "Dockerfile").read_text()
+    assert images.tool_image("opensta", True) not in dockerfile
+
+
+def test_package_extra_files_are_the_packages(fake_plugins):
+    """docker-extra-files in a package's manifest are relative to the package."""
+    root = _make_package(
+        manifest={"newtool": {"git-commit": "v1", "docker-extra-files": ["extra/patch.txt"]}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n",
+                 "extra/patch.txt": "first\n"})
+    fake_plugins("install", "toolscripts", lambda: root)
+
+    images = toolimages.get_tool_images(prefix=_PREFIX)
+    before = images.tool_image("newtool", True)
+    images.make_tool_docker("newtool", "out")
+    assert (Path("out") / "mylib_newtool" / "patch.txt").read_text() == "first\n"
+
+    (root / "extra" / "patch.txt").write_text("second\n")
+    assert toolimages.get_tool_images(prefix=_PREFIX).tool_image("newtool", True) != before
+
+
+def test_other_source_is_not_reused(fake_plugins):
+    """The same tag of a fork is other code, so it gets an image of its own."""
+    images = _package_images(
+        fake_plugins, manifest={"yosys": {"git-url": "https://example.com/fork/yosys.git"}})
+
+    assert _built(images) == {"yosys", "sby", "yosys-moosic", "wildebeest"}
+
+
+def test_build_depends_pin_rebuilds(fake_plugins):
+    """sby builds bitwuzla in-image, so moving bitwuzla's pin rebuilds sby."""
+    sc = toolimages.get_tool_images()
+    assert "bitwuzla" in (sc.get_field("sby", "build-depends") or [])
+
+    images = _package_images(fake_plugins, manifest={"bitwuzla": {"git-commit": "9.9.9"}})
+
+    assert "sby" in _built(images)
+    assert images.tool_image("sby", True) != sc.tool_image("sby", True)
+
+
+def test_build_stages(fake_plugins):
+    """An image waits for every image it is built on that is built too, one stage each."""
+    sc = toolimages.get_tool_images()
+    assert sc.get_build_stage("yosys") == 1
+    assert sc.get_build_stage("sby") == 2
+
+    images = _package_images(
+        fake_plugins,
+        manifest={"yosys": {"git-commit": "v0.70"},
+                  "newtool": {"git-commit": "v1", "docker-depends": "wildebeest"},
+                  "addon": {"git-commit": "v1", "docker-depends": "icepack"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n",
+                 "ubuntu24/install-addon.sh": "#!/bin/bash\n"})
+
+    assert images.get_build_stage("yosys") == 1
+    assert images.get_build_stage("wildebeest") == 2
+    assert images.get_build_stage("newtool") == 3
+    # Built on SiliconCompiler's image, which exists already: nextpnr builds on
+    # icepack, so it keeps what addon needs. A tool nothing is built on yet, like
+    # openroad, would be rebuilt to keep it, and addon would wait for that.
+    assert images.is_reused("icepack")
+    assert images.get_build_stage("addon") == 1
+
+
+def test_main_json_tools_by_stage(monkeypatch, fake_plugins, capsys):
+    _package_images(
+        fake_plugins,
+        manifest={"yosys": {"git-commit": "v0.70"},
+                  "newtool": {"git-commit": "v1", "docker-depends": "wildebeest"}},
+        scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
+
+    def stage(n):
+        assert _main(monkeypatch, "--image_prefix", _PREFIX, "--json_tools", "--reportall",
+                     "--stage", str(n)) == 0
+        out = json.loads(capsys.readouterr().out)
+        return {entry["tool"] for entry in out.get("include", [])}
+
+    assert stage(1) == {"yosys"}
+    assert stage(2) == {"sby", "yosys-moosic", "wildebeest"}
+    assert stage(3) == {"newtool"}
+    assert stage(4) == set()
+
+
 def test_check_image_not_found(monkeypatch):
     client = mock.MagicMock()
     client.images.get_registry_data.side_effect = docker.errors.NotFound("missing")
@@ -227,7 +324,7 @@ def test_check_image_raises_on_denied(monkeypatch):
 
 
 def _main(monkeypatch, *args):
-    monkeypatch.setattr(sys, "argv", ["builder.py", *args])
+    monkeypatch.setattr(sys, "argv", ["toolimages", *args])
     return toolimages.main()
 
 
@@ -252,7 +349,7 @@ def test_main_json_tools_lists_only_built(monkeypatch, fake_plugins, capsys):
         ["yosys"]
 
     assert _main(monkeypatch, "--image_prefix", _PREFIX, "--json_tools", "--reportall",
-                 "--with_dependencies") == 0
+                 "--stage", "2") == 0
     assert {entry["tool"] for entry in json.loads(capsys.readouterr().out)["include"]} == \
         {"sby", "yosys-moosic", "wildebeest"}
 

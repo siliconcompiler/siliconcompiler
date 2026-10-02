@@ -108,6 +108,11 @@ def get_package_tools(osname: Optional[str]) -> Tuple[Dict[str, dict], Dict[str,
                     package_pins = json.load(f)
             except json.JSONDecodeError as e:
                 raise ValueError(f"{manifest} is not valid JSON: {e}") from e
+        for fields in package_pins.values():
+            # The package's own files, not SiliconCompiler's data
+            if "docker-extra-files" in fields:
+                fields["docker-extra-files"] = [os.path.join(root, extra)
+                                                for extra in fields["docker-extra-files"]]
         package_scripts = get_install_tools(osname, root)
 
         for tool in sorted({*package_pins, *package_scripts}):
@@ -414,7 +419,11 @@ class ToolImages:
         return self.base is not None and not self.overrides_sc_tool()
 
     def _get_layered_images(self):
-        return [self.tool_image(tool, True) for tool, _ in self.get_built_tools()]
+        # A built image another one is built on arrives inside that one, and copied
+        # on its own would bring along what that one pruned from it.
+        built = [tool for tool, _ in self.get_built_tools()]
+        carried = {depend for tool in built for depend in self._get_docker_depends(tool)}
+        return [self.tool_image(tool, True) for tool in built if tool not in carried]
 
     def _tools_image_details(self):
         if self._layers_on_sc_tools():
@@ -514,6 +523,15 @@ class ToolImages:
                 tools.append((tool, self.get_field(tool, 'docker-depends')))
         return tools
 
+    def get_build_stage(self, tool):
+        '''
+        Returns when a built image can be built: stage 1 when every image it is built
+        on exists already, otherwise the stage after the latest of the built ones.
+        '''
+        built_on = [depend for depend in self._get_docker_depends(tool)
+                    if not self.is_reused(depend)]
+        return 1 + max((self.get_build_stage(depend) for depend in built_on), default=0)
+
     def get_built_tools(self):
         '''
         The tools whose images are built here rather than taken from SiliconCompiler
@@ -608,6 +626,21 @@ class ToolImages:
         hash.update(builder_tag.encode('utf-8'))
         hash.update(get_file_hash(tools_file).encode('utf-8'))
         hash.update(tool_tag.encode('utf-8'))
+        # The same tag of another repository is other code, so a package pointing a
+        # tool at a fork does not get SiliconCompiler's image of it.
+        git_url = self.get_field(tool, 'git-url')
+        if git_url:
+            hash.update(git_url.encode('utf-8'))
+        # Tools the install script builds in-image without being built on their image
+        # (sby builds its solvers), so moving one of their pins rebuilds this image.
+        build_depends = self.get_field(tool, 'build-depends') or []
+        if isinstance(build_depends, str):
+            build_depends = [build_depends]
+        for depend in build_depends:
+            for field in ('git-url', 'git-commit', 'version'):
+                value = self.manifest.get(depend, {}).get(field)
+                if value:
+                    hash.update(f'{depend}:{field}:{value}'.encode('utf-8'))
         if tool in self.scripts:
             hash.update(get_file_hash(self.scripts[tool]).encode('utf-8'))
         prereqs_file = os.path.join(get_tool_script_dir(), _prereqs_script)
@@ -762,9 +795,13 @@ def main():
     parser.add_argument('--reportall',
                         action='store_true',
                         help='Report all images regardless of build state')
-    parser.add_argument('--with_dependencies',
-                        action='store_true',
-                        help='Include tools which depend on other tools')
+    parser.add_argument('--stage',
+                        type=int,
+                        default=1,
+                        metavar='<stage>',
+                        help='With --json_tools, the tools whose images are built in this '
+                             'stage: 1 when every image a tool is built on exists, and one '
+                             'stage later for each built image it is built on')
 
     parser.add_argument('--plan',
                         action='store_true',
@@ -801,8 +838,8 @@ def main():
     if args.json_tools:
         image_info = images.images()
         json_tools = {'include': []}
-        for tool, depends in built_tools:
-            if (not depends and not args.with_dependencies) or (depends and args.with_dependencies):
+        for tool, _ in built_tools:
+            if images.get_build_stage(tool) == args.stage:
                 tool_info = image_info[tool]
                 if args.reportall or not check_image(tool_info['check_name']):
                     json_tools['include'].append(tool_info)

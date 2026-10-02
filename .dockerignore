@@ -1,6 +1,7 @@
 build/
 .venv/
 /setup/docker/
+/docker/
 /docs/
 siliconcompiler.egg-info/
 **/build/
