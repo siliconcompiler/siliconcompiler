@@ -1619,7 +1619,7 @@ def test_wait_serialize_tool_tasks_validates_serial_execution():
 
 
 # Regression: builtin tasks select among (or union) their upstream inputs at
-# runtime, so the same file arriving from multiple upstreams is expected — not
+# runtime, so the same file arriving from multiple upstreams is expected -- not
 # an error. The base Task validator would log "receives X from multiple input
 # tasks" repeatedly here; BuiltinTask._validate_io must suppress that.
 @pytest.mark.parametrize("cls", [JoinTask, MinimumTask, MaximumTask, MuxTask])

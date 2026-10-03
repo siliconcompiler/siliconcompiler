@@ -2164,8 +2164,8 @@ def test_init_run_logger_with_queue_strips_inherited_handlers(project):
     """In the multiprocessing path the child must drop every handler it
     inherited from the parent and keep only the QueueHandler. Anything else
     (terminal handler, dashboard's LogBufferHandler, etc.) would either
-    corrupt parent state or — when its sink is a manager-backed queue
-    shared with the parent — deliver the same record twice (once from the
+    corrupt parent state or -- when its sink is a manager-backed queue
+    shared with the parent -- deliver the same record twice (once from the
     child directly, once via the parent's QueueListener)."""
     extra_handler = logging.NullHandler()
     project.logger.addHandler(extra_handler)

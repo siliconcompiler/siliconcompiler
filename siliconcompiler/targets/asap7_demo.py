@@ -29,7 +29,7 @@ def asap7_demo(
 
         Sets the main and additional standard-cell libraries (RVT, LVT, SLVT), installs synthesis
         and full ASIC flows, selects the "asap7" PDK, creates slow/typical/fast STA scenarios
-        using NLDM delay model, applies area constraints (40% core density, 1 µm core margin),
+        using NLDM delay model, applies area constraints (40% core density, 1 um core margin),
         and registers example IP/macro library aliases.
 
         Parameters:

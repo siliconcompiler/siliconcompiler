@@ -36,7 +36,7 @@ def png_to_gds(
     from klayout_utils import get_write_options  # noqa E402
 
     # 1. Load image via QImage (supports PNG, JPEG, etc.) into a PixelBuffer.
-    # pixel() returns ARGB as a packed uint32; composite over white so transparent→light.
+    # pixel() returns ARGB as a packed uint32; composite over white so transparent->light.
     print(f"Loading {image_path}...")
 
     img_buf = pya.PixelBuffer.from_qimage(pya.QImage(image_path))

@@ -16,8 +16,8 @@ class WeakAtexitCall:
 
     Registering a bound method directly with ``atexit`` (e.g.
     ``atexit.register(self.stop)``) stores a strong reference to the instance
-    in the atexit registry, keeping it — and everything it transitively
-    references — alive until interpreter exit. For a dashboard that means the
+    in the atexit registry, keeping it -- and everything it transitively
+    references -- alive until interpreter exit. For a dashboard that means the
     whole :class:`~siliconcompiler.Project` leaks and can never be garbage
     collected.
 
@@ -41,7 +41,7 @@ class WeakAtexitCall:
         except TypeError:
             # ``method`` is not a bound method (e.g. a plain function, or a
             # unittest.mock double swapped in for one). Such a callable pins no
-            # instance, so there is nothing to weaken — resolve to it directly
+            # instance, so there is nothing to weaken -- resolve to it directly
             # behind the same zero-arg protocol WeakMethod provides.
             self._ref = lambda: method
 

@@ -3214,7 +3214,7 @@ SDC = ("library", "gcd", "fileset", "sdc", "file", "sdc")
 
 
 def test_a_node_names_what_it_needs_collected_and_nothing_else_is(gcd_nop_project):
-    '''🔴 Collected by the keys a node names, never by `copy`: nothing is
+    '''Collected by the keys a node names, never by `copy`: nothing is
     written into the project to say so, and a key nobody names is left out
     whatever its `copy` field says.'''
     gcd_nop_project.set(*SDC, True, field="copy")

@@ -959,7 +959,7 @@ def test_runtime_nodes_from_with_bypass_edge():
 
 
 def test_runtime_nodes_from_with_upstream_chain_bypass():
-    # Regression: stronger version of the bypass bug — a multi-step upstream
+    # Regression: stronger version of the bypass bug -- a multi-step upstream
     # chain (entry -> A -> B -> C) feeds into a downstream node via a bypass
     # edge, while the linear chain also leads to `from`. Without the fix,
     # the upstream chain (A, B, C) leaks into the runtime nodes.
@@ -994,13 +994,13 @@ def test_runtime_nodes_from_with_upstream_chain_bypass():
     flow2.edge("entry", "a")
     flow2.edge("a", "b")
     flow2.edge("b", "c")
-    flow2.edge("c", "downstream")  # bypass — added BEFORE from_node edge
+    flow2.edge("c", "downstream")  # bypass -- added BEFORE from_node edge
     flow2.edge("c", "from_node")
     flow2.edge("from_node", "downstream")
     flow2.edge("downstream", "exit_node")
 
     runtime = RuntimeFlowgraph(flow2, from_steps=["from_node"])
-    # Must NOT include entry, a, b, c — they are upstream of from_node.
+    # Must NOT include entry, a, b, c -- they are upstream of from_node.
     assert runtime.get_nodes() == (
         ('downstream', '0'), ('exit_node', '0'), ('from_node', '0'))
     assert runtime.get_entry_nodes() == (('from_node', '0'),)

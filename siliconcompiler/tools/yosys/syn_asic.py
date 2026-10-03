@@ -997,7 +997,7 @@ class ASICSynthesis(ASICSynthesisBase):
 
         self.set_script("sc_synth_asic.tcl")
 
-        # NOTE: blackbox_modules is intentionally not required — it is read nowhere (only the
+        # NOTE: blackbox_modules is intentionally not required -- it is read nowhere (only the
         # parallel preserve_modules is consumed by sc_synth_asic.tcl). Parameter kept for API
         # compatibility but currently inert.
 

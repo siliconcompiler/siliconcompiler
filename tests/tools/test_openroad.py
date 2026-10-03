@@ -1161,8 +1161,8 @@ def test_openroad_apr_parameter_rsz_hold_slack_margin():
 
 def test_openroad_apr_parameter_rsz_skip_pin_swap():
     task = _apr.OpenROADRSZTimingParameter()
-    # Both transforms are on in ORFS and LibreLane; they were skipped in SC only
-    # because of LEC issues that have since been fixed upstream.
+    # Pin swapping and gate cloning were skipped only while they broke LEC,
+    # which OpenROAD has since fixed.
     assert task.get("var", "rsz_skip_pin_swap") is False
     task.set_openroad_rszskippinswap(True)
     assert task.get("var", "rsz_skip_pin_swap") is True
@@ -3136,9 +3136,7 @@ def test_openroad_detailed_route_antenna_repair_parameters():
     task = detailed_route.DetailedRouteAntennaRepairTask()
     assert task.get("var", "ant_check") is True
     assert task.get("var", "ant_repair") is True
-    # ORFS passes no -ratio_margin in either antenna loop.
     assert task.get("var", "ant_margin") == 0
-    # ORFS MAX_REPAIR_ANTENNAS_ITER_DRT.
     assert task.get("var", "ant_reroute_iterations") == 5
     # ant_iterations bounds a single repair_antennas call and is a pre-route knob,
     # so it deliberately stays off this task.
@@ -3605,7 +3603,7 @@ def test_openroad_open_copy_unknown_job_falls_back(open_project):
 
 
 def test_openroad_open_copy_no_shownode(open_project):
-    """Without a shownode, only the showfilepath is copied — no companion lookup."""
+    """Without a shownode, only the showfilepath is copied -- no companion lookup."""
     src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
         "gcd.def": "def-content",
         "gcd.vg": "vg-content",

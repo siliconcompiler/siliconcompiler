@@ -143,7 +143,6 @@ addopts = "-rfEs"
 markers = [
     "eda: this test requires EDA tools installed to run. By default these tests will be run nightly, not on push.",
     "quick: always run this test on push, even if it requires EDA tools.",
-    "nightly: run this test during nightly runs",
     "nocpulimit: don't limit cpu count for this test.",
     "docker: test requires docker",
     "slurm: test requires a working slurm install; skipped automatically when slurm is missing",

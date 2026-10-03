@@ -33,7 +33,7 @@ def main():
     and optionally writes a gzipped tar archive of results.
 
     Returns:
-        int: Exit code — 0 on successful node execution, 1 if the node failed.
+        int: Exit code -- 0 on successful node execution, 1 if the node failed.
     """
     # Can't use Project.cmdline because we don't want a bunch of extra logger information
     parser = argparse.ArgumentParser(prog='run_node',

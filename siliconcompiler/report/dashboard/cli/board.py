@@ -218,7 +218,7 @@ class _FlowTopology:
 
     The recursive distance walk in `_get_job` is the most expensive piece of
     every dashboard update, but its result depends only on the flowgraph
-    structure (plus which nodes are SKIPPED — see `signature`). Caching this
+    structure (plus which nodes are SKIPPED -- see `signature`). Caching this
     lets status-only updates avoid O(N^2) recomputation on every refresh.
     """
     nodes: List[Tuple[str, str]]
@@ -1269,7 +1269,7 @@ class Board:
         )
         # Edges of the static flow graph. Including these makes the cache
         # invalidate when a user mutates flowgraph edges between calls (e.g.
-        # in a Jupyter session) — node-set equality alone wouldn't catch
+        # in a Jupyter session) -- node-set equality alone wouldn't catch
         # that. O(N + E) per signature build, far cheaper than the recursive
         # distance walk it gates.
         flow_obj = project.get_flow(flow)

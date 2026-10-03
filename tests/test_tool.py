@@ -2417,7 +2417,7 @@ def test_run_breakpoint_logs_raw_output(tmp_path, monkeypatch):
     # Retry the capture until the PTY delivers output. ``printf`` exits in
     # well under a millisecond, and on macOS/BSD closing the slave (child
     # exit) before the parent's first ``read`` can make the master report
-    # EOF and drop the buffered tail — the same class of race the keystroke
+    # EOF and drop the buffered tail -- the same class of race the keystroke
     # test documents. A real breakpoint session is a long-lived interactive
     # shell, so this only bites a synthetic fast-exiting child; retrying
     # keeps the byte assertions meaningful without weakening them.
@@ -2446,7 +2446,7 @@ def test_run_breakpoint_propagates_child_exit_code(tmp_path, monkeypatch):
     monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: False)
 
     log_path = str(tmp_path / "bp.log")
-    # /bin/sh -c 'exit 7' — verifies waitstatus_to_exitcode decoding
+    # /bin/sh -c 'exit 7' -- verifies waitstatus_to_exitcode decoding
     rc = dut_tool._run_breakpoint("/bin/sh", ["-c", "exit 7"], log_path)
     assert rc == 7
 
@@ -2510,7 +2510,7 @@ def test_run_breakpoint_winsize_propagated_when_tty(tmp_path, monkeypatch):
         return real_ioctl(fd, request, arg, mutate_flag)
 
     monkeypatch.setattr(fcntl, "ioctl", fake_ioctl)
-    # Skip raw mode + signal hooks — those touch the real terminal.
+    # Skip raw mode + signal hooks -- those touch the real terminal.
     monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
     monkeypatch.setattr(termios, "tcsetattr", lambda fd, when, attrs: None)
     monkeypatch.setattr(tty, "setraw", lambda fd: None)
@@ -2613,7 +2613,7 @@ def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
 
     monkeypatch.setattr(dut_tool.os, "open", fake_open)
     # Suppress side effects on user_slave (raw mode, signal hooks,
-    # winsize ioctls) — the test isn't validating those here.
+    # winsize ioctls) -- the test isn't validating those here.
     monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
     monkeypatch.setattr(termios, "tcsetattr", lambda *a, **kw: None)
     monkeypatch.setattr(_tty_mod, "setraw", lambda fd: None)
@@ -2656,7 +2656,7 @@ def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
     os.close(devnull_fd)
 
     # The exit code can legitimately be 0 (clean exit) or negative
-    # (signal exit — typically -1 / SIGHUP when our cleanup closes the
+    # (signal exit -- typically -1 / SIGHUP when our cleanup closes the
     # inner PTY master before the child has finished tearing down).
     # The latter is observed intermittently on Python 3.14 with
     # multi-threaded pytest-xdist (forkpty emits a DeprecationWarning
@@ -2667,7 +2667,7 @@ def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
     # Each class of byte must appear in the round-tripped stream:
     # printable text, arrow-key escape sequences, and Tab. (Enter
     # arrives at the child as \n after ICRNL translation, which is
-    # fine — we're verifying the bytes flow, not the line discipline.)
+    # fine -- we're verifying the bytes flow, not the line discipline.)
     assert b"hello" in seen, f"printable text missing from {seen!r}"
     assert b"\x1b[A" in seen, f"up-arrow escape missing from {seen!r}"
     assert b"\x1b[B" in seen, f"down-arrow escape missing from {seen!r}"
@@ -2695,14 +2695,14 @@ def test_run_breakpoint_falls_back_to_fd0_when_dev_tty_unavailable(
     # branch (otherwise the code falls through to sys.stdin.fileno()).
     monkeypatch.setattr(dut_tool.os, "isatty", lambda fd: fd == 0 or fd == 1)
     # Suppress all terminal-mode side effects on the test runner's
-    # actual fd 0/1 — we only care about which fd the runner picked.
+    # actual fd 0/1 -- we only care about which fd the runner picked.
     monkeypatch.setattr(termios, "tcgetattr", lambda fd: None)
     monkeypatch.setattr(termios, "tcsetattr", lambda *a, **kw: None)
     monkeypatch.setattr(_tty_mod, "setraw", lambda fd: None)
     monkeypatch.setattr(_signal_mod, "signal", lambda *a, **kw: None)
     monkeypatch.setattr(fcntl, "ioctl", lambda *a, **kw: b"\x00" * 8)
 
-    # Track which fd select.select watches — proves we picked fd 0,
+    # Track which fd select.select watches -- proves we picked fd 0,
     # not the redirected sys.stdin fd.
     seen_fds = []
 
@@ -4132,7 +4132,7 @@ def test_open_get_show_jobroot_no_shownode(open_node):
 def test_open_get_show_jobroot_no_jobname(open_node):
     open_node.task.set_shownode(nodestep="syn", nodeindex="0")
     with open_node.task.runtime(open_node) as runtool:
-        # No jobname carried in shownode → fall through to current project.
+        # No jobname carried in shownode -> fall through to current project.
         assert runtool.get_show_jobroot() is runtool.project
 
 
@@ -5098,7 +5098,7 @@ def test_get_extension_map_skips_not_implemented(isolated_tasks):
 
         def task(self):
             return "show"
-        # No get_supported_task_extentions implementation → NotImplementedError
+        # No get_supported_task_extentions implementation -> NotImplementedError
 
     ShowTask.register_task(ToolA)
     ShowTask.register_task(AbstractTool)

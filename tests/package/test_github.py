@@ -814,9 +814,9 @@ def _fetch(source, ref, members, fmt="gz"):
 
 
 @pytest.mark.parametrize("source,ref,members,fmt", [
-    # lambdapdk's release form: a tag directory, with the reference appended.
+    # A release archive: a tag directory, with the reference appended.
     ("https://github.com/o/r/archive/refs/tags/", "v1.0.2", ["r-1.0.2/f"], "gz"),
-    # lambdapdk's development form: the reference is a commit.
+    # A development archive: the reference is a commit.
     ("https://github.com/o/r/archive/", _SHA, [f"r-{_SHA}/f"], "gz"),
     ("https://github.com/o/r/archive/refs/tags/v1.0.2.zip", "v1.0.2", ["r-1.0.2/f"], "zip"),
     ("https+private://github.com/o/r/archive/refs/tags/v1.0.tar.gz", "v1.0", ["r-1.0/f"], "gz"),

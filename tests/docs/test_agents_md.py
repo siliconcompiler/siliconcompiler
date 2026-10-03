@@ -12,8 +12,11 @@ scripts they list match ``pyproject.toml``, and that the lint gates they tell a
 contributor to run match the ones CI actually runs.
 """
 
+import ast
+import io
 import os.path
 import re
+import tokenize
 
 import pytest
 import yaml
@@ -285,6 +288,41 @@ def test_orientation_files_are_ascii(orientation):
     assert not offenders, (
         f"{name} contains non-ASCII characters {offenders}; use \"--\" for a "
         "dash, straight quotes, and \"...\" for an ellipsis")
+
+
+def _non_ascii_comment_lines(path):
+    """Line numbers of the comments and docstrings in ``path`` that are not ASCII."""
+    with open(path, encoding="utf-8") as f:
+        source = f.read()
+    if source.isascii():
+        return []
+
+    docstrings = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and ast.get_docstring(node, clean=False) is not None:
+            docstrings.add(node.body[0].lineno)
+
+    return [token.start[0] for token in tokenize.generate_tokens(io.StringIO(source).readline)
+            if (token.type == tokenize.COMMENT
+                or (token.type == tokenize.STRING and token.start[0] in docstrings))
+            and not token.string.isascii()]
+
+
+def test_comments_and_docstrings_are_ascii():
+    """AGENTS.md's ASCII rule; strings are exempt for UI text and Unicode test data."""
+    offenders = []
+    for top in ("siliconcompiler", "tests", "examples", "scripts", "docs", "setup", ".github"):
+        for dirpath, dirnames, filenames in os.walk(os.path.join(docs.sc_root, top)):
+            dirnames[:] = [d for d in dirnames if d not in ("__pycache__", "build", "_build")]
+            for name in filenames:
+                if name.endswith(".py"):
+                    path = os.path.join(dirpath, name)
+                    offenders.extend(f"{os.path.relpath(path, docs.sc_root)}:{line}"
+                                     for line in _non_ascii_comment_lines(path))
+    assert not offenders, (
+        "comments and docstrings must be ASCII; use \"--\" for a dash, straight "
+        f"quotes, and \"...\" for an ellipsis: {offenders}")
 
 
 def test_agents_md_references_resolve(agents):

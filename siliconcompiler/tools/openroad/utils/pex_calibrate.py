@@ -116,9 +116,9 @@ class PicoRV32(Design):
 
 
 # Bundled demo survey: name -> Design class. RTL is fetched (and cached under
-# ``~/.sc``) from the pinned git source in each class on first use - nothing is
-# vendored into the wheel and there is no scgallery package dependency. Replace
-# with your own designs for a real calibration (see ``designs`` in ``calibrate``).
+# ``~/.sc``) from the pinned git source in each class on first use; nothing is
+# vendored into the wheel. Replace with your own designs for a real calibration
+# (see ``designs`` in ``calibrate``).
 DEMO_DESIGNS = {
     "gcd": GCD,
     "picorv32": PicoRV32,

@@ -120,7 +120,7 @@ def test_tee_skips_specified_handler(logger):
 
 def test_tee_resolves_handlers_dynamically(logger):
     """A handler added to the logger after the tee was constructed must
-    still receive forwarded records — this is the whole point of using a
+    still receive forwarded records -- this is the whole point of using a
     tee rather than passing a static handler list to the QueueListener."""
     tee = SCTeeLoggerHandler(logger)
 
@@ -138,7 +138,7 @@ def test_tee_resolves_handlers_dynamically(logger):
 
 def test_tee_picks_up_removed_handlers(logger):
     """Conversely, removing a handler from the logger must stop forwarding
-    to it — the tee should not retain a stale reference."""
+    to it -- the tee should not retain a stale reference."""
     a = _Capture()
     logger.addHandler(a)
 
@@ -152,7 +152,7 @@ def test_tee_picks_up_removed_handlers(logger):
 
 def test_tee_skips_itself_to_prevent_recursion(logger):
     """If the tee is ever attached to the logger it watches, emitting must
-    not recurse infinitely — the tee skips itself in addition to ``skip``."""
+    not recurse infinitely -- the tee skips itself in addition to ``skip``."""
     capture = _Capture()
     logger.addHandler(capture)
 

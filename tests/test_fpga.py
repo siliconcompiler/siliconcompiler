@@ -265,9 +265,6 @@ def test_dont_skip_timing_with_sdc(heartbeat_design, monkeypatch):
         parent_pre.assert_called_once()
 
 
-# ── _get_write_depgraph_extra / write_depgraph tests ─────────────────────────
-
-
 def test_get_write_depgraph_extra_no_device():
     proj = FPGA(Design("mydesign"))
     graph, styles = proj._get_write_depgraph_extra()

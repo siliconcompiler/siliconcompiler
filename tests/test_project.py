@@ -1947,7 +1947,7 @@ def test_run_with_dashboard_running():
         assert set_logger.call_count == 2
         update_manifest.assert_called_once()
         # stop() finalizes the run (calls end_of_run internally) and tears the
-        # dashboard down at the end of run() — this removes the summary hack.
+        # dashboard down at the end of run() -- this removes the summary hack.
         stop.assert_called_once()
 
 
@@ -1985,7 +1985,7 @@ def test_run_with_dashboard_notrunning():
         set_logger.assert_called_once()
         update_manifest.assert_called_once()
         # stop() finalizes the run (calls end_of_run internally) and tears the
-        # dashboard down at the end of run() — this removes the summary hack.
+        # dashboard down at the end of run() -- this removes the summary hack.
         stop.assert_called_once()
 
 
@@ -2636,9 +2636,6 @@ def test_getdict_type_inheritance():
     # Verify they're different
     assert Lint._getdict_type() != Project._getdict_type()
     assert Sim._getdict_type() != Project._getdict_type()
-
-
-# ── write_depgraph tests ──────────────────────────────────────────────────────
 
 
 def _capture_wdg(proj, **kwargs):

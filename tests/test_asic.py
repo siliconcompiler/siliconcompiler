@@ -1069,9 +1069,6 @@ def test_constraint_area():
     assert const.get("area", field="schema") is const.area
 
 
-# ── _get_write_depgraph_extra / write_depgraph tests ─────────────────────────
-
-
 def test_get_write_depgraph_extra_empty():
     proj = ASIC(Design("test"))
     graph, styles = proj._get_write_depgraph_extra()
