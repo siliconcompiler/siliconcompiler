@@ -644,6 +644,8 @@ class Client():
         Helper method to run a local import stage for remote jobs.
         '''
 
+        forwarded = self.__capture_python_environments()
+
         collect_keys = []
 
         # Ensure dataroots with python sources are copied
@@ -676,10 +678,45 @@ class Client():
 
         # Collect inputs into a collection directory only for remote runs, since
         # we need to send inputs up to the server.
+        whitelist = self.__config.setdefault('directory_whitelist', [])
         collect(
             self.__project,
             keys=filter_collection_keys(collect_keys),
-            whitelist=self.__config.setdefault('directory_whitelist', []))
+            whitelist=whitelist + forwarded)
+
+    def __capture_python_environments(self):
+        '''
+        Captures, on this machine, the Python environment of the nodes that
+        carry their own. The server cannot: it only has its own environment.
+
+        Returns:
+            list of str: The directories captured to be copied to the server,
+                which are marked for collection and need no approval for it,
+                since they are the packages the job's own Python code imports.
+        '''
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.tools._common.cocotb.cocotb_task import CocotbEnvironment
+
+        runtime = RuntimeFlowgraph(
+            self.__project.get_flow(),
+            from_steps=self.__project.option.get_from(),
+            to_steps=self.__project.option.get_to(),
+            prune_nodes=self.__project.option.get_prune())
+
+        forwarded = []
+        for step, index in runtime.get_nodes():
+            node = SchedulerNode(self.__project, step, index)
+            if not isinstance(node.task, CocotbEnvironment):
+                continue
+            with node.runtime():
+                node.task.capture_python_environment()
+                packages = node.task.get("var", "python_forward_package")
+                paths = node.task.find_files("var", "python_forward")
+            for package in packages:
+                self.__logger.info(f"Sending Python package {package} with the job")
+            forwarded.extend(paths)
+
+        return forwarded
 
     def _run_loop(self):
         # Wrapper to allow for capturing of Ctrl+C

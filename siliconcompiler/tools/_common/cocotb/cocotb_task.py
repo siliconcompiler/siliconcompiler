@@ -1,11 +1,14 @@
 import os
+import shutil
 import sys
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, List
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
 from siliconcompiler.tool import TaskExecutableNotFound
+from siliconcompiler.utils import paths
+from siliconcompiler.tools._common.cocotb import python_env
 
 try:
     import cocotb_tools.config
@@ -90,7 +93,259 @@ def get_gpi_users():
     return ";".join([get_libpython_path(), cocotb_tools.config.pygpi_entry_point()])
 
 
-class CocotbTask(Task):
+class CocotbEnvironment(Task):
+    '''Mixin for tasks that need cocotb on the node that runs them.
+
+    The node gets cocotb, and the Python packages the testbench imports, from
+    the machine the run was submitted from rather than from its own install.
+    :meth:`capture_python_environment` records them there; :meth:`pre_process`
+    makes them available on the node, installing the pins its own Python does
+    not satisfy and staging the packages that were copied.
+
+    Intended to be used via multiple inheritance alongside a concrete task
+    class that defines :meth:`tool` and :meth:`task`.
+    '''
+
+    # Directory in the node's workdir holding packages copied from the
+    # submitting machine, under the names they are imported by.
+    _FORWARD_DIR = "cocotb_python"
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("python_requirement", "[str]",
+                           'Python distributions the node needs beyond those the testbench '
+                           'imports directly, as names or PEP 508 requirements. The version '
+                           'installed on the submitting machine is the one used.')
+        self.add_parameter("python_install", "[str]",
+                           'Python distributions captured from the submitting machine, as '
+                           '``name==version`` pins, for the node to install when its own '
+                           'Python does not have them. Set by setup().')
+        self.add_parameter("python_forward_package", "[str]",
+                           'Python distributions captured from the submitting machine that '
+                           'cannot be installed from an index, such as editable installs, as '
+                           '``name==version`` pins. Set by setup().')
+        self.add_parameter("python_forward", "[dir]",
+                           'Directories copied to the node for the distributions in '
+                           '``python_forward_package``. Set by setup().')
+
+        self.__python_path: List[str] = []
+        self.__cocotb: Optional[dict] = None
+
+    def add_cocotb_python_requirement(
+        self, requirement: Union[str, List[str]],
+        step: Optional[str] = None,
+        index: Optional[Union[str, int]] = None,
+        clobber: bool = False
+    ):
+        """
+        Adds Python distributions the node needs that the testbench does not
+        import directly, such as a plugin loaded by name.
+
+        Args:
+            requirement (str or list of str): Distribution names or PEP 508
+                requirements.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool): If True, replaces the existing requirements.
+        """
+        if clobber:
+            self.set("var", "python_requirement", requirement, step=step, index=index)
+        else:
+            self.add("var", "python_requirement", requirement, step=step, index=index)
+
+    def _get_python_sources(self) -> List[str]:
+        """
+        Python files whose imports decide what the node needs.
+
+        Returns:
+            list of str: Paths to Python source files.
+        """
+        return []
+
+    def capture_python_environment(self) -> None:
+        """
+        Records what the node needs from this machine's Python environment.
+
+        Runs where the run is submitted from, which is the one machine known to
+        have the environment the testbench was written against. Needs no
+        cocotb: without it here, the node has to provide its own.
+        """
+        modules = python_env.imported_modules(self._get_python_sources())
+        requirements = self.get("var", "python_requirement")
+        if _has_cocotb:
+            requirements = ["cocotb"] + requirements
+        else:
+            # A cocotb that cannot be imported here is not this machine's to
+            # send: the node's own has to do.
+            modules.discard("cocotb")
+        install, packages, forward, warnings = python_env.capture(modules, requirements)
+        for warning in warnings:
+            self.logger.warning(warning)
+
+        self.set("var", "python_install", install, clobber=True)
+        self.set("var", "python_forward_package", packages, clobber=True)
+        self.set("var", "python_forward", forward, clobber=True)
+        if forward:
+            self.get("var", "python_forward", field=None).set(True, field="copy")
+
+    def setup(self):
+        super().setup()
+
+        if self.get("var", "python_requirement"):
+            self.add_required_key("var", "python_requirement")
+
+        if not self.project.get("record", "remoteid"):
+            # A job carrying a remote ID was submitted from another machine,
+            # which captured its environment before sending it.
+            self.capture_python_environment()
+
+        for key in ("python_install", "python_forward_package", "python_forward"):
+            if self.get("var", key):
+                self.add_required_key("var", key)
+
+    def pre_process(self):
+        super().pre_process()
+
+        self.__python_path = self.__prepare_python_environment()
+        self.__cocotb = None
+
+    def __prepare_python_environment(self) -> List[str]:
+        """
+        Makes the captured Python environment available on this node.
+
+        Returns:
+            list of str: Directories to put ahead of this Python's own packages.
+        """
+        python_path = []
+
+        packages = self.get("var", "python_forward_package")
+        if not all(python_env.is_installed(pin) for pin in packages):
+            staged = os.path.join(self.nodeworkdir, self._FORWARD_DIR)
+            os.makedirs(staged, exist_ok=True)
+            for declared, resolved in zip(self.get("var", "python_forward"),
+                                          self.find_files("var", "python_forward")):
+                link = os.path.join(staged, os.path.basename(declared))
+                if os.path.lexists(link):
+                    continue
+                try:
+                    os.symlink(resolved, link, target_is_directory=True)
+                except OSError:
+                    shutil.copytree(resolved, link)
+            python_path.append(staged)
+
+        missing = [pin for pin in self.get("var", "python_install")
+                   if not python_env.is_installed(pin)]
+        if missing:
+            python_path.append(python_env.install(
+                missing,
+                os.path.join(paths.toolcachedir(self.project), "cocotb", "python"),
+                self.logger))
+
+        return python_path
+
+    def _get_python_path(self) -> List[str]:
+        """
+        Directories :meth:`pre_process` added for the captured environment.
+
+        Returns:
+            list of str: Directories to put ahead of this Python's own packages.
+        """
+        return list(self.__python_path)
+
+    def _cocotb_pinned(self) -> bool:
+        """
+        Whether the node is to install cocotb from the captured environment.
+
+        Returns:
+            bool: True if a cocotb pin was captured.
+        """
+        return any(pin.partition("==")[0].lower() == "cocotb"
+                   for pin in self.get("var", "python_install"))
+
+    def _cocotb_found(self) -> bool:
+        """
+        Whether the Python this node simulates with can import cocotb.
+
+        Before :meth:`pre_process`, and wherever it added nothing, that Python
+        is this one; after it, it is this one with the captured environment.
+
+        Returns:
+            bool: True if cocotb can be found.
+        """
+        if self.__python_path:
+            return self.__node_cocotb() is not None
+        return _has_cocotb
+
+    def __node_cocotb(self) -> Optional[dict]:
+        """
+        cocotb's locations as seen through the environment :meth:`pre_process`
+        prepared, or None if cocotb cannot be found there.
+        """
+        if self.__cocotb is None:
+            try:
+                self.__cocotb = python_env.cocotb_config(self.tool(), self.__python_path)
+            except RuntimeError:
+                return None
+        return self.__cocotb
+
+    def __require_node_cocotb(self) -> dict:
+        cocotb = self.__node_cocotb()
+        if cocotb is None:
+            raise NotImplementedError(f"COCOTB must be installed to run {self.tool()}")
+        return cocotb
+
+    def _get_cocotb_libs_dir(self) -> str:
+        """
+        Returns:
+            str: The directory holding the cocotb libraries this node loads.
+        """
+        if self.__python_path:
+            return self.__require_node_cocotb()["libs_dir"]
+        _require_cocotb("_get_cocotb_libs_dir")
+        return str(cocotb_tools.config.libs_dir)
+
+    def _get_cocotb_config(self):
+        """
+        As :func:`get_cocotb_config`, for the cocotb this node simulates with.
+
+        Returns:
+            tuple: ``(libs_dir, vpi_lib, share_dir)``.
+        """
+        if self.__python_path:
+            cocotb = self.__require_node_cocotb()
+            return Path(cocotb["libs_dir"]), Path(cocotb["vpi_lib"]), Path(cocotb["share_dir"])
+        return get_cocotb_config(self.tool())
+
+    def _get_cocotb_lib_entry(self) -> str:
+        """
+        As :func:`get_cocotb_lib_entry`, for the cocotb this node simulates with.
+
+        Returns:
+            str: The interface library, optionally suffixed with its entry function.
+        """
+        if self.__python_path:
+            return self.__require_node_cocotb()["lib_entry"]
+        return get_cocotb_lib_entry(self.tool())
+
+    def _get_gpi_users(self) -> str:
+        """
+        As :func:`get_gpi_users`, for the Python and cocotb this node simulates with.
+
+        Returns:
+            str: Semicolon-separated ``GPI_USERS`` value.
+        """
+        if self.__python_path:
+            cocotb = self.__require_node_cocotb()
+            if not cocotb["libpython"]:
+                raise ValueError(
+                    "Unable to find libpython, please make sure the appropriate libpython "
+                    "is installed")
+            return ";".join([cocotb["libpython"], cocotb["pygpi_entry"]])
+        return get_gpi_users()
+
+
+class CocotbTask(CocotbEnvironment):
 
     def __init__(self):
         super().__init__()
@@ -206,12 +461,28 @@ class CocotbTask(Task):
             self.set_environmentalvariable("COCOTB_RANDOM_SEED", str(random_seed))
             self.add_required_key("env", "COCOTB_RANDOM_SEED")
 
+    def _get_python_sources(self):
+        """
+        The test modules and the Python files in the user library directories.
+
+        Returns:
+            list of str: Paths to Python source files.
+        """
+        sources = []
+        for lib, fileset in self.project.get_filesets():
+            sources.extend(lib.get_file(fileset=fileset, filetype="python"))
+        for libdir in self._get_libdirs():
+            for root, _, files in os.walk(libdir):
+                sources.extend(os.path.join(root, f) for f in files if f.endswith(".py"))
+        return sources
+
     def setup(self):
         super().setup()
 
         # Only running the test needs cocotb, and get_exe() stops the run
-        # there, so setting it up without cocotb is only worth a warning.
-        if not _has_cocotb:
+        # there, so setting it up without cocotb is only worth a warning --
+        # and none at all when the node will install the cocotb captured here.
+        if not _has_cocotb and not self._cocotb_pinned():
             self.logger.warning("Cocotb is not installed; this test will not be able to run.")
 
         # Output: xUnit XML results file
@@ -256,12 +527,13 @@ class CocotbTask(Task):
         # The executable is looked up in this environment, and get_exe() is
         # what reports a missing cocotb, so without cocotb it is built without
         # cocotb's parts.
+        has_cocotb = self._cocotb_found()
 
         ##########################################
         # PATH: add cocotb libs directory
         ##########################################
-        if include_path and _has_cocotb:
-            libs_dir = str(cocotb_tools.config.libs_dir)
+        if include_path and has_cocotb:
+            libs_dir = self._get_cocotb_libs_dir()
             path_parts = envs.get("PATH", "").split(os.pathsep)
             if libs_dir not in path_parts:
                 path_parts.insert(0, libs_dir)
@@ -277,9 +549,20 @@ class CocotbTask(Task):
         # Get lib directories
         user_lib_dirs = self._get_libdirs()
 
-        for path in module_dirs + user_lib_dirs:
+        # Packages from the submitting machine, ahead of this Python's own
+        forwarded = self._get_python_path()
+
+        for path in module_dirs + user_lib_dirs + forwarded:
             if path not in python_path:
                 python_path.append(path)
+
+        # Forward the caller's PYTHONPATH last, as the base task forwards PATH,
+        # so packages reachable only through it (a checkout, an environment
+        # module) can still be imported by the testbench.
+        if include_path:
+            for path in os.getenv("PYTHONPATH", "").split(os.pathsep):
+                if path and path not in python_path:
+                    python_path.append(path)
 
         # Set new python path
         envs["PYTHONPATH"] = os.pathsep.join(python_path)
@@ -291,8 +574,8 @@ class CocotbTask(Task):
         # whichever Python and cocotb execute the node. GPI_USERS lists the
         # libraries the GPI layer loads to bring Python up inside the
         # simulator: libpython, then the PyGPI entry point.
-        if _has_cocotb:
-            envs["GPI_USERS"] = get_gpi_users()
+        if has_cocotb:
+            envs["GPI_USERS"] = self._get_gpi_users()
         envs["PYGPI_PYTHON_BIN"] = sys.executable
 
         return envs
@@ -303,7 +586,8 @@ class CocotbTask(Task):
 
         The simulator runs cocotb's VPI library and Python, so without cocotb
         it has nothing to run: the scheduler's tool check stops the run before
-        any node starts.
+        any node starts. A cocotb captured from the submitting machine counts,
+        since :meth:`pre_process` installs it before the simulator runs.
 
         Raises:
             TaskExecutableNotFound: If cocotb is not installed, or the
@@ -312,7 +596,7 @@ class CocotbTask(Task):
         Returns:
             str: The absolute path to the executable, or None if not specified.
         """
-        if not _has_cocotb:
+        if not self._cocotb_found() and not self._cocotb_pinned():
             self.logger.error("Cocotb is not installed; cannot run test.")
             raise TaskExecutableNotFound("cocotb is not installed")
         return super().get_exe()

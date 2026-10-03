@@ -1,12 +1,10 @@
 import shlex
 
 from siliconcompiler.tools.verilator.compile import CompileTask
-from siliconcompiler.tools._common.cocotb.cocotb_task import (
-    get_cocotb_config
-)
+from siliconcompiler.tools._common.cocotb.cocotb_task import CocotbEnvironment
 
 
-class CocotbCompileTask(CompileTask):
+class CocotbCompileTask(CocotbEnvironment, CompileTask):
 
     def task(self):
         return "cocotb_compile"
@@ -23,7 +21,7 @@ class CocotbCompileTask(CompileTask):
         options.extend(['--prefix', 'Vtop'])
 
         # Get cocotb configuration
-        libs_dir, vpi_lib, share_dir = get_cocotb_config("verilator")
+        libs_dir, vpi_lib, share_dir = self._get_cocotb_config()
 
         # Link flags for cocotb VPI library
         # The library file is like "libcocotbvpi_verilator.so", but -l expects

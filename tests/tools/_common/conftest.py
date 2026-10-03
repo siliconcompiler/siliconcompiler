@@ -4,6 +4,10 @@ import os.path
 
 import pytest
 
+from siliconcompiler import Design, Flowgraph, Sim
+from siliconcompiler.tools._common.cocotb import cocotb_task
+from siliconcompiler.utils.curation import collect
+
 
 @pytest.fixture
 def tcl_interp(scroot):
@@ -40,3 +44,44 @@ def tcl_interp(scroot):
         # first, so these are the last references by the time this runs.
         created.clear()
         gc.collect()
+
+
+@pytest.fixture
+def cocotb_project():
+    '''Sim project running one cocotb exec task on a single test module.'''
+    def _make(task, copy=False, compile_task=None, source="# cocotb test module\n"):
+        with open("test_mod.py", "w") as f:
+            f.write(source)
+        with open("top.v", "w") as f:
+            f.write("module top();\nendmodule\n")
+
+        design = Design("tb")
+        design.set_dataroot("root", os.getcwd())
+        with design.active_dataroot("root"), design.active_fileset("tb"):
+            design.set_topmodule("top")
+            design.add_file("test_mod.py", filetype="python")
+            design.add_file("top.v")
+
+        proj = Sim(design)
+        proj.add_fileset("tb")
+
+        flow = Flowgraph("testflow")
+        flow.node("simulate", task)
+        if compile_task:
+            flow.node("compile", compile_task)
+            flow.edge("compile", "simulate")
+        proj.set_flow(flow)
+
+        if copy:
+            # Only the test module, as a cluster collects a file it cannot share
+            collect(proj, keys=[(key, None, None) for key in proj.allkeys()
+                                if key[-2:] == ("file", "python")])
+
+        return proj
+    return _make
+
+
+@pytest.fixture
+def cocotb_installed(monkeypatch):
+    '''Lets setup() run where the cocotb extra is not installed.'''
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", True)
