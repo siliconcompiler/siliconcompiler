@@ -5,28 +5,28 @@ import os
 import pytest
 import responses
 
-from siliconcompiler.remote import RemoteError
+from siliconcompiler.remote import RemoteError, ServerProblem
 from siliconcompiler.remote.client.run import RemoteRun, node_status
 
 from conftest import problem
 
 
-# The conformance rig: the client against canned answers. It is the only place
-# most of the contract can be reached from -- a working server cannot be made to
-# hand back an HTML 502, a node in `preparing`, or a state nobody has invented
-# yet, and the client branches on all three.
+RUN_FAILED = "https://siliconcompiler.com/server-errors/run-failed"
+
+
+def _node(step, state, **extra):
+    node = {"step": step, "index": "0", "state": state,
+            "terminal": state in ("completed", "failed", "skipped", "cancelled"),
+            "started_at": None, "finished_at": None, "exit_code": None,
+            "error": None}
+    node.update(extra)
+    return node
 
 
 def job_body(state="running", nodes=None, terminal=None, **extra):
     '''A job object shaped the way the contract publishes it.'''
-    nodes = nodes if nodes is not None else [
-        {"step": "stepone", "index": "0", "state": "running", "terminal": False,
-         "started_at": None, "finished_at": None, "exit_code": None,
-         "error": None},
-        {"step": "steptwo", "index": "0", "state": "pending", "terminal": False,
-         "started_at": None, "finished_at": None, "exit_code": None,
-         "error": None},
-    ]
+    nodes = nodes if nodes is not None else [_node("stepone", "running"),
+                                             _node("steptwo", "pending")]
     if terminal is None:
         terminal = state in ("completed", "failed", "cancelled", "rejected",
                              "abandoned")
@@ -40,8 +40,7 @@ def job_body(state="running", nodes=None, terminal=None, **extra):
         "started_at": None, "finished_at": None,
         "archived_at": None, "deleted_at": None, "error": None,
         "nodes": nodes,
-        # Derived rather than fixed, because the client now reads
-        # `failed_count` to decide what advice to print.
+        # Derived: the client reads `failed_count` to choose its advice.
         "progress": {
             "total_count": len(nodes),
             "completed_count": sum(1 for n in nodes if n["state"] == "completed"),
@@ -55,156 +54,145 @@ def run(logged_in, nop_project):
     return RemoteRun(nop_project, logged_in)
 
 
+@pytest.fixture
+def no_sleep(monkeypatch):
+    slept = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    return slept
+
+
+def _refused(fake_v1, method, path, slug, status, headers=None, **members):
+    fake_v1.route(method, path, problem(slug, status, **members), status=status,
+                  content_type="application/problem+json", headers=headers)
+
+
+def _created(fake_v1, **extra):
+    fake_v1.route(responses.POST, "jobs",
+                  {"id": "01J9-job", "state": "created", "project": None,
+                   "created_at": "2026-09-22T10:00:00.000Z", **extra}, status=201)
+
+
+def _granted(fake_v1, put_status=200):
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put",
+                      "" if put_status == 200 else "denied", status=put_status,
+                      content_type="text/plain")
+
+
+def _submitted(fake_v1, **body):
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", **body),
+                  status=202)
+
+
+def _routes_for_a_submit(fake_v1, **created):
+    _created(fake_v1, **created)
+    _granted(fake_v1)
+    _submitted(fake_v1)
+
+
+def _put_body(fake_v1):
+    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
+    body = put.request.body
+    return body.read() if hasattr(body, "read") else body
+
+
+def _cancels(fake_v1):
+    return [c.request for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
+
+
+def _cancelled(fake_v1):
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelled"), status=202)
+
+
 ###########################
 # The node state mapping
 ###########################
 
-def test_every_published_node_state_maps(logged_in):
-    '''The contract's eight as SiliconCompiler's seven, at the boundary.'''
-    assert node_status("pending", False) == "pending"
-    assert node_status("queued", False) == "queued"
-    assert node_status("running", False) == "running"
-    assert node_status("completed", True) == "success"
-    assert node_status("failed", True) == "error"
-    assert node_status("skipped", True) == "skipped"
-    assert node_status("cancelled", True) == "error"
-
-
-def test_preparing_is_waiting_not_running():
-    '''Dispatched and fetching its image. Without the distinction, a node
-    pulling a tool image for six minutes is indistinguishable from a hang -- and
-    reading it as running would put a timer on it that means nothing.'''
-    assert node_status("preparing", False) == "queued"
-
-
-def test_an_unrecognised_state_reads_terminal_rather_than_the_name():
-    '''🔴 The rule the contract states, and the reason `terminal` is published:
-    the sets have already grown twice.'''
-    assert node_status("quiescing", False) == "pending"
-    assert node_status("evaporated", True) == "error"
+@pytest.mark.parametrize("state,terminal,expected", [
+    ("pending", False, "pending"), ("queued", False, "queued"),
+    ("running", False, "running"), ("completed", True, "success"),
+    ("failed", True, "error"), ("skipped", True, "skipped"),
+    ("cancelled", True, "error"),
+    # Fetching its image: waiting, so a six-minute pull is not read as a hang.
+    ("preparing", False, "queued"),
+    # 🔴 An unknown state reads `terminal`, never its name.
+    ("quiescing", False, "pending"), ("evaporated", True, "error"),
+])
+def test_every_node_state_maps(state, terminal, expected):
+    assert node_status(state, terminal) == expected
 
 
 ###########################
-# The three-call submit
+# The submit
 ###########################
 
-def test_submit_is_four_calls_in_order(fake_v1, run, nop_project):
-    fake_v1.route(responses.POST, "jobs",
-                  {"id": "01J9-job", "state": "created", "project": None,
-                   "created_at": "2026-09-22T10:00:00.000Z"}, status=201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
-                  status=202)
+def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, caplog):
+    '''🔴 The PUT addresses storage, which may be somebody else's bucket. The
+    grant carries the archive's own size and digest (D125), and each POST its
+    own idempotency key.'''
+    _routes_for_a_submit(fake_v1)
 
-    job_id = run._start()
+    with caplog.at_level("INFO"):
+        assert run._start() == "01J9-job"
 
-    assert job_id == "01J9-job"
     paths = [call.request.path_url for call in fake_v1.calls]
     assert paths[-4:] == ["/v1/jobs", "/v1/jobs/01J9-job/upload-grant",
                           "/put", "/v1/jobs/01J9-job/submit"]
 
-
-def test_the_upload_carries_no_session(fake_v1, run):
-    '''🔴 It addresses storage, not the API. Attaching this session's token and
-    a proof would hand them to a party that never asked -- and on a deployment
-    whose storage is a bucket, that party is somebody else.'''
-    fake_v1.route(responses.POST, "jobs",
-                  {"id": "01J9-job", "state": "created", "project": None,
-                   "created_at": "2026-09-22T10:00:00.000Z"}, status=201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
-                  status=202)
-
-    run._start()
-
-    upload = [call for call in fake_v1.calls
-              if call.request.url == "https://storage.test/put"][0]
-    assert "Authorization" not in upload.request.headers
-    assert "DPoP" not in upload.request.headers
-
-
-def test_both_posts_carry_an_idempotency_key(fake_v1, run):
-    fake_v1.route(responses.POST, "jobs",
-                  {"id": "01J9-job", "state": "created", "project": None,
-                   "created_at": "2026-09-22T10:00:00.000Z"}, status=201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
-                  status=202)
-
-    run._start()
+    upload = next(c.request for c in fake_v1.calls
+                  if c.request.url == "https://storage.test/put")
+    assert "Authorization" not in upload.headers and "DPoP" not in upload.headers
 
     posts = {call.request.path_url: call.request
              for call in fake_v1.calls if call.request.method == "POST"}
-    assert posts["/v1/jobs"].headers["Idempotency-Key"]
-    assert posts["/v1/jobs/01J9-job/submit"].headers["Idempotency-Key"]
-    # Two windows, not one: a retry of the create is not a retry of the submit.
-    assert posts["/v1/jobs"].headers["Idempotency-Key"] != \
-        posts["/v1/jobs/01J9-job/submit"].headers["Idempotency-Key"]
+    keys = [posts[path].headers["Idempotency-Key"]
+            for path in ("/v1/jobs", "/v1/jobs/01J9-job/submit")]
+    assert all(keys) and keys[0] != keys[1]
+
+    grant = json.loads(posts["/v1/jobs/01J9-job/upload-grant"].body)
+    sent = _put_body(fake_v1)
+    assert grant == {"size_bytes": len(sent),
+                     "digest": f"sha256:{hashlib.sha256(sent).hexdigest()}"}
+
+    assert "Uploading" in caplog.text
+    assert "design gcd (gcd-pytest-example):" in caplog.text
 
 
 def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
-    '''🔴 Authoritative at the top, advisory under `descriptor` -- and no
-    `versions` and no `resources`: `requested_versions` pins what this machine runs,
-    and the grant carries the size.'''
-    fake_v1.route(responses.POST, "jobs", job_body("created"), status=201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
-                  status=202)
+    '''🔴 Authoritative at the top, advisory under `descriptor`; no `versions`,
+    no `resources` and no `run_hash`; submit has no body (D277).'''
+    _routes_for_a_submit(fake_v1)
 
     run._start()
 
-    created = [call for call in fake_v1.calls
-               if call.request.path_url == "/v1/jobs"][0]
-    body = json.loads(created.request.body)
+    created = next(c.request for c in fake_v1.calls if c.request.path_url == "/v1/jobs")
+    body = json.loads(created.body)
     assert set(body) == {"design", "jobname", "descriptor"}
     descriptor = body["descriptor"]
     assert "versions" not in descriptor and "resources" not in descriptor
-    # Every value a list, and the framework pinned exactly.
     pins = descriptor["requested_versions"]["python"]["siliconcompiler"]
     assert isinstance(pins, list) and pins[0].startswith("==")
-    # The flowgraph's name, as the job object carries it, and its node count
-    # beside it (surface D289).
+    # The flow's name and node count (D289).
     assert isinstance(descriptor["flow"], str) and descriptor["flow"]
     assert descriptor["node_count"] == 2
-    # Nothing computes a run hash yet, so nothing claims one -- at the top,
-    # where it would go, or in the descriptor.
     assert "run_hash" not in body and "run_hash" not in descriptor
-    # No node runs the user's own Python, so no interpreter is named: the
-    # images' Pythons do not matter to it (surface D293).
+    # No node runs the user's own Python, so no interpreter is named (D293).
     assert "interpreter" not in descriptor["requested_versions"]
 
-    submitted = [call for call in fake_v1.calls
-                 if call.request.path_url.endswith("/submit")][0]
-    # No body (surface §15; D277): the grant bound the digest.
-    assert json.loads(submitted.request.body) == {}
+    submitted = next(c.request for c in fake_v1.calls
+                     if c.request.path_url.endswith("/submit"))
+    assert json.loads(submitted.body) == {}
 
 
 def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
-    '''🔴 Exactly: `siliconcompiler`, the distribution behind each executed
-    node's task class, and -- where they apply -- a framework distribution,
-    an installed-package dataroot the server supplies at this version, and a
-    distribution holding a private dataroot. Never every class the manifest
-    names: lambdapdk's PDK and libraries are data the job carries.'''
+    '''🔴 Never every class the manifest names: lambdapdk's PDK and libraries
+    are data the job carries.'''
     from importlib.metadata import version
 
     from siliconcompiler import ASIC
-    from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.targets import skywater130_demo
 
     project = ASIC(gcd_design)
@@ -216,10 +204,11 @@ def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     assert version("lambdapdk")          # there to be left out
 
 
-@pytest.fixture
-def installed_data(monkeypatch, nop_project):
-    '''A library whose dataroot is a package installed normally, as
-    `scfakedata` 1.0.0 -- and the flow reads it.'''
+@pytest.mark.parametrize("listed,named", [("1.0.0", True), ("0.9.0", False)])
+def test_an_installed_data_package_is_named_only_where_the_server_lists_it(
+        fake_v1, logged_in, nop_project, capabilities, monkeypatch, listed, named):
+    '''Listed at this version, it is named exactly and its dataroots do not
+    upload; otherwise its files go up with the job.'''
     from siliconcompiler.remote import owners
 
     entry = ("library", "scfakelib", "scfakedata")
@@ -228,164 +217,102 @@ def installed_data(monkeypatch, nop_project):
     monkeypatch.setattr("siliconcompiler.remote.client.run.metadata.version",
                         lambda name: "1.0.0" if name == "scfakedata"
                         else __import__("importlib.metadata").metadata.version(name))
-    return entry
-
-
-def test_an_installed_package_the_server_lists_at_this_version_is_named(
-        fake_v1, logged_in, nop_project, capabilities, installed_data):
-    '''Named exactly, and supplied: its dataroots do not upload.'''
-    from siliconcompiler.remote.client.run import RemoteRun
-
     published = json.loads(json.dumps(capabilities))
-    published["software"]["python"]["scfakedata"] = ["1.0.0"]
+    published["software"]["python"]["scfakedata"] = [listed]
     fake_v1.replace(responses.GET, "", published)
 
     run = RemoteRun(nop_project, logged_in)
 
-    assert run._requested_python()["scfakedata"] == ["==1.0.0"]
-    assert not run._uploaded_packages()
+    if named:
+        assert run._requested_python()["scfakedata"] == ["==1.0.0"]
+        assert not run._uploaded_packages()
+    else:
+        assert "scfakedata" not in run._requested_python()
+        assert run._uploaded_packages() == {entry}
 
 
-def test_an_installed_package_the_server_does_not_list_here_uploads(
-        fake_v1, logged_in, nop_project, capabilities, installed_data):
-    '''Where `software` lists it at another version, or not at all, it is
-    not named, and its files go up with the job.'''
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    published = json.loads(json.dumps(capabilities))
-    published["software"]["python"]["scfakedata"] = ["0.9.0"]
-    fake_v1.replace(responses.GET, "", published)
-
-    run = RemoteRun(nop_project, logged_in)
-
-    assert "scfakedata" not in run._requested_python()
-    assert run._uploaded_packages() == {installed_data}
-
-
-def test_a_framework_distribution_carries_the_range_siliconcompiler_declares(
-        fake_v1, logged_in, gcd_design):
-    '''cocotb, for a cocotb task, at SiliconCompiler's own range: the
-    image's version within it runs.'''
+def _declared(name):
     from importlib import metadata
 
     from packaging.requirements import Requirement
 
+    return [str(Requirement(line).specifier)
+            for line in metadata.requires("siliconcompiler") or []
+            if Requirement(line).name == name]
+
+
+def _one_node_project(gcd_design, task):
     from siliconcompiler import Flowgraph, Project
-    from siliconcompiler.remote.client.run import RemoteRun
+
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("one")
+    flow.node("only", task)
+    project.set_flow(flow)
+    return project
+
+
+def test_a_framework_distribution_is_pinned_where_installed(fake_v1, logged_in, gcd_design):
+    '''scfakebits is RunsATestbench's framework: nothing declares a range for
+    it, so it is pinned at what is installed.'''
     from test_capture import RunsATestbench
 
     open("tb.py", "w").write("")
-    project = Project(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("framework")
-    flow.node("sim", RunsATestbench())
-    project.set_flow(flow)
+    pins = RemoteRun(_one_node_project(gcd_design, RunsATestbench()),
+                     logged_in)._requested_python()
 
-    declared = next((str(Requirement(line).specifier)
-                     for line in metadata.requires("siliconcompiler") or []
-                     if Requirement(line).name == "scfakebits"), None)
-    pins = RemoteRun(project, logged_in)._requested_python()
-
-    # scfakebits is RunsATestbench's framework distribution; nothing declares
-    # a range for it, so it is pinned where installed and left out where not.
-    assert declared is None
+    assert _declared("scfakebits") == []
     assert "scfakebits" in pins
     assert pins["siliconcompiler"]
 
 
-def test_a_cocotb_node_names_cocotb_even_where_its_setup_cannot_run(
-        fake_v1, logged_in, gcd_design):
+def test_a_cocotb_node_names_siliconcompilers_cocotb_range(fake_v1, logged_in, gcd_design):
     '''Declared on the task's class, so Verilator's compile step -- which
-    runs none of the user's Python, and needs Verilator's setup -- still
-    lands where cocotb is.'''
-    from importlib import metadata
-
-    from packaging.requirements import Requirement
-
-    from siliconcompiler import Flowgraph, Project
-    from siliconcompiler.remote.client.run import RemoteRun
+    needs Verilator's setup -- still lands where cocotb is.'''
+    from siliconcompiler.remote.client.run import _framework_range
     from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask
 
-    project = Project(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("cocotbcompile")
-    flow.node("compile", CocotbCompileTask())
-    project.set_flow(flow)
+    declared = _declared("cocotb")
+    project = _one_node_project(gcd_design, CocotbCompileTask())
 
-    declared = [str(Requirement(line).specifier)
-                for line in metadata.requires("siliconcompiler") or []
-                if Requirement(line).name == "cocotb"]
+    assert declared and _framework_range("cocotb") == declared[0]
     assert RemoteRun(project, logged_in)._requested_python()["cocotb"] == declared
-
-
-def test_cocotbs_range_is_siliconcompilers():
-    from importlib import metadata
-
-    from packaging.requirements import Requirement
-
-    from siliconcompiler.remote.client.run import _framework_range
-
-    declared = [str(Requirement(line).specifier)
-                for line in metadata.requires("siliconcompiler") or []
-                if Requirement(line).name == "cocotb"]
-    assert declared
-    assert _framework_range("cocotb") == declared[0]
 
 
 ###########################
 # Polling
 ###########################
 
-def test_the_loop_ends_on_terminal_and_not_on_the_name(fake_v1, run, monkeypatch):
-    monkeypatch.setattr("time.sleep", lambda *_: None)
+def test_the_loop_ends_on_terminal_and_not_on_the_name(fake_v1, run, no_sleep):
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"))
-    fake_v1.route(responses.GET, "jobs/01J9-job",
-                  job_body("quiescing", terminal=True))
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("quiescing", terminal=True))
 
     with pytest.raises(RemoteError):
         run._poll("01J9-job")
 
-    # It stopped rather than polling a state it has never heard of for ever.
     assert len([c for c in fake_v1.calls if c.request.method == "GET"]) >= 2
 
 
-def test_the_server_sets_the_pace(fake_v1, run, monkeypatch):
-    '''`Retry-After` per response, rather than one number read at the start of
-    the run and used to the end.'''
-    slept = []
-    monkeypatch.setattr("time.sleep", lambda s: slept.append(s))
-
+@pytest.mark.parametrize("retry_after,paced", [("17", 17), ("0", 1), ("soon", None)])
+def test_the_server_sets_the_pace(fake_v1, run, no_sleep, retry_after, paced):
+    '''`Retry-After` per response, never below a second; an unreadable one
+    is not a failed poll.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"),
-                  headers={"Retry-After": "17"})
+                  headers={"Retry-After": retry_after})
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
     run._poll("01J9-job")
 
-    assert 17 in slept
+    assert no_sleep and (paced is None or paced in no_sleep)
 
 
-def test_an_unreadable_retry_after_is_not_a_failed_poll(fake_v1, run, monkeypatch):
-    slept = []
-    monkeypatch.setattr("time.sleep", lambda s: slept.append(s))
-
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"),
-                  headers={"Retry-After": "soon"})
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
-
-    run._poll("01J9-job")
-
-    assert slept
-
-
-def test_node_states_are_recorded(fake_v1, run, nop_project):
+def test_node_states_are_recorded_and_unknown_nodes_ignored(fake_v1, run, nop_project):
+    '''A node the project never heard of, or no node at all, does not end a run.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
         "completed",
-        nodes=[{"step": "stepone", "index": "0", "state": "completed",
-                "terminal": True, "started_at": None, "finished_at": None,
-                "exit_code": 0, "error": None},
-               {"step": "steptwo", "index": "0", "state": "skipped",
-                "terminal": True, "started_at": None, "finished_at": None,
-                "exit_code": None, "error": None}]))
+        nodes=[_node("stepone", "completed", exit_code=0), _node("steptwo", "skipped"),
+               {"step": "nowhere", "index": "9", "state": "completed", "terminal": True},
+               {"state": "completed", "terminal": True}]))
 
     run._poll("01J9-job")
 
@@ -393,29 +320,13 @@ def test_node_states_are_recorded(fake_v1, run, nop_project):
     assert nop_project.get('record', 'status', step="steptwo", index="0") == "skipped"
 
 
-def test_a_node_the_project_has_never_heard_of_does_not_end_the_run(
-        fake_v1, run, monkeypatch):
-    '''A body that is not the documented shape must not end a run that is still
-    going.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "completed",
-        nodes=[{"step": "nowhere", "index": "9", "state": "completed",
-                "terminal": True},
-               {"state": "completed", "terminal": True}]))
-
-    run._poll("01J9-job")
-
-
 ###########################
 # 🔴 A refusal ends the wait; a server error does not
 ###########################
 
 def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
-    '''🔴 The difference between "your job failed" and "your job is done and
-    empty". Falling through would announce a finished job with nothing in it.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job",
-                  problem("not-found", 404), status=404,
-                  content_type="application/problem+json")
+    '''🔴 Falling through would announce a finished job with nothing in it.'''
+    _refused(fake_v1, responses.GET, "jobs/01J9-job", "not-found", 404)
 
     with pytest.raises(RemoteError) as raised:
         run._poll("01J9-job")
@@ -423,36 +334,26 @@ def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
     assert "01J9-job" in str(raised.value)
 
 
-def test_a_server_error_is_a_hiccup_and_the_wait_continues(fake_v1, run, monkeypatch):
-    monkeypatch.setattr("time.sleep", lambda *_: None)
-
-    fake_v1.route(responses.GET, "jobs/01J9-job", "<html>Bad Gateway</html>",
-                  status=502, content_type="text/html")
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
-
-    run._poll("01J9-job")
-
-
-def test_a_proxys_html_502_is_rendered_not_thrown_on(fake_v1, run, monkeypatch, caplog):
-    '''🔴 problem+json is promised only for what a handler produced, so
-    resp.json()["type"] throws on exactly the errors production serves most.'''
-    monkeypatch.setattr("time.sleep", lambda *_: None)
-
-    fake_v1.route(responses.GET, "jobs/01J9-job",
-                  "<html><body><h1>502 Bad Gateway</h1></body></html>",
-                  status=502, content_type="text/html")
+@pytest.mark.parametrize("body,status,content_type,warned", [
+    ("<html><body><h1>502 Bad Gateway</h1></body></html>", 502, "text/html",
+     "Bad Gateway"),
+    (problem("not-ready", 409), 409, "application/problem+json", None),
+], ids=["proxy-502", "not-ready"])
+def test_a_server_error_or_not_ready_is_waited_through(fake_v1, run, no_sleep, caplog,
+                                                       body, status, content_type, warned):
+    '''🔴 A proxy's HTML is rendered, never thrown on.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", body, status=status,
+                  content_type=content_type)
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
     with caplog.at_level("WARNING"):
         run._poll("01J9-job")
 
-    assert "Bad Gateway" in caplog.text
+    if warned:
+        assert warned in caplog.text
 
 
-def test_a_server_that_never_comes_back_is_bounded(fake_v1, run, monkeypatch):
-    '''A bounded retry, not an infinite one.'''
-    monkeypatch.setattr("time.sleep", lambda *_: None)
-
+def test_a_server_that_never_comes_back_is_bounded(fake_v1, run, no_sleep):
     for _ in range(40):
         fake_v1.route(responses.GET, "jobs/01J9-job", "oops", status=500,
                       content_type="text/plain")
@@ -461,41 +362,12 @@ def test_a_server_that_never_comes_back_is_bounded(fake_v1, run, monkeypatch):
         run._poll("01J9-job")
 
 
-def test_not_ready_is_a_wait_rather_than_a_refusal(fake_v1, run, monkeypatch):
-    monkeypatch.setattr("time.sleep", lambda *_: None)
-
-    fake_v1.route(responses.GET, "jobs/01J9-job",
-                  problem("not-ready", 409), status=409,
-                  content_type="application/problem+json")
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
-
-    run._poll("01J9-job")
-
-
-def test_a_failed_job_ends_the_run(fake_v1, run):
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "failed",
-        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
-               "title": "The run failed"}))
-
-    with pytest.raises(RemoteError):
-        run._poll("01J9-job")
-
-
-###########################
-# Reconnect
-###########################
-
 def test_reconnect_re_enters_the_wait(fake_v1, run):
     '''🔴 The answer to Ctrl-C, and the only way back to a detached job.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
     run.reconnect("01J9-job")
 
-
-###########################
-# The rest of the surface
-###########################
 
 ###########################
 # A page for a person's browser: POST /v1/auth/browser (surface D309)
@@ -520,44 +392,42 @@ def _pages(fake_v1):
     return [c.request for c in fake_v1.calls if c.request.url.endswith("/v1/auth/browser")]
 
 
-def test_after_a_submit_the_jobs_page_is_asked_for_by_its_id(fake_v1, run, opened):
-    '''🔴 Asked for, never built: the body names the job, and the client opens
-    what comes back.'''
+@pytest.mark.parametrize("which,asked", [("job", {"job_id": "01J9-job"}), ("home", {})])
+def test_a_page_is_asked_for_never_built(fake_v1, run, opened, which, asked):
+    '''🔴 After a submit, the job's page by its id; `sc-remote -portal`, the
+    home page. The client opens what comes back.'''
     fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
 
-    run._open_portal("01J9-job")
+    if which == "job":
+        run._open_portal("01J9-job")
+    else:
+        run.client.portal()
 
     page, = _pages(fake_v1)
-    assert json.loads(page.body) == {"job_id": "01J9-job"}
+    assert json.loads(page.body) == asked
     assert page.headers["Authorization"].startswith("DPoP ")
     assert opened == [SIGN_IN["url"]]
 
 
 def test_a_sign_in_is_printed_only_where_no_browser_opened_and_never_logged(
         fake_v1, run, monkeypatch, caplog, capsys):
-    '''A sign-in link is a bearer secret for its page: opened, printed to the
-    terminal only where no browser opened, and never through the logger.'''
+    '''A sign-in link is a bearer secret for its page.'''
     import logging
 
     caplog.set_level(logging.DEBUG)
     fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
 
-    monkeypatch.setattr(run.client, "open_url",
-                        lambda url, what, require_tty=True: True)
-    assert run.client.open_page("the job's page", job_id="01J9-job") is True
-    assert "token=t" not in capsys.readouterr().out
-
-    monkeypatch.setattr(run.client, "open_url",
-                        lambda url, what, require_tty=True: False)
-    assert run.client.open_page("the job's page", job_id="01J9-job") is False
-    assert SIGN_IN["url"] in capsys.readouterr().out
+    for opens in (True, False):
+        monkeypatch.setattr(run.client, "open_url",
+                            lambda url, what, require_tty=True: opens)
+        assert run.client.open_page("the job's page", job_id="01J9-job") is opens
+        assert (SIGN_IN["url"] in capsys.readouterr().out) is not opens
 
     assert "token=t" not in caplog.text
 
 
 def test_a_plain_page_is_printed_and_opened(fake_v1, run, opened, caplog):
-    '''`expires_at: null` is the page itself, crucible's answer: it needs no
-    secrecy, so it is printed as well as opened.'''
+    '''`expires_at: null` is the page itself, which needs no secrecy.'''
     import logging
 
     caplog.set_level(logging.INFO)
@@ -570,19 +440,24 @@ def test_a_plain_page_is_printed_and_opened(fake_v1, run, opened, caplog):
     assert "https://crucible.test/jobs/01J9-job" in caplog.text
 
 
-@pytest.mark.parametrize("status", [404, 403])
+@pytest.mark.parametrize("slug,status", [("not-found", 404), ("not-permitted", 403)])
 def test_a_refused_page_is_said_and_the_run_carries_on(fake_v1, run, opened, caplog,
-                                                       status):
-    '''Nothing is opened in its place, and nothing is built: the reason is
-    said rather than swallowed, and the run goes on.'''
-    fake_v1.route(responses.POST, "auth/browser",
-                  problem("not-found" if status == 404 else "not-permitted", status),
-                  status=status, content_type="application/problem+json")
+                                                       slug, status):
+    _refused(fake_v1, responses.POST, "auth/browser", slug, status)
 
     run._open_portal("01J9-job")
 
     assert opened == []
     assert "No page for the job's page" in caplog.text
+
+
+def test_a_refused_portal_command_fails_and_says_why(fake_v1, run, opened):
+    '''Asked for on purpose, so the command fails.'''
+    _refused(fake_v1, responses.POST, "auth/browser", "not-permitted", 403)
+
+    with pytest.raises(RemoteError, match="not-permitted|Not permitted"):
+        run.client.portal()
+    assert opened == []
 
 
 def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened):
@@ -591,41 +466,16 @@ def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened):
     run.client._mode = GRANT_TOKEN_EXCHANGE
 
     run._open_portal("01J9-job")
+    with pytest.raises(RemoteError, match="CI session"):
+        run.client.portal()
 
     assert not _pages(fake_v1)
     assert not opened
-    with pytest.raises(RemoteError, match="CI session"):
-        run.client.portal()
-    assert not _pages(fake_v1)
 
 
-def test_sc_remote_portal_asks_for_the_home_page(fake_v1, run, opened):
-    fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
-
-    run.client.portal()
-
-    page, = _pages(fake_v1)
-    assert json.loads(page.body) == {}
-    assert opened == [SIGN_IN["url"]]
-
-
-def test_a_refused_portal_command_fails_and_says_why(fake_v1, run, opened):
-    '''Asked for on purpose, so the command fails rather than carrying on.'''
-    fake_v1.route(responses.POST, "auth/browser", problem("not-permitted", 403),
-                  status=403, content_type="application/problem+json")
-
-    with pytest.raises(RemoteError, match="not-permitted|Not permitted"):
-        run.client.portal()
-    assert opened == []
-
-
-def test_listing_follows_the_link_header(fake_v1, logged_in):
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]},
-                  headers={"Link": '</v1/jobs?limit=1&cursor=abc>; rel="next"'})
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
-
-    assert len(logged_in.jobs()) == 2
-
+###########################
+# Listing, cancelling, deleting
+###########################
 
 @pytest.mark.parametrize("link", [
     "</v1/jobs?limit=1&cursor=abc&kept=1>; rel=next",
@@ -634,10 +484,8 @@ def test_listing_follows_the_link_header(fake_v1, logged_in):
     "</v1/jobs?limit=1&cursor=abc&kept=1>; REL=Next",
 ], ids=["unquoted", "second", "absolute", "case"])
 def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
-    '''Surface D306 and RFC 8288: whichever link-value says `rel="next"`,
-    quoted or not, and its URL requested unchanged -- never this request
-    rebuilt around a cursor, which would drop what the server put there and
-    re-add the filters it already carries.'''
+    '''Surface D306 and RFC 8288: the `rel="next"` URL requested unchanged,
+    never this request rebuilt around a cursor.'''
     from urllib.parse import urlsplit
 
     fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]},
@@ -651,7 +499,7 @@ def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
 
 
 def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
-    '''The request carries this session: only to the API's own origin.'''
+    '''The request carries this session.'''
     fake_v1.route(responses.GET, "jobs", {"items": []},
                   headers={"Link": '<https://elsewhere.test/v1/jobs?cursor=a>; rel="next"'})
 
@@ -662,11 +510,9 @@ def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
 
 
 def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
-    '''S §16's spelling, never Python's `True`, which a strict server refuses
-    and a lax one reads as false.'''
+    '''S §16's spelling, never Python's `True`.'''
     from urllib.parse import parse_qs, urlsplit
 
-    fake_v1.route(responses.GET, "jobs", {"items": []})
     fake_v1.route(responses.GET, "jobs", {"items": []})
 
     logged_in.jobs(archived=True, terminal=False)
@@ -678,92 +524,65 @@ def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
     assert second["archived"] == ["true", "false"]
 
 
-def test_a_cancel_with_nothing_to_add_says_where_it_came_from(fake_v1, logged_in):
-    """🔴 `reason` is optional on the wire -- requiring it would make a Ctrl-C
-    inexpressible -- and this client always sends one anyway. It names the
-    tool and nothing about the machine: a hostname is not the client's to
-    publish on a job page."""
+@pytest.mark.parametrize("reason,sent", [
+    (None, "cancelled from sc-remote"),
+    ("wrong constraints", "wrong constraints"),
+    ("é" * 300, "é" * 300),
+], ids=["default", "own", "300-code-points"])
+def test_a_cancel_always_says_why(fake_v1, logged_in, reason, sent):
+    '''🔴 `reason` is optional on the wire, and this client always sends one:
+    the caller's own, or one naming the tool and never the hostname.'''
     import socket
 
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
-                  job_body("cancelling"), status=202)
+    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelling"), status=202)
 
-    logged_in.cancel_job("01J9-job")
+    logged_in.cancel_job("01J9-job", **({"reason": reason} if reason else {}))
 
-    body = json.loads(fake_v1.calls[-1].request.body)
-    assert body["reason"] == "cancelled from sc-remote"
-    assert socket.gethostname() not in body["reason"]
-
-
-def test_a_cancel_with_a_reason_sends_that_one(fake_v1, logged_in):
-    """The caller's own words win: what this client can say for itself is a
-    fallback, not a prefix."""
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
-                  job_body("cancelling"), status=202)
-
-    logged_in.cancel_job("01J9-job", reason="wrong constraints")
-
-    assert json.loads(fake_v1.calls[-1].request.body) == {
-        "reason": "wrong constraints"}
+    assert json.loads(fake_v1.calls[-1].request.body) == {"reason": sent}
+    assert socket.gethostname() not in sent
 
 
 @pytest.mark.parametrize("reason,said", [("é" * 301, "at most 300 characters"),
                                          ("two\nlines", "control character"),
                                          ("a\x9bb", "control character")])
 def test_a_cancel_reason_is_checked_before_it_is_sent(fake_v1, logged_in, reason, said):
-    '''Surface D306: at most 300 Unicode code points and no control
-    character, checked here, naming which, and nothing sent.'''
+    '''Surface D288/D306: refused here, naming why, never cut; nothing sent.'''
     with pytest.raises(RemoteError, match=said):
         logged_in.cancel_job("01J9-job", reason=reason)
 
-    assert not [c for c in fake_v1.calls if c.request.url.endswith("/cancel")]
-
-
-def test_a_cancel_reason_of_300_code_points_is_sent(fake_v1, logged_in):
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
-                  job_body("cancelling"), status=202)
-
-    logged_in.cancel_job("01J9-job", reason="é" * 300)
-
-    assert json.loads(fake_v1.calls[-1].request.body) == {"reason": "é" * 300}
+    assert not _cancels(fake_v1)
 
 
 def test_delete_is_a_204_with_no_body(fake_v1, logged_in):
-    fake_v1.route(responses.DELETE, "jobs/01J9-job", "", status=204,
-                  content_type="")
+    fake_v1.route(responses.DELETE, "jobs/01J9-job", "", status=204, content_type="")
 
     assert logged_in.delete_job("01J9-job") is None
 
 
 def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path):
-    '''🔴 The length sent is the file's own, whatever the grant's
-    `content-length` says: a header announcing a gigabyte over twenty bytes
-    would leave the server waiting for the rest for ever.'''
+    '''🔴 The file's own length: announcing a gigabyte over twenty bytes
+    would leave the server waiting for ever.'''
     payload = tmp_path / "upload.tar.gz"
     payload.write_bytes(b"x" * 20)
-
     fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
 
     logged_in.upload({"url": "https://storage.test/put",
                       "headers": {"content-length": "1073741824"}}, payload)
 
-    sent = fake_v1.calls[-1].request
-    assert sent.headers["Content-Length"] == "20"
+    assert fake_v1.calls[-1].request.headers["Content-Length"] == "20"
 
 
 ###########################
-# Every refusal POST /v1/jobs can make
+# Every refusal renders
 ###########################
 #
-# 🔴 This is the half the integration rig cannot reach. A working server can be
-# made to exceed its own node limit, but not to report a limit it does not have,
-# refuse a feature it implements, or answer with a proxy's HTML -- and a client
-# that renders one of these badly is found by a user, at the end of a long day,
-# with a gigabyte half uploaded.
+# 🔴 The half the integration rig cannot reach: a working server cannot be
+# made to report a limit it does not have or refuse a feature it implements.
 
 @pytest.mark.parametrize("slug,status,members,expected", [
     ("limit-exceeded", 429, {"limit": "pending_uploads"},
      ["limit: pending_uploads", "refills"]),
+    ("limit-exceeded", 429, {"limit": "concurrent_jobs"}, ["limit: concurrent_jobs"]),
     ("node-limit-exceeded", 403, {"limit": "max_job_nodes"},
      ["limit: max_job_nodes", "smaller flow"]),
     ("upload-too-large", 413, {"limit": "max_upload_bytes"},
@@ -811,39 +630,34 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
     ("not-permitted", 403, {}, ["You cannot do that to this job"]),
     ("limit-exceeded", 429, {"limit": "pending_uploads", "job_ids": ["a", "b"]},
      ["job_ids: a b"]),
-    ("idempotency-key-reuse", 422, {},
-     ["A retry changed the request"]),
+    ("idempotency-key-reuse", 422, {}, ["A retry changed the request"]),
     ("invalid-request", 400, {}, ["Invalid request"]),
+    ("rate-limited", 429, {}, []),
+    ("insecure-transport", 426, {}, []),
+    ("not-ready", 409, {"artifact_kind": "logs"}, []),
+    ("invalid-cursor", 400, {}, []),
 ])
-def test_every_create_refusal_renders(fake_v1, logged_in, slug, status, members,
-                                      expected):
-    from siliconcompiler.remote import ServerProblem
-
-    fake_v1.route(responses.POST, "jobs", problem(slug, status, **members),
-                  status=status, content_type="application/problem+json")
+def test_every_refusal_renders(fake_v1, logged_in, slug, status, members, expected):
+    '''Branched on its type and members; the page link beside the sentence,
+    not instead of it.'''
+    _refused(fake_v1, responses.POST, "jobs", slug, status, **members)
 
     with pytest.raises(ServerProblem) as raised:
         logged_in.create_job("gcd", "job0")
 
     assert raised.value.slug == slug
+    for name, value in members.items():
+        assert raised.value.member(name) == value
     rendered = str(raised.value)
     for fragment in expected:
         assert fragment in rendered, rendered
-    # The page link is beside the trace, not instead of the sentence: most
-    # people never open it.
     assert f"server-errors/{slug}" in rendered
 
 
 def test_a_resource_named_without_its_kind_prints_cleanly(fake_v1, logged_in):
-    '''A deployment with no catalogue names the resource alone (surface
-    D285): printed by name, and never as `resource_kind: None`.'''
-    from siliconcompiler.remote import ServerProblem
-
-    fake_v1.route(responses.POST, "jobs",
-                  problem("resource-unavailable", 422, resource="secret",
-                          detail="secret (secret) is marked private, and this server "
-                                 "holds no copy of it"),
-                  status=422, content_type="application/problem+json")
+    '''Surface D285: by name, never as `resource_kind: None`.'''
+    _refused(fake_v1, responses.POST, "jobs", "resource-unavailable", 422, resource="secret",
+             detail="secret (secret) is marked private, and this server holds no copy of it")
 
     with pytest.raises(ServerProblem) as raised:
         logged_in.create_job("gcd", "job0")
@@ -853,42 +667,10 @@ def test_a_resource_named_without_its_kind_prints_cleanly(fake_v1, logged_in):
     assert "resource_kind" not in rendered and "None" not in rendered
 
 
-def test_a_cancel_reason_over_300_is_refused_before_it_is_sent(fake_v1, logged_in):
-    '''The server would refuse it, never cut it (surface D288): so the client
-    says so first, naming the limit, and sends nothing.'''
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelling"),
-                  status=202)
-
-    with pytest.raises(RemoteError, match="at most 300 characters"):
-        logged_in.cancel_job("01J9-job", reason="x" * 301)
-    assert not [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
-
-    logged_in.cancel_job("01J9-job", reason="x" * 300)
-    cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
-    assert json.loads(cancel.request.body)["reason"] == "x" * 300
-
-
-def test_a_refusal_carrying_a_trace_id_shows_it(fake_v1, logged_in):
-    '''What an operator asks for when a user reports it.'''
-    from siliconcompiler.remote import ServerProblem
-
-    fake_v1.route(responses.POST, "jobs",
-                  problem("limit-exceeded", 429, limit="concurrent_jobs",
-                          trace_id="0af7651916cd43dd8448eb211c80319c"),
-                  status=429, content_type="application/problem+json")
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.create_job("gcd", "job0")
-
-    assert "trace 0af7651916cd43dd8448eb211c80319c" in str(raised.value)
-
-
-def test_a_create_refused_by_something_that_is_not_the_handler(fake_v1, logged_in):
-    '''🔴 problem+json is promised only for what a handler produced. A gateway
-    in front of the server answers in its own shape, and those are the errors
-    production serves most.'''
-    from siliconcompiler.remote import ServerProblem
-
+def test_a_keyed_create_refused_by_a_gateway_is_retried_then_rendered(fake_v1, logged_in,
+                                                                      no_sleep):
+    '''A keyed create replays, so a 5xx is retried with the same key; a
+    gateway's HTML is then rendered, not thrown on.'''
     fake_v1.route(responses.POST, "jobs",
                   "<html><head><title>502 Bad Gateway</title></head></html>",
                   status=502, content_type="text/html")
@@ -898,157 +680,73 @@ def test_a_create_refused_by_something_that_is_not_the_handler(fake_v1, logged_i
 
     assert raised.value.slug is None
     assert "502" in str(raised.value)
-
-
-def test_an_archive_refusal_names_the_rule_that_was_broken(fake_v1, logged_in):
-    '''One slug and six discriminators: the registry is frozen, so the thing
-    that says WHICH has to be a member.'''
-    from siliconcompiler.remote import ServerProblem
-
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit",
-                  problem("archive-rejected", 422, reason="link_member"),
-                  status=422, content_type="application/problem+json")
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.submit_job("01J9-job")
-
-    assert "reason: link_member" in str(raised.value)
+    creates = [c.request for c in fake_v1.calls if c.request.path_url == "/v1/jobs"]
+    assert len(creates) == 3 and len({r.headers["Idempotency-Key"] for r in creates}) == 1
 
 
 ###########################
 # A failed run says why, without opening a URL
 ###########################
 
-def _node(step, state, **extra):
-    node = {"step": step, "index": "0", "state": state,
-            "terminal": state in ("completed", "failed", "skipped", "cancelled"),
-            "started_at": None, "finished_at": None, "exit_code": None,
-            "error": None}
-    node.update(extra)
-    return node
+def _failed_poll(fake_v1, run, caplog, level="INFO", **body):
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("failed", **body))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
 
-
-def test_a_failed_run_explains_itself_and_still_fetches(fake_v1, run, caplog):
-    '''🔴 Results are retrieved on EVERY terminal state. A failed run is the one
-    whose log and manifest a user most wants, and a client that fetches nothing
-    when a job fails has hidden the evidence at the moment it became useful.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "failed",
-        nodes=[_node("stepone", "failed"), _node("steptwo", "cancelled")],
-        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
-               "title": "The run failed"}))
-    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts",
-                  {"items": []})
-
-    with caplog.at_level("INFO"):
+    with caplog.at_level(level):
         with pytest.raises(RemoteError):
             run._poll("01J9-job")
+    return caplog.text
 
-    assert "The run failed" in caplog.text
-    # The next step is in the client, because the type page is static and
-    # identical on every deployment -- so the server cannot say anything
-    # specific through it.
-    assert "Read the failing node's log" in caplog.text
-    # It asked for the results rather than giving up on them.
+
+def test_a_failed_run_explains_itself_briefly_and_still_fetches(fake_v1, run, caplog):
+    '''🔴 Results are fetched on every terminal state: a failed run's log is
+    the one most wanted. The next step is the client's, since the type page
+    is the same everywhere.'''
+    text = _failed_poll(fake_v1, run, caplog,
+                        nodes=[_node("stepone", "failed"), _node("steptwo", "cancelled")],
+                        error={"type": RUN_FAILED, "title": "The run failed"})
+
+    assert "The run failed" in text
+    assert "Read the failing node's log" in text
     assert any("artifacts" in call.request.path_url for call in fake_v1.calls)
+    rendered = [r.message for r in caplog.records
+                if r.levelname == "ERROR" and "run failed" in r.message.lower()]
+    assert rendered and len(rendered[0].splitlines()) <= 4
 
 
-def test_a_failed_node_says_why(fake_v1, run, caplog):
-    '''A node's `error` has the job's shape (surface §17): its `detail` names
-    the limit it ran into, or the image that would not pull, and is printed
-    beside the node, where nothing was before.'''
-    run_failed = "https://siliconcompiler.com/server-errors/run-failed"
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "failed",
-        nodes=[_node("stepone", "failed",
-                     error={"type": run_failed, "title": "The run failed",
-                            "detail": "the node exceeded its time limit"}),
-               _node("steptwo", "cancelled")],
-        error={"type": run_failed, "title": "The run failed",
-               "detail": "stepone/0 exceeded its time limit"}))
-    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+@pytest.mark.parametrize("nodes,error,said,unsaid", [
+    # A node's `error` detail (surface §17) is printed beside the node.
+    ([_node("stepone", "failed", error={"type": RUN_FAILED, "title": "The run failed",
+                                        "detail": "the node exceeded its time limit"}),
+      _node("steptwo", "cancelled")],
+     {"type": RUN_FAILED, "title": "The run failed",
+      "detail": "stepone/0 exceeded its time limit"},
+     ["stepone/0 failed: the node exceeded its time limit"], ["steptwo/0 failed"]),
+    # 🔴 A flow that dies before its first node has no log to read: the
+    # advice comes from the job, and the server's `detail` survives.
+    ([_node("stepone", "cancelled"), _node("steptwo", "cancelled")],
+     {"type": RUN_FAILED, "title": "The run failed",
+      "detail": "RuntimeError: git is required to import GitPython"},
+     ["No node failed", "git is required"], ["Read the failing node's log"]),
+    # Re-running may succeed; the support reference is the job id.
+    (None, {"type": "https://siliconcompiler.com/server-errors/run-interrupted",
+            "title": "The run was interrupted"},
+     ["resubmitting unchanged may work", "job 01J9-job"], []),
+], ids=["node-detail", "no-failed-node", "interrupted"])
+def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, nodes, error, said,
+                                             unsaid):
+    text = _failed_poll(fake_v1, run, caplog, nodes=nodes, error=error)
 
-    with caplog.at_level("INFO"):
-        with pytest.raises(RemoteError):
-            run._poll("01J9-job")
-
-    assert "stepone/0 failed: the node exceeded its time limit" in caplog.text
-    assert "steptwo/0 failed" not in caplog.text
-
-
-def test_a_run_that_failed_with_no_failed_node_says_so(fake_v1, run, caplog):
-    '''🔴 A flow that dies before its first node fails with every node
-    `cancelled` and none of them `failed`, and *read the failing node's log*
-    then names a file nobody can open. The advice is chosen from the job, not
-    from the slug.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "failed",
-        nodes=[_node("stepone", "cancelled"), _node("steptwo", "cancelled")],
-        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
-               "title": "The run failed",
-               "detail": "RuntimeError: git is required to import GitPython"}))
-    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
-
-    with caplog.at_level("INFO"):
-        with pytest.raises(RemoteError):
-            run._poll("01J9-job")
-
-    assert "Read the failing node's log" not in caplog.text
-    assert "No node failed" in caplog.text
-    # And the server's `detail` is the only part of the body that is about THIS
-    # run, so it has to survive the render.
-    assert "git is required" in caplog.text
-
-
-def test_an_interrupted_run_is_told_apart_from_a_failed_one(fake_v1, run, caplog):
-    '''The environment ended it and re-running may succeed: different words,
-    and a different next step.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "failed",
-        error={"type": "https://siliconcompiler.com/server-errors/run-interrupted",
-               "title": "The run was interrupted"}))
-    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
-
-    with caplog.at_level("INFO"):
-        with pytest.raises(RemoteError):
-            run._poll("01J9-job")
-
-    assert "resubmitting unchanged may work" in caplog.text
-    # The support reference for a job's failure is the job id.
-    assert "job 01J9-job" in caplog.text
-
-
-def test_the_failure_render_needs_no_url(fake_v1, run, caplog):
-    '''Short enough to read in a terminal, and self-contained.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "failed",
-        error={"type": "https://siliconcompiler.com/server-errors/run-failed",
-               "title": "The run failed"}))
-    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
-
-    with caplog.at_level("ERROR"):
-        with pytest.raises(RemoteError):
-            run._poll("01J9-job")
-
-    rendered = [r.message for r in caplog.records if "run failed" in r.message.lower()]
-    assert rendered
-    assert len(rendered[0].splitlines()) <= 4
+    assert all(line in text for line in said)
+    assert not any(line in text for line in unsaid)
 
 
 ###########################
 # Watching a run
 ###########################
 
-def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, nop_project,
-                                                       capsys):
-    '''🔴 A node's log already carries `job | step | index` on every line.
-    Logging it normally stamped this run's own prefix on top:
-
-      | INFO | job0 | remote | - | | INFO | job0 | route.detailed | 0 | Running
-
-    The line that says which node it came from is the one that matters, so the
-    lines go out with a blank formatter.
-    '''
+def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, capsys):
+    '''🔴 A node's log line already says which node it came from.'''
     from siliconcompiler.remote.client.run import _Tails
 
     tails = _Tails.__new__(_Tails)
@@ -1062,11 +760,8 @@ def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, nop_project
     assert "remote" not in printed
 
 
-def test_the_dashboard_is_given_the_states_and_the_clocks(fake_v1, run,
-                                                          nop_project):
-    '''🔴 Without this the dashboard renders whatever it had when the run
-    started -- the record is updated on the project and nothing tells the board
-    to look again. `starttimes` is what makes the per-node timer run.'''
+@pytest.fixture
+def board(nop_project):
     painted = []
 
     class Board:
@@ -1077,59 +772,25 @@ def test_the_dashboard_is_given_the_states_and_the_clocks(fake_v1, run,
             painted.append(payload)
 
     nop_project._Project__dashboard = Board()
+    return painted
 
+
+def test_the_dashboard_is_given_the_running_clocks_and_the_finished_times(fake_v1, run,
+                                                                          board):
+    '''🔴 `starttimes` make a running node's timer tick; a finished node's
+    time comes from the job, before any manifest; one never run has none.'''
     run._paint(job_body("running", nodes=[
-        {"step": "stepone", "index": "0", "state": "running", "terminal": False,
-         "started_at": "2026-09-22T10:00:00.000Z"},
-        {"step": "steptwo", "index": "0", "state": "pending", "terminal": False,
-         "started_at": None}]))
+        _node("stepone", "completed", started_at="2026-09-22T10:00:00.000Z",
+              finished_at="2026-09-22T10:01:30.500Z"),
+        _node("steptwo", "running", started_at="2026-09-22T10:01:31.000Z"),
+        _node("stepthree", "skipped")]))
 
-    assert painted
-    starttimes = painted[0]["starttimes"]
-    assert starttimes == {("stepone", "0"): 1790071200.0}
-
-
-def test_a_finished_node_has_a_time_before_its_manifest_arrives(
-        fake_v1, run, nop_project):
-    '''🔴 The job object says when each node started and ended, so the time
-    column need not wait for the manifest -- which a deployment may withhold.
-    A running node keeps its ticking clock; one that never ran has no time.'''
-    painted = []
-
-    class Board:
-        def is_running(self):
-            return True
-
-        def update_manifest(self, payload=None):
-            painted.append(payload)
-
-    nop_project._Project__dashboard = Board()
-
-    run._paint(job_body("running", nodes=[
-        {"step": "stepone", "index": "0", "state": "completed", "terminal": True,
-         "started_at": "2026-09-22T10:00:00.000Z",
-         "finished_at": "2026-09-22T10:01:30.500Z"},
-        {"step": "steptwo", "index": "0", "state": "running", "terminal": False,
-         "started_at": "2026-09-22T10:01:31.000Z", "finished_at": None},
-        {"step": "stepthree", "index": "0", "state": "skipped", "terminal": True,
-         "started_at": None, "finished_at": None}]))
-
-    assert painted[0]["durations"] == {("stepone", "0"): 90.5}
+    assert board[0]["starttimes"] == {("steptwo", "0"): 1790071291.0}
+    assert board[0]["durations"] == {("stepone", "0"): 90.5}
 
 
-def test_a_dashboard_run_reports_only_what_moved(fake_v1, run, nop_project, caplog):
-    '''The dashboard is already showing every node's state, so the full table
-    underneath it is the same information twice. What it cannot show is the
-    moment something moved.'''
-    class Board:
-        def is_running(self):
-            return True
-
-        def update_manifest(self, payload=None):
-            pass
-
-    nop_project._Project__dashboard = Board()
-
+def test_a_dashboard_run_reports_only_what_moved(fake_v1, run, board, caplog):
+    '''The board already shows every state; it cannot show the moment.'''
     with caplog.at_level("INFO"):
         run._report(job_body("running"), changed=[("stepone", "0", "running")])
 
@@ -1160,9 +821,7 @@ def floorplan(logged_in, nop_project):
 
 
 def test_what_moved_in_one_poll_is_listed_in_the_order_it_moved(floorplan):
-    '''🔴 A poll carries a node finishing and the one it unblocked starting,
-    and the server lists nodes by name: listed so, a node would start before
-    the one it waits on finished.'''
+    '''🔴 Listed by name, a node would start before the one it waits on finished.'''
     seen = {("tapcell", "0"): "running", ("power_grid", "0"): "pending",
             ("pin_placement", "0"): "pending"}
     job = job_body("running", nodes=[
@@ -1176,28 +835,19 @@ def test_what_moved_in_one_poll_is_listed_in_the_order_it_moved(floorplan):
                                             ("pin_placement", "0", "queued")]
 
 
-def test_where_nothing_says_when_the_flows_order_decides(floorplan):
+def test_where_nothing_says_when_the_flows_order_decides(fake_v1, floorplan, caplog):
     job = job_body("running", nodes=[_node(step, "pending") for step in
                                      ("pin_placement", "power_grid", "tapcell")])
 
     assert [step for step, _, _ in floorplan._record(job, {})] == \
         ["tapcell", "power_grid", "pin_placement"]
-
-
-def test_the_whole_table_lists_each_state_in_the_flows_order(fake_v1, floorplan, caplog):
-    job = job_body("running", nodes=[_node(step, "pending") for step in
-                                     ("pin_placement", "power_grid", "tapcell")])
-
     with caplog.at_level("INFO"):
         floorplan._report(job, changed=[])
-
     assert "Pending (3): tapcell/0, power_grid/0, pin_placement/0" in caplog.text
 
 
-def test_a_server_with_no_live_tail_simply_does_not_tail(fake_v1, run,
-                                                         capabilities):
-    '''Point 2: if the logs cannot be streamed, what we already print is fine.
-    The archived log still arrives with the results.'''
+def test_a_server_with_no_live_tail_simply_does_not_tail(fake_v1, run, capabilities):
+    '''The archived log still arrives with the results.'''
     from siliconcompiler.remote.client.run import _Tails
 
     run.project.option.set_quiet(False)
@@ -1206,28 +856,17 @@ def test_a_server_with_no_live_tail_simply_does_not_tail(fake_v1, run,
     assert _Tails(run)._enabled is False
 
 
-def test_quiet_means_quiet(fake_v1, run, nop_project):
-    '''The same thing it means locally: do not put tool output on my
-    terminal.'''
+def test_quiet_means_quiet_and_the_server_sets_the_tail_count(fake_v1, run, nop_project):
+    '''It is the server's thread and descriptor being held.'''
     from siliconcompiler.remote.client.run import _Tails
 
     nop_project.option.set_quiet(False)
-    assert _Tails(run)._enabled is True
-
-    nop_project.option.set_quiet(True)
-    assert _Tails(run)._enabled is False
-
-
-def test_the_tail_count_is_the_servers_published_ceiling(fake_v1, run):
-    '''It is the server's thread and file descriptor being held, so the server
-    says how many.'''
-    from siliconcompiler.remote.client.run import _Tails
-
-    run.project.option.set_quiet(False)
-
     tails = _Tails(run)
     assert tails._enabled is True
     assert tails._ceiling == 8
+
+    nop_project.option.set_quiet(True)
+    assert _Tails(run)._enabled is False
 
 
 def _running_nodes(*steps):
@@ -1235,99 +874,72 @@ def _running_nodes(*steps):
                        "terminal": False} for step in steps]}
 
 
-def test_with_a_job_stream_one_connection_follows_every_node(fake_v1, run,
-                                                             monkeypatch):
-    '''🔴 One stream however wide the flow -- which is what lets a flow wider
-    than `concurrent_log_streams` be watched in full.'''
+@pytest.fixture
+def tails(run, monkeypatch):
     from siliconcompiler.remote.client.run import _Tails
 
     run.project.option.set_quiet(False)
     opened = []
-    monkeypatch.setattr(_Tails, "_tail_job", lambda self, job_id: opened.append(job_id))
-    monkeypatch.setattr(_Tails, "_tail", lambda self, *node: opened.append(node))
+    monkeypatch.setattr(_Tails, "_tail", lambda self, *args: opened.append(args[1]))
+    return _Tails, opened
 
-    tails = _Tails(run)
-    tails.follow("j1", _running_nodes("stepone", "steptwo"))
-    tails.follow("j1", _running_nodes("stepone", "steptwo", "stepthree"))
-    tails.finish()
+
+def test_with_a_job_stream_one_connection_follows_every_node(fake_v1, run, tails,
+                                                             monkeypatch):
+    '''🔴 One stream however wide the flow.'''
+    _Tails, opened = tails
+    monkeypatch.setattr(_Tails, "_tail_job", lambda self, job_id: opened.append(job_id))
+
+    tail = _Tails(run)
+    tail.follow("j1", _running_nodes("stepone", "steptwo"))
+    tail.follow("j1", _running_nodes("stepone", "steptwo", "stepthree"))
+    tail.finish()
 
     assert opened == ["j1"]
 
 
-def test_without_one_each_running_node_is_followed(fake_v1, run, capabilities,
-                                                   monkeypatch):
-    from siliconcompiler.remote.client.run import _Tails
+def test_without_one_each_running_node_is_followed(fake_v1, run, capabilities, tails):
+    _Tails, opened = tails
+    fake_v1.replace(responses.GET, "", dict(capabilities, features=["logs.stream"]))
 
-    run.project.option.set_quiet(False)
-    fake_v1.replace(responses.GET, "",
-                    dict(capabilities, features=["logs.stream"]))
-    opened = []
-    monkeypatch.setattr(_Tails, "_tail", lambda self, *args: opened.append(args[1]))
-
-    tails = _Tails(run)
-    tails.follow("j1", _running_nodes("stepone", "steptwo"))
-    tails.finish()
+    tail = _Tails(run)
+    tail.follow("j1", _running_nodes("stepone", "steptwo"))
+    tail.finish()
 
     assert sorted(opened) == ["stepone", "steptwo"]
 
 
-def test_a_refused_job_stream_falls_back_for_good(fake_v1, run, monkeypatch):
-    '''🔴 `feature-unsupported` naming `logs.stream.job` is permanent: follow
-    each node from the next poll, and never ask for the job form again.'''
-    from conftest import problem
-    from siliconcompiler.remote.client.run import _Tails
+def test_a_refused_job_stream_falls_back_for_good(fake_v1, run, tails):
+    '''🔴 `feature-unsupported` naming `logs.stream.job` is permanent.'''
+    _Tails, opened = tails
+    _refused(fake_v1, responses.GET, "jobs/j1/logs", "feature-unsupported", 501,
+             feature="logs.stream.job")
 
-    run.project.option.set_quiet(False)
-    fake_v1.route(responses.GET, "jobs/j1/logs",
-                  problem("feature-unsupported", 501, feature="logs.stream.job"),
-                  status=501, content_type="application/problem+json")
+    tail = _Tails(run)
+    tail._tail_job("j1")
+    assert tail._whole_job is False
 
-    tails = _Tails(run)
-    tails._tail_job("j1")
-    assert tails._whole_job is False
-
-    opened = []
-    monkeypatch.setattr(_Tails, "_tail", lambda self, *args: opened.append(args[1]))
-    tails.follow("j1", _running_nodes("stepone"))
-    tails.finish()
+    tail.follow("j1", _running_nodes("stepone"))
+    tail.finish()
 
     assert opened == ["stepone"]
     asked = [c.request.path_url for c in fake_v1.calls if "/logs" in c.request.path_url]
     assert asked == ["/v1/jobs/j1/logs"]
 
 
-def test_a_job_stream_asked_too_early_is_asked_again(fake_v1, run, monkeypatch):
-    '''`not-ready` is transient: nothing had started when it was asked.'''
-    from conftest import problem
+def test_a_log_asked_too_early_is_asked_again(fake_v1, run):
+    '''`not-ready` is transient for the job's stream and a node's (review
+    row 54); a final refusal is not asked again.'''
     from siliconcompiler.remote.client.run import JOB, _Tails
 
     run.project.option.set_quiet(False)
-    fake_v1.route(responses.GET, "jobs/j1/logs",
-                  problem("not-ready", 409, artifact_kind="logs"),
-                  status=409, content_type="application/problem+json")
+    _refused(fake_v1, responses.GET, "jobs/j1/logs", "not-ready", 409, artifact_kind="logs")
 
     tails = _Tails(run)
-    tails._started.add(JOB)
+    tails._started.update({JOB, ("stepone", "0")})
     tails._tail_job("j1")
-
     assert tails._whole_job is True
     assert JOB not in tails._started
-
-
-def test_a_node_log_asked_too_early_is_asked_again(fake_v1, run):
-    '''Review row 54: `409 not-ready` on a node's `/logs` is transient, as on
-    the job's: the node is followed again from the next poll, and a refusal
-    that is final is not.'''
-    from conftest import problem
-    from siliconcompiler.remote.client.run import _Tails
-
-    run.project.option.set_quiet(False)
-    fake_v1.route(responses.GET, "jobs/j1/logs",
-                  problem("not-ready", 409, artifact_kind="logs"),
-                  status=409, content_type="application/problem+json")
-
-    tails = _Tails(run)
-    tails._started.add(("stepone", "0"))
     tails._tail("j1", "stepone", "0")
     assert ("stepone", "0") not in tails._started
 
@@ -1345,8 +957,7 @@ def test_a_node_log_asked_too_early_is_asked_again(fake_v1, run):
 def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabilities,
                                                         monkeypatch):
     '''Client-v1-migration D16: create decides, from a `GET /v1` this client
-    may hold stale, and its refusal costs no packing -- so a requirement
-    nothing advertised satisfies is a warning here, never a stop.'''
+    may hold stale.'''
     said = []
     monkeypatch.setattr(run.logger, "warning", lambda message, *_, **__: said.append(message))
     fake_v1.replace(responses.GET, "", dict(capabilities, software={
@@ -1355,42 +966,6 @@ def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabiliti
     run._check_software()
 
     assert any("siliconcompiler 0.0.1" in message for message in said)
-
-
-def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in,
-                                                       gcd_nop_project):
-    '''🔴 The point is the refusal BEFORE the upload. The server derives the
-    same list from the manifest at submit, so this changes no placement -- it
-    changes when a deployment that curates images for a tool and has none says
-    so.'''
-    from siliconcompiler import Flowgraph
-    from siliconcompiler.remote.client.run import RemoteRun
-    from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
-
-    flow = Flowgraph("withtools")
-    flow.node("syn", ASICSynthesis())
-    gcd_nop_project.set_flow(flow)
-
-    wanted = RemoteRun(gcd_nop_project, logged_in)._tool_requirements()
-
-    # ⚠️ An empty list is *any version of this*: what a node whose setup could
-    # not run here says -- this one needs a PDK -- and it still names the tool.
-    assert wanted == {"yosys": []}
-
-
-def test_a_tool_requirement_is_the_version_its_setup_declared(
-        fake_v1, logged_in, gcd_nop_project):
-    '''🔴 From the worked-out copy, where setup ran: a fresh task declares
-    nothing, which is why this was dropped before.'''
-    from siliconcompiler import Flowgraph
-    from siliconcompiler.remote.client.run import RemoteRun
-
-    flow = Flowgraph("declared")
-    flow.node("run", DeclaresAVersion())
-    gcd_nop_project.set_flow(flow)
-
-    assert RemoteRun(gcd_nop_project, logged_in)._tool_requirements() == \
-        {"sctesttool": [">=1.2.0,<2"]}
 
 
 class DeclaresAVersion(__import__("siliconcompiler").Task):
@@ -1411,82 +986,67 @@ class DeclaresAVersion(__import__("siliconcompiler").Task):
         return stdout.strip()
 
 
-def test_a_builtin_node_names_no_tool(fake_v1, logged_in, nop_project):
-    '''🔴 SiliconCompiler's own joins and nops run in its process. Treating
-    `builtin` as a tool invites an operator to register a name no image can
-    honestly claim, which then refuses every flow that has a join in it.'''
-    from siliconcompiler.remote.client.run import RemoteRun
+@pytest.mark.parametrize("task,wanted", [
+    ("yosys", {"yosys": []}),
+    ("declared", {"sctesttool": [">=1.2.0,<2"]}),
+    ("builtin", {}),
+])
+def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_nop_project,
+                                                       task, wanted):
+    '''🔴 So a deployment with no image for a tool refuses before the upload.
+    The version is what setup declared on the worked-out copy; `[]` is any
+    version, where setup could not run here. SiliconCompiler's own nodes
+    name no tool, or an operator registers one no image can claim.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+    from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
 
-    assert RemoteRun(nop_project, logged_in)._tool_requirements() == {}
+    flow = Flowgraph("withtools")
+    flow.node("run", {"yosys": ASICSynthesis, "declared": DeclaresAVersion,
+                      "builtin": NOPTask}[task]())
+    gcd_nop_project.set_flow(flow)
+
+    assert RemoteRun(gcd_nop_project, logged_in)._tool_requirements() == wanted
 
 
-def test_a_declared_requirement_is_normalised_before_it_is_sent():
-    '''🔴 OpenROAD declares `>=24Q3-2011`, which is not a PEP 440 specifier at
-    all. Sent raw the server cannot parse it, falls back to comparing the
-    string, and refuses an image that plainly satisfies it. The driver is the
-    only thing that knows how to make it comparable, and the client is the side
-    that has the driver.'''
+@pytest.mark.parametrize("declared,sent", [
+    (">=24Q3-2011", ">=24.3.2011"),
+    (">=24Q3-2011,<27Q1-0", ">=24.3.2011,<27.1.0"),
+    ("whatever", None),
+])
+def test_a_declared_requirement_is_normalised_before_it_is_sent(declared, sent):
+    '''🔴 OpenROAD's `>=24Q3-2011` is not PEP 440, and only the driver can
+    make it comparable. Each part of a set on its own; an unreadable one is
+    dropped rather than refusing every OpenROAD.'''
     from packaging.specifiers import SpecifierSet
     from packaging.version import Version
 
     from siliconcompiler.remote.client.run import _normalize_spec
     from siliconcompiler.tools.openroad import OpenROADTask
 
-    spec = _normalize_spec(OpenROADTask(), ">=24Q3-2011")
+    spec = _normalize_spec(OpenROADTask(), declared)
 
-    assert spec == ">=24.3.2011"
-    # And what the probe stores for a real OpenROAD satisfies it, which is the
-    # whole round trip.
-    assert Version("26.3.2418") in SpecifierSet(spec)
-
-
-def test_a_comma_separated_set_keeps_all_of_its_parts():
-    '''A set's commas are AND and each part is normalised on its own.'''
-    from siliconcompiler.remote.client.run import _normalize_spec
-    from siliconcompiler.tools.openroad import OpenROADTask
-
-    assert _normalize_spec(OpenROADTask(), ">=24Q3-2011,<27Q1-0") == \
-        ">=24.3.2011,<27.1.0"
-
-
-def test_an_unreadable_requirement_is_dropped_rather_than_sent():
-    '''An unparsable requirement matches nothing on the far side, so passing it
-    on turns *no version I can read* into *no OpenROAD at all*.'''
-    from siliconcompiler.remote.client.run import _normalize_spec
-    from siliconcompiler.tools.openroad import OpenROADTask
-
-    assert _normalize_spec(OpenROADTask(), "whatever") is None
+    assert spec == sent
+    if spec:
+        # What the probe stores for a real OpenROAD satisfies it.
+        assert Version("26.3.2418") in SpecifierSet(spec)
 
 
 def test_a_development_client_asks_by_prefix_rather_than_exactly():
-    '''🔴 `0.38.10.dev43+g20db24fa2` carries a commit in its local segment, so
-    an exact pin from a checkout can only ever match an image built from that
-    same commit -- which is nobody's image.
-
-    ⚠️ The spelling is `==0.38.10.*`: a `.*` attaches to the release segment
-    and nothing after it, so `==0.38.10.dev*` is rejected outright. The legal
-    one matches every build of that release line, dev ones included.
-    '''
+    '''🔴 A dev build's local segment names a commit no image was built from.
+    `.*` attaches to the release segment only: `==0.38.10.dev*` is illegal.'''
     from packaging.specifiers import InvalidSpecifier, SpecifierSet
     from packaging.version import Version
 
-    import siliconcompiler.remote.client.run as run
+    from siliconcompiler.remote.client.run import _pin
 
-    before = run.sc_version
-    try:
-        run.sc_version = "0.38.10.dev43+g20db24fa2.d20260924"
-        spec = run._pin(run.sc_version)
-        assert spec == "==0.38.10.*"
-
-        matches = SpecifierSet(spec, prereleases=True)
-        assert Version("0.38.10.dev7") in matches
-        assert Version("0.38.10") in matches
-        assert Version("0.38.9") not in matches
-
-        run.sc_version = "0.38.9"
-        assert run._pin(run.sc_version) == "==0.38.9"
-    finally:
-        run.sc_version = before
+    spec = _pin("0.38.10.dev43+g20db24fa2.d20260924")
+    assert spec == "==0.38.10.*"
+    matches = SpecifierSet(spec, prereleases=True)
+    assert Version("0.38.10.dev7") in matches
+    assert Version("0.38.10") in matches
+    assert Version("0.38.9") not in matches
+    assert _pin("0.38.9") == "==0.38.9"
 
     with pytest.raises(InvalidSpecifier):
         SpecifierSet("==0.38.10.dev*")
@@ -1496,13 +1056,23 @@ def test_a_development_client_asks_by_prefix_rather_than_exactly():
 # What is uploaded
 ###########################
 
-def _packed(run, tmp_path):
+def _members(run, tmp_path):
+    '''The upload's members by name, and each regular file's bytes.'''
     import tarfile
 
     upload = tmp_path / "upload.tar.gz"
     run._pack(upload)
     with tarfile.open(upload) as tar:
-        return {name for name in tar.getnames() if name}
+        return {member.name: member for member in tar.getmembers() if member.name}, \
+            {member.name: tar.extractfile(member).read() for member in tar.getmembers()
+             if member.isfile()}
+
+
+def _read_manifest(blob, tmp_path):
+    from siliconcompiler import Project
+
+    (tmp_path / "sent.pkg.json").write_bytes(blob)
+    return Project.from_manifest(filepath=str(tmp_path / "sent.pkg.json"))
 
 
 def _leftovers(project):
@@ -1525,112 +1095,6 @@ def _leftovers(project):
         f.write("module gcd; endmodule\n")
 
 
-def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_path):
-    '''🔴 Not the whole job directory. One that has run before holds the last
-    run's handle, its logs, and every node it fetched back -- none of which a
-    full run reads -- and `job.log`, which this run has open.'''
-    _leftovers(nop_project)
-
-    names = _packed(run, tmp_path)
-
-    assert "gcd.pkg.json" in names
-    assert "sc_collected_files/gcd.v" in names
-    assert not {n for n in names if n.endswith(".log")}
-    assert "sc_remote.pkg.json" not in names
-    assert not {n for n in names if n.startswith(("stepone", "steptwo"))}
-
-
-def _sent(run, tmp_path, member="gcd.pkg.json"):
-    '''A manifest the archive carries, read back, and every member's bytes.'''
-    import tarfile
-
-    from siliconcompiler import Project
-
-    upload = tmp_path / "upload.tar.gz"
-    run._pack(upload)
-    with tarfile.open(upload) as tar:
-        blobs = {info.name: tar.extractfile(info).read()
-                 for info in tar.getmembers() if info.isfile()}
-    (tmp_path / "sent.pkg.json").write_bytes(blobs[member])
-    return Project.from_manifest(filepath=str(tmp_path / "sent.pkg.json")), blobs
-
-
-def _registered_with_credentials(project):
-    design = project.get("library", "gcd", field="schema")
-    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
-    design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
-                        "v1")
-    project.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
-                "https://example.com/scripts.tar.gz?token=TOKEN")
-
-
-def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path):
-    '''🔴 Surface D302: every dataroot's path goes up without its userinfo and
-    with every query value masked -- a library's, a private one, a task's and
-    the history's -- and the user's own project and manifest keep what they
-    registered.'''
-    from siliconcompiler.remote import owners
-    from siliconcompiler.utils.paths import jobdir
-
-    _registered_with_credentials(nop_project)
-    nop_project._record_history()
-    _leftovers(nop_project)
-    own = os.path.join(jobdir(nop_project), "gcd.pkg.json")
-    nop_project.write_manifest(own)
-
-    sent, blobs = _sent(run, tmp_path)
-
-    paths = dict(owners.dataroot_paths(sent))
-    assert paths[("library", "gcd", "dataroot", "ip")] == "git+https://example.com/ip.git"
-    assert paths[("library", "gcd", "dataroot", "secret")] == \
-        "git+https+private://example.com/secret.git"
-    assert paths[("tool", "builtin", "task", "nop", "dataroot", "scripts")] == \
-        "https://example.com/scripts.tar.gz?token=***"
-    assert ("history", "job0", "library", "gcd", "dataroot", "ip") in paths
-    assert not [name for name, body in blobs.items() if b"TOKEN" in body]
-
-    # The manifest still carries the set the archive was filtered by.
-    assert owners.required(sent) == owners.required(run._needs()[0])
-    assert nop_project.get("library", "gcd", "dataroot", "ip", "path") == \
-        "git+https://alice:TOKEN@example.com/ip.git"
-    with open(own) as f:
-        assert "alice:TOKEN" in f.read()
-
-
-def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
-        run, nop_project, tmp_path):
-    '''A `-from` run carries each upstream node's own manifest in its
-    `outputs/`, and it records every dataroot's path as the root one does.'''
-    from siliconcompiler.remote import owners
-
-    _registered_with_credentials(nop_project)
-    _leftovers(nop_project)
-    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
-    nop_project.write_manifest(os.path.join(outputs, "gcd.pkg.json"))
-    nop_project.option.add_from("steptwo")
-
-    upstream, blobs = _sent(run, tmp_path, member="stepone/0/outputs/gcd.pkg.json")
-
-    assert dict(owners.dataroot_paths(upstream))[("library", "gcd", "dataroot", "ip")] == \
-        "git+https://example.com/ip.git"
-    assert blobs["stepone/0/outputs/gcd.vg"] == b"module gcd; endmodule\n"
-    assert not [name for name, body in blobs.items() if b"TOKEN" in body]
-    with open(os.path.join(outputs, "gcd.pkg.json")) as f:
-        assert "alice:TOKEN" in f.read()
-
-
-def test_an_upstream_manifest_that_holds_none_goes_as_it_is(run, nop_project, tmp_path):
-    _leftovers(nop_project)
-    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
-    nop_project.option.add_from("steptwo")
-    with open(os.path.join(outputs, "gcd.pkg.json"), "rb") as f:
-        written = f.read()
-
-    _, blobs = _sent(run, tmp_path)
-
-    assert blobs["stepone/0/outputs/gcd.pkg.json"] == written
-
-
 def _upstream_node(project, step, *, output=None, fetched_from=None, remoteid=None):
     from siliconcompiler.remote.client.results import record_job
     from siliconcompiler.utils.paths import workdir
@@ -1650,128 +1114,167 @@ def _upstream_node(project, step, *, output=None, fetched_from=None, remoteid=No
     return outputs
 
 
-def test_a_run_from_part_way_sends_the_results_it_starts_from(
+def _registered_with_credentials(project):
+    design = project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
+                        "v1")
+    project.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
+                "https://example.com/scripts.tar.gz?token=TOKEN")
+
+
+def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_path):
+    '''🔴 Not the last run's handle, logs or fetched nodes, nor the open `job.log`.'''
+    _leftovers(nop_project)
+
+    names = set(_members(run, tmp_path)[0])
+
+    assert "gcd.pkg.json" in names
+    assert "sc_collected_files/gcd.v" in names
+    assert not {n for n in names if n.endswith(".log")}
+    assert "sc_remote.pkg.json" not in names
+    assert not {n for n in names if n.startswith(("stepone", "steptwo"))}
+
+
+def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path):
+    '''🔴 Surface D302: each dataroot's path -- a library's, a private one, a
+    task's, the history's -- goes up without userinfo and with query values
+    masked; the user's own project and manifest keep what they registered.'''
+    from siliconcompiler.remote import owners
+    from siliconcompiler.utils.paths import jobdir
+
+    _registered_with_credentials(nop_project)
+    nop_project._record_history()
+    _leftovers(nop_project)
+    own = os.path.join(jobdir(nop_project), "gcd.pkg.json")
+    nop_project.write_manifest(own)
+
+    _, blobs = _members(run, tmp_path)
+    sent = _read_manifest(blobs["gcd.pkg.json"], tmp_path)
+
+    paths = dict(owners.dataroot_paths(sent))
+    assert paths[("library", "gcd", "dataroot", "ip")] == "git+https://example.com/ip.git"
+    assert paths[("library", "gcd", "dataroot", "secret")] == \
+        "git+https+private://example.com/secret.git"
+    assert paths[("tool", "builtin", "task", "nop", "dataroot", "scripts")] == \
+        "https://example.com/scripts.tar.gz?token=***"
+    assert ("history", "job0", "library", "gcd", "dataroot", "ip") in paths
+    assert not [name for name, body in blobs.items() if b"TOKEN" in body]
+
+    # Still the set the archive was filtered by.
+    assert owners.required(sent) == owners.required(run._needs()[0])
+    assert nop_project.get("library", "gcd", "dataroot", "ip", "path") == \
+        "git+https://alice:TOKEN@example.com/ip.git"
+    with open(own) as f:
+        assert "alice:TOKEN" in f.read()
+
+
+def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
         run, nop_project, tmp_path):
-    '''`-from steptwo`: stepone's results are on this machine, and steptwo
-    reads them -- its outputs and nothing else of the node. steptwo's own are
-    replaced by the run.'''
+    '''A `-from` run carries each upstream node's own manifest too.'''
+    from siliconcompiler.remote import owners
+
+    _registered_with_credentials(nop_project)
+    _leftovers(nop_project)
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    nop_project.write_manifest(os.path.join(outputs, "gcd.pkg.json"))
+    nop_project.option.add_from("steptwo")
+
+    _, blobs = _members(run, tmp_path)
+    upstream = _read_manifest(blobs["stepone/0/outputs/gcd.pkg.json"], tmp_path)
+
+    assert dict(owners.dataroot_paths(upstream))[("library", "gcd", "dataroot", "ip")] == \
+        "git+https://example.com/ip.git"
+    assert blobs["stepone/0/outputs/gcd.vg"] == b"module gcd; endmodule\n"
+    assert not [name for name, body in blobs.items() if b"TOKEN" in body]
+    with open(os.path.join(outputs, "gcd.pkg.json")) as f:
+        assert "alice:TOKEN" in f.read()
+
+
+def test_a_run_from_part_way_sends_the_outputs_it_starts_from_as_they_are(
+        run, nop_project, tmp_path):
+    '''`-from steptwo`: stepone's outputs, manifest unchanged, and nothing else
+    of either node. 🔴 contract.md, *An upload keeps links*: a hard link is a
+    tar hard link to the first, a symlink to an archived file a link, and a
+    dangling one is left out.'''
     _leftovers(nop_project)
     outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
     os.makedirs(os.path.join(os.path.dirname(outputs), "inputs"), exist_ok=True)
-    nop_project.option.add_from("steptwo")
-
-    names = _packed(run, tmp_path)
-
-    assert {"stepone/0/outputs/gcd.pkg.json", "stepone/0/outputs/gcd.vg"} <= names
-    assert not {n for n in names if n.startswith("stepone/0/inputs")}
-    assert not {n for n in names if n.startswith("steptwo")}
-    assert run._upstream()[1] == []                  # nothing to continue from
-
-
-def test_linked_outputs_are_sent_as_links_and_each_file_once(run, nop_project, tmp_path):
-    '''🔴 Links stay links, and a file is stored once (contract.md, *An upload
-    keeps links*): a hard link is a tar hard link to the first, a symlink to a
-    file the archive holds is a link to it, and a link to nothing is left
-    out.'''
-    import tarfile
-
-    _leftovers(nop_project)
-    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
     os.link(os.path.join(outputs, "gcd.vg"), os.path.join(outputs, "hard.vg"))
     os.symlink("gcd.vg", os.path.join(outputs, "soft.vg"))
     os.symlink("nothing-there", os.path.join(outputs, "dangling.vg"))
     nop_project.option.add_from("steptwo")
+    with open(os.path.join(outputs, "gcd.pkg.json"), "rb") as f:
+        written = f.read()
 
-    upload = tmp_path / "upload.tar.gz"
-    run._pack(upload)
+    members, blobs = _members(run, tmp_path)
 
-    with tarfile.open(upload) as tar:
-        members = {member.name: member for member in tar.getmembers()}
-        first = members["stepone/0/outputs/gcd.vg"]
-        assert first.isfile() and tar.extractfile(first).read() == b"module gcd; endmodule\n"
-        hard = members["stepone/0/outputs/hard.vg"]
-        assert hard.islnk() and hard.linkname == "stepone/0/outputs/gcd.vg"
-        soft = members["stepone/0/outputs/soft.vg"]
-        assert soft.issym() and soft.linkname == "gcd.vg"
+    assert blobs["stepone/0/outputs/gcd.pkg.json"] == written
+    assert members["stepone/0/outputs/gcd.vg"].isfile()
+    assert blobs["stepone/0/outputs/gcd.vg"] == b"module gcd; endmodule\n"
+    hard = members["stepone/0/outputs/hard.vg"]
+    assert hard.islnk() and hard.linkname == "stepone/0/outputs/gcd.vg"
+    soft = members["stepone/0/outputs/soft.vg"]
+    assert soft.issym() and soft.linkname == "gcd.vg"
     assert "stepone/0/outputs/dangling.vg" not in members
+    assert not {n for n in members if n.startswith(("stepone/0/inputs", "steptwo"))}
+    assert run._upstream()[1] == []                  # nothing to continue from
 
 
-def test_a_node_whose_outputs_never_came_back_is_continued_from_its_job(
-        run, nop_project, tmp_path):
-    '''Only its manifest is here: the job this client recorded fetching it
-    from is named, and nothing of the node is packed.'''
+@pytest.mark.parametrize("recorded", [
+    {"fetched_from": "01a0e000-0000-7000-8000-000000000001"},
+    {},
+    {"remoteid": "01a0e000-0000-7000-8000-00000000beef"},
+], ids=["fetched", "local-run", "manifest-remoteid"])
+def test_an_upstream_node_without_its_outputs_is_continued_from_its_recorded_job(
+        run, nop_project, tmp_path, recorded):
+    '''Only its manifest is here: the job it was recorded fetched from is
+    named, and nothing of it packed. 🔴 With none recorded it is refused: a
+    manifest's own `remoteid` is server-written, never the job continued from.'''
     _leftovers(nop_project)
-    _upstream_node(nop_project, "stepone", fetched_from="01a0e000-0000-7000-8000-000000000001")
+    _upstream_node(nop_project, "stepone", **recorded)
     nop_project.option.add_from("steptwo")
 
-    names = _packed(run, tmp_path)
+    if "fetched_from" not in recorded:
+        with pytest.raises(RemoteError, match="stepone/0"):
+            _members(run, tmp_path)
+        return
 
+    names = set(_members(run, tmp_path)[0])
     assert run._upstream()[1] == [{"step": "stepone", "index": "0",
-                                   "job_id": "01a0e000-0000-7000-8000-000000000001"}]
+                                   "job_id": recorded["fetched_from"]}]
     assert not {n for n in names if n.startswith("stepone")}
-
-
-def test_a_manifests_own_remoteid_is_never_the_job_continued_from(
-        run, nop_project, tmp_path):
-    '''🔴 The server wrote the manifest, and an upload can name anything in
-    it: a node whose job was never recorded here has no job id.'''
-    _leftovers(nop_project)
-    _upstream_node(nop_project, "stepone", remoteid="01a0e000-0000-7000-8000-00000000beef")
-    nop_project.option.add_from("steptwo")
-
-    with pytest.raises(RemoteError, match="stepone/0"):
-        _packed(run, tmp_path)
-
-
-def test_a_node_with_neither_is_refused_before_anything_moves(run, nop_project, tmp_path):
-    '''A node from a local run has no job id, so its results must be here.'''
-    _leftovers(nop_project)
-    _upstream_node(nop_project, "stepone")
-    nop_project.option.add_from("steptwo")
-
-    with pytest.raises(RemoteError, match="stepone/0"):
-        _packed(run, tmp_path)
 
 
 ###########################
 # The server's own page for an error
 ###########################
 
-def test_a_refusal_prints_the_page_the_server_names(fake_v1, logged_in):
-    '''Where the server serves its own copy of the `type` pages it says so,
-    and that copy -- on the server this client called -- is what is printed.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job",
-                  problem("not-found", 404), status=404,
-                  content_type="application/problem+json",
-                  headers={"Link": '</server-errors/not-found>; rel="help"'})
+@pytest.mark.parametrize("link,page", [
+    ('</server-errors/not-found>; rel="help"', "https://sc-server.test/server-errors/"),
+    (None, "https://siliconcompiler.com/server-errors/"),
+], ids=["servers-own", "public"])
+def test_a_refusal_prints_the_page_the_server_names(fake_v1, logged_in, link, page):
+    '''A server serving its own copy of the `type` pages says so; that copy
+    is printed, and remembered for a job's own error.'''
+    _refused(fake_v1, responses.GET, "jobs/01J9-job", "not-found", 404,
+             headers={"Link": link} if link else None)
 
     with pytest.raises(RemoteError) as raised:
         logged_in.job("01J9-job")
 
-    message = str(raised.value)
-    assert "https://sc-server.test/server-errors/not-found" in message
-    assert "siliconcompiler.com/server-errors" not in message
-    # And remembered, so a job's own error can point there later.
-    assert logged_in.transport.help_pages == "https://sc-server.test/server-errors/"
-
-
-def test_without_one_the_public_type_is_printed(fake_v1, logged_in):
-    fake_v1.route(responses.GET, "jobs/01J9-job",
-                  problem("not-found", 404), status=404,
-                  content_type="application/problem+json")
-
-    with pytest.raises(RemoteError) as raised:
-        logged_in.job("01J9-job")
-
-    assert "https://siliconcompiler.com/server-errors/not-found" in str(raised.value)
+    assert f"{page}not-found" in str(raised.value)
+    if link:
+        assert "siliconcompiler.com/server-errors" not in str(raised.value)
+        assert logged_in.transport.help_pages == page
 
 
 def test_a_failed_jobs_reason_points_at_the_servers_page():
     from siliconcompiler.remote.client.run import _why_it_failed
 
     job = {"state": "failed", "progress": {"failed_count": 1},
-           "error": {"type": "https://siliconcompiler.com/server-errors/run-failed",
-                     "title": "The run failed", "detail": "place/0 exited 1"}}
+           "error": {"type": RUN_FAILED, "title": "The run failed",
+                     "detail": "place/0 exited 1"}}
 
     said = _why_it_failed(job, "https://sc-server.test/server-errors/")
 
@@ -1782,140 +1285,80 @@ def test_a_failed_jobs_reason_points_at_the_servers_page():
 # What the server cannot supply, it asks for (D114, D124)
 ###########################
 
-def _routes_for_a_submit(fake_v1, created=None):
-    fake_v1.route(responses.POST, "jobs", dict(
-        {"id": "01J9-job", "state": "created", "project": None,
-         "created_at": "2026-09-22T10:00:00.000Z"}, **(created or {})), status=201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
-                  status=202)
+def _acme(project, tag):
+    from siliconcompiler import PDK
+
+    pdk = PDK("acme")
+    # Remote, so it would not go up on its own. Its own ref: the path cache
+    # is process-wide, keyed by source and ref.
+    pdk.set_dataroot("acme", "https://gitlab.example/acme/pdk/archive/", tag=tag)
+    with pdk.active_dataroot("acme"):
+        pdk.set("package", "doc", "datasheet", "notes.txt")
+    project.add_dep(pdk)
 
 
-def test_the_grant_asks_for_the_archives_size(fake_v1, run):
-    '''🔴 D125: the size is the grant's, and it is the archive's own.'''
-    _routes_for_a_submit(fake_v1)
-
-    run._start()
-
-    grant = next(c for c in fake_v1.calls if "upload-grant" in c.request.path_url)
-    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
-    body = json.loads(grant.request.body)
-    sent = put.request.body.read() if hasattr(put.request.body, "read") \
-        else put.request.body
-    assert body["size_bytes"] == len(sent)
-    assert body["digest"] == f"sha256:{hashlib.sha256(sent).hexdigest()}"
-    assert set(body) == {"size_bytes", "digest"}
-
-
-def test_what_goes_up_is_said_per_dataroot_with_sizes(fake_v1, run, caplog):
-    _routes_for_a_submit(fake_v1)
-
-    with caplog.at_level("INFO"):
-        run._start()
-
-    assert "Uploading" in caplog.text
-    assert "design gcd (gcd-pytest-example):" in caplog.text
+ASKED_ACME = {"upload_sources": [
+    {"kind": "dataroot", "keypath": ["library", "acme", "dataroot", "acme"]}]}
 
 
 def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
-        fake_v1, run, nop_project, tmp_path, caplog):
-    '''The server answered create with what it cannot supply; this machine
-    resolves it with its own credentials and puts it in the archive.'''
-    from siliconcompiler import PDK
+        fake_v1, run, nop_project, tmp_path, caplog, monkeypatch):
+    '''This machine resolves it with its own credentials -- here, a copy only
+    it has -- and puts it in the archive.'''
+    import shutil
+
+    from siliconcompiler.package.https import HTTPResolver
 
     (tmp_path / "ip").mkdir()
     (tmp_path / "ip" / "notes.txt").write_text("private repo contents\n")
-    pdk = PDK("acme")
-    # Remote, so it would not go up on its own; the server asks for it.
-    pdk.set_dataroot("acme", "https://gitlab.example/acme/pdk/archive/", tag="v1")
-    with pdk.active_dataroot("acme"):
-        pdk.set("package", "doc", "datasheet", "notes.txt")
-    nop_project.add_dep(pdk)
+    _acme(nop_project, "v1")
+    monkeypatch.setattr(HTTPResolver, "resolve_remote", lambda self: shutil.copytree(
+        tmp_path / "ip", self.cache_path, dirs_exist_ok=True))
+    _routes_for_a_submit(fake_v1, **ASKED_ACME)
 
-    from siliconcompiler.package.https import HTTPResolver
-    real = HTTPResolver.resolve_remote
-
-    def resolve_remote(self):
-        # "With the user's own credentials": here, a copy only this machine has.
-        import shutil
-        shutil.copytree(tmp_path / "ip", self.cache_path, dirs_exist_ok=True)
-
-    HTTPResolver.resolve_remote = resolve_remote
-    try:
-        _routes_for_a_submit(fake_v1, created={"upload_sources": [
-            {"kind": "dataroot", "keypath": ["library", "acme", "dataroot", "acme"]}]})
-        with caplog.at_level("INFO"):
-            run._start()
-    finally:
-        HTTPResolver.resolve_remote = real
+    with caplog.at_level("INFO"):
+        run._start()
 
     assert "The server asked for the dataroot library,acme,dataroot,acme" in caplog.text
     assert "pdk acme (acme):" in caplog.text
 
 
 def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
-        fake_v1, run, nop_project, caplog):
-    '''🔴 Fail locally, naming it -- upload nothing, and cancel the job with a
-    reason saying which and why (surface D287).'''
-    from siliconcompiler import PDK
-
-    pdk = PDK("acme")
-    # Its own ref: the path cache is process-wide, keyed by source and ref.
-    pdk.set_dataroot("acme", "https://gitlab.example/acme/pdk/archive/", tag="v9-unreachable")
-    with pdk.active_dataroot("acme"):
-        pdk.set("package", "doc", "datasheet", "notes.txt")
-    nop_project.add_dep(pdk)
-
+        fake_v1, run, nop_project, monkeypatch):
+    '''🔴 Upload nothing, and cancel saying which and why (surface D287).'''
     from siliconcompiler.package.https import HTTPResolver
-    real = HTTPResolver.resolve_remote
 
     def unreachable(self):
         raise FileNotFoundError("404 from gitlab.example")
 
-    HTTPResolver.resolve_remote = unreachable
-    try:
-        _routes_for_a_submit(fake_v1, created={"upload_sources": [
-            {"kind": "dataroot", "keypath": ["library", "acme", "dataroot", "acme"]}]})
-        fake_v1.route(responses.POST, "jobs/01J9-job/cancel",
-                      job_body("cancelled"), status=202)
-        with pytest.raises(RemoteError, match="the dataroot library,acme,dataroot,acme: it "
-                                              "cannot be fetched here either: 404 from "
-                                              "gitlab.example"):
-            run._start()
-    finally:
-        HTTPResolver.resolve_remote = real
+    _acme(nop_project, "v9-unreachable")
+    monkeypatch.setattr(HTTPResolver, "resolve_remote", unreachable)
+    _routes_for_a_submit(fake_v1, **ASKED_ACME)
+    _cancelled(fake_v1)
+    said = ("library,acme,dataroot,acme: it cannot be fetched here either: 404 from "
+            "gitlab.example")
+
+    with pytest.raises(RemoteError, match=f"the dataroot {said}"):
+        run._start()
 
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
-    cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
-    assert ("library,acme,dataroot,acme: it cannot be fetched here either: 404 from "
-            "gitlab.example") in json.loads(cancel.request.body)["reason"]
+    cancel, = _cancels(fake_v1)
+    assert said in json.loads(cancel.body)["reason"]
 
 
-def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run,
-                                                              nop_project, tmp_path):
-    '''A follow-up archive of the asked-for dataroots alone, its own grant, and
-    submit again.'''
+def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run):
+    '''A follow-up archive of the asked-for dataroots alone, its own grant,
+    and submit again.'''
     import io
     import tarfile
 
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"),
-                  status=202)
+    _granted(fake_v1)
+    _submitted(fake_v1)
 
     run._send_asked("01J9-job", [{"kind": "dataroot", "keypath": [
         "library", "gcd", "dataroot", "gcd-pytest-example"]}])
 
-    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
-    body = put.request.body.read() if hasattr(put.request.body, "read") else put.request.body
-    with tarfile.open(fileobj=io.BytesIO(body)) as tar:
+    with tarfile.open(fileobj=io.BytesIO(_put_body(fake_v1))) as tar:
         names = tar.getnames()
     assert names and all(name.startswith("sc_collected_files") for name in names)
     assert any(name.endswith(".v") for name in names)
@@ -1930,17 +1373,17 @@ def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
             "library", "gcd", "dataroot", "gcd-pytest-example"]}])
 
 
-def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog):
-    '''🔴 Surface D166: the server may still ask this machine for a source, and
-    with nobody to send it the job waits until it is abandoned. A second
-    interrupt leaves.'''
+@pytest.mark.parametrize("state,polls", [("staging", 2), ("queued", 1)])
+def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state, polls):
+    '''🔴 Surface D166: the server may still ask this machine for a source, so
+    leaving a job before it is queued warns, and a second interrupt leaves.'''
     import logging
 
-    polls = []
+    asked = []
 
     def poll(job_id):
-        polls.append(job_id)
-        run._last_state = "staging"
+        asked.append(job_id)
+        run._last_state = state
         raise KeyboardInterrupt
 
     monkeypatch.setattr(run, "_poll", poll)
@@ -1949,47 +1392,17 @@ def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog):
     with caplog.at_level(logging.WARNING), pytest.raises(KeyboardInterrupt):
         run._watch("01J9-job")
 
-    assert len(polls) == 2
-    assert "not fully submitted" in caplog.text and "Ctrl-C again" in caplog.text
-
-
-def test_leaving_a_queued_job_does_not_ask_twice(run, monkeypatch):
-    polls = []
-
-    def poll(job_id):
-        polls.append(job_id)
-        run._last_state = "queued"
-        raise KeyboardInterrupt
-
-    monkeypatch.setattr(run, "_poll", poll)
-
-    with pytest.raises(KeyboardInterrupt):
-        run._watch("01J9-job")
-
-    assert len(polls) == 1
+    assert len(asked) == polls
+    assert ("not fully submitted" in caplog.text and "Ctrl-C again" in caplog.text) == \
+        (state == "staging")
 
 
 ###########################
 # Create before pack, 202 in staging, and what will not be submitted
 ###########################
 
-def _created(fake_v1, **extra):
-    fake_v1.route(responses.POST, "jobs",
-                  {"id": "01J9-job", "state": "created", "project": None,
-                   "created_at": "2026-09-22T10:00:00.000Z", **extra}, status=201)
-
-
-def _granted(fake_v1):
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-
-
 @pytest.mark.parametrize("refusal,said", [
-    # A private task root this server does not hold (surface D298): the
-    # owner's name, and which of its dataroots.
+    # A private task root this server does not hold (surface D298).
     (problem("resource-unavailable", 422, resource="acme_sim",
              keypath=["tool", "acme_sim", "task", "run", "dataroot", "scripts"],
              detail="the private dataroot tool,acme_sim,task,run,dataroot,scripts is not "
@@ -1997,13 +1410,15 @@ def _granted(fake_v1):
      ["keypath: tool,acme_sim,task,run,dataroot,scripts",
       "the private dataroot tool,acme_sim,task,run,dataroot,scripts is not held by this "
       "server"]),
-    # A keypath of any other shape, from a client this one is not.
     (problem("invalid-request", 400,
              detail="a source's keypath is a library's dataroot, [\"library\", name, "
                     "\"dataroot\", root], or a task's"),
      ["a source's keypath is a library's dataroot"]),
-])
-def test_a_refused_dataroot_is_said_by_its_keypath(fake_v1, run, monkeypatch, refusal, said):
+    (problem("software-unavailable", 422, reason="unavailable", unresolved=[]),
+     ["reason: unavailable"]),
+], ids=["private-root", "keypath-shape", "software"])
+def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, said):
+    '''🔴 Created before anything is packed, so a refusal there costs nothing.'''
     monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: pytest.fail("packed"))
     fake_v1.route(responses.POST, "jobs", refusal, status=refusal["status"],
                   content_type="application/problem+json")
@@ -2015,83 +1430,39 @@ def test_a_refused_dataroot_is_said_by_its_keypath(fake_v1, run, monkeypatch, re
     assert not any("upload-grant" in call.request.url for call in fake_v1.calls)
 
 
-def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch):
-    '''🔴 Created before anything is packed: a refusal there costs nothing.'''
-    packed = []
-    monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: packed.append(upload))
-    fake_v1.route(responses.POST, "jobs",
-                  problem("software-unavailable", 422, reason="unavailable", unresolved=[]),
-                  status=422, content_type="application/problem+json")
-
-    with pytest.raises(RemoteError):
-        run._start()
-
-    assert not packed
-    assert not any("upload-grant" in call.request.url for call in fake_v1.calls)
-
-
+@pytest.mark.parametrize("reason,detail,said", [
+    ("unrequested_member", "stray.txt is not something a first archive carries",
+     ["stray.txt"]),
+    # The refusal `sc-server` raises for a manifest carrying userinfo.
+    ("credential", "the manifest carries userinfo in the path of 1 dataroot(s): "
+                   "library,gcd,dataroot,ip",
+     ["library,gcd,dataroot,ip", "reason: credential", "through the environment"]),
+])
 def test_a_202_then_a_rejected_job_reads_the_refusal_from_the_poll(
-        fake_v1, run, monkeypatch, caplog):
+        fake_v1, run, no_sleep, caplog, reason, detail, said):
     '''Submit only matched the digest; what staging found arrives on the job.'''
-    monkeypatch.setattr("time.sleep", lambda *_: None)
     _created(fake_v1)
     _granted(fake_v1)
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", nodes=[]),
-                  status=202)
+    _submitted(fake_v1, nodes=[])
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
         "rejected", nodes=[], error={
             "type": "https://siliconcompiler.com/server-errors/archive-rejected",
-            "title": "Archive rejected", "status": 422, "reason": "unrequested_member",
-            "detail": "stray.txt is not something a first archive carries"}))
+            "title": "Archive rejected", "status": 422, "reason": reason, "detail": detail}))
     fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
 
     with pytest.raises(RemoteError, match="rejected"):
         run.run()
 
-    assert "stray.txt" in caplog.text
-
-
-def test_a_manifest_refused_for_a_credential_says_what_to_do(
-        fake_v1, run, monkeypatch, caplog):
-    '''The conformance rig serves the refusal `sc-server` raises for a
-    manifest carrying userinfo: the keypath, and never a value, and the next
-    step for a client bug.'''
-    monkeypatch.setattr("time.sleep", lambda *_: None)
-    _created(fake_v1)
-    _granted(fake_v1)
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", nodes=[]),
-                  status=202)
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
-        "rejected", nodes=[], error={
-            "type": "https://siliconcompiler.com/server-errors/archive-rejected",
-            "title": "Archive rejected", "status": 422, "reason": "credential",
-            "detail": "the manifest carries userinfo in the path of 1 dataroot(s): "
-                      "library,gcd,dataroot,ip"}))
-    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
-
-    with pytest.raises(RemoteError, match="rejected"):
-        run.run()
-
-    assert "library,gcd,dataroot,ip" in caplog.text
-    assert "reason: credential" in caplog.text
-    assert "through the environment" in caplog.text
+    assert all(line in caplog.text for line in said)
 
 
 def test_in_progress_and_a_slot_limit_are_waited_out_with_the_same_key(
-        fake_v1, run, monkeypatch, caplog):
-    slept = []
-    monkeypatch.setattr("time.sleep", slept.append)
-    fake_v1.route(responses.POST, "jobs",
-                  problem("job-state-conflict", 409, reason="in_progress"), status=409,
-                  content_type="application/problem+json", headers={"Retry-After": "2"})
-    fake_v1.route(responses.POST, "jobs",
-                  problem("limit-exceeded", 429, limit="pending_uploads",
-                          job_ids=["01J9-old"]),
-                  status=429, content_type="application/problem+json",
-                  headers={"Retry-After": "3"})
-    _created(fake_v1)
-    _granted(fake_v1)
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging"), status=202)
+        fake_v1, run, no_sleep, caplog):
+    _refused(fake_v1, responses.POST, "jobs", "job-state-conflict", 409,
+             headers={"Retry-After": "2"}, reason="in_progress")
+    _refused(fake_v1, responses.POST, "jobs", "limit-exceeded", 429,
+             headers={"Retry-After": "3"}, limit="pending_uploads", job_ids=["01J9-old"])
+    _routes_for_a_submit(fake_v1)
 
     with caplog.at_level("WARNING"):
         run._start()
@@ -2100,34 +1471,27 @@ def test_in_progress_and_a_slot_limit_are_waited_out_with_the_same_key(
                if call.request.method == "POST" and call.request.path_url == "/v1/jobs"]
     assert len(creates) == 3
     assert len({request.headers["Idempotency-Key"] for request in creates}) == 1
-    assert 2.0 in slept and 3.0 in slept
+    assert 2.0 in no_sleep and 3.0 in no_sleep
     assert "01J9-old" in caplog.text
 
 
 def test_a_failed_upload_cancels_the_job(fake_v1, run):
     '''It will not be submitted, so it must not hold a slot until abandoned.'''
     _created(fake_v1)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {}, "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "denied", status=403,
-                      content_type="text/plain")
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelled"),
-                  status=202)
+    _granted(fake_v1, put_status=403)
+    _cancelled(fake_v1)
 
     with pytest.raises(RemoteError):
         run._start()
 
-    cancel = [call.request for call in fake_v1.calls if call.request.url.endswith("/cancel")]
-    assert len(cancel) == 1
-    assert json.loads(cancel[0].body)["reason"].startswith("cancelled from sc-remote")
+    cancel, = _cancels(fake_v1)
+    assert json.loads(cancel.body)["reason"].startswith("cancelled from sc-remote")
     assert not run.project.get('record', 'remoteid')
 
 
 def test_an_interrupt_before_submit_cancels_the_job(fake_v1, run, monkeypatch):
     _created(fake_v1)
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelled"),
-                  status=202)
+    _cancelled(fake_v1)
 
     def interrupted(self, upload):
         raise KeyboardInterrupt
@@ -2137,8 +1501,7 @@ def test_an_interrupt_before_submit_cancels_the_job(fake_v1, run, monkeypatch):
     with pytest.raises(KeyboardInterrupt):
         run._start()
 
-    cancel = [call.request for call in fake_v1.calls if call.request.url.endswith("/cancel")]
-    assert "interrupted" in json.loads(cancel[0].body)["reason"]
+    assert "interrupted" in json.loads(_cancels(fake_v1)[0].body)["reason"]
 
 
 def test_an_asic_project_with_no_pdk_stops_before_create(fake_v1, logged_in, gcd_design):
@@ -2153,8 +1516,7 @@ def test_an_asic_project_with_no_pdk_stops_before_create(fake_v1, logged_in, gcd
     assert not any(call.request.path_url == "/v1/jobs" for call in fake_v1.calls)
 
 
-def test_a_task_class_no_package_provides_stops_before_create(
-        fake_v1, run, nop_project, monkeypatch):
+def test_a_task_class_no_package_provides_stops_before_create(fake_v1, run, monkeypatch):
     from siliconcompiler.remote.client import capture
 
     monkeypatch.setattr(capture, "_module_distributions", lambda: {})
@@ -2168,8 +1530,8 @@ def test_a_task_class_no_package_provides_stops_before_create(
 ###########################
 
 def _three_nodes(project, both=False):
-    '''stepone -> steptwo -> stepthree, run from stepthree: it reads steptwo,
-    and -- with ``both`` -- stepone too.'''
+    '''stepone -> steptwo -> stepthree, run from stepthree; with ``both``,
+    stepthree reads stepone too.'''
     from siliconcompiler import Flowgraph
     from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -2186,32 +1548,18 @@ def _three_nodes(project, both=False):
 
 
 def _passed_through(project, hard=True):
-    '''steptwo passed stepone's output through, as `link_symlink_copy`
-    leaves it: `outputs/x` -> `inputs/x`, the input a hard link (or a
-    symlink) to the upstream file.'''
+    '''steptwo passed stepone's output through as `link_symlink_copy` does:
+    `outputs/x` -> `inputs/x`, a hard link or symlink to the upstream file.'''
     from siliconcompiler.utils.paths import workdir
 
     upstream = _upstream_node(project, "stepone", output="gcd.vg")
     two = workdir(project, step="steptwo", index="0")
     _upstream_node(project, "steptwo")
     os.makedirs(os.path.join(two, "inputs"), exist_ok=True)
-    if hard:
-        os.link(os.path.join(upstream, "gcd.vg"), os.path.join(two, "inputs", "gcd.vg"))
-    else:
-        os.symlink(os.path.join(upstream, "gcd.vg"), os.path.join(two, "inputs", "gcd.vg"))
+    link = os.link if hard else os.symlink
+    link(os.path.join(upstream, "gcd.vg"), os.path.join(two, "inputs", "gcd.vg"))
     os.symlink("../inputs/gcd.vg", os.path.join(two, "outputs", "gcd.vg"))
     return two
-
-
-def _members(run, tmp_path):
-    import tarfile
-
-    upload = tmp_path / "upload.tar.gz"
-    run._pack(upload)
-    with tarfile.open(upload) as tar:
-        return {member.name: member for member in tar.getmembers()}, \
-            {member.name: tar.extractfile(member).read() for member in tar.getmembers()
-             if member.isfile()}
 
 
 @pytest.mark.parametrize("hard", [True, False], ids=["hard-linked", "symlinked"])
@@ -2228,8 +1576,8 @@ def test_a_chain_into_a_node_also_packed_is_one_link(run, nop_project, tmp_path,
 
 
 def test_a_chain_into_a_node_not_packed_is_the_file_once(run, nop_project, tmp_path):
-    '''stepone is not in the archive: the file is stored at its first
-    appearance, and a later link to it points at that copy.'''
+    '''Stored at its first appearance (sorted: `again.vg`), and a later link
+    points at that copy.'''
     _three_nodes(nop_project)
     two = _passed_through(nop_project, hard=False)
     os.symlink("../../../stepone/0/outputs/gcd.vg", os.path.join(two, "outputs", "again.vg"))
@@ -2238,7 +1586,6 @@ def test_a_chain_into_a_node_not_packed_is_the_file_once(run, nop_project, tmp_p
 
     assert not any(name.startswith("stepone") for name in members)
     again, first = members["steptwo/0/outputs/again.vg"], "steptwo/0/outputs/gcd.vg"
-    # Sorted: `again.vg` comes first, so it holds the bytes.
     assert again.isfile() and contents["steptwo/0/outputs/again.vg"] == \
         b"module gcd; endmodule\n"
     assert members[first].issym() and members[first].linkname == "again.vg"
@@ -2267,9 +1614,9 @@ def test_a_link_out_of_the_build_directory_is_left_out_and_named(
 
 def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
     '''A link to a node this machine never fetched is a missing file.'''
-    _three_nodes(nop_project)
     from siliconcompiler.utils.paths import workdir
 
+    _three_nodes(nop_project)
     two = workdir(nop_project, step="steptwo", index="0")
     _upstream_node(nop_project, "steptwo", output="own.vg")
     os.symlink("../../../stepone/0/outputs/gcd.vg", os.path.join(two, "outputs", "gcd.vg"))
@@ -2283,8 +1630,7 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
 ###########################
 
 def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project, tmp_path):
-    '''🔴 Never the dataroot's name alone: many objects use SiliconCompiler's
-    default, `root` (surface D282). Asked for one owner's, the other's stays.'''
+    '''🔴 Never the name alone: many objects use the default, `root` (D282).'''
     from siliconcompiler import StdCellLibrary
 
     for name in ("alib", "blib"):
@@ -2305,8 +1651,7 @@ def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project
 
 
 def test_the_poll_line_reads_its_time_and_reason_from_transitions():
-    '''How long the job has been in its state, from the last entry of
-    `transitions`, and why it entered it (surface §17; D278).'''
+    '''From the last `transitions` entry (§17; D278); a live staging phase wins.'''
     import time
     from datetime import datetime, timezone
 
@@ -2319,15 +1664,13 @@ def test_the_poll_line_reads_its_time_and_reason_from_transitions():
         {"state": "cancelling", "at": entered, "reason": "wrong corner"}]})
 
     assert line.startswith("cancelling for 5m") and line.endswith(", wrong corner")
-    # A live staging phase is the job's own, and wins.
     assert _state_line({"state": "staging", "state_reason": "fetching sources",
                         "transitions": [{"state": "staging", "at": entered}]}) \
         .endswith(", fetching sources")
 
 
 def test_the_session_is_shown_from_me_and_nothing_is_refreshed(logged_in, fake_v1, caplog):
-    '''`sc-remote` shows the session this machine holds -- from `GET /v1/me`,
-    which rotates nothing -- and what it has used, this month and in all.'''
+    '''`GET /v1/me` rotates nothing.'''
     import logging
 
     caplog.set_level(logging.INFO)
@@ -2364,6 +1707,6 @@ def test_a_ci_session_says_it_cannot_refresh(logged_in, caplog):
                     "session_expires_at": "s"},
         "usage": {"concurrent_jobs": 0}})
 
-    assert "Session: ci\n" in caplog.text or caplog.text.count("Session: ci") == 1
+    assert caplog.text.count("Session: ci") == 1
     assert "on device" not in caplog.text
     assert "it cannot refresh" in caplog.text

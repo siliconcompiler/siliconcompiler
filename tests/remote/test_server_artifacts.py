@@ -1,17 +1,22 @@
+import gzip
+import io
+import os
+import sqlite3
+import tarfile
 import time
+import uuid
 
 import pytest
 
 from conftest import call, login, slug
-from test_server_jobs import FakeDispatcher, create, stage, submit
+from test_server_jobs import FakeDispatcher, create, put, sized, stage, submit
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 
-# Endpoints 20, 21 and 22. None of the three carries bytes: two answer 303 and
-# one answers a listing, which is what keeps an orchestrator's capacity off the
-# size of what it stores.
+# Endpoints 20, 21 and 22. None carries bytes -- two answer 303 and one a
+# listing -- which keeps an orchestrator's capacity off the size of what it stores.
 
 
 @pytest.fixture
@@ -25,29 +30,23 @@ def ran(server, server_client, key, token, job_archive, prepare=None,
         state="completed", error=None):
     '''Submit a job, leave what a run leaves, and let the poll index it.
 
-    `prepare(job_root, build_dir)` runs after the work directories exist and
-    before the job is read as terminal, which is the only window in which the
-    indexer can see a file: `collect` runs once, at the transition.
+    `prepare(job_root, build_dir)` runs before the job is read as terminal:
+    the only window in which the indexer, which runs once, can see a file.
+    The progress file is written directly, so the scheduler is not under test.
     '''
+    from siliconcompiler.remote.server.running import runspec
+
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
 
-    # The run itself is the local dispatcher's business and is covered by the
-    # parity tests; here the progress file is written directly, so that what is
-    # under test is the indexing rather than the scheduler.
-    jobs = server.config["SC_JOBS"]
-    root = jobs.job_root(
+    root = server.config["SC_JOBS"].job_root(
         call(server_client, key, "GET", "/v1/me", token).get_json()["id"], job["id"])
-
-    from siliconcompiler.remote.server.running import runspec
-
     node_root = root / "gcd" / "job0"
     for step in ("stepone", "steptwo"):
         work = node_root / step / "0"
-        (work / "outputs").mkdir(parents=True, exist_ok=True)
-        (work / "reports").mkdir(parents=True, exist_ok=True)
-        (work / "inputs").mkdir(parents=True, exist_ok=True)
+        for sub in ("outputs", "reports", "inputs"):
+            (work / sub).mkdir(parents=True, exist_ok=True)
         (work / f"sc_{step}_0.log").write_text(f"{step} ran\n")
         (work / "outputs" / "gcd.pkg.json").write_text('{"produced": true}')
         (work / "reports" / "metrics.json").write_text("{}")
@@ -85,148 +84,125 @@ def listing(client, key, token, job_id, query=""):
                 token).get_json()["items"]
 
 
+def _fetch(client, key, token, job_id, item, query="", **kwargs):
+    return call(client, key, "GET", f"/v1/jobs/{job_id}/artifacts/{item['id']}{query}",
+                token, **kwargs)
+
+
+def _follow(client, response):
+    return client.get(response.headers["Location"].split("http://localhost", 1)[1])
+
+
+def _item(items, kind, step):
+    return next(item for item in items if item["kind"] == kind and item["step"] == step)
+
+
+def _only(items, kind, step=None):
+    return [item for item in items if item["kind"] == kind and item["step"] == step]
+
+
+def _job(server, job_id):
+    return server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (job_id,))
+
+
+def _mark(server, item, **columns):
+    sets = ", ".join(f"{name} = ?" for name in columns)
+    server.config["SC_STORE"].execute(
+        f"UPDATE artifacts SET {sets} WHERE id = ?", (*columns.values(), item["id"]))
+
+
+def _members(server, row):
+    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
+        return {member.name: member for member in tar.getmembers()}
+
+
 ###########################
 # Indexing
 ###########################
 
 def test_a_finished_run_is_indexed(server_client, key, token, finished):
-    items = listing(server_client, key, token, finished["id"])
+    '''Per node: its log; its `node` archive, indexed as the node finishes; its
+    reports (🔴 a deliberate second copy -- kilobytes, still fetchable when the
+    archive is over `max_download_bytes`); and its manifest (🔴 its record and
+    metrics). Never `outputs`, a second copy of the large half.'''
+    kinds = {(item["kind"], item["step"])
+             for item in listing(server_client, key, token, finished["id"])}
 
-    kinds = {(item["kind"], item["step"]) for item in items}
     assert ("manifest", None) in kinds
-    assert ("logs", "stepone") in kinds
-    assert ("logs", "steptwo") in kinds
-    # A node archive per node, indexed as that node finishes -- which is what lets a
-    # client take a node's results while the rest of the flow runs on.
-    assert ("node", "stepone") in kinds
-    assert ("node", "steptwo") in kinds
-    # 🔴 And the reports on their own, which IS a second copy of bytes the
-    # node archive holds. A node's reports are kilobytes and its node archive is often
-    # gigabytes, and above `max_download_bytes` the node archive is not fetched at
-    # all while these still are.
-    assert ("reports", "stepone") in kinds
-    assert ("reports", "steptwo") in kinds
-    # 🔴 And each node's own manifest, bound to the node. It is what carries
-    # that node's record and metrics, so a deployment that withholds the
-    # archives can still hand over the part that says what happened.
-    assert ("manifest", "stepone") in kinds
-    assert ("manifest", "steptwo") in kinds
-    # `outputs` is still not produced: that WOULD be a second copy of the
-    # large half.
+    for step in ("stepone", "steptwo"):
+        for kind in ("logs", "node", "reports", "manifest"):
+            assert (kind, step) in kinds, (kind, step)
     assert not [k for k, _ in kinds if k == "outputs"]
 
 
 def test_every_required_member_is_published(server_client, key, token, finished):
+    '''🔴 `deleted_cause` (an enum) and `deleted_reason` (prose) say whether the
+    system or a person took the bytes. Nothing is approval-gated (surface
+    D309), so nothing can be asked for, and no artifact carries a portal URL.'''
     for item in listing(server_client, key, token, finished["id"]):
         for member in ("id", "step", "index", "kind", "media_type", "size_bytes",
                        "digest", "created_at", "retained_until", "deleted_at",
-                       # 🔴 Two members, and without them `deleted_at` cannot
-                       # be read: retention lapsing ends in one too, so the
-                       # column alone cannot say whether the system or a
-                       # person took the bytes. One is a closed enum a client
-                       # branches on; the other is prose a person reads.
-                       "deleted_cause", "deleted_reason",
-                       "fetchable", "can_request_access"):
+                       "deleted_cause", "deleted_reason", "fetchable", "can_request_access"):
             assert member in item, member
         assert item["digest"].startswith("sha256:")
-        assert "storage_key" not in item and "expires_at" not in item
-        # 🔴 Nothing here is approval-gated, so there is never anything to ask
-        # for, a fully fetchable `node` included (surface D309); and no
-        # artifact carries a portal URL: an approval request's page is asked
-        # for at POST /v1/auth/browser.
         assert item["can_request_access"] is False
-        assert "blocked_by" not in item
-        assert "access_request_url" not in item
+        for absent in ("storage_key", "expires_at", "blocked_by", "access_request_url"):
+            assert absent not in item
         assert not any("portal" in str(value) for value in item.values()), item
 
 
 def test_retention_is_per_kind_and_the_job_floor_is_only_a_floor(
         server_client, key, token, finished):
-    '''A manifest and the outputs beside it go at different times, so one
-    number cannot answer for a job.'''
-    items = listing(server_client, key, token, finished["id"])
-    by_kind = {item["kind"]: item["retained_until"] for item in items}
+    '''`node` has no number of its own, so it gets the deployment's floor.'''
+    by_kind = {item["kind"]: item["retained_until"]
+               for item in listing(server_client, key, token, finished["id"])}
 
-    assert by_kind["manifest"] > by_kind["node"]
-    # `node archive` has no number of its own, so it gets the deployment's floor --
-    # and a node archive may never outlive its contents.
-    assert by_kind["node"] > "2026"
-    # Same retention rule, so the same day; they are written moments apart.
+    assert by_kind["manifest"] > by_kind["node"] > "2026"
     assert by_kind["logs"][:10] == by_kind["manifest"][:10]
 
 
-def test_a_node_archive_holds_its_node_and_leaves_out_its_inputs(
-        server, server_client, key, token, finished):
-    '''A node's node archive is that node's working directory. `inputs/` is left out
-    because it is copies of the upstream node's outputs, which the caller is
-    getting from the upstream node's own node archive.'''
-    import tarfile
+def test_a_node_archive_is_its_directory_without_inputs_or_uploads(server, finished):
+    '''Relative to the node's directory, so a client unpacks it in place.
+    `inputs/` is the upstream node's outputs, in that node's archive;
+    `sc_collected_files/` is what the client uploaded and deleted its copy of.'''
+    job = _job(server, finished["id"])
+    work = server.config["SC_JOBS"].job_root(job["user_id"], job["id"]) / "gcd/job0/stepone/0"
+    (work / "sc_collected_files").mkdir(parents=True, exist_ok=True)
+    (work / "sc_collected_files" / "gcd.v").write_text("module m;")
+    server.config["SC_STORE"].execute("DELETE FROM artifacts WHERE job_id = ?", (job["id"],))
+    server.config["SC_JOBS"]._index(job)
 
-    row = server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' "
-        "AND step = 'stepone'", (finished["id"],))
-    path = server.config["SC_STORAGE"].artifact_path(row["storage_key"])
+    names = _members(server, server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' AND step = 'stepone'",
+        (job["id"],)))
 
-    with tarfile.open(path) as tar:
-        names = tar.getnames()
-
-    # Relative to the node's own directory, so a client unpacks it straight
-    # back into the same place.
     assert "outputs/gcd.pkg.json" in names
     assert "sc_stepone_0.log" in names
-    assert not any("inputs" in name.split("/") for name in names)
-
-
-def test_what_the_client_uploaded_is_never_sent_back(
-        server, server_client, key, token, finished):
-    '''`sc_collected_files/` is what the CLIENT uploaded. It deletes its own
-    copy once the archive is built -- it is the largest thing in a build
-    directory -- so sending it back undoes that and pays for the bytes twice.'''
-    import tarfile
-
-    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-    root = server.config["SC_JOBS"].job_root(me, finished["id"]) / "gcd" / "job0"
-    (root / "stepone" / "0" / "sc_collected_files").mkdir(parents=True, exist_ok=True)
-    (root / "stepone" / "0" / "sc_collected_files" / "gcd.v").write_text("module m;")
-
-    store = server.config["SC_STORE"]
-    store.execute("DELETE FROM artifacts WHERE job_id = ?", (finished["id"],))
-    server.config["SC_JOBS"]._index(
-        store.one("SELECT * FROM jobs WHERE id = ?", (finished["id"],)))
-
-    row = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' "
-                    "AND step = 'stepone'", (finished["id"],))
-    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
-        names = tar.getnames()
-
-    assert not any("sc_collected_files" in name.split("/") for name in names)
+    for left_out in ("inputs", "sc_collected_files"):
+        assert not any(left_out in name.split("/") for name in names)
 
 
 def test_indexing_twice_does_not_duplicate_the_listing(server, server_client,
                                                        key, token, finished):
     before = len(listing(server_client, key, token, finished["id"]))
 
-    jobs = server.config["SC_JOBS"]
-    jobs._index(server.config["SC_STORE"].one(
-        "SELECT * FROM jobs WHERE id = ?", (finished["id"],)))
+    server.config["SC_JOBS"]._index(_job(server, finished["id"]))
 
     assert len(listing(server_client, key, token, finished["id"])) == before
 
 
 def test_a_job_that_ran_nothing_lists_only_what_was_sent(server_client, key, token,
                                                          job_archive, dispatcher):
-    '''Nothing the run produced is a legal answer, not an error -- and what
-    went in is still there to look at.'''
+    '''A legal answer, not an error: the upload, as the digest submit checked,
+    and the server's record of what it did with it.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
     call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
 
     items = listing(server_client, key, token, job["id"])
-    # What was sent, and the server's record of what it did with it.
     assert [(item["kind"], item["step"]) for item in items] == [("input", None),
                                                                 ("staging", None)]
-    # The digest the submit checked, as the hash of the bytes it kept.
     assert items[0]["digest"] == digest and items[0]["size_bytes"] == size
 
 
@@ -234,34 +210,24 @@ def test_a_job_that_ran_nothing_lists_only_what_was_sent(server_client, key, tok
 # 21. the listing
 ###########################
 
-def test_the_listing_filters_by_kind_step_and_index(server_client, key, token,
-                                                    finished):
-    logs = listing(server_client, key, token, finished["id"], "?kind=logs")
-    assert {item["kind"] for item in logs} == {"logs"}
-
-    reports = listing(server_client, key, token, finished["id"], "?kind=reports")
-    assert {item["kind"] for item in reports} == {"reports"}
-
-    # A kind that is absent was never indexed here, which is a true answer and
-    # not an error: this deployment stores a node archive instead.
+def test_the_listing_filters_by_kind_step_and_index(server_client, key, token, finished):
+    '''An absent kind is a true answer (this deployment stores `node`, not
+    `outputs`); an unknown one is refused.'''
+    for kind in ("logs", "reports"):
+        assert {item["kind"] for item in listing(server_client, key, token, finished["id"],
+                                                 f"?kind={kind}")} == {kind}
     assert listing(server_client, key, token, finished["id"], "?kind=outputs") == []
-
-    one = listing(server_client, key, token, finished["id"],
-                  "?step=stepone&index=0")
+    one = listing(server_client, key, token, finished["id"], "?step=stepone&index=0")
     assert {item["step"] for item in one} == {"stepone"}
 
-
-def test_an_unknown_kind_is_refused(server_client, key, token, finished):
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{finished['id']}/artifacts?kind=souvenirs", token)
-
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
 
 
 def test_the_next_page_keeps_the_query_encoded(server):
-    '''One builder for every collection's `Link`: each value encoded, a
-    repeat kept, and the cursor replaced -- `step=a b&c` is one value.'''
+    '''One builder for every collection's `Link`: each value encoded, a repeat
+    kept, the cursor replaced -- `step=a b&c` is one value.'''
     from siliconcompiler.remote.server.routes import next_page
 
     with server.test_request_context("/v1/jobs/J/artifacts?step=a%20b%26c&kind=logs"
@@ -285,35 +251,29 @@ def test_the_listing_pages(server_client, key, token, finished):
         link = response.headers.get("Link")
         if not link:
             break
-        response = call(server_client, key, "GET",
-                        link.split(">", 1)[0].lstrip("<"), token)
+        response = call(server_client, key, "GET", link.split(">", 1)[0].lstrip("<"), token)
 
-    # The job's manifest and its upload, plus a log, a manifest, a reports, a
-    # node archive and its inputs for each of the two nodes; and the server's
-    # records -- the job's staging, and the operators' diagnostics for the job
-    # and each node the scheduler ran.
+    # The job's manifest and upload; per node a log, manifest, reports, node
+    # archive and input; the job's staging; diagnostics for the job and each node.
     assert len(seen) == len(set(seen)) == 16
 
 
-def test_a_strangers_listing_is_a_404(server_client, key, token, finished):
+def test_a_strangers_listing_is_a_404(server_client, finished):
     from siliconcompiler.remote import dpop
 
     other_key = dpop.generate_key()
-    other = login(server_client, other_key,
-                  subject="machine:1001").get_json()["access_token"]
+    other = login(server_client, other_key, subject="machine:1001").get_json()["access_token"]
 
-    response = call(server_client, other_key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts", other)
-    assert response.status_code == 404
+    assert call(server_client, other_key, "GET", f"/v1/jobs/{finished['id']}/artifacts",
+                other).status_code == 404
 
 
 def test_a_deleted_jobs_subresources_are_gone(server_client, key, token, finished):
     '''The job stays readable with deleted_at set and its subresources 404.'''
     call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
 
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts", token)
-    assert response.status_code == 404
+    assert call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/artifacts",
+                token).status_code == 404
     assert call(server_client, key, "GET", f"/v1/jobs/{finished['id']}",
                 token).status_code == 200
 
@@ -322,36 +282,36 @@ def test_a_deleted_jobs_subresources_are_gone(server_client, key, token, finishe
 # 22. the bytes
 ###########################
 
-def test_fetching_an_artifact_is_a_303_to_a_signed_route(server_client, key,
-                                                         token, finished):
-    item = listing(server_client, key, token, finished["id"])[0]
+def test_every_artifact_is_a_303_to_its_gzip_on_a_signed_route(server_client, key, token,
+                                                               finished):
+    '''Every kind, the manifest and logs included. `diagnostics` is gzipped
+    too, and read only in the portal.'''
+    items = listing(server_client, key, token, finished["id"])
+    assert {item["kind"] for item in items} >= {"manifest", "logs", "staging", "reports",
+                                                "node"}
 
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-
-    assert response.status_code == 303
-    target = response.headers["Location"]
-    assert "/storage/artifact/" in target and "sig=" in target
-
-    bytes_response = server_client.get(target.split("http://localhost", 1)[1])
-    assert bytes_response.status_code == 200
-    assert len(bytes_response.data) == item["size_bytes"]
+    for item in [item for item in items if item["fetchable"]]:
+        response = _fetch(server_client, key, token, finished["id"], item)
+        assert response.status_code == 303
+        assert "/storage/artifact/" in response.headers["Location"]
+        assert "sig=" in response.headers["Location"]
+        body = _follow(server_client, response)
+        assert body.status_code == 200
+        assert len(body.data) == item["size_bytes"], item["kind"]
+        assert body.data[:2] == b"\x1f\x8b", item["kind"]
+        assert item["media_type"] == "application/gzip", item["kind"]
 
 
 def test_a_server_on_http_issues_only_http_urls(server, server_client, key, token,
                                                 finished):
-    '''🔴 Contract rule 5: a deployment is one scheme throughout. This one is
-    served on http, so every URL it issues is: the artifact `303`, the upload
-    grant and endpoint 6's sign-in link.'''
-    from test_server_jobs import create
-
+    '''🔴 Contract rule 5: one scheme throughout -- the artifact `303`, the
+    upload grant and endpoint 6's sign-in link.'''
     server.config["SC_CONFIG"]._values["web_url_base"] = "http://localhost"
     item = listing(server_client, key, token, finished["id"])[0]
     job = create(server_client, key, token, jobname="job1").get_json()
 
     urls = [
-        call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
-             token).headers["Location"],
+        _fetch(server_client, key, token, finished["id"], item).headers["Location"],
         call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
              json={"size_bytes": 10, "digest": "sha256:" + "0" * 64}).get_json()["url"],
         call(server_client, key, "POST", "/v1/auth/browser", token,
@@ -361,190 +321,98 @@ def test_a_server_on_http_issues_only_http_urls(server, server_client, key, toke
     assert all(url.startswith("http://localhost/") for url in urls), urls
 
 
-def test_every_artifact_is_stored_and_served_gzipped(server_client, key, token, finished):
-    '''Every kind, the manifest and a node's logs included, and the bytes
-    served are the gzip itself.'''
-    items = listing(server_client, key, token, finished["id"])
-    assert {item["kind"] for item in items} >= {"manifest", "logs", "staging", "reports",
-                                                "node"}
-
-    # `diagnostics` is gzipped too, and read in the portal, never over the API.
-    for item in [item for item in items if item["fetchable"]]:
-        response = call(server_client, key, "GET",
-                        f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-        body = server_client.get(response.headers["Location"].split("http://localhost", 1)[1])
-        assert body.data[:2] == b"\x1f\x8b", item["kind"]
-        assert item["media_type"] == "application/gzip", item["kind"]
-
-
-def test_the_bytes_need_a_signature(server_client, key, token, finished):
-    item = listing(server_client, key, token, finished["id"])[0]
-
-    response = server_client.get(
-        f"/storage/artifact/{finished['id']}/{item['id']}")
-
-    assert response.status_code == 400
-
-
-def test_an_expired_link_is_refused(server_client, key, token, finished):
-    item = listing(server_client, key, token, finished["id"])[0]
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-
-    target = response.headers["Location"].split("http://localhost", 1)[1]
-    stale = target.replace(
-        f"expires={target.split('expires=')[1].split('&')[0]}",
-        f"expires={int(time.time()) - 10}")
-
-    assert server_client.get(stale).status_code == 400
-
-
-def test_an_upload_grant_cannot_be_presented_as_a_download(server_client, key,
-                                                           token, finished):
-    '''Different message prefixes, so a grant to PUT one job's archive is never
-    a grant to GET another job's outputs.'''
+def test_the_bytes_need_a_live_download_signature(server_client, key, token, finished):
+    '''Unsigned, expired, or an upload grant's signature -- a different message
+    prefix, so a PUT grant is never a GET of another job's outputs.'''
     storage = server_client.application.config["SC_STORAGE"]
     item = listing(server_client, key, token, finished["id"])[0]
+    target = _fetch(server_client, key, token, finished["id"], item) \
+        .headers["Location"].split("http://localhost", 1)[1]
+    expires = target.split("expires=")[1].split("&")[0]
+    soon = int(time.time()) + 300
+    route = f"/storage/artifact/{finished['id']}/{item['id']}"
 
-    expires = int(time.time()) + 300
-    wrong = storage.sign_upload(item["id"], 1000, expires)
-
-    response = server_client.get(
-        f"/storage/artifact/{finished['id']}/{item['id']}"
-        f"?expires={expires}&sig={wrong}")
-    assert response.status_code == 400
+    for forged in (route,
+                   target.replace(f"expires={expires}", f"expires={int(time.time()) - 10}"),
+                   f"{route}?expires={soon}&sig={storage.sign_upload(item['id'], 1000, soon)}"):
+        assert server_client.get(forged).status_code == 400, forged
 
 
-def test_a_deleted_artifact_is_a_404_not_a_403(server, server_client, key,
-                                               token, finished):
-    '''There is nothing left to be entitled to.'''
-    item = listing(server_client, key, token, finished["id"])[0]
-    server.config["SC_STORE"].execute(
-        "UPDATE artifacts SET deleted_at = '2026-09-22T00:00:00.000Z', "
-        "deleted_by = ?, deleted_reason = 'test' WHERE id = ?",
-        (call(server_client, key, "GET", "/v1/me", token).get_json()["id"],
-         item["id"]))
+def test_a_deleted_artifact_is_a_404_and_its_node_is_not_approved(
+        server, server_client, key, token, finished, caplog):
+    '''Nothing is left to be entitled to, and the row stays listed. 🔴 Handing
+    its node archive over would undo the deletion (entitlements D41); the
+    state should not exist -- a node is reaped whole -- so an operator is told,
+    once.'''
+    items = listing(server_client, key, token, finished["id"])
+    log, node = _item(items, "logs", "stepone"), _item(items, "node", "stepone")
+    _mark(server, log, deleted_at="2026-09-22T00:00:00.000Z",
+          deleted_by=_job(server, finished["id"])["user_id"], deleted_reason="test")
 
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-    assert response.status_code == 404
-
-    # The row stays in the listing, which is the same call jobs.deleted_at made.
+    assert _fetch(server_client, key, token, finished["id"], log).status_code == 404
     still = [a for a in listing(server_client, key, token, finished["id"])
-             if a["id"] == item["id"]]
+             if a["id"] == log["id"]]
     assert still and still[0]["deleted_at"] and still[0]["fetchable"] is False
+
+    with caplog.at_level("ERROR", logger="sc-server"):
+        first = _fetch(server_client, key, token, finished["id"], node)
+        _fetch(server_client, key, token, finished["id"], node)
+    assert slug(first) == "artifact-not-approved"
+    assert sum("deleted on its own" in record.message for record in caplog.records) == 1
 
 
 def test_past_its_retention_and_not_yet_swept_is_still_fetchable(
         server, server_client, key, token, finished):
-    '''⚠️ Retention passing is deliberately not a row of the ladder: the reaper
-    follows it by setting `deleted_at`, and until then the bytes are here. A
-    promise to keep data at least that long says nothing about the minute
-    after it -- this used to answer *not fetchable* the moment the date passed.'''
+    '''⚠️ Retention passing is not a rung of the ladder: the reaper follows it
+    by setting `deleted_at`, and until then the bytes are here.'''
     item = listing(server_client, key, token, finished["id"])[0]
-    server.config["SC_STORE"].execute(
-        "UPDATE artifacts SET retained_until = '2020-01-01T00:00:00.000Z' "
-        "WHERE id = ?", (item["id"],))
+    _mark(server, item, retained_until="2020-01-01T00:00:00.000Z")
 
     assert next(i for i in listing(server_client, key, token, finished["id"])
                 if i["id"] == item["id"])["fetchable"] is True
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-    assert response.status_code == 303
+    assert _fetch(server_client, key, token, finished["id"], item).status_code == 303
 
 
-def _mark(server, item, **columns):
-    sets = ", ".join(f"{name} = ?" for name in columns)
-    server.config["SC_STORE"].execute(
-        f"UPDATE artifacts SET {sets} WHERE id = ?", (*columns.values(), item["id"]))
-
-
-def _fetch(server_client, key, token, job_id, item):
-    return call(server_client, key, "GET",
-                f"/v1/jobs/{job_id}/artifacts/{item['id']}", token)
-
-
-def test_a_pending_artifact_is_not_ready_and_never_refused_for_good(
+def test_an_artifact_still_being_described_is_not_ready_nor_is_its_node(
         server, server_client, key, token, finished):
-    '''🔴 The live bug. Still being described is transient, and a permanent
-    `403` told a client to abandon an artifact that was about to be
-    fetchable.'''
-    item = listing(server_client, key, token, finished["id"])[0]
-    _mark(server, item, provenance="pending")
-
-    response = _fetch(server_client, key, token, finished["id"], item)
-
-    assert response.status_code == 409
-    assert slug(response) == "not-ready"
-    assert response.get_json()["artifact_kind"] == item["kind"]
-    assert response.headers["Retry-After"]
-
-
-def test_an_artifact_still_being_described_is_not_listed_nor_is_its_node(
-        server, server_client, key, token, finished):
-    '''🔴 Surface D308: listed once described, so a client fetching at
-    `terminal` misses nothing it could have had. A `node` archive with such a
-    member is held back with it; the other node's are listed.'''
+    '''🔴 The live bug: a permanent `403` told a client to abandon an artifact
+    about to be fetchable. Listed once described (surface D308), so a client
+    fetching at `terminal` misses nothing; its `node` archive is held back,
+    refused as its worst member is (D120): transient, not a blanket
+    `artifact-not-approved`.'''
     items = listing(server_client, key, token, finished["id"])
-    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
-    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
-    other = next(i for i in items if i["kind"] == "node" and i["step"] == "steptwo")
+    log, node = _item(items, "logs", "stepone"), _item(items, "node", "stepone")
+    other = _item(items, "node", "steptwo")
     _mark(server, log, provenance="pending")
 
     listed = {i["id"] for i in listing(server_client, key, token, finished["id"])}
-
     assert log["id"] not in listed and node["id"] not in listed
     assert other["id"] in listed
 
-
-def test_a_withheld_artifact_is_not_approved(server, server_client, key, token,
-                                             finished):
-    '''The per-object gate said no -- and no `resource_kind` is forced onto a
-    refusal that involves no resource.'''
-    item = listing(server_client, key, token, finished["id"])[0]
-    me = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
-                                       (finished["id"],))["user_id"]
-    _mark(server, item, withheld_at="2026-09-25T00:00:00.000Z", withheld_by=me)
-
-    response = _fetch(server_client, key, token, finished["id"], item)
-
-    assert response.status_code == 403
-    assert slug(response) == "artifact-not-approved"
-    assert "resource_kind" not in response.get_json()
+    for item in (log, node):
+        response = _fetch(server_client, key, token, finished["id"], item)
+        assert (response.status_code, slug(response)) == (409, "not-ready")
+        assert response.get_json()["artifact_kind"] == item["kind"]
+        assert response.headers["Retry-After"]
 
 
-def test_a_node_archive_holding_a_withheld_member_is_not_fetchable(
+def test_a_withheld_artifact_is_not_approved_nor_is_its_node(
         server, server_client, key, token, finished):
-    '''Row 4: the archive holds every artifact at its coordinates, so handing
-    it over would hand over the one that is withheld.'''
+    '''The per-object gate, with no `resource_kind` forced onto it; row 4:
+    handing the node archive over would hand over the withheld member.'''
     items = listing(server_client, key, token, finished["id"])
-    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
-    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
-    me = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
-                                       (finished["id"],))["user_id"]
-    _mark(server, log, withheld_at="2026-09-25T00:00:00.000Z", withheld_by=me)
+    log, node = _item(items, "logs", "stepone"), _item(items, "node", "stepone")
+    _mark(server, log, withheld_at="2026-09-25T00:00:00.000Z",
+          withheld_by=_job(server, finished["id"])["user_id"])
+
+    response = _fetch(server_client, key, token, finished["id"], log)
+    assert (response.status_code, slug(response)) == (403, "artifact-not-approved")
+    assert "resource_kind" not in response.get_json()
 
     relisted = {i["id"]: i for i in listing(server_client, key, token, finished["id"])}
     assert relisted[node["id"]]["fetchable"] is False
     assert slug(_fetch(server_client, key, token, finished["id"], node)) == \
         "artifact-not-approved"
-
-
-def test_a_node_archive_held_back_only_by_a_pending_member_is_not_ready(
-        server, server_client, key, token, finished):
-    '''🔴 D120: the worst member's refusal, and a member still being
-    described is transient -- it was a blanket `artifact-not-approved`, the
-    `pending` mistake one level down.'''
-    items = listing(server_client, key, token, finished["id"])
-    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
-    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
-    _mark(server, log, provenance="pending")
-
-    response = _fetch(server_client, key, token, finished["id"], node)
-
-    assert response.status_code == 409
-    assert slug(response) == "not-ready"
-    assert response.headers["Retry-After"]
 
 
 def test_a_withheld_member_is_worse_than_a_pending_one():
@@ -564,117 +432,63 @@ def _ceiling(server, bytes_allowed):
     server.config["SC_CONFIG"].limits["max_download_bytes"] = bytes_allowed
 
 
-def test_an_object_over_the_ceiling_is_refused_rather_than_redirected(
-        server, server_client, key, token, finished):
-    '''🔴 A real limit, not advice. It began as a number a client was trusted
-    to apply to itself, which made it the only published ceiling with no
-    refusal behind it -- so an operator who set it was setting policy any
-    client could ignore by not reading it.'''
+@pytest.mark.parametrize("over,status", [(1, 403), (0, 303), (None, 303)],
+                         ids=["over", "at", "unlimited"])
+def test_max_download_bytes_is_a_real_inclusive_limit(server, server_client, key, token,
+                                                      finished, over, status):
+    '''🔴 A refusal, not advice a client applies to itself; inclusive, and null
+    is unlimited. D117: `403 download-too-large` naming its published key, not
+    `429 limit-exceeded`; it never clears, so no `Retry-After`.'''
     item = listing(server_client, key, token, finished["id"])[0]
-    _ceiling(server, item["size_bytes"] - 1)
+    _ceiling(server, None if over is None else item["size_bytes"] - over)
 
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
+    response = _fetch(server_client, key, token, finished["id"], item)
 
-    # 🔴 D117: a 403 and its own type, not `429 limit-exceeded` -- a client
-    # obeying `Retry-After` on a ceiling that never refills retries for ever.
-    assert response.status_code == 403
-    assert slug(response) == "download-too-large"
-    # The key it names is the key it is published under, which is what makes
-    # the registry double as the enforcement trace.
-    assert response.get_json()["limit"] == "max_download_bytes"
-
-
-def test_an_object_exactly_at_the_ceiling_is_served(
-        server, server_client, key, token, finished):
-    '''A ceiling is inclusive. The alternative makes a limit set to exactly
-    an object's size refuse it, which reads as off by one to everybody.'''
-    item = listing(server_client, key, token, finished["id"])[0]
-    _ceiling(server, item["size_bytes"])
-
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-
-    assert response.status_code == 303
+    assert response.status_code == status
+    if status == 403:
+        assert slug(response) == "download-too-large"
+        assert response.get_json()["limit"] == "max_download_bytes"
+        assert "Retry-After" not in response.headers
 
 
 def test_no_query_parameter_or_header_lifts_the_ceiling(
         server, server_client, key, token, finished):
-    '''🔴 There is no API override, and this is what that means in practice:
-    the obvious spellings do nothing. A limit a caller can switch off is not a
-    limit, so the way past it is a different surface -- the portal -- and not
-    a flag on this one.'''
+    '''🔴 No API override: the way past it is the portal, not a flag.'''
     item = listing(server_client, key, token, finished["id"])[0]
     _ceiling(server, 1)
 
-    for attempt in (f"/v1/jobs/{finished['id']}/artifacts/{item['id']}?force=1",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}"
-                    "?max_download_bytes=0"):
-        assert call(server_client, key, "GET", attempt, token).status_code == 403
-
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token,
-                    headers={"X-Max-Download-Bytes": "0",
-                             "Range": "bytes=0-100"})
-    assert response.status_code == 403
-
-
-def test_unlimited_is_null_and_serves_anything(
-        server, server_client, key, token, finished):
-    item = listing(server_client, key, token, finished["id"])[0]
-    _ceiling(server, None)
-
-    assert call(server_client, key, "GET",
-                f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
-                token).status_code == 303
+    for query in ("?force=1", "?max_download_bytes=0"):
+        assert _fetch(server_client, key, token, finished["id"], item,
+                      query).status_code == 403
+    assert _fetch(server_client, key, token, finished["id"], item,
+                  headers={"X-Max-Download-Bytes": "0",
+                           "Range": "bytes=0-100"}).status_code == 403
 
 
 def test_the_ceiling_that_binds_is_this_accounts_and_not_the_deployments(
         server, server_client, key, token, finished):
-    '''🔴 `max_download_bytes` is the one limit a `user_limits` row may
-    override, so reading the deployment's number here would enforce a ceiling
-    the account was deliberately lifted above.'''
+    '''🔴 The one limit a `user_limits` row may override.'''
     from siliconcompiler.remote.server.identity import accounts
 
     item = listing(server_client, key, token, finished["id"])[0]
     _ceiling(server, 1)
-
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
     accounts.set_limit(server.config["SC_STORE"], me, "max_download_bytes",
                        -1, me)          # -1 is the table's spelling of unlimited
 
-    assert call(server_client, key, "GET",
-                f"/v1/jobs/{finished['id']}/artifacts/{item['id']}",
-                token).status_code == 303
+    assert _fetch(server_client, key, token, finished["id"], item).status_code == 303
 
 
 def test_a_log_is_the_same_bytes_and_therefore_the_same_ceiling(
         server, server_client, key, token, finished):
-    '''`/logs` hands out the signed URL endpoint 22 hands out, so a caller
-    that cannot fetch a log as an artifact must not get it by asking for it as
-    a log.'''
+    '''`/logs` names the artifact endpoint 22 serves, so it is no way around it.'''
     _ceiling(server, 1)
 
-    artifact_id = _ended_stream(server_client, key, token, finished["id"])
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{artifact_id}", token)
+    response = _fetch(server_client, key, token, finished["id"],
+                      {"id": _ended_stream(server_client, key, token, finished["id"])})
 
-    assert response.status_code == 403
-    assert slug(response) == "download-too-large"
+    assert (response.status_code, slug(response)) == (403, "download-too-large")
     assert response.get_json()["limit"] == "max_download_bytes"
-
-
-def test_retrying_is_not_the_answer_so_no_retry_after_is_offered(
-        server, server_client, key, token, finished):
-    '''This ceiling never clears on its own, and naming a moment to come
-    back would be a lie -- which is why it is not `limit-exceeded`.'''
-    item = listing(server_client, key, token, finished["id"])[0]
-    _ceiling(server, 1)
-
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{item['id']}", token)
-
-    assert "Retry-After" not in response.headers
 
 
 ###########################
@@ -682,16 +496,16 @@ def test_retrying_is_not_the_answer_so_no_retry_after_is_offered(
 ###########################
 
 def _ended_stream(server_client, key, token, job_id):
-    import json as _json
+    '''Open a finished node's stream; the `logs` artifact its `node_state` names.'''
+    import json
 
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{job_id}/logs?step=stepone&index=0", token)
     assert response.status_code == 303
-    body = server_client.get(
-        response.headers["Location"].split("http://localhost", 1)[1]).data.decode()
+    body = _follow(server_client, response).data.decode()
     events = [block for block in body.split("\n\n") if "event: node_state" in block]
     data = next(line for line in events[0].splitlines() if line.startswith("data:"))
-    state = _json.loads(data[5:])
+    state = json.loads(data[5:])
     assert state["terminal"] is True
     assert "event: end" in body
     return state["artifact_id"]
@@ -699,17 +513,11 @@ def _ended_stream(server_client, key, token, job_id):
 
 def test_a_terminal_nodes_stream_ends_at_once_naming_its_archive(
         server_client, key, token, finished):
-    '''🔴 `/logs` is live only; a finished node's log is its gzipped
-    `logs` artifact, which carries nothing but the node's logs.'''
-    import io
-    import tarfile
-
+    '''🔴 `/logs` is live only; a finished node's log is its gzipped `logs`
+    artifact, which carries nothing but the node's logs.'''
     artifact_id = _ended_stream(server_client, key, token, finished["id"])
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/artifacts/{artifact_id}", token)
-    if response.status_code in (302, 303):
-        response = server_client.get(
-            response.headers["Location"].split("http://localhost", 1)[1])
+    response = _follow(server_client, _fetch(server_client, key, token, finished["id"],
+                                             {"id": artifact_id}))
 
     assert response.headers["Content-Type"].startswith("application/gzip")
     assert response.headers["X-Content-Type-Options"] == "nosniff"
@@ -719,21 +527,9 @@ def test_a_terminal_nodes_stream_ends_at_once_naming_its_archive(
     assert b"stepone ran\n" in texts
 
 
-@pytest.mark.parametrize("missing", ["?step=stepone", "?index=0"])
-def test_both_step_and_index_are_required(server_client, key, token, finished,
-                                          missing):
-    '''Two fields rather than one string: step=place index=10 and step=place1
-    index=0 both render place10 and are two different nodes. Both or neither:
-    neither is the whole job, and one alone is neither.'''
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/logs{missing}", token)
-
-    assert response.status_code == 400
-
-
 def test_a_node_that_has_not_started_is_not_ready(server_client, key, token,
                                                   job_archive, dispatcher):
-    '''Transient: ask again. Carries Retry-After and names the kind.'''
+    '''Transient: carries Retry-After and names the kind.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
@@ -741,408 +537,238 @@ def test_a_node_that_has_not_started_is_not_ready(server_client, key, token,
     response = call(server_client, key, "GET",
                     f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
 
-    assert response.status_code == 409
-    assert slug(response) == "not-ready"
+    assert (response.status_code, slug(response)) == (409, "not-ready")
     assert response.get_json()["artifact_kind"] == "logs"
     assert response.headers["Retry-After"]
 
 
-def test_a_running_node_redirects_to_the_live_tail(server, server_client, key,
-                                                   token, job_archive, dispatcher):
-    '''This deployment advertises logs.stream, so a running node is a stream
-    rather than a refusal.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-    server.config["SC_STORE"].execute(
-        "UPDATE job_nodes SET state = 'running' WHERE job_id = ?", (job["id"],))
-
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
-
-    assert response.status_code == 303
-    assert "/stream/logs/" in response.headers["Location"]
-
-
-def test_a_deployment_without_the_tail_refuses_it_permanently(tmp_path, monkeypatch):
-    '''🔴 Permanent, so a client must not retry it -- and the archive still
-    arrives when the node finishes, so this refuses the live read and not the
-    log. Without it a deployment that will never serve a live log could only
-    say "try later", for ever.'''
-    import json as _json
-
-    from siliconcompiler.remote import dpop
-    from siliconcompiler.remote.server.app import create_app
-    import uuid
-
-    datadir = tmp_path / "quiet"
-    datadir.mkdir()
-    (datadir / "config.json").write_text(_json.dumps({"features": []}))
-
-    app = create_app(datadir)
-    client = app.test_client()
-    quiet_key = dpop.generate_key()
-    quiet_token = login(client, quiet_key).get_json()["access_token"]
-
-    assert client.get("/v1").get_json()["features"] == []
-
-    store = app.config["SC_STORE"]
-    me = call(client, quiet_key, "GET", "/v1/me", quiet_token).get_json()["id"]
-    job_id = str(uuid.uuid4())
-    store.execute(
-        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
-        "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
-        (job_id, me))
-    store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
-                  "VALUES (?, 'place', '0', 'running')", (job_id,))
-
-    response = call(client, quiet_key, "GET",
-                    f"/v1/jobs/{job_id}/logs?step=place&index=0", quiet_token)
-
-    assert response.status_code == 501
-    assert slug(response) == "feature-unsupported"
-    assert response.get_json()["feature"] == "logs.stream"
-
-
 def test_a_finished_node_with_no_log_is_not_found(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 `/logs` is live only, and a node is completed only after it is
-    indexed: a terminal node with no `logs` artifact never will have one.'''
+    '''🔴 A node is completed only once indexed, so it never will have one.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
     server.config["SC_STORE"].execute(
         "UPDATE job_nodes SET state = 'completed' WHERE job_id = ?", (job["id"],))
 
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{job['id']}/logs?step=stepone&index=0", token)
-
-    assert response.status_code == 404
+    assert call(server_client, key, "GET", f"/v1/jobs/{job['id']}/logs?step=stepone&index=0",
+                token).status_code == 404
 
 
-def test_a_node_this_job_does_not_have(server_client, key, token, finished):
-    response = call(server_client, key, "GET",
-                    f"/v1/jobs/{finished['id']}/logs?step=nowhere&index=0", token)
+def test_a_node_log_names_a_node_this_job_has(server_client, key, token, finished):
+    '''Both step and index, or neither: `place`/`10` and `place1`/`0` both
+    render `place10`.'''
+    logs = f"/v1/jobs/{finished['id']}/logs"
 
-    assert response.status_code == 404
+    assert call(server_client, key, "GET", f"{logs}?step=nowhere&index=0",
+                token).status_code == 404
+    for half in ("?step=stepone", "?index=0"):
+        assert call(server_client, key, "GET", logs + half, token).status_code == 400
 
 
-def test_one_row_per_kind_per_node_even_under_a_race(server, finished):
-    '''🔴 The check before the insert is not enough and cannot be made enough.
+###########################
+# The store's own guards
+###########################
 
-    Indexing runs on whichever request thread gets there first, and a client
-    polling its job while tailing two logs has three of them. Two that check
-    together both pass -- so a real aes run came back with 38 node archives for 23
-    nodes, and the portal showed one node owning "logs, node archive, node archive". The
-    unique index is what actually decides.
-    '''
-    import sqlite3
+def _insert(store, like, **values):
+    '''Another artifact row at ``like``'s coordinates, as a racing indexer would.'''
+    row = {"id": str(uuid.uuid4()), "job_id": like["job_id"], "step": like["step"],
+           "index": like["index"], "digest": "sha256:x", "location_id": like["location_id"],
+           "storage_key": "k", "size_bytes": 1, "media_type": "application/gzip",
+           "kind": like["kind"], "provenance": "declared", **values}
+    columns = ", ".join(f'"{name}"' for name in row)
+    store.execute(f"INSERT INTO artifacts ({columns}) VALUES ({', '.join('?' * len(row))})",
+                  tuple(row.values()))
 
-    import uuid
 
+@pytest.mark.parametrize("where", ["kind = 'node' AND step IS NOT NULL",
+                                   "step IS NULL AND kind <> 'input'"],
+                         ids=["node", "job-level"])
+def test_one_row_per_kind_per_node_even_under_a_race(server, finished, where):
+    '''🔴 Indexing runs on whichever request thread gets there first, so a
+    check before the insert cannot hold (a real aes run listed 38 node
+    archives for 23 nodes): the unique index decides, coalesced so a row with
+    no node, NULL in SQLite's eyes, is protected too.'''
     store = server.config["SC_STORE"]
-    existing = store.one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND kind = 'node' "
-        "AND step IS NOT NULL LIMIT 1", (finished["id"],))
-    assert existing is not None
-
-    # Exactly what a second thread would attempt, having passed _exists.
-    with pytest.raises(sqlite3.IntegrityError):
-        store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
-            "  location_id, storage_key, size_bytes, media_type, kind, "
-            "  provenance) "
-            "VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, 'application/gzip', "
-            "        'node', 'declared')",
-            (str(uuid.uuid4()), finished["id"], existing["step"], existing["index"],
-             existing["location_id"]))
-
-
-def test_the_job_level_rows_are_protected_too(server, finished):
-    '''SQLite counts NULLs as distinct in a unique index, which would leave
-    exactly the rows with no node unprotected -- hence the coalesce.'''
-    import sqlite3
-
-    import uuid
-
-    store = server.config["SC_STORE"]
-    existing = store.one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step IS NULL "
-        "AND kind <> 'input' LIMIT 1", (finished["id"],))
-    assert existing is not None
+    existing = store.one(f"SELECT * FROM artifacts WHERE job_id = ? AND {where} LIMIT 1",
+                         (finished["id"],))
 
     with pytest.raises(sqlite3.IntegrityError):
-        store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
-            "  location_id, storage_key, size_bytes, media_type, kind, "
-            "  provenance) "
-            "VALUES (?, ?, NULL, NULL, 'sha256:x', ?, 'k', 1, 'text/plain', "
-            "        ?, 'declared')",
-            (str(uuid.uuid4()), finished["id"], existing["location_id"],
-             existing["kind"]))
+        _insert(store, existing)
 
 
 def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
-    '''🔴 One per UPLOAD rather than exempt (database D101): an exemption
-    holds only while the code writes each row once, an ordinal in the key holds
-    anyway -- and a CHECK ties the ordinal to job-level `input` exactly.'''
-    import sqlite3
-
-    import uuid
-
+    '''🔴 One per UPLOAD (database D101); a CHECK ties the ordinal to
+    job-level `input` exactly.'''
     store = server.config["SC_STORE"]
     first = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
                       "AND step IS NULL", (finished["id"],))
     assert first["upload_seq"] == 1
 
-    def insert(kind, seq, step=None):
-        store.execute(
-            'INSERT INTO artifacts (id, job_id, step, "index", digest, '
-            "  location_id, storage_key, size_bytes, media_type, kind, upload_seq, "
-            "  provenance) VALUES (?, ?, ?, ?, 'sha256:x', ?, 'k', 1, "
-            "  'application/gzip', ?, ?, 'declared')",
-            (str(uuid.uuid4()), finished["id"], step, step and "0", first["location_id"],
-             kind, seq))
+    _insert(store, first, upload_seq=2)
+    for refused in ({"upload_seq": 2},                       # the same upload twice
+                    {"upload_seq": None},                    # a job-level input, unnumbered
+                    {"kind": "logs", "upload_seq": 3},       # a number on anything else
+                    {"upload_seq": 3, "step": "stepone", "index": "0"}):   # or a node's
+        with pytest.raises(sqlite3.IntegrityError):
+            _insert(store, first, **refused)
 
-    insert("input", 2)
-    with pytest.raises(sqlite3.IntegrityError):
-        insert("input", 2)                       # the same upload twice
-    with pytest.raises(sqlite3.IntegrityError):
-        insert("input", None)                    # a job-level input with no number
-    with pytest.raises(sqlite3.IntegrityError):
-        insert("logs", 3)                        # a number on anything else
-    with pytest.raises(sqlite3.IntegrityError):
-        insert("input", 3, step="stepone")       # or on a node's input
 
+###########################
+# What a node's archives hold
+###########################
 
 def test_a_node_input_is_what_it_was_handed_and_no_member_of_its_archive(
         server_client, key, token, finished):
-    '''The node archive leaves `inputs/` out, so a node's `input` decides
-    nothing about whether that archive may be fetched.'''
+    '''The node archive leaves `inputs/` out, so `input` gates nothing there.'''
     items = listing(server_client, key, token, finished["id"], "?kind=input&step=stepone")
 
     assert [(item["step"], item["index"]) for item in items] == [("stepone", "0")]
     assert items[0]["media_type"] == "application/gzip" and items[0]["fetchable"]
 
 
-def _node_with_inputs(server, finished, step, links):
-    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
-    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
-    node = root / job["design"] / job["jobname"] / step / "0"
-    (node / "inputs").mkdir(parents=True)
-    (node / f"sc_{step}_0.log").write_text("log\n")
-    for name, target in links.items():
-        (node / "inputs" / name).symlink_to(target)
-    from siliconcompiler.remote.server.outputs import artifacts
-    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                           server.config["SC_CONFIG"], job, root, step, "0")
-    return server.config["SC_STORE"].all(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step = ?", (job["id"], step))
-
-
-def _upstream_file(server, finished):
-    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
-    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
-    upstream = root / "gcd" / "job0" / "stepone" / "0" / "outputs"
-    upstream.mkdir(parents=True, exist_ok=True)
-    (upstream / "gcd.vg").write_text("module gcd; endmodule\n")
-    return job, root, upstream / "gcd.vg"
-
-
-def _members(server, row):
-    import tarfile
-
-    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
-        return {member.name: member for member in tar.getmembers()}
-
-
-def test_the_node_bound_input_holds_links_not_bytes(server, finished):
-    '''🔴 An upstream output linked into a node's `inputs/` is stored as one
-    link to its home, never as the bytes (database D142).'''
-    _, _, upstream = _upstream_file(server, finished)
-
-    rows = _node_with_inputs(server, finished, "linked", {"gcd.vg": upstream})
-    row, = [row for row in rows if row["kind"] == "input"]
-
-    member = _members(server, row)["inputs/gcd.vg"]
-    assert member.issym()
-    assert member.linkname == "../../../stepone/0/outputs/gcd.vg"
-
-
-def _pass_through(server, finished, hard: bool):
-    '''A node that passes its input through: `outputs/x` -> `inputs/x` ->
-    the upstream `outputs/x`, by symlink or by hard link, as
-    `link_symlink_copy` makes it.'''
-    import os
-
+def _collected(server, finished, step, plant):
+    '''Lay out node ``step``/0 with ``plant(node, upstream)`` and collect it:
+    each archive's members, by kind. ``upstream`` is stepone's
+    `outputs/gcd.vg`.'''
     from siliconcompiler.remote.server.outputs import artifacts
 
-    job, root, upstream = _upstream_file(server, finished)
-    node = root / "gcd" / "job0" / "passed" / "0"
-    (node / "inputs").mkdir(parents=True)
-    (node / "outputs").mkdir()
-    (node / "sc_passed_0.log").write_text("log\n")
-    if hard:
-        os.link(upstream, node / "inputs" / "gcd.vg")
-        os.link(node / "inputs" / "gcd.vg", node / "outputs" / "gcd.vg")
-    else:
-        (node / "inputs" / "gcd.vg").symlink_to(upstream)
-        (node / "outputs" / "gcd.vg").symlink_to("../inputs/gcd.vg")
-    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                           server.config["SC_CONFIG"], job, root, "passed", "0")
-    return {row["kind"]: row for row in server.config["SC_STORE"].all(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'passed'", (job["id"],))}
+    store = server.config["SC_STORE"]
+    job = _job(server, finished["id"])
+    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
+    upstream = root / "gcd" / "job0" / "stepone" / "0" / "outputs" / "gcd.vg"
+    upstream.write_text("module gcd; endmodule\n")
+    node = root / "gcd" / "job0" / step / "0"
+    node.mkdir(parents=True)
+    plant(node, upstream)
+    artifacts.collect_node(store, server.config["SC_STORAGE"], server.config["SC_CONFIG"],
+                           job, root, step, "0")
+    return {row["kind"]: _members(server, row) for row in store.all(
+        "SELECT * FROM artifacts WHERE job_id = ? AND step = ?", (job["id"], step))}
 
 
 @pytest.mark.parametrize("hard", [False, True], ids=["symlinked", "hard-linked"])
 def test_a_pass_through_nodes_archive_holds_one_link_to_its_home(server, finished, hard):
-    '''SiliconCompiler's chain becomes one relative link to the upstream
-    node's `outputs/` -- a symlinked chain by reading it, a hard-linked one by
-    finding the file's home by inode. Nothing is copied.'''
-    rows = _pass_through(server, finished, hard)
+    '''🔴 `outputs/x` -> `inputs/x` -> upstream `outputs/x`, as
+    `link_symlink_copy` makes it, is one relative link to the upstream file in
+    both archives (database D142) -- read off a symlink, found by inode for a
+    hard link. Nothing is copied.'''
+    def plant(node, upstream):
+        (node / "inputs").mkdir()
+        (node / "outputs").mkdir()
+        (node / "sc_passed_0.log").write_text("log\n")
+        if hard:
+            os.link(upstream, node / "inputs" / "gcd.vg")
+            os.link(node / "inputs" / "gcd.vg", node / "outputs" / "gcd.vg")
+        else:
+            (node / "inputs" / "gcd.vg").symlink_to(upstream)
+            (node / "outputs" / "gcd.vg").symlink_to("../inputs/gcd.vg")
+
+    members = _collected(server, finished, "passed", plant)
 
     for kind, name in (("node", "outputs/gcd.vg"), ("input", "inputs/gcd.vg")):
-        member = _members(server, rows[kind])[name]
-        assert member.issym(), (kind, member.type)
-        assert member.linkname == "../../../stepone/0/outputs/gcd.vg"
+        assert members[kind][name].issym(), (kind, members[kind][name].type)
+        assert members[kind][name].linkname == "../../../stepone/0/outputs/gcd.vg"
 
 
 def test_a_hard_linked_pair_in_one_node_is_a_tar_hard_link(server, finished):
-    '''Both names in the same archive: the bytes once, and a hard link to
-    their first appearance.'''
-    import os
+    '''The bytes once, and a hard link to their first appearance.'''
+    def plant(node, upstream):
+        (node / "outputs").mkdir()
+        (node / "outputs" / "a.vg").write_text("module a; endmodule\n")
+        os.link(node / "outputs" / "a.vg", node / "outputs" / "b.vg")
 
-    from siliconcompiler.remote.server.outputs import artifacts
+    members = _collected(server, finished, "twice", plant)["node"]
 
-    job, root, _ = _upstream_file(server, finished)
-    node = root / "gcd" / "job0" / "twice" / "0"
-    (node / "outputs").mkdir(parents=True)
-    (node / "outputs" / "a.vg").write_text("module a; endmodule\n")
-    os.link(node / "outputs" / "a.vg", node / "outputs" / "b.vg")
-    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                           server.config["SC_CONFIG"], job, root, "twice", "0")
-    row = server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'twice' AND kind = 'node'",
-        (job["id"],))
-
-    members = _members(server, row)
     assert members["outputs/a.vg"].isfile()
     assert members["outputs/b.vg"].islnk()
     assert members["outputs/b.vg"].linkname == "outputs/a.vg"
 
 
 def test_a_file_with_a_name_outside_the_job_is_dropped(server, finished, tmp_path):
-    '''🔴 A link count above the names the job's tree holds is a name
-    outside the job -- PDK data hard-linked in, perhaps -- and it is treated as
-    a link leaving the job: dropped, never stored.'''
-    import os
-
-    from siliconcompiler.remote.server.outputs import artifacts
-
-    job, root, _ = _upstream_file(server, finished)
+    '''🔴 More links than names in the job's tree means a name outside it -- PDK
+    data hard-linked in -- so it is a link leaving the job: never stored.'''
     outside = tmp_path / "pdk.lib"
     outside.write_text("the foundry's own file\n")
-    node = root / "gcd" / "job0" / "borrowed" / "0"
-    (node / "outputs").mkdir(parents=True)
-    (node / "outputs" / "mine.v").write_text("module mine; endmodule\n")
-    try:
-        os.link(outside, node / "outputs" / "pdk.lib")
-    except OSError:
-        pytest.skip("the job tree and tmp_path are on different filesystems")
-    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                           server.config["SC_CONFIG"], job, root, "borrowed", "0")
-    row = server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'borrowed' AND kind = 'node'",
-        (job["id"],))
 
-    members = _members(server, row)
+    def plant(node, upstream):
+        (node / "outputs").mkdir()
+        (node / "outputs" / "mine.v").write_text("module mine; endmodule\n")
+        try:
+            os.link(outside, node / "outputs" / "pdk.lib")
+        except OSError:
+            pytest.skip("the job tree and tmp_path are on different filesystems")
+
+    members = _collected(server, finished, "borrowed", plant)["node"]
+
     assert "outputs/pdk.lib" not in members
     assert members["outputs/mine.v"].isfile()
 
 
 def test_a_name_the_next_node_adds_while_a_node_is_archived_is_inside_the_job(
         server, finished, monkeypatch):
-    '''🔴 The race that lost a compiled testbench: a node is archived as it
-    finishes, which is when the scheduler starts the next node and hard-links
-    this node's outputs into its inputs. A name that appears after the walk is
-    still inside the job, and the file is stored, not left out as if it had a
-    name outside.'''
-    import os
-
+    '''🔴 The race that lost a compiled testbench: the next node starts, and
+    hard-links this node's outputs into its inputs, while this one is
+    archived. That name is inside the job, and the file is stored.'''
     from siliconcompiler.remote import links
-    from siliconcompiler.remote.server.outputs import artifacts
 
-    job, root, _ = _upstream_file(server, finished)
-    node = root / "gcd" / "job0" / "compile" / "0"
-    (node / "outputs").mkdir(parents=True)
-    built = node / "outputs" / "tb.vexe"
-    built.write_bytes(b"\x7fELF the compiled testbench")
-    inputs = root / "gcd" / "job0" / "simulate" / "0" / "inputs"
-    inputs.mkdir(parents=True)
+    paths = {}
+
+    def plant(node, upstream):
+        (node / "outputs").mkdir()
+        paths["built"] = node / "outputs" / "tb.vexe"
+        paths["built"].write_bytes(b"\x7fELF the compiled testbench")
+        paths["inputs"] = node.parents[1] / "simulate" / "0" / "inputs"
+        paths["inputs"].mkdir(parents=True)
 
     walk = links.Homes._walk
 
     def walk_then_start_the_next_node(self):
         walk(self)
-        if not (inputs / "tb.vexe").exists():
-            os.link(built, inputs / "tb.vexe")
+        if not (paths["inputs"] / "tb.vexe").exists():
+            os.link(paths["built"], paths["inputs"] / "tb.vexe")
 
     monkeypatch.setattr(links.Homes, "_walk", walk_then_start_the_next_node)
 
-    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                           server.config["SC_CONFIG"], job, root, "compile", "0")
-    row = server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE job_id = ? AND step = 'compile' AND kind = 'node'",
-        (job["id"],))
+    members = _collected(server, finished, "compile", plant)["node"]
 
-    members = _members(server, row)
     assert members["outputs/tb.vexe"].isfile()
-    assert members["outputs/tb.vexe"].size == built.stat().st_size
+    assert members["outputs/tb.vexe"].size == paths["built"].stat().st_size
 
 
-def test_a_link_out_of_the_job_is_never_read_nor_stored(
-        server, finished, tmp_path):
-    '''🔴 The attack (surface D133): a node's own code leaves a link to a
-    host file in its inputs. Following it would pack the host's bytes as the
-    job's; storing it would hand out the host's path (D159).'''
-    import tarfile
-
+def test_a_link_out_of_the_job_is_never_read_nor_stored(server, finished, tmp_path):
+    '''🔴 Surface D133: following it packs the host's bytes as the job's;
+    storing it hands out the host's path (D159).'''
     secret = tmp_path / "host-secret"
     secret.write_text("the host's own file\n")
-    rows = _node_with_inputs(server, finished, "outward", {"stolen": secret})
-    row, = [row for row in rows if row["kind"] == "input"]
 
-    with tarfile.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"])) as tar:
-        assert not any(m.name.endswith("stolen") for m in tar.getmembers())
-        assert not any(str(secret) in (m.linkname or "") for m in tar.getmembers())
+    def plant(node, upstream):
+        (node / "inputs").mkdir()
+        (node / "sc_outward_0.log").write_text("log\n")
+        (node / "inputs" / "stolen").symlink_to(secret)
+
+    members = _collected(server, finished, "outward", plant)["input"].values()
+
+    assert not any(m.name.endswith("stolen") for m in members)
+    assert not any(str(secret) in (m.linkname or "") for m in members)
 
 
 def test_a_log_that_is_a_link_out_is_not_indexed(server, finished, tmp_path):
-    '''The same attack on the files indexed one by one: a node that replaces
-    its log with a link does not get the host's file published as its log.'''
+    '''The same attack on the files indexed one by one: not as the bytes, and
+    not as a link naming the host's path.'''
     secret = tmp_path / "host-secret"
     secret.write_text("the host's own file\n")
-    job = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (finished["id"],))
-    root = server.config["SC_JOBS"].job_root(job["user_id"], job["id"])
-    node = root / "gcd" / "job0" / "linklog" / "0"
-    (node / "outputs").mkdir(parents=True)
-    (node / "sc_linklog_0.log").symlink_to(secret)
-    (node / "outputs" / "gcd.pkg.json").symlink_to(secret)
 
-    from siliconcompiler.remote.server.outputs import artifacts
-    artifacts.collect_node(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                           server.config["SC_CONFIG"], job, root, "linklog", "0")
+    def plant(node, upstream):
+        (node / "outputs").mkdir()
+        (node / "sc_linklog_0.log").symlink_to(secret)
+        (node / "outputs" / "gcd.pkg.json").symlink_to(secret)
 
-    rows = server.config["SC_STORE"].all(
-        "SELECT kind, storage_key FROM artifacts WHERE job_id = ? AND step = 'linklog'",
-        (job["id"],))
-    assert {row["kind"] for row in rows} == {"node"}
-    import tarfile
-    with tarfile.open(server.config["SC_STORAGE"].artifact_path(rows[0]["storage_key"])) as tar:
-        # Not in the node archive at all: never as the bytes, and not as a link
-        # naming the host's path either.
-        assert "sc_linklog_0.log" not in tar.getnames()
-        assert all(not member.isfile() for member in tar.getmembers())
+    members = _collected(server, finished, "linklog", plant)
+
+    assert set(members) == {"node"}
+    assert "sc_linklog_0.log" not in members["node"]
+    assert all(not member.isfile() for member in members["node"].values())
 
 
 ###########################
@@ -1157,20 +783,15 @@ def _uploads(server, job_id):
 
 def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
         server, server_client, key, token, job_archive, dispatcher):
-    '''A refusal of the request, so the job still waits and its upload is
-    kept where the grant put it; the bytes the grant was issued for, sent to
-    it, are recorded -- under the hash storage holds.'''
-    from test_server_jobs import put, sized
-
+    '''A refusal of the request: the job waits and its upload is kept; the
+    right bytes, sent again, are recorded under the hash storage holds.'''
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
                  token, json=sized(size, digest)).get_json()
     put(server_client, grant, b"\0" * size)
 
-    response = submit(server_client, key, token, job["id"])
-
-    assert slug(response) == "upload-digest-mismatch"
+    assert slug(submit(server_client, key, token, job["id"])) == "upload-digest-mismatch"
     assert not _uploads(server, job["id"])
     assert server.config["SC_STORAGE"].stat_upload(job["id"])[0] == size
 
@@ -1182,9 +803,8 @@ def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
 
 def test_an_upload_refused_for_a_private_value_is_deleted_and_the_reason_kept(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 A private dataroot's value is not kept (surface D308): the bytes go.
-    The job, its reason, and the member and hash the reason names are what
-    remains.'''
+    '''🔴 A private dataroot's value is not kept (surface D308): the job, its
+    reason, and the member and hash it names remain.'''
     from siliconcompiler.remote.server.errors import ProblemError
 
     archive, digest, size = job_archive()
@@ -1194,9 +814,7 @@ def test_an_upload_refused_for_a_private_value_is_deleted_and_the_reason_kept(
     stored = server.config["SC_STORAGE"].artifact_path(kept["storage_key"])
     assert stored.is_file()
 
-    jobs = server.config["SC_JOBS"]
-    row = server.config["SC_STORE"].one("SELECT * FROM jobs WHERE id = ?", (job["id"],))
-    jobs._refuse(row, ProblemError(
+    server.config["SC_JOBS"]._refuse(_job(server, job["id"]), ProblemError(
         "archive-rejected", reason="unrequested_member",
         keypath=["library", "acme", "dataroot", "cells"],
         detail="sc_collected_files/cells.lef (sha256:abc) is under the private dataroot "
@@ -1209,174 +827,81 @@ def test_an_upload_refused_for_a_private_value_is_deleted_and_the_reason_kept(
     assert "cells.lef" in reason and "sha256:abc" in reason
 
 
-def test_a_node_over_a_member_deleted_on_its_own_is_not_approved_and_alerts(
-        server, server_client, key, token, finished, caplog):
-    '''🔴 Handing the archive over would undo the deletion (entitlements
-    D41). The state should not exist -- a node is reaped with its first member
-    -- so an operator is told, once.'''
-    items = listing(server_client, key, token, finished["id"])
-    log = next(i for i in items if i["kind"] == "logs" and i["step"] == "stepone")
-    node = next(i for i in items if i["kind"] == "node" and i["step"] == "stepone")
-    _mark(server, log, deleted_at="2026-09-26T00:00:00.000Z")
-
-    with caplog.at_level("ERROR", logger="sc-server"):
-        first = _fetch(server_client, key, token, finished["id"], node)
-        _fetch(server_client, key, token, finished["id"], node)
-
-    assert slug(first) == "artifact-not-approved"
-    assert sum("deleted on its own" in record.message for record in caplog.records) == 1
-
-
 ###########################
 # The run's own log
 ###########################
 
-def _only(items, kind, step=None):
-    return [item for item in items
-            if item["kind"] == kind and item["step"] == step]
-
-
-def test_the_runs_own_job_log_is_indexed(server, server_client, key, token,
-                                         job_archive, dispatcher):
-    '''🔴 It never was. The glob was `job.*.log`, which matches the timestamped
-    backups a re-run leaves and never `job.log` itself -- and on this server
-    every job gets its own directory, so there are no backups. The pattern
-    matched nothing, every time.'''
-    def prepare(job_root, build_dir):
-        (build_dir / "job.log").write_text("the flow ran\n")
-
-    job = ran(server, server_client, key, token, job_archive, prepare)
-    items = listing(server_client, key, token, job["id"])
-
-    assert len(_only(items, "logs")) == 1
-    assert _only(items, "logs")[0]["media_type"] == "application/gzip"
-
-
-def test_a_stale_backup_log_is_not_mistaken_for_this_run(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''What the old glob would have picked: the oldest rotated backup, which is
-    a previous run's log presented as this one's.'''
-    def prepare(job_root, build_dir):
-        (build_dir / "job.20200101-000000.log").write_text("a different run\n")
-
-    job = ran(server, server_client, key, token, job_archive, prepare)
-    assert not _only(listing(server_client, key, token, job["id"]), "logs")
-
-
-def test_the_runners_own_log_is_the_operators_and_never_the_jobs_log(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 The run died before SiliconCompiler wrote its `job.log`, and the
-    runner's own log is the only account there is. It is the operators'
-    record, `diagnostics` (surface D295): listed, never fetchable over the API,
-    and refused when asked for. Job-level `logs` is `job.log` alone.'''
+def _job_logs(server, server_client, key, token, job_archive, **files):
+    '''Run with ``files`` (`job_log`, `backup`, `run_log`) left behind; the
+    job and its listing.'''
     from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     def prepare(job_root, build_dir):
-        (job_root / RUN_LOG).write_text("Traceback (most recent call last):\n")
+        for name, path in (("job_log", build_dir / "job.log"),
+                           ("backup", build_dir / "job.20200101-000000.log"),
+                           ("run_log", job_root / RUN_LOG)):
+            if name in files:
+                path.write_text(files[name])
 
     job = ran(server, server_client, key, token, job_archive, prepare)
-    items = listing(server_client, key, token, job["id"])
-
-    assert not [item for item in _only(items, "logs") if item["step"] is None]
-    held, = [item for item in _only(items, "diagnostics") if item["step"] is None]
-    assert held["fetchable"] is False
-    got = call(server_client, key, "GET",
-               f"/v1/jobs/{job['id']}/artifacts/{held['id']}", token)
-    assert got.status_code == 403
-    assert slug(got) == "artifact-not-approved"
-
-    members = _members(server, server.config["SC_STORE"].one(
-        "SELECT * FROM artifacts WHERE id = ?", (held["id"],)))
-    assert "run.log" in members
-
-
-def test_only_one_job_level_log_is_ever_indexed(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''⚠️ An artifact is identified by `(job, kind, step, index)` and carries no
-    name on the wire, so two job-level logs would reach a client as two objects
-    it cannot tell apart -- the duplicate-looking listing this server has
-    already produced once.'''
-    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
-
-    def prepare(job_root, build_dir):
-        (build_dir / "job.log").write_text("the flow ran\n")
-        (job_root / RUN_LOG).write_text("and the batch job said this\n")
-
-    job = ran(server, server_client, key, token, job_archive, prepare)
-    assert len(_only(listing(server_client, key, token, job["id"]), "logs")) == 1
+    return job, listing(server_client, key, token, job["id"])
 
 
 def test_the_job_level_log_is_the_runs_job_log_alone(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 SiliconCompiler's `job.log`, and nothing of this server's: its record
-    of the job is `staging` and `diagnostics`, never inside the run's own log,
-    where the two read as one confusing file (surface D295).'''
-    import gzip
+    '''🔴 It was never indexed: the glob `job.*.log` matched only re-run backups.
+    One job-level log, since an artifact carries no name on the wire, and
+    SiliconCompiler's alone -- this server's record is `staging` and
+    `diagnostics` (surface D295) -- named for the job, with no node segment.'''
+    job, items = _job_logs(server, server_client, key, token, job_archive,
+                           job_log="the flow ran\n", run_log="and the batch job said this\n")
 
-    from siliconcompiler.remote.server.running.dispatch import RUN_LOG
-
-    def prepare(job_root, build_dir):
-        (build_dir / "job.log").write_text("the flow ran\n")
-        (job_root / RUN_LOG).write_text("and the batch job said this\n")
-
-    job = ran(server, server_client, key, token, job_archive, prepare)
-    item, = [item for item in _only(listing(server_client, key, token, job["id"]), "logs")
-             if item["step"] is None]
+    item, = _only(items, "logs")
+    assert item["media_type"] == "application/gzip"
     row = server.config["SC_STORE"].one("SELECT storage_key FROM artifacts WHERE id = ?",
                                         (item["id"],))
     with gzip.open(server.config["SC_STORAGE"].artifact_path(row["storage_key"]), "rt") as f:
         assert f.read() == "the flow ran\n"
-
-
-def test_the_job_level_log_is_named_for_the_job(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''No node in the name, because there is no node -- rather than an empty
-    segment where one would go.'''
-    def prepare(job_root, build_dir):
-        (build_dir / "job.log").write_text("the flow ran\n")
-
-    job = ran(server, server_client, key, token, job_archive, prepare)
-    item = _only(listing(server_client, key, token, job["id"]), "logs")[0]
-
-    got = call(server_client, key, "GET",
-               f"/v1/jobs/{job['id']}/artifacts/{item['id']}", token)
-    fetched = server_client.get(got.headers["Location"])
+    fetched = server_client.get(_fetch(server_client, key, token, job["id"],
+                                       item).headers["Location"])
     assert "gcd-job0-logs.log" in fetched.headers["Content-Disposition"]
 
 
-def test_the_two_ways_bytes_go_are_told_apart_by_an_enum(
-        server, server_client, key, token, finished):
-    '''🔴 `deleted_by` decides it and `deleted_by` is not on the wire: it names
-    a user, which is a fact about an account rather than about the object. NULL
-    is the reaper -- retention doing what it said -- and set is a person.'''
-    items = listing(server_client, key, token, finished["id"])
-    assert all(item["deleted_cause"] is None for item in items)
+def test_the_runners_own_log_is_the_operators_and_a_backup_is_nobodys(
+        server, server_client, key, token, job_archive, dispatcher):
+    '''🔴 A run that died before `job.log` leaves only the runner's log: the
+    operators' `diagnostics` (surface D295), listed, never fetchable over the
+    API. A stale rotated backup is a previous run's log, never this one's.'''
+    job, items = _job_logs(server, server_client, key, token, job_archive,
+                           backup="a different run\n",
+                           run_log="Traceback (most recent call last):\n")
+
+    assert not _only(items, "logs")
+    held, = _only(items, "diagnostics")
+    assert held["fetchable"] is False
+    got = _fetch(server_client, key, token, job["id"], held)
+    assert (got.status_code, slug(got)) == (403, "artifact-not-approved")
+    assert "run.log" in _members(server, server.config["SC_STORE"].one(
+        "SELECT * FROM artifacts WHERE id = ?", (held["id"],)))
+
+
+def test_a_deletion_says_who_took_the_bytes(server, server_client, key, token, finished):
+    '''🔴 `deleted_by` decides `deleted_cause` and is not on the wire (it names
+    a user): NULL is the reaper, set is a person. ✅ The reason is synthesized,
+    naming who acted and never the device or an id (surface §17, §19); a job
+    carries no `deleted_cause` (D279).'''
+    from siliconcompiler.remote.server.outputs import artifacts
+
+    assert all(item["deleted_cause"] is None
+               for item in listing(server_client, key, token, finished["id"]))
 
     call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
 
-    after = server.config["SC_STORE"].all(
-        "SELECT * FROM artifacts WHERE job_id = ?", (finished["id"],))
-    from siliconcompiler.remote.server.outputs import artifacts as art
-
-    assert after and all(art.cause(row) == "removed" for row in after)
-
-
-def test_a_deletion_nobody_gave_a_reason_for_says_where_it_came_from(
-        server, server_client, key, token, finished):
-    '''✅ Synthesized rather than left null, naming who acted -- the owner
-    here -- and never the device or an id (surface §17, §19).'''
-    call(server_client, key, "DELETE", f"/v1/jobs/{finished['id']}", token)
-
-    reasons = {row["deleted_reason"] for row in server.config["SC_STORE"].all(
-        "SELECT deleted_reason FROM artifacts WHERE job_id = ?",
-        (finished["id"],))}
-
-    assert len(reasons) == 1
-    said = reasons.pop()
-    assert said == "deleted by its owner"
+    after = server.config["SC_STORE"].all("SELECT * FROM artifacts WHERE job_id = ?",
+                                          (finished["id"],))
+    assert after and all(artifacts.cause(row) == "removed" for row in after)
+    assert {row["deleted_reason"] for row in after} == {"deleted by its owner"}
     read = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}", token).get_json()
-    # Set exactly when deleted_at is, and no deleted_cause on a job (D279).
-    assert read["deleted_reason"] == said and "deleted_cause" not in read
-    # And never the account it acted as.
+    assert read["deleted_reason"] == "deleted by its owner" and "deleted_cause" not in read
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-    assert me not in said
+    assert me not in read["deleted_reason"]

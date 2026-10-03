@@ -4,7 +4,7 @@ import threading
 import pytest
 
 from siliconcompiler import Flowgraph, Project
-from siliconcompiler.remote import Credentials
+from siliconcompiler.remote import Client, Credentials
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
 
@@ -12,27 +12,15 @@ from siliconcompiler.utils.paths import jobdir
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 
-# 🔴 The parity milestone. Before it the new path does nothing a user wants;
-# after it every remaining phase is additive.
-#
-# Both halves for real: a server on a real port, a real store, a real archive
-# over a real socket, a real dispatch, and `project.run()` driving it through
-# ClientScheduler. What it asserts is the gate -- that the build directory the
-# run produced matches what the same design produces locally.
-#
-# It is the server's copy of the tree that is compared, because fetching results
-# back to the client is the artifact endpoints, which are the next phase.
+# 🔴 The parity milestone, both halves for real: a server on a real port, a real
+# store, archive, socket and dispatch, and `project.run()` driving it. The gate
+# is that a remote run's build directory matches a local run's.
 
 
 @pytest.fixture
 def live_server():
-    '''A server on an ephemeral port, in a thread of its own.
-
-    A real socket rather than `app.test_client()`, and the difference is not
-    cosmetic: the test client runs a handler on the calling thread, so it cannot
-    see anything that is wrong with holding state per thread -- which is exactly
-    what a sqlite connection is.
-    '''
+    '''A server on a real socket: the test client runs a handler on the
+    calling thread, so it cannot see per-thread state such as sqlite's.'''
     from werkzeug.serving import make_server
 
     from siliconcompiler.remote.server.app import create_app
@@ -50,7 +38,11 @@ def live_server():
         thread.join(timeout=10)
 
 
-def build_project(gcd_design, builddir):
+def credentials():
+    return os.path.abspath("sc-home/auth/remote.json")
+
+
+def build_project(gcd_design, builddir, remote=False):
     project = Project(gcd_design)
     project.add_fileset("rtl")
     project.add_fileset("sdc")
@@ -66,7 +58,19 @@ def build_project(gcd_design, builddir):
     project.option.set_nodashboard(True)
     project.option.set_jobname("job0")
     project.option.set_builddir(os.path.abspath(builddir))
+    if remote:
+        project.option.set_credentials(credentials())
+        project.option.set_remote(True)
     return project
+
+
+@pytest.fixture
+def ran(gcd_design, live_server):
+    '''A remote run: the project, the history `run()` returned, and a client.'''
+    Credentials(credentials()).set_server(live_server)
+    remote = build_project(gcd_design, "remote-build", remote=True)
+    history = remote.run()
+    return remote, history, Client(Credentials(credentials()))
 
 
 def tree(root):
@@ -78,32 +82,19 @@ def tree(root):
     return found
 
 
-def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_server):
+def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, ran):
+    remote, history, client = ran
     local = build_project(gcd_design, "local-build")
     local.run()
     local_tree = tree(jobdir(local))
     assert local_tree
 
-    credentials = Credentials(os.path.abspath("sc-home/auth/remote.json"))
-    credentials.set_server(live_server)
-
-    remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
-    remote.option.set_remote(True)
-    remote.run()
-
-    from siliconcompiler.remote import Client
-
-    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
     jobs = client.jobs()
     assert len(jobs) == 1
-
     job = jobs[0]
     assert job["state"] == "completed"
     assert job["terminal"] is True
-    assert job["design"] == "gcd"
-    assert job["jobname"] == "job0"
-    assert job["flow"] == "nopflow"
+    assert (job["design"], job["jobname"], job["flow"]) == ("gcd", "job0", "nopflow")
 
     detail, _ = client.job(job["id"])
     assert detail["progress"] == {"total_count": 2, "completed_count": 2,
@@ -113,134 +104,70 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, live_serve
     assert all(node["terminal"] for node in detail["nodes"])
     assert detail["submitted_at"] and detail["started_at"] and detail["finished_at"]
 
-    # 🔴 The gate: every file a local run produced, the remote run produced too.
-    identity = client.me()
-    root = os.path.join("datadir", "users", identity["id"], "builds", job["id"],
+    # 🔴 The gate: every file a local run produced, the server's run produced.
+    root = os.path.join("datadir", "users", client.me()["id"], "builds", job["id"],
                         "gcd", "job0")
     assert local_tree <= tree(root), sorted(local_tree - tree(root))
 
-    # 🔴 And now on THIS machine, which is what a user actually looks at. The
-    # two differences are both deliberate: `inputs/` is copies of the upstream
-    # node's outputs, which the caller has from the upstream node, and
-    # sc_remote.pkg.json is the client's own handle for reconnecting.
+    # 🔴 And on THIS machine, less `inputs/` (copies of upstream outputs).
     here = tree(jobdir(remote))
     missing = {name for name in local_tree - here
                if os.sep + "inputs" + os.sep not in os.sep + name}
     assert not missing, sorted(missing)
-    # What the remote run has and a local one does not: its own handle for
-    # reconnecting, and the log the server's own run wrote.
-    #
-    # 🔴 `remote-job.log` and not `job.log`: a remote run is still a
-    # `Scheduler` run, so the local `job.log` is open and being appended to for
-    # the whole of it, and downloading onto it would truncate a file this
-    # process is still writing.
-    # And which job each directory's results came from, as this client
-    # recorded it -- never read back out of a manifest.
+    # Extra: the reconnect handle, the server's log as `remote-job.log` (`job.log`
+    # is open), its staging record, and each directory's job as recorded here.
     extra = here - local_tree
-    assert "sc_remote.pkg.json" in extra
-    assert "remote-job.log" in extra
-    # The server's record of the job, beside the run's own log and never in it.
-    assert "remote-staging.log" in extra
-    assert "sc_remote_job.json" in extra
+    for name in ("sc_remote.pkg.json", "remote-job.log", "remote-staging.log",
+                 "sc_remote_job.json"):
+        assert name in extra
     assert all(name in ("sc_remote.pkg.json", "remote-job.log", "remote-staging.log")
                or os.path.basename(name) == "sc_remote_job.json"
                or name.startswith("job.")
                for name in extra), sorted(extra)
 
-
-def test_a_summary_works_after_a_remote_run(gcd_design, live_server):
-    '''What the manifests are fetched FOR. The record, the metrics and the tool
-    versions are in them and in nothing the poll loop saw, so a run whose
-    results did not come back can report node states and no numbers.'''
-    Credentials(os.path.abspath("sc-home/auth/remote.json")).set_server(live_server)
-
-    remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
-    remote.option.set_remote(True)
-    history = remote.run()
-
+    # What the manifests are fetched FOR: a summary, read off run()'s history.
     remote.summary()
-
-    # Read off the history `run()` returns, which is where a LOCAL run leaves
-    # them too: the live parameters are reset when a run ends.
     for step in ("stepone", "steptwo"):
         assert history.get("metric", "tasktime", step=step, index="0") is not None
         assert history.get("record", "status", step=step, index="0") == "success"
 
-
-def test_one_nodes_log_comes_back_as_text(gcd_design, live_server):
-    '''Endpoint 20 followed to its bytes. A log at rest IS an artifact, so
-    this is the same machinery the listing uses with a different scope gate.'''
-    Credentials(os.path.abspath("sc-home/auth/remote.json")).set_server(live_server)
-
-    remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
-    remote.option.set_remote(True)
-    remote.run()
-
-    from siliconcompiler.remote import Client
-
-    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
-    job = client.jobs()[0]
-
+    # Endpoint 20 followed to its bytes: a log at rest is an artifact.
     client.node_log(job["id"], "stepone", "0", "fetched.log")
     assert "stepone" in open("fetched.log").read()
 
 
-def test_the_run_happens_inside_the_users_own_tree(gcd_design, live_server):
-    '''Per user as well as per job -- build directory AND cache. Nothing a user
-    writes shares a path with another user, which is what makes the tree
-    single-owner and stops ccache and coursier creating directories the next
-    user cannot write into.'''
-    credentials = Credentials(os.path.abspath("sc-home/auth/remote.json"))
-    credentials.set_server(live_server)
-
-    remote = build_project(gcd_design, "remote-build")
-    remote.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
-    remote.option.set_remote(True)
-    remote.run()
-
-    from siliconcompiler.remote import Client
-
-    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
-    identity = client.me()
-    user_root = os.path.join("datadir", "users", identity["id"])
+def test_the_run_happens_inside_the_users_own_tree(ran):
+    '''Per user and per job, build directory AND cache, so no user creates a
+    directory the next cannot write into; and the settings the run saw.'''
+    _, _, client = ran
+    user_root = os.path.join("datadir", "users", client.me()["id"])
 
     assert os.path.isdir(os.path.join(user_root, "builds"))
     assert os.path.isdir(os.path.join(user_root, "cache"))
 
     job = client.jobs()[0]
-    manifest = os.path.join(user_root, "builds", job["id"], "gcd", "job0",
-                            "gcd.pkg.json")
-    ran = Project.from_manifest(filepath=manifest)
+    seen = Project.from_manifest(filepath=os.path.join(user_root, "builds", job["id"],
+                                                       "gcd", "job0", "gcd.pkg.json"))
 
-    # The seven settings, as the run actually saw them.
-    assert ran.option.get_remote() is False          # without it the node resubmits
-    assert ran.option.get_nodisplay() is True
-    assert ran.get('option', 'nodashboard') is True
-    assert ran.get('record', 'remoteid') == job["id"]
-    assert os.path.abspath(ran.option.get_builddir()) == \
+    assert seen.option.get_remote() is False          # without it the node resubmits
+    assert seen.option.get_nodisplay() is True
+    assert seen.get('option', 'nodashboard') is True
+    assert seen.get('record', 'remoteid') == job["id"]
+    assert os.path.abspath(seen.option.get_builddir()) == \
         os.path.abspath(os.path.join(user_root, "builds", job["id"]))
-    assert os.path.abspath(ran.option.get_cachedir()) == \
+    assert os.path.abspath(seen.option.get_cachedir()) == \
         os.path.abspath(os.path.join(user_root, "cache"))
 
 
 def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, monkeypatch):
-    '''🔴 E4, and it matters more under v1: the three-call submit means there is
-    more to waste. The test fails if the collection runs at all.'''
+    '''🔴 E4: a three-call submit has more to waste. Fails if collection runs.'''
     from siliconcompiler.remote.client import run as run_module
 
     def explode(self, *args, **kwargs):
         raise AssertionError("the job was packed before the server was checked")
     monkeypatch.setattr(run_module.RemoteRun, "_collect", explode)
-
-    project = build_project(gcd_design, "remote-build")
-    project.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
-    project.option.set_remote(True)
-
     with pytest.raises(RuntimeError) as raised:
-        project.run()
-
+        build_project(gcd_design, "remote-build", remote=True).run()
     assert "server" in str(raised.value).lower()
 
 
@@ -250,109 +177,57 @@ def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, mon
 
 def run_cli(monkeypatch, *args):
     from siliconcompiler.apps import sc_remote
-
-    monkeypatch.setattr("sys.argv", ["sc-remote", "-credentials",
-                                     os.path.abspath("sc-home/auth/remote.json"),
-                                     *args])
+    monkeypatch.setattr("sys.argv", ["sc-remote", "-credentials", credentials(), *args])
     return sc_remote.main()
 
 
 @pytest.fixture
-def submitted(gcd_design, live_server):
-    '''A job that has been run, and the manifest that names it.'''
-    Credentials(os.path.abspath("sc-home/auth/remote.json")).set_server(live_server)
-
-    project = build_project(gcd_design, "remote-build")
-    project.option.set_credentials(os.path.abspath("sc-home/auth/remote.json"))
-    project.option.set_remote(True)
-    project.run()
-
-    return os.path.join(os.path.abspath("remote-build"), "gcd", "job0",
-                        "sc_remote.pkg.json")
+def submitted(ran):
+    '''The manifest that names the job.'''
+    return os.path.join(jobdir(ran[0]), "sc_remote.pkg.json")
 
 
-def test_a_bare_cfg_reports_the_jobs_status(monkeypatch, caplog, submitted):
+def test_status_reconnect_and_tail_through_the_cli(monkeypatch, capsys, caplog, submitted):
+    '''🔴 The manifest naming the job is written before the upload. `-tail`
+    reaches a finished node's archive; the index defaults to 0, a step is needed.'''
+    assert Project.from_manifest(filepath=submitted).get('record', 'remoteid')
+
     with caplog.at_level("INFO"):
         assert run_cli(monkeypatch, "-cfg", submitted) == 0
+        assert "completed" in caplog.text
+        assert run_cli(monkeypatch, "-cfg", submitted, "-reconnect") == 0
 
-    assert "completed" in caplog.text
-
-
-def test_the_manifest_is_written_before_the_upload(submitted):
-    '''🔴 A user who interrupts a long run needs the job id, and interrupting it
-    is exactly the case where the run never reached its end to write one.'''
-    assert os.path.isfile(submitted)
-
-    ran = Project.from_manifest(filepath=submitted)
-    assert ran.get('record', 'remoteid')
+    for node in ("stepone/0", "stepone"):
+        assert run_cli(monkeypatch, "-cfg", submitted, "-tail", node) == 0
+        assert "stepone" in capsys.readouterr().out
+    caplog.clear()
+    with caplog.at_level("ERROR"):
+        assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "/0") == 1
+    assert "step" in caplog.text
 
 
 def test_delete_through_the_cli(monkeypatch, caplog, submitted):
     with caplog.at_level("INFO"):
         assert run_cli(monkeypatch, "-cfg", submitted, "-delete") == 0
-
-    from siliconcompiler.remote import Client
-
-    client = Client(Credentials(os.path.abspath("sc-home/auth/remote.json")))
-    assert client.jobs() == []
+    assert Client(Credentials(credentials())).jobs() == []
 
 
-def test_cancel_through_the_cli_is_an_answer_not_an_exception(
+def test_cancel_through_the_cli_is_an_answer_and_its_reason_is_held_to_300(
         monkeypatch, caplog, submitted):
-    '''Cancelling a job that has already finished is still a 202 with the
-    current object: the caller's intent is satisfied either way.'''
+    '''Cancelling a finished job is a 202 with the current object. `-reason` is
+    for `-cancel`, refused here at 300 characters as the server would.'''
     with caplog.at_level("INFO"):
         assert run_cli(monkeypatch, "-cfg", submitted, "-cancel") == 0
-
     assert "completed" in caplog.text
-
-
-def test_a_cancel_reason_through_the_cli_is_held_to_300(monkeypatch, caplog, submitted):
-    '''`-reason` is the user's own words for `-cancel`, refused here, naming
-    the limit, where the server would refuse it.'''
     assert run_cli(monkeypatch, "-cfg", submitted, "-cancel", "-reason", "x" * 301) == 1
     assert "at most 300 characters" in caplog.text
-
     assert run_cli(monkeypatch, "-cfg", submitted, "-cancel", "-reason", "wrong corner") == 0
     assert run_cli(monkeypatch, "-cfg", submitted, "-reason", "wrong corner") == 1
 
 
-def test_reconnect_through_the_cli(monkeypatch, caplog, submitted):
-    with caplog.at_level("INFO"):
-        assert run_cli(monkeypatch, "-cfg", submitted, "-reconnect") == 0
-
-
-def test_tailing_a_node_through_the_cli(monkeypatch, capsys, submitted):
-    '''`-tail` against a finished node reaches the archive by the same call a
-    live tail uses, and the client tells them apart by what it was served.'''
-    assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "stepone/0") == 0
-
-    assert "stepone" in capsys.readouterr().out
-
-
-def test_tail_needs_a_step(monkeypatch, caplog, submitted):
-    '''An index with no step names no node. (An empty -tail is indistinguishable
-    from not passing it, so the reachable bad input is this one.)'''
-    with caplog.at_level("ERROR"):
-        assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "/0") == 1
-
-    assert "step" in caplog.text
-
-
-def test_tail_defaults_the_index(monkeypatch, capsys, submitted):
-    '''`-tail stepone` is the common case and means index 0.'''
-    assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "stepone") == 0
-
-    assert "stepone" in capsys.readouterr().out
-
-
 def test_a_rotated_key_logs_in_again_as_a_new_device(live_server, tmp_path):
-    '''🔴 `sc-remote -rotate_key` against `sc-server`, whose subject is bound
-    to the first key it saw: the old key revokes its own device first, so the
-    new one enrols as a new device rather than being refused `invalid_client`
-    until an operator steps in.'''
-    from siliconcompiler.remote import Client
-
+    '''🔴 `sc-server` binds a subject to its first key: the old key revokes its
+    own device, so the new one enrols rather than being refused.'''
     path = tmp_path / "sc-home" / "auth" / "remote.json"
     credentials = Credentials(path)
     credentials.set_server(live_server)

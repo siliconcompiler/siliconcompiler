@@ -1,4 +1,3 @@
-import functools
 import http.server
 import io
 import os
@@ -16,36 +15,33 @@ from siliconcompiler.remote.server.staging.sources import Permanent, SourceStore
 from siliconcompiler.utils import UnsafeArchiveError
 
 
-# A source is fetched by SiliconCompiler's own resolver, unchanged, in a
-# process of its own: nothing of this process's to send, and one way out, the
-# proxy. These run that process for real, against servers on this machine --
-# which the proxy refuses as non-public unless a test lets it through.
+# A source is fetched by SiliconCompiler's own resolver in a process of its
+# own, whose one way out is the proxy. These run it for real against loopback
+# servers, which the proxy refuses as non-public unless a test lets it through.
 
 
-def tarball(files, top="ip-v1"):
+def tarball(files):
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
         for name, body in files.items():
-            info = tarfile.TarInfo(f"{top}/{name}")
+            info = tarfile.TarInfo(f"ip-v1/{name}")
             info.size = len(body)
             tar.addfile(info, io.BytesIO(body))
     return buffer.getvalue()
 
 
 class Site:
-    '''A web server on loopback that records every request: answers from
-    ``routes`` by path, or serves ``directory``.'''
+    '''A loopback web server answering from ``routes`` by path, recording
+    every request.'''
 
-    def __init__(self, routes=None, directory=None):
+    def __init__(self, routes=None):
         self.routes = routes or {}
         self.asked = []
         site = self
 
-        class Handler(http.server.SimpleHTTPRequestHandler):
+        class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
                 site.asked.append((self.path, dict(self.headers)))
-                if directory is not None:
-                    return super().do_GET()
                 answer = site.routes.get(self.path, (404, b"", {}))
                 status, body, headers = answer() if callable(answer) else answer
                 self.send_response(status)
@@ -58,8 +54,7 @@ class Site:
             def log_message(self, *args):
                 pass
 
-        handler = functools.partial(Handler, directory=directory) if directory else Handler
-        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.url = f"http://127.0.0.1:{self.server.server_address[1]}"
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
@@ -72,8 +67,8 @@ class Site:
 def site():
     made = []
 
-    def make(routes=None, directory=None):
-        made.append(Site(routes, directory))
+    def make(routes=None):
+        made.append(Site(routes))
         return made[-1]
     yield make
     for one in made:
@@ -82,8 +77,7 @@ def site():
 
 @pytest.fixture
 def loopback(monkeypatch):
-    '''Let the proxy connect to this machine, as it never does for a real
-    source: every other rule still applies.'''
+    '''Let the proxy connect to this machine; every other rule still applies.'''
     monkeypatch.setattr(envbuild.Proxy, "_public_only", lambda self, rules, url: False)
 
 
@@ -91,10 +85,13 @@ def store_for(web):
     return SourceStore(os.getcwd(), [allowlist.parse(f"{web.url}/")])
 
 
+def fetch_from(web, timeout=60):
+    return store_for(web).fetch(f"{web.url}/ip/", "v1", timeout=timeout)
+
+
 def test_a_source_is_fetched_and_held_with_nothing_of_this_process_sent(
         site, loopback, monkeypatch):
-    '''🔴 By SiliconCompiler's own resolver, so the copy is the user's -- and
-    with no token of this process's, whatever its environment holds.'''
+    '''🔴 By SiliconCompiler's own resolver, with no token of this process's.'''
     monkeypatch.setenv("GITHUB_TOKEN", "a-token-of-this-servers")
     monkeypatch.setenv("GIT_TOKEN", "a-token-of-this-servers")
     web = site({"/ip/v1.tar.gz": (200, tarball({"lef/a.lef": b"LEF"}), {})})
@@ -105,14 +102,12 @@ def test_a_source_is_fetched_and_held_with_nothing_of_this_process_sent(
     assert open(f"{root}/ip-v1/lef/a.lef").read() == "LEF"
     assert [path for path, _ in web.asked] == ["/ip/v1.tar.gz"]
     assert not any("Authorization" in headers for _, headers in web.asked)
-    # Held, and holding the copy and its record alone.
     assert store.held(f"{web.url}/ip/", "v1") == root
     assert sorted(os.listdir(os.path.dirname(root))) == [".complete", "data"]
 
 
 def test_git_reaches_nothing_but_through_the_proxy(site):
-    '''🔴 git is held by the proxy too: a clone of a host the proxy will not
-    connect to is refused there, never made directly.'''
+    '''🔴 A clone of a host the proxy will not connect to is refused there.'''
     web = site()
     https = web.url.replace("http://", "https://")
     store = SourceStore(os.getcwd(), [allowlist.parse(f"{https}/")])
@@ -136,7 +131,7 @@ def test_a_host_resolving_to_a_private_address_is_never_connected_to(site):
     web = site({"/ip/v1.tar.gz": (200, tarball({"a": b"a"}), {})})
 
     with pytest.raises(Permanent, match="not a public address"):
-        store_for(web).fetch(f"{web.url}/ip/", "v1", timeout=60)
+        fetch_from(web)
     assert web.asked == []
 
 
@@ -145,12 +140,12 @@ def test_a_host_resolving_to_a_private_address_is_never_connected_to(site):
     (429, Transient), (503, Transient),
 ])
 def test_a_failure_is_permanent_or_transient_by_what_it_means(site, loopback, status, kind):
-    '''⚠️ GitHub answers 404 for a private repository a caller cannot see, so
-    *not found* is the client's to send; a 429 or a 5xx is retried.'''
+    '''⚠️ GitHub answers 404 for a private repository, so *not found* is the
+    client's to send; a 429 or a 5xx is retried.'''
     web = site({"/ip/v1.tar.gz": (status, b"", {})})
 
     with pytest.raises(kind, match=f"answered {status}"):
-        store_for(web).fetch(f"{web.url}/ip/", "v1", timeout=60)
+        fetch_from(web)
 
 
 def test_a_fetch_past_its_time_is_killed_and_retried(site, loopback):
@@ -161,7 +156,7 @@ def test_a_fetch_past_its_time_is_killed_and_retried(site, loopback):
 
     started = time.monotonic()
     with pytest.raises(Transient, match="ran past its 3s"):
-        store_for(web).fetch(f"{web.url}/ip/", "v1", timeout=3)
+        fetch_from(web, timeout=3)
     assert time.monotonic() - started < 9
 
 
@@ -170,7 +165,7 @@ def test_a_source_heavier_than_the_ceiling_is_refused(site, loopback, monkeypatc
     web = site({"/ip/v1.tar.gz": (200, os.urandom(1024 * 1024), {})})
 
     with pytest.raises(Permanent, match="larger than 65536 bytes"):
-        store_for(web).fetch(f"{web.url}/ip/", "v1", timeout=60)
+        fetch_from(web)
 
 
 @pytest.mark.parametrize("error,permanent", [
@@ -190,8 +185,7 @@ def test_a_resolvers_failure_is_classified_by_what_it_means(error, permanent):
 
 
 def test_the_status_is_read_as_the_https_resolver_reports_it(monkeypatch):
-    '''The classification reads the status out of the resolver's own message:
-    this breaks first if that message changes.'''
+    '''Read out of the resolver's own message: this breaks first if it changes.'''
     def answer(*args, **kwargs):
         response = requests.Response()
         response.status_code = 503

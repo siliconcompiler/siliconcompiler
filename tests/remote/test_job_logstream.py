@@ -4,7 +4,7 @@ import time
 import pytest
 
 from conftest import call, slug
-from test_logs import frames
+from test_logs import frames, live_server, make_job, stream_url
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -12,9 +12,8 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 from siliconcompiler.remote.server.outputs import logstream                  # noqa: E402
 
 
-# `GET /v1/jobs/{id}/logs` with no step and no index: every node's live log,
-# merged into one stream. What is asserted is the three rules the merge needs,
-# and the first is the one an implementation gets wrong -- the id is the JOB's.
+# `GET /v1/jobs/{id}/logs` with no step and no index: every node's live log in
+# one stream. The rule an implementation gets wrong is that the id is the JOB's.
 
 
 ###########################
@@ -22,7 +21,7 @@ from siliconcompiler.remote.server.outputs import logstream                  # n
 ###########################
 
 class Job:
-    '''Two nodes' logs on disk, and the states a stream asks about.'''
+    '''Nodes' logs on disk, and the states a stream asks about.'''
 
     def __init__(self, root, nodes=(("place", "0"), ("route", "0"))):
         self.nodes = list(nodes)
@@ -39,8 +38,12 @@ class Job:
         with open(self.path(step, "0"), "a") as f:
             f.write(text)
 
-    def finish(self):
+    def complete(self):
+        '''Every node done; the job ends with them.'''
         self.states = {node: "completed" for node in self.nodes}
+
+    def finish(self):
+        self.complete()
         self.over = True
 
     def index(self):
@@ -62,7 +65,6 @@ def parse(chunks):
     class Body:
         def get_data(self, as_text=False):
             return b"".join(chunks).decode()
-
     return frames(Body())
 
 
@@ -71,69 +73,69 @@ def run_to_end(job, **kwargs):
     return parse(list(job.events(**kwargs)))
 
 
-def test_every_node_is_in_one_stream_and_says_which_it_is(tmp_path):
-    '''✅ The event format already carried per-event coordinates; they only
-    earn their place in a stream carrying several nodes.'''
+def read_until(job, stop):
+    '''Read a live stream until ``stop(chunks)``, then hang up.'''
+    chunks = []
+    stream = job.events()
+    for chunk in stream:
+        chunks.append(chunk)
+        if stop(chunks):
+            break
+    stream.close()
+    return parse(chunks)
+
+
+def text(events, step):
+    return "".join(d["text"] for e, _, d in events if e == "log" and d["step"] == step)
+
+
+def test_every_node_is_in_one_stream_in_its_own_order_naming_its_own_archive(tmp_path):
+    '''✅ Per-event coordinates. 🔴 No archive for a job: each node names its own, and `end` none.'''
     job = Job(tmp_path)
-    job.write("place", "placing\n")
+    job.write("place", "".join(f"line {n}\n" for n in range(200)))
     job.write("route", "routing\n")
-    job.states = {node: "completed" for node in job.nodes}
+    job.complete()
 
     events = run_to_end(job)
-    logs = [(d["step"], d["text"]) for e, _, d in events if e == "log"]
+    states = {(d["step"], d["index"]): d.get("artifact_id")
+              for e, _, d in events if e == "node_state"}
 
-    assert ("place", "placing\n") in logs
-    assert ("route", "routing\n") in logs
+    assert text(events, "place") == job.path("place", "0").read_text()
+    assert text(events, "route") == "routing\n"
+    assert states == {("place", "0"): "art-place", ("route", "0"): "art-route"}
+    assert events[-1] == ("end", None, {"reason": "terminal"})
 
 
-def test_the_id_is_the_jobs_and_it_only_goes_up(tmp_path):
-    '''🔴 The rule a merge gets wrong. A per-node offset handed back to a
-    merged stream would resume every other node at a position not its own.'''
+def test_the_id_is_the_jobs_only_goes_up_and_is_the_same_for_every_reader(tmp_path):
+    '''🔴 A per-node offset resumes every other node at a position not its
+    own. ✅ An id means the same bytes whoever hands it back.'''
     job = Job(tmp_path)
     job.write("place", "a\n")
     job.write("route", "bb\n")
     job.write("place", "ccc\n")
-    job.states = {node: "completed" for node in job.nodes}
-
-    ids = [i for e, i, _ in run_to_end(job) if e == "log"]
-    positions = [int(i[1:], 16) for i in ids]
-
-    assert positions == sorted(positions) and len(set(positions)) == len(positions)
-
-
-def test_the_id_does_not_grow_with_the_node_count(tmp_path):
-    '''🔴 D121: `Last-Event-ID` is a request header, and a vector of per-node
-    positions -- even naming only the nodes that spoke -- can pass what
-    common proxies accept for one on a thousand-node flow. One offset into the
-    job's event index does not.'''
-    job = Job(tmp_path, nodes=[(f"n{i}", "0") for i in range(1000)])
-    for i in range(0, 1000, 3):
-        with open(job.path(f"n{i}", "0"), "a") as f:
-            f.write("hello\n")
-    job.states = {node: "completed" for node in job.nodes}
-
-    ids = [i for e, i, _ in run_to_end(job) if e == "log"]
-
-    assert len(ids) == 334
-    assert max(len(i) for i in ids) <= 4
-    assert job.resume(ids[-1]) == 334
-
-
-def test_every_reader_is_sent_the_same_events_under_the_same_ids(tmp_path):
-    '''✅ The index is state about the JOB: two callers, one sequence -- so
-    an id means the same bytes whoever hands it back.'''
-    job = Job(tmp_path)
-    job.write("place", "p1\n")
-    job.write("route", "r1\n")
-    job.write("place", "p2\n")
-    job.states = {node: "completed" for node in job.nodes}
+    job.complete()
 
     def logs(events):
         return [(i, d["step"], d["text"]) for e, i, d in events if e == "log"]
 
     first, second = logs(run_to_end(job)), logs(run_to_end(job))
+    positions = [int(i[1:], 16) for i, _, _ in first]
 
+    assert positions == sorted(positions) and len(set(positions)) == len(positions)
     assert first and first == second
+
+
+def test_the_id_does_not_grow_with_the_node_count(tmp_path):
+    '''🔴 D121: `Last-Event-ID` is a request header; a vector of per-node
+    positions can pass what proxies accept on a thousand-node flow.'''
+    job = Job(tmp_path, nodes=[(f"n{i}", "0") for i in range(1000)])
+    for i in range(0, 1000, 3):
+        job.write(f"n{i}", "hello\n")
+    job.complete()
+    ids = [i for e, i, _ in run_to_end(job) if e == "log"]
+    assert len(ids) == 334
+    assert max(len(i) for i in ids) <= 4
+    assert job.resume(ids[-1]) == 334
 
 
 def test_resuming_from_a_job_id_has_no_gap_and_no_repeat(tmp_path):
@@ -141,100 +143,36 @@ def test_resuming_from_a_job_id_has_no_gap_and_no_repeat(tmp_path):
     job.write("place", "p1\np2\n")
     job.write("route", "r1\n")
 
-    # Read what is there, then hang up.
-    first = []
-    stream = job.events()
-    for chunk in stream:
-        first.append(chunk)
-        if sum(c.startswith(b"event: log") for c in first) == 2:
-            break
-    stream.close()
-    seen = parse(first)
+    seen = read_until(job, lambda chunks: sum(c.startswith(b"event: log")
+                                              for c in chunks) == 2)
     last = [i for e, i, _ in seen if e == "log"][-1]
 
-    # More from both nodes, then they finish -- the job is still open, so the
-    # reconnect drains them.
+    # More from both, then they finish: the job is open, so the reconnect drains.
     job.write("place", "p3\n")
     job.write("route", "r2\n")
-    job.states = {node: "completed" for node in job.nodes}
+    job.complete()
 
     rest = run_to_end(job, start=job.resume(last))
-
-    def text(events, step):
-        return "".join(d["text"] for e, _, d in events
-                       if e == "log" and d["step"] == step)
 
     for step in ("place", "route"):
         assert text(seen, step) + text(rest, step) == job.path(step, "0").read_text()
 
 
-def test_a_resume_after_the_job_ended_is_also_an_immediate_end(tmp_path):
-    '''⚠️ The contract's rule, and the price of it: what the first
-    connection had not read yet is not replayed once the job is over. The
-    client has it from the archives, which is where a finished job's logs are.'''
+def test_a_job_already_over_ends_at_once_and_replays_nothing(tmp_path):
+    '''⚠️ Late or resumed, the same path: what was unread is in the archives,
+    which the client reads from the `kind=logs` listing.'''
     job = Job(tmp_path)
     job.write("place", "p1\n")
     job.finish()
-
-    events = run_to_end(job, start=job.resume("e0"))
-
-    assert [e for e, _, _ in events] == ["end"]
-
-
-def test_order_is_kept_within_a_node(tmp_path):
-    job = Job(tmp_path)
-    job.write("place", "".join(f"line {n}\n" for n in range(200)))
-    job.states = {node: "completed" for node in job.nodes}
-
-    place = "".join(d["text"] for e, _, d in run_to_end(job)
-                    if e == "log" and d["step"] == "place")
-
-    assert place == job.path("place", "0").read_text()
-
-
-def test_each_node_names_its_archive_and_end_names_none(tmp_path):
-    '''🔴 No single archive for a job, and every node has already named its
-    own -- so a client that watched holds them all when `end` arrives.'''
-    job = Job(tmp_path)
-    job.finish()
-    job.over = False     # the nodes are done; the job ends with them
-
-    events = run_to_end(job)
-    states = {(d["step"], d["index"]): d.get("artifact_id")
-              for e, _, d in events if e == "node_state"}
-
-    assert states == {("place", "0"): "art-place", ("route", "0"): "art-route"}
-    assert events[-1][0] == "end"
-    assert events[-1][2] == {"reason": "terminal"}
-
-
-def test_a_job_already_over_ends_at_once_and_replays_nothing(tmp_path):
-    '''⚠️ The late request and the race are one path: the client reads the
-    listing for `kind=logs`.'''
-    job = Job(tmp_path)
-    job.write("place", "long finished\n")
-    job.finish()
-
-    events = run_to_end(job)
-
-    assert [e for e, _, _ in events] == ["end"]
-    assert events[0][2] == {"reason": "terminal"}
+    assert run_to_end(job) == [("end", None, {"reason": "terminal"})]
+    assert run_to_end(job, start=job.resume("e0")) == [("end", None, {"reason": "terminal"})]
 
 
 def test_a_node_that_never_ran_is_reported_and_ends_nothing(tmp_path):
     job = Job(tmp_path)
     job.states = {("place", "0"): "skipped", ("route", "0"): "running"}
     job.write("route", "still going\n")
-
-    stream = job.events()
-    got = []
-    for chunk in stream:
-        got.append(chunk)
-        if b"node_state" in chunk:
-            break
-    stream.close()
-
-    events = parse(got)
+    events = read_until(job, lambda chunks: b"node_state" in chunks[-1])
     assert ("node_state", {"step": "place", "index": "0", "state": "skipped",
                            "terminal": True, "artifact_id": "art-place"}) \
         in [(e, d) for e, _, d in events]
@@ -244,11 +182,8 @@ def test_a_node_that_never_ran_is_reported_and_ends_nothing(tmp_path):
 def test_a_line_longer_than_a_chunk_is_never_split_inside_a_character(tmp_path):
     job = Job(tmp_path)
     job.write("place", "é" * logstream.MAX_CHUNK + "\n")
-    job.states = {node: "completed" for node in job.nodes}
-
-    texts = [d["text"] for e, _, d in run_to_end(job)
-             if e == "log" and d["step"] == "place"]
-
+    job.complete()
+    texts = [d["text"] for e, _, d in run_to_end(job) if e == "log" and d["step"] == "place"]
     assert len(texts) > 1
     assert "\ufffd" not in "".join(texts)
     assert "".join(texts) == job.path("place", "0").read_text()
@@ -259,7 +194,7 @@ def indexed(tmp_path):
     job = Job(tmp_path, nodes=[("a", "0"), ("b", "0"), ("c", "0")])
     for step in ("a", "b", "c"):
         job.write(step, f"{step}\n")
-    job.states = {node: "completed" for node in job.nodes}
+    job.complete()
     run_to_end(job)
     assert job.index().count() == 3
     return job
@@ -279,10 +214,8 @@ def test_an_id_that_is_not_this_jobs_starts_from_the_beginning(tmp_path, given):
 
 def test_a_good_id_is_a_seek_into_the_index(tmp_path):
     job = indexed(tmp_path)
-
     assert job.resume("e2") == 2
     assert logstream.resume_job(None, "e3", job.index()) == 3
-
     rest = [(i, d["text"]) for e, i, d in run_to_end(job, start=2) if e == "log"]
     assert rest == [("e3", "c\n")]
 
@@ -294,22 +227,9 @@ def test_a_good_id_is_a_seek_into_the_index(tmp_path):
 @pytest.fixture
 def job(server, server_client, key, token):
     '''A running job with two nodes, both logging.'''
-    import uuid
-
-    store = server.config["SC_STORE"]
     me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-
-    job_id = str(uuid.uuid4())
-    store.execute(
-        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
-        "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
-        (job_id, me))
-    row = store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
-    for step in ("place", "route"):
-        store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
-                      "VALUES (?, ?, '0', 'running')", (job_id, step))
-        log = server.config["SC_JOBS"].node_log_path(row, step, "0")
-        log.parent.mkdir(parents=True, exist_ok=True)
+    job_id, logs = make_job(server, me, ("place", "route"))
+    for step, log in logs.items():
         log.write_text(f"{step} says hello\n")
     return job_id
 
@@ -320,17 +240,15 @@ def end_job(server, job_id, state="completed"):
     store.execute("UPDATE jobs SET state = ? WHERE id = ?", (state, job_id))
 
 
-def job_stream_url(server_client, key, token, job_id):
-    response = call(server_client, key, "GET", f"/v1/jobs/{job_id}/logs", token)
-    assert response.status_code == 303, response.get_json()
-    return response.headers["Location"].split("http://localhost", 1)[1]
-
-
-def test_no_coordinates_is_the_whole_job(server, server_client, key, token, job):
-    target = job_stream_url(server_client, key, token, job)
+def test_no_coordinates_is_the_whole_job_under_its_own_signature(server, server_client,
+                                                                 key, token, job):
+    '''Own signature prefixes: a job link cannot be edited into a node link.'''
+    target = stream_url(server_client, key, token, job, step=None)
     assert target.startswith(f"/stream/logs/{job}?")
+    query = target.split("?", 1)[1]
+    assert server_client.get(f"/stream/logs/{job}/place/0?{query}").status_code == 400
+    assert server_client.get(f"/stream/logs/{job}?expires=1&sig=x").status_code == 400
 
-    # Every node's nodes finish, then the job does.
     server.config["SC_STORE"].execute(
         "UPDATE job_nodes SET state = 'completed' WHERE job_id = ?", (job,))
     response = server_client.get(target)
@@ -346,21 +264,16 @@ def test_no_coordinates_is_the_whole_job(server, server_client, key, token, job)
 def test_one_coordinate_without_the_other_is_a_bad_request(server_client, key,
                                                            token, job, half):
     response = call(server_client, key, "GET", f"/v1/jobs/{job}/logs{half}", token)
-
     assert response.status_code == 400
     assert slug(response) == "invalid-request"
 
 
-def test_before_any_node_starts_it_is_not_ready(server, server_client, key,
-                                                token, job):
-    '''The same answer a node gives before it starts: transient.'''
-    server.config["SC_STORE"].execute(
-        "UPDATE job_nodes SET state = 'pending' WHERE job_id = ?", (job,))
-    server.config["SC_STORE"].execute(
-        "UPDATE jobs SET state = 'queued' WHERE id = ?", (job,))
-
+def test_before_any_node_starts_it_is_not_ready(server, server_client, key, token, job):
+    '''Transient, as for a node that has not started.'''
+    store = server.config["SC_STORE"]
+    store.execute("UPDATE job_nodes SET state = 'pending' WHERE job_id = ?", (job,))
+    store.execute("UPDATE jobs SET state = 'queued' WHERE id = ?", (job,))
     response = call(server_client, key, "GET", f"/v1/jobs/{job}/logs", token)
-
     assert response.status_code == 409
     assert slug(response) == "not-ready"
     assert response.get_json()["artifact_kind"] == "logs"
@@ -370,11 +283,9 @@ def test_before_any_node_starts_it_is_not_ready(server, server_client, key,
 @pytest.mark.parametrize("state", ["completed", "failed", "cancelled"])
 def test_a_finished_job_is_a_stream_that_ends_at_once(server, server_client, key,
                                                       token, job, state):
-    '''⚠️ Deliberately not a refusal: it is the race case arriving late.'''
+    '''⚠️ Not a refusal: it is the race case arriving late.'''
     end_job(server, job, state)
-
-    events = frames(server_client.get(job_stream_url(server_client, key, token, job)))
-
+    events = frames(server_client.get(stream_url(server_client, key, token, job, step=None)))
     assert events == [("end", None, {"reason": "terminal"})]
 
 
@@ -385,49 +296,35 @@ def test_a_finished_job_is_a_stream_that_ends_at_once(server, server_client, key
 def test_the_refusal_names_the_broadest_missing_capability(
         server, server_client, key, token, job, features, missing):
     server.config["SC_CONFIG"]._values["features"] = features
-
     response = call(server_client, key, "GET", f"/v1/jobs/{job}/logs", token)
-
     assert response.status_code == 501
     assert slug(response) == "feature-unsupported"
     assert response.get_json()["feature"] == missing
 
 
-def test_a_job_link_is_not_a_node_link(server, server_client, key, token, job):
-    '''Their own signature prefixes: neither can be edited into the other.'''
-    target = job_stream_url(server_client, key, token, job)
-    query = target.split("?", 1)[1]
-
-    assert server_client.get(f"/stream/logs/{job}/place/0?{query}").status_code == 400
-    assert server_client.get(f"/stream/logs/{job}?expires=1&sig=x").status_code == 400
-
-
 def test_the_job_stream_holds_one_slot(server, server_client, key, token, job):
-    '''🔴 The point of it: a flow wider than `concurrent_log_streams` could
-    not be watched in full one node at a time, and one connection can.'''
-    server.config["SC_STREAMS"]._ceiling = 1
+    '''🔴 A flow wider than `concurrent_log_streams` can be watched in full on one connection.'''
+    streams = server.config["SC_STREAMS"]
+    streams._ceiling = 1
     end_job(server, job)
-    # A slot held elsewhere is what makes the next one refused.
     owner = server.config["SC_STORE"].one(
         "SELECT user_id FROM jobs WHERE id = ?", (job,))["user_id"]
-    assert server.config["SC_STREAMS"].acquire(owner)
+    assert streams.acquire(owner)
     try:
-        response = server_client.get(job_stream_url(server_client, key, token, job))
+        response = server_client.get(stream_url(server_client, key, token, job, step=None))
         assert response.status_code == 429
         assert response.get_json()["limit"] == "concurrent_log_streams"
     finally:
-        server.config["SC_STREAMS"].release(owner)
+        streams.release(owner)
 
-    frames(server_client.get(job_stream_url(server_client, key, token, job)))
-    assert server.config["SC_STREAMS"].held(owner) == 0
+    frames(server_client.get(stream_url(server_client, key, token, job, step=None)))
+    assert streams.held(owner) == 0
 
 
 def test_the_job_stream_implies_the_others(tmp_path):
-    '''🔴 Never advertised alone: a client reading it opens a job stream and
-    falls back to per-node ones.'''
+    '''🔴 Never advertised alone: a client falls back to per-node streams.'''
     import json
     from siliconcompiler.remote.server.config import Config
-
     (tmp_path / "config.json").write_text(json.dumps({"features": ["logs.stream.job"]}))
     with pytest.raises(ValueError, match="logs.stream.job without logs.stream"):
         Config.load(tmp_path)
@@ -439,42 +336,8 @@ def test_the_job_stream_implies_the_others(tmp_path):
 
 @pytest.fixture
 def live(tmp_path):
-    from werkzeug.serving import make_server
-
-    from siliconcompiler.remote import Client, Credentials
-    from siliconcompiler.remote.server.app import create_app
-    import uuid
-
-    app = create_app(tmp_path / "datadir", cluster="local")
-    server = make_server("127.0.0.1", 0, app, threaded=True)
-    app.config["SC_PUBLIC_ORIGINS"] = [f"http://127.0.0.1:{server.server_port}"]
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-
-    credentials = Credentials(tmp_path / "sc-home" / "auth" / "remote.json")
-    credentials.set_server(f"http://127.0.0.1:{server.server_port}")
-    client = Client(credentials)
-
-    store = app.config["SC_STORE"]
-    job_id = str(uuid.uuid4())
-    store.execute(
-        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
-        "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
-        (job_id, client.me()["id"]))
-    row = store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
-    logs = {}
-    for step in ("place", "route"):
-        store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
-                      "VALUES (?, ?, '0', 'running')", (job_id, step))
-        logs[step] = app.config["SC_JOBS"].node_log_path(row, step, "0")
-        logs[step].parent.mkdir(parents=True, exist_ok=True)
-        logs[step].write_text("")
-
-    try:
-        yield client, app, job_id, logs
-    finally:
-        server.shutdown()
-        thread.join(timeout=10)
+    with live_server(tmp_path, ("place", "route")) as served:
+        yield served
 
 
 def test_the_client_follows_the_whole_job_to_its_end(live):
@@ -489,10 +352,7 @@ def test_the_client_follows_the_whole_job_to_its_end(live):
                 with open(log, "a") as f:
                     f.write(f"{step} {n}\n")
         time.sleep(0.2)
-        store = app.config["SC_STORE"]
-        store.execute("UPDATE job_nodes SET state = 'completed' WHERE job_id = ?",
-                      (job_id,))
-        store.execute("UPDATE jobs SET state = 'completed' WHERE id = ?", (job_id,))
+        end_job(app, job_id)
 
     writer = threading.Thread(target=run)
     writer.start()
@@ -502,16 +362,13 @@ def test_the_client_follows_the_whole_job_to_its_end(live):
         writer.join()
 
     for step, log in logs.items():
-        # Everything each node wrote, in its own order.
         assert [line for line in text.splitlines() if line.startswith(step)] == \
             log.read_text().splitlines()
 
 
 def test_a_finished_job_is_an_ordinary_end_to_the_client(live):
     from siliconcompiler.remote.client.logs import LogTail
-
     client, app, job_id, logs = live
     app.config["SC_STORE"].execute(
         "UPDATE jobs SET state = 'completed' WHERE id = ?", (job_id,))
-
     assert LogTail(client, job_id).follow() == ""

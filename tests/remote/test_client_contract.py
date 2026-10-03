@@ -1,17 +1,19 @@
 import json
+import logging
 
 import pytest
 import responses
 
 from conftest import problem
+from test_client import asked_for_pages
 
 from siliconcompiler.remote import Client, ServerProblem
 from siliconcompiler.remote.client import OAuthRefusal
 from siliconcompiler.remote.client.errors import describe
 
 
-# The client half of the contract's behaviour tests (contract.md §6), against
-# canned answers: the rules the rest of the suite does not already hold.
+# The client half of the contract's behaviour tests (contract.md §6) that the
+# rest of the suite does not already hold.
 
 ORIGIN = "https://sc-server.test"
 
@@ -46,28 +48,6 @@ def test_a_second_nonce_challenge_at_the_token_endpoint_is_the_answer(
 
 
 ###########################
-# What a followed redirect carries
-###########################
-
-def test_a_same_origin_signed_route_gets_the_operator_headers_and_no_session(
-        logged_in, fake_v1, tmp_credentials, tmp_path):
-    '''The artifact 303 on `sc-server`'s own host: the operator's header goes,
-    because the edge in front of the host wants it, and the session never
-    does, since the signature is the credential.'''
-    tmp_credentials.set_header("CF-Access-Client-Id", "id")
-    fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
-                  headers={"Location": f"{ORIGIN}/storage/artifact/J/A?sig=1"})
-    fake_v1.elsewhere(responses.GET, f"{ORIGIN}/storage/artifact/J/A", "bytes",
-                      content_type="application/octet-stream")
-
-    logged_in.fetch_artifact("J", "A", tmp_path / "a.bin")
-
-    signed = fake_v1.calls[-1].request
-    assert signed.headers["CF-Access-Client-Id"] == "id"
-    assert "Authorization" not in signed.headers and "DPoP" not in signed.headers
-
-
-###########################
 # Unknown values
 ###########################
 
@@ -76,8 +56,8 @@ def test_an_unknown_response_member_is_ignored(logged_in, fake_v1, capabilities,
     from siliconcompiler.remote.client.run import RemoteRun
 
     monkeypatch.setattr("siliconcompiler.remote.client.run.time.sleep", lambda s: None)
-    published = dict(capabilities, a_member_from_later={"anything": [1, 2]})
-    fake_v1.replace(responses.GET, "", published)
+    fake_v1.replace(responses.GET, "",
+                    dict(capabilities, a_member_from_later={"anything": [1, 2]}))
     fake_v1.route(responses.GET, "jobs/j1", {
         "id": "j1", "state": "completed", "terminal": True, "nodes": [],
         "progress": {"total_count": 0, "completed_count": 0, "failed_count": 0},
@@ -86,10 +66,6 @@ def test_an_unknown_response_member_is_ignored(logged_in, fake_v1, capabilities,
     assert logged_in.capabilities()["api_version"] == "v1"
     RemoteRun(nop_project, logged_in)._poll("j1")
 
-
-###########################
-# Every OAuth `error`, at both OAuth endpoints
-###########################
 
 @pytest.mark.parametrize("path", ["auth/token", "auth/device"])
 @pytest.mark.parametrize("body", [
@@ -115,7 +91,7 @@ def test_every_oauth_error_is_read_for_error_and_reason(fake_v1, logged_in, path
 
 
 ###########################
-# Bringing results home
+# Server text on a terminal
 ###########################
 
 def test_server_text_loses_its_control_characters_and_keeps_its_colour():
@@ -127,8 +103,6 @@ def test_server_text_loses_its_control_characters_and_keeps_its_colour():
 
 
 def test_a_notice_loses_its_control_characters(logged_in, fake_v1, capabilities, caplog):
-    import logging
-
     fake_v1.replace(responses.GET, "", dict(capabilities, notices=[
         {"level": "info", "message": "down\x1b]0;owned\x07 soon", "starts_at": None,
          "ends_at": None}]))
@@ -155,13 +129,9 @@ def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
     assert "http://portal.test/approve" in caplog.text
 
 
-def asked_for_pages(fake_v1):
-    '''Each body this client sent endpoint 6.'''
-    import json
-
-    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
-            if c.request.url.endswith("/v1/auth/browser")]
-
+###########################
+# A terms refusal
+###########################
 
 def terms_refusal(fake_v1):
     fake_v1.route(responses.POST, "jobs", problem(
@@ -175,14 +145,15 @@ def terms_refusal(fake_v1):
                    "expires_at": "2026-10-01T18:04:30Z"})
 
 
-def test_a_terms_refusal_names_each_document_by_its_title(logged_in, fake_v1, monkeypatch):
-    '''🔴 `blocked_by` is a list of `terms` ids (surface D309): each named by
-    its title in `GET /v1/me`'s `terms`, by its id where it has none, and its
-    page asked for at endpoint 6 and opened, on a terminal. Nothing is
-    accepted.'''
+@pytest.mark.parametrize("tty", [True, False], ids=["terminal", "no-terminal"])
+def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_v1,
+                                                                monkeypatch, tty):
+    '''🔴 `blocked_by` is `terms` ids (surface D309), named by title from
+    `GET /v1/me`, else by id; on a terminal each page is asked for at
+    endpoint 6 and opened, off one none is minted. Nothing is accepted.'''
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
-    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: tty)
     monkeypatch.delenv("CI", raising=False)
     terms_refusal(fake_v1)
 
@@ -194,43 +165,29 @@ def test_a_terms_refusal_names_each_document_by_its_title(logged_in, fake_v1, mo
     assert "sign gf22-nda" in text
     assert "sign Export Control Statement" in text
     assert "portal.test" not in text
-    assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}, {"terms_id": "gf22-nda"},
-                                        {"terms_id": "export"}]
-    assert opened == ["https://portal.test/enter?token=t1"] * 3
+    if tty:
+        assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}, {"terms_id": "gf22-nda"},
+                                            {"terms_id": "export"}]
+        assert opened == ["https://portal.test/enter?token=t1"] * 3
+    else:
+        assert asked_for_pages(fake_v1) == [] and opened == []
     assert not [c for c in fake_v1.calls if "accept" in c.request.url]
 
 
-def test_a_terms_refusal_off_a_terminal_asks_for_no_page(logged_in, fake_v1, monkeypatch):
-    '''Nobody is there to see one, so none is minted.'''
-    monkeypatch.setattr("sys.stdout.isatty", lambda: False)
-    terms_refusal(fake_v1)
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.create_job(design="gcd", jobname="job0")
-
-    assert "sign Terms of Service" in str(raised.value)
-    assert asked_for_pages(fake_v1) == []
-
-
-def test_a_blocked_document_is_named_by_its_title_or_its_id(fake_v1, logged_in):
+def test_a_blocked_document_is_named_by_its_title_or_its_id():
     from siliconcompiler.remote.client.errors import blocked_lines
 
-    lines = blocked_lines(["tos", "gf22-nda", "export"],
-                          {"tos": "Terms of Service", "export": "Export Control Statement"})
-
-    assert lines == ["sign Terms of Service", "sign gf22-nda",
-                     "sign Export Control Statement"]
-    # Where there is no `/me`, by its id.
+    assert blocked_lines(["tos", "gf22-nda", "export"],
+                         {"tos": "Terms of Service", "export": "Export Control Statement"}) \
+        == ["sign Terms of Service", "sign gf22-nda", "sign Export Control Statement"]
     assert blocked_lines(["tos"]) == ["sign tos"]
     # An entry that is not a terms id names nothing.
     assert blocked_lines(["tos", {"id": "export"}, ""]) == ["sign tos"]
 
 
-def test_the_stream_url_is_never_printed(logged_in, fake_v1, monkeypatch, caplog):
-    '''A storage or stream URL is a capability: never logged, printed or
-    stored, error messages included.'''
-    import logging
-
+def test_the_stream_url_is_never_printed(logged_in, fake_v1, caplog):
+    '''A storage or stream URL is a capability: never logged or printed,
+    error messages included.'''
     from siliconcompiler.remote.client.logs import LogTail
 
     secret = f"{ORIGIN}/stream/logs/j1/place/0?expires=9&n=abc&sig=SECRET"

@@ -1,10 +1,5 @@
-'''The client half of login, refresh and the edge, against the fake server.
-
-What the v1 review changed about how a client authenticates: the OAuth error
-shape at the two OAuth endpoints, nonces in both of their shapes, an access
-layer in front of the API, redirects followed by hand, one refresh at a time
-per store, the device grant's poll answers, and token exchange for CI.
-'''
+'''The client half of login, refresh, the store and the edge, against the
+fake server.'''
 import base64
 import json
 import os
@@ -24,6 +19,9 @@ from siliconcompiler.remote.client.transport import EdgeRefused
 from conftest import problem
 
 
+posix_only = pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
+
+
 def _form(body):
     from urllib.parse import parse_qs
 
@@ -41,6 +39,14 @@ def _claims(token):
 def _posts(fake_v1, path="auth/token"):
     return [c.request for c in fake_v1.calls
             if c.request.method == "POST" and c.request.url.endswith(path)]
+
+
+def _grants(fake_v1):
+    return [_form(r.body)["grant_type"] for r in _posts(fake_v1)]
+
+
+def _mode(path):
+    return stat.S_IMODE(os.stat(path).st_mode)
 
 
 @pytest.fixture
@@ -77,8 +83,7 @@ def _offer(fake_v1, capabilities, *grants):
 
 def test_a_nonce_asked_for_at_the_token_endpoint_is_sent_again(
         fake_v1, tmp_credentials, client_credentials):
-    '''At an OAuth endpoint a nonce challenge is `use_dpop_nonce` in the OAuth
-    shape, not a problem.'''
+    '''At an OAuth endpoint it is `use_dpop_nonce` in the OAuth shape.'''
     fake_v1.route(responses.POST, "auth/token", {"error": "use_dpop_nonce"}, status=400,
                   headers={"DPoP-Nonce": "token-nonce"})
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -90,19 +95,26 @@ def test_a_nonce_asked_for_at_the_token_endpoint_is_sent_again(
     assert _claims(second.headers["DPoP"])["nonce"] == "token-nonce"
 
 
-def test_a_nonce_asked_for_by_a_resource_is_sent_again(logged_in, fake_v1):
-    '''Elsewhere it is the registry's `dpop-nonce-required`.'''
-    fake_v1.route(responses.GET, "me", problem("dpop-nonce-required", 401), status=401,
-                  content_type="application/problem+json",
-                  headers={"DPoP-Nonce": "api-nonce"})
+@pytest.mark.parametrize("slug,challenge", [
+    ("dpop-nonce-required", None),
+    ("invalid-dpop-proof", 'DPoP error="use_dpop_nonce"'),
+], ids=["registry-slug", "www-authenticate"])
+def test_a_nonce_asked_for_by_a_resource_is_retried_not_refreshed(logged_in, fake_v1,
+                                                                  slug, challenge):
+    '''A client that only refreshes loops here for ever.'''
+    headers = {"DPoP-Nonce": "api-nonce"}
+    if challenge:
+        headers["WWW-Authenticate"] = challenge
+    fake_v1.route(responses.GET, "me", problem(slug, 401), status=401,
+                  content_type="application/problem+json", headers=headers)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     assert logged_in.me()["id"] == "u1"
     assert _claims(fake_v1.calls[-1].request.headers["DPoP"])["nonce"] == "api-nonce"
+    assert len(_posts(fake_v1)) == 1
 
 
 def test_a_nonce_is_kept_per_origin(logged_in, fake_v1):
-    '''A nonce belongs to the origin that issued it.'''
     transport = logged_in.transport
     transport._nonces["https://elsewhere.test"] = "not-this-one"
 
@@ -120,8 +132,8 @@ def test_a_nonce_is_kept_per_origin(logged_in, fake_v1):
 
 def test_a_problem_at_the_token_endpoint_is_read_as_a_problem(
         fake_v1, tmp_credentials, client_credentials, no_sleep):
-    '''🔴 The Content-Type decides the shape: a 429 in problem+json at the
-    token endpoint is a rate limit, waited out, never read for `error`.'''
+    '''🔴 The Content-Type decides the shape: a problem+json 429 is waited
+    out, never read for `error`.'''
     fake_v1.route(responses.POST, "auth/token", problem("rate-limited", 429),
                   status=429, content_type="application/problem+json",
                   headers={"Retry-After": "3"})
@@ -133,9 +145,7 @@ def test_a_problem_at_the_token_endpoint_is_read_as_a_problem(
     assert len(_posts(fake_v1)) == 2
 
 
-def test_a_key_bound_elsewhere_names_the_operator_command(
-        fake_v1, tmp_credentials):
-    '''`invalid_client` is not something retrying fixes.'''
+def test_a_key_bound_elsewhere_names_the_operator_command(fake_v1, tmp_credentials):
     fake_v1.route(responses.POST, "auth/token",
                   {"error": "invalid_client",
                    "error_description": "bound to a different key"}, status=401)
@@ -149,8 +159,7 @@ def test_a_key_bound_elsewhere_names_the_operator_command(
 
 def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
         fake_v1, tmp_credentials, capabilities, no_sleep):
-    '''`unsupported_grant_type` is the one thing that says what `GET /v1`
-    offered has changed: it is read again, and nothing is cached.'''
+    '''`unsupported_grant_type` says the offer changed: read again, cache nothing.'''
     _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS)
     fake_v1.route(responses.GET, "", {**capabilities, "grant_types_supported":
                                       [GRANT_DEVICE_CODE, "refresh_token"]})
@@ -166,93 +175,60 @@ def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
 
     Client(tmp_credentials).login()
 
-    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == \
-        ["client_credentials", GRANT_DEVICE_CODE]
+    assert _grants(fake_v1) == ["client_credentials", GRANT_DEVICE_CODE]
     assert "grant_types_supported" not in tmp_credentials.path.read_text()
 
 
 ###########################
-# The edge
+# The edge, and redirects followed by hand
 ###########################
 
-def test_an_html_refusal_is_the_edge_not_the_api(logged_in, fake_v1):
-    fake_v1.route(responses.GET, "me", "<html><body>Forbidden</body></html>",
-                  status=403, content_type="text/html")
+@pytest.mark.parametrize("body,status,headers", [
+    ("<html><body>Forbidden</body></html>", 403, None),
+    ("", 302, {"Location": "https://idp.example/login"}),
+], ids=["html", "idp-redirect"])
+def test_an_access_layer_refusal_is_the_edge_not_the_api(logged_in, fake_v1, body, status,
+                                                         headers):
+    '''A 302 to a login page is an access layer asking for a person: not followed.'''
+    fake_v1.route(responses.GET, "me", body, status=status, content_type="text/html",
+                  headers=headers)
 
     with pytest.raises(EdgeRefused) as raised:
         logged_in.me()
 
     assert "not the API" in str(raised.value)
-
-
-def test_a_redirect_to_an_identity_provider_is_not_followed(logged_in, fake_v1):
-    '''A 302 to a login page on /v1 is an access layer asking for a person.'''
-    fake_v1.route(responses.GET, "me", "", status=302,
-                  headers={"Location": "https://idp.example/login"})
-
-    with pytest.raises(EdgeRefused):
-        logged_in.me()
-
     assert not any("idp.example" in c.request.url for c in fake_v1.calls)
 
 
-###########################
-# Following a redirect by hand
-###########################
-
-def test_storage_on_another_origin_gets_no_credential_of_any_kind(
-        logged_in, fake_v1, tmp_credentials, tmp_path):
-    tmp_credentials.set_header("CF-Access-Client-Id", "id")
-
-    fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
-                  headers={"Location": "https://storage.test/object?sig=1"})
-    fake_v1.elsewhere(responses.GET, "https://storage.test/object", "bytes",
-                      content_type="application/octet-stream")
-
-    logged_in.fetch_artifact("J", "A", tmp_path / "a.bin")
-
-    api, storage = fake_v1.calls[-2].request, fake_v1.calls[-1].request
-    assert api.headers["CF-Access-Client-Id"] == "id"
-    for name in ("Authorization", "DPoP", "CF-Access-Client-Id", "X-Storage"):
-        assert name not in storage.headers
-
-
-def test_a_stream_host_on_another_origin_gets_no_operator_header(
-        logged_in, fake_v1, tmp_credentials):
-    '''🔴 Surface D304: operator headers go to the API's origin and nowhere
-    else -- not even one stored for the stream's own origin, which nothing
-    configures any more.'''
-    tmp_credentials.set_header("CF-Access-Client-Id", "id")
-
-    fake_v1.route(responses.GET, "jobs/J/logs", "", status=303,
-                  headers={"Location": "https://stream.test/log"})
-    fake_v1.elsewhere(responses.GET, "https://stream.test/log", "line\n",
-                      content_type="text/plain")
-
-    logged_in.follow_log("J", "syn", "0")
-
-    api, stream = fake_v1.calls[-2].request, fake_v1.calls[-1].request
-    assert api.headers["CF-Access-Client-Id"] == "id"
-    for name in ("X-Stream", "CF-Access-Client-Id", "Authorization", "DPoP"):
-        assert name not in stream.headers
-
-
-def test_a_stream_on_the_servers_own_origin_carries_the_headers_set_once(
-        logged_in, fake_v1):
-    '''As `sc-server` serves a live log behind an edge: its stream is on the
-    API's origin, so the headers configured once, for the server, reach it --
-    and no token or proof does.'''
+@pytest.mark.parametrize("location", [
+    "https://storage.test/object?sig=1",
+    "https://sc-server.test/storage/artifact/J/A?sig=1",
+    "https://stream.test/log",
+    "https://sc-server.test/v1/streams/abc",
+], ids=["storage-elsewhere", "storage-same-origin", "stream-elsewhere",
+        "stream-same-origin"])
+def test_a_followed_redirect_gets_operator_headers_only_on_the_apis_origin(
+        logged_in, fake_v1, tmp_path, location):
+    '''🔴 Surface D304: operator headers go to the API's origin, where an edge
+    wants them, and nowhere else; no token or proof goes to either, since the
+    signature is the credential.'''
     logged_in.set_header("CF-Access-Client-Id", "id")
+    log = "/stream" in location or "/streams/" in location
+    fake_v1.route(responses.GET, "jobs/J/logs" if log else "jobs/J/artifacts/A", "",
+                  status=303, headers={"Location": location})
+    fake_v1.elsewhere(responses.GET, location.split("?")[0], "line\n" if log else "bytes",
+                      content_type="text/plain" if log else "application/octet-stream")
 
-    fake_v1.route(responses.GET, "jobs/J/logs", "", status=303,
-                  headers={"Location": "https://sc-server.test/v1/streams/abc"})
-    fake_v1.route(responses.GET, "streams/abc", "line\n", content_type="text/plain")
+    if log:
+        logged_in.follow_log("J", "syn", "0")
+    else:
+        logged_in.fetch_artifact("J", "A", tmp_path / "a.bin")
 
-    logged_in.follow_log("J", "syn", "0")
-
-    stream = fake_v1.calls[-1].request
-    assert stream.headers["CF-Access-Client-Id"] == "id"
-    assert "Authorization" not in stream.headers and "DPoP" not in stream.headers
+    api, followed = fake_v1.calls[-2].request, fake_v1.calls[-1].request
+    assert api.headers["CF-Access-Client-Id"] == "id"
+    assert ("CF-Access-Client-Id" in followed.headers) == \
+        location.startswith("https://sc-server.test/")
+    assert "Authorization" not in followed.headers and "DPoP" not in followed.headers
 
 
 ###########################
@@ -261,8 +237,7 @@ def test_a_stream_on_the_servers_own_origin_carries_the_headers_set_once(
 
 @pytest.fixture
 def netrc_everywhere(tmp_path, monkeypatch):
-    '''A `~/.netrc` with an entry for the API's host, storage's and the
-    stream's: what requests fills a missing `auth` from.'''
+    '''A `~/.netrc` entry for the API's host, storage's and the stream's.'''
     netrc = tmp_path / "netrc"
     netrc.write_text("machine sc-server.test login alice password api-secret\n"
                      "machine storage.test login alice password storage-secret\n"
@@ -273,15 +248,10 @@ def netrc_everywhere(tmp_path, monkeypatch):
 
 
 def test_no_request_carries_a_credential_from_netrc(
-        fake_v1, client_credentials, tmp_credentials, netrc_everywhere, tmp_path):
-    '''🔴 With a netrc entry for every host, every API request still carries
-    `Authorization: DPoP`, storage and the stream get nothing, and no Basic
-    credential goes anywhere. Without the session's own `auth`, requests
-    replaces `DPoP <token>` with the netrc login.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
+        logged_in, fake_v1, netrc_everywhere, tmp_path):
+    '''🔴 Without the session's own `auth`, requests replaces `DPoP <token>`
+    with the netrc login: every API request still carries DPoP, storage and
+    the stream nothing, and no Basic credential goes anywhere.'''
     fake_v1.route(responses.GET, "me", {"user_id": "u"})
     fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=303,
                   headers={"Location": "https://storage.test/object?sig=1"})
@@ -292,9 +262,9 @@ def test_no_request_carries_a_credential_from_netrc(
     fake_v1.elsewhere(responses.GET, "https://stream.test/log", "line\n",
                       content_type="text/plain")
 
-    client.me()
-    client.fetch_artifact("J", "A", tmp_path / "a.bin")
-    client.follow_log("J", "syn", "0")
+    logged_in.me()
+    logged_in.fetch_artifact("J", "A", tmp_path / "a.bin")
+    logged_in.follow_log("J", "syn", "0")
 
     sent = [call.request for call in fake_v1.calls]
     assert not any("Basic" in (r.headers.get("Authorization") or "") for r in sent)
@@ -304,13 +274,11 @@ def test_no_request_carries_a_credential_from_netrc(
             if not request.url.startswith("https://sc-server.test/v1/auth/"):
                 assert request.headers["Authorization"].startswith("DPoP "), request.url
         else:
-            # `GET /v1` takes no credential; storage and the stream, none either.
             assert "Authorization" not in request.headers, request.url
 
 
 def test_the_environment_still_says_where_the_proxy_is(tmp_credentials, monkeypatch, tmp_path):
-    '''Not `trust_env = False`, which would drop the proxy and the CA bundle
-    with netrc.'''
+    '''Not `trust_env = False`, which would drop the proxy and CA bundle too.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.client.transport import Transport
 
@@ -330,9 +298,8 @@ def test_the_environment_still_says_where_the_proxy_is(tmp_credentials, monkeypa
 
 def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywhere,
                                              monkeypatch, tmp_path):
-    '''🔴 requests' `rebuild_auth` reads netrc again for a redirect's target,
-    whatever the session's `auth` says, so no request lets requests follow
-    one: a redirect is followed by hand, once, and a second is not chased.'''
+    '''🔴 requests' `rebuild_auth` rereads netrc for a redirect's target, so a
+    redirect is followed by hand, once, and a second is not chased.'''
     asked = []
     real = requests.Session.send
 
@@ -354,65 +321,57 @@ def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywher
     assert not (tmp_path / "a.bin").exists()
 
 
-@pytest.mark.parametrize("base,target", [
-    ("https://sc-server.test/v1", "http://storage.test/object"),
-    ("https://sc-server.test/v1", "ftp://storage.test/object"),
-    ("http://sc-server.test/v1", "file:///etc/passwd")],
-    ids=["downgrade", "ftp", "file"])
-def test_a_redirect_from_https_to_http_is_never_followed(
-        base, target, tmp_credentials, tmp_path):
-    '''🔴 Contract rule 5 (D70): an answer to an https request sends the
-    client only to https URLs, so a redirect to http is not followed -- nor
-    one to anything that is not http or https.'''
+@pytest.mark.parametrize("base,target,followed", [
+    ("https://sc-server.test/v1", "http://storage.test/object", False),
+    ("https://sc-server.test/v1", "ftp://storage.test/object", False),
+    ("http://sc-server.test/v1", "file:///etc/passwd", False),
+    ("http://sc-server.test/v1", "https://storage.test/object", True)],
+    ids=["downgrade", "ftp", "file", "upgrade"])
+def test_a_redirect_is_followed_only_to_https_from_https(base, target, followed,
+                                                         tmp_credentials):
+    '''🔴 Contract rule 5 (D70): an https answer sends the client only to
+    https, an http one to either, and nothing else is followed.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.client.transport import Transport
 
     transport = Transport(base, dpop.generate_key(), tmp_credentials)
-    with responses.RequestsMock() as mock:
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add(responses.GET, f"{base}/redirect", status=303,
                  headers={"Location": target})
-        response = transport._session.get(f"{base}/redirect", allow_redirects=False)
-
-        with pytest.raises(RemoteError) as raised:
-            transport.follow(response)
-
-    assert "sends a client only to https" in str(raised.value)
-
-
-def test_a_redirect_from_http_to_https_is_followed(tmp_credentials):
-    '''An answer to an http request may send the client to either scheme.'''
-    from siliconcompiler.remote import dpop
-    from siliconcompiler.remote.client.transport import Transport
-
-    base = "http://sc-server.test/v1"
-    transport = Transport(base, dpop.generate_key(), tmp_credentials)
-    with responses.RequestsMock() as mock:
-        mock.add(responses.GET, f"{base}/redirect", status=303,
-                 headers={"Location": "https://storage.test/object"})
         mock.add(responses.GET, "https://storage.test/object", body="bytes")
         response = transport._session.get(f"{base}/redirect", allow_redirects=False)
 
-        followed = transport.follow(response)
+        if followed:
+            answer = transport.follow(response)
+            assert answer.status_code == 200 and answer.text == "bytes"
+        else:
+            with pytest.raises(RemoteError, match="sends a client only to https"):
+                transport.follow(response)
 
-    assert followed.status_code == 200 and followed.text == "bytes"
 
-
-def test_a_header_value_with_a_line_break_is_refused(tmp_credentials):
+def test_a_header_value_is_checked_and_never_printed(tmp_credentials, fake_v1, caplog):
     with pytest.raises(StoreError):
         tmp_credentials.set_header("X-A", "v\r\nX-B: w")
     with pytest.raises(StoreError):
         tmp_credentials.set_header("Authorization", "v")
 
-
-def test_a_header_value_is_never_printed(tmp_credentials, fake_v1, caplog):
-    tmp_credentials.set_header("CF-Access-Client-Secret",
-                               "very-secret")
-
+    tmp_credentials.set_header("CF-Access-Client-Secret", "very-secret")
     with caplog.at_level("INFO"):
         Client(tmp_credentials).print_configuration()
 
     assert "CF-Access-Client-Secret" in caplog.text
     assert "very-secret" not in caplog.text
+
+
+def test_a_header_value_is_read_from_a_pipe(monkeypatch):
+    '''`echo "$SECRET" | sc-remote -header NAME`.'''
+    import io
+
+    from siliconcompiler.remote.client import read_secret
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("piped-value\n"))
+
+    assert read_secret("CF-Access-Client-Secret") == "piped-value"
 
 
 ###########################
@@ -421,9 +380,8 @@ def test_a_header_value_is_never_printed(tmp_credentials, fake_v1, caplog):
 
 def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
                                                    client_credentials):
-    '''🔴 A process that waited for the lock uses what it finds in the store,
-    never the token it held before: presenting a rotated one after the grace
-    window would end every worker's session.'''
+    '''🔴 A process that waited for the lock uses what is in the store: a
+    rotated token presented after the grace window ends every session.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     first = Client(Credentials(tmp_credentials.path))
     second = Client(Credentials(tmp_credentials.path))
@@ -443,8 +401,7 @@ def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
 
 def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
                                                        client_credentials, no_sleep):
-    '''The answer was lost, not the request: the server rotated, and the grace
-    window gives the same pair back for the same token.'''
+    '''The answer was lost, not the request: the grace window repeats it.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     fake_v1._mock.add(responses.POST, fake_v1.url("auth/token"),
                       body=requests.ConnectionError("connection reset"))
@@ -458,21 +415,11 @@ def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
     assert tmp_credentials.refresh_token == "r2"
 
 
-def test_a_refresh_sends_no_scope(fake_v1, tmp_credentials, client_credentials):
-    tmp_credentials.save_tokens({"refresh_token": "r1"})
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    Client(tmp_credentials).me()
-
-    assert "scope" not in _form(_posts(fake_v1)[0].body)
-
-
 ###########################
 # The store
 ###########################
 
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
+@posix_only
 @pytest.mark.parametrize("which", ["dir", "key", "store"])
 def test_a_store_others_can_read_stops_the_client(tmp_credentials, which):
     tmp_credentials.key()
@@ -480,7 +427,7 @@ def test_a_store_others_can_read_stops_the_client(tmp_credentials, which):
     target = {"dir": tmp_credentials.auth_dir,
               "key": tmp_credentials.key_path,
               "store": tmp_credentials.path}[which]
-    os.chmod(target, stat.S_IMODE(os.stat(target).st_mode) | 0o044)
+    os.chmod(target, _mode(target) | 0o044)
 
     with pytest.raises(StoreError) as raised:
         Credentials(tmp_credentials.path)
@@ -488,20 +435,10 @@ def test_a_store_others_can_read_stops_the_client(tmp_credentials, which):
     assert "sc-remote -rotate_key" in str(raised.value)
 
 
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
-def test_the_store_is_written_private(tmp_credentials):
-    tmp_credentials.key()
-    tmp_credentials.save_tokens({"refresh_token": "r1"})
-
-    assert stat.S_IMODE(os.stat(tmp_credentials.auth_dir).st_mode) == 0o700
-    for entry in tmp_credentials.auth_dir.iterdir():
-        assert stat.S_IMODE(os.stat(entry).st_mode) & 0o077 == 0, entry
-
-
-@pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
+@posix_only
 def test_the_store_is_private_from_creation_whatever_the_umask(tmp_path, monkeypatch):
-    '''Each file created with its mode set, never `open()` then `chmod()`:
-    a permissive umask opens no window.'''
+    '''Each file created with its mode set, never `open()` then `chmod()`;
+    the key in a file of its own, which a narrower mount can leave out.'''
     monkeypatch.delenv("SC_AUTH_DIR", raising=False)
     previous = os.umask(0)
     try:
@@ -512,15 +449,24 @@ def test_the_store_is_private_from_creation_whatever_the_umask(tmp_path, monkeyp
         os.umask(previous)
 
     assert credentials.key_path == tmp_path / "home" / ".sc" / "auth" / "dpop-key.pem"
-    assert stat.S_IMODE(os.stat(credentials.auth_dir).st_mode) == 0o700
+    assert _mode(credentials.auth_dir) == 0o700
     for entry in credentials.auth_dir.iterdir():
-        assert stat.S_IMODE(os.stat(entry).st_mode) == 0o600, entry
+        assert _mode(entry) == 0o600, entry
+
+
+@posix_only
+def test_an_existing_wider_file_is_tightened(tmp_credentials):
+    '''Re-running configure over a file somebody widened fixes it.'''
+    tmp_credentials.save_tokens({"refresh_token": "secret"})
+    os.chmod(tmp_credentials.path, 0o644)
+
+    tmp_credentials.save_tokens({"refresh_token": "secret-again"})
+
+    assert _mode(tmp_credentials.path) == 0o600
 
 
 def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, monkeypatch):
-    '''The Windows equivalent of 0700, applied as the directory is made:
-    inheritance off, and full control to the user alone, inherited by every
-    file created in it.'''
+    '''The Windows 0700: inheritance off, full control to the user alone.'''
     import subprocess
 
     from siliconcompiler.remote.client import credentials as module
@@ -539,23 +485,21 @@ def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, m
     assert command[4].endswith(":(OI)(CI)F")
 
 
-@pytest.mark.parametrize("refusal", [
+@pytest.mark.parametrize("path,body,status,content_type", [
     ("auth/token", {"error": "invalid_client"}, 401, "application/json"),
     ("auth/token", {"error": "invalid_dpop_proof"}, 400, "application/json"),
     ("me", problem("invalid-dpop-proof", 401), 401, "application/problem+json"),
 ])
-def test_no_refusal_replaces_the_key(fake_v1, tmp_credentials, client_credentials, refusal):
-    '''🔴 The key is the device pin: only `rotate_key` replaces it, and no
-    authentication error does.'''
-    path, body, status, content_type = refusal
+def test_no_refusal_replaces_the_key(fake_v1, tmp_credentials, client_credentials, path,
+                                     body, status, content_type):
+    '''🔴 The key is the device pin: only `rotate_key` replaces it.'''
     before = tmp_credentials.thumbprint
     stored = tmp_credentials.key_path.read_bytes()
+    method = responses.GET if path == "me" else responses.POST
     if path == "me":
         fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET if path == "me" else responses.POST, path, body,
-                  status=status, content_type=content_type)
-    fake_v1.route(responses.GET if path == "me" else responses.POST, path, body,
-                  status=status, content_type=content_type)
+    for _ in range(2):
+        fake_v1.route(method, path, body, status=status, content_type=content_type)
 
     with pytest.raises(RemoteError):
         client = Client(tmp_credentials)
@@ -584,12 +528,10 @@ def _store_file(credentials):
 
 def test_the_store_is_one_versioned_file_of_two_categories(
         fake_v1, tmp_credentials, client_credentials):
-    '''The layout, whole: a `store` category and one entry per server, and no
-    access token, scope, login mode or grant list kept anywhere in it.'''
+    '''No access token, scope, login mode, grant list or key kept in it.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-    client = Client(tmp_credentials)
-    client.me()
+    Client(tmp_credentials).me()
     tmp_credentials.set_header("CF-Access-Client-Id", "id")
     tmp_credentials.set_directory_whitelist(["/proj"])
 
@@ -605,7 +547,6 @@ def test_the_store_is_one_versioned_file_of_two_categories(
 
 
 def test_a_store_a_newer_client_wrote_is_refused_by_name(tmp_credentials):
-    '''Read, it would be misread: a later version is a later shape.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     written = _store_file(tmp_credentials)
     written["store"]["version"] = 2
@@ -616,8 +557,7 @@ def test_a_store_a_newer_client_wrote_is_refused_by_name(tmp_credentials):
 
 
 def test_each_server_keeps_its_own_entry(tmp_credentials):
-    '''Switching back finds the session left there, and one server's id is
-    never read as another's.'''
+    '''One server's session and id are never read as another's.'''
     tmp_credentials.save_tokens({"refresh_token": "first"})
     tmp_credentials.set_user_id("me-on-first")
     tmp_credentials.set_server("https://other.test")
@@ -632,8 +572,6 @@ def test_each_server_keeps_its_own_entry(tmp_credentials):
 
 def test_a_ci_credential_takes_the_place_of_a_refresh_token(tmp_credentials, ci_secret,
                                                             monkeypatch):
-    '''One deployment mints it for its own API, and a CI session trades it for
-    each access token: the entry holds one or the other.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     tmp_credentials.save_ci_secret(ci_secret)
     monkeypatch.delenv("SC_CI_CREDENTIAL")
@@ -662,34 +600,27 @@ def test_rotating_the_key_ends_each_session_and_keeps_the_rest(
     assert tmp_credentials.thumbprint != before
 
 
-def test_a_private_store_directory_may_hold_other_files(tmp_path):
-    '''`-credentials` may name a store in a private directory of the user's
-    choosing; only the directory and the store's own files are judged.'''
+def test_a_store_directory_is_private_or_refused(tmp_path):
+    '''It holds the key: a working directory others can read is refused,
+    and only the directory and the store's own files are judged.'''
     home = tmp_path / "mine"
     home.mkdir(mode=0o700)
     (home / "notes.txt").write_text("not the store's\n")
     os.chmod(home / "notes.txt", 0o644)
+    shared = tmp_path / "shared"
+    shared.mkdir(mode=0o755)
+    os.chmod(shared, 0o755)
 
     store = Credentials(home / "remote.json")
     store.set_server("https://sc-server.test")
 
     assert store.server == "https://sc-server.test/v1"
-
-
-def test_a_store_in_a_directory_others_can_read_is_refused(tmp_path):
-    '''The directory holds the key, so it is private or the store is not
-    used: a credentials path in an ordinary working directory included.'''
-    shared = tmp_path / "shared"
-    shared.mkdir(mode=0o755)
-    os.chmod(shared, 0o755)
-
     with pytest.raises(StoreError, match="readable by others"):
         Credentials(shared / "remote.json")
 
 
 def _legacy_home(tmp_path):
-    '''What a released client left: its configuration file, which held the
-    server, its username and password, and the whitelist.'''
+    '''A released client's configuration file.'''
     home = tmp_path / "home" / ".sc"
     home.mkdir(parents=True)
     (home / "credentials").write_text(json.dumps({
@@ -699,9 +630,8 @@ def _legacy_home(tmp_path):
 
 
 def test_an_older_clients_file_is_moved_in_once(tmp_path):
-    '''🔴 The server and the whitelist to their places, and the old file
-    removed: nothing an older client wrote is read twice. Its username and
-    password are not the credential any more, and are not kept.'''
+    '''🔴 Server and whitelist moved, the old file removed, and its username
+    and password not kept.'''
     home = _legacy_home(tmp_path)
 
     store = Credentials(home / "auth" / "remote.json")
@@ -716,9 +646,7 @@ def test_an_older_clients_file_is_moved_in_once(tmp_path):
 
 
 def test_credentials_naming_an_older_file_finds_the_store_it_moved_to(tmp_path, caplog):
-    '''`-credentials ~/.sc/credentials` in a script still works: the file is
-    moved into the `auth/` beside it, and once it is gone the path finds that
-    store, saying where to point it.'''
+    '''`-credentials ~/.sc/credentials` still works, saying where to point it.'''
     home = _legacy_home(tmp_path)
 
     first = Credentials(home / "credentials")
@@ -805,9 +733,15 @@ def exchange(fake_v1, capabilities, ci_secret):
     return traded
 
 
-def test_a_ci_credential_is_traded_before_any_user_code(fake_v1, tmp_credentials,
-                                                        exchange):
+@pytest.mark.parametrize("offered", [None, (GRANT_DEVICE_CODE,)],
+                         ids=["exchange-offered", "device-only"])
+def test_a_ci_key_trades_first_and_never_prints_a_code(
+        fake_v1, capabilities, tmp_credentials, exchange, capsys, offered):
+    '''🔴 Identity §2: token exchange first whatever is offered, never a
+    `user_code` in a CI log, and no refresh token kept.'''
     exchange()
+    if offered:
+        _offer(fake_v1, capabilities, *offered)
 
     Client(tmp_credentials, open_browser=False).login()
 
@@ -815,15 +749,13 @@ def test_a_ci_credential_is_traded_before_any_user_code(fake_v1, tmp_credentials
     (trade,) = _posts(fake_v1)
     form = _form(trade.body)
     assert form["grant_type"] == GRANT_TOKEN_EXCHANGE
-
     assertion = _claims(form["subject_token"])
     assert assertion["aud"] == "https://sc-server.test"
     assert assertion["exp"] - assertion["iat"] <= 300
     assert assertion["cnf"]["jkt"] == tmp_credentials.thumbprint
     assert assertion["iss"] == assertion["sub"] == "01J9credential"
-
-    # No refresh token comes back, and none is written down.
     assert tmp_credentials.refresh_token is None
+    assert "code" not in capsys.readouterr().out.lower()
 
 
 def test_a_ci_session_trades_again_for_each_access_token(fake_v1, tmp_credentials,
@@ -838,8 +770,7 @@ def test_a_ci_session_trades_again_for_each_access_token(fake_v1, tmp_credential
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     assert client.me()["id"] == "u1"
-    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == \
-        [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
+    assert _grants(fake_v1) == [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
     assert fake_v1.calls[-1].request.headers["Authorization"] == "DPoP two"
 
 
@@ -855,26 +786,10 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
     assert "expires in 3 days" in caplog.text
 
 
-def test_a_ci_key_trades_first_and_never_prints_a_code(
-        fake_v1, capabilities, tmp_credentials, exchange, capsys, caplog):
-    '''🔴 Identity §2: token exchange first whatever is offered -- here only
-    the device grant -- and never a `user_code` in a CI runner's log.'''
-    exchange()
-    _offer(fake_v1, capabilities, GRANT_DEVICE_CODE)
-
-    Client(tmp_credentials, open_browser=False).login()
-
-    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == [GRANT_TOKEN_EXCHANGE]
-    assert not _posts(fake_v1, "auth/device")
-    assert "code" not in capsys.readouterr().out.lower()
-
-
 def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
         fake_v1, capabilities, tmp_credentials, ci_secret, capsys):
-    '''On `unsupported_grant_type` the client re-reads `GET /v1` once, and
-    where the deployment still offers no token exchange it fails, saying so --
-    never falling back to `client_credentials` or the device grant, though
-    this one offers both.'''
+    '''Never falling back to `client_credentials` or the device grant,
+    though this deployment offers both.'''
     _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE,
            "refresh_token")
     fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
@@ -883,7 +798,7 @@ def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
     with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
         Client(tmp_credentials, open_browser=False).login()
 
-    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == [GRANT_TOKEN_EXCHANGE]
+    assert _grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
     assert not _posts(fake_v1, "auth/device")
     assert len([c for c in fake_v1.calls if c.request.method == "GET"
                 and c.request.url.rstrip("/").endswith("/v1")]) == 1
@@ -900,14 +815,11 @@ def test_a_ci_key_trades_after_the_grants_say_it_now_can(
 
     Client(tmp_credentials, open_browser=False).login()
 
-    assert [_form(r.body)["grant_type"] for r in _posts(fake_v1)] == \
-        [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
+    assert _grants(fake_v1) == [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
 
 
 def test_insecure_transport_stops_and_is_never_sent_again(logged_in, fake_v1):
-    '''Contract rule 5: the client never switches scheme. Re-sending over
-    https would hide a mistyped address and send every later call to the
-    refusal first.'''
+    '''Contract rule 5: never switch scheme, which would hide a mistyped address.'''
     fake_v1.route(responses.GET, "me", problem("insecure-transport", 426), status=426,
                   content_type="application/problem+json", headers={"Upgrade": "TLS/1.2"})
 
@@ -919,7 +831,7 @@ def test_insecure_transport_stops_and_is_never_sent_again(logged_in, fake_v1):
     assert all(c.request.url.startswith("https://sc-server.test") for c in fake_v1.calls)
 
 
-def test_a_ci_credential_is_never_sent_over_plain_http(tmp_path, monkeypatch, ci_secret):
+def test_a_ci_credential_is_never_sent_over_plain_http(tmp_path, ci_secret):
     creds = Credentials(tmp_path / "auth" / "remote.json")
     creds.set_server("http://sc-server.test")
 
@@ -955,8 +867,7 @@ def test_the_ci_secret_parses_with_underscores_in_the_key(ci_secret):
 
 def test_ci_setup_writes_the_store_and_asks_for_the_access_headers(
         tmp_path, monkeypatch, ci_secret):
-    '''The headers are typed in, never read from an environment variable of
-    the client's choosing.'''
+    '''Headers are typed in, never read from an environment variable.'''
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
     monkeypatch.setenv("GITHUB_ENV", str(tmp_path / "github_env"))
@@ -983,7 +894,6 @@ def test_ci_setup_writes_the_store_and_asks_for_the_access_headers(
     assert reopened.headers() == {
         "CF-Access-Client-Id": "cf-id", "CF-Access-Client-Secret": "cf-secret"}
     assert reopened.server == "https://sc-server.test/v1"
-    # The CI credential is the server's own, in place of a refresh token.
     assert reopened.refresh_token is None
 
 
@@ -999,20 +909,17 @@ def test_ci_setup_without_a_terminal_asks_nothing(tmp_path, monkeypatch, ci_secr
     assert creds.headers() == {}
 
 
-def test_a_header_value_is_read_from_a_pipe(tmp_credentials, monkeypatch):
-    '''How a pipeline sets one: `echo "$SECRET" | sc-remote -header NAME`.'''
-    import io
-
-    from siliconcompiler.remote.client import read_secret
-
-    monkeypatch.setattr("sys.stdin", io.StringIO("piped-value\n"))
-
-    assert read_secret("CF-Access-Client-Secret") == "piped-value"
-
+###########################
+# Rotating the key
+###########################
 
 def test_a_rotation_revokes_the_old_device_with_the_old_key(
         logged_in, fake_v1, tmp_credentials, client_credentials):
     '''The old key proves possession one last time, then the new key logs in.'''
+    import jwt
+
+    from siliconcompiler.remote import dpop
+
     old = tmp_credentials.thumbprint
     fake_v1.route(responses.GET, "devices",
                   {"items": [{"id": "d-old", "name": "laptop", "current": True}]})
@@ -1021,11 +928,8 @@ def test_a_rotation_revokes_the_old_device_with_the_old_key(
 
     logged_in.rotate_key()
 
-    import jwt
-
-    from siliconcompiler.remote import dpop
-
-    revoke, = [c.request for c in fake_v1.calls if c.request.method == "DELETE"]
+    sent = [c.request for c in fake_v1.calls]
+    revoke, = [r for r in sent if r.method == "DELETE"]
     login = _posts(fake_v1)[-1]
 
     def signer(request):
@@ -1033,8 +937,7 @@ def test_a_rotation_revokes_the_old_device_with_the_old_key(
 
     assert signer(revoke) == old
     assert signer(login) == tmp_credentials.thumbprint != old
-    assert fake_v1.calls.index(next(c for c in fake_v1.calls if c.request is revoke)) < \
-        fake_v1.calls.index(next(c for c in fake_v1.calls if c.request is login))
+    assert sent.index(revoke) < sent.index(login)
 
 
 def test_a_rotation_the_server_cannot_hear_still_rotates(

@@ -3,17 +3,19 @@ import os
 import shutil
 import sys
 
+from pathlib import Path
+
 import pytest
 
 from siliconcompiler import ASIC, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
 
 
-# What goes in a remote run's archive, decided by what owns each file and where
-# its dataroot says it comes from -- and the server's half, which refuses a flow
-# that needs a resource it does not hold and did not receive.
+# What goes in a remote run's archive, and the server's accounting for the rest.
 
 DATASHEET = ("package", "doc", "datasheet")
+GITHUB = "https://github.com/siliconcompiler/x/archive/"
+RTL = ("library", "gcd", "fileset", "rtl", "file", "verilog")
 
 
 def resource(cls, name, root, file="datasheet.pdf", create=True):
@@ -30,21 +32,28 @@ def resource(cls, name, root, file="datasheet.pdf", create=True):
     return obj
 
 
+def private(cls, name, root):
+    obj = cls(name)
+    obj.set_dataroot(name, f"file+private://{root}")
+    with obj.active_dataroot(name):
+        obj.set(*DATASHEET, "datasheet.pdf")
+    return obj
+
+
 @pytest.fixture
 def project(gcd_design):
     return ASIC(gcd_design)
 
 
 def first(project, key, n=0):
-    '''The first value of a parameter, out of the list it may be held in.'''
+    '''The ``n``th value of a parameter, out of the list it may be held in.'''
     value = project.get(*key, field=None).getvalues(return_values=False)[0][0]
     return value.values[n] if hasattr(value, "values") else value
 
 
 def collected_path(project, key, n=0):
-    '''Where `collect` puts the ``n``th value of ``key``, under the collection
-    directory: bucketed by its dataroot's collected name, which only the
-    value's own resolver knows (`owners.collected_path`).'''
+    '''Where `collect` puts the ``n``th value of ``key``, relative to the
+    collection: bucketed by a name only its own resolver knows.'''
     path = first(project, key, n).get()
     for one in owners._values(project):
         if one.key == tuple(key) and one.value.get() == path:
@@ -52,8 +61,9 @@ def collected_path(project, key, n=0):
     raise AssertionError(f"{key} has no value {path}")
 
 
-def decide_value(project, key, n):
-    '''`decide`, for the ``n``-th value of the parameter.'''
+def decide(project, key, n=0):
+    '''What `collect`'s selector is asked about the ``n``th value: its source,
+    and whether it goes up.'''
     value = first(project, key, n)
     resolvers = project.get(*key[:-1], field="schema")._find_files_dataroot_resolvers(True)
     dataroot = value.get(field="dataroot")
@@ -61,17 +71,8 @@ def decide_value(project, key, n):
             owners.uploads(project, key, dataroot, resolvers))
 
 
-def decide(project, key):
-    '''What `collect`'s selector is asked about one value.'''
-    value = first(project, key)
-    resolvers = project.get(*key[:-1], field="schema")._find_files_dataroot_resolvers(True)
-    dataroot = value.get(field="dataroot")
-    return (owners.source(resolvers, dataroot),
-            owners.uploads(project, key, dataroot, resolvers))
-
-
 ###########################
-# Who owns it
+# Who owns it, and where it comes from
 ###########################
 
 def test_every_owner_is_told_apart(project, tmp_path):
@@ -82,111 +83,68 @@ def test_every_owner_is_told_apart(project, tmp_path):
 
     assert owners.owner(project, ("library", "mypdk", *DATASHEET)) == ("pdk", "mypdk")
     assert owners.owner(project, ("library", "mylib", *DATASHEET)) == ("library", "mylib")
-    assert owners.owner(project, ("library", "gcd", "fileset", "rtl", "file", "verilog")) \
-        == (owners.DESIGN, "gcd")
+    assert owners.owner(project, RTL) == (owners.DESIGN, "gcd")
     assert owners.owner(project, ("tool", "openroad", "task", "x", "script")) == \
         ("tool", "openroad")
     assert owners.owner(project, ("option", "builddir")) == (owners.PROJECT, None)
 
 
-def test_the_design_always_goes_up_whatever_its_source(project):
-    assert decide(project, ("library", "gcd", "fileset", "rtl", "file", "verilog"))[1]
+def test_the_design_always_goes_up_and_the_credentials_file_never(project, tmp_path):
+    '''🔴 The credentials file is a path parameter, and this machine's key.'''
+    (tmp_path / "credentials").write_text("{}")
+    project.option.set_credentials(str(tmp_path / "credentials"))
 
-
-def test_the_credentials_file_never_goes_up(project, tmp_path):
-    '''🔴 It is a path parameter the user sets, and it is this machine's key.'''
-    creds = tmp_path / "credentials"
-    creds.write_text("{}")
-    project.option.set_credentials(str(creds))
-
+    assert decide(project, RTL)[1]
     assert not decide(project, ("option", "credentials"))[1]
 
 
-###########################
-# 🔴 The trap: the SOURCE, never where the file is now
-###########################
-
-def test_a_remote_pdk_is_not_uploaded_even_though_its_files_are_on_disk(project):
-    '''The failure that is silent. A lambdapdk PDK is fetched into the cache on
-    first use, so every file it names IS on local disk -- judged by location,
-    every PDK would go up in every job.'''
-    project.set_pdk(resource(PDK, "remote", "https://example.test/pdk.tar.gz",
-                             create=False))
-
-    assert decide(project, ("library", "remote", *DATASHEET)) == (owners.REMOTE, False)
-
-
-def test_a_local_pdk_is_uploaded(project, tmp_path):
-    project.set_pdk(resource(PDK, "local", tmp_path / "pdk"))
-
-    assert decide(project, ("library", "local", *DATASHEET)) == (owners.LOCAL, True)
-
-
-def test_an_installed_package_is_not_uploaded_and_an_editable_one_is(
-        project, monkeypatch):
+@pytest.mark.parametrize("root,editable,origin,uploads", [
+    # 🔴 The SOURCE decides, never where the file is now: a lambdapdk PDK is
+    # fetched into the cache on first use, so every file it names IS on disk.
+    ("https://example.test/pdk.tar.gz", False, owners.REMOTE, False),
+    ("{tmp}/pdk", False, owners.LOCAL, True),
+    # 🔴 D112, reversing D109: the server never expands a variable, so the
+    # client does, with its own environment, and uploads what it finds.
+    ("$FOUNDRY_ROOT", False, owners.LOCAL, True),
+    ("dataroot://real", False, owners.REMOTE, False),       # judged by the one it names
+    ("python://some_pdk_package", False, owners.INSTALLED, False),
+    ("python://some_pdk_package", True, owners.EDITABLE, True),
+])
+def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
+        project, tmp_path, monkeypatch, root, editable, origin, uploads):
     from siliconcompiler.package import PythonPathResolver
 
-    project.set_pdk(resource(PDK, "pkg", "python://some_pdk_package", create=False))
-    key = ("library", "pkg", *DATASHEET)
-
     monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
-                        staticmethod(lambda module: False))
-    assert decide(project, key) == (owners.INSTALLED, False)
-
-    monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
-                        staticmethod(lambda module: module == "some_pdk_package"))
-    assert decide(project, key) == (owners.EDITABLE, True)
-
-
-def test_a_dataroot_naming_another_is_judged_by_that_one(project):
-    pdk = PDK("chained")
+                        staticmethod(lambda module: editable))
+    (tmp_path / "pdk").mkdir()
+    (tmp_path / "pdk" / "datasheet.pdf").write_text("the datasheet\n")
+    monkeypatch.setenv("FOUNDRY_ROOT", str(tmp_path / "pdk"))
+    pdk = PDK("mypdk")
     pdk.set_dataroot("real", "https://example.test/pdk.tar.gz", tag="v1")
-    pdk.set_dataroot("alias", "dataroot://real")
-    with pdk.active_dataroot("alias"):
+    pdk.set_dataroot("mypdk", root.format(tmp=tmp_path),
+                     tag="v1" if root.startswith("https") else None)
+    with pdk.active_dataroot("mypdk"):
         pdk.set(*DATASHEET, "datasheet.pdf")
     project.set_pdk(pdk)
 
-    assert decide(project, ("library", "chained", *DATASHEET)) == (owners.REMOTE, False)
-
-
-###########################
-# 🔴 A `$`-rooted path is the client's to expand, and it goes up (D112)
-###########################
-
-def test_a_dollar_rooted_pdk_is_local_and_uploaded(project, tmp_path, monkeypatch):
-    '''Reverses D109: the server never expands a variable, so the client does
-    -- with its own environment and `option,env` -- and uploads what it finds.'''
-    root = tmp_path / "site-pdk"
-    root.mkdir()
-    (root / "datasheet.pdf").write_text("the datasheet\n")
-    monkeypatch.setenv("FOUNDRY_ROOT", str(root))
-    project.set_pdk(resource(PDK, "foundry", "$FOUNDRY_ROOT", create=False))
-
-    assert decide(project, ("library", "foundry", *DATASHEET)) == (owners.LOCAL, True)
+    assert decide(project, ("library", "mypdk", *DATASHEET)) == (origin, uploads)
 
 
 ###########################
 # Private: supplied by name, never uploaded
 ###########################
 
-def private(cls, name, root):
-    obj = cls(name)
-    obj.set_dataroot(name, f"file+private://{root}")
-    with obj.active_dataroot(name):
-        obj.set(*DATASHEET, "datasheet.pdf")
-    return obj
-
-
 @pytest.mark.parametrize("scheme", [
     "file+private", "git+private", "git+https+private", "git+ssh+private",
     "ssh+private", "http+private", "https+private"])
 def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path, scheme):
-    '''🔴 The marker is a `+private` suffix on any scheme (surface D274), read
-    through `Resolver.is_private` before every other source rule: never
-    uploaded. A remote one carries its cleaned source and ref (surface D308),
-    and a local one neither -- its path is never sent.'''
+    '''🔴 A `+private` suffix on any scheme (D274): never uploaded, even from
+    this disk; a remote one sends its cleaned source and ref (D308), a local none.'''
     local = scheme == "file+private"
-    source = f"{scheme}://{tmp_path / 'secret'}" if local else f"{scheme}://host/secret.git"
+    (tmp_path / "secret").mkdir()
+    (tmp_path / "secret" / "datasheet.pdf").write_text("x")
+    source = f"{scheme}://{tmp_path / 'secret'}" if local else \
+        f"{scheme}://alice:ghp_TOKEN@host/secret.git?k=v"
     pdk = PDK("secret")
     pdk.set_dataroot("secret", source, tag=None if local else "v1")
     with pdk.active_dataroot("secret"):
@@ -201,31 +159,8 @@ def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path
         assert "source" not in entry and "ref" not in entry
         assert str(tmp_path) not in json.dumps(entry)
     else:
-        assert entry["source"].endswith("://host/secret.git") and entry["ref"] == "v1"
-
-
-def test_a_private_remote_source_is_sent_without_its_credentials(project):
-    '''As every other source is: no userinfo, and every query value masked.'''
-    pdk = PDK("secret")
-    pdk.set_dataroot("secret", "git+https+private://alice:ghp_TOKEN@host/secret.git?k=v",
-                     tag="v1")
-    with pdk.active_dataroot("secret"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
-    project.set_pdk(pdk)
-
-    entry, = [item for item in owners.sources(project)
-              if item["keypath"] == ["library", "secret", "dataroot", "secret"]]
-    assert "ghp_TOKEN" not in entry["source"] and "alice" not in entry["source"]
-    assert entry["source"].endswith("host/secret.git?k=***")
-
-
-def test_a_private_pdk_is_never_uploaded(project, tmp_path):
-    '''Even though it is local -- private wins over the owner table.'''
-    (tmp_path / "secret").mkdir()
-    (tmp_path / "secret" / "datasheet.pdf").write_text("x")
-    project.set_pdk(private(PDK, "secret", tmp_path / "secret"))
-
-    assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
+        assert entry["source"].endswith("://host/secret.git?k=***") and entry["ref"] == "v1"
+        assert "ghp_TOKEN" not in entry["source"] and "alice" not in entry["source"]
 
 
 def test_the_marker_is_tested_in_one_place():
@@ -240,54 +175,39 @@ def test_the_marker_is_tested_in_one_place():
 
 
 ###########################
-# What the client says it expects the server to supply
+# What the client sends, and no credential in it
 ###########################
 
-def test_sources_names_what_is_not_uploaded_and_strips_credentials(project, tmp_path):
-    project.set_pdk(resource(PDK, "lambda",
-                             "https://user:token@github.com/siliconcompiler/x/archive/",
-                             create=False))
+def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_credential(
+        project, tmp_path):
+    '''🔴 `safe_source` (#5454): no userinfo, every query value masked -- one
+    string in the client's `sources` and the server's `value_records`.'''
+    project.set_pdk(resource(
+        PDK, "lambda", "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
+        "?access_token=SECRET&lfs=true", create=False))
     project.add_asiclib(private(StdCellLibrary, "secretlib", tmp_path))
 
     listed = {tuple(item["keypath"]): item for item in owners.sources(project)}
-    # By keypath, and no kind (surface D298).
-    assert not any("kind" in item for item in listed.values())
+    record, = [one for one in owners.value_records(owners.without_credentials(project), "none")
+               if one["key"][:2] == ["library", "lambda"]]
 
-    remote = listed[("library", "lambda", "dataroot", "lambda")]
-    assert remote["source"] == "https://github.com/siliconcompiler/x/archive/"
-    assert remote["ref"] == "v1" and remote["private"] is False
-
-    hidden = listed[("library", "secretlib", "dataroot", "secretlib")]
-    # 🔴 A private dataroot's path is never sent.
-    assert hidden["private"] is True and "source" not in hidden
+    assert not any("kind" in item for item in listed.values())       # by keypath (D298)
     assert not any(keypath[1] == "gcd" for keypath in listed)
-
-
-def test_a_token_in_a_query_never_leaves_this_machine(project):
-    '''🔴 What is sent is SiliconCompiler's own `safe_source`: no userinfo,
-    and every query value masked, its name kept so the source still says what
-    it is (#5454).'''
-    project.set_pdk(resource(
-        PDK, "lambda",
-        "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
-        "?access_token=SECRET&lfs=true", create=False))
-
-    sent, = [item for item in owners.sources(project) if item["keypath"][1] == "lambda"]
-
+    sent = listed[("library", "lambda", "dataroot", "lambda")]
     assert sent["source"] == ("https://github.com/siliconcompiler/x/archive/v1.tar.gz"
                               "?access_token=***&lfs=***")
-    assert owners.is_masked(sent["source"])
-    assert not owners.is_masked("https://github.com/siliconcompiler/x/archive/")
+    assert (sent["ref"], sent["private"]) == ("v1", False)
+    assert record["source"] == sent["source"]
+    assert owners.is_masked(sent["source"]) and not owners.is_masked(GITHUB)
+    hidden = listed[("library", "secretlib", "dataroot", "secretlib")]
+    assert hidden["private"] is True and "source" not in hidden
 
 
-###########################
-# No credential in the manifest (surface D302)
-###########################
-
-def with_credentials(project):
-    '''Dataroots registered with a credential -- the design's, a private one,
-    and a task's with a token in its query -- and the same again in the history
-    an earlier run left, which the manifest carries too.'''
+def test_every_dataroot_path_leaves_without_its_credential(gcd_nop_project):
+    '''D302: the design's, a private one, a task's query, and the same in the
+    history -- on a copy, so the user's project keeps what they registered.'''
+    assert owners.without_credentials(gcd_nop_project) is gcd_nop_project   # none: no copy
+    project = gcd_nop_project
     design = project.get("library", "gcd", field="schema")
     design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
     design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
@@ -295,11 +215,6 @@ def with_credentials(project):
     project.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
                 "https://example.com/scripts.tar.gz?token=TOKEN")
     project._record_history()
-    return project
-
-
-def test_every_dataroot_path_leaves_without_its_credential(gcd_nop_project):
-    project = with_credentials(gcd_nop_project)
 
     paths = dict(owners.dataroot_paths(owners.without_credentials(project)))
 
@@ -311,24 +226,13 @@ def test_every_dataroot_path_leaves_without_its_credential(gcd_nop_project):
     assert paths[("history", "job0", "library", "gcd", "dataroot", "ip")] == \
         "git+https://example.com/ip.git"
     assert not any("TOKEN" in path or owners.has_userinfo(path) for path in paths.values())
-
-
-def test_the_users_own_project_keeps_what_they_registered(gcd_nop_project):
-    project = with_credentials(gcd_nop_project)
-
-    owners.without_credentials(project)
-
     assert project.get("library", "gcd", "dataroot", "ip", "path") == \
         "git+https://alice:TOKEN@example.com/ip.git"
 
 
-def test_a_project_with_no_credential_is_not_copied(gcd_nop_project):
-    assert owners.without_credentials(gcd_nop_project) is gcd_nop_project
-
-
 def test_userinfo_is_read_as_the_mask_reads_it():
-    '''What the client strips and what the server refuses are one thing:
-    anything ahead of the host, `git@` included, and nothing in the path.'''
+    '''What the client strips and the server refuses: anything ahead of the
+    host, `git@` included, and nothing in the path.'''
     for url in ("git+https://alice:TOKEN@example.com/ip.git",
                 "git+ssh://git@github.com/acme/ip.git", "https://TOKEN@example.com/x"):
         assert owners.has_userinfo(url)
@@ -337,48 +241,18 @@ def test_userinfo_is_read_as_the_mask_reads_it():
         assert not owners.has_userinfo(url)
 
 
-def test_both_ends_read_one_masked_source(project):
-    '''What the descriptor says -- the client's `sources`, from the user's own
-    project -- and what the server accounts by -- `value_records` of the
-    manifest the client sent -- are one string, so a held copy stored under
-    one is found under the other.'''
-    project.set_pdk(resource(
-        PDK, "lambda",
-        "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
-        "?access_token=SECRET&lfs=true", create=False))
-
-    sent, = [item for item in owners.sources(project) if item["keypath"][1] == "lambda"]
-    record, = [one for one in owners.value_records(owners.without_credentials(project), "none")
-               if one["key"][:2] == ["library", "lambda"]]
-
-    assert record["source"] == sent["source"]
-    assert "SECRET" not in record["source"] and "ghp_x" not in record["source"]
-
-
 def test_a_masked_source_is_never_fetched(project, tmp_path):
-    '''🔴 With the server's own supply, and a source on its allowlist: a
-    public one whose query was masked is asked for, and a private one is
-    supplied only from the operator's copy or a held copy.'''
+    '''🔴 With the server's own supply and everything allowlisted: a public
+    masked source is asked for; a private one only supplied by a copy.'''
     from siliconcompiler.remote.server.jobs.common import _Supply
-
-    class Sources:
-        def __init__(self, held=None):
-            self._held = held or {}
-
-        def held(self, source, ref):
-            return self._held.get((source, ref))
-
-        def allowlisted(self, source, ref):
-            return True
 
     def supply(private=None, held=None):
         return _Supply({"private_dataroots": private or {}, "fetch_fails": False},
-                       Sources(held))
+                       Supply(held=held, allowed=[""]))
 
-    public = "https://github.com/siliconcompiler/x/archive/?token=SECRET"
-    project.set_pdk(resource(PDK, "lambda", public, create=False))
-    sent = owners.without_credentials(project)
-    assert status(sent, "lambda", supply()).status == owners.ASK
+    project.set_pdk(resource(PDK, "lambda", f"{GITHUB}?token=SECRET", create=False))
+    assert status(owners.without_credentials(project), "lambda", supply()).status == \
+        owners.ASK
 
     secret = PDK("secret")
     secret.set_dataroot("secret", "https+private://github.com/siliconcompiler/s/?token=SECRET",
@@ -389,7 +263,6 @@ def test_a_masked_source_is_never_fetched(project, tmp_path):
     sent = owners.without_credentials(project)
     masked = "https://github.com/siliconcompiler/s/?token=***"
     (tmp_path / "datasheet.pdf").write_text("x")
-
     assert status(sent, "secret", supply()).status == owners.UNAVAILABLE
     assert status(sent, "secret", supply(held={(masked, "v1"): str(tmp_path)})).status == \
         owners.SUPPLIED
@@ -426,14 +299,16 @@ def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
     project.set_pdk(resource(PDK, "local", tmp_path / "pdk"))
     project.add_asiclib(resource(StdCellLibrary, "remote",
                                  "https://example.test/lib.tar.gz", create=False))
+    project.add_asiclib(private(StdCellLibrary, "secret", tmp_path / "secret"))
+    # A private parameter alone is left out, and nothing refused.
+    assert not [where for where in uploaded_by_owner(project).keys
+                if where[0][:2] == ("library", "secret")]
 
     collect_by_owner(project)
 
     taken = collected_names(project)
     assert "gcd.v" in taken
-    # Remote: not fetched, not collected.
-    assert taken.count("datasheet.pdf") == 1
-
+    assert taken.count("datasheet.pdf") == 1        # the local one: none fetched
     # 🔴 The caller's project is not rewritten to get there.
     assert not project.get("library", "local", *DATASHEET, field="copy")
 
@@ -441,10 +316,8 @@ def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="Making a symbolic link needs a privilege on Windows")
 def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
-    '''`collect` stores a file once, and every other name for it -- a second
-    value, a link in a collected directory -- is a link to that copy, which
-    carries no bytes. The report says what the archive holds, and the server
-    finds each value at its own collected path once the sources are gone.'''
+    '''Stored once, every other name a link carrying no bytes: the report says
+    what the archive holds, and each value is found once the sources are gone.'''
     from siliconcompiler import Design, Lint
     from siliconcompiler.utils.paths import collectiondir
 
@@ -454,7 +327,6 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
     with open("proj/rtl/defs.vh", "w") as f:
         f.write("`define WIDTH 8\n")
     os.symlink("defs.vh", "proj/rtl/alias.vh")
-
     # `a.v` twice: in `top`'s `rtl` directory, and as a file under `rtl`.
     design = Design("top")
     design.set_dataroot("top", os.path.abspath("proj"))
@@ -466,13 +338,12 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
     project.add_fileset("rtl")
 
     collect_by_owner(project)
-    collection = collectiondir(project)
 
+    collection = collectiondir(project)
     report = owners.upload_report(project, collection)
     assert sum(row[3] for row in report) == \
         os.path.getsize("proj/rtl/a.v") + os.path.getsize("proj/rtl/defs.vh")
     assert sum(row[4] for row in report) == 2
-
     shutil.move("proj", "moved")
     assert {(entry.dataroot, entry.status) for entry in
             account(project, collection, Supply())} == \
@@ -495,40 +366,25 @@ def two_sources(tmp_path, second, *, create=True):
     return pdk
 
 
-def test_a_value_goes_up_on_its_own(project, tmp_path):
-    '''Surface *A parameter may go up in part*: the local value goes up, and
-    the remote one beside it in the same parameter stays behind -- never
-    resolved, so its source is never fetched here.'''
-    project.option.set_builddir(str(tmp_path / "build"))
-    project.set_pdk(two_sources(tmp_path, "https://example.test/pdk.tar.gz"))
-    key = ("library", "mixed", *DATASHEET)
-    assert [decide_value(project, key, n)[0] for n in (0, 1)] == [owners.LOCAL, owners.REMOTE]
-
-    collect_by_owner(project)
-
-    taken = collected_names(project)
-    assert "datasheet.pdf" in taken and "other.pdf" not in taken
-
-
-def test_a_private_value_beside_an_uploaded_one_stays_behind(project, tmp_path):
-    '''🔴 It must not leave this machine, and nothing is refused: the rest of
-    its parameter goes up without it.'''
+@pytest.mark.parametrize("second,origin", [
+    ("https://example.test/pdk.tar.gz", owners.REMOTE),     # never resolved, never fetched
+    # 🔴 It must not leave this machine, and nothing is refused for it.
+    ("file+private://{tmp}/secret", owners.PRIVATE),
+])
+def test_a_value_goes_up_on_its_own(project, tmp_path, second, origin):
+    '''Surface *A parameter may go up in part*: the local value goes up, the
+    one beside it in the same parameter stays behind.'''
     project.option.set_builddir(str(tmp_path / "build"))
     (tmp_path / "secret").mkdir()
     (tmp_path / "secret" / "other.pdf").write_text("private\n")
-    project.set_pdk(two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}"))
+    project.set_pdk(two_sources(tmp_path, second.format(tmp=tmp_path)))
+    key = ("library", "mixed", *DATASHEET)
+    assert [decide(project, key, n)[0] for n in (0, 1)] == [owners.LOCAL, origin]
 
     collect_by_owner(project)
 
     taken = collected_names(project)
     assert "datasheet.pdf" in taken and "other.pdf" not in taken
-
-
-def test_a_private_parameter_alone_is_left_out_without_a_refusal(project, tmp_path):
-    project.set_pdk(private(PDK, "secret", tmp_path / "secret"))
-
-    assert not [where for where in uploaded_by_owner(project).keys
-                if where[0][:2] == ("library", "secret")]
 
 
 ###########################
@@ -569,24 +425,34 @@ def status(project, name, supply, collection="none"):
     raise AssertionError(f"{name} not accounted for")
 
 
-def test_a_library_rooted_at_etc_is_never_read_from_the_host(project):
-    '''🔴 The live hole (D112). A manifest roots a library at `/etc`, leaves it
-    out of the archive -- and the file IS there on this machine. It used to be
-    looked for, found and supplied: anyone reading the host's files into a job.
-    Now it is asked of the client, and the path is never looked at.'''
-    lib = StdCellLibrary("hostfiles")
-    lib.set_dataroot("hostfiles", "/etc")
-    with lib.active_dataroot("hostfiles"):
-        lib.set(*DATASHEET, "passwd")
-    project.add_asiclib(lib)
+@pytest.mark.parametrize("root,supply,expected", [
+    # 🔴 The live hole (D112): rooted at `/etc`, left out of the archive, and
+    # the file IS on this machine -- asked of the client, never looked for.
+    ("/etc", {}, owners.ASK),
+    (GITHUB, {"allowed": ["https://github.com/siliconcompiler/"]}, owners.FETCH),
+    (GITHUB, {}, owners.ASK),           # off the allowlist: asked of the client, not refused
+    (GITHUB, {"held": True}, owners.SUPPLIED),                    # from the server's copy
+    ("python://some_pdk_package", {"packages": ["some_pdk_package"]}, owners.SUPPLIED),
+    ("python://some_pdk_package", {}, owners.ASK),
+])
+def test_a_file_not_uploaded_is_supplied_fetched_or_asked_for(
+        project, tmp_path, root, supply, expected):
+    project.set_pdk(resource(PDK, "pdk", root, create=False,
+                             file="passwd" if root == "/etc" else "datasheet.pdf"))
+    held = {(GITHUB, "v1"): str(tmp_path)} if supply.get("held") else None
 
-    assert status(project, "hostfiles", Supply()).status == owners.ASK
+    entry = status(project, "pdk", Supply(**dict(supply, held=held)))
+
+    assert entry.status == expected
+    if expected == owners.FETCH:
+        assert (entry.source, entry.ref) == (GITHUB, "v1")
+    if held:
+        assert entry.root == str(tmp_path)
 
 
 def test_an_uploaded_file_is_accounted_as_uploaded(project, tmp_path):
     project.set_pdk(resource(PDK, "mine", tmp_path / "pdk"))
     collection = tmp_path / "sc_collected_files"
-    collection.mkdir()
     target = collection / collected_path(project, ("library", "mine", *DATASHEET))
     target.parent.mkdir(parents=True)
     target.write_text("uploaded\n")
@@ -594,42 +460,9 @@ def test_an_uploaded_file_is_accounted_as_uploaded(project, tmp_path):
     assert status(project, "mine", Supply(), collection).status == owners.UPLOADED
 
 
-def test_a_remote_source_is_fetched_only_from_the_allowlist(project):
-    source = "https://github.com/siliconcompiler/x/archive/"
-    project.set_pdk(resource(PDK, "lambda", source, create=False))
-
-    listed = status(project, "lambda", Supply(allowed=["https://github.com/siliconcompiler/"]))
-    assert (listed.status, listed.source, listed.ref) == (owners.FETCH, source, "v1")
-
-    # Not on the list: not refused -- asked of the client, which sends it.
-    assert status(project, "lambda", Supply()).status == owners.ASK
-
-
-def test_a_held_source_is_supplied_from_the_servers_copy(project, tmp_path):
-    source = "https://github.com/siliconcompiler/x/archive/"
-    project.set_pdk(resource(PDK, "lambda", source, create=False))
-    held = tmp_path / "held"
-    held.mkdir()
-
-    entry = status(project, "lambda", Supply(held={(source, "v1"): str(held)}))
-    assert (entry.status, entry.root) == (owners.SUPPLIED, str(held))
-
-
-def test_a_private_dataroot_is_supplied_by_name_or_not_at_all(project, tmp_path):
-    root = tmp_path / "operator-copy"
-    root.mkdir()
-    project.set_pdk(private(PDK, "secret", "/wherever/the/client/had/it"))
-
-    secret = ("library", "secret", "dataroot", "secret")
-    mapped = status(project, "secret", Supply(private={secret: str(root)}))
-    assert (mapped.status, mapped.root) == (owners.SUPPLIED, str(root))
-    assert status(project, "secret", Supply()).status == owners.UNAVAILABLE
-
-
 def test_a_private_design_is_supplied_like_any_other(project, tmp_path):
-    '''Surface D299: *designs can have private data for the same reason* --
-    supplied from the operator's copy, and refused in the same words as any
-    other private dataroot where the server has none.'''
+    '''D299: *designs can have private data for the same reason* -- supplied
+    from the operator's copy, refused in the same words where there is none.'''
     (tmp_path / "top.v").write_text("module top; endmodule\n")
     design = project.get("library", "gcd", field="schema")
     design.set_dataroot("mine", f"file+private://{tmp_path}")
@@ -638,51 +471,65 @@ def test_a_private_design_is_supplied_like_any_other(project, tmp_path):
     mine = ("library", "gcd", "dataroot", "mine")
 
     def entry(supply):
-        found, = [one for one in account(project, "none", supply)
-                  if one.dataroot == "mine"]
+        found, = [one for one in account(project, "none", supply) if one.dataroot == "mine"]
         return found
 
-    assert entry(Supply(private={mine: str(tmp_path)})).status == owners.SUPPLIED
+    supplied = entry(Supply(private={mine: str(tmp_path)}))
+    assert (supplied.status, supplied.root) == (owners.SUPPLIED, str(tmp_path))
     missing = entry(Supply())
     assert missing.status == owners.UNAVAILABLE
     assert missing.why.startswith("a private dataroot this server has no copy of, and "
                                   "cannot fetch either")
-    assert decide(project, ("library", "gcd", "fileset", "rtl", "file", "verilog")) != \
-        (owners.PRIVATE, True)
+    assert decide(project, RTL) != (owners.PRIVATE, True)
 
 
-def test_a_path_escaping_a_supplied_root_is_refused(project, tmp_path):
-    root = tmp_path / "operator-copy"
-    root.mkdir()
-    pdk = private(PDK, "secret", "/anywhere")
-    with pdk.active_dataroot("secret"):
-        pdk.set(*DATASHEET, "../../etc/passwd")
-    project.set_pdk(pdk)
-
-    secret = ("library", "secret", "dataroot", "secret")
-    entry = status(project, "secret", Supply(private={secret: str(root)}))
-    assert entry.status == owners.UNAVAILABLE
-
-
-def test_confined_follows_symlinks_and_refuses_the_way_out(tmp_path):
+def test_a_path_escaping_a_supplied_root_is_refused_links_and_all(project, tmp_path):
     root = tmp_path / "root"
     (root / "inside").mkdir(parents=True)
     (root / "inside" / "ok.lef").write_text("x")
     (root / "escape").symlink_to("/etc")
-
     assert owners.confined(root, "inside/ok.lef") == \
         str((root / "inside" / "ok.lef").resolve())
-    assert owners.confined(root, "escape/passwd") is None
-    assert owners.confined(root, "../outside") is None
-    assert owners.confined(root, "/etc/passwd") is None
+    for way_out in ("escape/passwd", "../outside", "/etc/passwd"):
+        assert owners.confined(root, way_out) is None
+
+    pdk = private(PDK, "secret", "/anywhere")
+    with pdk.active_dataroot("secret"):
+        pdk.set(*DATASHEET, "../../etc/passwd")
+    project.set_pdk(pdk)
+    secret = ("library", "secret", "dataroot", "secret")
+    assert status(project, "secret", Supply(private={secret: str(root)})).status == \
+        owners.UNAVAILABLE
 
 
-def test_an_installed_package_is_supplied_where_the_server_has_it(project):
-    project.set_pdk(resource(PDK, "pkg", "python://some_pdk_package", create=False))
+def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
+        project, tmp_path):
+    '''D299: the operator's copy, a held copy of its source, a fetch from the
+    allowlist -- and UNAVAILABLE where none answers, never ASK.'''
+    pdk = PDK("secret")
+    pdk.set_dataroot("secret", GITHUB.replace("https", "https+private", 1), tag="v1")
+    with pdk.active_dataroot("secret"):
+        pdk.set(*DATASHEET, "datasheet.pdf")
+    project.set_pdk(pdk)
+    keypath = ("library", "secret", "dataroot", "secret")
+    (tmp_path / "datasheet.pdf").write_text("x")
+    record, = [one for one in owners.value_records(project, "none")
+               if one["key"][:2] == ["library", "secret"]]
 
-    assert status(project, "pkg", Supply(packages=["some_pdk_package"])).status == \
-        owners.SUPPLIED
-    assert status(project, "pkg", Supply()).status == owners.ASK
+    # The manifest's own source, masked as any source is, and never uploaded.
+    assert (record["origin"], record["source"], record["ref"]) == \
+        (owners.PRIVATE, GITHUB, "v1")
+    assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
+
+    def entry(supply):
+        found, = [one for one in account(project, "none", supply) if one.keypath == keypath]
+        return found
+
+    mapped = entry(Supply(private={keypath: str(tmp_path)}, allowed=[GITHUB]))
+    assert (mapped.status, mapped.root) == (owners.SUPPLIED, str(tmp_path))
+    assert entry(Supply(held={(GITHUB, "v1"): str(tmp_path)})).status == owners.SUPPLIED
+    assert entry(Supply(allowed=[GITHUB])).status == owners.FETCH
+    assert entry(Supply()).status == owners.UNAVAILABLE
 
 
 ###########################
@@ -691,7 +538,6 @@ def test_an_installed_package_is_supplied_where_the_server_has_it(project):
 
 @pytest.fixture
 def dispatcher(server):
-    pytest.importorskip("flask", reason="the server extra is not installed")
     from test_server_jobs import FakeDispatcher
 
     fake = FakeDispatcher()
@@ -729,82 +575,66 @@ def _upload_without(project, archive, tmp_path, left_out):
     return str(stripped), "sha256:" + hashlib.sha256(body).hexdigest(), len(body)
 
 
-def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
-        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''🔴 At submit: the file is on this machine, and the job is asked for it
-    rather than supplied it.'''
-    from conftest import call
+def submit_project(server_client, key, token, job_archive, project, left_out=None):
+    '''``project``'s archive, without ``left_out``, staged and submitted: the
+    job, and what the submit came to (`conftest.outcome`).'''
+    from conftest import outcome
     from test_server_jobs import stage, submit
 
-    project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
-    archive, _, _ = job_archive(project)
-    hashed = collected_path(project, ("library", "mine", *DATASHEET))
-    archive, digest, size = _upload_without(project, archive, tmp_path, hashed)
-
+    archive, digest, size = job_archive(project)
+    if left_out:
+        archive, digest, size = _upload_without(project, archive, Path.cwd(), left_out)
     job = stage(server_client, key, token, archive, size)
-    response = submit(server_client, key, token, job["id"], digest, size)
+    return job, outcome(server_client, key, token,
+                        submit(server_client, key, token, job["id"], digest, size))
 
-    # 🔴 The 202 says `staging`, never `awaiting_input` (surface D151): the
-    # ask goes back through the one backwards edge, from `staging`.
-    assert response.status_code == 202
-    assert response.get_json()["state"] == "staging"
 
-    from test_server_sources_flow import wait_for
+def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
+        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
+    '''🔴 The file is on this machine, and the job is asked for it.'''
+    from test_server_sources_flow import read, wait_for
 
-    def read():
-        return call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert wait_for(lambda: read()["state"] == "awaiting_input")
-    assert read()["upload_sources"] == [
+    project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
+    job, response = submit_project(
+        server_client, key, token, job_archive, project,
+        left_out=collected_path(project, ("library", "mine", *DATASHEET)))
+
+    # 🔴 The 202 says `staging`, never `awaiting_input` (D151): the ask goes
+    # back through the one backwards edge, from `staging`.
+    assert (response.status_code, response.get_json()["state"]) == (202, "staging")
+    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
+                    == "awaiting_input")
+    assert read(server_client, key, token, job["id"])["upload_sources"] == [
         {"kind": "dataroot", "keypath": ["library", "mine", "dataroot", "mine"]}]
     assert not dispatcher.submitted
 
 
-def test_a_private_pdk_the_server_has_no_copy_of_is_refused(
-        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    from conftest import call, outcome, slug
-    from test_server_jobs import stage, submit
+@pytest.mark.parametrize("design", [False, True], ids=["pdk", "design"])
+def test_a_private_source_the_server_has_no_copy_of_is_refused(
+        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path, design):
+    '''A PDK names its `resource_kind`; a design file -- found by the manifest's
+    read, the backstop for a source the descriptor never listed -- none (D285).'''
+    from conftest import slug
+    from test_server_sources_flow import read
 
-    project = _nop_asic(gcd_design, tmp_path, private(PDK, "secret", tmp_path))
-    archive, digest, size = job_archive(project)
-    job = stage(server_client, key, token, archive, size)
-    response = outcome(server_client, key, token,
-                       submit(server_client, key, token, job["id"], digest, size))
+    if design:
+        project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
+        (tmp_path / "secret").mkdir()
+        (tmp_path / "secret" / "top.v").write_text("module top; endmodule\n")
+        schema = project.get("library", "gcd", field="schema")
+        schema.set_dataroot("mine", f"file+private://{tmp_path / 'secret'}")
+        with schema.active_dataroot("mine"), schema.active_fileset("secret"):
+            schema.add_file("top.v")
+        project.add_fileset("secret")
+    else:
+        project = _nop_asic(gcd_design, tmp_path, private(PDK, "secret", tmp_path))
 
-    assert response.status_code == 422
-    assert slug(response) == "resource-unavailable"
-    assert (response.get_json()["resource_kind"], response.get_json()["resource"]) == \
-        ("pdk", "secret")
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "rejected"
+    job, response = submit_project(server_client, key, token, job_archive, project)
 
-
-def test_a_private_design_file_is_refused_while_staging_without_a_kind(
-        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''The backstop for a private source the descriptor never listed: the
-    manifest's read finds it, and `resource_kind` is given only for a
-    resource's kind -- never the design (surface D285).'''
-    from conftest import call, outcome, slug
-    from test_server_jobs import stage, submit
-
-    project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
-    (tmp_path / "secret").mkdir()
-    (tmp_path / "secret" / "top.v").write_text("module top; endmodule\n")
-    design = project.get("library", "gcd", field="schema")
-    design.set_dataroot("mine", f"file+private://{tmp_path / 'secret'}")
-    with design.active_dataroot("mine"), design.active_fileset("secret"):
-        design.add_file("top.v")
-    project.add_fileset("secret")
-    archive, digest, size = job_archive(project)
-    job = stage(server_client, key, token, archive, size)
-    response = outcome(server_client, key, token,
-                       submit(server_client, key, token, job["id"], digest, size))
-
-    assert slug(response) == "resource-unavailable"
-    body = response.get_json()
-    assert body["resource"] == "gcd"
-    assert "resource_kind" not in body
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "rejected"
+    assert (response.status_code, slug(response)) == (422, "resource-unavailable")
+    assert (response.get_json()["resource"], response.get_json().get("resource_kind")) == \
+        (("gcd", None) if design else ("secret", "pdk"))
+    assert read(server_client, key, token, job["id"])["state"] == "rejected"
 
 
 def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
@@ -812,38 +642,29 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
         tmp_path):
     '''The operator's copy, confined -- and the manifest the run loads points
     each dataroot at the copy it resolves to (D111).'''
-    import json
-    from test_server_jobs import stage, submit
+    from conftest import run_manifest
+    from siliconcompiler.remote.server.running import runspec
 
     root = tmp_path / "operator-copy"
     root.mkdir()
     (root / "datasheet.pdf").write_text("x")
     server.config["SC_CONFIG"]._values["private_dataroots"] = {
         "library": {"secret": {"secret": str(root)}}}
-
     (tmp_path / "client-copy").mkdir()
     (tmp_path / "client-copy" / "datasheet.pdf").write_text("x")
     project = _nop_asic(gcd_design, tmp_path,
                         private(PDK, "secret", tmp_path / "client-copy"))
-    archive, digest, size = job_archive(project)
-    job = stage(server_client, key, token, archive, size)
-    response = submit(server_client, key, token, job["id"], digest, size)
+
+    _, response = submit_project(server_client, key, token, job_archive, project)
 
     assert response.status_code == 202, response.get_json()
-    from conftest import run_manifest
-
-    # What the run executes: the upload, with the server's overrides applied.
-    ran = run_manifest(dispatcher.submitted[0][2])
+    ran = run_manifest(dispatcher.submitted[0][2])     # with the server's overrides applied
     assert str(root) in ran.get("library", "secret", "dataroot", "secret", "path")
     assert str(tmp_path / "client-copy") not in json.dumps(ran.getdict()["library"])
-    # The upload's copy: the design's dataroot rebuilt under the job, where
-    # the run finds its files by path.
-    from siliconcompiler.remote.server.running import runspec
-
+    # The design's dataroot rebuilt under the job, where the run finds its files.
     uploaded = ran.get("library", "gcd", "dataroot", "gcd-pytest-example", "path")
     assert f"/{runspec.UPLOADS_DIRNAME}/" in uploaded
-    assert ran.find_files("library", "gcd", "fileset", "rtl", "file", "verilog")[0] \
-        .startswith(uploaded)
+    assert ran.find_files(*RTL)[0].startswith(uploaded)
 
 
 @pytest.mark.parametrize("key", [
@@ -851,12 +672,12 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
     ("history", "job0", "option", "builddir"),
     ("option", "credentials"),
     ("tool", "openroad", "task", "place", "output", "place", "0"),
-    ("library", "gcd", "fileset", "rtl", "file", "verilog"),
+    RTL,
     ("tool", "openroad", "task", "place", "script"),
 ])
 def test_what_is_skipped_is_what_collect_leaves_out(key):
-    '''🔴 One rule at both ends (it was CORE-FOLLOWUPS item 6): the client's copy had
-    drifted, keeping a template's `default` keypath the collection drops.'''
+    '''🔴 One rule at both ends: the client's copy had drifted, keeping a
+    template's `default` keypath the collection drops.'''
     from siliconcompiler.utils.curation import filter_collection_keys
 
     assert owners.skipped(key) == (filter_collection_keys([(key, None, None)]) == [])
@@ -903,47 +724,49 @@ def test_the_keypath_is_where_the_dataroot_is_defined(gcd_design):
     '''Never a slice of the parameter's key: a design's fileset value is its
     library's, however deep the fileset, and a task's `refdir` its task's.'''
     project = acme_project(gcd_design)
-    rtl = ("library", "gcd", "fileset", "rtl", "file", "verilog")
-    dataroot = first(project, rtl).get(field="dataroot")
+    dataroot = first(project, RTL).get(field="dataroot")
 
-    assert owners.dataroot_keypath(project, rtl, dataroot) == \
+    assert owners.dataroot_keypath(project, RTL, dataroot) == \
         ("library", "gcd", "dataroot", dataroot)
     assert owners.dataroot_keypath(project, ("tool", "acme_sim", "task", "run", "refdir"),
                                    "scripts") == RUN
     # No dataroot, or one its owner does not define: local, and uploaded.
-    assert owners.dataroot_keypath(project, rtl, None) is None
-    assert owners.dataroot_keypath(project, rtl, "nowhere") is None
-    assert {one.keypath for one in owners._values(project) if one.key == rtl} == \
+    assert owners.dataroot_keypath(project, RTL, None) is None
+    assert owners.dataroot_keypath(project, RTL, "nowhere") is None
+    assert {one.keypath for one in owners._values(project) if one.key == RTL} == \
         {("library", "gcd", "dataroot", dataroot)}
 
 
-def test_two_tasks_of_one_tool_are_two_dataroots(gcd_design):
-    '''🔴 The collision `name` and `dataroot` made: a task's dataroot was named
-    by its tool, so two tasks' `scripts` were one entry. Each is its own, with
-    its own source -- and asked for one, the client collects that one alone.'''
+def test_two_tasks_of_one_tool_and_a_library_of_its_name_are_three_dataroots(
+        gcd_design, tmp_path):
+    '''🔴 A task's dataroot was once named by its tool, so two tasks' `scripts`
+    were one entry: each is listed, accounted, collected and pointed apart.'''
     from pytasks import AcmeCheck, AcmeRun
+    from siliconcompiler.remote.server.running import runspec
 
     project = acme_project(gcd_design)
-
-    listed = {tuple(item["keypath"]): item["source"] for item in owners.sources(project)}
-    assert listed == {RUN: AcmeRun.SOURCE, CHECK: AcmeCheck.SOURCE}
-
-    picked = owners.collection(project, lambda one: one.keypath == RUN)
-    assert [key for key, _, _ in picked.keys] == [("tool", "acme_sim", "task", "run", "refdir")]
-
-
-def test_a_library_and_a_tool_of_one_name_do_not_collide(gcd_design):
-    project = acme_project(gcd_design)
-    project.set_pdk(resource(PDK, "acme_sim", "https://github.com/siliconcompiler/acme/",
-                             create=False))
+    acme = "https://github.com/siliconcompiler/acme/"
+    project.set_pdk(resource(PDK, "acme_sim", acme, create=False))
     library = ("library", "acme_sim", "dataroot", "acme_sim")
 
-    assert {tuple(item["keypath"]) for item in owners.sources(project)} == \
-        {library, RUN, CHECK}
-    # The server's accounting keeps them apart too: three dataroots to ask for.
+    listed = {tuple(item["keypath"]): item["source"] for item in owners.sources(project)}
+    assert listed == {library: acme, RUN: AcmeRun.SOURCE, CHECK: AcmeCheck.SOURCE}
     asked = [entry.wire for entry in account(project, "none", Supply())
              if entry.origin == owners.REMOTE]
     assert sorted(tuple(item["keypath"]) for item in asked) == sorted([library, RUN, CHECK])
+    picked = owners.collection(project, lambda one: one.keypath == RUN)
+    assert [key for key, _, _ in picked.keys] == [("tool", "acme_sim", "task", "run", "refdir")]
+
+    # `runspec.point_dataroots`: never both at whichever copy came first.
+    targets = runspec.dataroot_targets([
+        owners.Entry("tool", "acme_sim", "scripts", owners.SUPPLIED,
+                     root=str(tmp_path / "run"), keypath=RUN),
+        owners.Entry("tool", "acme_sim", "scripts", owners.SUPPLIED,
+                     root=str(tmp_path / "check"), keypath=CHECK),
+        owners.Entry("design", "gcd", None, owners.UPLOADED)], tmp_path / "collection")
+    assert runspec.point_dataroots(project, targets) == 2
+    assert project.get(*RUN, "path") == str(tmp_path / "run")
+    assert project.get(*CHECK, "path") == str(tmp_path / "check")
 
 
 def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
@@ -964,43 +787,28 @@ def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
         RemoteRun(project, logged_in)._check_dataroots()
 
 
-def test_the_run_points_each_tasks_dataroot_at_its_own_copy(gcd_design, tmp_path):
-    '''The runner's half (`runspec.point_dataroots`): by the dataroot's own
-    keypath, so a tool's two tasks are pointed apart -- never both at whichever
-    copy came first.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    project = acme_project(gcd_design)
-    targets = runspec.dataroot_targets([
-        owners.Entry("tool", "acme_sim", "scripts", owners.SUPPLIED,
-                     root=str(tmp_path / "run"), keypath=RUN),
-        owners.Entry("tool", "acme_sim", "scripts", owners.SUPPLIED,
-                     root=str(tmp_path / "check"), keypath=CHECK),
-        owners.Entry("design", "gcd", None, owners.UPLOADED)], tmp_path / "collection")
-
-    assert runspec.point_dataroots(project, targets) == 2
-    assert project.get(*RUN, "path") == str(tmp_path / "run")
-    assert project.get(*CHECK, "path") == str(tmp_path / "check")
-
-
-@pytest.mark.parametrize("collects", [False, True], ids=["as-run", "collected-again"])
-def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(tmp_path, collects):
-    '''🔴 The runner's half end to end: collected as the client collects it,
-    pointed as the runner points it, and found -- where the run collects again
-    before it starts, as a Slurm-dispatched one does, as well. A collected
-    file is filed by its dataroot's `collection_id`, a hash of the source the
-    runner then points elsewhere, so it is found at the rebuilt dataroot
-    instead, never at the submitter's path.'''
+@pytest.mark.parametrize("masked,collects", [(False, False), (False, True), (True, False)],
+                         ids=["as-run", "collected-again", "masked-query"])
+def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(
+        tmp_path, monkeypatch, masked, collects):
+    '''🔴 Collected, sent masked, pointed and found at the rebuilt dataroot --
+    even collected again, as a Slurm run is -- never fetched (#5471).'''
     from siliconcompiler import Design, Lint
+    from siliconcompiler.package.https import HTTPResolver
     from siliconcompiler.remote.server.running import runspec
     from siliconcompiler.schema import BaseSchema
     from siliconcompiler.utils.curation import collect
 
-    source = tmp_path / "submitter" / "top"
-    (source / "rtl").mkdir(parents=True)
-    (source / "rtl" / "top.v").write_text("module top; endmodule\n")
+    copy = tmp_path / "submitter" / "top"
+    (copy / "rtl").mkdir(parents=True)
+    (copy / "rtl" / "top.v").write_text("module top; endmodule\n")
     design = Design("top")
-    design.set_dataroot("top", str(source))
+    if masked:
+        # The download, on the client: no network here.
+        monkeypatch.setattr(HTTPResolver, "resolve", lambda self: str(copy))
+        design.set_dataroot("top", "https://example.com/ip/archive/?token=SECRET", tag="v1")
+    else:
+        design.set_dataroot("top", str(copy))
     design.set_topmodule("top", fileset="rtl")
     design.add_file("rtl/top.v", dataroot="top", fileset="rtl")
     project = Lint(design)
@@ -1008,16 +816,20 @@ def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(tmp_p
 
     tree = tmp_path / "job" / "top" / "job0"
     collection = tree / "sc_collected_files"
-    chosen = owners.collection(project, lambda one: owners.uploads(
-        project, one.key, one.dataroot, one.resolvers))
+    chosen = uploaded_by_owner(project)
     collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
             select=chosen.select)
-    project.write_manifest(str(tree / "top.pkg.json"))
-    # Nothing the run does may reach the submitter's copy.
+    owners.without_credentials(project).write_manifest(str(tree / "top.pkg.json"))
+    assert "SECRET" not in (tree / "top.pkg.json").read_text()
     shutil.rmtree(tmp_path / "submitter")
+    monkeypatch.setattr(HTTPResolver, "resolve",
+                        lambda self: pytest.fail("the server fetched a masked source"))
 
     run = Lint.from_manifest(filepath=str(tree / "top.pkg.json"))
     keypath = ("library", "top", "dataroot", "top")
+    record, = [one for one in owners.value_records(run, str(collection))
+               if one["key"][:2] == ["library", "top"]]
+    assert record["collected"], "the upload is not where the manifest looks"
     targets = runspec.dataroot_targets(
         [owners.Entry("design", "top", "top", owners.UPLOADED, keypath=keypath)], collection)
     assert runspec.point_dataroots(run, targets) == 1
@@ -1026,95 +838,8 @@ def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(tmp_p
         collect(run, keys=[(("library", "top", "fileset", "rtl", "file", "verilog"),
                             None, None)], verbose=False)
 
-    found = BaseSchema._find_files(run, "library", "top", "fileset", "rtl", "file", "verilog",
-                                   collection_dir=str(collection))
-
-    assert len(found) == 1 and found[0].startswith(str(tmp_path / "job"))
-    with open(found[0]) as f:
-        assert f.read() == "module top; endmodule\n"
-
-
-def test_a_queried_dataroots_upload_is_found_from_the_masked_manifest(tmp_path, monkeypatch):
-    '''🔴 What was CORE-FOLLOWUPS item 14, end to end. A design's dataroot on a tokened
-    source always uploads; the client collects it under the source as it
-    registered it, and sends the manifest with the token masked. The server
-    reads that manifest, and finds the upload where it arrived -- from the
-    masked source alone (#5471) -- and so does the run.'''
-    from siliconcompiler import Design, Lint
-    from siliconcompiler.package.https import HTTPResolver
-    from siliconcompiler.remote.server.running import runspec
-    from siliconcompiler.schema import BaseSchema
-    from siliconcompiler.utils.curation import collect
-
-    fetched = tmp_path / "fetched"
-    (fetched / "rtl").mkdir(parents=True)
-    (fetched / "rtl" / "top.v").write_text("module top; endmodule\n")
-    # The download, on the client: no network here.
-    monkeypatch.setattr(HTTPResolver, "resolve", lambda self: str(fetched))
-
-    design = Design("top")
-    design.set_dataroot("top", "https://example.com/ip/archive/?token=SECRET", tag="v1")
-    design.set_topmodule("top", fileset="rtl")
-    design.add_file("rtl/top.v", dataroot="top", fileset="rtl")
-    project = Lint(design)
-    project.add_fileset("rtl")
-
-    tree = tmp_path / "job" / "top" / "job0"
-    collection = tree / "sc_collected_files"
-    chosen = owners.collection(project, lambda one: owners.uploads(
-        project, one.key, one.dataroot, one.resolvers))
-    collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
-            select=chosen.select)
-    owners.without_credentials(project).write_manifest(str(tree / "top.pkg.json"))
-    assert "SECRET" not in (tree / "top.pkg.json").read_text()
-
-    # The server's half: the manifest as sent, and nothing fetched.
-    monkeypatch.setattr(HTTPResolver, "resolve",
-                        lambda self: pytest.fail("the server fetched a masked source"))
-    run = Lint.from_manifest(filepath=str(tree / "top.pkg.json"))
-    keypath = ("library", "top", "dataroot", "top")
-    record, = [one for one in owners.value_records(run, str(collection))
-               if one["key"][:2] == ["library", "top"]]
-    assert record["collected"], "the upload is not where the masked manifest looks"
-
-    targets = runspec.dataroot_targets(
-        [owners.Entry("design", "top", "top", owners.UPLOADED, keypath=keypath)], collection)
-    assert runspec.point_dataroots(run, targets) == 1
     found, = BaseSchema._find_files(run, "library", "top", "fileset", "rtl", "file", "verilog",
                                     collection_dir=str(collection))
+    assert found.startswith(str(tmp_path / "job"))
     with open(found) as f:
         assert f.read() == "module top; endmodule\n"
-
-
-def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
-        project, tmp_path):
-    '''Surface D299: the operator's copy, then a copy of its source this
-    server holds, then a fetch from the allowlist -- and UNAVAILABLE where none
-    answers, never ASK.'''
-    source = "https://github.com/siliconcompiler/secret/archive/"
-    pdk = PDK("secret")
-    pdk.set_dataroot("secret", source.replace("https", "https+private", 1), tag="v1")
-    with pdk.active_dataroot("secret"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
-    project.set_pdk(pdk)
-    keypath = ("library", "secret", "dataroot", "secret")
-    (tmp_path / "datasheet.pdf").write_text("x")
-    record, = [one for one in owners.value_records(project, "none")
-               if one["key"][:2] == ["library", "secret"]]
-
-    # The manifest's own source, masked as any source is, and never uploaded.
-    assert (record["origin"], record["source"], record["ref"]) == \
-        (owners.PRIVATE, source, "v1")
-    assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
-
-    def status(supply):
-        entry, = [one for one in account(project, "none", supply)
-                  if one.keypath == keypath]
-        return entry.status
-
-    held = Supply(held={(source, "v1"): str(tmp_path)})
-    assert status(Supply(private={keypath: str(tmp_path)}, allowed=[source])) == \
-        owners.SUPPLIED
-    assert status(held) == owners.SUPPLIED
-    assert status(Supply(allowed=[source])) == owners.FETCH
-    assert status(Supply()) == owners.UNAVAILABLE

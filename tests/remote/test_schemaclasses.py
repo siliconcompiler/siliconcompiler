@@ -9,14 +9,13 @@ from conftest import outcome, slug                                      # noqa: 
 from test_server_jobs import FakeDispatcher, stage, submit              # noqa: E402
 
 
-# Contract §1: a manifest a job uploaded is read as data. Every class and task
-# module it names is looked up among what this installation provides, and
-# nothing is imported on its behalf.
+# Contract §1: an uploaded manifest is read as data. Every class and task module
+# it names is looked up among what is installed, and nothing is imported.
 
 
 @pytest.fixture
 def unloaded(tmp_path, monkeypatch):
-    '''A module on the path that nothing has imported, and that says so if it is.'''
+    '''A module on the path that nothing has imported, and says so if it is.'''
     marker = tmp_path / "imported"
     (tmp_path / "sc_uploaded_names.py").write_text(
         f"open({str(marker)!r}, 'w').write('imported')\n"
@@ -44,8 +43,8 @@ def submitted(server_client, key, token, archive):
 
 def test_a_task_class_this_server_does_not_have_is_refused_and_never_imported(
         server_client, key, token, job_archive, nop_project, dispatcher, unloaded):
-    '''🔴 A task's own setup runs on the node, so it is not run as its base
-    class instead (surface D163) -- and the module is looked up, not imported.'''
+    '''🔴 Never run as its base class instead (surface D163), and looked up,
+    not imported.'''
     nop_project.get_flow().get_graph_node("stepone", "0").set(
         "taskmodule", "sc_uploaded_names/NamedTask")
 
@@ -68,11 +67,9 @@ def test_any_other_class_it_names_resolves_to_its_base_unimported(
 
     def write(path, *args, **kwargs):
         original(path, *args, **kwargs)
-        with open(path) as f:
-            manifest = json.load(f)
+        manifest = json.loads(open(path).read())
         manifest["__meta__"]["class"] = "sc_uploaded_names/Named"
-        with open(path, "w") as f:
-            json.dump(manifest, f)
+        open(path, "w").write(json.dumps(manifest))
 
     nop_project.write_manifest = write
 
@@ -135,9 +132,8 @@ def test_a_breakpoint_is_refused_naming_the_node(
 
     response = submitted(server_client, key, token, job_archive(nop_project))
 
-    assert response.status_code == 422
-    assert (slug(response), response.get_json()["reason"]) == \
-        ("archive-rejected", "breakpoint")
+    assert (response.status_code, slug(response), response.get_json()["reason"]) == \
+        (422, "archive-rejected", "breakpoint")
     assert "steptwo/0" in response.get_json()["detail"]
     assert not dispatcher.submitted
 
@@ -149,9 +145,7 @@ def test_a_task_that_opens_a_window_is_refused_and_a_screenshot_is_not(
 
     shown = submitted(server_client, key, token,
                       job_archive(_with_node(nop_project, ShowTask(), "shown")))
-
-    assert shown.status_code == 422
-    assert shown.get_json()["reason"] == "interactive_task"
+    assert (shown.status_code, shown.get_json()["reason"]) == (422, "interactive_task")
     assert "look/0" in shown.get_json()["detail"]
 
     headless = submitted(server_client, key, token,
@@ -160,8 +154,7 @@ def test_a_task_that_opens_a_window_is_refused_and_a_screenshot_is_not(
 
 
 def test_the_runner_fails_a_node_whose_task_class_is_not_installed(nop_project):
-    '''🔴 Never run as its base class, which would skip the task's own setup:
-    the node fails, named, and nothing starts.'''
+    '''🔴 Never run as its base class: the node fails, named, and nothing starts.'''
     from siliconcompiler.remote.server.running import runner
 
     nop_project.get_flow().get_graph_node("steptwo", "0").set(

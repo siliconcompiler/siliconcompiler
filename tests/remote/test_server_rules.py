@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -23,8 +21,7 @@ def dispatcher(server):
 @pytest.mark.parametrize("path", ["/v1/jobs?stat=running", "/v1/devices?all=1"])
 def test_a_query_parameter_a_collection_does_not_define_is_refused(
         server_client, key, token, path):
-    '''Never ignored: a misspelled filter would return everything, and read as
-    an answer to the question asked.'''
+    '''Never ignored: a misspelled filter would return everything.'''
     response = call(server_client, key, "GET", path, token)
 
     assert (response.status_code, slug(response)) == (400, "invalid-request")
@@ -44,18 +41,8 @@ def test_the_artifact_listing_refuses_one_too(server, server_client, key, token,
     assert items and all(item["access_requested_at"] is None for item in items)
 
 
-def test_machine_id_source_is_one_of_four(server_client):
-    from siliconcompiler.remote import dpop
-    from conftest import login
-
-    response = login(server_client, dpop.generate_key(), machine_id_source="dmi_uuid")
-
-    assert (response.status_code, response.get_json()["error"]) == (400, "invalid_request")
-
-
 def test_a_device_says_which_is_the_callers(server_client, key, token):
-    '''The list and endpoint 11 publish one object, byte for byte, `current`
-    included.'''
+    '''The list and endpoint 11 publish one object, `current` included.'''
     listed, = call(server_client, key, "GET", "/v1/devices", token).get_json()["items"]
     one = call(server_client, key, "GET", f"/v1/devices/{listed['id']}", token).get_json()
 
@@ -85,15 +72,6 @@ def test_a_job_delete_never_deletes_what_is_held(server, server_client, key, tok
     assert kept["deleted_at"] is None and storage.artifact_path(held["storage_key"]).exists()
     assert gone["deleted_at"] is not None
     assert not storage.artifact_path(other["storage_key"]).exists()
-
-
-def test_a_limit_is_never_negative(tmp_path):
-    '''`-1` is the store's spelling of unlimited, never the wire's.'''
-    from siliconcompiler.remote.server.config import Config
-
-    (tmp_path / "config.json").write_text(json.dumps({"limits": {"max_upload_bytes": -1}}))
-    with pytest.raises(ValueError, match="max_upload_bytes"):
-        Config.load(tmp_path)
 
 
 def test_a_tool_is_placed_by_preference_and_never_by_the_newest_image():

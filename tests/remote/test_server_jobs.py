@@ -1,11 +1,10 @@
-
 import json
 
 from pathlib import Path
 
 import pytest
 
-from conftest import call, job_after, login, run_manifest, slug
+from conftest import FakeDispatcher, call, job_after, login, read, run_manifest, slug, stranger
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")
@@ -13,76 +12,13 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 from siliconcompiler.remote.server.state.store import now                  # noqa: E402
 
 
-# The integration rig, in process. Every ordering rule the contract calls
-# normative is asserted here rather than in the conformance fixtures, because
-# these are the rules the SERVER owes -- a canned answer cannot get the order of
-# a digest check and an extraction wrong.
-
-
-class FakeDispatcher:
-    '''Records what it was asked to run, and never runs it.
-
-    Most of what submit does is refusal, and a refusal that reached the
-    dispatcher would be a bug. Where a real run is the point, `cluster="local"`
-    is used instead -- see test_parity.py.
-    '''
-
-    name = "fake"
-
-    def __init__(self):
-        self.submitted = []
-        self.cancelled = []
-        self.cancelled_nodes = []
-        self.still_running = set()
-        self.handed = {}
-        self.alive = True
-
-    def submit(self, job_id, jobroot, manifest, image=None, queue=None):
-        self.submitted.append((job_id, jobroot, manifest))
-        self.handed = {"image": image, "queue": queue}
-        return f"fake:{len(self.submitted)}"
-
-    def is_alive(self, scheduler_job_id):
-        return self.alive
-
-    def cancel(self, scheduler_job_id, node_job_ids=()):
-        # None means "only the orphans": the run itself is already gone, and
-        # the real dispatcher skips it rather than scancelling a finished job.
-        if scheduler_job_id:
-            self.cancelled.append(scheduler_job_id)
-        self.cancelled_nodes = list(node_job_ids)
-
-    def node_jobs(self, job_id, nodes):
-        # What a real cluster answers: one scheduler id per node, addressed by
-        # the name the server can derive without being told anything.
-        return {node: f"{job_id}_{node[0]}_{node[1]}" for node in nodes}
-
-    def running_nodes(self, job_id, nodes):
-        return [f"{job_id}_{step}_{index}" for step, index in nodes
-                if (step, index) in self.still_running]
-
-    def describe(self, scheduler_job_id):
-        return f"the scheduler's record of {scheduler_job_id}"
-
-
-@pytest.fixture
-def dispatcher(server):
-    fake = FakeDispatcher()
-    server.config["SC_JOBS"]._dispatcher = fake
-    return fake
-
-
-@pytest.fixture
-def jobs(server):
-    return server.config["SC_JOBS"]
+# The integration rig, in process: every ordering rule the contract calls
+# normative, since a canned answer cannot get one wrong.
 
 
 def wants(sc=None, tools=None):
-    """A bucketed `requested_versions`, as the descriptor carries it: every value a list.
-
-    🔴 Two buckets because they resolve differently: the whole python set has
-    to be held by ONE image, and a tool is satisfied per node.
-    """
+    '''A bucketed `requested_versions`, every value a list: the python set is
+    held by ONE image, and a tool is satisfied per node.'''
     def listed(value):
         return value if isinstance(value, list) else [value]
 
@@ -108,9 +44,8 @@ def create(client, key, token, **body):
 
 
 def created_in_order(client, key, token, count):
-    '''The ids of ``count`` jobs, each created a few milliseconds after the
-    last. The listing orders by `created_at`, which holds milliseconds, and
-    breaks a tie by the id, which is a UUIDv4 and sorts at random.'''
+    '''``count`` job ids, a few milliseconds apart: the listing orders by
+    `created_at`, and a tie falls to the id, a UUIDv4.'''
     import time
 
     ids = []
@@ -141,21 +76,22 @@ def grant_for(archive):
     return {"size_bytes": len(data), "digest": f"sha256:{hashlib.sha256(data).hexdigest()}"}
 
 
+def grant(client, key, token, job_id, body=None):
+    return call(client, key, "POST", f"/v1/jobs/{job_id}/upload-grant", token, json=body)
+
+
 def stage(client, key, token, archive, size, **body):
     '''A job with its bytes uploaded, ready to submit.'''
     job = create(client, key, token, **body).get_json()
-    grant = call(client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token,
-                 json=dict(grant_for(archive), size_bytes=size)).get_json()
-    put(client, grant, open(archive, "rb").read())
+    granted = grant(client, key, token, job["id"],
+                    dict(grant_for(archive), size_bytes=size)).get_json()
+    put(client, granted, open(archive, "rb").read())
     return job
 
 
 def submit(client, key, token, job_id, digest=None, size=None, **extra):
-    '''``digest`` and ``size`` are taken for the callers' symmetry with
-    `stage` and never sent: submit takes no body, and the upload is checked
-    against the digest the grant bound (surface §15). ``extra`` is sent, to
-    test the refusal of a body with a member.'''
+    '''Submit takes no body (surface §15): ``digest`` and ``size`` are taken
+    for symmetry with `stage` and never sent; ``extra`` is, to test refusal.'''
     headers = {}
     if "idempotency_key" in extra:
         headers["Idempotency-Key"] = extra.pop("idempotency_key")
@@ -163,30 +99,79 @@ def submit(client, key, token, job_id, digest=None, size=None, **extra):
                 json=extra, headers=headers)
 
 
+def submitted(client, key, token, built, **body):
+    '''Stage a `job_archive` result and submit it: the job, and the answer.'''
+    archive, _, size = built
+    job = stage(client, key, token, archive, size, **body)
+    return job, submit(client, key, token, job["id"])
+
+
+def cancel(client, key, token, job_id, **body):
+    return call(client, key, "POST", f"/v1/jobs/{job_id}/cancel", token, json=body)
+
+
+def listing(client, key, token, query=""):
+    path = f"/v1/jobs?{query}" if query else "/v1/jobs"
+    return [item["id"] for item in call(client, key, "GET", path, token).get_json()["items"]]
+
+
+STARTED, FINISHED = "2026-09-23T10:00:00.000Z", "2026-09-23T10:01:00.000Z"
+
+
+def report(server, me, job, state="running", nodes=None, **progress):
+    '''Write the run's progress file, as the runner does: a running one beats
+    now unless told otherwise, and a finished one has finished.'''
+    from siliconcompiler.remote.server.running import runspec
+
+    progress.setdefault("heartbeat" if state == "running" else "finished_at",
+                        now() if state == "running" else FINISHED)
+    if nodes is None:
+        nodes = {"stepone/0": {"state": "running"}, "steptwo/0": {"state": "pending"}}
+    runspec.write_json(
+        server.config["SC_JOBS"].job_root(me, job["id"]) / runspec.PROGRESS_FILENAME,
+        {"state": state, "started_at": STARTED, "nodes": nodes, **progress})
+
+
+def running(server, server_client, key, token, job_archive, me):
+    '''A submitted job whose run has reported its nodes as started.'''
+    job, _ = submitted(server_client, key, token, job_archive())
+    report(server, me, job)
+    return job
+
+
+COMPLETED = {"stepone/0": {"state": "completed", "exit_code": 0},
+             "steptwo/0": {"state": "completed", "exit_code": 0}}
+
+
+def settles_between_readings(server, me, job, dispatcher):
+    '''The scheduler has forgotten the job, and its run writes the result
+    while the server is between its two readings of the progress file.'''
+    def gone(scheduler_job_id):
+        report(server, me, job, "completed", COMPLETED)
+        return False
+    dispatcher.is_alive = gone
+
+
 ###########################
 # 13. create
 ###########################
 
-def test_create_returns_an_id_and_a_location(server_client, key, token):
+def test_create_returns_the_job_object_and_a_location(server_client, key, token):
+    '''`project` is null on a personal job, never absent; no `upload` member,
+    the grant being its own endpoint.'''
     response = create(server_client, key, token)
 
     assert response.status_code == 201
     body = response.get_json()
-    assert body["state"] == "created"
-    # null on a personal job, never absent: `null` is what a personal job on
-    # any server says, and it carries no capability meaning.
-    assert body["project"] is None
+    assert (body["state"], body["terminal"], body["project"]) == ("created", False, None)
     assert response.headers["Location"] == f"/v1/jobs/{body['id']}"
-    # No `upload` member: the grant is its own endpoint, which is what gives an
-    # expired grant a way back.
-    assert "upload" not in body
+    assert "upload" not in body and "upload_sources" not in body
 
 
-def test_the_listing_is_ordered_by_creation_never_by_id(
+def test_the_listing_is_newest_first_by_creation_never_by_id(
         server_client, key, token, monkeypatch):
-    '''A collection is ordered by `created_at`, and the id only breaks a tie
-    (surface §6), so no id need sort by when it was minted: here each job's
-    id sorts below the one before it.'''
+    '''By `created_at`, the id only breaking a tie (surface §6): here each id
+    sorts below the one before it. A collection, so MINUS `nodes`.'''
     import types
     import uuid
 
@@ -198,128 +183,59 @@ def test_the_listing_is_ordered_by_creation_never_by_id(
     ids = created_in_order(server_client, key, token, 3)
     assert ids == sorted(ids, reverse=True)
 
-    body = call(server_client, key, "GET", "/v1/jobs", token).get_json()
-    assert [item["id"] for item in body["items"]] == list(reversed(ids))
+    items = call(server_client, key, "GET", "/v1/jobs", token).get_json()["items"]
+    assert [item["id"] for item in items] == list(reversed(ids))
+    assert "nodes" not in items[0]
 
 
-@pytest.mark.parametrize("missing", ["design", "jobname"])
-def test_design_and_jobname_are_authoritative(server_client, key, token, missing):
-    '''Nothing in a SiliconCompiler manifest names either, so they cannot be
-    re-derived and a job row cannot exist without them.'''
-    body = {"design": "gcd", "jobname": "job0"}
-    del body[missing]
+_ABSENT = object()
+
+
+@pytest.mark.parametrize("change", [
+    # Authoritative: nothing in a manifest names either.
+    {"design": _ABSENT}, {"jobname": _ABSENT},
+    # Each becomes a path segment under the job's own root.
+    *[{"design": name} for name in ("../etc", "a/b", "", "." * 200, "-leading")],
+    # Strict on requests: unknown or misshapen is refused, never ignored.
+    {"versions": {"python": {}}},                      # gone: `requested_versions` pins
+    {"resources": {"upload_bytes": 10}},               # gone: the grant's size
+    {"descriptor": {"resources": {"upload_bytes": 10}}},
+    {"descriptor": {"flow": {"name": "f", "tools": ["yosys"]}}},
+    {"descriptor": {"requires": {"python": {}}}},      # pre-D289 names, none kept
+    {"descriptor": {"flow": {"name": "asicflow", "nodes": 3}}},
+    {"descriptor": {"node_count": "3"}},
+    {"extra": 1},
+    # `run_hash` is top-level (D160), and 1 to 128 printable ASCII.
+    {"descriptor": {"run_hash": "abc"}},
+    *[{"run_hash": value} for value in ("", "x" * 129, "ok✓", "tab\there", 7)],
+])
+def test_a_malformed_create_is_refused(server_client, key, token, change):
+    body = {name: value for name, value in {"design": "gcd", "jobname": "job0",
+                                            **change}.items() if value is not _ABSENT}
 
     response = call(server_client, key, "POST", "/v1/jobs", token, json=body)
 
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
-
-
-@pytest.mark.parametrize("name", ["../etc", "a/b", "", "." * 200, "-leading"])
-def test_a_name_that_could_become_a_path_is_refused(server_client, key, token, name):
-    '''Both become a path segment under the job's own root. This is the reason
-    a manifest cannot name its way out of the directory it was given.'''
-    response = create(server_client, key, token, design=name)
-
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
 
 
 def test_a_project_is_refused_rather_than_ignored(server_client, key, token):
-    '''Silently dropping it creates a job the caller believes is shared and
-    nobody else can see -- invisible from both ends. Permanent, so a client
-    stops offering the picker.'''
+    '''Dropped, it makes a job the caller believes shared and nobody else can
+    see. Permanent, so a client stops offering the picker.'''
     response = create(server_client, key, token, project="rocket-v2")
 
-    assert response.status_code == 501
-    assert slug(response) == "feature-unsupported"
+    assert (response.status_code, slug(response)) == (501, "feature-unsupported")
     assert response.get_json()["feature"] == "projects"
 
 
 def test_the_descriptor_refuses_before_the_bytes_move(server_client, key, token):
     response = create(server_client, key, token, flow="asicflow", node_count=10 ** 9)
 
-    assert response.status_code == 403
-    assert slug(response) == "node-limit-exceeded"
+    assert (response.status_code, slug(response)) == (403, "node-limit-exceeded")
     assert response.get_json()["limit"] == "max_job_nodes"
 
 
-def test_an_upload_larger_than_the_ceiling_is_refused_at_the_grant(
-        server_client, key, token):
-    '''🔴 At the grant, which fixes the size -- `resources.upload_bytes` is
-    gone from create, and this call still comes before any byte moves.'''
-    job = create(server_client, key, token).get_json()
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
-                    token, json=sized(1 << 40))
-
-    assert response.status_code == 413
-    assert slug(response) == "upload-too-large"
-    assert response.get_json()["limit"] == "max_upload_bytes"
-
-
-@pytest.mark.parametrize("member", [
-    {"versions": {"python": {}}},                      # gone: `requested_versions` pins
-    {"resources": {"upload_bytes": 10}},               # gone: the grant's `bytes`
-    {"descriptor": {"resources": {"upload_bytes": 10}}},
-    {"descriptor": {"flow": {"name": "f", "tools": ["yosys"]}}},   # gone: a flow object
-    # The names before the consistency pass (surface D289): no old name is taken
-    # beside its new one, since that would be a second spelling kept for ever.
-    {"descriptor": {"requires": {"python": {}}}},      # now `requested_versions`
-    {"descriptor": {"flow": {"name": "asicflow", "nodes": 3}}},   # now `flow`, `node_count`
-    {"descriptor": {"node_count": "3"}},
-    {"extra": 1},
-])
-def test_an_unknown_member_is_refused_never_ignored(server_client, key, token, member):
-    '''🔴 Strict on requests: a misspelled optional member would otherwise be
-    a check the caller believes they asked for, and a member of the wrong shape
-    one it cannot have.'''
-    response = create(server_client, key, token, **member)
-
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
-
-
-def test_run_hash_is_a_top_level_member_and_not_a_descriptor_one(
-        server_client, key, token):
-    '''Beside `design` and `jobname` (surface D160, job-reuse D15): the
-    descriptor holds what submit re-derives, and nothing recomputes this.'''
-    top = call(server_client, key, "POST", "/v1/jobs", token,
-               json={"design": "gcd", "jobname": "job0", "run_hash": "abc"})
-    inside = call(server_client, key, "POST", "/v1/jobs", token,
-                  json={"design": "gcd", "jobname": "job1",
-                        "descriptor": {"run_hash": "abc"}})
-
-    assert top.status_code == 201 and inside.status_code == 400
-
-
-@pytest.mark.parametrize("value", ["", "x" * 129, "ok\u2713", "tab\there", 7])
-def test_run_hash_is_1_to_128_printable_ascii(server_client, key, token, value):
-    response = create(server_client, key, token, run_hash=value)
-
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
-
-
-def test_without_jobs_reuse_a_hash_is_validated_and_ignored(
-        server, server_client, key, token, me):
-    '''This deployment does not advertise `jobs.reuse`, so create is always a
-    201 -- even for the hash of a job it has finished.'''
-    assert "jobs.reuse" not in server.config["SC_CONFIG"]["features"]
-    existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
-                         me, "hash-1", "completed")
-
-    response = create(server_client, key, token, run_hash="hash-1")
-
-    assert response.status_code == 201
-    assert response.get_json()["id"] != existing
-    stored = server.config["SC_STORE"].one(
-        "SELECT run_hash, job_identity FROM jobs WHERE id = ?", (response.get_json()["id"],))
-    assert (stored["run_hash"], stored["job_identity"]) == ("hash-1", None)
-
-
 def test_a_requirement_is_always_a_list(server_client, key, token):
-    '''A bare string is refused: SiliconCompiler's own requirement is a list
-    of alternatives, one per task.'''
+    '''As SiliconCompiler's own is: a list of alternatives, one per task.'''
     bare = create(server_client, key, token,
                   requested_versions={"python": {"siliconcompiler": "==0.38.0"}, "tools": {}})
     listed = create(server_client, key, token, jobname="job1",
@@ -329,40 +245,14 @@ def test_a_requirement_is_always_a_list(server_client, key, token):
     assert listed.status_code == 201
 
 
-def test_a_private_source_may_carry_its_source(server_client, key, token):
-    '''Surface D299, D308: `private` defaults to false, and a private entry
-    carries `source` and `ref`, which a held copy or a fetch supplies it from.
-    One this server can supply no way -- a local one, with no source, among
-    them -- is refused before a byte moves, naming its keypath.'''
-    defaulted = create(server_client, key, token, sources=[
-        {"keypath": ["library", "ip", "dataroot", "ip"],
-         "source": "git+ssh://example.com/ip.git", "ref": "v1"}])
-    fetchable = create(server_client, key, token, jobname="job1", sources=[
-        {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
-         "source": "https://github.com/siliconcompiler/gf180/archive/", "ref": "v1"}])
-    neither = create(server_client, key, token, jobname="job2", sources=[
-        {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True,
-         "source": "file:///opt/pdks/gf180"}])
-    local = create(server_client, key, token, jobname="job3", sources=[
-        {"keypath": ["library", "gf180", "dataroot", "gf180"], "private": True}])
-
-    assert defaulted.status_code == 201
-    # 🔴 Never asked for: fetched while staging, or refused.
-    assert fetchable.status_code == 201 and not fetchable.get_json().get("upload_sources")
-    for refused in (neither, local):
-        assert (refused.status_code, slug(refused)) == (422, "resource-unavailable")
-        assert refused.get_json()["keypath"] == ["library", "gf180", "dataroot", "gf180"]
-        assert refused.get_json()["resource"] == "gf180"
-
-
 @pytest.mark.parametrize("source", [
     "git+ssh://git@example.com/ip.git",
     "https://alice:ghp_TOKEN@example.com/ip.tar.gz",
     "git+https+private://ghp_TOKEN@example.com/ip.git"])
 def test_a_source_carrying_userinfo_is_refused_at_create_by_its_keypath(
         server, server_client, key, token, caplog, source):
-    '''🔴 Surface D310: refused, never stripped -- naming the entry's keypath
-    and never the value, which is neither stored nor logged.'''
+    '''Surface D310: refused, never stripped, naming the keypath and never the
+    value, which is neither stored nor logged.'''
     import logging
 
     caplog.set_level(logging.DEBUG)
@@ -379,8 +269,7 @@ def test_a_source_carrying_userinfo_is_refused_at_create_by_its_keypath(
 
 
 def test_a_need_the_server_lacks_is_refused_at_create_naming_it(server_client, key, token):
-    '''Before the upload, rather than at submit after it -- and a string the
-    server does not know is refused the same way.'''
+    '''Before the upload, not at submit after it.'''
     lacking = create(server_client, key, token, needs=["python.env"])
     known = create(server_client, key, token, jobname="job1", needs=["logs.stream"])
 
@@ -390,42 +279,22 @@ def test_a_need_the_server_lacks_is_refused_at_create_naming_it(server_client, k
     assert known.status_code == 201
 
 
-def test_create_answers_with_the_job_object(server_client, key, token):
-    '''🔴 The separate create shape is gone: `upload_sources` is the job
-    object's own member, absent where there is nothing to send.'''
-    body = create(server_client, key, token, sources=[]).get_json()
-
-    assert body["terminal"] is False and body["state"] == "created"
-    assert "upload_sources" not in body
-
-
-def test_submit_takes_the_digest_and_nothing_else(server_client, key, token, job_archive):
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-
-    response = submit(server_client, key, token, job["id"], digest, bytes=size)
-
-    assert response.status_code == 400 and slug(response) == "invalid-request"
-
-
 def test_a_sparse_descriptor_is_never_refused_for_being_sparse(server_client, key, token):
-    '''No field is required. The server checks whatever is present and skips
-    the check a missing field would have answered.'''
+    '''No field is required: a missing one skips the check it would answer.'''
     assert create(server_client, key, token, descriptor={}).status_code == 201
 
 
-def test_pending_uploads_is_a_ceiling(server_client, key, token, server):
-    ceiling = server.config["SC_CONFIG"].limits["pending_uploads"]
+def test_pending_uploads_is_a_ceiling_naming_the_jobs_holding_it(
+        server, server_client, key, token):
+    server.config["SC_CONFIG"].limits["pending_uploads"] = 1
+    held = create(server_client, key, token).get_json()
 
-    for n in range(ceiling):
-        assert create(server_client, key, token, jobname=f"job{n}").status_code == 201
+    refused = create(server_client, key, token, jobname="job1")
 
-    response = create(server_client, key, token, jobname="one-too-many")
-    assert response.status_code == 429
-    assert slug(response) == "limit-exceeded"
-    assert response.get_json()["limit"] == "pending_uploads"
-    # A 429 without it tells a client to guess.
-    assert response.headers["Retry-After"]
+    assert (refused.status_code, slug(refused)) == (429, "limit-exceeded")
+    assert refused.get_json()["limit"] == "pending_uploads"
+    assert refused.get_json()["job_ids"] == [held["id"]]
+    assert refused.headers["Retry-After"]           # without it, a client guesses
 
 
 ###########################
@@ -436,49 +305,72 @@ def test_the_same_key_and_the_same_body_is_the_same_job(server_client, key, toke
     first = create(server_client, key, token, idempotency_key="k1")
     second = create(server_client, key, token, idempotency_key="k1")
 
-    assert first.status_code == 201
     # A replayed create is `201`, with the original body.
-    assert second.status_code == 201
+    assert first.status_code == second.status_code == 201
     assert first.get_json() == second.get_json()
 
 
 def test_the_same_key_with_a_different_body_is_refused(server_client, key, token):
-    '''Returning the first job would answer a question the caller did not
-    ask.'''
+    '''Returning the first job would answer a question not asked.'''
     create(server_client, key, token, idempotency_key="k1")
     response = create(server_client, key, token, jobname="other", idempotency_key="k1")
 
-    assert response.status_code == 422
-    assert slug(response) == "idempotency-key-reuse"
+    assert (response.status_code, slug(response)) == (422, "idempotency-key-reuse")
 
 
 def test_a_refused_create_binds_no_key(server, server_client, key, token):
-    '''A refused create has no side effect, so a retry with the same key and
-    body is evaluated afresh: once the cause is gone, it is `201` (surface §6,
-    *Idempotency*; database D144).'''
+    '''A refusal has no side effect, so a retry is evaluated afresh (surface
+    §6; database D144).'''
     server.config["SC_CONFIG"].limits["pending_uploads"] = 1
     held = create(server_client, key, token, jobname="held").get_json()
 
     refused = create(server_client, key, token, idempotency_key="k1")
     assert (refused.status_code, slug(refused)) == (429, "limit-exceeded")
 
-    call(server_client, key, "POST", f"/v1/jobs/{held['id']}/cancel", token, json={})
+    cancel(server_client, key, token, held["id"])
     again = create(server_client, key, token, idempotency_key="k1")
 
     assert again.status_code == 201, again.get_json()
 
 
 def test_one_users_key_does_not_collide_with_anothers(server_client, key, token):
-    from siliconcompiler.remote import dpop
-
-    other_key = dpop.generate_key()
-    other = login(server_client, other_key, subject="machine:1001").get_json()
+    other_key, other_token = stranger(server_client)
 
     mine = create(server_client, key, token, idempotency_key="k1").get_json()
-    theirs = create(server_client, other_key, other["access_token"],
-                    idempotency_key="k1").get_json()
+    theirs = create(server_client, other_key, other_token, idempotency_key="k1").get_json()
 
     assert mine["id"] != theirs["id"]
+
+
+def test_a_key_older_than_a_day_is_forgotten(server, server_client, key, token):
+    first = create(server_client, key, token, idempotency_key="old").get_json()
+    server.config["SC_STORE"].execute(
+        "UPDATE jobs SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = ?",
+        (first["id"],))
+
+    again = create(server_client, key, token, idempotency_key="old")
+
+    assert again.status_code == 201
+    assert again.get_json()["id"] != first["id"]
+
+
+@pytest.mark.parametrize("what", ["create", "submit"])
+def test_a_retry_while_the_original_is_handled_is_in_progress(
+        server, server_client, key, token, job_archive, dispatcher, me, what):
+    '''Only a final answer binds a key: a retry meanwhile is `409`,
+    `in_progress`, with `Retry-After`.'''
+    server.config["SC_JOBS"]._in_flight.add((me, what, "k-busy"))
+
+    if what == "create":
+        response = create(server_client, key, token, idempotency_key="k-busy")
+    else:
+        archive, digest, size = job_archive()
+        job = stage(server_client, key, token, archive, size)
+        response = submit(server_client, key, token, job["id"], idempotency_key="k-busy")
+
+    assert (response.status_code, slug(response)) == (409, "job-state-conflict")
+    assert response.get_json()["reason"] == "in_progress"
+    assert int(response.headers["Retry-After"]) >= 1
 
 
 ###########################
@@ -487,8 +379,7 @@ def test_one_users_key_does_not_collide_with_anothers(server_client, key, token)
 
 @pytest.fixture
 def reuses(server):
-    '''A deployment advertising `jobs.reuse`, which this one does not by
-    default: reuse's server half, proven here rather than left as dead code.'''
+    '''A deployment advertising `jobs.reuse`, which this one does not by default.'''
     config = server.config["SC_CONFIG"]
     config._values["features"] = list(config["features"]) + ["jobs.reuse"]
 
@@ -500,12 +391,8 @@ def container_reuses(container_server):
 
 
 def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
-    '''A finished job with a hash, written straight into the store.
-
-    ⚠️ It writes `job_identity` as well, through the service, because that is
-    what the lookup is keyed on: the client's hash is only half of it and the
-    server's resolved digests are the other half.
-    '''
+    '''A finished job with a hash, written straight into the store, with the
+    `job_identity` the lookup is keyed on.'''
     import uuid
 
     from siliconcompiler.remote.server.software import images
@@ -520,73 +407,56 @@ def reuse_job(jobs, store, user_id, run_hash, state, declared=None, **columns):
         (job_id, user_id, state, run_hash,
          jobs._identity(run_hash, declared or {}, image=image)))
     if columns:
-        # One statement, because the archived_at/archived_by CHECK is on the
-        # pair: setting them one at a time fails on the first.
+        # One statement: the archived_at/archived_by CHECK is on the pair.
         assignments = ", ".join(f"{column} = ?" for column in columns)
         store.execute(f"UPDATE jobs SET {assignments} WHERE id = ?",
                       (*columns.values(), job_id))
     return job_id
 
 
-@pytest.fixture
-def me(server, server_client, key, token):
-    return call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
+def reused(server, me, state="completed", run_hash="hash-1", **columns):
+    return reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"], me, run_hash,
+                     state, **columns)
 
 
 @pytest.mark.parametrize("state,returned", [
     ("completed", True),
-    ("failed", True),         # the hash covers the environment, so a failure the
-                              # hash determines is a result
-    ("rejected", False),      # an entitlement is a property of the person at a
-                              # moment, not of the job
+    ("failed", True),         # the hash covers the environment, so it is a result
+    ("rejected", False),      # an entitlement is the person's, at a moment
     ("cancelled", False),     # user interaction, not a result
     ("abandoned", False),
     ("running", False),       # nothing to return yet
 ])
 def test_which_states_job_reuse_returns(server, server_client, key, token, me,
                                         state, returned, reuses):
-    store = server.config["SC_STORE"]
-    jobs = server.config["SC_JOBS"]
-    existing = reuse_job(jobs, store, me, "hash-1", state)
+    existing = reused(server, me, state)
 
     response = create(server_client, key, token, run_hash="hash-1")
 
-    if returned:
-        # 200 rather than 201: a 201 carrying an old job's id is
-        # indistinguishable from a new one.
-        assert response.status_code == 200
-        assert response.get_json()["id"] == existing
-    else:
+    # 200, not 201: a 201 carrying an old id is indistinguishable from a new one.
+    assert response.status_code == (200 if returned else 201)
+    assert (response.get_json()["id"] == existing) is returned
+
+
+def test_an_archived_job_or_an_omitted_hash_runs_anew(server, server_client, key, token,
+                                                      me, reuses):
+    '''Archiving is how a person says stop handing me that result, with no
+    endpoint for it; omitting the hash is a script's escape hatch.'''
+    archived = reused(server, me, archived_at="2026-01-01T00:00:00.000Z", archived_by=me)
+    plain = reused(server, me, run_hash="hash-2")
+
+    for response in (create(server_client, key, token, run_hash="hash-1"),
+                     create(server_client, key, token, jobname="job1")):
         assert response.status_code == 201
-        assert response.get_json()["id"] != existing
-
-
-def test_an_archived_job_is_never_returned(server, server_client, key, token, me, reuses):
-    '''The one thing ever added to archived_at's "and NOTHING else". It is how a
-    person says stop handing me that result, with no endpoint for it.'''
-    store = server.config["SC_STORE"]
-    existing = reuse_job(server.config["SC_JOBS"], store, me, "hash-1", "completed",
-                         archived_at="2026-01-01T00:00:00.000Z", archived_by=me)
-
-    response = create(server_client, key, token, run_hash="hash-1")
-
-    assert response.status_code == 201
-    assert response.get_json()["id"] != existing
+        assert response.get_json()["id"] not in (archived, plain)
 
 
 def test_the_lookup_is_owner_scoped(server, server_client, key, token, reuses):
-    '''🔴 The whole safety argument. A global cache would hand anyone who can
+    '''The whole safety argument: a global cache would hand anyone who can
     present a derivation whatever anyone else had run.'''
-    from siliconcompiler.remote import dpop
-
-    other_key = dpop.generate_key()
-    other_token = login(server_client, other_key,
-                        subject="machine:1001").get_json()["access_token"]
-    other_id = call(server_client, other_key, "GET", "/v1/me",
-                    other_token).get_json()["id"]
-
-    theirs = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
-                       other_id, "hash-1", "completed")
+    other_key, other_token = stranger(server_client)
+    theirs = reused(server, call(server_client, other_key, "GET", "/v1/me",
+                                 other_token).get_json()["id"])
 
     response = create(server_client, key, token, run_hash="hash-1")
 
@@ -594,572 +464,659 @@ def test_the_lookup_is_owner_scoped(server, server_client, key, token, reuses):
     assert response.get_json()["id"] != theirs
 
 
-def test_omitting_the_hash_runs_it_anyway(server, server_client, key, token, me):
-    '''The escape hatch a script uses, and it needs no knowledge of the feature
-    at all.'''
-    reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"], me,
-              "hash-1", "completed")
+def test_without_jobs_reuse_a_hash_is_validated_and_ignored(
+        server, server_client, key, token, me):
+    '''Not advertised here, so create is always a 201, even for the hash of a
+    finished job.'''
+    assert "jobs.reuse" not in server.config["SC_CONFIG"]["features"]
+    existing = reused(server, me)
 
-    assert create(server_client, key, token).status_code == 201
+    response = create(server_client, key, token, run_hash="hash-1")
+
+    assert response.status_code == 201
+    assert response.get_json()["id"] != existing
+    stored = server.config["SC_STORE"].one(
+        "SELECT run_hash, job_identity FROM jobs WHERE id = ?", (response.get_json()["id"],))
+    assert (stored["run_hash"], stored["job_identity"]) == ("hash-1", None)
 
 
 ###########################
-# 14. upload-grant
+# 14. upload-grant, and the signed PUT
 ###########################
 
-def test_the_grant_is_200_because_re_issue_is_the_point(server_client, key, token):
+def test_the_grant_fixes_the_size_and_a_re_issue_repeats_it(server_client, key, token):
+    '''`200`, since re-issue is the point; the first grant fixes the size
+    (D125) and a re-issue cannot widen it. The job is now `awaiting_input`.'''
     job = create(server_client, key, token).get_json()
 
-    first = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(4096))
-    second = call(server_client, key, "POST",
-                  f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(4096))
+    first = grant(server_client, key, token, job["id"], sized(4096))
+    again = grant(server_client, key, token, job["id"], sized(4096))
+    widened = grant(server_client, key, token, job["id"], sized(8192))
 
-    assert first.status_code == 200
-    assert second.status_code == 200
-    for response in (first, second):
+    for response in (first, again):
         body = response.get_json()
-        assert body["method"] == "PUT"
-        assert body["url"]
-        assert body["headers"]["content-length"]
-        assert body["expires_at"]
-
-
-def test_the_grant_moves_the_job_to_awaiting_input(server_client, key, token):
-    job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
-         json=sized(4096))
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "awaiting_input"
-    assert read["terminal"] is False
-
-
-def test_the_first_grant_fixes_the_size_and_a_re_issue_repeats_it(
-        server_client, key, token):
-    '''🔴 D125: the size is the grant's -- the
-    create response can ask for more than the client planned to send, so a
-    size fixed at create made the PUT fail its signature. A re-issue cannot
-    widen what the first grant bound.'''
-    job = create(server_client, key, token).get_json()
-    path = f"/v1/jobs/{job['id']}/upload-grant"
-
-    grant = call(server_client, key, "POST", path, token, json=sized(4096)).get_json()
-    assert grant["headers"]["content-length"] == "4096"
-
-    again = call(server_client, key, "POST", path, token, json=sized(4096))
-    assert again.status_code == 200
-
-    widened = call(server_client, key, "POST", path, token, json=sized(8192))
-    assert widened.status_code == 409
-    assert slug(widened) == "job-state-conflict"
+        assert response.status_code == 200
+        assert (body["method"], body["headers"]["content-length"]) == ("PUT", "4096")
+        assert body["url"] and body["expires_at"]
+    assert (widened.status_code, slug(widened)) == (409, "job-state-conflict")
+    body = read(server_client, key, token, job["id"])
+    assert (body["state"], body["terminal"]) == ("awaiting_input", False)
 
 
 def test_a_grant_without_its_size_is_refused(server_client, key, token):
     job = create(server_client, key, token).get_json()
 
-    response = call(server_client, key, "POST",
-                    f"/v1/jobs/{job['id']}/upload-grant", token)
+    response = grant(server_client, key, token, job["id"])
 
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
+    assert (response.status_code, slug(response)) == (400, "invalid-request")
 
 
-def test_the_uploads_of_one_job_are_bounded_together(
-        server, server_client, key, token):
-    server.config["SC_CONFIG"].limits["max_upload_bytes"] = 1000
+@pytest.mark.parametrize("ceiling,size", [(None, 1 << 40), (1000, 1001)])
+def test_an_upload_over_the_ceiling_is_refused_at_the_grant(
+        server, server_client, key, token, ceiling, size):
+    '''At the grant, which fixes the size, before any byte moves; the ceiling
+    bounds a job's uploads together.'''
+    if ceiling:
+        server.config["SC_CONFIG"].limits["max_upload_bytes"] = ceiling
     job = create(server_client, key, token).get_json()
 
-    response = call(server_client, key, "POST",
-                    f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(1001))
+    response = grant(server_client, key, token, job["id"], sized(size))
 
-    assert response.status_code == 413
+    assert (response.status_code, slug(response)) == (413, "upload-too-large")
     assert response.get_json()["limit"] == "max_upload_bytes"
 
 
 def test_no_grant_for_a_job_that_is_past_it(server, server_client, key, token, me):
-    existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
-                         me, None, "completed")
+    response = grant(server_client, key, token, reused(server, me, run_hash=None),
+                     sized(4096))
 
-    response = call(server_client, key, "POST",
-                    f"/v1/jobs/{existing}/upload-grant", token, json=sized(4096))
-
-    assert response.status_code == 409
-    assert slug(response) == "job-state-conflict"
+    assert (response.status_code, slug(response)) == (409, "job-state-conflict")
 
 
-###########################
-# The signed PUT
-###########################
-
-def test_the_signature_is_the_credential(server_client, key, token, job_archive):
-    '''No Authorization header and no proof: that is what a presigned URL is.'''
+def test_the_signature_is_the_credential(server_client, key, token, job_archive, dispatcher):
+    '''No Authorization and no proof, as a presigned URL is; and a descriptor
+    with no size still uploads, the size being the grant's (D125).'''
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
-    grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(size, digest)).get_json()
+    granted = grant(server_client, key, token, job["id"], sized(size, digest)).get_json()
+    assert int(granted["headers"]["content-length"]) == size
 
-    response = put(server_client, grant, open(archive, "rb").read())
+    response = put(server_client, granted, open(archive, "rb").read())
 
-    assert response.status_code == 200
-    assert response.get_json()["size_bytes"] == size
+    assert response.status_code == 200 and response.get_json()["size_bytes"] == size
+    assert submit(server_client, key, token, job["id"]).status_code == 202
 
 
-def test_an_altered_url_is_refused(server_client, key, token, job_archive):
+def test_an_unsigned_or_altered_upload_url_is_refused(server_client, key, token, job_archive):
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
-    grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(size, digest)).get_json()
+    granted = grant(server_client, key, token, job["id"], sized(size, digest)).get_json()
+    widened = granted["url"].replace(f"max_bytes={size}", "max_bytes=999999999")
 
-    widened = grant["url"].replace(f"max_bytes={size}", "max_bytes=999999999")
-    response = server_client.put(widened.split("http://localhost", 1)[1],
-                                 data=b"x" * 100)
-
-    assert response.status_code == 400
+    assert server_client.put(widened.split("http://localhost", 1)[1],
+                             data=b"x" * 100).status_code == 400
+    assert server_client.put(f"/storage/upload/{job['id']}", data=b"x").status_code == 400
 
 
-def test_the_upload_route_needs_a_signature(server_client, key, token):
+def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(server_client, key, token):
+    '''On what has been written, not on Content-Length, a claim about a body
+    still being sent.'''
     job = create(server_client, key, token).get_json()
+    granted = grant(server_client, key, token, job["id"], sized(16)).get_json()
 
-    response = server_client.put(f"/storage/upload/{job['id']}", data=b"x")
+    response = put(server_client, granted, b"x" * 4096)
 
-    assert response.status_code == 400
+    assert (response.status_code, slug(response)) == (413, "upload-too-large")
 
 
 ###########################
 # 15. submit
 ###########################
 
-def test_submit_runs_the_job(server_client, key, token, job_archive, dispatcher):
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-
-    response = submit(server_client, key, token, job["id"], digest, size)
+def test_submit_runs_the_job(server, server_client, key, token, job_archive, dispatcher):
+    '''`staging` always, since the request only matched the digest; then
+    `queued`, every node pending, the edges rows a page draws the DAG from.'''
+    job, response = submitted(server_client, key, token, job_archive())
 
     assert response.status_code == 202
-    # 🔴 `staging`, always: the request only matched the digest.
-    assert response.get_json()["state"] == "staging"
-    assert response.get_json()["state_reason"] == "unpacking the upload"
-
+    assert (response.get_json()["state"], response.get_json()["state_reason"]) == \
+        ("staging", "unpacking the upload")
     body = job_after(server_client, key, token, response)
-    assert body["state"] == "queued"
-    assert "state_reason" not in body
-    assert body["submitted_at"]
-    assert body["flow"] == "nopflow"
+    assert body["state"] == "queued" and "state_reason" not in body
+    assert [entry["state"] for entry in body["transitions"]] == \
+        ["created", "awaiting_input", "staging", "queued"]
+    assert body["submitted_at"] and body["flow"] == "nopflow"
     assert body["progress"]["total_count"] == 2
     assert {node["step"] for node in body["nodes"]} == {"stepone", "steptwo"}
     assert all(node["state"] == "pending" for node in body["nodes"])
     assert dispatcher.submitted
-
-
-def test_submit_records_the_flows_shape(server, server_client, key, token,
-                                        job_archive, dispatcher):
-    '''The edges are rows so a page can draw the DAG without reading object
-    storage.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
     edges = server.config["SC_STORE"].all(
         "SELECT * FROM job_node_edges WHERE job_id = ?", (job["id"],))
-
-    assert [(row["from_step"], row["to_step"]) for row in edges] == \
-        [("stepone", "steptwo")]
+    assert [(row["from_step"], row["to_step"]) for row in edges] == [("stepone", "steptwo")]
 
 
+@pytest.mark.parametrize("sent", ["zeros", "short"])
 def test_a_digest_mismatch_refuses_before_anything_is_extracted(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 The order is normative. Getting it wrong is how an archive bomb gets
-    opened. The upload is checked against the digest its grant bound, before
-    anything is extracted.'''
+        server, server_client, key, token, job_archive, dispatcher, me, sent):
+    '''The order is normative: getting it wrong opens an archive bomb. A
+    refusal of the request, not of the archive, so the job still waits and the
+    bytes the grant was issued for then submit it.'''
     archive, digest, size = job_archive()
+    data = open(archive, "rb").read()
     job = create(server_client, key, token).get_json()
-    grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
-                 token, json=sized(size, digest)).get_json()
-    put(server_client, grant, b"\0" * size)
+    granted = grant(server_client, key, token, job["id"], sized(size, digest)).get_json()
+    put(server_client, granted, b"\0" * size if sent == "zeros" else data[: size // 2])
 
     response = submit(server_client, key, token, job["id"])
 
-    assert response.status_code == 422
-    assert slug(response) == "upload-digest-mismatch"
+    assert (response.status_code, slug(response)) == (422, "upload-digest-mismatch")
     assert "the grant bound" in response.get_json()["detail"]
+    assert not server.config["SC_JOBS"].job_root(me, job["id"]).exists()
+    body = read(server_client, key, token, job["id"])
+    assert (body["state"], body["error"]) == ("awaiting_input", None)
 
-    root = server.config["SC_JOBS"].job_root(
-        call(server_client, key, "GET", "/v1/me", token).get_json()["id"], job["id"])
-    assert not root.exists()
-
-    # 🔴 A refusal of the request, not of the archive: the job still waits,
-    # and the bytes the grant was issued for, sent to it, submit it.
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "awaiting_input"
-    assert read["error"] is None
-
-    put(server_client, grant, open(archive, "rb").read())
+    put(server_client, granted, data)
     again = submit(server_client, key, token, job["id"])
     assert again.status_code == 202
     assert job_after(server_client, key, token, again)["state"] == "queued"
 
 
-def test_bytes_short_of_the_grant_are_a_digest_mismatch(server_client, key, token,
-                                                        job_archive, dispatcher):
-    '''No `bytes` at submit: the digest is what says the bytes are the ones
-    the client meant, and a short upload has a different one.'''
+@pytest.mark.parametrize("body,status", [(None, 202), ({}, 202), ("bytes", 400),
+                                         ("digest", 400)])
+def test_submit_takes_no_body_and_ignores_nothing(server_client, key, token,
+                                                  job_archive, dispatcher, body, status):
+    '''Surface §15 (D277): sent empty or as `{}` (D306), and a member is
+    refused, the digest a client used to send included.'''
     archive, digest, size = job_archive()
-    job = create(server_client, key, token).get_json()
-    grant = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant",
-                 token, json=sized(size, digest)).get_json()
-    put(server_client, grant, open(archive, "rb").read()[: size // 2])
-
-    response = submit(server_client, key, token, job["id"], digest)
-
-    assert response.status_code == 422
-    assert slug(response) == "upload-digest-mismatch"
-
-
-@pytest.mark.parametrize("body", ["empty", "json"])
-def test_submit_takes_an_empty_body_or_a_json_object(server_client, key, token,
-                                                     job_archive, dispatcher, body):
-    '''Surface D306: a `{}` body may be sent empty or as JSON `{}`, and a
-    server accepts both. This one used to refuse the empty one.'''
-    path, digest, size = job_archive()
-    job = stage(server_client, key, token, path, size)
+    job = stage(server_client, key, token, archive, size)
+    if isinstance(body, str):
+        body = {body: {"bytes": size, "digest": digest}[body]}
 
     response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/submit", token,
-                    **({"json": {}} if body == "json" else {}))
+                    **({} if body is None else {"json": body}))
 
-    assert response.status_code == 202, response.get_json()
-
-
-def test_a_submit_body_with_a_member_is_refused(server_client, key, token,
-                                                job_archive, dispatcher):
-    '''Submit takes no body (surface §15; D277), and nothing is ignored: a
-    member -- the digest a client used to send included -- is refused under
-    the strict rule.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-
-    response = submit(server_client, key, token, job["id"], digest=digest)
-    assert response.status_code == 202
-
-    other = stage(server_client, key, token, archive, size, jobname="job1")
-    refused = call(server_client, key, "POST", f"/v1/jobs/{other['id']}/submit", token,
-                   json={"digest": digest})
-    assert (refused.status_code, slug(refused)) == (400, "invalid-request")
+    assert response.status_code == status, response.get_json()
+    if status == 400:
+        assert slug(response) == "invalid-request"
 
 
-def test_an_archive_violation_names_which_rule(server_client, key, token,
-                                               job_archive, dispatcher):
-    archive, digest, size = job_archive(
-        extra={"../escape": b"owned"})
-    job = stage(server_client, key, token, archive, size)
-
-    response = submit(server_client, key, token, job["id"], digest, size)
+def test_an_archive_violation_is_published_on_the_job_naming_the_rule(
+        server_client, key, token, job_archive, dispatcher):
+    '''`detail` too, so whoever reads the job later learns what the
+    submitter would have.'''
+    _, response = submitted(server_client, key, token,
+                            job_archive(extra={"../escape": b"owned"}))
 
     assert response.status_code == 202
-    read = job_after(server_client, key, token, response)
-    assert read["state"] == "rejected"
-    assert read["error"]["type"].endswith("archive-rejected")
-    assert read["error"]["status"] == 422
-    assert read["error"]["reason"] == "traversal"
+    body = job_after(server_client, key, token, response)
+    assert body["state"] == "rejected"
+    assert body["error"]["type"].endswith("archive-rejected")
+    assert (body["error"]["status"], body["error"]["reason"]) == (422, "traversal")
+    assert body["error"]["detail"]
 
 
 def test_a_manifest_that_is_not_where_it_was_declared(server_client, key, token,
-                                                      nop_project, job_archive,
-                                                      dispatcher):
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size, jobname="somethingelse")
-
-    response = submit(server_client, key, token, job["id"], digest, size)
+                                                      job_archive, dispatcher):
+    _, response = submitted(server_client, key, token, job_archive(), jobname="somethingelse")
 
     assert response.status_code == 202
-    read = job_after(server_client, key, token, response)
-    assert read["error"]["type"].endswith("declared-mismatch")
+    assert job_after(server_client, key, token,
+                     response)["error"]["type"].endswith("declared-mismatch")
 
 
 def test_submitting_with_nothing_uploaded(server_client, key, token):
     job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/upload-grant", token,
-         json=sized(4096))
+    grant(server_client, key, token, job["id"], sized(4096))
 
-    response = submit(server_client, key, token, job["id"], "sha256:" + "0" * 64, 1)
+    response = submit(server_client, key, token, job["id"])
 
-    assert response.status_code == 409
-    assert slug(response) == "job-state-conflict"
+    assert (response.status_code, slug(response)) == (409, "job-state-conflict")
 
 
-def test_a_retried_submit_under_one_key_is_the_same_answer(
-        server_client, key, token, job_archive, dispatcher):
+def test_a_replayed_submit_answers_the_original_202(server_client, key, token,
+                                                    job_archive, dispatcher):
+    '''The original body, `staging` and all, whatever the job did since
+    (surface §6), and dispatched once.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
 
-    first = submit(server_client, key, token, job["id"], digest, size,
-                   idempotency_key="s1")
-    second = submit(server_client, key, token, job["id"], digest, size,
-                    idempotency_key="s1")
+    first = submit(server_client, key, token, job["id"], idempotency_key="s1")
+    again = submit(server_client, key, token, job["id"], idempotency_key="s1")
 
-    assert first.status_code == 202
-    assert second.status_code == 202
+    assert (first.status_code, again.status_code) == (202, 202)
+    assert again.get_json() == first.get_json()
+    assert again.get_json()["state"] == "staging"
     assert len(dispatcher.submitted) == 1
+
+
+def test_a_submit_key_reused_across_jobs_is_refused(server_client, key, token,
+                                                    job_archive, dispatcher):
+    '''The caller failing to rotate a key: a refusal, not a 500 from the index.
+    The same design and jobname, so only the key collides.'''
+    archive, digest, size = job_archive()
+    first = stage(server_client, key, token, archive, size)
+    submit(server_client, key, token, first["id"], idempotency_key="s1")
+
+    second = stage(server_client, key, token, archive, size)
+    response = submit(server_client, key, token, second["id"], idempotency_key="s1")
+
+    assert (response.status_code, slug(response)) == (422, "idempotency-key-reuse")
+
+
+@pytest.mark.parametrize("member,named", [
+    ("sc-server-progress.json", "sc-server-progress.json"),
+    ("sc_configs/sc_slurm_stepone_0.sh", "sc_configs"),
+])
+def test_a_member_the_first_archive_does_not_carry_is_unrequested(
+        server_client, key, token, job_archive, dispatcher, member, named):
+    '''A planted progress file, or the old client's `sc_configs/` (Slurm's
+    scripts): the server's own files live above the tree an upload expands into.'''
+    _, response = submitted(server_client, key, token, job_archive(extra={
+        member: b'{"state": "completed", "nodes": {}}'}))
+
+    body = job_after(server_client, key, token, response)
+    assert body["state"] == "rejected"
+    assert body["error"]["reason"] == "unrequested_member"
+    assert named in body["error"]["detail"]
+    assert not dispatcher.submitted
+
+
+def test_an_asic_project_with_no_pdk_is_unresolved(server_client, key, token,
+                                                   job_archive, dispatcher, gcd_design):
+    '''The PDK fails closed where the class has one; a class with none
+    resolves to 'none', as every nopflow job here does.'''
+    import os
+
+    from siliconcompiler import ASIC, Flowgraph
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    project = ASIC(gcd_design)
+    project.add_fileset("rtl")
+    flow = Flowgraph("nopflow")
+    flow.node("stepone", NOPTask())
+    project.set_flow(flow)
+    project.option.set_nodashboard(True)
+    project.option.set_jobname("job0")
+    project.option.set_builddir(os.path.abspath("build"))
+
+    _, response = submitted(server_client, key, token, job_archive(project))
+
+    body = job_after(server_client, key, token, response)
+    assert body["state"] == "rejected"
+    assert body["error"]["type"].endswith("resource-unresolved")
+    assert body["error"]["resource_kind"] == "pdk"
+
+
+def test_a_manifest_from_a_newer_schema_is_refused(
+        server_client, key, token, nop_project, job_archive, dispatcher):
+    '''A read is only BACKWARDS compatible, and the other direction fails
+    silently: keys dropped, values defaulted, and the server decides the
+    nodes and limits from what it read.'''
+    import io
+    import os
+    import tarfile
+
+    from siliconcompiler.utils.paths import jobdir
+
+    path = os.path.join(jobdir(nop_project), f"{nop_project.name}.pkg.json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    nop_project.write_manifest(path)
+    with open(path) as f:
+        body = json.load(f)
+    body["schemaversion"]["node"]["default"]["default"]["value"] = "99.0.0"
+
+    # Replaced in the archive: a second member of one name is `traversal`.
+    built, _, _ = job_archive()
+    archive = os.path.abspath("future.tar.gz")
+    with tarfile.open(built) as source, tarfile.open(archive, "w:gz") as out:
+        for member in source.getmembers():
+            data = source.extractfile(member) if member.isfile() else None
+            if member.name.lstrip("./") == f"{nop_project.name}.pkg.json":
+                encoded = json.dumps(body).encode()
+                member.size, data = len(encoded), io.BytesIO(encoded)
+            out.addfile(member, data)
+
+    _, response = submitted(server_client, key, token,
+                            (archive, None, os.path.getsize(archive)))
+
+    assert response.status_code == 202
+    assert not dispatcher.submitted
+    body = job_after(server_client, key, token, response)
+    assert body["state"] == "rejected"
+    assert body["error"]["type"].endswith("declared-mismatch")
+    assert "only backwards compatible" in body["error"]["detail"]
+
+
+def test_a_manifests_scheduler_settings_are_overridden(nop_project, tmp_path):
+    from siliconcompiler.remote.server.running import runspec
+
+    nop_project.option.set_jobincr(True)
+    nop_project.option.scheduler.set_name("slurm")
+    nop_project.option.scheduler.set_queue("gpu-partition")
+    nop_project.option.scheduler.add_options(["--exclusive"], step="stepone", index="0")
+
+    runspec.normalize(nop_project, "job-1", tmp_path / "b", tmp_path / "c")
+
+    assert nop_project.option.get_jobincr() is False
+    assert nop_project.option.scheduler.get_name() is None
+    assert nop_project.option.scheduler.get_queue() is None
+    assert not nop_project.option.scheduler.get_options(step="stepone", index="0")
 
 
 ###########################
 # 17. get
 ###########################
 
-def test_a_job_is_not_readable_by_a_stranger(server, server_client, key, token):
-    '''🔴 The defect the identity work exists to fix. 404, not 403: a 403 would
-    confirm the id belongs to somebody.'''
-    from siliconcompiler.remote import dpop
+def test_another_user_can_neither_read_nor_list_my_job(server_client, key, token):
+    '''404, not 403: a 403 would confirm the id belongs to somebody.'''
+    job = create(server_client, key, token).get_json()
+    other_key, other_token = stranger(server_client)
 
+    response = call(server_client, other_key, "GET", f"/v1/jobs/{job['id']}", other_token)
+
+    assert (response.status_code, slug(response)) == (404, "not-found")
+    assert listing(server_client, other_key, other_token) == []
+
+
+def test_only_a_live_job_says_when_to_ask_again_and_none_is_cacheable(
+        server, server_client, key, token, me):
     job = create(server_client, key, token).get_json()
 
-    other_key = dpop.generate_key()
-    other_token = login(server_client, other_key,
-                        subject="machine:1001").get_json()["access_token"]
+    live = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    ended = call(server_client, key, "GET", f"/v1/jobs/{reused(server, me, run_hash=None)}",
+                 token)
 
-    response = call(server_client, other_key, "GET", f"/v1/jobs/{job['id']}",
-                    other_token)
-
-    assert response.status_code == 404
-    assert slug(response) == "not-found"
-
-
-def test_the_poll_interval_comes_from_the_server(server_client, key, token):
-    job = create(server_client, key, token).get_json()
-
-    response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    assert response.status_code == 200
-    assert int(response.headers["Retry-After"]) > 0
-
-
-def test_a_terminal_job_asks_for_no_retry(server, server_client, key, token, me):
-    existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
-                         me, None, "completed")
-
-    response = call(server_client, key, "GET", f"/v1/jobs/{existing}", token)
-
-    assert "Retry-After" not in response.headers
-    assert response.get_json()["terminal"] is True
+    assert live.status_code == 200
+    assert int(live.headers["Retry-After"]) >= 1
+    assert live.headers["Cache-Control"] == "private, no-store"
+    assert "Retry-After" not in ended.headers
+    assert ended.get_json()["terminal"] is True
 
 
 def test_the_job_object_carries_every_required_member(server_client, key, token):
-    job = create(server_client, key, token).get_json()
-
-    body = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    '''`transitions` in place of `state_changed_at` (D278), never empty, and
+    no `deleted_cause`: every deletion is a person's (D279).'''
+    body = read(server_client, key, token, create(server_client, key, token).get_json()["id"])
 
     for member in ("id", "state", "terminal", "transitions", "design",
                    "jobname", "flow", "owner", "project", "created_at",
                    "submitted_at", "started_at", "finished_at", "archived_at",
                    "deleted_at", "deleted_reason", "error", "nodes", "progress"):
         assert member in body, member
-    # 🔴 `transitions` in place of `state_changed_at` (D278), never empty, and
-    # no `deleted_cause`: every job deletion is a person's (D279).
     assert "state_changed_at" not in body and "deleted_cause" not in body
     assert [entry["state"] for entry in body["transitions"]] == ["created"]
-    # No portal URL: a job's page comes from POST /v1/auth/browser (D309).
-    assert "web_url" not in body
 
 
-def test_an_authenticated_response_is_never_cacheable(server_client, key, token):
-    job = create(server_client, key, token).get_json()
+@pytest.mark.parametrize("web_url_base", [None, "http://sc.example/"])
+def test_no_job_object_carries_a_portal_url(server, server_client, key, token,
+                                            web_url_base):
+    '''Surface D309: a job's page is asked for at `POST /v1/auth/browser`, so
+    no answer carries one, with a portal configured or not.'''
+    server.config["SC_CONFIG"]._values["web_url_base"] = web_url_base
 
-    response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
+    created = create(server_client, key, token).get_json()
+    listed = call(server_client, key, "GET", "/v1/jobs", token).get_json()["items"]
 
-    assert response.headers["Cache-Control"] == "private, no-store"
+    for job in [created, read(server_client, key, token, created["id"])] + listed:
+        assert "web_url" not in job
+        assert not any("portal" in str(value) for value in job.values()), job
 
 
 ###########################
 # 16. list
 ###########################
 
-def test_the_listing_is_newest_first(server_client, key, token):
-    ids = created_in_order(server_client, key, token, 3)
-
-    body = call(server_client, key, "GET", "/v1/jobs", token).get_json()
-
-    assert [item["id"] for item in body["items"]] == list(reversed(ids))
-    # MINUS `nodes`: the listing is a collection, not a fan-out.
-    assert "nodes" not in body["items"][0]
-
-
-def test_the_listing_is_mine_only(server_client, key, token):
-    from siliconcompiler.remote import dpop
-
-    create(server_client, key, token)
-
-    other_key = dpop.generate_key()
-    other_token = login(server_client, other_key,
-                        subject="machine:1001").get_json()["access_token"]
-
-    body = call(server_client, other_key, "GET", "/v1/jobs", other_token).get_json()
-    assert body["items"] == []
-
-
 def test_paging_is_a_keyset_over_the_published_ordering(server_client, key, token):
+    '''Following `Link` until it is absent, on the last page, sees every job.'''
     ids = created_in_order(server_client, key, token, 5)
 
-    first = call(server_client, key, "GET", "/v1/jobs?limit=2", token)
-    assert len(first.get_json()["items"]) == 2
-    assert 'rel="next"' in first.headers["Link"]
+    response = call(server_client, key, "GET", "/v1/jobs?limit=2", token)
+    assert len(response.get_json()["items"]) == 2
 
     seen = []
-    response = first
     while True:
         seen.extend(item["id"] for item in response.get_json()["items"])
         link = response.headers.get("Link")
         if not link:
             break
-        target = link.split(">", 1)[0].lstrip("<")
-        response = call(server_client, key, "GET", target, token)
+        assert 'rel="next"' in link
+        response = call(server_client, key, "GET", link.split(">", 1)[0].lstrip("<"), token)
 
     assert seen == list(reversed(ids))
 
 
-def test_the_link_header_is_absent_on_the_last_page(server_client, key, token):
-    create(server_client, key, token)
+@pytest.mark.parametrize("query,refused", [
+    ("cursor=nonsense!!", "invalid-cursor"),   # only ever taken from a Link header
+    ("state=nearly", "invalid-request"),
+    # S §16: a boolean is `true` or `false`; `archived=yes` read as false
+    # would answer the unarchived list.
+    *[(query, "invalid-request") for query in (
+        "archived=yes", "archived=True", "archived=1", "terminal=no",
+        "archived=true&archived=maybe")],
+])
+def test_a_listing_query_it_cannot_honour_is_refused(server_client, key, token, query,
+                                                     refused):
+    response = call(server_client, key, "GET", f"/v1/jobs?{query}", token)
 
-    response = call(server_client, key, "GET", "/v1/jobs", token)
-
-    assert "Link" not in response.headers
-
-
-def test_a_made_up_cursor_is_refused(server_client, key, token):
-    '''A cursor is only ever taken from a Link header. Continuing from a made-up
-    position silently skips rows.'''
-    response = call(server_client, key, "GET", "/v1/jobs?cursor=nonsense!!", token)
-
-    assert response.status_code == 400
-    assert slug(response) == "invalid-cursor"
+    assert (response.status_code, slug(response)) == (400, refused)
 
 
 def test_design_and_jobname_filter_exactly(server_client, key, token):
+    '''Not a prefix: free text under a match operator is a LIKE over user input.'''
     create(server_client, key, token, design="gcd", jobname="nightly-1")
     create(server_client, key, token, design="picorv32", jobname="nightly-2")
 
     body = call(server_client, key, "GET", "/v1/jobs?design=gcd", token).get_json()
     assert [item["design"] for item in body["items"]] == ["gcd"]
-
-    # Deliberately not a prefix search: these are free text, so a match operator
-    # means a LIKE over user-controlled input.
-    body = call(server_client, key, "GET", "/v1/jobs?jobname=nightly", token).get_json()
-    assert body["items"] == []
+    assert listing(server_client, key, token, "jobname=nightly") == []
 
 
-def test_archived_is_the_one_filter_whose_default_is_not_everything(
-        server, server_client, key, token, me):
-    plain = create(server_client, key, token).get_json()["id"]
-    archived = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"], me,
-                         None, "completed",
-                         archived_at="2026-01-01T00:00:00.000Z", archived_by=me)
+def test_repeated_filters_or_within_a_key_and_terminal_filters(
+        server, server_client, key, token):
+    '''`archived` is the one filter whose default is not everything;
+    `?archived=true&archived=false` is both views; `?terminal=` is the flag.'''
+    kept = create(server_client, key, token).get_json()["id"]
+    gone = create(server_client, key, token, jobname="job1").get_json()["id"]
+    cancel(server_client, key, token, gone)
+    call(server_client, key, "POST", f"/v1/jobs/{gone}/archive", token, json={})
+    server.config["SC_STORE"].execute(
+        "UPDATE jobs SET archived_at = ?, archived_by = user_id WHERE id = ?", (now(), gone))
 
-    default = call(server_client, key, "GET", "/v1/jobs", token).get_json()
-    assert [item["id"] for item in default["items"]] == [plain]
+    def ids(query):
+        return set(listing(server_client, key, token, query))
 
-    only = call(server_client, key, "GET", "/v1/jobs?archived=true", token).get_json()
-    assert [item["id"] for item in only["items"]] == [archived]
+    assert ids("") == {kept}
+    assert ids("archived=true") == {gone}
+    assert ids("archived=true&archived=false") == {kept, gone}
+    assert ids("archived=true&archived=false&terminal=true") == {gone}
+    assert ids("terminal=false") == {kept}
+    assert ids("jobname=job0&jobname=job1&archived=true&archived=false") == {kept, gone}
 
 
-def test_an_unknown_state_filter_is_refused(server_client, key, token):
-    response = call(server_client, key, "GET", "/v1/jobs?state=nearly", token)
+def test_the_next_page_keeps_every_repeat(server_client, key, token):
+    for n in range(3):
+        create(server_client, key, token, jobname=f"job{n}")
 
-    assert response.status_code == 400
+    first = call(server_client, key, "GET",
+                 "/v1/jobs?limit=1&jobname=job0&jobname=job1&jobname=job2", token)
+
+    link = first.headers["Link"]
+    assert link.count("jobname=") == 3
+    target = link.split(">", 1)[0].lstrip("<")
+    assert len(call(server_client, key, "GET", target, token).get_json()["items"]) == 1
+
+
+@pytest.mark.parametrize("value", [0, 0.5, "1"])
+def test_a_poll_interval_below_one_whole_second_is_refused(value):
+    from siliconcompiler.remote.server.config import DEFAULTS, _check_policy
+
+    with pytest.raises(ValueError, match="poll_interval_seconds"):
+        _check_policy(dict(DEFAULTS, poll_interval_seconds=value))
 
 
 ###########################
 # 18. cancel
 ###########################
 
-def test_a_running_job_moves_to_cancelling(server_client, key, token,
-                                           job_archive, dispatcher):
-    '''🔴 not `cancelled` -- the scheduler writes the terminal state. This is
-    the window where a 202 and a job object still reading `running` would be
-    indistinguishable from the server having done nothing.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
+def test_a_running_job_moves_to_cancelling(server_client, key, token, job_archive, dispatcher):
+    '''Not `cancelled`: the scheduler writes the terminal state, and a 202 with
+    a job still `running` would look like nothing happened.'''
+    job, _ = submitted(server_client, key, token, job_archive())
 
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
+    response = cancel(server_client, key, token, job["id"])
 
     assert response.status_code == 202
-    assert response.get_json()["state"] == "cancelling"
-    assert response.get_json()["terminal"] is False
+    assert (response.get_json()["state"], response.get_json()["terminal"]) == \
+        ("cancelling", False)
     assert dispatcher.cancelled
 
 
-def test_a_job_that_never_started_is_cancelled_outright(server_client, key, token):
-    '''Nothing is running, so there is nothing to wind down and no `cancelling`
-    in between.'''
-    job = create(server_client, key, token).get_json()
-
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
-
-    assert response.get_json()["state"] == "cancelled"
-    assert response.get_json()["terminal"] is True
-
-
-def test_cancel_takes_no_body_at_all(server_client, key, token):
-    '''Requiring one would make a Ctrl-C in a CLI impossible to express.'''
-    job = create(server_client, key, token).get_json()
-
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
-
-    assert response.status_code == 202
-
-
-def test_a_cancel_reason_is_recorded_where_the_portal_reads_it(
-        server, server_client, key, token):
-    job = create(server_client, key, token).get_json()
-
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-         json={"reason": "superseded by run43"})
-
-    rows = server.config["SC_STORE"].all(
-        "SELECT * FROM job_state_transitions WHERE job_id = ?", (job["id"],))
-    assert rows[-1]["reason"] == "superseded by run43"
-
-
-@pytest.mark.parametrize("reason", ["x" * 301, "x" * 5000, "two\nlines", "a\x07bell"])
-def test_a_cancel_reason_over_its_bound_is_refused_never_cut(
-        server_client, key, token, reason):
-    '''User-controlled text that the portal renders and a CLI prints: at most
-    300 characters of one line (surface D288), refused rather than repaired,
-    and never echoed.'''
-    job = create(server_client, key, token).get_json()
-
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                    json={"reason": reason})
-
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
-    # Named which rule it broke (surface D306): its length, or a control
-    # character.
-    assert ("300" if len(reason) > 300 else "control character") in \
-        response.get_json()["detail"]
-    assert reason not in response.get_json()["detail"]
-
-
-@pytest.mark.parametrize("reason,status", [("é" * 300, 202), ("é" * 301, 400)])
-def test_a_cancel_reason_is_counted_in_code_points(server_client, key, token, reason,
-                                                   status):
-    '''Surface D306: 300 Unicode code points, not bytes -- 300 of them is 600
-    bytes in UTF-8, and is taken.'''
-    job = create(server_client, key, token).get_json()
-
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                    json={"reason": reason})
-
-    assert response.status_code == status
-
-
-def test_cancel_is_idempotent(server_client, key, token):
+def test_cancel_takes_no_body_and_is_idempotent(server_client, key, token):
+    '''No body at all, or a Ctrl-C could not be expressed. A job that never
+    started is `cancelled` outright, with no `cancelling` between.'''
     job = create(server_client, key, token).get_json()
 
     first = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
     second = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
 
     assert first.status_code == second.status_code == 202
-    assert second.get_json()["state"] == "cancelled"
+    for response in (first, second):
+        assert (response.get_json()["state"], response.get_json()["terminal"]) == \
+            ("cancelled", True)
+
+
+@pytest.mark.parametrize("reason,status", [
+    ("é" * 300, 202),        # code points, not bytes: 600 bytes of UTF-8 (D306)
+    ("é" * 301, 400), ("x" * 301, 400), ("x" * 5000, 400),
+    ("two\nlines", 400), ("a\x07bell", 400)])
+def test_a_cancel_reason_is_one_line_of_at_most_300_code_points(
+        server, server_client, key, token, reason, status):
+    '''Text the portal renders and a CLI prints (D288): refused rather than
+    cut, naming the rule it broke and never echoed; a taken one is recorded
+    where the portal reads it.'''
+    job = create(server_client, key, token).get_json()
+
+    response = cancel(server_client, key, token, job["id"], reason=reason)
+
+    assert response.status_code == status
+    if status == 202:
+        rows = server.config["SC_STORE"].all(
+            "SELECT reason FROM job_state_transitions WHERE job_id = ?", (job["id"],))
+        assert rows[-1]["reason"] == reason
+    else:
+        detail = response.get_json()["detail"]
+        assert slug(response) == "invalid-request"
+        assert ("300" if len(reason) > 300 else "control character") in detail
+        assert reason not in detail
+
+
+def test_a_cancel_of_a_job_the_scheduler_already_ended_leaves_it(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''Conditional on the state it moves from: the `202` carries the job as
+    the scheduler left it.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    jobs = server.config["SC_JOBS"]
+    original = jobs._transition_if
+
+    def ended_first(job_id, from_state, to_state, **kwargs):
+        # The scheduler got there between the read and the write.
+        jobs._transition(job_id, from_state, "completed")
+        return original(job_id, from_state, to_state, **kwargs)
+
+    jobs._transition_if = ended_first
+    response = cancel(server_client, key, token, job["id"])
+
+    assert response.status_code == 202
+    assert response.get_json()["state"] == "completed"
+    assert not dispatcher.cancelled
+
+
+def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''The reason is on its `transitions` entry, never the job's
+    `state_reason`, a live staging phase's (D278); a node the cancel stopped
+    has no exit code and says why.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    cancelled = cancel(server_client, key, token, job["id"], reason="wrong corner").get_json()
+    assert cancelled["state"] == "cancelling" and "state_reason" not in cancelled
+    assert (cancelled["transitions"][-1]["state"],
+            cancelled["transitions"][-1]["reason"]) == ("cancelling", "wrong corner")
+
+    report(server, me, job, "completed", {"stepone/0": {"state": "completed", "exit_code": 0},
+                                          "steptwo/0": {"state": "running"}})
+
+    body = read(server_client, key, token, job["id"])
+    assert body["state"] == "cancelled"
+    assert [entry["state"] for entry in body["transitions"]][-2:] == ["cancelling", "cancelled"]
+    assert body["transitions"][-2]["reason"] == "wrong corner"
+    nodes = {node["step"]: node for node in body["nodes"]}
+    assert all(node["terminal"] for node in body["nodes"])
+    assert (nodes["steptwo"]["state"], nodes["steptwo"]["exit_code"],
+            nodes["steptwo"]["state_reason"]) == ("cancelled", None, "wrong corner")
+
+
+# 300 characters, and two spaces a `detail`'s bound would fold into one.
+LONG_REASON = ("stopped by hand:  " + "the corner was wrong and the run is repeated " * 7)[:300]
+
+
+def test_a_300_character_reason_is_served_whole(
+        server, server_client, key, token, job_archive, dispatcher, me, monkeypatch):
+    '''What is accepted is what everyone reads (D288): whole, on both
+    transitions and each node the cancel stopped, even where a deployment
+    bounds its own text shorter.'''
+    from siliconcompiler.remote.server import errors
+
+    assert len(LONG_REASON) == 300
+    monkeypatch.setattr(errors, "DETAIL_MAX", 100)
+    job = running(server, server_client, key, token, job_archive, me)
+    cancelled = cancel(server_client, key, token, job["id"], reason=LONG_REASON).get_json()
+    assert cancelled["transitions"][-1] == {**cancelled["transitions"][-1],
+                                            "state": "cancelling", "reason": LONG_REASON}
+
+    report(server, me, job, "completed", {"stepone/0": {"state": "completed", "exit_code": 0},
+                                          "steptwo/0": {"state": "running"}},
+           error="the run's own words")
+
+    body = read(server_client, key, token, job["id"])
+    assert body["state"] == "cancelled"
+    assert [(entry["state"], entry.get("reason")) for entry in body["transitions"]][-2:] == \
+        [("cancelling", LONG_REASON), ("cancelled", LONG_REASON)]
+    assert {node["step"]: node for node in body["nodes"]}["steptwo"]["state_reason"] == \
+        LONG_REASON
+    assert "state_reason" not in body
+
+
+def test_a_cancel_that_lands_while_staging_carries_its_reason_to_cancelled(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''The staging thread writes `cancelled` with the cancel's reason, not a
+    word of its own.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    cancel(server_client, key, token, job["id"], reason=LONG_REASON)
+    jobs = server.config["SC_JOBS"]
+
+    jobs._settle_cancelled(jobs._row(job["id"]))
+
+    body = read(server_client, key, token, job["id"])
+    assert (body["transitions"][-1]["state"], body["transitions"][-1]["reason"]) == \
+        ("cancelled", LONG_REASON)
+    assert all(node["state_reason"] == LONG_REASON for node in body["nodes"]
+               if node["state"] == "cancelled")
+
+
+def test_the_servers_own_reasons_keep_their_bound(
+        server, server_client, key, token, monkeypatch):
+    '''Only a cancel's reason is served whole; the server's are bounded like
+    a `detail`.'''
+    from siliconcompiler.remote.server import errors
+
+    monkeypatch.setattr(errors, "DETAIL_MAX", 100)
+    job = create(server_client, key, token).get_json()
+    with server.config["SC_STORE"].transaction():
+        server.config["SC_JOBS"]._transition(job["id"], "created", "awaiting_input",
+                                             reason="y " * 200)
+
+    served = read(server_client, key, token, job["id"])["transitions"][-1]["reason"]
+    assert served.endswith("...") and len(served) < 110
 
 
 ###########################
@@ -1168,26 +1125,22 @@ def test_cancel_is_idempotent(server_client, key, token):
 
 def test_delete_refuses_a_job_that_is_still_spending(server_client, key, token,
                                                      job_archive, dispatcher):
-    '''"delete it and its data" cannot mean "hide it and keep spending".'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
+    '''"Delete it and its data" cannot mean "hide it and keep spending".'''
+    job, _ = submitted(server_client, key, token, job_archive())
 
     response = call(server_client, key, "DELETE", f"/v1/jobs/{job['id']}", token)
 
-    assert response.status_code == 409
-    assert slug(response) == "job-state-conflict"
+    assert (response.status_code, slug(response)) == (409, "job-state-conflict")
 
 
 def test_delete_keeps_the_row_and_drops_the_bytes(server, server_client, key,
                                                   token, job_archive, dispatcher, me):
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
+    '''No `deleted` state: it would erase whether the job had completed,
+    failed or been rejected, the fact wanted when results go missing.'''
+    job, _ = submitted(server_client, key, token, job_archive())
+    cancel(server_client, key, token, job["id"])
     server.config["SC_STORE"].execute(
         "UPDATE jobs SET state = 'cancelled' WHERE id = ?", (job["id"],))
-
     root = server.config["SC_JOBS"].job_root(me, job["id"])
     assert root.exists()
 
@@ -1195,239 +1148,439 @@ def test_delete_keeps_the_row_and_drops_the_bytes(server, server_client, key,
 
     assert response.status_code == 204
     assert not root.exists()
-
-    # A `deleted` state was refused because it would erase whether the job had
-    # completed, failed or been rejected -- the one fact you want when somebody
-    # asks where their results went.
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "cancelled"
-    assert read["deleted_at"]
+    body = read(server_client, key, token, job["id"])
+    assert body["state"] == "cancelled" and body["deleted_at"]
 
 
-def test_a_deleted_job_is_in_neither_listing(server_client, key, token):
+def test_a_delete_is_idempotent_unlisted_and_keeps_the_audit_trail(
+        server, server_client, key, token):
+    '''An audit trail a user can erase by deleting the job is not one.'''
     job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
-    call(server_client, key, "DELETE", f"/v1/jobs/{job['id']}", token)
-
-    assert call(server_client, key, "GET", "/v1/jobs", token).get_json()["items"] == []
-    assert call(server_client, key, "GET", "/v1/jobs?archived=true",
-                token).get_json()["items"] == []
-
-
-def test_delete_is_idempotent(server_client, key, token):
-    job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
+    cancel(server_client, key, token, job["id"])
 
     first = call(server_client, key, "DELETE", f"/v1/jobs/{job['id']}", token)
     second = call(server_client, key, "DELETE", f"/v1/jobs/{job['id']}", token)
 
     assert first.status_code == second.status_code == 204
-
-
-def test_the_audit_trail_survives_a_delete(server, server_client, key, token):
-    '''An audit trail a user can erase by deleting the job is not an audit
-    trail.'''
-    job = create(server_client, key, token).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token)
-    call(server_client, key, "DELETE", f"/v1/jobs/{job['id']}", token)
-
-    rows = server.config["SC_STORE"].all(
-        "SELECT * FROM job_state_transitions WHERE job_id = ?", (job["id"],))
-    assert len(rows) >= 2
+    assert listing(server_client, key, token) == []
+    assert listing(server_client, key, token, "archived=true") == []
+    assert len(server.config["SC_STORE"].all(
+        "SELECT * FROM job_state_transitions WHERE job_id = ?", (job["id"],))) >= 2
 
 
 ###########################
 # Reconciliation
 ###########################
 
-def test_a_job_the_scheduler_lost(server, server_client, key, token,
-                                  job_archive, dispatcher):
-    '''It is gone and it never said how it ended. Reported rather than polled
-    for ever.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    dispatcher.alive = False
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("run-interrupted")
-    assert "status" not in read["error"]
-    assert all(node["state"] == "cancelled" for node in read["nodes"])
-
-
 def test_cannot_tell_is_not_the_same_as_gone(server, server_client, key, token,
                                              job_archive, dispatcher):
     '''Declaring a live job lost is the more expensive mistake.'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
+    job, _ = submitted(server_client, key, token, job_archive())
 
     def explode(scheduler_job_id):
         raise OSError("the controller is not answering")
     dispatcher.is_alive = explode
 
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "queued"
-
-
-def test_a_submit_key_reused_across_jobs_is_refused(server_client, key, token,
-                                                    job_archive, dispatcher):
-    '''Reusing one is the caller having failed to rotate a key, not a fault in
-    this server -- so it is a refusal rather than a 500 out of the index that
-    catches it.'''
-    archive, digest, size = job_archive()
-    first = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, first["id"], digest, size,
-           idempotency_key="s1")
-
-    # The same design and jobname, so the manifest still matches and the only
-    # thing left to collide is the key.
-    second = stage(server_client, key, token, archive, size)
-    response = submit(server_client, key, token, second["id"], digest, size,
-                      idempotency_key="s1")
-
-    assert response.status_code == 422
-    assert slug(response) == "idempotency-key-reuse"
-
-
-def test_a_descriptor_with_no_size_still_uploads(server_client, key, token,
-                                                 job_archive, dispatcher):
-    '''A sparse descriptor is legal: the size is the grant's (D125), and the
-    digest at submit is what settles what the bytes actually are.'''
-    archive, digest, size = job_archive()
-    job = create(server_client, key, token).get_json()
-    grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(size, digest)).get_json()
-
-    assert int(grant["headers"]["content-length"]) == size
-
-    assert put(server_client, grant, open(archive, "rb").read()).status_code == 200
-    assert submit(server_client, key, token, job["id"], digest,
-                  size).status_code == 202
-
-
-def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(
-        server_client, key, token):
-    '''Enforced on what has been written rather than on Content-Length, which is
-    a claim the sender makes about a body it is still sending.'''
-    job = create(server_client, key, token).get_json()
-    grant = call(server_client, key, "POST",
-                 f"/v1/jobs/{job['id']}/upload-grant", token, json=sized(16)).get_json()
-
-    response = put(server_client, grant, b"x" * 4096)
-
-    assert response.status_code == 413
-    assert slug(response) == "upload-too-large"
+    assert read(server_client, key, token, job["id"])["state"] == "queued"
 
 
 def test_a_job_that_finished_while_we_looked_is_not_lost(
         server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 "The run says it is going" and "the scheduler has never heard of it"
-    are read at two different moments, and a run that finished in between
-    satisfies both. The progress file in hand is stale and the scheduler's
-    answer is fresh -- so the file is read once more before the job is
-    declared lost.
+    '''"Going" and "never heard of it" are read at two moments, and a run
+    that finished between satisfies both, so the file is read once more
+    before the job is declared lost. It fired on a real asicflow run.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    settles_between_readings(server, me, job, dispatcher)
 
-    This is not theoretical: it fired on a real asicflow run, and everything
-    reconcile does between the two readings widens the window.
-    '''
-    from siliconcompiler.remote.server.running import runspec
+    body = read(server_client, key, token, job["id"])
 
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
-    progress = root.parents[1] / runspec.PROGRESS_FILENAME
-
-    # What the poll reads first: still going.
-    runspec.write_json(progress, {
-        "state": "running", "started_at": "2026-09-22T10:00:00.000Z", "heartbeat": now(),
-        "nodes": {"stepone/0": {"state": "running"}}})
-
-    # The scheduler has already forgotten it, and the run writes its result
-    # while the server is between the two readings.
-    def gone(scheduler_job_id):
-        runspec.write_json(progress, {
-            "state": "completed",
-            "started_at": "2026-09-22T10:00:00.000Z",
-            "finished_at": "2026-09-22T10:01:00.000Z",
-            "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
-                      "steptwo/0": {"state": "completed", "exit_code": 0}}})
-        return False
-    dispatcher.is_alive = gone
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "completed"
-    assert read["error"] is None
-    # 🔴 And its nodes as the settled file has them. The first reading had
-    # stepone running and no steptwo, and a job that ends settles what it
-    # never finished as `cancelled`: both nodes, which had completed, went
-    # that way.
-    assert {node["step"]: node["state"] for node in read["nodes"]} == \
+    assert body["state"] == "completed" and body["error"] is None
+    # And its nodes as the settled file has them, not cancelled as unfinished.
+    assert {node["step"]: node["state"] for node in body["nodes"]} == \
         {"stepone": "completed", "steptwo": "completed"}
 
 
 def test_a_cancel_still_wins_when_the_run_finished_while_we_looked(
         server, server_client, key, token, job_archive, dispatcher, me):
-    '''A run that finished between the two readings, of a job being
-    cancelled, ends `cancelled`, as it does when the first reading already
-    had the result: what it managed before it died does not change what was
-    asked for.'''
-    from siliconcompiler.remote.server.running import runspec
+    '''What it managed before it died does not change what was asked for.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    read(server_client, key, token, job["id"])
+    cancel(server_client, key, token, job["id"])
+    settles_between_readings(server, me, job, dispatcher)
 
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
-    progress = root.parents[1] / runspec.PROGRESS_FILENAME
-    runspec.write_json(progress, {
-        "state": "running", "started_at": "2026-09-22T10:00:00.000Z", "heartbeat": now(),
-        "nodes": {"stepone/0": {"state": "running"}}})
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})
-
-    def gone(scheduler_job_id):
-        runspec.write_json(progress, {
-            "state": "completed",
-            "started_at": "2026-09-22T10:00:00.000Z",
-            "finished_at": "2026-09-22T10:01:00.000Z",
-            "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
-                      "steptwo/0": {"state": "completed", "exit_code": 0}}})
-        return False
-    dispatcher.is_alive = gone
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "cancelled"
+    assert read(server_client, key, token, job["id"])["state"] == "cancelled"
 
 
-def test_a_job_that_really_is_gone_is_still_reported_lost(
+@pytest.mark.parametrize("heartbeat,state", [("2026-09-24T10:00:00.000Z", "failed"),
+                                             (None, "running")])
+def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
+        server, server_client, key, token, job_archive, dispatcher, me, heartbeat, state):
+    '''The backstop for a wrong scheduler: a dynamic node killed without
+    deleting itself leaves Slurm saying RUNNING for ever. A beating run is
+    left alone, the heartbeat being on a timer and not on progress.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    if heartbeat:
+        report(server, me, job, heartbeat=heartbeat)
+    dispatcher.alive = True
+
+    body = read(server_client, key, token, job["id"])
+
+    assert body["state"] == state
+    if state == "failed":
+        assert body["error"]["type"].endswith("run-interrupted")
+
+
+###########################
+# Which scheduler job a node became
+###########################
+
+def count_node_jobs(dispatcher):
+    asked = []
+    real = dispatcher.node_jobs
+
+    def counting(job_id, nodes):
+        asked.append(sorted(nodes))
+        return real(job_id, nodes)
+
+    dispatcher.node_jobs = counting
+    return asked
+
+
+def test_a_nodes_scheduler_job_is_recorded_asking_once(
         server, server_client, key, token, job_archive, dispatcher, me):
-    '''Reading the file twice must not turn a lost job into a hung one.'''
-    from siliconcompiler.remote.server.running import runspec
+    '''*Which Slurm job was that* is a support thread's question: recorded for
+    the portal and a cancel, never on the wire. Only nodes missing an id are
+    looked up, keeping it inside the once-per-run poll.'''
+    asked = count_node_jobs(dispatcher)
+    job = running(server, server_client, key, token, job_archive, me)
 
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
+    for _ in range(3):
+        read(server_client, key, token, job["id"])
 
-    root = (server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0")
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-22T10:00:00.000Z", "heartbeat": now(),
-        "nodes": {"stepone/0": {"state": "running"}}})
+    assert asked == [[("stepone", "0"), ("steptwo", "0")]]
+    rows = server.config["SC_STORE"].all(
+        'SELECT scheduler_job_id FROM job_nodes WHERE job_id = ? ORDER BY step', (job["id"],))
+    assert [row["scheduler_job_id"] for row in rows] == \
+        [f"{job['id']}_stepone_0", f"{job['id']}_steptwo_0"]
 
+
+def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key, token,
+                                                   job_archive, dispatcher, me):
+    '''A read is a SQLite read and a stat, a node lookup an RPC into
+    slurmctld: without a floor, a shorter poll multiplies its load.'''
+    asked = count_node_jobs(dispatcher)
+    job = running(server, server_client, key, token, job_archive, me)
+
+    # The store forgets the ids between polls, so every poll WOULD ask.
+    for _ in range(5):
+        server.config["SC_STORE"].execute(
+            "UPDATE job_nodes SET scheduler_job_id = NULL WHERE job_id = ?", (job["id"],))
+        read(server_client, key, token, job["id"])
+
+    assert len(asked) == 1, f"asked the scheduler {len(asked)} times in five polls"
+
+
+@pytest.mark.parametrize("polled,forgotten", [(True, False), (True, True), (False, False)])
+def test_cancel_reaches_every_node_job_and_the_coordinator(
+        server, server_client, key, token, job_archive, dispatcher, me, polled, forgotten):
+    '''The nodes are jobs of their own; Slurm usually ends them with the
+    coordinator, but a cancel names them. The ids are refreshed first, so a
+    node dispatched since the last poll is reached, and the poll's floor
+    never hands a cancel a stale answer.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    store = server.config["SC_STORE"]
+    if polled:
+        read(server_client, key, token, job["id"])
+    if forgotten:
+        store.execute("UPDATE job_nodes SET scheduler_job_id = NULL WHERE job_id = ?",
+                      (job["id"],))
+    if not polled:
+        assert not store.all("SELECT 1 FROM job_nodes WHERE job_id = ? "
+                             "AND scheduler_job_id IS NOT NULL", (job["id"],))
+
+    response = cancel(server_client, key, token, job["id"], reason="changed my mind")
+
+    assert response.status_code == 202
+    assert dispatcher.cancelled == ["fake:1"]
+    assert sorted(dispatcher.cancelled_nodes) == \
+        [f"{job['id']}_stepone_0", f"{job['id']}_steptwo_0"]
+
+
+def test_a_deployment_with_no_cluster_has_no_node_jobs():
+    '''Nodes are processes inside the run, and a cancel signals the process
+    group: an empty answer is the truthful one, hence the nullable column.'''
+    from siliconcompiler.remote.server.running.dispatch import LocalDispatcher
+
+    assert LocalDispatcher().node_jobs("job", [("a", "0")]) == {}
+
+
+@pytest.mark.parametrize("reported,still_running", [
+    (False, set()), (True, {("stepone", "0")}), (True, set())])
+def test_a_lost_run_is_reported_leaving_no_node_running(
+        server, server_client, key, token, job_archive, dispatcher, me, reported,
+        still_running):
+    '''Gone, never having said how it ended: reported, not polled for ever.
+    Marking a node `cancelled` cancels nothing (on the compose rig an OpenROAD
+    route ran 55 minutes past its failed orchestrator), so a node still
+    running is scancelled; a finished one is not, nor the orchestrator.'''
+    job, _ = submitted(server_client, key, token, job_archive())
+    if reported:
+        report(server, me, job)
+    dispatcher.still_running = still_running
     dispatcher.alive = False
 
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
+    body = read(server_client, key, token, job["id"])
 
-    assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("run-interrupted")
+    assert body["state"] == "failed"
+    assert body["error"]["type"].endswith("run-interrupted")
+    assert "status" not in body["error"]
+    if not reported:
+        assert all(node["state"] == "cancelled" for node in body["nodes"])
+    assert dispatcher.cancelled_nodes == [f"{job['id']}_{step}_{index}"
+                                          for step, index in still_running]
+    assert dispatcher.cancelled == []
+
+
+###########################
+# Why it failed, in the run's own words
+###########################
+
+def test_a_failed_run_publishes_the_reason_the_run_gave(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    '''`type` and `title` are frozen, so without `detail` the error says only
+    what `state` did; the runner's exception reached no client before.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    report(server, me, job, "failed", {"stepone/0": {"state": "cancelled"},
+                                       "steptwo/0": {"state": "cancelled"}},
+           error="RuntimeError: git is required to import GitPython")
+
+    body = read(server_client, key, token, job["id"])
+
+    assert body["state"] == "failed"
+    assert body["error"]["type"].endswith("run-failed")
+    assert body["error"]["detail"] == "RuntimeError: git is required to import GitPython"
+    # A run can fail with no failed node, so "read the failing node's log" is wrong.
+    assert body["progress"]["failed_count"] == 0
+
+
+@pytest.mark.parametrize("code,said", [(1, "exited with status 1"), (None, "failed")])
+def test_a_failed_node_carries_the_type_and_the_job_no_bare_slug(
+        server, server_client, key, token, job_archive, dispatcher, me, code, said):
+    '''A node's `error` was null on every node ever run, failed or not. The
+    job's `detail` is prose about this occurrence, never the slug `type` is.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    report(server, me, job, "failed", {"stepone/0": {"state": "failed", "exit_code": code},
+                                       "steptwo/0": {"state": "cancelled"}})
+
+    body = read(server_client, key, token, job["id"])
+
+    assert body["error"]["type"].endswith("run-failed") and "detail" not in body["error"]
+    nodes = {node["step"]: node for node in body["nodes"]}
+    assert nodes["stepone"]["error"]["type"].endswith("run-failed")
+    assert nodes["stepone"]["error"]["detail"] == f"the node's task {said}; its log says why"
+    # Nothing on the node that never ran: the job ended before it started.
+    assert nodes["steptwo"]["error"] is None
+
+
+@pytest.mark.parametrize("node,published", [({"exit_code": -9, "limit": "time"}, 137),
+                                            ({"exit_code": None, "limit": "time"}, None),
+                                            ({"exit_code": 137, "limit": "memory"}, 137)])
+def test_a_limit_is_run_failed_naming_it_on_the_job_and_the_node(
+        server, server_client, key, token, job_archive, dispatcher, me, node, published):
+    '''Surface §17, *A node's `error`*: the job's shape, `detail` included.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    report(server, me, job, "failed", {"stepone/0": {"state": "failed", **node},
+                                       "steptwo/0": {"state": "pending"}})
+
+    body = read(server_client, key, token, job["id"])
+
+    assert body["error"]["type"].endswith("/run-failed")
+    assert f"stepone/0 exceeded its {node['limit']} limit" in body["error"]["detail"]
+    nodes = {one["step"]: one for one in body["nodes"]}
+    assert nodes["stepone"]["exit_code"] == published
+    assert nodes["stepone"]["error"] == {
+        "type": "https://siliconcompiler.com/server-errors/run-failed",
+        "title": nodes["stepone"]["error"]["title"],
+        "detail": f"the node exceeded its {node['limit']} limit"}
+    assert nodes["steptwo"]["state"] == "cancelled"
+
+
+@pytest.mark.parametrize("reported,published", [(0, 0), (1, 1), (-9, 137), (-15, 143),
+                                                (137, 137), (None, None)])
+def test_an_exit_code_is_0_to_255_and_a_signal_is_128_plus_n(reported, published):
+    from siliconcompiler.remote.server.running import runspec
+
+    assert runspec.exit_code(reported) == published
+
+
+def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
+        server, server_client, key, token, job_archive, dispatcher, me):
+    job = running(server, server_client, key, token, job_archive, me)
+    report(server, me, job, "failed", {
+        "stepone/0": {"state": "failed", "exit_code": 125, "interrupted": {
+            "image": "ghcr.io/x/sc@sha256:aa", "error": "pull access denied"}},
+        "steptwo/0": {"state": "pending"}})
+
+    body = read(server_client, key, token, job["id"])
+
+    assert body["error"]["type"].endswith("/run-interrupted")
+    assert "its image ghcr.io/x/sc@sha256:aa could not be pulled" in body["error"]["detail"]
+    nodes = {node["step"]: node for node in body["nodes"]}
+    assert nodes["stepone"]["error"]["type"].endswith("/run-interrupted")
+    assert nodes["stepone"]["error"]["detail"] == \
+        "the node could not start: its image ghcr.io/x/sc@sha256:aa could not be pulled"
+    assert nodes["steptwo"]["error"] is None
+
+
+def test_a_job_the_scheduler_would_not_take_is_staging_failed_and_listed_as_it_ends(
+        server, server_client, key, token, job_archive, dispatcher, monkeypatch):
+    '''This server's own failure: `failed`, `staging-failed` with the detail,
+    never `rejected` and never `queued` before the scheduler holds it. Its
+    `staging` record, never a run log it has none of, is listed by the
+    transition itself rather than a later cleanup.'''
+    import gzip
+
+    from siliconcompiler.remote.server.running.dispatch import DispatchError
+
+    def refuse(*args, **kwargs):
+        raise DispatchError("slurmctld is not answering")
+
+    dispatcher.submit = refuse
+    monkeypatch.setattr(server.config["SC_JOBS"], "_keep_staging_record",
+                        lambda job_id: None)
+
+    job, response = submitted(server_client, key, token, job_archive())
+
+    assert response.status_code == 202
+    body = read(server_client, key, token, job["id"])
+    error = body["error"]
+    assert body["state"] == "failed"
+    assert error["type"].endswith("staging-failed") and "status" not in error
+    assert "slurmctld is not answering" in error["detail"]
+    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
+                  token).get_json()["items"]
+    assert not any(item["kind"] == "logs" for item in listed)
+    item, = [item for item in listed if item["kind"] == "staging"]
+    target = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts/{item['id']}",
+                  token).headers["Location"]
+    text = gzip.decompress(server_client.get(target.split("http://localhost", 1)[1]).data)
+    assert b"staging failed: " in text and b"slurmctld is not answering" in text
+
+
+###########################
+# Terminal only once listed (surface D308, D310)
+###########################
+
+def _states_when_indexed(monkeypatch, server, method):
+    '''Record, at each call of a JobService indexing method, the job's and its
+    nodes' states as the store then holds them.'''
+    jobs = server.config["SC_JOBS"]
+    store = server.config["SC_STORE"]
+    real = getattr(jobs, method)
+    seen = []
+
+    def wrapped(job, *args):
+        seen.append((store.one("SELECT state FROM jobs WHERE id = ?", (job["id"],))["state"],
+                     {(row["step"], row["index"]): row["state"] for row in store.all(
+                         'SELECT step, "index", state FROM job_nodes WHERE job_id = ?',
+                         (job["id"],))}, args))
+        return real(job, *args)
+
+    monkeypatch.setattr(jobs, method, wrapped)
+    return seen
+
+
+def run_logs(server_client, key, token, job):
+    return [item["step"] for item in call(server_client, key, "GET",
+                                          f"/v1/jobs/{job['id']}/artifacts",
+                                          token).get_json()["items"] if item["kind"] == "logs"]
+
+
+def test_a_node_turns_failed_only_after_its_log_is_listed(
+        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
+    '''`failed` as well as `completed`: a client that sees a terminal node
+    fetches what it left, so the listing has it first.'''
+    job = running(server, server_client, key, token, job_archive, me)
+    node = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0" / "stepone" / "0"
+    node.mkdir(parents=True, exist_ok=True)
+    (node / "sc_stepone_0.log").write_text("it went wrong\n")
+    report(server, me, job, nodes={"stepone/0": {"state": "failed", "exit_code": 1},
+                                   "steptwo/0": {"state": "pending"}})
+    seen = _states_when_indexed(monkeypatch, server, "_index_node")
+
+    body = read(server_client, key, token, job["id"])
+
+    assert ("stepone", "failed") in {(n["step"], n["state"]) for n in body["nodes"]}
+    _, nodes, named = seen[0]
+    assert named == ("stepone", "0")
+    assert nodes[("stepone", "0")] not in ("completed", "failed", "skipped", "cancelled")
+    assert "stepone" in run_logs(server_client, key, token, job)
+
+
+@pytest.mark.parametrize("cancelled", [False, True])
+def test_a_lost_or_cancelled_run_ends_only_after_what_it_left_is_listed(
+        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me,
+        cancelled):
+    '''A cancel kills the run, so the next poll finds no scheduler job and a
+    file still saying `running`: the shape of a lost job, and not one (the
+    portal gate caught a browser cancel reported as `scheduler-lost`).'''
+    job = running(server, server_client, key, token, job_archive, me)
+    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "job.log").write_text("the run's own log\n")
+    if cancelled:
+        assert cancel(server_client, key, token, job["id"]).get_json()["state"] == "cancelling"
+    dispatcher.alive = False
+    seen = _states_when_indexed(monkeypatch, server, "_index")
+
+    body = read(server_client, key, token, job["id"])
+
+    state, nodes, _ = seen[0]
+    if cancelled:
+        assert (body["state"], body["terminal"], body.get("error")) == ("cancelled", True, None)
+        assert all(node["state"] == "cancelled" for node in body["nodes"])
+        assert state == "cancelling" and "cancelled" not in nodes.values()
+    else:
+        assert body["state"] == "failed"
+        assert state not in ("failed", "cancelled")
+        assert not set(nodes.values()) & {"failed", "cancelled"}
+    assert None in run_logs(server_client, key, token, job)
+
+
+###########################
+# A job nobody ever uploaded to
+###########################
+
+def test_a_job_whose_upload_never_arrived_is_abandoned(server, server_client, key, token):
+    '''`abandoned`, which nothing wrote: such a job held a `pending_uploads`
+    slot for ever, its portal page reloading. A slow upload and a dead script
+    look alike, so a job holding a good grant is left alone however old.'''
+    created = create(server_client, key, token).get_json()
+    granted = create(server_client, key, token, jobname="job1").get_json()
+    grant(server_client, key, token, granted["id"], sized(4096))
+    assert read(server_client, key, token, created["id"])["state"] == "created"
+
+    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
+
+    body = read(server_client, key, token, created["id"])
+    assert (body["state"], body["terminal"]) == ("abandoned", True)
+    assert body["finished_at"]
+    assert read(server_client, key, token, granted["id"])["state"] == "awaiting_input"
+
+
+def test_the_sweep_settles_the_jobs_nobody_opens(server, server_client, key, token):
+    '''A job stuck in `created` is the one nobody opens, holding a slot.'''
+    from siliconcompiler.remote.server.outputs import reaper
+
+    created = create(server_client, key, token).get_json()
+    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
+
+    taken = reaper.sweep(server.config["SC_STORE"], server.config["SC_STORAGE"],
+                         server.config["SC_CONFIG"], server.config["SC_DATADIR"])
+
+    assert taken["abandoned"] == 1
+    assert server.config["SC_STORE"].one(
+        "SELECT state FROM jobs WHERE id = ?", (created["id"],))["state"] == "abandoned"
 
 
 ###########################
@@ -1444,16 +1597,9 @@ def operator(store):
 
 @pytest.fixture
 def registry(runs_test_version):
-    """A curated registry, seeded before any server opens it.
-
-    🔴 Before, and not after: a deployment that runs jobs in containers and has
-    no live image holding SiliconCompiler does not start, which is the startup
-    check doing exactly what it is for. One image, holding the framework and
-    nothing else -- which is enough for the whole flow, because `nopflow`'s
-    tool is `builtin`, nobody has registered that name, and a tool nobody
-    registered raises no requirement.
-    """
-    import json
+    '''A curated registry, seeded before any server opens it: a container
+    deployment with no live SiliconCompiler image does not start. One image,
+    the framework only, is enough: `nopflow`'s `builtin` raises no requirement.'''
     import os
 
     from siliconcompiler.remote.server.software import images
@@ -1479,13 +1625,8 @@ def registry(runs_test_version):
 
 @pytest.fixture
 def container_server(registry):
-    """A deployment that runs its jobs inside images it registered.
-
-    Its own server rather than a flag on the shared one, because `containers`
-    is read at startup: it decides what `GET /v1` advertises, so a value that
-    changed under a running server would make two requests in the same second
-    answer differently.
-    """
+    '''A deployment running its jobs in images it registered: its own server,
+    since `containers` is read at startup and decides what `GET /v1` says.'''
     from siliconcompiler.remote.server.app import create_app
 
     return create_app("container-datadir", cluster="local")
@@ -1502,115 +1643,121 @@ def container_token(container_client, key):
 
 
 @pytest.fixture
+def container_me(container_client, key, container_token):
+    return call(container_client, key, "GET", "/v1/me", container_token).get_json()["id"]
+
+
+@pytest.fixture
 def container_dispatcher(container_server):
     fake = FakeDispatcher()
     container_server.config["SC_JOBS"]._dispatcher = fake
     return fake
 
 
-def test_a_container_deployment_with_no_images_does_not_start():
-    """🔴 Where phase 1's startup check finds its real home.
-
-    With no fallback to this process's own version, an empty registry is a
-    server on which nothing can be submitted -- and that is much cheaper to
-    learn at startup than at somebody's first submit.
-    """
-    import json
+@pytest.mark.parametrize("held", [None, "99.0.0"])
+def test_a_container_deployment_with_no_image_of_its_version_does_not_start(
+        runs_test_version, held):
+    '''Better learned at startup than at a first submit: with containers on,
+    a live image must hold the server's own SiliconCompiler.'''
     import os
 
     from siliconcompiler.remote.server.app import create_app
+    from siliconcompiler.remote.server.software import images
+    from siliconcompiler.remote.server.state.store import Store
 
-    os.makedirs("empty-registry", exist_ok=True)
-    with open("empty-registry/config.json", "w") as f:
+    os.makedirs("elsewhere", exist_ok=True)
+    with open("elsewhere/config.json", "w") as f:
         json.dump({"containers": True}, f)
+    if held:
+        with Store("elsewhere/server.db") as store:
+            with store.transaction():
+                actor = store.upsert_user("operator", "someone@host")["id"]
+            images.register_software(store, "siliconcompiler", "SiliconCompiler", actor,
+                                     "python")
+            images.register_version(store, "siliconcompiler", held, actor)
+            images.register_image(store, "ghcr.io/x/future:99", digest("f"),
+                                  [("siliconcompiler", held)], actor)
 
-    with pytest.raises(RuntimeError, match="no live image holds siliconcompiler"):
-        create_app("empty-registry", cluster="local")
+    with pytest.raises(RuntimeError, match=f"no live image holds siliconcompiler "
+                                           f"{images.own_version()}"):
+        create_app("elsewhere", cluster="local")
 
 
-def test_submit_records_the_image_each_node_ran_in(
+def test_submit_places_every_node_in_an_image_by_digest_and_publishes_it(
         container_server, container_client, key, container_token,
         job_archive, container_dispatcher):
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size,
-                requested_versions=wants("0.38.0"))
-
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
+    '''The node is told a digest, never a tag, so a rebuilt `sc:0.38.0` cannot
+    change an accepted job; `resolved_versions` says what the server chose
+    for a range, which the descriptor cannot.'''
+    job, _ = submitted(container_client, key, container_token, job_archive(),
+                       requested_versions=wants(">=0.38,<0.39"))
 
     store = container_server.config["SC_STORE"]
-    placed = store.one("SELECT image_id FROM jobs WHERE id = ?", (job["id"],))
-    nodes = store.all("SELECT * FROM job_nodes WHERE job_id = ?", (job["id"],))
-
-    assert placed["image_id"]
-    assert [node["image_id"] for node in nodes] == [placed["image_id"]] * 2
-
-
-def test_the_node_is_told_a_digest_and_never_a_tag(
-        container_server, container_client, key, container_token,
-        job_archive, container_dispatcher):
-    """🔴 Rebuilding `sc:0.38.0` must not change what a job already accepted
-    runs, which is only true if the pinned form is what reaches the manifest."""
-
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size,
-                requested_versions=wants("0.38.0"))
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
-
-    manifest = container_dispatcher.submitted[0][2]
-    project = run_manifest(manifest)
-
-    assert project.option.scheduler.get_name(step="stepone", index="0") == "docker"
-    assert project.option.scheduler.get_queue(step="stepone", index="0") == \
-        f"ghcr.io/x/sc@{digest('a')}"
+    placed = store.one("SELECT image_id FROM jobs WHERE id = ?", (job["id"],))["image_id"]
+    assert placed
+    assert [node["image_id"] for node in store.all(
+        "SELECT image_id FROM job_nodes WHERE job_id = ?", (job["id"],))] == [placed] * 2
+    scheduler = run_manifest(container_dispatcher.submitted[0][2]).option.scheduler
+    assert scheduler.get_name(step="stepone", index="0") == "docker"
+    assert scheduler.get_queue(step="stepone", index="0") == f"ghcr.io/x/sc@{digest('a')}"
+    assert read(container_client, key, container_token, job["id"])["resolved_versions"] == \
+        {"python": {"siliconcompiler": ["0.38.0"]}, "tools": {}}
 
 
 def test_a_tool_with_no_image_fails_the_whole_submit(
         container_server, container_client, key, container_token,
         job_archive, container_dispatcher, monkeypatch):
-    """🔴 Before anything runs, which is the correct direction: the alternative
-    is a job that queues, dispatches and dies on node thirty-one with the
-    cluster already paid for."""
+    '''Before anything runs, not on node thirty-one with the cluster paid
+    for. The operator curates OpenROAD and put it in no image.'''
+    from siliconcompiler.remote import runflow
     from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
-
-    # The operator takes the claim on and never puts it in an image, which is
-    # the whole condition: this deployment now says it curates OpenROAD and
-    # cannot place a node that needs it.
     images.register_software(store, "openroad", "OpenROAD", operator(store), "tool")
     images.register_version(store, "openroad", "2.0", operator(store))
-
-    # `nopflow` names only `builtin`, which is not a tool anybody installs and
-    # raises no requirement. This is the one thing the test needs it to be.
-    from siliconcompiler.remote import runflow
-
+    # `nopflow` names only `builtin`, which raises no requirement.
     monkeypatch.setattr(runflow, "node_tools",
                         lambda flow, nodes: {node: "openroad" for node in nodes})
 
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size)
-
-    response = submit(container_client, key, container_token, job["id"],
-                      upload_digest, size)
+    job, response = submitted(container_client, key, container_token, job_archive())
 
     assert response.status_code == 202
     assert not container_dispatcher.submitted
-
-    read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
-                container_token).get_json()
-    assert read["state"] == "rejected"
-    assert read["error"]["type"].endswith("software-unavailable")
-    assert read["error"]["reason"] == "unavailable"
-    assert read["error"]["unresolved"] == [
+    body = read(container_client, key, container_token, job["id"])
+    assert body["state"] == "rejected"
+    assert body["error"]["type"].endswith("software-unavailable")
+    assert body["error"]["reason"] == "unavailable"
+    assert body["error"]["unresolved"] == [
         {"kind": "tools", "name": "openroad", "requirement": [], "available": []}]
+
+
+@pytest.mark.parametrize("versions,status", [
+    (wants(">=0.38,<0.39"), 201),
+    (wants("0.38.0"), 201),                  # a bare version is still an exact pin
+    (wants("0.38.1"), 422),
+    (wants(">=0.40"), 422),
+    ({"python": {}, "tools": {}}, 201),      # no Python named, none held to
+    ({"python": {}, "tools": {}, "interpreter": {"python": ["==3.11.*"]}}, 201),
+    ({"interpreter": {"pypy": ["==3.10.*"]}}, 400),     # the bucket has one name
+])
+def test_requested_versions_are_resolved_at_create(container_client, key, container_token,
+                                                   versions, status):
+    '''Resolution needs the declared versions and the registry, not the
+    upload, so it happens before the upload, where it is free.'''
+    response = create(container_client, key, container_token, requested_versions=versions)
+
+    assert response.status_code == status, response.get_json()
+    if status == 422:
+        assert slug(response) == "software-unavailable"
+        assert response.get_json()["unresolved"][0]["name"] == "siliconcompiler"
+    elif status == 400:
+        assert slug(response) == "invalid-request"
 
 
 def test_a_python_no_image_runs_is_refused_at_create_naming_what_there_is(
         container_client, key, container_token):
-    '''surface D293: a job whose node runs the user's own Python names the
-    Python it was written for, and one no live image runs is refused before
-    anything uploads -- naming the versions there are, and that the operator
-    would have to add one.'''
+    '''Surface D293: a job running the user's Python names the one it was
+    written for, and one no live image runs is refused naming those there are.'''
     response = create(container_client, key, container_token, requested_versions={
         "python": {}, "tools": {}, "interpreter": {"python": ["==3.12.*"]}})
 
@@ -1621,97 +1768,10 @@ def test_a_python_no_image_runs_is_refused_at_create_naming_what_there_is(
     assert "operator would have to add" in body["detail"]
 
 
-def test_a_python_an_image_runs_is_accepted(container_client, key, container_token):
-    response = create(container_client, key, container_token, requested_versions={
-        "python": {}, "tools": {}, "interpreter": {"python": ["==3.11.*"]}})
-
-    assert response.status_code == 201, response.get_json()
-
-
-def test_a_job_that_names_no_python_is_not_held_to_one(
-        container_client, key, container_token):
-    '''A job with no node running the user's Python sends none, and whatever
-    the images run is fine.'''
-    response = create(container_client, key, container_token,
-                      requested_versions={"python": {}, "tools": {}})
-
-    assert response.status_code == 201, response.get_json()
-
-
-def test_the_interpreter_bucket_has_one_name(container_client, key, container_token):
-    response = create(container_client, key, container_token, requested_versions={
-        "interpreter": {"pypy": ["==3.10.*"]}})
-
-    assert (response.status_code, slug(response)) == (400, "invalid-request")
-
-
-def test_the_job_publishes_the_versions_the_server_resolved(
-        container_server, container_client, key, container_token, job_archive,
-        container_dispatcher):
-    """🔴 Once a request can carry a range, nothing else answers *what did this
-    job run*: the descriptor says what was asked for and this says what the
-    server chose."""
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size,
-                requested_versions=wants(">=0.38,<0.39"))
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
-
-    read = call(container_client, key, "GET", f"/v1/jobs/{job['id']}",
-                container_token).get_json()
-
-    assert read["resolved_versions"] == {"python": {"siliconcompiler": ["0.38.0"]},
-                                         "tools": {}}
-
-
-def test_a_job_that_resolved_nothing_says_nothing(server, server_client, key,
-                                                  token, job_archive, dispatcher):
-    """⚠️ Absent and not empty. On a deployment that runs jobs on the host
-    there is no image and no answer, and `{}` would claim this job ran
-    nothing at all."""
-    archive, upload_digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], upload_digest, size)
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
-                token).get_json()
-
-    assert "resolved_versions" not in read
-
-
-def test_a_range_no_image_satisfies_is_refused_at_create(
-        container_server, container_client, key, container_token):
-    """✅ Resolution needs the declared versions and the registry, not the
-    uploaded bytes -- so it happens before the upload, where it is free."""
-    response = create(container_client, key, container_token,
-                      requested_versions=wants(">=0.40"))
-
-    assert response.status_code == 422
-    assert slug(response) == "software-unavailable"
-    assert response.get_json()["unresolved"][0]["name"] == "siliconcompiler"
-
-
-def test_a_range_the_registry_can_serve_is_accepted_at_create(
-        container_server, container_client, key, container_token):
-    assert create(container_client, key, container_token,
-                  requested_versions=wants(">=0.38,<0.39")).status_code == 201
-
-
-def test_a_bare_version_is_still_an_exact_pin(container_server,
-                                              container_client, key,
-                                              container_token):
-    """⚠️ It is what every client sent before the wire carried ranges."""
-    assert create(container_client, key, container_token,
-                  requested_versions=wants("0.38.0")).status_code == 201
-    assert create(container_client, key, container_token,
-                  requested_versions=wants("0.38.1")).status_code == 422
-
-
 def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
         container_server, container_client, key, container_token):
-    """🔴 `GET /v1`'s `software` has nowhere to carry the mark, so a client's
-    own preflight said yes. *No image matches* would send them looking for a
-    version of a tool that is already installed; the true answer is that
-    nothing here can be matched against a range."""
+    '''`GET /v1` cannot carry the mark, so a client's preflight said yes; *no
+    image matches* would send them after a version already installed.'''
     from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
@@ -1725,72 +1785,64 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
     response = create(container_client, key, container_token,
                       requested_versions=wants(tools={"magic": ">=8.0"}))
 
-    # 🔴 Software no image holds, not skew: `version-skew` is the client's own
-    # SiliconCompiler, which cannot run here (surface §7).
-    assert response.status_code == 422
-    assert slug(response) == "software-unavailable"
+    # Software no image holds, not `version-skew`, the client's own SiliconCompiler (§7).
+    assert (response.status_code, slug(response)) == (422, "software-unavailable")
     assert "reports no version" in response.get_json()["detail"]
     assert response.get_json()["unresolved"] == [
         {"kind": "tools", "name": "magic", "requirement": [">=8.0"], "available": []}]
 
 
 def test_the_job_identity_folds_in_what_the_server_chose(
-        container_server, container_client, key, container_token, container_reuses):
-    """🔴 The client's hash alone is not the job's identity. It hashes the
-    work; this server chooses what runs it -- so re-registering an image
-    invalidates reuse exactly when it should, because a new digest is
-    precisely *the code changed*."""
+        container_server, container_client, key, container_token, container_me,
+        container_reuses):
+    '''The client hashes the work and this server chooses what runs it, so a
+    re-registered image, a new digest, is precisely *the code changed*.'''
     from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
-    jobs = container_server.config["SC_JOBS"]
-    mine = call(container_client, key, "GET", "/v1/me",
-                container_token).get_json()["id"]
+    existing = reuse_job(container_server.config["SC_JOBS"], store, container_me, "h-1",
+                         "completed")
 
-    existing = reuse_job(jobs, store, mine, "h-1", "completed")
-
-    # 200 and the old job: same work, same image.
     again = create(container_client, key, container_token, run_hash="h-1")
-    assert again.status_code == 200
-    assert again.get_json()["id"] == existing
+    assert (again.status_code, again.get_json()["id"]) == (200, existing)
 
-    # The same tag, rebuilt. The old row is superseded and the digest is new,
-    # which is precisely "the code changed".
+    # The same tag, rebuilt: the old row is superseded, the digest new.
     images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("b"),
                           [("siliconcompiler", "0.38.0")], operator(store))
 
     after = create(container_client, key, container_token, run_hash="h-1")
     assert after.status_code == 201
     assert after.get_json()["id"] != existing
+    # Both halves are recorded: what was sent, and what it is keyed on.
+    row = store.one("SELECT run_hash, job_identity FROM jobs WHERE id = ?",
+                    (after.get_json()["id"],))
+    assert row["run_hash"] == "h-1"
+    assert row["job_identity"] and row["job_identity"] != "h-1"
 
 
 def test_a_hit_needs_the_python_its_own_modules_were_written_for(
-        container_server, container_client, key, container_token, container_reuses):
-    """Job-reuse D23: one image with Python 3.11 serves a job that names none
-    and one written for it alike, so the digests cannot tell them apart -- the
-    requirement itself is part of what the job is."""
-    store = container_server.config["SC_STORE"]
-    jobs = container_server.config["SC_JOBS"]
-    mine = call(container_client, key, "GET", "/v1/me",
-                container_token).get_json()["id"]
+        container_server, container_client, key, container_token, container_me,
+        container_reuses):
+    '''Job-reuse D23: one image serves a job naming no Python and one written
+    for its 3.11 alike, so the requirement is part of what the job is.'''
     written_for = {"python": {}, "tools": {}, "interpreter": {"python": ["==3.11.*"]}}
-    existing = reuse_job(jobs, store, mine, "h-1", "completed", declared=written_for)
+    existing = reuse_job(container_server.config["SC_JOBS"],
+                         container_server.config["SC_STORE"], container_me, "h-1",
+                         "completed", declared=written_for)
 
     assert create(container_client, key, container_token,
                   run_hash="h-1").status_code == 201
 
     again = create(container_client, key, container_token, run_hash="h-1",
                    requested_versions=written_for)
-    assert again.status_code == 200
-    assert again.get_json()["id"] == existing
+    assert (again.status_code, again.get_json()["id"]) == (200, existing)
 
 
 def test_a_hit_needs_the_same_packages_from_the_same_indexes(container_server,
                                                              container_reuses):
-    """Job-reuse D23: the job's `python_packages`, and where this deployment
-    takes them from -- a mirror swapped in, or source builds turned on, may
-    install something else under the same names. A job listing none does not
-    depend on the indexes."""
+    '''Job-reuse D23: a swapped mirror, or source builds turned on, may install
+    something else under the same names. A job listing none does not depend
+    on the indexes.'''
     jobs = container_server.config["SC_JOBS"]
     config = container_server.config["SC_CONFIG"]
     requires = {"python": {}, "tools": {}, "interpreter": {}}
@@ -1813,29 +1865,17 @@ def test_a_hit_needs_the_same_packages_from_the_same_indexes(container_server,
 
 
 def test_a_candidate_whose_images_were_superseded_is_not_returned(
-        container_server, container_client, key, container_token, container_reuses):
-    """🔴 What the identity cannot catch. It folds in the digests the DECLARED
-    versions resolve to, because that is all there is at create -- the per-node
-    tool images need the flow, which needs the manifest, which needs the upload
-    the check exists to avoid. So re-registering an image that only ever served
-    a TOOL leaves the identity unchanged.
-
-    ✅ A finished job records what its nodes RAN IN, so the question is asked
-    the other way round: are those images still live?
-    """
+        container_server, container_client, key, container_token, container_me,
+        container_reuses):
+    '''The identity folds in only the DECLARED versions' digests, all there is
+    at create, so a re-registered TOOL image leaves it unchanged; a finished
+    job records what its nodes RAN IN, and those must still be live.'''
     from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
-    jobs = container_server.config["SC_JOBS"]
-    mine = call(container_client, key, "GET", "/v1/me",
-                container_token).get_json()["id"]
-
-    existing = reuse_job(jobs, store, mine, "h-1", "completed")
-
-    # It ran one node in a tool image, which nothing about the declared
-    # versions mentions.
-    images.register_software(store, "openroad", "OpenROAD", operator(store),
-                             "tool")
+    existing = reuse_job(container_server.config["SC_JOBS"], store, container_me, "h-1",
+                         "completed")
+    images.register_software(store, "openroad", "OpenROAD", operator(store), "tool")
     images.register_version(store, "openroad", "2.0", operator(store))
     tools = images.register_image(
         store, "ghcr.io/x/tools:1", digest("c"),
@@ -1844,7 +1884,6 @@ def test_a_candidate_whose_images_were_superseded_is_not_returned(
         'INSERT INTO job_nodes (job_id, step, "index", state, image_id) '
         "VALUES (?, 'place', '0', 'completed', ?)", (existing, tools))
 
-    # Still live, so the candidate stands.
     assert create(container_client, key, container_token,
                   run_hash="h-1").status_code == 200
 
@@ -1858,34 +1897,8 @@ def test_a_candidate_whose_images_were_superseded_is_not_returned(
     assert again.get_json()["id"] != existing
 
 
-def test_a_job_that_ran_in_no_image_stays_reusable(server, server_client, key,
-                                                   token, me, reuses):
-    """A deployment that runs jobs on the host has nothing to check."""
-    existing = reuse_job(server.config["SC_JOBS"], server.config["SC_STORE"],
-                         me, "h-1", "completed")
-
-    response = create(server_client, key, token, run_hash="h-1")
-
-    assert response.status_code == 200
-    assert response.get_json()["id"] == existing
-
-
-def test_the_stored_identity_is_not_the_clients_own_hash(
-        container_server, container_client, key, container_token, container_reuses):
-    """The client keeps computing its own hash and tracks nothing extra, and
-    the server records both halves: what was sent, and what it is keyed on."""
-    create(container_client, key, container_token, run_hash="h-1")
-
-    row = container_server.config["SC_STORE"].one(
-        "SELECT run_hash, job_identity FROM jobs WHERE run_hash = 'h-1'")
-
-    assert row["run_hash"] == "h-1"
-    assert row["job_identity"] and row["job_identity"] != "h-1"
-
-
 def test_a_version_with_no_image_is_never_advertised(container_server, container_client):
-    """So a client is refused before it uploads, rather than told yes and
-    refused at submit."""
+    '''So a client is refused before it uploads, not told yes and refused at submit.'''
     from siliconcompiler.remote.server.software import images
 
     store = container_server.config["SC_STORE"]
@@ -1897,28 +1910,57 @@ def test_a_version_with_no_image_is_never_advertised(container_server, container
     assert software["python"]["siliconcompiler"] == ["0.38.0"]
 
 
-def test_a_deployment_that_runs_no_containers_places_nothing(
+def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
+        registry, key):
+    '''One version, the one this server runs (profile §5): an image holding
+    another is registered but never advertised or run.'''
+    from siliconcompiler.remote.server.app import create_app
+    from siliconcompiler.remote.server.software import images
+    from siliconcompiler.remote.server.state.store import Store
+
+    with Store("container-datadir/server.db") as store:
+        actor = operator(store)
+        images.register_version(store, "siliconcompiler", "99.0.0", actor, preference=99)
+        images.register_image(store, "ghcr.io/x/future:99", digest("f"),
+                              [("siliconcompiler", "99.0.0")], actor)
+
+    app = create_app("container-datadir", cluster="local")
+    client = app.test_client()
+    token = login(client, key).get_json()["access_token"]
+
+    assert client.get("/v1").get_json()["software"]["python"]["siliconcompiler"] == \
+        [images.own_version()]
+
+    refused = create(client, key, token, requested_versions=wants("99.0.0"))
+    assert (refused.status_code, slug(refused)) == (422, "software-unavailable")
+    assert refused.get_json()["unresolved"][0]["name"] == "siliconcompiler"
+
+    # A job asking for nothing in particular runs in this server's own version's image.
+    job = create(client, key, token).get_json()
+    held = app.config["SC_STORE"].one("SELECT image_id FROM jobs WHERE id = ?",
+                                      (job["id"],))["image_id"]
+    assert held == app.config["SC_STORE"].one(
+        "SELECT id FROM images WHERE digest = ?", (digest("a"),))["id"]
+
+
+def test_a_host_deployment_places_nothing_and_resolves_nothing(
         server, server_client, key, token, job_archive, dispatcher):
-    """⚠️ NULL rather than a default image. `job_nodes.image_id` is what that
-    node actually ran in, so writing one for a node that ran on the host would
-    record something that did not happen."""
-    archive, upload_digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], upload_digest, size)
+    '''NULL image ids, not a default: `image_id` is what a node ran in.
+    `resolved_versions` absent, as `{}` would claim it ran nothing. No queue,
+    which a deployment without a partition for this leaves to the cluster.'''
+    job, _ = submitted(server_client, key, token, job_archive())
 
     store = server.config["SC_STORE"]
-
-    assert store.one("SELECT image_id FROM jobs WHERE id = ?",
-                     (job["id"],))["image_id"] is None
+    assert store.one("SELECT image_id FROM jobs WHERE id = ?", (job["id"],))["image_id"] is None
     assert all(node["image_id"] is None for node in store.all(
         "SELECT image_id FROM job_nodes WHERE job_id = ?", (job["id"],)))
+    assert "resolved_versions" not in read(server_client, key, token, job["id"])
+    assert dispatcher.handed == {"image": None, "queue": None}
 
 
 def fake_unpack(root, ref, digest, mounts=()):
-    '''What `images.stage_bundle` leaves, without skopeo and umoci: a
-    shared bundle whose configuration binds what it was staged with.'''
-    import json
-
+    '''What `images.stage_bundle` leaves, without skopeo and umoci: a shared
+    bundle whose configuration binds what it was staged with.'''
     from siliconcompiler.remote.server.software import images
 
     bundle = images.bundle_path(root, digest)
@@ -1933,7 +1975,6 @@ def fake_unpack(root, ref, digest, mounts=()):
 def visible(bundle, path):
     '''How a container started from ``bundle`` sees ``path``: `rw`, `ro`,
     or None where no bind mount reaches it.'''
-    import json
     import os
 
     spec = json.loads((Path(bundle) / "config.json").read_text())
@@ -1949,116 +1990,76 @@ def visible(bundle, path):
     return seen
 
 
-def test_a_cluster_gets_a_bundle_and_never_a_partition(
-        container_server, container_client, key, container_token, job_archive,
-        monkeypatch):
-    '''🔴 On a cluster Slurm places the container, and `scheduler,queue` is its
-    PARTITION -- so an image reference there would submit every node to a
-    partition named after a container.'''
-    from siliconcompiler.remote.server.running import runspec
-
+@pytest.fixture
+def slurm(container_server, monkeypatch):
+    '''A cluster dispatcher on the container deployment, the unpack (skopeo
+    and umoci, the cluster's business) faked.'''
     from siliconcompiler.remote.server.software import images
 
     fake = FakeDispatcher()
     fake.name = "slurm"
     container_server.config["SC_JOBS"]._dispatcher = fake
-
-    # The unpack itself needs skopeo and umoci, which are the cluster's
-    # business and not this test's: what is under test is where the bundle is
-    # and what the dispatcher is handed.
     monkeypatch.setattr(images, "stage_bundle", fake_unpack)
+    return fake
 
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size,
-                requested_versions=wants("0.38.0"))
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
 
-    manifest = fake.submitted[0][2]
-    project = run_manifest(manifest)
-    scheduler = project.option.scheduler
+def test_a_cluster_gets_a_bundle_and_never_a_partition(
+        container_server, container_client, key, container_token, job_archive, slurm):
+    '''On a cluster `scheduler,queue` is a PARTITION, so an image reference
+    there would name a partition after a container. The orchestrator, which
+    coordinates and computes nothing, goes to a queue of its own.'''
+    from siliconcompiler.remote.server.running import runspec
 
+    container_server.config["SC_CONFIG"]._values["batch_queue"] = "coordinator"
+    job, _ = submitted(container_client, key, container_token, job_archive(),
+                       requested_versions=wants("0.38.0"))
+
+    manifest = slurm.submitted[0][2]
+    scheduler = run_manifest(manifest).option.scheduler
     assert scheduler.get_name(step="stepone", index="0") == "slurm"
     assert scheduler.get_queue(step="stepone", index="0") is None
 
     options = scheduler.get_options(step="stepone", index="0")
     bundle = options[options.index("--container") + 1]
-    # The job's own bundle, outside any user's tree so that no node can
-    # rewrite it, over a shared one: the same digest is the same root
-    # filesystem for everybody who runs it.
+    # The job's own bundle, outside any user's tree so no node can rewrite it,
+    # over a shared one: one digest is one root filesystem for everybody.
     assert bundle.endswith(digest("a").replace("sha256:", ""))
     assert f"/jobbundles/{job['id']}/" in bundle
     assert "/users/" not in bundle
 
-    # And the run is told where to get the bytes, which the bundle path alone
-    # cannot say, and what the job's own bundle mounts.
+    # Where to get the bytes, which the path cannot say, and what it mounts.
     state = runspec.state_dir(manifest) / runspec.IMAGES_FILENAME
     sources, mounts = runspec.read_images(state)
     shared, job_mounts = runspec.read_bundles(state)
     assert sources[bundle] == f"ghcr.io/x/sc@{digest('a')}"
     assert "/images/" in shared[bundle]
-    # 🔴 Never the data directory, in the shared bundle or the job's: it holds
-    # the signing key, the store and every user's tree.
+    # Never the data directory: the signing key, the store, every user's tree.
     datadir = str(Path("container-datadir").resolve())
     assert datadir not in [str(m) for m in mounts]
     assert [str(runspec.state_dir(manifest)), "rw"] in job_mounts
 
-    # 🔴 And the batch job itself runs in the framework image, which is what
-    # makes version matching real: the process that INTERPRETS the manifest is
-    # the SiliconCompiler the job asked for rather than the cluster's own.
-    # Its bundle is this job's too.
-    framework = Path(fake.handed["image"])
+    # The batch job runs in the framework image, the job's own bundle too, so
+    # the process INTERPRETING the manifest is the SiliconCompiler asked for.
+    framework = Path(slurm.handed["image"])
+    assert slurm.handed["queue"] == "coordinator"
     assert framework.parent == Path(bundle).parent
     assert visible(framework, f"{datadir}/server.db") is None
     assert visible(framework, f"{datadir}/token-signing-key") is None
     assert visible(framework, runspec.state_dir(manifest)) == "rw"
 
 
-def test_the_orchestrator_goes_to_its_own_queue(
-        container_server, container_client, key, container_token, job_archive,
-        monkeypatch):
-    '''🔴 The batch job coordinates; it does not compute.
-
-    Every node is submitted from it as a job of its own, so it holds one core
-    for the length of the flow and uses almost none of it. On a compute
-    partition that is a node slot doing nothing.
-    '''
-    from siliconcompiler.remote.server.software import images
-
-    fake = FakeDispatcher()
-    fake.name = "slurm"
-    container_server.config["SC_JOBS"]._dispatcher = fake
-    container_server.config["SC_CONFIG"]._values["batch_queue"] = "coordinator"
-    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
-
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size)
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
-
-    assert fake.handed["queue"] == "coordinator"
-
-
 def test_a_container_job_cannot_read_the_signing_key_or_the_store(
-        container_server, container_client, key, container_token, job_archive,
+        container_server, container_client, key, container_token, job_archive, slurm,
         monkeypatch):
-    '''🔴 A node's container sees its own job's tree and its user's cache
-    read-write, the supplied roots read-only, and nothing else of the data
-    directory: not the token signing key, not `server.db`, and not another
-    user's work (profile §0). The node's bundle is what the run writes when it
-    unpacks the image, from what the server recorded beside the manifest.'''
+    '''A node sees its job's tree and its user's cache read-write, the
+    supplied roots read-only, and nothing else of the data directory
+    (profile §0). The run writes the bundle from what the server recorded.'''
     from siliconcompiler.remote.server.running import runner, runspec
-    from siliconcompiler.remote.server.software import images
 
-    fake = FakeDispatcher()
-    fake.name = "slurm"
-    container_server.config["SC_JOBS"]._dispatcher = fake
-    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
+    job, _ = submitted(container_client, key, container_token, job_archive(),
+                       requested_versions=wants("0.38.0"))
 
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size,
-                requested_versions=wants("0.38.0"))
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
-
-    manifest = fake.submitted[0][2]
+    manifest = slurm.submitted[0][2]
     state = runspec.state_dir(manifest) / runspec.IMAGES_FILENAME
     monkeypatch.setattr(runner, "_image_sources", runspec.read_images(state)[0])
     monkeypatch.setattr(runner, "_image_mounts", runspec.read_images(state)[1])
@@ -2079,1256 +2080,25 @@ def test_a_container_job_cannot_read_the_signing_key_or_the_store(
     assert visible(bundle, runspec.state_dir(manifest)) == "rw"
     assert visible(bundle, jobs.cache_dir(job["owner"]["id"])) == "rw"
     assert visible(bundle, datadir / "sources") == "ro"
-
     # Over the shared root filesystem, which it does not copy.
-    import json
     spec = json.loads((Path(bundle) / "config.json").read_text())
     assert spec["root"]["path"] == str(Path(shared[bundle]).resolve() / "rootfs")
 
 
 def test_every_directory_a_job_bundle_binds_exists(
-        container_server, container_client, key, container_token, job_archive,
-        monkeypatch):
-    '''🔴 A bind whose source is missing stops the runtime starting the
-    container at all -- a fresh data directory has no `sources/` until the
-    first fetch -- and an operator's private root that is not there is left
-    out rather than bound.'''
+        container_server, container_client, key, container_token, job_archive, slurm):
+    '''A bind with no source stops the runtime starting the container, and a
+    fresh data directory has no `sources/`; a missing private root is left out.'''
     import shutil
 
-    from siliconcompiler.remote.server.software import images
-
-    fake = FakeDispatcher()
-    fake.name = "slurm"
-    container_server.config["SC_JOBS"]._dispatcher = fake
     container_server.config["SC_CONFIG"]._values["private_dataroots"] = {
         "library": {"acme": {"acme": "/nonexistent/acme-pdk"}}}
-    monkeypatch.setattr(images, "stage_bundle", fake_unpack)
     shutil.rmtree(Path("container-datadir/sources"), ignore_errors=True)
 
-    archive, upload_digest, size = job_archive()
-    job = stage(container_client, key, container_token, archive, size,
-                requested_versions=wants("0.38.0"))
-    submit(container_client, key, container_token, job["id"], upload_digest, size)
+    submitted(container_client, key, container_token, job_archive(),
+              requested_versions=wants("0.38.0"))
 
-    import json
-    spec = json.loads((Path(fake.handed["image"]) / "config.json").read_text())
+    spec = json.loads((Path(slurm.handed["image"]) / "config.json").read_text())
     sources = [entry["source"] for entry in spec["mounts"] if entry.get("type") == "none"]
     assert sources and all(Path(source).exists() for source in sources)
     assert "/nonexistent/acme-pdk" not in sources
-
-
-def test_no_queue_leaves_it_to_the_cluster(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''None is the default, and it is correct for a deployment that has not
-    made a partition for this.'''
-    archive, upload_digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], upload_digest, size)
-
-    assert dispatcher.handed == {"image": None, "queue": None}
-
-
-###########################
-# Reading somebody else's manifest
-###########################
-
-def test_a_manifest_from_a_newer_schema_is_refused(
-        server_client, key, token, nop_project, job_archive, dispatcher):
-    """🔴 Reading a manifest is only BACKWARDS compatible, and the failure in
-    the other direction is silent.
-
-    SiliconCompiler migrates an older manifest; a newer one holds keys this
-    schema does not have, which are dropped, and values whose type or legal
-    values changed, which are replaced by defaults. The read "either fails or
-    quietly returns something other than what was written" -- and this server
-    decides the node list, the flow and the limits from what it read. A warning
-    is right for a scheduler that can rerun the node, and wrong for a server
-    admitting somebody else's work.
-    """
-    import json
-    import os
-
-    from siliconcompiler.utils.paths import jobdir
-
-    root = jobdir(nop_project)
-    os.makedirs(root, exist_ok=True)
-    path = os.path.join(root, f"{nop_project.name}.pkg.json")
-    nop_project.write_manifest(path)
-
-    with open(path) as f:
-        body = json.load(f)
-    body["schemaversion"]["node"]["default"]["default"]["value"] = "99.0.0"
-
-    # The builder writes the real manifest itself, so the manifest from the
-    # future replaces it in the archive: a second member of one name is
-    # refused as `traversal`.
-    import hashlib
-    import io
-    import tarfile
-
-    built, _, _ = job_archive()
-    archive = os.path.abspath("future.tar.gz")
-    with tarfile.open(built) as source, tarfile.open(archive, "w:gz") as out:
-        for member in source.getmembers():
-            data = source.extractfile(member) if member.isfile() else None
-            if member.name.lstrip("./") == f"{nop_project.name}.pkg.json":
-                encoded = json.dumps(body).encode()
-                member.size, data = len(encoded), io.BytesIO(encoded)
-            out.addfile(member, data)
-    blob = open(archive, "rb").read()
-    upload_digest, size = "sha256:" + hashlib.sha256(blob).hexdigest(), len(blob)
-    job = stage(server_client, key, token, archive, size)
-
-    response = submit(server_client, key, token, job["id"], upload_digest, size)
-
-    assert response.status_code == 202
-    assert not dispatcher.submitted
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
-                token).get_json()
-    assert read["state"] == "rejected"
-    assert read["error"]["type"].endswith("declared-mismatch")
-    assert "only backwards compatible" in read["error"]["detail"]
-
-
-def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
-        registry, key):
-    '''🔴 One version: the one this server runs (profile §5). The manifest's
-    read is this server's own SiliconCompiler, so a job resolves to no other,
-    and an image holding another is registered but never advertised or run.'''
-    from siliconcompiler.remote.server.software import images
-    from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.state.store import Store
-
-    with Store("container-datadir/server.db") as store:
-        actor = operator(store)
-        images.register_version(store, "siliconcompiler", "99.0.0", actor, preference=99)
-        images.register_image(store, "ghcr.io/x/future:99", digest("f"),
-                              [("siliconcompiler", "99.0.0")], actor)
-
-    app = create_app("container-datadir", cluster="local")
-    client = app.test_client()
-    token = login(client, key).get_json()["access_token"]
-
-    assert client.get("/v1").get_json()["software"]["python"]["siliconcompiler"] == \
-        [images.own_version()]
-
-    refused = create(client, key, token, requested_versions=wants("99.0.0"))
-    assert (refused.status_code, slug(refused)) == (422, "software-unavailable")
-    assert refused.get_json()["unresolved"][0]["name"] == "siliconcompiler"
-
-    # A job asking for nothing in particular runs in the image holding this
-    # server's own version, picked at create.
-    job = create(client, key, token).get_json()
-    held = app.config["SC_STORE"].one("SELECT image_id FROM jobs WHERE id = ?",
-                                      (job["id"],))["image_id"]
-    assert held == app.config["SC_STORE"].one(
-        "SELECT id FROM images WHERE digest = ?", (digest("a"),))["id"]
-
-
-def test_a_container_deployment_whose_images_hold_another_version_does_not_start(
-        runs_test_version):
-    '''With containers on, a live image must hold the server's own
-    SiliconCompiler, or nothing could be dispatched.'''
-    import json
-    import os
-
-    from siliconcompiler.remote.server.software import images
-    from siliconcompiler.remote.server.app import create_app
-    from siliconcompiler.remote.server.state.store import Store
-
-    os.makedirs("elsewhere", exist_ok=True)
-    with open("elsewhere/config.json", "w") as f:
-        json.dump({"containers": True}, f)
-    with Store("elsewhere/server.db") as store:
-        with store.transaction():
-            actor = store.upsert_user("operator", "someone@host")["id"]
-        images.register_software(store, "siliconcompiler", "SiliconCompiler", actor,
-                                 "python")
-        images.register_version(store, "siliconcompiler", "99.0.0", actor)
-        images.register_image(store, "ghcr.io/x/future:99", digest("f"),
-                              [("siliconcompiler", "99.0.0")], actor)
-
-    with pytest.raises(RuntimeError, match=f"no live image holds siliconcompiler "
-                                           f"{images.own_version()}"):
-        create_app("elsewhere", cluster="local")
-
-
-###########################
-# Which scheduler job a node became
-###########################
-
-def running(server, server_client, key, token, job_archive, me):
-    '''A submitted job whose run has reported its nodes as started.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-23T10:00:00.000Z", "heartbeat": now(),
-        "nodes": {"stepone/0": {"state": "running"},
-                  "steptwo/0": {"state": "pending"}}})
-    return job
-
-
-def test_a_nodes_scheduler_job_is_written_down(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 *Which Slurm job was that* is the question a person brings to a
-    support thread, and nothing else can answer it.
-
-    Not published on the wire -- a registry path and a scheduler id are
-    deployment detail -- but recorded, because the portal reads these rows
-    directly and a cancel needs them.
-    '''
-    job = running(server, server_client, key, token, job_archive, me)
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    rows = server.config["SC_STORE"].all(
-        'SELECT step, scheduler_job_id FROM job_nodes WHERE job_id = ? '
-        'ORDER BY step', (job["id"],))
-
-    assert [row["scheduler_job_id"] for row in rows] == \
-        [f"{job['id']}_stepone_0", f"{job['id']}_steptwo_0"]
-
-
-def test_it_is_asked_for_once_and_then_never_again(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''⚠️ Only the nodes still missing an id are looked up, which is what keeps
-    this inside the once-per-run poll instead of turning it into per-node
-    polling.'''
-    job = running(server, server_client, key, token, job_archive, me)
-
-    asked = []
-    original = dispatcher.node_jobs
-
-    def counting(job_id, nodes):
-        asked.append(list(nodes))
-        return original(job_id, nodes)
-
-    dispatcher.node_jobs = counting
-
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    # Once, for the two nodes that had no id. Then nothing to ask about.
-    assert len(asked) == 1
-    assert sorted(asked[0]) == [("stepone", "0"), ("steptwo", "0")]
-
-
-def test_cancel_stops_the_work_and_not_only_the_coordinator(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 The nodes are jobs of their own now.
-
-    Cancelling the orchestrator alone leaves them to Slurm's own cleanup --
-    which usually does end them, because a job dies with the `srun` that
-    allocated it, but "usually" is not what a cancel should rest on when the
-    alternative is naming them.
-    '''
-    job = running(server, server_client, key, token, job_archive, me)
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel",
-                    token, json={})
-
-    assert response.status_code == 202
-    assert dispatcher.cancelled == ["fake:1"]
-    assert sorted(dispatcher.cancelled_nodes) == \
-        [f"{job['id']}_stepone_0", f"{job['id']}_steptwo_0"]
-
-
-def test_a_node_dispatched_since_the_last_poll_is_still_reached(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''The one a cancel most needs to reach is the one that started a moment
-    ago, so the ids are refreshed before they are used rather than read out of
-    whatever the last poll happened to see.'''
-    job = running(server, server_client, key, token, job_archive, me)
-
-    # No poll at all: nothing has been recorded yet.
-    assert not server.config["SC_STORE"].all(
-        "SELECT 1 FROM job_nodes WHERE job_id = ? AND scheduler_job_id IS NOT NULL",
-        (job["id"],))
-
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token, json={})
-
-    assert len(dispatcher.cancelled_nodes) == 2
-
-
-def test_a_deployment_with_no_cluster_has_no_node_jobs(server):
-    '''🔴 An empty answer is the truthful one rather than a gap. Nodes are
-    processes inside the run, and the process group is what a cancel signals --
-    which is why the column is nullable.'''
-    from siliconcompiler.remote.server.running.dispatch import LocalDispatcher
-
-    assert LocalDispatcher().node_jobs("job", [("a", "0")]) == {}
-
-
-def test_a_run_that_went_away_does_not_leave_its_nodes_running(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 Marking a node `cancelled` in the store does not cancel anything.
-
-    Seen for real on the compose rig: an orchestrator failed and its OpenROAD
-    detailed route went on running for another fifty-five minutes, while the
-    record said the node was cancelled.
-    '''
-    job = running(server, server_client, key, token, job_archive, me)
-
-    dispatcher.still_running = {("stepone", "0")}
-    dispatcher.alive = False
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("run-interrupted")
-    assert dispatcher.cancelled_nodes == [f"{job['id']}_stepone_0"]
-    # 🔴 And the orchestrator is NOT scancelled: it is already gone, and
-    # scancel answers an error for a job that has finished.
-    assert dispatcher.cancelled == []
-
-
-def test_a_node_that_already_finished_is_not_scancelled(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''⚠️ A warning per finished node is how an operator learns to ignore
-    warnings.'''
-    job = running(server, server_client, key, token, job_archive, me)
-
-    dispatcher.still_running = set()
-    dispatcher.alive = False
-
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    assert dispatcher.cancelled_nodes == []
-
-
-def test_a_cancelled_run_is_cancelled_and_not_lost(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 A cancel kills the run, so the very next poll finds a scheduler with
-    no job and a progress file still saying `running`.
-
-    That is exactly the shape of a lost job and is not one. Caught by the
-    portal gate: cancelling from the browser reported `scheduler-lost` to the
-    waiting CLI, which tells a person their cluster ate the run they just
-    stopped.
-    '''
-    job = running(server, server_client, key, token, job_archive, me)
-
-    cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel",
-                     token, json={}).get_json()
-    assert cancelled["state"] == "cancelling"
-
-    # The scheduler has let go of it, and the run never got to write a
-    # terminal progress file.
-    dispatcher.alive = False
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "cancelled"
-    assert read["terminal"] is True
-    # Nothing went wrong, so there is no error to report.
-    assert read.get("error") is None
-    assert all(node["state"] == "cancelled" for node in read["nodes"])
-
-
-###########################
-# Why it failed, in the run's own words
-###########################
-
-def test_a_failed_run_publishes_the_reason_the_run_gave(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 `type` and `title` are frozen and identical on every occurrence --
-    *The run failed* is true of every failed run there has ever been -- so
-    without `detail` the error object says only what `state` already said. The
-    runner records the exception that ended the run and it was being stored on
-    the transition and published nowhere, which is why a person on the CLI
-    could not reach it at all.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "failed",
-        "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:00:10.000Z",
-        "error": "RuntimeError: git is required to import GitPython",
-        "nodes": {"stepone/0": {"state": "cancelled"},
-                  "steptwo/0": {"state": "cancelled"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("run-failed")
-    assert read["error"]["detail"] == "RuntimeError: git is required to import GitPython"
-    # And the shape a client reads it from: a run can fail with no failed node,
-    # which is what makes "read the failing node's log" the wrong advice.
-    assert read["progress"]["failed_count"] == 0
-
-
-def test_a_refusal_publishes_which_one_on_the_job(server_client, key, token,
-                                                  job_archive, dispatcher):
-    '''The detail was computed one line from where the job was recorded and
-    thrown away: the submitter saw it in the response and nobody who read the
-    job afterwards ever could.'''
-    archive, digest, size = job_archive(extra={"../escape": b"owned"})
-    job = stage(server_client, key, token, archive, size)
-
-    submit(server_client, key, token, job["id"], digest, size)
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("archive-rejected")
-    assert read["error"]["reason"] == "traversal"
-    assert read["error"]["detail"]
-
-
-def test_a_reason_that_only_repeats_the_slug_is_not_published(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''`detail` is prose about this occurrence. The slug is already `type`, and
-    a client branches on that.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:00:10.000Z",
-        "nodes": {"stepone/0": {"state": "failed"},
-                  "steptwo/0": {"state": "cancelled"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("run-failed")
-    assert "detail" not in read["error"]
-
-
-def test_a_job_the_scheduler_would_not_take_records_what_the_caller_was_told(
-        server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 This server's own failure while staging is `failed`,
-    `staging-failed`, with the detail -- never `rejected`, and never `queued`
-    before the scheduler holds the job.'''
-    from siliconcompiler.remote.server.running.dispatch import DispatchError
-
-    def refuse(*args, **kwargs):
-        raise DispatchError("slurmctld is not answering")
-
-    dispatcher.submit = refuse
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    response = submit(server_client, key, token, job["id"], digest, size)
-
-    assert response.status_code == 202
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("staging-failed")
-    assert "status" not in read["error"]
-    assert "slurmctld is not answering" in read["error"]["detail"]
-
-    # And the job's `staging` record says so, for a job that never ran: never
-    # the run's own log, which it has none of.
-    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
-                  token).get_json()["items"]
-    assert any(item["kind"] == "staging" for item in listed)
-    assert not any(item["kind"] == "logs" for item in listed)
-
-
-def test_a_failed_node_carries_the_type_that_says_so(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 A node's `error` is published on every node and was null on every
-    node this server had ever run, the failed ones included -- so a client could not
-    tell *this node is why* from *this node is fine* except by re-deriving it
-    from the state it already had.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:00:10.000Z",
-        "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
-                  "steptwo/0": {"state": "cancelled"}}})
-
-    nodes = {(n["step"], n["index"]): n for n in call(
-        server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()["nodes"]}
-
-    error = nodes[("stepone", "0")]["error"]
-    assert error["type"].endswith("run-failed")
-    # The job's shape, `detail` included: what a plain failure can say is its
-    # exit status, and where the tool said why.
-    assert error["detail"] == "the node's task exited with status 1; its log says why"
-    # And nothing on the node that never ran: it did not fail, the job ended
-    # before it started.
-    assert nodes[("steptwo", "0")]["error"] is None
-
-
-###########################
-# Terminal only once listed (surface D308, D310)
-###########################
-
-def _states_when_indexed(monkeypatch, server, method):
-    '''Wrap a JobService indexing method to record, at each call, the job's
-    and its nodes' states as the store then holds them.'''
-    jobs = server.config["SC_JOBS"]
-    store = server.config["SC_STORE"]
-    real = getattr(jobs, method)
-    seen = []
-
-    def wrapped(job, *args):
-        seen.append((store.one("SELECT state FROM jobs WHERE id = ?", (job["id"],))["state"],
-                     {(row["step"], row["index"]): row["state"] for row in store.all(
-                         'SELECT step, "index", state FROM job_nodes WHERE job_id = ?',
-                         (job["id"],))}, args))
-        return real(job, *args)
-
-    monkeypatch.setattr(jobs, method, wrapped)
-    return seen
-
-
-def test_a_node_turns_failed_only_after_its_log_is_listed(
-        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 `failed` as well as `completed`: a client that sees a terminal node
-    fetches what it left, so the listing has it first.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    node = root / "stepone" / "0"
-    node.mkdir(parents=True, exist_ok=True)
-    (node / "sc_stepone_0.log").write_text("it went wrong\n")
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-23T10:00:00.000Z", "heartbeat": now(),
-        "nodes": {"stepone/0": {"state": "failed", "exit_code": 1},
-                  "steptwo/0": {"state": "pending"}}})
-    seen = _states_when_indexed(monkeypatch, server, "_index_node")
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert {(n["step"], n["state"]) for n in read["nodes"]} >= {("stepone", "failed")}
-    _, nodes, named = seen[0]
-    assert named == ("stepone", "0")
-    assert nodes[("stepone", "0")] not in ("completed", "failed", "skipped", "cancelled")
-    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
-                  token).get_json()["items"]
-    assert any(item["kind"] == "logs" and item["step"] == "stepone" for item in listed)
-
-
-def test_a_lost_job_turns_failed_only_after_what_it_left_is_listed(
-        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    root.mkdir(parents=True, exist_ok=True)
-    (root / "job.log").write_text("the run's own log\n")
-    dispatcher.alive = False
-    seen = _states_when_indexed(monkeypatch, server, "_index")
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "failed"
-    state, nodes, _ = seen[0]
-    assert state not in ("failed", "cancelled")
-    assert not set(nodes.values()) & {"failed", "cancelled"}
-    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
-                  token).get_json()["items"]
-    assert any(item["kind"] == "logs" and item["step"] is None for item in listed)
-
-
-def test_a_cancelled_run_turns_cancelled_only_after_what_it_left_is_listed(
-        monkeypatch, server, server_client, key, token, job_archive, dispatcher, me):
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    root.mkdir(parents=True, exist_ok=True)
-    (root / "job.log").write_text("the run's own log, until it was stopped\n")
-    assert call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                json={}).get_json()["state"] == "cancelling"
-    dispatcher.alive = False
-    seen = _states_when_indexed(monkeypatch, server, "_index")
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "cancelled"
-    state, nodes, _ = seen[0]
-    assert state == "cancelling"
-    assert "cancelled" not in nodes.values()
-    listed = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts",
-                  token).get_json()["items"]
-    assert any(item["kind"] == "logs" and item["step"] is None for item in listed)
-
-
-def test_a_job_failed_in_staging_has_its_record_listed_as_it_ends(
-        monkeypatch, server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 Not by the pass's cleanup after the transition: the record, with
-    the line saying why, is listed by the transition itself.'''
-    import gzip
-
-    from siliconcompiler.remote.server.running.dispatch import DispatchError
-
-    def refuse(*args, **kwargs):
-        raise DispatchError("slurmctld is not answering")
-
-    dispatcher.submit = refuse
-    monkeypatch.setattr(server.config["SC_JOBS"], "_keep_staging_record",
-                        lambda job_id: None)
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    assert call(server_client, key, "GET", f"/v1/jobs/{job['id']}",
-                token).get_json()["state"] == "failed"
-    item, = [item for item in call(server_client, key, "GET",
-                                   f"/v1/jobs/{job['id']}/artifacts", token).get_json()["items"]
-             if item["kind"] == "staging"]
-    target = call(server_client, key, "GET", f"/v1/jobs/{job['id']}/artifacts/{item['id']}",
-                  token).headers["Location"]
-    text = gzip.decompress(server_client.get(target.split("http://localhost", 1)[1]).data)
-    assert b"staging failed: " in text and b"slurmctld is not answering" in text
-
-
-###########################
-# A run that stops saying anything
-###########################
-
-def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 The backstop for a scheduler that is wrong, which is not
-    hypothetical: a dynamic node killed without deleting itself leaves Slurm
-    reporting its jobs RUNNING for ever on a machine that is gone. Observed for
-    thirteen minutes on a container that no longer existed -- and every other
-    check here asks the scheduler, so every other check believed it.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
-        "heartbeat": "2026-09-24T10:00:00.000Z",     # long ago
-        "nodes": {"stepone/0": {"state": "running"},
-                  "steptwo/0": {"state": "pending"}}})
-
-    # The scheduler insists, and is not believed.
-    dispatcher.alive = True
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-
-    assert read["state"] == "failed"
-    assert read["error"]["type"].endswith("run-interrupted")
-
-
-def test_a_beating_run_is_left_alone(server, server_client, key, token,
-                                     job_archive, dispatcher, me):
-    '''A node can run for half an hour without a transition, which is why the
-    heartbeat is on a timer and not on progress.'''
-    from siliconcompiler.remote.server.running import runspec
-    from siliconcompiler.remote.server.state.store import now
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
-        "heartbeat": now(),
-        "nodes": {"stepone/0": {"state": "running"},
-                  "steptwo/0": {"state": "pending"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "running"
-
-
-###########################
-# The job's page for a person
-###########################
-
-@pytest.mark.parametrize("web_url_base", [None, "http://sc.example/"])
-def test_no_job_object_carries_a_portal_url(server, server_client, key, token,
-                                            web_url_base):
-    '''🔴 Surface D309: a job's page is asked for at `POST /v1/auth/browser`
-    by its id, so no answer carries one -- create, the read and the listing,
-    with a portal configured or not.'''
-    server.config["SC_CONFIG"]._values["web_url_base"] = web_url_base
-
-    created = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0"}).get_json()
-    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}", token).get_json()
-    listed = call(server_client, key, "GET", "/v1/jobs", token).get_json()["items"]
-
-    for job in [created, read] + listed:
-        assert "web_url" not in job
-        assert not any("portal" in str(value) for value in job.values()), job
-
-
-###########################
-# A job nobody ever uploaded to
-###########################
-
-def test_a_job_whose_upload_never_arrived_is_abandoned(server, server_client,
-                                                       key, token):
-    '''🔴 `abandoned` is the tenth state and nothing wrote it. A job created
-    and never uploaded to sat in `created` for ever: holding a
-    `pending_uploads` slot, on every listing, and -- because the portal
-    refreshes until a job is terminal -- reloading its own page indefinitely
-    for a run that was never going to happen.'''
-    created = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0"}).get_json()
-
-    # Still within the window: left alone.
-    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
-                token).get_json()
-    assert read["state"] == "created"
-
-    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
-                token).get_json()
-    assert read["state"] == "abandoned"
-    assert read["terminal"] is True
-    assert read["finished_at"]
-
-
-def test_a_live_upload_grant_is_never_abandoned(server, server_client, key,
-                                                token):
-    '''⚠️ The window is the floor and not the whole answer. A slow link
-    uploading a gigabyte and a script that died between create and PUT look
-    identical from here, so a job still holding a good grant is left alone
-    however old it is -- otherwise setting the window below the grant's own
-    lifetime would abandon uploads that were legitimately in flight.'''
-    created = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0"}).get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{created['id']}/upload-grant",
-         token, json=sized(4096))
-
-    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{created['id']}",
-                token).get_json()
-    assert read["state"] == "awaiting_input"
-
-
-def test_the_sweep_settles_the_jobs_nobody_opens(server, server_client, key,
-                                                 token):
-    '''🔴 A job stuck in `created` is exactly the job nobody opens, and while
-    it sits there it holds a slot against its owner's allowance. The ceiling
-    gets reached by jobs that no longer exist in any meaningful sense.'''
-    from siliconcompiler.remote.server.outputs import reaper
-
-    created = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0"}).get_json()
-    server.config["SC_CONFIG"].limits["abandon_after_seconds"] = 0
-
-    taken = reaper.sweep(server.config["SC_STORE"], server.config["SC_STORAGE"],
-                         server.config["SC_CONFIG"], server.config["SC_DATADIR"])
-
-    assert taken["abandoned"] == 1
-    assert server.config["SC_STORE"].one(
-        "SELECT state FROM jobs WHERE id = ?", (created["id"],))["state"] == "abandoned"
-
-
-###########################
-# Polling fast without asking the scheduler fast
-###########################
-
-def test_a_fast_poll_does_not_become_a_fast_squeue(server, server_client, key,
-                                                   token, job_archive,
-                                                   dispatcher, me):
-    '''🔴 Reading a job is a local SQLite read and a stat; asking Slurm which
-    job each node became is one or more RPCs into slurmctld. Without a floor,
-    shortening the poll interval multiplies the load on slurmctld by the same
-    factor.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    asked = []
-    real = dispatcher.node_jobs
-
-    def counted(job_id, nodes):
-        asked.append(job_id)
-        return real(job_id, nodes)
-
-    dispatcher.node_jobs = counted
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
-        "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
-                                      "steptwo/0": {"state": "pending"}}})
-
-    # The store forgets the ids between polls so every poll WOULD ask.
-    for _ in range(5):
-        server.config["SC_STORE"].execute(
-            "UPDATE job_nodes SET scheduler_job_id = NULL WHERE job_id = ?",
-            (job["id"],))
-        call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    assert len(asked) == 1, f"asked the scheduler {len(asked)} times in five polls"
-
-
-def test_a_cancel_never_takes_a_stale_answer(server, server_client, key, token,
-                                             job_archive, dispatcher, me):
-    '''⚠️ The floor is a rate limit on watching, not on acting. A cancel needs
-    the ids to reach the work, so it asks whatever the clock says.'''
-    from siliconcompiler.remote.server.running import runspec
-
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-    submit(server_client, key, token, job["id"], digest, size)
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"]) / "gcd" / "job0"
-    runspec.write_json(root.parents[1] / runspec.PROGRESS_FILENAME, {
-        "state": "running", "started_at": "2026-09-24T10:00:00.000Z",
-        "heartbeat": now(), "nodes": {"stepone/0": {"state": "running"},
-                                      "steptwo/0": {"state": "pending"}}})
-
-    call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-    server.config["SC_STORE"].execute(
-        "UPDATE job_nodes SET scheduler_job_id = NULL WHERE job_id = ?",
-        (job["id"],))
-
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-         json={"reason": "changed my mind"})
-
-    assert dispatcher.cancelled_nodes, "a cancel reached no node jobs"
-
-
-###########################
-# Submit answers early, and staging checks the upload
-###########################
-
-def test_a_replayed_submit_answers_the_original_202(server_client, key, token,
-                                                    job_archive, dispatcher):
-    '''The original body, `staging` and all, whatever the job has done since:
-    a replay returns the original response (surface §6).'''
-    archive, digest, size = job_archive()
-    job = stage(server_client, key, token, archive, size)
-
-    first = submit(server_client, key, token, job["id"], digest, idempotency_key="s1")
-    again = submit(server_client, key, token, job["id"], digest, idempotency_key="s1")
-
-    assert (first.status_code, again.status_code) == (202, 202)
-    assert again.get_json() == first.get_json()
-    assert again.get_json()["state"] == "staging"
-    assert len(dispatcher.submitted) == 1
-
-
-@pytest.mark.parametrize("what", ["create", "submit"])
-def test_a_retry_while_the_original_is_handled_is_in_progress(
-        server, server_client, key, token, job_archive, dispatcher, what):
-    '''Only a final answer binds a key: a retry meanwhile is `409`,
-    `in_progress`, with `Retry-After`, and binds nothing.'''
-    jobs = server.config["SC_JOBS"]
-    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-    jobs._in_flight.add((me, what, "k-busy"))
-
-    if what == "create":
-        response = create(server_client, key, token, idempotency_key="k-busy")
-    else:
-        archive, digest, size = job_archive()
-        job = stage(server_client, key, token, archive, size)
-        response = submit(server_client, key, token, job["id"], digest,
-                          idempotency_key="k-busy")
-
-    assert response.status_code == 409
-    assert slug(response) == "job-state-conflict"
-    assert response.get_json()["reason"] == "in_progress"
-    assert int(response.headers["Retry-After"]) >= 1
-
-
-def test_a_key_older_than_a_day_is_forgotten(server, server_client, key, token):
-    first = create(server_client, key, token, idempotency_key="old").get_json()
-    server.config["SC_STORE"].execute(
-        "UPDATE jobs SET created_at = '2020-01-01T00:00:00.000Z' WHERE id = ?",
-        (first["id"],))
-
-    again = create(server_client, key, token, idempotency_key="old")
-
-    assert again.status_code == 201
-    assert again.get_json()["id"] != first["id"]
-
-
-@pytest.mark.parametrize("member,named", [
-    ("sc-server-progress.json", "sc-server-progress.json"),
-    ("sc_configs/sc_slurm_stepone_0.sh", "sc_configs"),
-])
-def test_a_member_the_first_archive_does_not_carry_is_unrequested(
-        server_client, key, token, job_archive, dispatcher, member, named):
-    '''🔴 A planted `sc-server-progress.json` is one, and so is the old
-    client's `sc_configs/`, where SiliconCompiler's Slurm scheduler writes a
-    job's scripts: the server's own files live above the tree an upload
-    expands into.'''
-    archive, digest, size = job_archive(extra={
-        member: b'{"state": "completed", "nodes": {}}'})
-    job = stage(server_client, key, token, archive, size)
-
-    read = job_after(server_client, key, token,
-                     submit(server_client, key, token, job["id"], digest, size))
-
-    assert read["state"] == "rejected"
-    assert read["error"]["reason"] == "unrequested_member"
-    assert named in read["error"]["detail"]
-    assert not dispatcher.submitted
-
-
-def test_the_pending_uploads_refusal_names_the_jobs_holding_the_slots(
-        server, server_client, key, token):
-    server.config["SC_CONFIG"].limits["pending_uploads"] = 1
-    held = create(server_client, key, token).get_json()
-
-    refused = create(server_client, key, token, jobname="job1")
-
-    assert refused.status_code == 429
-    assert refused.get_json()["limit"] == "pending_uploads"
-    assert refused.get_json()["job_ids"] == [held["id"]]
-
-
-def test_a_manifests_scheduler_settings_are_overridden(nop_project, tmp_path):
-    from siliconcompiler.remote.server.running import runspec
-
-    nop_project.option.set_jobincr(True)
-    nop_project.option.scheduler.set_name("slurm")
-    nop_project.option.scheduler.set_queue("gpu-partition")
-    nop_project.option.scheduler.add_options(["--exclusive"], step="stepone", index="0")
-
-    runspec.normalize(nop_project, "job-1", tmp_path / "b", tmp_path / "c")
-
-    assert nop_project.option.get_jobincr() is False
-    assert nop_project.option.scheduler.get_name() is None
-    assert nop_project.option.scheduler.get_queue() is None
-    assert not nop_project.option.scheduler.get_options(step="stepone", index="0")
-
-
-def test_an_asic_project_with_no_pdk_is_unresolved(server_client, key, token,
-                                                   job_archive, dispatcher, gcd_design):
-    '''The PDK fails closed where the class has a PDK setting; a class with
-    none resolves to 'none' (every nopflow job here is one).'''
-    import os
-
-    from siliconcompiler import ASIC, Flowgraph
-    from siliconcompiler.tools.builtin.nop import NOPTask
-
-    project = ASIC(gcd_design)
-    project.add_fileset("rtl")
-    flow = Flowgraph("nopflow")
-    flow.node("stepone", NOPTask())
-    project.set_flow(flow)
-    project.option.set_nodashboard(True)
-    project.option.set_jobname("job0")
-    project.option.set_builddir(os.path.abspath("build"))
-    archive, digest, size = job_archive(project)
-    job = stage(server_client, key, token, archive, size)
-
-    read = job_after(server_client, key, token,
-                     submit(server_client, key, token, job["id"], digest, size))
-
-    assert read["state"] == "rejected"
-    assert read["error"]["type"].endswith("resource-unresolved")
-    assert read["error"]["resource_kind"] == "pdk"
-
-
-###########################
-# The edges, the nodes, and why it is where it is
-###########################
-
-def test_a_cancel_of_a_job_the_scheduler_already_ended_leaves_it(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''🔴 Conditional on the state it moves from: the `202` carries the job as
-    the scheduler left it.'''
-    job = running(server, server_client, key, token, job_archive, me)
-    jobs = server.config["SC_JOBS"]
-    original = jobs._transition_if
-
-    def ended_first(job_id, from_state, to_state, **kwargs):
-        # The scheduler side got there between the read and the write.
-        jobs._transition(job_id, from_state, "completed")
-        return original(job_id, from_state, to_state, **kwargs)
-
-    jobs._transition_if = ended_first
-    response = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                    json={})
-
-    assert response.status_code == 202
-    assert response.get_json()["state"] == "completed"
-    assert not dispatcher.cancelled
-
-
-def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    from siliconcompiler.remote.server.running import runspec
-
-    job = running(server, server_client, key, token, job_archive, me)
-    cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                     json={"reason": "wrong corner"}).get_json()
-    assert cancelled["state"] == "cancelling"
-    # A cancel's reason is on its entry of `transitions`, never the job's
-    # `state_reason`, which carries only a live staging phase (D278).
-    assert "state_reason" not in cancelled
-    assert (cancelled["transitions"][-1]["state"],
-            cancelled["transitions"][-1]["reason"]) == ("cancelling", "wrong corner")
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
-        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:01:00.000Z",
-        "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
-                  "steptwo/0": {"state": "running"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "cancelled"
-    assert [entry["state"] for entry in read["transitions"]][-2:] == \
-        ["cancelling", "cancelled"]
-    assert read["transitions"][-2]["reason"] == "wrong corner"
-    nodes = {node["step"]: node for node in read["nodes"]}
-    # A terminal job has only terminal nodes, and one a cancel stopped has no
-    # exit code and says why.
-    assert all(node["terminal"] for node in read["nodes"])
-    assert nodes["steptwo"]["state"] == "cancelled"
-    assert nodes["steptwo"]["exit_code"] is None
-    assert nodes["steptwo"]["state_reason"] == "wrong corner"
-
-
-# 300 characters, and two spaces a `detail`'s bound would fold into one.
-LONG_REASON = ("stopped by hand:  " + "the corner was wrong and the run is repeated " * 7)[:300]
-
-
-def test_a_300_character_reason_is_served_whole(
-        server, server_client, key, token, job_archive, dispatcher, me, monkeypatch):
-    '''🔴 What is accepted is what everyone reads (surface D288): whole, on
-    the job's `cancelling` and `cancelled` transitions and on each node the
-    cancel stopped -- even where a deployment bounds its own text shorter.'''
-    from siliconcompiler.remote.server import errors
-    from siliconcompiler.remote.server.running import runspec
-
-    assert len(LONG_REASON) == 300
-    monkeypatch.setattr(errors, "DETAIL_MAX", 100)
-    job = running(server, server_client, key, token, job_archive, me)
-    cancelled = call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-                     json={"reason": LONG_REASON}).get_json()
-    assert cancelled["transitions"][-1] == {**cancelled["transitions"][-1],
-                                            "state": "cancelling", "reason": LONG_REASON}
-
-    root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
-        "state": "completed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:01:00.000Z", "error": "the run's own words",
-        "nodes": {"stepone/0": {"state": "completed", "exit_code": 0},
-                  "steptwo/0": {"state": "running"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["state"] == "cancelled"
-    assert [(entry["state"], entry.get("reason")) for entry in read["transitions"]][-2:] == \
-        [("cancelling", LONG_REASON), ("cancelled", LONG_REASON)]
-    nodes = {node["step"]: node for node in read["nodes"]}
-    assert nodes["steptwo"]["state_reason"] == LONG_REASON
-    # 🔴 Never the job's own member: that carries only a live staging phase.
-    assert "state_reason" not in read
-
-
-def test_a_cancel_that_lands_while_staging_carries_its_reason_to_cancelled(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''The staging thread writes `cancelled` when it stops, with the cancel's
-    reason -- not a word of its own.'''
-    job = running(server, server_client, key, token, job_archive, me)
-    call(server_client, key, "POST", f"/v1/jobs/{job['id']}/cancel", token,
-         json={"reason": LONG_REASON})
-    jobs = server.config["SC_JOBS"]
-
-    jobs._settle_cancelled(jobs._row(job["id"]))
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert (read["transitions"][-1]["state"], read["transitions"][-1]["reason"]) == \
-        ("cancelled", LONG_REASON)
-    assert all(node["state_reason"] == LONG_REASON for node in read["nodes"]
-               if node["state"] == "cancelled")
-
-
-def test_the_servers_own_reasons_keep_their_bound(
-        server, server_client, key, token, monkeypatch):
-    '''Only a cancel's reason is served whole: every other is this server's,
-    bounded like a `detail`.'''
-    from siliconcompiler.remote.server import errors
-
-    monkeypatch.setattr(errors, "DETAIL_MAX", 100)
-    job = create(server_client, key, token).get_json()
-    jobs = server.config["SC_JOBS"]
-    with server.config["SC_STORE"].transaction():
-        jobs._transition(job["id"], "created", "awaiting_input", reason="y " * 200)
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    served = read["transitions"][-1]["reason"]
-    assert served.endswith("...") and len(served) < 110
-
-
-@pytest.mark.parametrize("reported,published", [(0, 0), (1, 1), (-9, 137), (-15, 143),
-                                                (137, 137), (None, None)])
-def test_an_exit_code_is_0_to_255_and_a_signal_is_128_plus_n(reported, published):
-    from siliconcompiler.remote.server.running import runspec
-
-    assert runspec.exit_code(reported) == published
-
-
-def test_a_time_limit_is_run_failed_naming_it(server, server_client, key, token,
-                                              job_archive, dispatcher, me):
-    from siliconcompiler.remote.server.running import runspec
-
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
-        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:01:00.000Z",
-        "nodes": {"stepone/0": {"state": "failed", "exit_code": -9, "limit": "time"},
-                  "steptwo/0": {"state": "pending"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("/run-failed")
-    assert "stepone/0 exceeded its time limit" in read["error"]["detail"]
-    nodes = {node["step"]: node for node in read["nodes"]}
-    assert nodes["stepone"]["exit_code"] == 137
-    assert nodes["stepone"]["error"]["type"].startswith("https://")
-    assert nodes["stepone"]["error"]["detail"]
-    assert nodes["steptwo"]["state"] == "cancelled"
-
-
-def test_an_image_that_would_not_pull_is_run_interrupted_naming_it(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    from siliconcompiler.remote.server.running import runspec
-
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
-        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:01:00.000Z",
-        "nodes": {"stepone/0": {"state": "failed", "exit_code": 125, "interrupted": {
-            "image": "ghcr.io/x/sc@sha256:aa", "error": "pull access denied"}},
-            "steptwo/0": {"state": "pending"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("/run-interrupted")
-    assert "its image ghcr.io/x/sc@sha256:aa could not be pulled" in read["error"]["detail"]
-    nodes = {node["step"]: node for node in read["nodes"]}
-    # The node's own error says the same of it, as the job's shape.
-    assert nodes["stepone"]["error"]["type"].endswith("/run-interrupted")
-    assert nodes["stepone"]["error"]["detail"] == \
-        "the node could not start: its image ghcr.io/x/sc@sha256:aa could not be pulled"
-    assert nodes["steptwo"]["error"] is None
-
-
-def test_a_memory_limit_is_run_failed_naming_it(server, server_client, key, token,
-                                                job_archive, dispatcher, me):
-    from siliconcompiler.remote.server.running import runspec
-
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
-        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:01:00.000Z",
-        "nodes": {"stepone/0": {"state": "failed", "exit_code": 137, "limit": "memory"},
-                  "steptwo/0": {"state": "pending"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("/run-failed")
-    assert "stepone/0 exceeded its memory limit" in read["error"]["detail"]
-    node = {node["step"]: node for node in read["nodes"]}["stepone"]
-    assert node["error"]["type"].endswith("/run-failed")
-    assert node["error"]["detail"] == "the node exceeded its memory limit"
-
-
-def test_a_time_limit_is_run_failed_and_the_node_names_it(
-        server, server_client, key, token, job_archive, dispatcher, me):
-    '''A `run-failed` names its time or memory limit in `detail`, on the job and
-    on the node that ran into it (surface §17, *A node's `error`*).'''
-    from siliconcompiler.remote.server.running import runspec
-
-    job = running(server, server_client, key, token, job_archive, me)
-    root = server.config["SC_JOBS"].job_root(me, job["id"])
-    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
-        "state": "failed", "started_at": "2026-09-23T10:00:00.000Z",
-        "finished_at": "2026-09-23T10:01:00.000Z",
-        "nodes": {"stepone/0": {"state": "failed", "exit_code": None, "limit": "time"},
-                  "steptwo/0": {"state": "pending"}}})
-
-    read = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token).get_json()
-    assert read["error"]["type"].endswith("/run-failed")
-    assert "stepone/0 exceeded its time limit" in read["error"]["detail"]
-    node = {node["step"]: node for node in read["nodes"]}["stepone"]
-    assert node["error"] == {
-        "type": "https://siliconcompiler.com/server-errors/run-failed",
-        "title": node["error"]["title"],
-        "detail": "the node exceeded its time limit"}
-
-
-def test_repeated_filters_or_within_a_key_and_terminal_filters(
-        server, server_client, key, token):
-    '''`?archived=true&archived=false` is both views; `?terminal=` is the
-    published flag.'''
-    kept = create(server_client, key, token).get_json()
-    gone = create(server_client, key, token, jobname="job1").get_json()
-    call(server_client, key, "POST", f"/v1/jobs/{gone['id']}/cancel", token, json={})
-    call(server_client, key, "POST", f"/v1/jobs/{gone['id']}/archive", token, json={})
-    server.config["SC_STORE"].execute(
-        "UPDATE jobs SET archived_at = ?, archived_by = user_id WHERE id = ?",
-        (now(), gone["id"]))
-
-    def ids(query):
-        return {item["id"] for item in call(server_client, key, "GET", f"/v1/jobs?{query}",
-                                            token).get_json()["items"]}
-
-    assert ids("") == {kept["id"]}
-    assert ids("archived=true&archived=false") == {kept["id"], gone["id"]}
-    assert ids("archived=true&archived=false&terminal=true") == {gone["id"]}
-    assert ids("terminal=false") == {kept["id"]}
-    assert ids("jobname=job0&jobname=job1&archived=true&archived=false") == \
-        {kept["id"], gone["id"]}
-
-
-@pytest.mark.parametrize("query", ["archived=yes", "archived=True", "archived=1",
-                                   "terminal=no", "archived=true&archived=maybe"])
-def test_a_boolean_filter_is_true_or_false_and_nothing_else(server_client, key, token,
-                                                            query):
-    '''S §16 defines a boolean as `true` or `false`, and S §6 refuses the rest:
-    read as false, `?archived=yes` would answer the unarchived list.'''
-    response = call(server_client, key, "GET", f"/v1/jobs?{query}", token)
-
-    assert (response.status_code, slug(response)) == (400, "invalid-request")
-
-
-def test_the_next_page_keeps_every_repeat(server_client, key, token):
-    for n in range(3):
-        create(server_client, key, token, jobname=f"job{n}")
-
-    first = call(server_client, key, "GET",
-                 "/v1/jobs?limit=1&jobname=job0&jobname=job1&jobname=job2", token)
-
-    link = first.headers["Link"]
-    assert link.count("jobname=") == 3
-    target = link.split(">", 1)[0].lstrip("<")
-    assert len(call(server_client, key, "GET", target, token).get_json()["items"]) == 1
-
-
-@pytest.mark.parametrize("value", [0, 0.5, "1"])
-def test_a_poll_interval_below_one_whole_second_is_refused(value):
-    from siliconcompiler.remote.server.config import DEFAULTS, _check_policy
-
-    with pytest.raises(ValueError, match="poll_interval_seconds"):
-        _check_policy(dict(DEFAULTS, poll_interval_seconds=value))
-
-
-def test_a_job_still_going_says_when_to_ask_again(server_client, key, token):
-    job = create(server_client, key, token).get_json()
-
-    response = call(server_client, key, "GET", f"/v1/jobs/{job['id']}", token)
-
-    assert int(response.headers["Retry-After"]) >= 1

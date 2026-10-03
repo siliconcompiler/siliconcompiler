@@ -4,16 +4,16 @@ import pytest
 
 from pathlib import Path
 
-from siliconcompiler.remote.server.state.storage import SignatureError, Storage
+from siliconcompiler.remote.server.state.storage import (
+    GRANT_SECONDS, SignatureError, Storage, grant_seconds)
 
 
-# `file://` is a first-class deployment rather than a test double: the contract
-# says an upload goes to a presigned PUT and never through the API process, and
-# `storage_locations.uri_base` is a URI, so the "presigned" URL here is a signed
-# route on this host. The signature is the credential.
+# `file://` storage is a real deployment, not a test double: the "presigned"
+# URL is a signed route on this host, and the signature is the credential.
 
 
 SECRET = b"a" * 32
+FAR = "2000000000"
 
 
 @pytest.fixture
@@ -22,63 +22,48 @@ def storage(tmp_path):
 
 
 def test_another_scheme_needs_its_own_storage(tmp_path):
-    '''Refused rather than half-implemented: an s3:// base that silently wrote
-    to a local directory would look like it worked until somebody looked.'''
+    '''Refused rather than an s3:// base that silently writes locally.'''
     with pytest.raises(ValueError):
         Storage(tmp_path, "s3://bucket/prefix/", SECRET)
 
 
+def test_a_grant_outlasts_the_largest_upload_at_ten_megabits():
+    '''Surface §14: one PUT, no resume -- about fifteen minutes a GiB.'''
+    assert grant_seconds(1024) == GRANT_SECONDS                  # never less than the floor
+    assert grant_seconds(1024 ** 3) == GRANT_SECONDS             # 859 s: under it
+    assert 28 * 60 < grant_seconds(2 * 1024 ** 3) < 29 * 60
+
+
 def test_a_signature_round_trips(storage):
-    signature = storage.sign_upload("job-1", 1000, 2000000000)
+    signature = storage.sign_upload("job-1", 1000, int(FAR))
 
-    assert storage.verify_upload("job-1", "1000", "2000000000",
-                                 signature, when=1000) == 1000
-
-
-def test_the_signature_names_one_job(storage):
-    signature = storage.sign_upload("job-1", 1000, 2000000000)
-
-    with pytest.raises(SignatureError):
-        storage.verify_upload("job-2", "1000", "2000000000", signature, when=1000)
+    assert storage.verify_upload("job-1", "1000", FAR, signature, when=1000) == 1000
 
 
-def test_a_re_issue_cannot_widen_what_the_first_grant_bound(storage):
-    '''`max_bytes` is signed rather than merely published. Taking a size on the
-    grant call, or trusting one off the URL, would make the published ceiling
-    advisory.'''
-    signature = storage.sign_upload("job-1", 1000, 2000000000)
+@pytest.mark.parametrize("job,size,expires,signature,when,match", [
+    ("job-2", "1000", FAR, "good", 1000, None),              # it names one job
+    # `max_bytes` is signed, so a re-issue cannot widen the first grant.
+    ("job-1", "999999999", FAR, "good", 1000, None),
+    # Expiry is checked after the signature: unverified, it is the caller's.
+    ("job-1", "1000", FAR, "good", int(FAR) + 1, "expired"),
+    ("job-1", "1000", FAR, None, 1000, None),
+    ("job-1", "lots", "soon", "sig", 1000, None),
+], ids=["other-job", "widened", "expired", "missing", "malformed"])
+def test_a_grant_that_does_not_verify_is_refused(storage, job, size, expires, signature,
+                                                 when, match):
+    if signature == "good":
+        signature = storage.sign_upload("job-1", 1000, int(FAR))
 
-    with pytest.raises(SignatureError):
-        storage.verify_upload("job-1", "999999999", "2000000000",
-                              signature, when=1000)
-
-
-def test_expiry_is_checked_after_the_signature(storage):
-    '''An expiry read off an unverified URL is a number the caller chose.'''
-    signature = storage.sign_upload("job-1", 1000, 1500)
-
-    with pytest.raises(SignatureError) as raised:
-        storage.verify_upload("job-1", "1000", "1500", signature, when=1600)
-    assert "expired" in str(raised.value)
-
-
-def test_a_missing_signature_is_refused(storage):
-    with pytest.raises(SignatureError):
-        storage.verify_upload("job-1", "1000", "2000000000", None, when=1000)
-
-
-def test_a_malformed_grant_is_refused(storage):
-    with pytest.raises(SignatureError):
-        storage.verify_upload("job-1", "lots", "soon", "sig", when=1000)
+    with pytest.raises(SignatureError, match=match):
+        storage.verify_upload(job, size, expires, signature, when=when)
 
 
 def test_two_deployments_do_not_share_signatures(tmp_path):
     a = Storage(tmp_path / "a", (tmp_path / "a" / "art").as_uri() + "/", b"a" * 32)
     b = Storage(tmp_path / "b", (tmp_path / "b" / "art").as_uri() + "/", b"b" * 32)
 
-    signature = a.sign_upload("job-1", 10, 2000000000)
     with pytest.raises(SignatureError):
-        b.verify_upload("job-1", "10", "2000000000", signature, when=1000)
+        b.verify_upload("job-1", "10", FAR, a.sign_upload("job-1", 10, int(FAR)), when=1000)
 
 
 def test_receive_counts_as_it_goes(storage):
@@ -90,12 +75,10 @@ def test_receive_counts_as_it_goes(storage):
 
 
 def test_the_ceiling_binds_on_what_arrived_not_on_what_was_claimed(storage):
-    '''Content-Length is a claim the sender makes about a body it is still
-    sending.'''
+    '''Content-Length is only a claim; nothing half-received is left behind.'''
     with pytest.raises(ValueError):
         storage.receive("job-1", io.BytesIO(b"x" * 100), 10)
 
-    # Nothing half-received is left looking like a complete upload.
     assert not storage.upload_path("job-1").exists()
 
 
@@ -112,8 +95,7 @@ def test_a_half_written_upload_is_never_mistaken_for_a_complete_one(storage):
 
 
 def test_stat_reads_the_object_rather_than_remembering_the_put(storage):
-    '''The digest submit compares against has to describe the bytes that are on
-    disk now, or the comparison is between two things the client said.'''
+    '''Submit compares against the bytes on disk now, not what the client said.'''
     storage.receive("job-1", io.BytesIO(b"hello"), 1000)
 
     storage.upload_path("job-1").write_bytes(b"tampered")
@@ -123,9 +105,6 @@ def test_stat_reads_the_object_rather_than_remembering_the_put(storage):
     assert digest != storage.receive("job-2", io.BytesIO(b"hello"), 1000)[1]
 
 
-def test_stat_on_nothing_is_none(storage):
+def test_nothing_uploaded_stats_as_none_and_discards_quietly(storage):
     assert storage.stat_upload("never-uploaded") is None
-
-
-def test_discarding_an_upload_that_was_never_there_is_not_an_error(storage):
     storage.discard_upload("never-uploaded")

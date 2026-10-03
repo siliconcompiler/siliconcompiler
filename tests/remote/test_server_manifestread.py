@@ -19,9 +19,8 @@ from siliconcompiler.remote.server.staging import manifestread, sandbox         
 
 
 # Contract §1, *No server process holding credentials parses a manifest*: the
-# read runs while the job stages, in a process of its own, and the server acts
-# on its data summary alone. These run the real, contained subprocess where
-# they are marked `real_read`; the rest of the suite reads in-process.
+# read runs in a process of its own and the server acts on its data summary
+# alone. Tests marked `real_read` run that subprocess; the rest read in-process.
 
 
 @pytest.fixture
@@ -54,9 +53,8 @@ def a_manifest(nop_project, where) -> Path:
 @pytest.mark.timeout(300)
 def test_no_manifest_is_parsed_in_the_server_process(
         server, server_client, key, token, job_archive, monkeypatch):
-    '''🔴 With SiliconCompiler's loader refusing in this process, a job goes
-    from create through staging to a run that completes: the manifest was read
-    in a process of its own, and the run loaded it in another.'''
+    '''🔴 With SiliconCompiler's loader refusing in this process, a job still
+    stages and its run completes, its metrics in the portal's table as JSON.'''
     from siliconcompiler import Project
 
     archive = job_archive()
@@ -73,7 +71,6 @@ def test_no_manifest_is_parsed_in_the_server_process(
                     in ("completed", "failed"), seconds=240)
     assert read(server_client, key, token, job["id"])["state"] == "completed"
 
-    # And the run's metrics, into the table the portal reads, as plain JSON.
     row = server.config["SC_STORE"].one(
         "SELECT records FROM job_nodes WHERE job_id = ? AND step = 'stepone'", (job["id"],))
     assert json.loads(row["records"])["status"] == "success"
@@ -82,8 +79,7 @@ def test_no_manifest_is_parsed_in_the_server_process(
 @pytest.mark.real_read
 def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
         server_client, key, token, job_archive, nop_project, dispatcher, tmp_path):
-    '''The extracted tree is never on the read's path, and a task module that
-    is not installed is looked up, not imported: refused, and nothing ran.'''
+    '''The extracted tree is not on the read's path: refused, and nothing ran.'''
     marker = tmp_path / "imported"
     nop_project.get_flow().get_graph_node("stepone", "0").set(
         "taskmodule", "sc_uploaded_task/NamedTask")
@@ -102,30 +98,33 @@ def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
 # No credential in the manifest (surface D302)
 ###########################
 
+@pytest.mark.parametrize("where", ["root", "upstream"])
 def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere(
-        server, server_client, key, token, job_archive, nop_project, dispatcher, caplog):
-    '''🔴 A hand-built archive, as a client that did not strip it would send
-    one: `archive-rejected`, `credential`, naming the keypath and never the
-    value -- which is in no response, row, log line or file this server
-    wrote. The upload is not kept either (surface D307): no `input` row and no
-    bytes, only the record of why.'''
+        server, server_client, key, token, job_archive, nop_project, dispatcher, caplog,
+        tmp_path, where):
+    '''🔴 As a client that did not strip it would send it, in the root
+    manifest or an upstream node's under `<step>/<index>/outputs/` (surface
+    D307): `archive-rejected`, `credential`, the first such keypath and every
+    one in `detail`, never the value -- in no response, row, log line or file
+    this server wrote. Nor is the upload kept: only the record of why.'''
+    import copy
     import logging
 
     caplog.set_level(logging.DEBUG)
-    design = nop_project.get("library", "gcd", field="schema")
-    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    extra = None
+    project = copy.deepcopy(nop_project) if where == "upstream" else nop_project
+    project.get("library", "gcd", field="schema").set_dataroot(
+        "ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    if where == "upstream":
+        written = tmp_path / "upstream.pkg.json"
+        project.write_manifest(str(written))
+        extra = {"stepone/0/outputs/gcd.pkg.json": written.read_bytes()}
 
-    job, response = submitted(server_client, key, token, job_archive())
+    job, response = submitted(server_client, key, token, job_archive(extra=extra))
 
-    assert_refused_for_a_credential(server, server_client, key, token, job, response, caplog)
-
-
-def assert_refused_for_a_credential(server, server_client, key, token, job, response, caplog):
     body = response.get_json()
     assert (response.status_code, slug(response), body["reason"]) == \
         (422, "archive-rejected", "credential")
-    # 🔴 The first such dataroot as `keypath` (surface D307), and every one in
-    # `detail`.
     assert body["keypath"] == ["library", "gcd", "dataroot", "ip"]
     assert "library,gcd,dataroot,ip" in body["detail"]
 
@@ -137,16 +136,14 @@ def assert_refused_for_a_credential(server, server_client, key, token, job, resp
         rows = [dict(row) for row in store.all(f'SELECT * FROM "{table["name"]}"')]
         assert "TOKEN" not in json.dumps(rows, default=str), table["name"]
 
-    # The extracted tree and the upload are gone, and its row with them; the
-    # record of why is what is left.
     user = store.one("SELECT user_id FROM jobs WHERE id = ?", (job["id"],))["user_id"]
     assert not server.config["SC_JOBS"].job_root(user, job["id"]).exists()
     kinds = [row["kind"] for row in store.all(
         "SELECT kind FROM artifacts WHERE job_id = ?", (job["id"],))]
     assert "input" not in kinds and "staging" in kinds
-    for where, _, files in os.walk("datadir"):
+    for folder, _, files in os.walk("datadir"):
         for name in files:
-            with open(os.path.join(where, name), "rb") as f:
+            with open(os.path.join(folder, name), "rb") as f:
                 data = f.read()
             assert b"TOKEN" not in data, name
             if data[:2] == b"\x1f\x8b":
@@ -154,32 +151,9 @@ def assert_refused_for_a_credential(server, server_client, key, token, job, resp
                 assert b"TOKEN" not in gzip.decompress(data), name
 
 
-def test_an_upstream_nodes_manifest_carrying_a_credential_is_refused(
-        server, server_client, key, token, job_archive, nop_project, dispatcher, caplog,
-        tmp_path):
-    '''🔴 Every manifest the archive carries (surface D307): an upstream
-    node's under `<step>/<index>/outputs/`, which the input keeps alike, as
-    well as the root one.'''
-    import copy
-    import logging
-
-    caplog.set_level(logging.DEBUG)
-    upstream = copy.deepcopy(nop_project)
-    upstream.get("library", "gcd", field="schema").set_dataroot(
-        "ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
-    written = tmp_path / "upstream.pkg.json"
-    upstream.write_manifest(str(written))
-
-    job, response = submitted(server_client, key, token, job_archive(
-        extra={"stepone/0/outputs/gcd.pkg.json": written.read_bytes()}))
-
-    assert_refused_for_a_credential(server, server_client, key, token, job, response, caplog)
-
-
 def test_a_credential_is_refused_after_what_the_read_itself_refuses(
         server_client, key, token, job_archive, nop_project, dispatcher):
-    '''The surface's staging table: what the read itself refuses comes
-    first, and the credential is the first check against what it reports.'''
+    '''The staging table: what the read itself refuses comes first.'''
     design = nop_project.get("library", "gcd", field="schema")
     design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
     nop_project.option.set_breakpoint(True, step="stepone", index="0")
@@ -191,8 +165,7 @@ def test_a_credential_is_refused_after_what_the_read_itself_refuses(
 
 def test_a_masked_manifest_is_read_as_sent(server_client, key, token, job_archive,
                                            nop_project, dispatcher):
-    '''What a client sends -- the path without its userinfo -- reads, and
-    the job is not refused for it.'''
+    '''What a client sends -- the path without its userinfo -- is not refused.'''
     from siliconcompiler.remote import owners
 
     design = nop_project.get("library", "gcd", field="schema")
@@ -205,9 +178,8 @@ def test_a_masked_manifest_is_read_as_sent(server_client, key, token, job_archiv
 
 
 def test_a_run_from_part_way_counts_only_the_nodes_it_runs(nop_project, tmp_path):
-    '''Surface D306: `node_count` is the nodes this job runs. The read the
-    `node-limit-exceeded` check counts from leaves out the nodes a `-from`
-    run copies, and so does the client's descriptor.'''
+    '''Surface D306: the read and the client's descriptor both leave out the
+    nodes a `-from` run copies, so `node-limit-exceeded` counts what runs.'''
     from siliconcompiler.remote.client.run import RemoteRun
 
     nop_project.option.add_from("steptwo")
@@ -225,9 +197,8 @@ def test_a_run_from_part_way_counts_only_the_nodes_it_runs(nop_project, tmp_path
 
 @pytest.mark.real_read
 def test_the_read_holds_none_of_the_servers_variables(tmp_path, monkeypatch):
-    '''An empty environment, its own HOME and working directory, stdin closed
-    and no descriptor but the three: none of the server's variables reach it,
-    and the upload is not on its path.'''
+    '''An empty environment, its own HOME and cwd, stdin closed, only the three
+    descriptors, and the upload not on its path.'''
     monkeypatch.setenv("SC_SERVER_SECRET", "not for the read")
     tree = tmp_path / "root" / "gcd" / "job0"
     tree.mkdir(parents=True)
@@ -255,8 +226,7 @@ def test_the_read_holds_none_of_the_servers_variables(tmp_path, monkeypatch):
 @pytest.mark.real_read
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="namespaces are Linux's")
 def test_the_read_contains_itself_where_the_host_allows(tmp_path, nop_project):
-    '''A real read, on a real manifest: its own network namespace where the
-    kernel lets it have one, and limits it set on itself.'''
+    '''Its own network namespace where the kernel allows, and its own limits.'''
     achieved = sandbox.probe()
     tree = a_manifest(nop_project, tmp_path / "root")
 
@@ -275,12 +245,13 @@ def test_the_read_contains_itself_where_the_host_allows(tmp_path, nop_project):
 # The summary is untrusted input
 ###########################
 
-def refused_for(server, server_client, key, token, job_archive, monkeypatch, raw):
+def read_as(job_archive, server_client, key, token, monkeypatch, damage):
+    '''Submit with the read's summary passed through ``damage``.'''
     from siliconcompiler.remote.server.jobs import JobService
 
-    monkeypatch.setattr(JobService, "_run_read", lambda self, job, root, asked: raw(asked))
-    job, response = submitted(server_client, key, token, job_archive())
-    return job, response
+    monkeypatch.setattr(JobService, "_run_read",
+                        lambda self, job, root, asked: damage(manifestread.read(asked)))
+    return submitted(server_client, key, token, job_archive())
 
 
 @pytest.mark.parametrize("damage", [
@@ -289,46 +260,28 @@ def refused_for(server, server_client, key, token, job_archive, monkeypatch, raw
     lambda summary: dict(summary, outcome={"type": "entitlement-denied", "reason": None}),
     lambda summary: dict(summary, flow="f" * (manifestread.MAX_NAME + 1)),
     lambda summary: dict(summary, values=[{"key": ["library"], "kind": "who", "origin": "x"}]),
-], ids=["shape", "version", "outcome", "flow-length", "value"])
+    # 🔴 A step travels into a primary key, a path and a URL.
+    lambda summary: dict(summary, nodes=[dict(summary["nodes"][0], step="../../etc"),
+                                         *summary["nodes"][1:]]),
+], ids=["shape", "version", "outcome", "flow-length", "value", "node-name"])
 def test_a_summary_that_fails_its_shape_has_not_read_the_manifest(
         server, server_client, key, token, job_archive, dispatcher, monkeypatch, damage):
-    _, response = refused_for(server, server_client, key, token, job_archive, monkeypatch,
-                              lambda asked: damage(manifestread.read(asked)))
+    job, response = read_as(job_archive, server_client, key, token, monkeypatch, damage)
 
     assert (response.status_code, slug(response)) == (422, "archive-rejected")
     assert response.get_json()["reason"] == "invalid_manifest"
     assert not dispatcher.submitted
-
-
-def test_a_node_name_the_node_name_check_refuses_never_reaches_a_column(
-        server, server_client, key, token, job_archive, dispatcher, monkeypatch):
-    '''🔴 A step travels into a primary key, a path and a URL.'''
-    def lying(asked):
-        summary = manifestread.read(asked)
-        summary["nodes"][0]["step"] = "../../etc"
-        return summary
-
-    job, response = refused_for(server, server_client, key, token, job_archive,
-                                monkeypatch, lying)
-
-    assert response.get_json()["reason"] == "invalid_manifest"
     assert not server.config["SC_STORE"].all(
         "SELECT step FROM job_nodes WHERE job_id = ?", (job["id"],))
 
 
 def test_a_read_members_are_taken_by_name_and_shape(
-        server, server_client, key, token, job_archive, dispatcher, monkeypatch):
+        server_client, key, token, job_archive, dispatcher, monkeypatch):
     '''A lying outcome cannot write fields of the problem body.'''
-    def lying(asked):
-        summary = manifestread.read(asked)
-        summary["outcome"] = {"type": "resource-unresolved", "reason": None,
-                              "detail": "no PDK",
-                              "members": {"resource_kind": "passwd", "status": 200,
-                                          "type": "about:blank"}}
-        return summary
-
-    _, response = refused_for(server, server_client, key, token, job_archive,
-                              monkeypatch, lying)
+    _, response = read_as(job_archive, server_client, key, token, monkeypatch, lambda s: dict(
+        s, outcome={"type": "resource-unresolved", "reason": None, "detail": "no PDK",
+                    "members": {"resource_kind": "passwd", "status": 200,
+                                "type": "about:blank"}}))
 
     body = response.get_json()
     assert (response.status_code, slug(response)) == (422, "resource-unresolved")
@@ -380,7 +333,6 @@ def test_a_read_the_job_stops_waiting_for_is_killed(tmp_path, monkeypatch):
 
 def test_a_manifest_for_another_job_name_is_declared_mismatch(
         server_client, key, token, job_archive, nop_project, dispatcher):
-    '''The job name the job declared is the manifest's, or it is refused.'''
     nop_project.option.set_jobname("other")
 
     _, response = submitted(server_client, key, token, job_archive())
@@ -392,7 +344,6 @@ def test_a_manifest_for_another_job_name_is_declared_mismatch(
 
 
 def test_a_manifest_for_another_design_is_declared_mismatch(nop_project, tmp_path):
-    '''The read compares the design the job declared with the manifest's.'''
     tree = a_manifest(nop_project, tmp_path / "root")
     (tree / "other.pkg.json").write_bytes((tree / "gcd.pkg.json").read_bytes())
 
@@ -428,9 +379,8 @@ def test_a_project_with_no_pdk_where_it_takes_one_is_resource_unresolved(
 
 def test_the_run_loads_the_manifest_as_it_was_uploaded(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 No server process rewrites it: the file the run is handed is the
-    upload's, byte for byte, and the overrides are data beside it, applied by
-    the run.'''
+    '''🔴 Byte for byte the upload's; the overrides and the summary are data
+    beside it, out of the upload's reach.'''
     path, digest, size = job_archive()
     with tarfile.open(path) as tar:
         uploaded = next(tar.extractfile(member).read() for member in tar.getmembers()
@@ -445,23 +395,14 @@ def test_the_run_loads_the_manifest_as_it_was_uploaded(
     ran = run_manifest(handed)
     user = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
                                          (job["id"],))["user_id"]
-    assert ran.option.get_builddir() == str(server.config["SC_JOBS"].job_root(user, job["id"]))
+    root = server.config["SC_JOBS"].job_root(user, job["id"])
+    assert ran.option.get_builddir() == str(root)
     assert ran.get("record", "remoteid") == job["id"]
     assert ran.option.get_remote() is False
 
-
-def test_the_summary_is_kept_outside_what_an_upload_can_write(
-        server, server_client, key, token, job_archive, dispatcher):
-    job, response = submitted(server_client, key, token, job_archive())
-
-    assert response.status_code == 202
-    user = server.config["SC_STORE"].one("SELECT user_id FROM jobs WHERE id = ?",
-                                         (job["id"],))["user_id"]
-    root = server.config["SC_JOBS"].job_root(user, job["id"])
+    # The summary is kept above the tree the upload expanded into.
     from siliconcompiler.remote.server.running import runspec
-    kept = json.loads((root / runspec.SUMMARY_FILENAME).read_text())
-    assert manifestread.validate(kept)["flow"]
-    # Above the tree the upload expanded into.
+    assert manifestread.validate(json.loads((root / runspec.SUMMARY_FILENAME).read_text()))["flow"]
     assert (root / "gcd" / "job0").is_dir()
     assert not (root / "gcd" / "job0" / runspec.SUMMARY_FILENAME).exists()
 
@@ -471,8 +412,7 @@ def test_the_summary_is_kept_outside_what_an_upload_can_write(
 ###########################
 
 class ReadingDispatcher(FakeDispatcher):
-    '''A cluster that runs the read it is handed, in this process, and says
-    what it was asked to run it in.'''
+    '''Runs the read it is handed in this process, recording what it was asked.'''
 
     name = "slurm"
 
@@ -492,9 +432,8 @@ class ReadingDispatcher(FakeDispatcher):
 def test_with_containers_the_read_runs_in_a_bundle_of_the_jobs_own_image(  # noqa: F811
         container_server, container_client, key, container_token, job_archive,  # noqa: F811
         monkeypatch):
-    '''On a cluster the read is a batch job in the job's framework image, with
-    the extracted tree mounted read-only, nothing else bound, and a network
-    namespace of its own (profile D63).'''
+    '''A batch job in the job's framework image: the tree mounted read-only,
+    nothing else bound, a network namespace of its own (profile D63).'''
     from siliconcompiler.remote.server.software import images
 
     fake = ReadingDispatcher()
@@ -520,7 +459,6 @@ def test_with_containers_the_read_runs_in_a_bundle_of_the_jobs_own_image(  # noq
 def test_with_containers_on_docker_the_read_runs_with_no_network(  # noqa: F811
         container_server, container_client, key, container_token, job_archive,  # noqa: F811
         monkeypatch):
-    '''The docker daemon's own container: no network, the tree read-only.'''
     import docker
 
     ran = {}

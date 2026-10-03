@@ -1,12 +1,14 @@
+import importlib.metadata
 import json
 import os
+import re
 import zipfile
 
 from pathlib import Path
 
 import pytest
 
-from conftest import outcome
+from conftest import call, job_after, outcome, slug
 
 from siliconcompiler import Flowgraph
 from siliconcompiler.remote import environment
@@ -14,17 +16,15 @@ from siliconcompiler.remote.server.jobs import pythonenv
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 
-# A job's Python packages (surface *A node's own Python packages, built while
-# staging*): the create body's `python_packages`, held to one grammar at both
-# ends, and the wheels under `sc_collected_files/python/`, held to what an
-# upload may carry -- then installed while staging, from the deployment's own
-# indexes, where the job's nodes that run the user's Python find them.
+# A job's Python packages: the lists, held to one grammar at both ends, and the
+# uploaded wheels, held to what an upload may carry -- installed while staging.
+
+HELD = importlib.metadata.version("packaging")
 
 
 def make_wheel(where, name, version, requires=(), files=None, tag="py3-none-any",
                wheel_tags=None, purelib=True):
-    '''A wheel, as small as pip will take, with what a test needs wrong in
-    it. Returns its path.'''
+    '''A wheel as small as pip takes, with what a test needs wrong in it.'''
     escaped = name.replace("-", "_")
     path = os.path.join(str(where), f"{escaped}-{version}-{tag}.whl")
     info = f"{escaped}-{version}.dist-info"
@@ -44,11 +44,29 @@ def make_wheel(where, name, version, requires=(), files=None, tag="py3-none-any"
     return path
 
 
+def simple_index(flat, yanked=()):
+    '''A PEP 503 index on disk over the files in ``flat`` (moved there), as a
+    file: URL; each of ``yanked`` marked as PEP 592 marks it.'''
+    root = flat.parent / "simple"
+    root.mkdir(exist_ok=True)
+    for name in sorted(os.listdir(flat)):
+        project = re.sub(r"[-_.]+", "-", name.split("-", 1)[0]).lower()
+        (root / project).mkdir(exist_ok=True)
+        os.replace(flat / name, root / project / name)
+    for project in os.listdir(root):
+        links = ""
+        for name in sorted(os.listdir(root / project)):
+            mark = ' data-yanked=""' if name in yanked else ""
+            links += f'<a href="{name}"{mark}>{name}</a>\n'
+        (root / project / "index.html").write_text(f"<html><body>{links}</body></html>\n")
+    return root.as_uri() + "/"
+
+
 ###########################
 # The lists' grammar
 ###########################
 
-def test_what_the_lists_take():
+def test_what_the_lists_take_and_how_the_builder_writes_them():
     packages = environment.parse({"requirements": ["numpy==1.26.4", "pyuvm==3.0.0"],
                                   "constraints": ["scapy==2.5.0", "cocotbext-eth==0.1.28"]})
 
@@ -60,6 +78,9 @@ def test_what_the_lists_take():
     # Every PEP 440 form in its canonical spelling.
     for version in ("2!1.0", "1.0rc1", "1.0.post2", "1.0.dev3", "2.1.0+cpu.1"):
         assert environment.parse_entry(f"x=={version}").version == version
+    # 🔴 Nothing the job wrote is handed to pip: the builder writes canonical names.
+    assert environment.render(environment.parse({"requirements": ["PyUVM==3.0.0"]})
+                              .requirements, header="here") == "# here\npyuvm==3.0.0\n"
 
 
 @pytest.mark.parametrize("entry", [
@@ -86,14 +107,10 @@ def test_everything_else_is_refused_naming_the_entry(entry):
     assert refused.value.entry is not None
 
 
-def test_each_name_once_across_both_lists_as_pep_503_sees_it():
+def test_the_bounds_and_each_name_once_across_both_lists_as_pep_503_sees_it():
     with pytest.raises(environment.PackagesError, match="named twice") as refused:
         environment.parse({"requirements": ["Foo_Bar==1.0"], "constraints": ["foo-bar==2.0"]})
-
     assert refused.value.entry == "foo-bar==2.0"
-
-
-def test_the_bounds():
     with pytest.raises(environment.PackagesError, match="1001 entries"):
         environment.parse({"constraints": [f"p{n}==1.0" for n in range(1001)]})
     long = "x" * 100
@@ -103,16 +120,6 @@ def test_the_bounds():
         environment.parse({"requirements": [], "extras": []})
     with pytest.raises(environment.PackagesError, match="is an object"):
         environment.parse(["numpy==1.0"])
-
-
-def test_the_builder_writes_its_own_files_from_what_parsed():
-    '''🔴 Nothing the job wrote is handed to pip: the names are the
-    canonical ones, one per line.'''
-    packages = environment.parse({"requirements": ["PyUVM==3.0.0"]})
-
-    text = environment.render(packages.requirements, header="written here")
-
-    assert text == "# written here\npyuvm==3.0.0\n"
 
 
 ###########################
@@ -127,6 +134,9 @@ def test_a_pure_wheel_is_taken(tmp_path):
     # What it holds, for the extraction limits: the module and its dist-info.
     assert wheel.members == 4 and wheel.expanded > 0
     assert environment.wheel_name(path) == "scfake-helper"
+    # Only a TOP-LEVEL sitecustomize runs by itself; one in a package is its module.
+    assert environment.check_wheel(make_wheel(
+        tmp_path, "scfake", "1.0", files={"scfake/sitecustomize.py": ""})).name == "scfake"
 
 
 @pytest.mark.parametrize("change,why", [
@@ -153,10 +163,9 @@ def test_a_wheel_that_is_not_pure_or_is_malformed_is_refused(tmp_path, change, w
         environment.check_wheel(path)
 
 
-def test_a_wheel_must_say_inside_what_its_name_says(tmp_path):
+def test_a_wheel_misnamed_not_a_zip_or_holding_a_link_is_refused(tmp_path):
     path = make_wheel(tmp_path, "scfake", "1.0")
     os.rename(path, tmp_path / "other-1.0-py3-none-any.whl")
-
     with pytest.raises(environment.WheelError, match="names another"):
         environment.check_wheel(tmp_path / "other-1.0-py3-none-any.whl")
 
@@ -167,26 +176,59 @@ def test_a_wheel_must_say_inside_what_its_name_says(tmp_path):
     with pytest.raises(environment.WheelError, match="not named as a wheel"):
         environment.check_wheel(tmp_path / "scfake.zip")
 
-
-def test_a_wheel_whose_own_module_is_called_sitecustomize_inside_a_package_is_taken(
-        tmp_path):
-    '''Only a TOP-LEVEL sitecustomize runs by itself; one inside a package is
-    that package's module.'''
-    path = make_wheel(tmp_path, "scfake", "1.0",
-                      files={"scfake/sitecustomize.py": "VALUE = 1\n"})
-
-    assert environment.check_wheel(path).name == "scfake"
-
-
-def test_a_link_in_a_wheel_is_refused(tmp_path):
     path = make_wheel(tmp_path, "scfake", "1.0")
     with zipfile.ZipFile(path, "a") as archive:
         info = zipfile.ZipInfo("scfake/link")
         info.external_attr = 0o120777 << 16
         archive.writestr(info, "/etc/passwd")
-
     with pytest.raises(environment.WheelError, match="link"):
         environment.check_wheel(path)
+
+
+###########################
+# The deployment
+###########################
+
+@pytest.mark.parametrize("values,offered", [
+    ({"features": ["python.env"]}, True),                    # host mode installs them
+    ({"containers": True, "env_builder": True}, True),       # in containers, the builder
+    ({"containers": True}, False),
+    ({"features": ["python.env"], "containers": True}, "python.env"),   # nothing to build with
+    ({"env_builder": True}, "env_builder"),                  # a builder needs containers
+])
+def test_python_env_is_offered_only_where_something_installs_the_packages(
+        tmp_path, values, offered):
+    from siliconcompiler.remote.server.config import Config
+
+    (tmp_path / "config.json").write_text(json.dumps(values))
+    if isinstance(offered, str):
+        with pytest.raises(ValueError, match=offered):
+            Config.load(tmp_path)
+    else:
+        assert ("python.env" in Config.load(tmp_path)["features"]) is offered
+
+
+def test_the_packages_go_on_the_path_of_a_node_running_the_users_python_only(
+        python_project, monkeypatch, tmp_path):
+    '''🔴 The host's site, then a derived image's layer, where each exists.'''
+    from siliconcompiler.scheduler import SchedulerNode
+    from siliconcompiler.utils.paths import jobdir
+
+    site = os.path.join(jobdir(python_project), environment.site_path())
+    layer = str(tmp_path / "layer")
+    monkeypatch.setattr(environment, "IMAGE_SITE", layer)
+
+    def path(step):
+        node = SchedulerNode(python_project, step, "0")
+        with node.runtime():
+            return node.task.get_runtime_environmental_variables().get(
+                "PYTHONPATH", "").split(os.pathsep)
+
+    assert site not in path("stepone") and layer not in path("stepone")   # none installed
+    os.makedirs(site)
+    os.makedirs(layer)
+    assert path("stepone")[:2] == [site, layer]
+    assert site not in path("steptwo") and layer not in path("steptwo")
 
 
 ###########################
@@ -196,41 +238,29 @@ def test_a_link_in_a_wheel_is_refused(tmp_path):
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 
-def slug(response):
-    return (response.get_json().get("type") or "").rsplit("/", 1)[-1]
-
-
 def offers_python_env(server):
     server.config["SC_CONFIG"]._values["features"] = \
         server.config["SC_CONFIG"]["features"] + ["python.env"]
     return server
 
 
-def test_a_lists_entry_outside_the_grammar_is_refused_at_create(
-        server, server_client, key, token):
-    '''`400 invalid-request`, naming the entry: a client bug.'''
+@pytest.mark.parametrize("offered,entry,status,problem", [
+    (True, "numpy>=1.26", 400, "invalid-request"),          # a client bug, named
+    (False, "numpy==1.26.4", 501, "feature-unsupported"),   # the deployment installs none
+])
+def test_packages_outside_the_grammar_or_where_none_are_installed_are_refused_at_create(
+        server, server_client, key, token, offered, entry, status, problem):
     from test_server_jobs import create
 
-    offers_python_env(server)
-    response = create(server_client, key, token,
-                      python_packages={"requirements": ["numpy>=1.26"]})
+    if offered:
+        offers_python_env(server)
+    response = create(server_client, key, token, python_packages={"requirements": [entry]})
 
-    assert response.status_code == 400
-    assert slug(response) == "invalid-request"
-    assert "numpy>=1.26" in response.get_json()["detail"]
-
-
-def test_packages_where_the_deployment_installs_none_are_refused_at_create(
-        server, server_client, key, token):
-    from test_server_jobs import create
-
-    assert "python.env" not in server.config["SC_CONFIG"]["features"]
-    response = create(server_client, key, token,
-                      python_packages={"requirements": ["numpy==1.26.4"]})
-
-    assert response.status_code == 501
-    assert (slug(response), response.get_json()["feature"]) == \
-        ("feature-unsupported", "python.env")
+    assert (response.status_code, slug(response)) == (status, problem)
+    if offered:
+        assert entry in response.get_json()["detail"]
+    else:
+        assert response.get_json()["feature"] == "python.env"
 
 
 def test_the_lists_are_kept_on_the_job_as_the_grammar_took_them(
@@ -253,6 +283,37 @@ def test_the_lists_are_kept_on_the_job_as_the_grammar_took_them(
     assert slug(again) == "idempotency-key-reuse"
 
 
+def test_bare_slurm_with_no_builder_offers_no_python_env(tmp_path):
+    from siliconcompiler.remote.server.app import create_app
+
+    (tmp_path / "config.json").write_text(
+        json.dumps({"features": ["logs.stream", "python.env"]}))
+    with pytest.raises(ValueError, match="python.env"):
+        create_app(tmp_path, cluster="slurm")
+
+
+@pytest.mark.parametrize("containers,name,pin,available", [
+    (False, "scnosuchdistribution", "==1.0", []),     # host mode: from its own Python
+    (True, "scnosuchdistribution", "==1.0", []),      # containers: from the live images
+    (False, "packaging", "==0.0.1", [HELD]),
+    (False, "packaging", f"=={HELD}", None),          # held: created
+])
+def test_a_listed_python_name_is_answered_from_what_this_server_holds(
+        server, server_client, key, token, containers, name, pin, available):
+    '''🔴 A server never ignores a listed name.'''
+    server.config["SC_CONFIG"]._values["containers"] = containers
+    response = call(server_client, key, "POST", "/v1/jobs", token, json={
+        "design": "gcd", "jobname": "job0",
+        "descriptor": {"requested_versions": {"python": {name: [pin]}}}})
+
+    if available is None:
+        assert response.status_code == 201, response.get_json()
+        return
+    assert (response.status_code, slug(response)) == (422, "software-unavailable")
+    assert response.get_json()["unresolved"] == [
+        {"kind": "python", "name": name, "requirement": [pin], "available": available}]
+
+
 ###########################
 # While staging
 ###########################
@@ -272,20 +333,24 @@ def with_wheels(job_archive, project, *wheels):
         for path in wheels})
 
 
-def submitted(server_client, key, token, archive, **body):
+def submit_archive(server_client, key, token, archive, **body):
+    '''The submit's own answer, for a job created with ``body``.'''
     from test_server_jobs import stage, submit
 
     path, digest, size = archive
     job = stage(server_client, key, token, path, size, **body)
+    return submit(server_client, key, token, job["id"], digest, size)
+
+
+def submitted(server_client, key, token, archive, **body):
     return outcome(server_client, key, token,
-                   submit(server_client, key, token, job["id"], digest, size))
+                   submit_archive(server_client, key, token, archive, **body))
 
 
 @pytest.fixture
 def installed(monkeypatch, tmp_path):
-    '''Host mode's install while staging, without pip: what it was asked
-    for, and a site of its own for each -- or, where ``absent`` is set, the
-    packages no index has.'''
+    '''Host mode's install, without pip: what it was asked for, and a site
+    for each -- or, while ``absent`` holds entries, what no index has.'''
     from siliconcompiler.remote.server.packages import envinstall
 
     asked = []
@@ -307,17 +372,9 @@ def installed(monkeypatch, tmp_path):
     return install
 
 
-def test_a_wheel_where_the_deployment_installs_none_is_refused(
-        server, server_client, key, token, job_archive, python_project, tmp_path):
-    response = submitted(server_client, key, token, with_wheels(
-        job_archive, python_project, make_wheel(tmp_path, "scfake-helper", "0.1.0")))
-
-    assert response.status_code == 422
-    assert (slug(response), response.get_json()["reason"]) == \
-        ("archive-rejected", "python_package")
-
-
 @pytest.mark.parametrize("wheels,body,why", [
+    # why=None: the deployment installs no packages, so any wheel is refused.
+    ([("scfake-helper", "0.1.0", {})], {}, None),
     ([("scfake", "1.0", {"tag": "cp312-cp312-linux_x86_64"})], {}, "only a pure wheel"),
     ([("scfake", "1.0", {"files": {"scfake/_c.so": "x"}})], {}, "compiled"),
     # 🔴 A distribution travels one way: as a wheel, or in the lists.
@@ -332,11 +389,15 @@ def test_a_wheel_where_the_deployment_installs_none_is_refused(
      "scfake_hook.pth"),
     ([("scfake", "1.0", {"requires": ["bits @ https://example.test/bits.whl"]})], {},
      "dependency by URL"),
+    # The image holds it, and a second copy would be the one the tool loads.
+    ([("packaging", HELD, {})], {"requested_versions": {"python": {"packaging": [f"=={HELD}"]}}},
+     "requested_versions.python"),
 ])
 def test_a_wheel_that_is_impure_or_overlaps_is_refused(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         wheels, body, why):
-    offers_python_env(server)
+    if why:
+        offers_python_env(server)
     made = [make_wheel(tmp_path, name, version, **change)
             for name, version, change in wheels]
 
@@ -346,14 +407,12 @@ def test_a_wheel_that_is_impure_or_overlaps_is_refused(
     assert response.status_code == 422, response.get_json()
     assert (slug(response), response.get_json()["reason"]) == \
         ("archive-rejected", "python_package")
-    assert why in response.get_json()["detail"]
+    assert why is None or why in response.get_json()["detail"]
 
 
 def test_a_wheels_own_members_are_held_to_the_extraction_limits(
         server, server_client, key, token, job_archive, python_project, tmp_path):
-    '''A wheel's members are held as any member is, counted together with the
-    archive's own (surface D292): a small wheel that expands past what the
-    archive may is refused as the archive would be, naming it.'''
+    '''Counted with the archive's own (D292), and the wheel named.'''
     import tarfile
 
     offers_python_env(server)
@@ -366,27 +425,9 @@ def test_a_wheels_own_members_are_held_to_the_extraction_limits(
 
     response = submitted(server_client, key, token, archive)
 
-    assert response.status_code == 422, response.get_json()
     assert (slug(response), response.get_json()["reason"]) == \
         ("archive-rejected", "expanded_bytes")
     assert "scfake-1.0-py3-none-any.whl" in response.get_json()["detail"]
-
-
-def test_a_wheel_for_what_requested_versions_python_names_is_refused(
-        server, server_client, key, token, job_archive, python_project, tmp_path):
-    '''The image holds it, and a second copy would be the one the tool loads.'''
-    from importlib.metadata import version
-
-    offers_python_env(server)
-    held = version("packaging")
-    response = submitted(
-        server_client, key, token,
-        with_wheels(job_archive, python_project, make_wheel(tmp_path, "packaging", held)),
-        requested_versions={"python": {"packaging": [f"=={held}"]}})
-
-    assert (slug(response), response.get_json()["reason"]) == \
-        ("archive-rejected", "python_package")
-    assert "requested_versions.python" in response.get_json()["detail"]
 
 
 def test_the_old_python_tree_is_not_where_anything_goes(
@@ -403,8 +444,10 @@ def test_the_old_python_tree_is_not_where_anything_goes(
 def test_the_lists_and_the_wheels_are_installed_once_while_staging(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         installed, dispatcher):
-    '''From the deployment's own indexes; linked where a node running the
-    user's Python finds it; and what it did is in the job-level log.'''
+    '''From the deployment's indexes, linked where the node finds it, and
+    recorded in the job's `staging` record (D295).'''
+    from siliconcompiler.remote.server.outputs import record
+
     offers_python_env(server)
     helper = make_wheel(tmp_path, "scfake-helper", "0.1.0")
 
@@ -418,12 +461,9 @@ def test_the_lists_and_the_wheels_are_installed_once_while_staging(
     assert dispatcher.submitted
 
     job = response.get_json()
-    jobs = server.config["SC_JOBS"]
-    tree = jobs.job_root(job["owner"]["id"], job["id"]) / "gcd" / "job0"
-    assert (tree / environment.site_path()).is_symlink()
-    # What the install added is in the job's `staging` record (surface D295).
-    from siliconcompiler.remote.server.outputs import record
-    log = (jobs.job_root(job["owner"]["id"], job["id"]) / record.STAGING_LOG).read_text()
+    root = server.config["SC_JOBS"].job_root(job["owner"]["id"], job["id"])
+    assert (root / "gcd" / "job0" / environment.site_path()).is_symlink()
+    log = (root / record.STAGING_LOG).read_text()
     assert "installed numpy==1.26.4" in log
     assert "packaging 25.0 (listed 1.0)" in log
 
@@ -451,127 +491,73 @@ def test_nothing_is_installed_where_nothing_would_use_it(
     assert dispatcher.submitted
 
 
-def test_a_package_no_index_has_is_sent_back_and_answered_with_its_wheel(
+@pytest.mark.parametrize("name,version,refusal", [
+    ("scfake-private", "1.2.0", None),               # installed in place of its entry
+    ("scfake-other", "1.0", "unrequested_member"),   # not what was asked for
+    ("scfake-private", "1.3.0", "python_package"),   # not at its entry's version (D286)
+])
+def test_a_package_no_index_has_is_sent_back_and_answered_by_its_own_wheel(
         server, server_client, key, token, job_archive, python_project, tmp_path,
-        installed, dispatcher):
-    '''🔴 Asked for by name, `{"kind": "python"}`; the wheel that answers
-    replaces the listed entry, and is the one wheel that may overlap the
-    lists. Anything else in the follow-up is not what was asked for.'''
-    from conftest import call
+        installed, dispatcher, name, version, refusal):
+    '''🔴 Asked for by name; the wheel that answers replaces its entry, at its
+    version, and is the one wheel that may overlap the lists.'''
     from test_server_sources_flow import send
 
     offers_python_env(server)
     installed.absent = [["scfake-private"]]
-    member = {"requirements": ["numpy==1.26.4", "scfake-private==1.2.0"],
-              "constraints": ["scapy==2.5.0"]}
-
     response = submitted(server_client, key, token, job_archive(python_project),
-                         python_packages=member)
-    job = call(server_client, key, "GET", f"/v1/jobs/{response.get_json()['id']}",
-               token).get_json()
+                         python_packages={"requirements": ["numpy==1.26.4",
+                                                           "scfake-private==1.2.0"]})
+    job = job_after(server_client, key, token, response)
     assert job["state"] == "awaiting_input", job
     assert job["upload_sources"] == [{"kind": "python", "name": "scfake-private"}]
     assert not dispatcher.submitted
 
-    # A wheel nobody asked for is refused.
-    other = make_wheel(tmp_path, "scfake-other", "1.0")
-    refused = send(server_client, key, token, job["id"], {
-        f"{environment.wheels_path()}/{os.path.basename(other)}": open(other, "rb").read()})
-    assert refused.get_json()["reason"] == "unrequested_member"
+    wheel = make_wheel(tmp_path, name, version)
+    answered = send(server_client, key, token, job["id"], {
+        f"{environment.wheels_path()}/{os.path.basename(wheel)}": open(wheel, "rb").read()})
+
+    if refusal:
+        assert (slug(answered), answered.get_json()["reason"]) == ("archive-rejected", refusal)
+        if refusal == "python_package":
+            assert "1.3.0" in answered.get_json()["detail"]
+            assert "1.2.0" in answered.get_json()["detail"]
+        assert not dispatcher.submitted
+    else:
+        assert answered.status_code == 202, answered.get_json()
+        assert installed.asked[-1] == (["numpy==1.26.4"], [], [os.path.basename(wheel)],
+                                       ["https://pypi.org/simple/"])
+        assert dispatcher.submitted
 
 
-def test_the_wheel_that_answers_is_installed_in_place_of_its_entry(
+@pytest.mark.parametrize("asked", [True, False])
+def test_a_wheel_beside_its_listed_entry_in_the_first_archive_is_taken_only_where_asked(
         server, server_client, key, token, job_archive, python_project, tmp_path,
-        installed, dispatcher):
-    from conftest import call
-    from test_server_sources_flow import send
-
-    offers_python_env(server)
-    installed.absent = [["scfake-private"]]
-    member = {"requirements": ["numpy==1.26.4", "scfake-private==1.2.0"]}
-    response = submitted(server_client, key, token, job_archive(python_project),
-                         python_packages=member)
-    job_id = response.get_json()["id"]
-
-    private = make_wheel(tmp_path, "scfake-private", "1.2.0")
-    answered = send(server_client, key, token, job_id, {
-        f"{environment.wheels_path()}/{os.path.basename(private)}": open(private, "rb").read()})
-
-    assert answered.status_code == 202, answered.get_json()
-    job = call(server_client, key, "GET", f"/v1/jobs/{job_id}", token).get_json()
-    assert job["state"] != "rejected", job
-    assert installed.asked[-1] == (["numpy==1.26.4"], [], [os.path.basename(private)],
-                                   ["https://pypi.org/simple/"])
-    assert dispatcher.submitted
-
-
-def test_a_package_asked_for_at_create_is_answered_in_the_first_archive(
-        server, server_client, key, token, job_archive, python_project, tmp_path,
-        installed, dispatcher, monkeypatch):
-    '''🔴 Surface D306: the wheel exception covers an ask at create as well
-    as a job sent back. The wheel in the first archive replaces its listed
-    entry, and is not refused as an overlap. This server's create asks only
-    for dataroots, so the ask is made for it here.'''
-    from conftest import call
+        installed, dispatcher, monkeypatch, asked):
+    '''🔴 D306: the wheel exception covers an ask at create too (made here:
+    this create asks only for dataroots); unasked, it travels two ways.'''
     from siliconcompiler.remote.server.jobs import JobService
 
     offers_python_env(server)
-    real = JobService._look_up
-    monkeypatch.setattr(JobService, "_look_up", lambda self, declared: real(
-        self, declared) + [{"kind": "python", "name": "scfake-private"}])
-    member = {"requirements": ["numpy==1.26.4", "scfake-private==1.2.0"]}
+    if asked:
+        real = JobService._look_up
+        monkeypatch.setattr(JobService, "_look_up", lambda self, declared: real(
+            self, declared) + [{"kind": "python", "name": "scfake-private"}])
     private = make_wheel(tmp_path, "scfake-private", "1.2.0")
 
     response = submitted(server_client, key, token,
-                         with_wheels(job_archive, python_project, private),
-                         python_packages=member, sources=[])
+                         with_wheels(job_archive, python_project, private), sources=[],
+                         python_packages={"requirements": ["numpy==1.26.4",
+                                                           "scfake-private==1.2.0"]})
 
-    assert response.status_code == 202, response.get_json()
-    job = call(server_client, key, "GET", f"/v1/jobs/{response.get_json()['id']}",
-               token).get_json()
-    assert job["state"] != "rejected", job
-    assert installed.asked[-1][:3] == (["numpy==1.26.4"], [], [os.path.basename(private)])
-    assert dispatcher.submitted
-
-
-def test_an_unasked_wheel_beside_its_listed_entry_is_still_an_overlap(
-        server, server_client, key, token, job_archive, python_project, tmp_path,
-        installed, dispatcher):
-    '''The exception is for what was asked: the same wheel, unasked, is a
-    distribution travelling two ways.'''
-    offers_python_env(server)
-    member = {"requirements": ["numpy==1.26.4", "scfake-private==1.2.0"]}
-    private = make_wheel(tmp_path, "scfake-private", "1.2.0")
-
-    response = submitted(server_client, key, token,
-                         with_wheels(job_archive, python_project, private),
-                         python_packages=member, sources=[])
-
-    assert (slug(response), response.get_json()["reason"]) == \
-        ("archive-rejected", "python_package")
-
-
-def test_the_wheel_that_answers_is_at_its_entrys_version(
-        server, server_client, key, token, job_archive, python_project, tmp_path,
-        installed, dispatcher):
-    '''🔴 It replaces the entry, so it is at the entry's version (surface
-    D286): another is `python_package`, naming both.'''
-    from test_server_sources_flow import send
-
-    offers_python_env(server)
-    installed.absent = [["scfake-private"]]
-    response = submitted(server_client, key, token, job_archive(python_project),
-                         python_packages={"requirements": ["scfake-private==1.2.0"]})
-    job_id = response.get_json()["id"]
-
-    other = make_wheel(tmp_path, "scfake-private", "1.3.0")
-    refused = send(server_client, key, token, job_id, {
-        f"{environment.wheels_path()}/{os.path.basename(other)}": open(other, "rb").read()})
-
-    assert (slug(refused), refused.get_json()["reason"]) == \
-        ("archive-rejected", "python_package")
-    assert "1.3.0" in refused.get_json()["detail"] and "1.2.0" in refused.get_json()["detail"]
-    assert not dispatcher.submitted
+    if asked:
+        assert response.status_code == 202, response.get_json()
+        assert installed.asked[-1][:3] == (["numpy==1.26.4"], [],
+                                           [os.path.basename(private)])
+        assert dispatcher.submitted
+    else:
+        assert (slug(response), response.get_json()["reason"]) == \
+            ("archive-rejected", "python_package")
 
 
 @pytest.mark.parametrize("result,expected", [
@@ -584,11 +570,8 @@ def test_the_wheel_that_answers_is_at_its_entrys_version(
 def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
         server, server_client, key, token, job_archive, python_project, dispatcher,
         monkeypatch, result, expected):
-    '''🔴 Host mode installs while staging, so a package that will not install
-    is `rejected`, `software-unavailable`, `uninstallable`, naming the package
-    and the target -- not a failed run. An index that does not answer is this
-    server's failure: `failed`, `staging-failed`.'''
-    from conftest import call
+    '''🔴 `rejected` `uninstallable`, naming the package and target -- not a
+    failed run; an index that does not answer is this server's failure.'''
     from siliconcompiler.remote.server.packages import envinstall
 
     def install(*args, **kwargs):
@@ -597,13 +580,9 @@ def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
     monkeypatch.setattr(envinstall, "install", install)
     offers_python_env(server)
 
-    from test_server_jobs import stage, submit
-
-    path, digest, size = job_archive(python_project)
-    created = stage(server_client, key, token, path, size,
-                    python_packages={"requirements": ["numpy==1.26.4"]})
-    submit(server_client, key, token, created["id"], digest, size)
-    job = call(server_client, key, "GET", f"/v1/jobs/{created['id']}", token).get_json()
+    job = job_after(server_client, key, token, submit_archive(
+        server_client, key, token, job_archive(python_project),
+        python_packages={"requirements": ["numpy==1.26.4"]}))
 
     error = job["error"]
     if expected == "uninstallable":
@@ -619,35 +598,13 @@ def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
     assert not dispatcher.submitted
 
 
-###########################
-# End to end, pip for real, over an index on disk
-###########################
-
-def simple_index(where, *wheels):
-    '''A PEP 503 index on disk over some wheels, as a file: URL.'''
-    root = where / "simple"
-    for path in wheels:
-        project = environment.wheel_name(path)
-        (root / project).mkdir(parents=True, exist_ok=True)
-        os.replace(path, root / project / os.path.basename(path))
-        (root / project / "index.html").write_text("".join(
-            f'<a href="{name}">{name}</a>\n' for name in sorted(os.listdir(root / project))
-            if name.endswith(".whl")))
-    root.mkdir(exist_ok=True)
-    return root.as_uri() + "/"
-
-
 def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         monkeypatch):
-    '''🔴 One job through every step with pip for real: a package the index has
-    and one it does not; the job sent back for that one, and answered with its
-    wheel; the lists and the wheels installed while staging into the user's own
-    cache; linked where the node's task finds them; dispatched here; and run to
-    the end.'''
+    '''🔴 End to end, pip for real over an index on disk: sent back for the
+    package the index lacks, answered with its wheel, installed, and run.'''
     import time
 
-    from conftest import call
     from test_server_sources_flow import send
 
     pytest.importorskip("pip")
@@ -657,8 +614,8 @@ def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
     offers_python_env(server)
     made = tmp_path / "made"
     made.mkdir()
-    index = simple_index(tmp_path, make_wheel(made, "scfake-bits", "1.2.0"))
-    server.config["SC_CONFIG"]._values["package_indexes"] = [index]
+    make_wheel(made, "scfake-bits", "1.2.0")
+    server.config["SC_CONFIG"]._values["package_indexes"] = [simple_index(made)]
 
     response = submitted(
         server_client, key, token, with_wheels(job_archive, python_project, make_wheel(
@@ -685,8 +642,7 @@ def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
     job = settled("completed")
     assert job["state"] == "completed", job
 
-    jobs = server.config["SC_JOBS"]
-    tree = jobs.job_root(job["owner"]["id"], job_id) / "gcd" / "job0"
+    tree = server.config["SC_JOBS"].job_root(job["owner"]["id"], job_id) / "gcd" / "job0"
     site = tree / environment.site_path()
     assert site.is_symlink()
     # 🔴 The environment of its key, never one in the user's cache that two
@@ -695,88 +651,3 @@ def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
                                      / pythonenv.ENVIRONMENTS).resolve()
     assert sorted(entry for entry in os.listdir(site) if not entry.endswith("-info")) == \
         ["scfake_bits", "scfake_helper", "scfake_private"]
-
-
-###########################
-# The tool's path
-###########################
-
-def test_the_packages_go_on_the_path_of_a_node_running_the_users_python_only(
-        python_project):
-    '''🔴 Never on SiliconCompiler's own path, and never on a node whose task
-    runs none of the user's Python.'''
-    from siliconcompiler.scheduler import SchedulerNode
-    from siliconcompiler.utils.paths import jobdir
-
-    site = os.path.join(jobdir(python_project), environment.site_path())
-    os.makedirs(site)
-
-    def path(step):
-        node = SchedulerNode(python_project, step, "0")
-        with node.runtime():
-            return node.task.get_runtime_environmental_variables().get(
-                "PYTHONPATH", "").split(os.pathsep)
-
-    assert path("stepone")[0] == site
-    assert site not in path("steptwo")
-
-
-###########################
-# The deployment
-###########################
-
-def test_the_deployment_does_not_advertise_what_it_cannot_build(tmp_path):
-    '''No builder: where nodes run in containers there is nothing to install
-    a job's packages with.'''
-    from siliconcompiler.remote.server.config import Config
-
-    (tmp_path / "config.json").write_text(json.dumps(
-        {"features": ["python.env"], "containers": True}))
-    with pytest.raises(ValueError, match="python.env"):
-        Config.load(tmp_path)
-
-
-def test_bare_slurm_with_no_builder_offers_no_python_env(tmp_path):
-    from siliconcompiler.remote.server.app import create_app
-
-    (tmp_path / "config.json").write_text(
-        json.dumps({"features": ["logs.stream", "python.env"]}))
-    with pytest.raises(ValueError, match="python.env"):
-        create_app(tmp_path, cluster="slurm")
-
-
-@pytest.mark.parametrize("containers,available", [(False, []), (True, [])])
-def test_a_python_name_nothing_here_holds_is_refused_at_create(
-        server, server_client, key, token, containers, available):
-    '''🔴 A server never ignores a listed name: host mode answers from its
-    own Python, and where nodes run in containers, from the live images.'''
-    from conftest import call
-
-    server.config["SC_CONFIG"]._values["containers"] = containers
-    response = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0",
-        "descriptor": {"requested_versions": {"python": {"scnosuchdistribution": ["==1.0"]}}}})
-
-    assert response.status_code == 422, response.get_json()
-    body = response.get_json()
-    assert slug(response) == "software-unavailable"
-    assert body["unresolved"] == [{"kind": "python", "name": "scnosuchdistribution",
-                                   "requirement": ["==1.0"], "available": available}]
-
-
-def test_host_mode_answers_from_its_own_python(server, server_client, key, token):
-    from importlib.metadata import version
-
-    from conftest import call
-
-    ok = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job0",
-        "descriptor": {"requested_versions": {
-            "python": {"packaging": [f"=={version('packaging')}"]}}}})
-    assert ok.status_code == 201, ok.get_json()
-
-    other = call(server_client, key, "POST", "/v1/jobs", token, json={
-        "design": "gcd", "jobname": "job1",
-        "descriptor": {"requested_versions": {"python": {"packaging": ["==0.0.1"]}}}})
-    assert other.status_code == 422
-    assert other.get_json()["unresolved"][0]["available"] == [version("packaging")]

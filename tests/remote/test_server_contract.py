@@ -5,15 +5,20 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
+import test_logs                                                        # noqa: E402
+
 from conftest import call, login, slug                                  # noqa: E402
+from test_logs import frames                                            # noqa: E402
 from test_server_jobs import FakeDispatcher, stage, submit              # noqa: E402
 from test_server_jobs import (                                          # noqa: E402,F401
     container_client, container_server, container_token, registry)
 
+# The running-node fixture, shared rather than copied.
+running = test_logs.running
+
 
 # The server half of the contract's behaviour tests (contract.md §6), written
-# so crucible can reuse them: the rules the rest of the suite does not already
-# hold.
+# so crucible can reuse them: the rules the rest of the suite does not hold.
 
 
 @pytest.fixture
@@ -26,10 +31,6 @@ def dispatcher(server):
 def job_read(client, key, token, job_id):
     return call(client, key, "GET", f"/v1/jobs/{job_id}", token).get_json()
 
-
-###########################
-# Scopes
-###########################
 
 def test_jobs_delete_gates_a_delete(server, server_client, key, job_archive, dispatcher):
     '''`jobs:write` keeps create, upload-grant, submit and cancel; a delete
@@ -54,8 +55,7 @@ def test_jobs_delete_gates_a_delete(server, server_client, key, job_archive, dis
 
 def test_a_staging_step_that_breaks_is_staging_failed(server, server_client, key, token,
                                                       job_archive, dispatcher, monkeypatch):
-    '''The catch-all: this server's own failure, `failed` and never `rejected`,
-    with `detail` naming only what failed.'''
+    '''The catch-all: `failed`, never `rejected`, and `detail` names only what failed.'''
     from siliconcompiler.remote.server.jobs import JobService
 
     def breaks(self, *args, **kwargs):
@@ -98,88 +98,17 @@ def test_an_image_that_will_not_unpack_is_staging_failed(  # noqa: F811
     assert not fake.submitted
 
 
-###########################
-# Logs
-###########################
-
-def test_a_stream_ends_when_its_capability_does(server, server_client, key, token):
+def test_a_stream_ends_when_its_capability_does(server, server_client, running):
     '''🔴 `end {"reason": "expired"}` at the URL's deadline, which is no later
     than the access token's: the client asks `/logs` again.'''
-    from test_logs import frames
-
-    import uuid
-
-    store = server.config["SC_STORE"]
-    me = call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
-    job_id = str(uuid.uuid4())
-    store.execute("INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
-                  "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
-                  (job_id, me))
-    store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
-                  "VALUES (?, 'place', '0', 'running')", (job_id,))
-    row = store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
-    log = server.config["SC_JOBS"].node_log_path(row, "place", "0")
-    log.parent.mkdir(parents=True, exist_ok=True)
+    job_id, log = running
     log.write_text("still going\n")
-
-    storage = server.config["SC_STORAGE"]
     expires = int(time.time()) + 2
-    signature = storage.sign_stream(job_id, "place", "0", expires, "n1")
+    signature = server.config["SC_STORAGE"].sign_stream(job_id, "place", "0", expires, "n1")
     started = time.monotonic()
-    response = server_client.get(
-        f"/stream/logs/{job_id}/place/0?expires={expires}&n=n1&sig={signature}")
 
-    events = frames(response)
+    events = frames(server_client.get(
+        f"/stream/logs/{job_id}/place/0?expires={expires}&n=n1&sig={signature}"))
+
     assert events[-1][0] == "end" and events[-1][2] == {"reason": "expired"}
     assert time.monotonic() - started < 10
-
-
-###########################
-# Behind a proxy that rewrites Host
-###########################
-
-def test_the_log_redirect_is_built_on_the_configured_origin(tmp_path):
-    '''The stream `303`, like every URL handed out, is on the configured
-    origin and never the `Host` a proxy wrote.'''
-    from siliconcompiler.remote import dpop
-    from siliconcompiler.remote.server.app import create_app
-    import uuid
-
-    datadir = tmp_path / "proxied"
-    datadir.mkdir()
-    (datadir / "config.json").write_text(json.dumps(
-        {"public_origins": ["https://sc.example.test"]}))
-    app = create_app(datadir)
-    client = app.test_client()
-    key = dpop.generate_key()
-    backend = {"Host": "backend:8080"}
-    public = "https://sc.example.test"
-
-    token = client.post(
-        "/v1/auth/token", data={"grant_type": "client_credentials",
-                                "client_id": "local:machine:1000"},
-        headers={"DPoP": dpop.sign_proof(key, "POST", f"{public}/v1/auth/token"),
-                 **backend},
-        content_type="application/x-www-form-urlencoded").get_json()["access_token"]
-
-    def authed(method, path):
-        return client.open(path, method=method, headers={
-            "Authorization": f"DPoP {token}", **backend,
-            "DPoP": dpop.sign_proof(key, method, public + path.split("?")[0],
-                                    access_token=token)})
-
-    me = authed("GET", "/v1/me").get_json()["id"]
-    store = app.config["SC_STORE"]
-    job_id = str(uuid.uuid4())
-    store.execute("INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, "
-                  "manifest_pdk) VALUES (?, ?, 'running', 'gcd', 'job0', '{}', 'none')",
-                  (job_id, me))
-    store.execute('INSERT INTO job_nodes (job_id, step, "index", state) '
-                  "VALUES (?, 'place', '0', 'running')", (job_id,))
-
-    node = authed("GET", f"/v1/jobs/{job_id}/logs?step=place&index=0")
-    whole = authed("GET", f"/v1/jobs/{job_id}/logs")
-
-    assert node.status_code == 303, node.get_json()
-    assert node.headers["Location"].startswith(f"{public}/stream/logs/{job_id}/place/0?")
-    assert whole.headers["Location"].startswith(f"{public}/stream/logs/{job_id}?")

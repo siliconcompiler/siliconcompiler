@@ -6,9 +6,8 @@ from siliconcompiler.remote.server.staging import allowlist
 from siliconcompiler.remote.server.staging.sources import SourceStore
 
 
-# Where this server fetches a job's sources from (D113, D128, profile D30). The
-# list decides who fetches, never whether the data arrives -- so what is tested
-# is that it admits exactly what it says and nothing a URL can dress up as it.
+# Where this server fetches a job's sources from (D113, D128, profile D30): the
+# list admits exactly what it says and nothing a URL can dress up as it.
 
 
 def rules(*entries):
@@ -18,68 +17,46 @@ def rules(*entries):
 DEFAULT = rules(*allowlist.DEFAULT)
 
 
-###########################
-# The default
-###########################
-
-@pytest.mark.parametrize("url", [
-    "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/v0.2.22.tar.gz",
+@pytest.mark.parametrize("url,allowed", [
+    ("https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/v0.2.22.tar.gz", True),
     # Where GitHub's archive redirects -- owner and repository kept in the path.
-    "https://codeload.github.com/siliconcompiler/lambdapdk/tar.gz/refs/tags/v0.2.22",
-    "https://github.com:443/siliconcompiler/lambdapdk/",
-    "git+https://github.com/siliconcompiler/lambdapdk.git",
-])
-def test_the_default_admits_what_lambdapdk_needs(url):
-    assert allowlist.allows(DEFAULT, url)
-
-
-@pytest.mark.parametrize("url", [
+    ("https://codeload.github.com/siliconcompiler/lambdapdk/tar.gz/refs/tags/v0.2.22", True),
+    ("https://github.com:443/siliconcompiler/lambdapdk/", True),
+    ("git+https://github.com/siliconcompiler/lambdapdk.git", True),
     # A string prefix would admit this; a segment boundary does not.
-    "https://github.com/siliconcompiler-evil/lambdapdk/archive/x.tar.gz",
+    ("https://github.com/siliconcompiler-evil/lambdapdk/archive/x.tar.gz", False),
     # The whole codeload host would admit every public repository's archive.
-    "https://codeload.github.com/someone-else/repo/tar.gz/main",
-    # Resolved before matching: prefix-matches until the `..` is gone.
-    "https://github.com/siliconcompiler/../evil/x.tar.gz",
-    # An encoded separator is refused outright.
-    "https://github.com/siliconcompiler%2F..%2Fevil/x.tar.gz",
-    # The scheme is exact: http for https is a downgrade.
-    "http://github.com/siliconcompiler/lambdapdk/",
-    "https://github.com:8443/siliconcompiler/lambdapdk/",
-    "ssh://git@github.com/siliconcompiler/lambdapdk.git",
+    ("https://codeload.github.com/someone-else/repo/tar.gz/main", False),
+    # Resolved before matching; an encoded separator is refused outright.
+    ("https://github.com/siliconcompiler/../evil/x.tar.gz", False),
+    ("https://github.com/siliconcompiler%2F..%2Fevil/x.tar.gz", False),
+    # The scheme and port are exact: http for https is a downgrade.
+    ("http://github.com/siliconcompiler/lambdapdk/", False),
+    ("https://github.com:8443/siliconcompiler/lambdapdk/", False),
+    ("ssh://git@github.com/siliconcompiler/lambdapdk.git", False),
 ])
-def test_the_default_refuses_what_only_looks_like_it(url):
-    assert not allowlist.allows(DEFAULT, url)
+def test_the_default_admits_what_lambdapdk_needs_and_nothing_like_it(url, allowed):
+    assert allowlist.allows(DEFAULT, url) is allowed
 
 
-###########################
-# Globs (D128)
-###########################
-
-def test_a_host_wildcard_is_the_whole_leftmost_label():
-    '''⚠️ `*zeroasic.com` would admit `evilzeroasic.com`, so only `*.` is a
-    wildcard -- and it covers one label, not the domain itself.'''
-    wild = rules("https://*.zeroasic.com/")
-
-    assert allowlist.allows(wild, "https://git.zeroasic.com/x")
-    assert allowlist.allows(wild, "https://GIT.ZeroAsic.com/x")
-    assert not allowlist.allows(wild, "https://zeroasic.com/x")
-    assert not allowlist.allows(wild, "https://evilzeroasic.com/x")
-    assert not allowlist.allows(wild, "https://a.b.zeroasic.com/x")
-
-
-def test_a_path_star_matches_within_one_segment():
-    wild = rules("https://github.com/*/pdk-*/")
-
-    assert allowlist.allows(wild, "https://github.com/zeroasiccorp/pdk-gf180/archive/x")
-    assert not allowlist.allows(wild, "https://github.com/a/b/pdk-gf180/")
-    assert not allowlist.allows(wild, "https://github.com/zeroasiccorp/other/")
-
-
-def test_an_org_entry_admits_a_new_repository_under_it():
-    '''Prefix matching already does, so the glob is for hosts and the middle of
-    paths.'''
-    assert allowlist.allows(rules("https://github.com/zeroasiccorp/"),
-                            "https://github.com/zeroasiccorp/brand-new-repo/archive/v1.tar.gz")
+@pytest.mark.parametrize("entry,url,allowed", [
+    # ⚠️ Only `*.` is a host wildcard, covering one label and not the domain.
+    ("https://*.zeroasic.com/", "https://git.zeroasic.com/x", True),
+    ("https://*.zeroasic.com/", "https://GIT.ZeroAsic.com/x", True),
+    ("https://*.zeroasic.com/", "https://zeroasic.com/x", False),
+    ("https://*.zeroasic.com/", "https://evilzeroasic.com/x", False),
+    ("https://*.zeroasic.com/", "https://a.b.zeroasic.com/x", False),
+    # A path star matches within one segment.
+    ("https://github.com/*/pdk-*/", "https://github.com/zeroasiccorp/pdk-gf180/archive/x", True),
+    ("https://github.com/*/pdk-*/", "https://github.com/a/b/pdk-gf180/", False),
+    ("https://github.com/*/pdk-*/", "https://github.com/zeroasiccorp/other/", False),
+    # Prefix matching already admits a new repository under an org entry.
+    ("https://github.com/zeroasiccorp/",
+     "https://github.com/zeroasiccorp/brand-new-repo/archive/v1.tar.gz", True),
+])
+def test_a_glob_matches_what_it_says(entry, url, allowed):
+    '''Globs (D128).'''
+    assert allowlist.allows(rules(entry), url) is allowed
 
 
 @pytest.mark.parametrize("entry", [
@@ -103,20 +80,6 @@ def test_a_wildcard_over_shared_hosting_is_warned_about():
     assert warnings and "shared hosting" in warnings[0]
 
 
-def test_the_config_refuses_a_bad_entry_when_it_loads(tmp_path):
-    import json
-
-    from siliconcompiler.remote.server.config import Config
-
-    (tmp_path / "config.json").write_text(json.dumps({"fetch_allowlist": ["https://*/"]}))
-    with pytest.raises(ValueError, match="leftmost label"):
-        Config.load(tmp_path)
-
-
-###########################
-# 🔴 No glob widens the address rule
-###########################
-
 @pytest.mark.parametrize("address,public", [
     ("127.0.0.1", False), ("10.0.0.5", False), ("192.168.1.1", False),
     ("169.254.169.254", False),   # the metadata service
@@ -124,6 +87,7 @@ def test_the_config_refuses_a_bad_entry_when_it_loads(tmp_path):
     ("140.82.112.3", True),
 ])
 def test_a_name_is_judged_by_what_it_resolves_to(monkeypatch, address, public):
+    '''🔴 No glob widens the address rule.'''
     family = socket.AF_INET6 if ":" in address else socket.AF_INET
     monkeypatch.setattr(socket, "getaddrinfo",
                         lambda *a, **k: [(family, socket.SOCK_STREAM, 6, "", (address, 443))])

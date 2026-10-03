@@ -6,14 +6,13 @@ from siliconcompiler import ASIC, Flowgraph, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
 from siliconcompiler.tools.builtin.nop import NOPTask
 
-from conftest import outcome, slug
-from test_owners import DATASHEET, _upload_without, collected_path, private
+from conftest import slug
+from test_owners import (DATASHEET, GITHUB, Supply, account, collected_path, private,
+                         resource, submit_project, two_sources)
 
 
-# Only what the flow requires goes up (D129). The owner table says whether a
-# value MAY go in the archive; the flow says whether it is NEEDED -- the union of
-# every running node's `require`, which is empty until setup runs, so the client
-# works it out on a copy and carries it in the manifest.
+# Only what the flow requires goes up (D129): the union of every running node's
+# `require`, empty until setup runs, so worked out on a copy and carried.
 
 QUICKSTART = ("package", "doc", "quickstart")
 
@@ -69,23 +68,35 @@ def carried(project):
     return owners.with_required(project, owners.work_out(project).required)
 
 
+def reading_mylib(gcd_design, tmp_path, pdk=None):
+    '''A flow reading the datasheet, and not the quickstart, of a local library.'''
+    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
+    return reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), pdk=pdk, libs=[lib])
+
+
 ###########################
 # The set
 ###########################
 
-def test_the_set_is_worked_out_by_setup_on_a_copy(gcd_design, tmp_path):
-    '''🔴 `require` is empty until setup runs, and a remote run's setup runs in
-    the image -- so read before it, every file would be dropped.'''
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), libs=[lib])
+def test_the_set_is_worked_out_by_setup_on_a_copy_and_carried_in_the_manifest(
+        gcd_design, tmp_path):
+    '''🔴 `require` is empty until setup runs, in the image; the run's own setup
+    then declares the same keys, which `add_required_key` lists once.'''
+    from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
+    project = reading_mylib(gcd_design, tmp_path)
     assert owners.required(project) is None
 
-    worked_out = owners.required(carried(project))
+    manifest = carried(project)
+    worked_out = owners.required(manifest)
     assert ("library", "mylib", *DATASHEET) in worked_out
     assert ("library", "mylib", *QUICKSTART) not in worked_out
-    # The caller's project is never touched.
-    assert owners.required(project) is None
+    assert owners.required(project) is None             # the caller's project untouched
+    node = SchedulerNode(manifest, "stepone", "0")
+    with node.runtime():
+        node.setup()
+    assert manifest.get("tool", "builtin", "task", "nop", "require",
+                        step="stepone", index="0") == ["library,mylib,package,doc,datasheet"]
 
 
 def test_the_run_is_prepared_first_so_the_main_librarys_views_are_required(
@@ -104,8 +115,7 @@ def test_the_run_is_prepared_first_so_the_main_librarys_views_are_required(
 
 def test_a_node_the_flow_does_not_run_reads_nothing(gcd_design, tmp_path):
     '''The union is over the nodes that RUN: `option,to` narrows it.'''
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), libs=[lib])
+    project = reading_mylib(gcd_design, tmp_path)
     flow = project.get_flow()
     flow.node("steptwo", ReadsTask())
     flow.edge("stepone", "steptwo")
@@ -116,27 +126,17 @@ def test_a_node_the_flow_does_not_run_reads_nothing(gcd_design, tmp_path):
                 ["library,mylib,package,doc,datasheet"], step="stepone", index="0")
     project.set("option", "to", "stepone")
 
-    worked_out = owners.required(carried(project))
-
-    assert ("library", "mylib", *QUICKSTART) not in worked_out
+    assert ("library", "mylib", *QUICKSTART) not in owners.required(carried(project))
 
 
 def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_path):
-    source = "https://github.com/siliconcompiler/x/archive/"
-    pdk = PDK("lambda")
-    pdk.set_dataroot("lambda", source, tag="v1")
-    with pdk.active_dataroot("lambda"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                      pdk=pdk, libs=[lib])
+    '''A PDK holding nothing the flow reads is never sent for, never fetched.'''
+    project = reading_mylib(gcd_design, tmp_path,
+                            pdk=resource(PDK, "lambda", GITHUB, create=False))
     required = owners.required(carried(project))
 
-    # The PDK holds nothing the flow reads: never sent for, never fetched.
     assert [item["keypath"][1] for item in owners.sources(project)] == ["lambda"]
     assert owners.sources(project, required) == []
-
-    from test_owners import Supply, account
     names = {entry.name for entry in account(project, "none", Supply(), required)}
     assert "lambda" not in names and "mylib" in names
 
@@ -145,31 +145,39 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
 # The client
 ###########################
 
-def test_only_what_the_flow_reads_goes_up(gcd_design, tmp_path, logged_in):
-    '''A local library with views for ten tools used to upload all ten.'''
+@pytest.mark.parametrize("setup_runs", [True, False])
+def test_only_what_the_flow_reads_goes_up_unless_its_setup_cannot_run_here(
+        gcd_design, tmp_path, logged_in, monkeypatch, setup_runs):
+    '''A library's views for ten tools used to all go up. ⚠️ A setup needing
+    its image (cocotb's) leaves the set unknown: by owner alone, not failed.'''
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
 
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), libs=[lib])
+    def cannot(project):
+        raise RuntimeError("Cocotb is not installed; cannot run test.")
 
-    RemoteRun(project, logged_in)._collect()
+    if not setup_runs:
+        monkeypatch.setattr(owners, "work_out", cannot)
+    project = reading_mylib(gcd_design, tmp_path)
 
-    collected = collectiondir(project)
-    assert os.path.exists(os.path.join(
-        collected, collected_path(project, ("library", "mylib", *DATASHEET))))
-    assert not os.path.exists(os.path.join(
-        collected, collected_path(project, ("library", "mylib", *QUICKSTART))))
+    run = RemoteRun(project, logged_in)
+    if not setup_runs:
+        assert run._needs() == (project, None)
+    run._collect()
+
+    def sent(key):
+        return os.path.exists(os.path.join(collectiondir(project), collected_path(
+            project, ("library", "mylib", *key))))
+    assert sent(DATASHEET)
+    assert sent(QUICKSTART) is not setup_runs
 
 
 def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
         gcd_design, tmp_path, logged_in):
     '''🔴 Per value: the local file of the parameter the flow reads goes up,
-    and the private one beside it stays here -- the run is not stopped for
-    it.'''
+    and the private one beside it stays here -- the run is not stopped for it.'''
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
-    from test_owners import two_sources
 
     (tmp_path / "secret").mkdir()
     (tmp_path / "secret" / "other.pdf").write_text("private\n")
@@ -182,54 +190,12 @@ def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
     assert "datasheet.pdf" in taken and "other.pdf" not in taken
 
 
-def test_a_setup_that_cannot_run_here_uploads_by_owner_alone(
-        gcd_design, tmp_path, logged_in, monkeypatch):
-    '''⚠️ A task whose setup needs what only its image has -- cocotb's needs
-    cocotb -- leaves the set unknown, and a remote run must not fail for it.'''
-    from siliconcompiler.remote.client.run import RemoteRun
-    from siliconcompiler.utils.paths import collectiondir
-
-    def cannot(project):
-        raise RuntimeError("Cocotb is not installed; cannot run test.")
-
-    monkeypatch.setattr(owners, "work_out", cannot)
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), libs=[lib])
-
-    run = RemoteRun(project, logged_in)
-    assert run._needs() == (project, None)
-
-    run._collect()
-    assert os.path.exists(os.path.join(
-        collectiondir(project),
-        collected_path(project, ("library", "mylib", *QUICKSTART))))
-
-
-def test_the_manifest_carries_the_set_and_the_run_adds_nothing_twice(
-        gcd_design, tmp_path):
-    '''The server reads the set from the manifest it is sent; the run's own
-    setup then declares the same keys, which `add_required_key` lists once.'''
-    from siliconcompiler.scheduler.schedulernode import SchedulerNode
-
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    manifest = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                               libs=[lib]))
-
-    node = SchedulerNode(manifest, "stepone", "0")
-    with node.runtime():
-        node.setup()
-
-    assert manifest.get("tool", "builtin", "task", "nop", "require",
-                        step="stepone", index="0") == ["library,mylib,package,doc,datasheet"]
-
-
 ###########################
 # The server
 ###########################
 
 @pytest.fixture
 def dispatcher(server):
-    pytest.importorskip("flask", reason="the server extra is not installed")
     from test_server_jobs import FakeDispatcher
 
     fake = FakeDispatcher()
@@ -237,48 +203,27 @@ def dispatcher(server):
     return fake
 
 
-def submitted(server_client, key, token, job_archive, project, tmp_path, left_out=None):
-    from test_server_jobs import stage, submit
+@pytest.mark.parametrize("left_out,refused", [(DATASHEET, True), (QUICKSTART, False)])
+def test_only_a_required_file_left_out_is_refused_before_dispatch(
+        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path,
+        left_out, refused):
+    '''🔴 One the flow reads is `missing_member` before anything runs, not a
+    node failing on it; one it does not read may be left out.'''
+    project = carried(reading_mylib(gcd_design, tmp_path, pdk=PDK("lambda")))
 
-    archive, digest, size = job_archive(project)
-    if left_out:
-        archive, digest, size = _upload_without(project, archive, tmp_path, left_out)
-    job = stage(server_client, key, token, archive, size)
-    return job, outcome(server_client, key, token,
-                        submit(server_client, key, token, job["id"], digest, size))
+    _, response = submit_project(
+        server_client, key, token, job_archive, project,
+        left_out=collected_path(project, ("library", "mylib", *left_out)))
 
-
-def test_a_required_file_the_client_should_have_sent_is_refused_before_dispatch(
-        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''🔴 A local library's file the flow reads, left out: `missing_member`,
-    before anything runs -- instead of a node failing on it.'''
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                              pdk=PDK("lambda"), libs=[lib]))
-    hashed = collected_path(project, ("library", "mylib", *DATASHEET))
-
-    job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
-                              left_out=hashed)
-
-    assert response.status_code == 422
-    assert slug(response) == "archive-rejected"
-    assert response.get_json()["reason"] == "missing_member"
-    assert "library,mylib,package,doc,datasheet" in response.get_json()["detail"]
-    assert not dispatcher.submitted
-
-
-def test_a_file_the_flow_does_not_read_may_be_left_out(
-        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                              pdk=PDK("lambda"), libs=[lib]))
-    hashed = collected_path(project, ("library", "mylib", *QUICKSTART))
-
-    job, response = submitted(server_client, key, token, job_archive, project, tmp_path,
-                              left_out=hashed)
-
-    assert response.status_code == 202, response.get_json()
-    assert dispatcher.submitted
+    if refused:
+        assert response.status_code == 422
+        assert (slug(response), response.get_json()["reason"]) == \
+            ("archive-rejected", "missing_member")
+        assert "library,mylib,package,doc,datasheet" in response.get_json()["detail"]
+        assert not dispatcher.submitted
+    else:
+        assert response.status_code == 202, response.get_json()
+        assert dispatcher.submitted
 
 
 def test_a_source_nothing_in_the_flow_reads_is_never_fetched(
@@ -287,15 +232,10 @@ def test_a_source_nothing_in_the_flow_reads_is_never_fetched(
     from siliconcompiler.remote.server.staging.sources import Permanent
 
     fake_fetch(server, fail=Permanent("fetched a source nothing reads"))
-    pdk = PDK("lambda")
-    pdk.set_dataroot("lambda", LAMBDA, tag="v1")
-    with pdk.active_dataroot("lambda"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
-    lib = two_views(StdCellLibrary, "mylib", tmp_path / "lib")
-    project = carried(reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET),
-                              pdk=pdk, libs=[lib]))
+    project = carried(reading_mylib(gcd_design, tmp_path,
+                                    pdk=resource(PDK, "lambda", LAMBDA, create=False)))
 
-    job, response = submitted(server_client, key, token, job_archive, project, tmp_path)
+    _, response = submit_project(server_client, key, token, job_archive, project)
 
     assert response.status_code == 202, response.get_json()
     assert wait_for(lambda: dispatcher.submitted)
@@ -311,10 +251,9 @@ def test_a_required_file_missing_from_the_servers_copy_is_resource_unavailable(
     project = carried(reading(gcd_design, tmp_path, ("library", "secret", *DATASHEET),
                               pdk=private(PDK, "secret", tmp_path / "client-copy")))
 
-    job, response = submitted(server_client, key, token, job_archive, project, tmp_path)
+    _, response = submit_project(server_client, key, token, job_archive, project)
 
-    assert response.status_code == 422
-    assert slug(response) == "resource-unavailable"
+    assert (response.status_code, slug(response)) == (422, "resource-unavailable")
     assert "not in this server's copy" in response.get_json()["detail"]
     assert not dispatcher.submitted
 
@@ -327,15 +266,13 @@ def test_a_follow_up_carries_only_the_required_values_of_what_was_asked(
     from siliconcompiler.remote.server.staging.sources import Permanent
 
     fake_fetch(server, fail=Permanent("the source answered 404"))
-    pdk = PDK("lambda")
-    pdk.set_dataroot("lambda", LAMBDA, tag="v1")
+    pdk = resource(PDK, "lambda", LAMBDA, create=False)
     with pdk.active_dataroot("lambda"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
         pdk.set(*QUICKSTART, "quickstart.pdf")
     project = carried(reading(gcd_design, tmp_path, ("library", "lambda", *DATASHEET),
                               pdk=pdk))
 
-    job, response = submitted(server_client, key, token, job_archive, project, tmp_path)
+    job, response = submit_project(server_client, key, token, job_archive, project)
     assert response.status_code == 202, response.get_json()
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
                     == "awaiting_input")

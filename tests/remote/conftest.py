@@ -28,9 +28,8 @@ def gcd_nop_project(gcd_design):
 
 @pytest.fixture(autouse=True)
 def machine_fingerprint(monkeypatch):
-    '''A machine id where the test host has none -- a container often has no
-    /etc/machine-id -- since the client refuses to sign in without one. A
-    host that has one keeps its own.'''
+    '''A machine id where the host has none (a container often lacks
+    /etc/machine-id), since the client refuses to sign in without one.'''
     from siliconcompiler.remote.client import identity
 
     real = identity.machine_fingerprint
@@ -44,43 +43,27 @@ def machine_fingerprint(monkeypatch):
 # The conformance rig
 ###########################
 #
-# Two rigs test the remote half and they do different jobs. The integration rig
-# is the compose stack under setup/server/: a real store, a real scheduler and
-# real bytes, proving that the two halves work together. This is the other one.
-#
-# It answers the client's requests with whatever a test needs to see, and it is
-# the only place most of the contract can be reached from. A working server
-# cannot be made to emit `use_dpop_nonce` on demand, or report the device limit
-# as exceeded, or refuse `projects` as unsupported, or hand back the HTML 502 a
-# proxy in front of it would -- and the client branches on every one of those.
-# So client branch coverage here is a function of the contract's frozen
-# registry rather than of what a real server happens to say.
-#
-# No store, no scheduler, no jobs, no bytes, no port. Routes are added by the
-# phase that needs them.
+# Canned answers, for what a working server cannot be made to say on demand
+# (`use_dpop_nonce`, a device limit exceeded, a proxy's HTML 502) and the client
+# branches on. The compose stack under setup/server/ is the integration rig.
 
 V1_URL = "https://sc-server.test/v1"
 
 
-class FakeV1:
-    '''A v1 server that exists only as a set of canned answers.
+def _encoded(body):
+    return body if isinstance(body, (str, bytes)) else json.dumps(body)
 
-    Held by the `fake_v1` fixture. Register a route with `route()`; the last
-    registration for a method and path wins, so a test can override anything
-    the fixture set up for it.
-    '''
+
+class FakeV1:
+    '''A v1 server that is only canned answers; the last `route()` for a
+    method and path wins.'''
 
     def __init__(self, mock, base_url):
         self._mock = mock
         self.base_url = base_url
 
     def url(self, path=""):
-        '''The absolute URL of a path under this server.
-
-        Joined rather than urljoin()'d on purpose: urljoin drops the version
-        prefix off a base like `https://host/v1`, which is the bug the client
-        rewrite has to avoid on day one.
-        '''
+        '''Joined, not urljoin()'d: urljoin drops the `/v1` prefix.'''
         if not path:
             return self.base_url
         return f"{self.base_url}/{path.lstrip('/')}"
@@ -88,37 +71,20 @@ class FakeV1:
     def route(self, method, path, body, status=200,
               content_type="application/json", headers=None):
         '''Answer one request.'''
-        if not isinstance(body, (str, bytes)):
-            body = json.dumps(body)
-        self._mock.add(method, self.url(path), body=body, status=status,
+        self._mock.add(method, self.url(path), body=_encoded(body), status=status,
                        content_type=content_type, headers=headers)
 
     def replace(self, method, path, body, status=200,
                 content_type="application/json", headers=None):
-        '''Change an answer this fixture already set up.
-
-        Registrations are consumed in order, so adding a second one for a path
-        queues it behind the first rather than replacing it -- which is what a
-        test wants for a sequence and never what it wants for a fixture's
-        default.
-        '''
-        if not isinstance(body, (str, bytes)):
-            body = json.dumps(body)
-        self._mock.replace(method, self.url(path), body=body, status=status,
+        '''Change an answer already set up; a second `route()` would queue
+        behind it instead.'''
+        self._mock.replace(method, self.url(path), body=_encoded(body), status=status,
                            content_type=content_type, headers=headers)
 
     def elsewhere(self, method, url, body="", status=200,
                   content_type="application/json", headers=None):
-        '''Answer a request to somewhere that is not this server.
-
-        Storage is the case this exists for: the upload goes to whatever the
-        grant points at, which on another deployment is a bucket on a different
-        origin -- so a test that registered it under this server's base would be
-        testing a shape the contract does not promise.
-        '''
-        if not isinstance(body, (str, bytes)):
-            body = json.dumps(body)
-        self._mock.add(method, url, body=body, status=status,
+        '''Answer a request to another origin, such as a storage grant's.'''
+        self._mock.add(method, url, body=_encoded(body), status=status,
                        content_type=content_type, headers=headers)
 
     @property
@@ -129,12 +95,7 @@ class FakeV1:
 
 @pytest.fixture
 def capabilities(datadir):
-    '''The GET /v1 body, as the sc-server profile publishes it.
-
-    A file rather than a literal: it is the one block whose every member has to
-    be real from day one, both halves of the client's `limits` combine read it,
-    and a server test can assert against the same bytes the client is given.
-    '''
+    '''The GET /v1 body, as the sc-server profile publishes it.'''
     with open(os.path.join(datadir, "capabilities.json")) as f:
         return json.load(f)
 
@@ -155,12 +116,8 @@ def client_credentials():
 
 
 def problem(slug, status, **members):
-    '''An RFC 9457 body, built the way a server would build it.
-
-    Written here rather than imported from the server so that a client test
-    does not pass merely because both halves share a bug. The URI is the
-    contract's, which is what a client branches on.
-    '''
+    '''An RFC 9457 body, written here rather than imported from the server so
+    a client test cannot pass on a bug both halves share.'''
     return {
         "type": f"https://siliconcompiler.com/server-errors/{slug}",
         "title": slug.replace("-", " ").capitalize(),
@@ -171,12 +128,7 @@ def problem(slug, status, **members):
 
 @pytest.fixture
 def fake_v1(capabilities):
-    '''A v1 server answering in-process, with GET /v1 already registered.
-
-    Discovery is the first call on every path and carries no credential, so it
-    is set up here rather than in each test. assert_all_requests_are_fired is
-    off because a test that never reaches discovery is testing something real.
-    '''
+    '''A v1 server answering in-process, GET /v1 already registered.'''
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         server = FakeV1(mock, V1_URL)
         server.route(responses.GET, "", capabilities)
@@ -185,7 +137,7 @@ def fake_v1(capabilities):
 
 @pytest.fixture
 def logged_in(fake_v1, client_credentials, tmp_credentials):
-    '''A client that has a session, for tests about what comes after one.'''
+    '''A client that has a session.'''
     from siliconcompiler.remote import Client
 
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -197,12 +149,7 @@ def logged_in(fake_v1, client_credentials, tmp_credentials):
 
 @pytest.fixture
 def tmp_credentials():
-    '''Credentials in this test's own directory.
-
-    Never the real ~/.sc: these tests generate a key and write tokens, and a
-    suite that touched the developer's own credentials would be rewriting the
-    machine's identity.
-    '''
+    '''Credentials in the test's own directory, never the real ~/.sc.'''
     from pathlib import Path
 
     from siliconcompiler.remote import Credentials
@@ -216,10 +163,7 @@ def tmp_credentials():
 # The integration rig, in-process
 ###########################
 #
-# The other half: a real store, a real archive, a real dispatcher and a real
-# run, against `app.test_client()`. No port and no event loop -- seventeen of
-# this profile's eighteen endpoints are request-in, response-out, which is what
-# Flask was chosen for.
+# A real store, archive, dispatcher and run, against `app.test_client()`.
 
 BASE = "http://localhost/v1"
 
@@ -254,11 +198,23 @@ def call(client, key, method, path, token, **kwargs):
         **kwargs)
 
 
+def read(client, key, token, job_id):
+    '''The job object, as GET /v1/jobs/{id} answers it.'''
+    return call(client, key, "GET", f"/v1/jobs/{job_id}", token).get_json()
+
+
+def stranger(client, subject="machine:1001"):
+    '''Another user on the same server: their key and token.'''
+    from siliconcompiler.remote import dpop
+
+    other = dpop.generate_key()
+    return other, login(client, other, subject=subject).get_json()["access_token"]
+
+
 @pytest.fixture(autouse=True)
 def staging_inline(request, monkeypatch):
     '''Staging runs in the submitting request's thread, after the `202` body
-    is computed, so a test reads the job's outcome with one GET. A test
-    marked `threaded_staging` keeps the real background thread.'''
+    is computed, so one GET reads the outcome. `threaded_staging` opts out.'''
     if request.node.get_closest_marker("threaded_staging"):
         return
     try:
@@ -276,16 +232,13 @@ def staging_inline(request, monkeypatch):
     monkeypatch.setattr(JobService, "_start_preparing", inline)
 
 
-# The SiliconCompiler the tests' registries hold, which the server under test
-# runs: one version is advertised and every job resolves to it (profile §5).
+# The one SiliconCompiler version the tests' registries hold (profile §5).
 TEST_SC_VERSION = "0.38.0"
 
 
 @pytest.fixture
 def runs_test_version(monkeypatch):
-    '''The server under test runs `TEST_SC_VERSION`, the SiliconCompiler a
-    test registry holds its images at -- for every fixture that builds one. A
-    test of the one-version rule sets its own.'''
+    '''The server under test runs `TEST_SC_VERSION`.'''
     try:
         from siliconcompiler.remote.server.software import images
     except ImportError:
@@ -295,10 +248,8 @@ def runs_test_version(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def manifest_read_inline(request, monkeypatch):
-    '''The manifest's read runs in the test process, so a task class a test
-    defines is one the read can resolve. A test marked `real_read` keeps the
-    real contained subprocess, which is what the containment tests, and at
-    least one end-to-end run, use.'''
+    '''The manifest is read in the test process, so a task class a test
+    defines resolves. `real_read` keeps the contained subprocess.'''
     if request.node.get_closest_marker("real_read"):
         return
     try:
@@ -317,8 +268,8 @@ def manifest_read_inline(request, monkeypatch):
 
 
 def run_manifest(manifest):
-    '''The project a dispatched run executes: the uploaded manifest, with the
-    overrides the server wrote beside it applied, as the runner applies them.'''
+    '''The project a dispatched run executes: the manifest with the server's
+    overrides applied, as the runner applies them.'''
     from siliconcompiler import Project
     from siliconcompiler.remote.server.running import runspec
 
@@ -331,13 +282,11 @@ def run_manifest(manifest):
 
 def job_after(client, key, token, response):
     '''The job a `202` submit answered for, as it stands once staging ran.'''
-    return call(client, key, "GET", f"/v1/jobs/{response.get_json()['id']}",
-                token).get_json()
+    return read(client, key, token, response.get_json()['id'])
 
 
 class _JobError:
-    '''A job's `error`, read the way a refusal of the request is: its
-    registry `status`, and the body with its type's members.'''
+    '''A job's `error`, read the way a refusal of the request is.'''
 
     def __init__(self, error):
         self._error = error
@@ -348,12 +297,53 @@ class _JobError:
 
 
 def outcome(client, key, token, response):
-    '''What a submit came to: a refusal of the request as it was answered,
-    or -- after a `202` -- the error staging put on the job, where it has one.'''
+    '''What a submit came to: the refusal as answered or, after a `202`, the
+    error staging put on the job, where it has one.'''
     if response.status_code != 202:
         return response
     error = job_after(client, key, token, response).get("error")
     return _JobError(error) if error else response
+
+
+class FakeDispatcher:
+    '''Records what it was asked to run and never runs it: a refusal that
+    reached it would be a bug. `cluster="local"` is the real run.'''
+
+    name = "fake"
+
+    def __init__(self):
+        self.submitted = []
+        self.cancelled = []
+        self.cancelled_nodes = []
+        self.still_running = set()
+        self.handed = {}
+        self.alive = True
+
+    def submit(self, job_id, jobroot, manifest, image=None, queue=None):
+        self.submitted.append((job_id, jobroot, manifest))
+        self.handed = {"image": image, "queue": queue}
+        return f"fake:{len(self.submitted)}"
+
+    def is_alive(self, scheduler_job_id):
+        return self.alive
+
+    def cancel(self, scheduler_job_id, node_job_ids=()):
+        # None is "only the orphans": the run is gone, and a real dispatcher
+        # does not scancel a finished job.
+        if scheduler_job_id:
+            self.cancelled.append(scheduler_job_id)
+        self.cancelled_nodes = list(node_job_ids)
+
+    def node_jobs(self, job_id, nodes):
+        # One scheduler id per node, by a name the server can derive.
+        return {node: f"{job_id}_{node[0]}_{node[1]}" for node in nodes}
+
+    def running_nodes(self, job_id, nodes):
+        return [f"{job_id}_{step}_{index}" for step, index in nodes
+                if (step, index) in self.still_running]
+
+    def describe(self, scheduler_job_id):
+        return f"the scheduler's record of {scheduler_job_id}"
 
 
 @pytest.fixture
@@ -372,6 +362,13 @@ def server_client(server):
 
 
 @pytest.fixture
+def dispatcher(server):
+    fake = FakeDispatcher()
+    server.config["SC_JOBS"]._dispatcher = fake
+    return fake
+
+
+@pytest.fixture
 def key():
     from siliconcompiler.remote import dpop
 
@@ -381,6 +378,11 @@ def key():
 @pytest.fixture
 def token(server_client, key):
     return login(server_client, key).get_json()["access_token"]
+
+
+@pytest.fixture
+def me(server_client, key, token):
+    return call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
 
 
 @pytest.fixture
@@ -394,8 +396,7 @@ def nop_project(gcd_nop_project):
 
 @pytest.fixture
 def python_project(nop_project):
-    '''The two-node flow, its first node running the user's Python: what the
-    job's Python packages are installed for.'''
+    '''The two-node flow, its first node running the user's Python.'''
     from pytasks import RunsPython
 
     flow = Flowgraph("pyflow")
@@ -408,12 +409,8 @@ def python_project(nop_project):
 
 @pytest.fixture
 def job_archive(nop_project):
-    '''Build the archive a client would PUT, and report it as storage would.
-
-    Returns ``(path, digest, size)``. The manifest goes inside rather than
-    beside: the server re-derives every advisory value from it, so it has to
-    arrive with the bytes it describes.
-    '''
+    '''Build the archive a client would PUT: ``(path, digest, size)``. The
+    manifest goes inside, since the server re-derives everything from it.'''
     import hashlib
     import tarfile
 
@@ -425,8 +422,7 @@ def job_archive(nop_project):
         root = jobdir(project)
         os.makedirs(root, exist_ok=True)
         if collect_files:
-            # What a real client sends: the files it uploads by owner, in the
-            # collection. The server accounts for every file a manifest names.
+            # What a real client sends: the files it uploads by owner, collected.
             from siliconcompiler.remote import owners
             from siliconcompiler.utils.curation import collect
 

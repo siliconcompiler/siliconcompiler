@@ -1,8 +1,7 @@
 import json
+import logging
 import os
 import re
-import stat
-import sys
 
 from pathlib import Path
 
@@ -19,11 +18,27 @@ from siliconcompiler.remote.client.transport import join_url, normalize_server
 from conftest import V1_URL, problem
 
 
-# Driven against the conformance rig: responses-based fixtures with no store,
-# no scheduler and no port. It is the only place most of the contract can be
-# reached from -- a working server cannot be made to emit use_dpop_nonce on
-# demand, or report the device cap as exceeded, or hand back the HTML 502 a
-# proxy in front of it would.
+def _form(body):
+    from urllib.parse import parse_qs
+
+    if isinstance(body, bytes):
+        body = body.decode()
+    return {k: v[0] for k, v in parse_qs(body).items()}
+
+
+def _grants(fake_v1):
+    return [_form(c.request.body)["grant_type"]
+            for c in fake_v1.calls if c.request.method == "POST"]
+
+
+def _refused(fake_v1, path, slug, status, headers=None, method=responses.GET, **members):
+    fake_v1.route(method, path, problem(slug, status, **members), status=status,
+                  content_type="application/problem+json", headers=headers)
+
+
+def _healthy(fake_v1):
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
 
 
 ###########################
@@ -31,40 +46,33 @@ from conftest import V1_URL, problem
 ###########################
 
 def test_a_path_is_joined_not_urljoined():
-    '''urljoin("https://host/v1", "jobs") is "https://host/jobs" -- the version
-    prefix is silently dropped. That is fine until a server URL carries one,
-    which is exactly what /v1 is.'''
+    '''urljoin("https://host/v1", "jobs") drops the version prefix.'''
     assert join_url("https://host/v1", "jobs") == "https://host/v1/jobs"
     assert join_url("https://host/v1", "/jobs") == "https://host/v1/jobs"
     assert join_url("https://host/v1/", "jobs") == "https://host/v1/jobs"
     assert join_url("https://host/v1") == "https://host/v1"
 
 
-def test_the_scheme_comes_from_the_address_never_from_the_port():
-    '''The client this replaces defaulted the port to 443 and then read the
-    scheme off the port it had just defaulted, so a server on :8000 was reached
-    over plaintext because of its port number -- which is every local
-    deployment.'''
-    assert normalize_server("http://localhost:8000") == "http://localhost:8000/v1"
-    assert normalize_server("https://example.com") == "https://example.com/v1"
-
-    # A bare address assumes the safe scheme rather than guessing from a port.
-    assert normalize_server("example.com").startswith("https://")
-    assert normalize_server("example.com", port=8000) == "https://example.com:8000/v1"
-
-
 @pytest.mark.parametrize("given,port,expected", [
+    ("http://localhost:8000", None, "http://localhost:8000/v1"),
+    ("https://example.com", None, "https://example.com/v1"),
+    ("example.com", None, "https://example.com/v1"),
+    ("example.com", 8000, "https://example.com:8000/v1"),
+    ("https://example.com/v1", None, "https://example.com/v1"),
+    ("https://example.com/sc/v1", None, "https://example.com/sc/v1"),
     ("https://[::1]:8000", None, "https://[::1]:8000/v1"),
     ("https://[::1]", 8000, "https://[::1]:8000/v1"),
     ("http://[fd00::5]:8080/sc", None, "http://[fd00::5]:8080/sc"),
 ])
-def test_an_ipv6_server_keeps_its_brackets_and_its_port(given, port, expected):
+def test_a_server_address_is_normalized(given, port, expected):
+    '''The scheme comes from the address, never the port (the old client
+    reached :8000 over plaintext); a bare address is https; IPv6 brackets and
+    an existing prefix are kept.'''
     assert normalize_server(given, port) == expected
 
 
 def test_configuring_an_ipv6_server_keeps_its_port():
-    '''The address as `sc-remote -configure -server` splits it: brackets
-    kept, so the port is never read as part of the host.'''
+    '''As `sc-remote -configure -server` splits it.'''
     from siliconcompiler.remote.client import _split_address
 
     address, port, had_credentials = _split_address("https://[::1]:8000")
@@ -74,223 +82,89 @@ def test_configuring_an_ipv6_server_keeps_its_port():
     assert _split_address("https://me:secret@example.com")[2] is True
 
 
-def test_a_server_url_may_already_carry_its_prefix():
-    assert normalize_server("https://example.com/v1") == "https://example.com/v1"
-    assert normalize_server("https://example.com/sc/v1") == "https://example.com/sc/v1"
-
-
 ###########################
 # No server configured
 ###########################
-#
-# These four were written for an edge case and are now the normal one: there is
-# no default server to fall back on, so an unconfigured client has nothing to
-# talk to.
 
-def test_a_client_without_a_server_still_builds():
-    '''Constructing must not raise, or `sc-remote -configure` could not build
-    one in order to fix it.'''
+def test_a_client_without_a_server_builds_and_says_so(caplog):
+    '''Constructing must not raise, or `sc-remote -configure` could not fix it.'''
+    caplog.set_level(logging.INFO)
     client = Client(Credentials(Path("sc-home/auth/remote.json")))
+    client.print_configuration()
 
     assert client.base_url is None
-
-
-def test_a_client_without_a_server_reports_it_as_such(caplog):
-    '''Never a server named None.'''
-    import logging
-
-    caplog.set_level(logging.INFO)
-    Client(Credentials(Path("sc-home/auth/remote.json"))).print_configuration()
-
     assert "Server: not configured" in caplog.text
-
-
-def test_a_client_without_a_server_names_the_way_to_fix_it():
-    client = Client(Credentials(Path("sc-home/auth/remote.json")))
-
     with pytest.raises(RemoteError, match="No remote server address is configured"):
         client.capabilities()
-
-
-def test_the_fix_is_a_command_the_user_can_run():
-    client = Client(Credentials(Path("sc-home/auth/remote.json")))
-
     with pytest.raises(RemoteError, match="sc-remote -configure"):
         client.me()
-
-
-###########################
-# Credentials on disk
-###########################
-
-def test_the_credentials_file_is_private(tmp_credentials):
-    '''A shipped security fix, and the floor rather than the starting point: a
-    refresh token is a session, not one service's password.'''
-    tmp_credentials.save_tokens({"refresh_token": "secret"})
-
-    assert _mode(tmp_credentials.path) == 0o600
-
-
-def test_an_existing_wider_file_is_tightened(tmp_credentials):
-    '''Re-running configure over a file somebody widened has to fix it.'''
-    tmp_credentials.save_tokens({"refresh_token": "secret"})
-    os.chmod(tmp_credentials.path, 0o644)
-
-    tmp_credentials.save_tokens({"refresh_token": "secret-again"})
-
-    assert _mode(tmp_credentials.path) == 0o600
-
-
-def test_the_private_key_is_its_own_file_and_is_private(tmp_credentials):
-    '''Beside the credentials rather than inside them, because
-    scheduler/docker.py mounts ~/.sc into task containers and a separate file
-    is something a narrower mount can leave out.'''
-    tmp_credentials.key()
-
-    assert tmp_credentials.key_path != tmp_credentials.path
-    assert _mode(tmp_credentials.key_path) == 0o600
-    assert "dpop_key" not in json.loads(tmp_credentials.path.read_text())
-
-
-def test_the_key_is_generated_once_and_reused(tmp_credentials):
-    '''A new key each run would be a new machine each run.'''
-    first = tmp_credentials.thumbprint
-
-    again = Credentials(tmp_credentials.path)
-
-    assert again.thumbprint == first
-
-
-def _mode(path):
-    return stat.S_IMODE(os.stat(path).st_mode)
-
-
-if sys.platform == "win32":                                      # pragma: no cover
-    test_the_credentials_file_is_private = pytest.mark.skip(
-        reason="file modes are not enforced on windows")(
-            test_the_credentials_file_is_private)
-    test_an_existing_wider_file_is_tightened = pytest.mark.skip(
-        reason="file modes are not enforced on windows")(
-            test_an_existing_wider_file_is_tightened)
-    test_the_private_key_is_its_own_file_and_is_private = pytest.mark.skip(
-        reason="file modes are not enforced on windows")(
-            test_the_private_key_is_its_own_file_and_is_private)
 
 
 ###########################
 # Discovery
 ###########################
 
-def test_capabilities_carry_no_credential(fake_v1, tmp_credentials, capabilities):
-    '''The first call on every path, and what tells a client it reached a v1
-    server at all.'''
+def test_capabilities_carry_no_credential_and_a_proof(fake_v1, tmp_credentials, capabilities):
     body = Client(tmp_credentials).capabilities()
 
     assert body == capabilities
     assert "Authorization" not in fake_v1.calls[0].request.headers
-
-
-def test_every_request_carries_a_proof(fake_v1, tmp_credentials):
-    Client(tmp_credentials).capabilities()
-
     assert fake_v1.calls[0].request.headers["DPoP"]
 
 
-def test_health_is_one_word(fake_v1, tmp_credentials):
-    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
-                  content_type="application/health+json")
+def test_the_rigs_capabilities_carry_every_required_member(capabilities):
+    '''The conformance rig's copy of a real `GET /v1`.'''
+    assert {"api_version", "software", "grant_types_supported", "limits", "features",
+            "identity_assurance", "notices"} <= set(capabilities)
+    assert capabilities["api_version"] == "v1"
+    # 🔴 A closed set of buckets, and `siliconcompiler` REQUIRED in `python`.
+    assert set(capabilities["software"]) == {"python", "tools", "interpreter"}
+    assert "siliconcompiler" in capabilities["software"]["python"]
+    # This profile serves no device grant, so it must not advertise one.
+    assert "urn:ietf:params:oauth:grant-type:device_code" \
+        not in capabilities["grant_types_supported"]
+    assert set(capabilities["limits"]) == {
+        "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
+        "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
+        "max_archive_members", "max_archive_expanded_bytes",
+        "max_download_bytes", "abandon_after_seconds"}
+    # OPTIONAL: absent, not empty.
+    assert "terms_url" not in capabilities
 
-    assert Client(tmp_credentials).health() == {"status": "pass"}
+
+@pytest.mark.parametrize("body,status,content_type,expected", [
+    ({"status": "pass"}, 200, "application/health+json", "pass"),
+    ({"status": "fail"}, 503, "application/health+json", "fail"),
+    ("<html>502 Bad Gateway</html>", 503, "text/html", "fail"),
+], ids=["pass", "fail", "proxy"])
+def test_health_is_one_word_and_a_503_is_an_answer(fake_v1, tmp_credentials, body, status,
+                                                   content_type, expected):
+    '''🔴 The endpoint serves `fail` as a 503, and nothing answering 503 here
+    is serving, whatever it sends.'''
+    fake_v1.route(responses.GET, "healthz", body, status=status, content_type=content_type)
+
+    assert Client(tmp_credentials).health() == {"status": expected}
     assert "Authorization" not in fake_v1.calls[-1].request.headers
-
-
-def test_a_failing_health_arrives_as_a_503_and_is_still_an_answer(
-        fake_v1, tmp_credentials):
-    '''🔴 The endpoint serves its own worst value with a status a client
-    would otherwise raise on. Reading it as `fail` is reading the endpoint
-    correctly, not swallowing an error.'''
-    fake_v1.route(responses.GET, "healthz", {"status": "fail"}, status=503,
-                  content_type="application/health+json")
-
-    assert Client(tmp_credentials).health() == {"status": "fail"}
-
-
-def test_a_proxy_answering_for_a_dead_server_means_the_same_thing(
-        fake_v1, tmp_credentials):
-    '''Nothing that answers 503 on this path is serving, whatever it sends.'''
-    fake_v1.route(responses.GET, "healthz", "<html>502 Bad Gateway</html>",
-                  status=503, content_type="text/html")
-
-    assert Client(tmp_credentials).health() == {"status": "fail"}
 
 
 def test_the_deployment_report_is_what_the_server_says_it_is(
         fake_v1, tmp_credentials, capabilities, caplog):
-    '''🔴 Both halves unauthenticated, which is what makes this printable
-    before enrolment and for a server that is down -- the two states somebody
-    runs a bare `sc-remote` in.'''
-    import logging
-
-    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
-                  content_type="application/health+json")
+    '''🔴 Unauthenticated, so it prints before enrolment and for a server
+    that is down. Limits in readable units; null is unlimited, not zero.'''
+    capabilities["limits"]["concurrent_jobs"] = None
+    fake_v1.replace(responses.GET, "", capabilities)
+    _healthy(fake_v1)
 
     caplog.set_level(logging.INFO)
     Client(tmp_credentials).print_deployment()
 
-    assert "Health: pass" in caplog.text
-    assert "API: v1" in caplog.text
-    assert "Identity assurance: self_asserted" in caplog.text
-    assert "siliconcompiler: 0.38.9" in caplog.text
-    assert "client_credentials" in caplog.text
-    assert "logs.stream" in caplog.text
-
-    # Base units, rendered. The wire is bytes and seconds; a person reads
-    # neither at this size.
-    assert "max_upload_bytes: 1.0 GiB" in caplog.text
-    assert "max_download_bytes: 100 MiB" in caplog.text
-    assert "max_job_nodes: 1000" in caplog.text
-
+    for said in ("Health: pass", "API: v1", "Identity assurance: self_asserted",
+                 "siliconcompiler: 0.38.9", "client_credentials", "logs.stream",
+                 "max_upload_bytes: 1.0 GiB", "max_download_bytes: 100 MiB",
+                 "max_job_nodes: 1000", "concurrent_jobs: unlimited"):
+        assert said in caplog.text
     for call in fake_v1.calls:
         assert "Authorization" not in call.request.headers
-
-
-def test_an_unlimited_limit_reads_as_unlimited_and_not_as_none(
-        fake_v1, tmp_credentials, capabilities, caplog):
-    '''null is the wire's word for unlimited everywhere, and it is not zero.'''
-    import logging
-
-    capabilities["limits"]["max_download_bytes"] = None
-    fake_v1.replace(responses.GET, "", capabilities)
-    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
-                  content_type="application/health+json")
-
-    caplog.set_level(logging.INFO)
-    Client(tmp_credentials).print_deployment()
-
-    assert "max_download_bytes: unlimited" in caplog.text
-
-
-def test_a_notice_is_a_warning_because_somebody_has_to_read_it(
-        fake_v1, tmp_credentials, capabilities, caplog):
-    '''Scheduled downtime lives on `GET /v1` rather than the liveness probe:
-    an announcement is read once by a person, at the start of a session, which
-    is exactly when this runs.'''
-    import logging
-
-    capabilities["notices"] = [{"level": "warning", "message": "maintenance on Sunday",
-                                "starts_at": "2026-09-27T02:00:00Z",
-                                "ends_at": "2026-09-27T06:00:00Z"}]
-    fake_v1.replace(responses.GET, "", capabilities)
-    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
-                  content_type="application/health+json")
-
-    caplog.set_level(logging.INFO)
-    Client(tmp_credentials).print_deployment()
-
-    assert ("Notice: maintenance on Sunday (2026-09-27T02:00:00Z to "
-            "2026-09-27T06:00:00Z)") in caplog.text
-    assert any(record.levelname == "WARNING" and "maintenance" in record.message
-               for record in caplog.records)
 
 
 def notice(level, message, **times):
@@ -300,12 +174,12 @@ def notice(level, message, **times):
 
 def test_each_notice_is_shown_once_per_session_and_at_its_own_level(
         fake_v1, tmp_credentials, capabilities, caplog):
-    '''`level` picks how loudly and nothing branches on the text; a level
-    this client does not know is shown as a warning, the cautious default.'''
-    import logging
-
+    '''A level this client does not know is a warning, the cautious default.'''
     capabilities["notices"] = [notice("info", "new tools image"),
                                notice("severe", "a level from a later server"),
+                               notice("warning", "maintenance on Sunday",
+                                      starts_at="2026-09-27T02:00:00Z",
+                                      ends_at="2026-09-27T06:00:00Z"),
                                notice("warning", "down Saturday",
                                       ends_at="2026-10-03T06:00:00Z")]
     fake_v1.replace(responses.GET, "", capabilities)
@@ -319,17 +193,16 @@ def test_each_notice_is_shown_once_per_session_and_at_its_own_level(
              if record.message.startswith("Notice:")]
     assert shown == [("INFO", "Notice: new tools image"),
                      ("WARNING", "Notice: a level from a later server"),
+                     ("WARNING", "Notice: maintenance on Sunday (2026-09-27T02:00:00Z to "
+                                 "2026-09-27T06:00:00Z)"),
                      ("WARNING", "Notice: down Saturday (until 2026-10-03T06:00:00Z)")]
 
 
 def test_the_check_command_shows_every_notice_every_time(
         fake_v1, tmp_credentials, capabilities, caplog):
-    import logging
-
     capabilities["notices"] = [notice("info", "new tools image")]
     fake_v1.replace(responses.GET, "", capabilities)
-    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
-                  content_type="application/health+json")
+    _healthy(fake_v1)
     caplog.set_level(logging.INFO)
 
     client = Client(tmp_credentials)
@@ -342,8 +215,6 @@ def test_the_check_command_shows_every_notice_every_time(
 
 def test_a_deprecation_warns_once_per_session_with_its_sunset(
         fake_v1, tmp_credentials, capabilities, caplog):
-    import logging
-
     headers = {"Deprecation": "@1790000000", "Sunset": "Sat, 01 May 2027 00:00:00 GMT"}
     fake_v1.replace(responses.GET, "", capabilities, headers=headers)
     caplog.set_level(logging.INFO)
@@ -382,16 +253,25 @@ def me_body(*terms):
             "limits": {}, "usage": {"concurrent_jobs": 0}, "terms": list(terms)}
 
 
-def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
-        logged_in, fake_v1, caplog, monkeypatch):
-    '''Before it takes effect, so the change need not first reach the person
-    as a refused submit. 🔴 The client never accepts: nothing is sent.'''
-    import logging
-
+def _asked(monkeypatch, answer=None, tty=False, ci=False):
     from siliconcompiler.remote import client as client_module
 
+    if tty:
+        for stream in ("stdin", "stdout"):
+            monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    if ci:
+        monkeypatch.setenv("CI", "true")
+    else:
+        monkeypatch.delenv("CI", raising=False)
     monkeypatch.setattr(client_module, "_ask",
-                        lambda question: pytest.fail("asked without a terminal"))
+                        answer or (lambda question: pytest.fail("asked")))
+
+
+def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
+        logged_in, fake_v1, caplog, monkeypatch):
+    '''🔴 Named before it takes effect; the client never accepts, and asks for
+    no page it will not open.'''
+    _asked(monkeypatch)
     fake_v1.route(responses.GET, "me", me_body(terms_entry()))
     caplog.set_level(logging.INFO)
 
@@ -403,15 +283,12 @@ def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
     assert "Terms of Service" in named[0]
     assert "2026-11-01T00:00:00Z" in named[0]
     assert "accepted early, on its page in this server's portal" in caplog.text
-    # 🔴 No page is asked for unless it is about to be opened.
     assert asked_for_pages(fake_v1) == []
     assert not [c for c in fake_v1.calls if c.request.method != "GET"
                 and "/auth/token" not in c.request.url]
 
 
 def test_an_accepted_upcoming_version_is_not_mentioned(logged_in, fake_v1, caplog):
-    import logging
-
     fake_v1.route(responses.GET, "me",
                   me_body(terms_entry(accepted_at="2026-10-01T00:00:00Z")))
     caplog.set_level(logging.INFO)
@@ -423,15 +300,10 @@ def test_an_accepted_upcoming_version_is_not_mentioned(logged_in, fake_v1, caplo
 
 def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
         logged_in, fake_v1, monkeypatch):
-    from siliconcompiler.remote import client as client_module
-
-    for stream in ("stdin", "stdout"):
-        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
-    monkeypatch.delenv("CI", raising=False)
+    answers = iter(["n", "y"])
+    _asked(monkeypatch, lambda question: next(answers), tty=True)
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
-    answers = iter(["n", "y"])
-    monkeypatch.setattr(client_module, "_ask", lambda question: next(answers))
     fake_v1.route(responses.GET, "me", me_body(terms_entry()))
     fake_v1.route(responses.POST, "auth/browser",
                   {"url": "https://portal.test/enter?token=t1", "expires_at": None})
@@ -446,71 +318,37 @@ def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
     assert opened == ["https://portal.test/enter?token=t1"]
 
 
-def test_a_document_whose_page_cannot_decide_is_not_offered(logged_in, fake_v1, monkeypatch,
-                                                            caplog):
-    '''`can_decide: false` -- the page cannot take the decision -- so it is
-    named and nothing is offered.'''
-    import logging
-
-    from siliconcompiler.remote import client as client_module
-
-    for stream in ("stdin", "stdout"):
-        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
-    monkeypatch.delenv("CI", raising=False)
-    monkeypatch.setattr(client_module, "_ask",
-                        lambda question: pytest.fail("offered a page that cannot decide"))
-    fake_v1.route(responses.GET, "me", me_body(terms_entry(can_decide=False)))
+@pytest.mark.parametrize("can_decide,ci", [(False, False), (True, True)],
+                         ids=["page-cannot-decide", "ci"])
+def test_an_upcoming_version_is_only_reported_where_no_page_is_offered(
+        logged_in, fake_v1, monkeypatch, caplog, can_decide, ci):
+    _asked(monkeypatch, tty=True, ci=ci)
+    fake_v1.route(responses.GET, "me", me_body(terms_entry(can_decide=can_decide)))
     caplog.set_level(logging.INFO)
 
     logged_in.me()
 
     assert "2026-11-01" in caplog.text
-    assert "accepted early" not in caplog.text
     assert asked_for_pages(fake_v1) == []
-
-
-def test_a_ci_run_only_reports_an_upcoming_version(logged_in, fake_v1, monkeypatch,
-                                                   caplog):
-    import logging
-
-    from siliconcompiler.remote import client as client_module
-
-    for stream in ("stdin", "stdout"):
-        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
-    monkeypatch.setenv("CI", "true")
-    monkeypatch.setattr(client_module, "_ask",
-                        lambda question: pytest.fail("offered to open it in CI"))
-    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
-    caplog.set_level(logging.INFO)
-
-    logged_in.me()
-
-    assert "2026-11-01" in caplog.text
+    if not can_decide:
+        assert "accepted early" not in caplog.text
 
 
 ###########################
 # Login
 ###########################
 
-def test_login_needs_no_human(fake_v1, tmp_credentials, client_credentials):
+def test_login_needs_no_human_and_asserts_a_derived_subject(
+        fake_v1, tmp_credentials, client_credentials):
+    '''client_id=local:<derivation>, which RFC 6749 already registers.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     body = Client(tmp_credentials).login()
 
     assert body["access_token"] == "access-token-one"
     assert tmp_credentials.refresh_token == "refresh-token-one"
-    # 🔴 The access token is never written down: it lives fifteen minutes and
-    # this file lives for weeks.
+    # 🔴 The access token is never written down.
     assert "access_token" not in json.loads(tmp_credentials.path.read_text())
-
-
-def test_login_asserts_a_derived_subject(fake_v1, tmp_credentials, client_credentials):
-    '''client_id=local:<derivation>, which RFC 6749 already registers -- so a
-    username is not invented.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-
-    Client(tmp_credentials).login()
-
     sent = _form(fake_v1.calls[-1].request.body)
     assert sent["grant_type"] == "client_credentials"
     assert sent["client_id"].startswith("local:")
@@ -519,8 +357,7 @@ def test_login_asserts_a_derived_subject(fake_v1, tmp_credentials, client_creden
 
 
 def test_no_fingerprint_no_access(fake_v1, tmp_credentials, client_credentials):
-    '''🔴 With no machine id every such host would derive one subject -- one
-    principal for all of them -- so the client refuses before it asks.'''
+    '''🔴 With no machine id every such host would derive one subject.'''
     from siliconcompiler.remote.client import identity
 
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -532,208 +369,110 @@ def test_no_fingerprint_no_access(fake_v1, tmp_credentials, client_credentials):
     assert not [call for call in fake_v1.calls if "auth/token" in call.request.url]
 
 
-def test_the_derivation_includes_the_uid(tmp_credentials):
-    '''A machine-only key would collapse every user on a login node into one
-    identity, and B could cancel A's jobs.'''
-    from siliconcompiler.remote.client.identity import local_subject
+def test_the_subject_derivation_is_pinned():
+    '''🔴 Changing the salt or the derivation is a silent identity migration:
+    every user becomes a stranger on every server at once. The uid is in the
+    subject (one identity per user on a login node); the machine label is
+    not the subject.'''
+    from siliconcompiler.remote.client import identity
 
-    subject, _, _ = local_subject()
-    uid = str(os.getuid()) if hasattr(os, "getuid") else None
+    assert identity._SALT == b"siliconcompiler.remote.v1"
+    if hasattr(os, "getuid"):
+        assert identity._uid() == str(os.getuid())
 
-    if uid is not None:
-        assert subject.endswith(f":{uid}")
+    with mock.patch.object(identity, "machine_fingerprint",
+                           return_value=("a-machine-id", "linux_machine_id")), \
+         mock.patch.object(identity, "_uid", return_value="1000"):
+        subject, label, source = identity.local_subject()
 
-
-def test_the_machine_label_is_not_the_subject(tmp_credentials):
-    '''Two different columns: users.subject is the identity key and is unique,
-    devices.machine_id_hash is a label and deliberately is not.'''
-    from siliconcompiler.remote.client.identity import local_subject
-
-    subject, label, _ = local_subject()
-
-    assert label is None or label != subject
+    assert subject == "ef75e01d65b55facdf7413b2840745d7:1000"
+    assert label == "7eb20bb0b9607154b02dac185bb497d7"
+    assert source == "linux_machine_id"
 
 
-def test_the_next_command_refreshes_rather_than_enrolling_again(
+def test_a_first_command_enrolls_and_the_next_refreshes(
         fake_v1, tmp_credentials, client_credentials):
-    '''🔴 The property that matters is WHICH grant the second process uses.
-
-    The access token is not written down, so a later command always goes to the
-    token endpoint -- and it must go with `refresh_token`. `client_credentials`
-    mints a NEW token family every time it is called and a family lives twelve
-    days whether or not anything uses it, so enrolling per command would leave
-    one live session behind per invocation.
-    '''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    Client(tmp_credentials).login()
-
-    # A second client, as a second process would be.
-    Client(Credentials(tmp_credentials.path)).me()
-
-    grants = [_form(c.request.body)["grant_type"]
-              for c in fake_v1.calls if c.request.method == "POST"]
-    assert grants == ["client_credentials", "refresh_token"]
-
-
-def test_a_first_command_with_nothing_stored_enrolls(fake_v1, tmp_credentials,
-                                                     client_credentials):
-    '''And the fallback still exists: no refresh token means no session to
-    renew, so the grant is the one that creates one.'''
+    '''🔴 `client_credentials` mints a new twelve-day token family each call,
+    so a later process must use `refresh_token` -- and send no scope.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     Client(tmp_credentials).me()
+    Client(Credentials(tmp_credentials.path)).me()
 
-    grants = [_form(c.request.body)["grant_type"]
-              for c in fake_v1.calls if c.request.method == "POST"]
-    assert grants == ["client_credentials"]
+    assert _grants(fake_v1) == ["client_credentials", "refresh_token"]
+    refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
+    assert "scope" not in _form(refresh.body)
 
 
-def test_a_dead_refresh_token_falls_back_to_enrolling(fake_v1, tmp_credentials,
-                                                      client_credentials):
-    '''A session that ended is not a session to renew, and this machine's key
-    is still enrolled -- so the answer is a new session, not a failure.'''
+@pytest.mark.parametrize("reason", ["revoked", None, "reused"])
+def test_a_dead_refresh_token_falls_back_to_enrolling_once(
+        fake_v1, tmp_credentials, client_credentials, caplog, reason):
+    '''🔴 Exactly one refresh and one enrolment: a refused refresh once
+    recursed through login() for hundreds of real round trips. The new token
+    replaces the dead one; `reused` also says to rotate the key.'''
     tmp_credentials.save_tokens({"refresh_token": "long-dead"})
-
     fake_v1.route(responses.POST, "auth/token",
-                  {"error": "invalid_grant", "reason": "revoked"}, status=400)
+                  {"error": "invalid_grant", **({"reason": reason} if reason else {})},
+                  status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
-    assert Client(tmp_credentials).me()["id"] == "u1"
+    with caplog.at_level("WARNING"):
+        assert Client(tmp_credentials).me()["id"] == "u1"
 
-    grants = [_form(c.request.body)["grant_type"]
-              for c in fake_v1.calls if c.request.method == "POST"]
-    assert grants == ["refresh_token", "client_credentials"]
+    assert _grants(fake_v1) == ["refresh_token", "client_credentials"]
+    assert tmp_credentials.refresh_token == "refresh-token-one"
+    if reason == "reused":
+        assert "sc-remote -rotate_key" in caplog.text
+        assert "used elsewhere" in caplog.text
 
 
 ###########################
 # The three things a 401 means
 ###########################
 
-def test_an_expired_token_is_refreshed_silently(fake_v1, tmp_credentials,
+def test_an_expired_token_is_refreshed_silently(logged_in, fake_v1, tmp_credentials,
                                                 client_credentials):
-    '''The session is alive and the access token is not. The user sees
-    nothing.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me", problem("invalid-token", 401), status=401,
-                  content_type="application/problem+json",
-                  headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+    _refused(fake_v1, "me", "invalid-token", 401,
+             headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
     fake_v1.route(responses.POST, "auth/token",
                   {**client_credentials, "access_token": "access-token-two"})
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
-    assert client.me()["id"] == "u1"
-    # The rotated refresh token is persisted; the new access token is not.
+    assert logged_in.me()["id"] == "u1"
     assert tmp_credentials.refresh_token == "refresh-token-one"
     assert "access_token" not in json.loads(tmp_credentials.path.read_text())
 
 
-def test_a_nonce_challenge_is_retried_not_refreshed(fake_v1, tmp_credentials,
-                                                    client_credentials):
-    '''A client that only refreshes loops here forever, which is why all three
-    branches have to exist at once.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me", problem("invalid-dpop-proof", 401), status=401,
-                  content_type="application/problem+json",
-                  headers={"WWW-Authenticate": 'DPoP error="use_dpop_nonce"',
-                           "DPoP-Nonce": "nonce-from-the-server"})
+def test_a_dead_session_is_logged_into_again_never_refreshed(logged_in, fake_v1):
+    '''The refresh token is the session that ended.'''
+    _refused(fake_v1, "me", "session-ended", 401, reason="revoked")
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
-    assert client.me()["id"] == "u1"
-
-    # The retry carried the nonce, and no second login happened.
-    retried = fake_v1.calls[-1].request
-    assert "nonce-from-the-server" in _proof_claims(retried.headers["DPoP"])["nonce"]
-    assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1
-
-
-def test_a_dead_session_is_logged_into_again_never_refreshed(fake_v1, tmp_credentials,
-                                                             client_credentials):
-    '''Refreshing a revoked session loops; retrying it as it is loops. The
-    answer is a new login -- and never a refresh, because the refresh token is
-    the session that ended.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me",
-                  problem("session-ended", 401, reason="revoked"), status=401,
-                  content_type="application/problem+json")
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    assert client.me()["id"] == "u1"
-
-    grants = [_form(c.request.body)["grant_type"]
-              for c in fake_v1.calls if c.request.method == "POST"]
-    assert grants == ["client_credentials", "client_credentials"]
-
-
-def test_a_reused_refresh_token_says_to_rotate_the_key(fake_v1, tmp_credentials,
-                                                       client_credentials, caplog):
-    '''`reused` means the credentials were used somewhere else: the person is
-    told to replace this machine's key, and on a `client_credentials` server
-    that an operator must release the binding.'''
-    tmp_credentials.save_tokens({"refresh_token": "stolen-and-spent"})
-    fake_v1.route(responses.POST, "auth/token",
-                  {"error": "invalid_grant", "reason": "reused"}, status=400)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    with caplog.at_level("WARNING"):
-        Client(tmp_credentials).me()
-
-    assert "sc-remote -rotate_key" in caplog.text
-    assert "used elsewhere" in caplog.text
-
-
-def test_an_invalid_proof_fails_rather_than_refreshing(fake_v1, tmp_credentials,
-                                                       client_credentials):
-    '''A bad proof is not a stale token, so there is nothing a refresh would
-    fix.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me", problem("invalid-dpop-proof", 401),
-                  status=401, content_type="application/problem+json")
-
-    with pytest.raises(ServerProblem) as raised:
-        client.me()
-
-    assert raised.value.slug == "invalid-dpop-proof"
+    assert logged_in.me()["id"] == "u1"
+    assert _grants(fake_v1) == ["client_credentials", "client_credentials"]
 
 
 # Clear of each unit's boundary: `Date` has one-second resolution.
 @pytest.mark.parametrize("offset,said", [(330, r"5m \d\ds behind"), (-7530, "2h 05m ahead"),
-                                         (20, None)])
-def test_a_refused_proof_says_when_the_clock_is_off(fake_v1, tmp_credentials,
-                                                    client_credentials, offset, said):
-    '''🔴 Surface D167: a clock further than a minute from the server's is
-    refused every time, and "did not accept this machine's key" sends a person
-    looking at the key. The server's `Date` says how far out it is.'''
+                                         (20, None), (None, None)])
+def test_a_refused_proof_fails_and_says_when_the_clock_is_off(logged_in, fake_v1,
+                                                              offset, said):
+    '''🔴 Surface D167: a bad proof is not a stale token, so nothing is
+    refreshed; a clock over a minute out is named from the server's `Date`.'''
     import email.utils
     import time as clock
 
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me", problem("invalid-dpop-proof", 401), status=401,
-                  content_type="application/problem+json",
-                  headers={"Date": email.utils.formatdate(clock.time() + offset, usegmt=True)})
+    headers = None if offset is None else \
+        {"Date": email.utils.formatdate(clock.time() + offset, usegmt=True)}
+    _refused(fake_v1, "me", "invalid-dpop-proof", 401, headers=headers)
 
     with pytest.raises(ServerProblem) as raised:
-        client.me()
+        logged_in.me()
 
+    assert raised.value.slug == "invalid-dpop-proof"
+    assert _grants(fake_v1) == ["client_credentials"]
     if said:
         assert re.search(said, str(raised.value)) and "clock" in str(raised.value)
     else:
@@ -746,15 +485,10 @@ def test_a_refused_proof_says_when_the_clock_is_off(fake_v1, tmp_credentials,
 
 def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
         fake_v1, tmp_credentials, client_credentials, caplog):
-    '''Five things replace the principal without anyone doing anything wrong: a
-    reimage, a container, a CI image, a changed uid, a client release that
-    changes the salt. Without the persisted id, a user cannot tell "my jobs were
-    deleted" from "I am a different person now".'''
-    import logging
-
+    '''A reimage, container or changed uid replaces the principal; without
+    the persisted id, "my jobs were deleted" looks the same.'''
     caplog.set_level(logging.WARNING)
     tmp_credentials.set_user_id("the-old-me")
-
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "the-new-me", "issuer": "local"})
 
@@ -768,105 +502,50 @@ def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
 # Rendering a refusal
 ###########################
 
-def test_a_refusal_is_three_lines_without_opening_a_url():
-    '''The type pages are static and identical across deployments, so the
-    client holds the only copy of the specific failure -- and most users never
-    open the link.'''
-    rendered = describe(problem("limit-exceeded", 429, limit="concurrent_jobs",
-                                detail="four already running",
-                                trace_id="a" * 32))
+@pytest.mark.parametrize("body,status,said", [
+    (problem("limit-exceeded", 429, limit="concurrent_jobs", detail="four already running",
+             trace_id="a" * 32),
+     None, ["four already running", "limit: concurrent_jobs", "refills", "trace " + "a" * 32]),
+    (problem("feature-unsupported", 501, feature="device_grant"), None,
+     ["feature: device_grant"]),
+    (problem("archive-rejected", 422, reason="expanded_bytes"), None,
+     ["reason: expanded_bytes"]),
+    (problem("archive-rejected", 422, reason="a-reason-from-later"), None,
+     ["Fix what the reason names, in a new job."]),
+    ({"title": "Bad Gateway"}, 502, ["try again later"]),
+], ids=["detail-and-trace", "feature", "reason", "unknown-reason", "untyped-5xx"])
+def test_a_refusal_renders_without_opening_a_url(body, status, said):
+    '''The type pages are static, so the client holds the only copy of the
+    specific failure: the discriminator, the next step and the trace.'''
+    rendered = describe(body, status) if status else describe(body)
 
-    assert "four already running" in rendered
-    assert "limit: concurrent_jobs" in rendered
-    assert "refills" in rendered
-    assert "trace " + "a" * 32 in rendered
+    for fragment in said:
+        assert fragment in rendered
 
 
-def test_the_discriminator_is_rendered_not_just_the_slug():
-    '''A slug names a kind of failure; the member names the instance.'''
-    assert "feature: device_grant" in describe(
-        problem("feature-unsupported", 501, feature="device_grant"))
-    assert "reason: expanded_bytes" in describe(
-        problem("archive-rejected", 422, reason="expanded_bytes"))
-
-
-def test_a_proxy_html_error_renders_rather_than_throwing(fake_v1, tmp_credentials,
-                                                         client_credentials):
-    '''problem+json is promised only for what a handler produced, so
-    resp.json()["type"] throws on exactly the errors production serves most.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me",
-                  "<html><head><title>502 Bad Gateway</title></head>"
-                  "<body><h1>502 Bad Gateway</h1></body></html>",
-                  status=502, content_type="text/html")
+@pytest.mark.parametrize("body,status,content_type", [
+    ("<html><head><title>502 Bad Gateway</title></head>"
+     "<body><h1>502 Bad Gateway</h1></body></html>", 502, "text/html"),
+    ("", 503, "text/plain"),
+], ids=["proxy-html", "empty"])
+def test_a_non_problem_error_body_renders_rather_than_throwing(logged_in, fake_v1, body,
+                                                               status, content_type):
+    '''problem+json is promised only for what a handler produced.'''
+    fake_v1.route(responses.GET, "me", body, status=status, content_type=content_type)
 
     with pytest.raises(ServerProblem) as raised:
-        client.me()
+        logged_in.me()
 
-    assert raised.value.status == 502
-    assert raised.value.slug is None            # nothing named a condition
-    assert "502" in str(raised.value)
-    assert "<html>" not in str(raised.value)    # not the whole page
-
-
-def test_an_empty_error_body_still_renders(fake_v1, tmp_credentials,
-                                           client_credentials):
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me", "", status=503, content_type="text/plain")
-
-    with pytest.raises(ServerProblem) as raised:
-        client.me()
-
-    assert raised.value.status == 503
-    assert str(raised.value)
-
-
-###########################
-# Refusals only this rig can produce
-###########################
-
-@pytest.mark.parametrize("slug,status,members", [
-    ("limit-exceeded", 429, {"limit": "concurrent_jobs"}),
-    ("feature-unsupported", 501, {"feature": "projects"}),
-    ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"}),
-    ("terms-not-accepted", 403, {"blocked_by": ["tos"]}),
-    ("rate-limited", 429, {}),
-    ("insecure-transport", 426, {}),
-    ("not-ready", 409, {"artifact_kind": "logs"}),
-    ("invalid-cursor", 400, {}),
-])
-def test_every_refusal_branches_on_its_type(fake_v1, tmp_credentials,
-                                            client_credentials, slug, status,
-                                            members):
-    '''Most of these cannot be provoked from a working server at all, which is
-    the whole argument for this rig: branch coverage becomes a function of the
-    frozen registry rather than of what a real server happens to say.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "me", problem(slug, status, **members),
-                  status=status, content_type="application/problem+json")
-
-    with pytest.raises(ServerProblem) as raised:
-        client.me()
-
-    assert raised.value.slug == slug
-    for name, value in members.items():
-        assert raised.value.member(name) == value
+    assert raised.value.status == status
+    assert raised.value.slug is None
+    assert str(raised.value) and "<html>" not in str(raised.value)
+    if body:
+        assert "502" in str(raised.value)
 
 
 def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
-    '''A type from a later registry is not a type this client knows, and
-    the status still says what to do: a 4xx is not worth repeating.'''
-    fake_v1.route(responses.GET, "me", problem("a-type-from-later", 422),
-                  status=422, content_type="application/problem+json")
+    '''A 4xx from a later registry is still not worth repeating.'''
+    _refused(fake_v1, "me", "a-type-from-later", 422)
 
     with pytest.raises(ServerProblem) as raised:
         logged_in.me()
@@ -875,269 +554,92 @@ def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
     assert "retrying it unchanged will not help" in str(raised.value)
 
 
-def test_an_unknown_reason_is_acted_on_by_its_type():
-    text = describe(problem("archive-rejected", 422, reason="a-reason-from-later"))
-
-    assert "Fix what the reason names, in a new job." in text
-
-
-def test_an_untyped_5xx_says_to_try_later():
-    assert "try again later" in describe({"title": "Bad Gateway"}, 502)
-
-
 ###########################
 # Devices
 ###########################
 
-def test_devices_follow_the_next_link(fake_v1, logged_in):
-    fake_v1.route(responses.GET, "devices", {"items": [{"id": "d1"}]},
+def test_devices_are_listed_across_pages_and_revoked(fake_v1, logged_in):
+    fake_v1.route(responses.GET, "devices", {"items": [{"id": "d1", "current": True}]},
                   headers={"Link": f'<{V1_URL}/devices?cursor=c2>; rel="next"'})
     fake_v1.route(responses.GET, "devices", {"items": [{"id": "d2"}]})
 
     assert [device["id"] for device in logged_in.devices()] == ["d1", "d2"]
     assert fake_v1.calls[-1].request.url.endswith("cursor=c2")
 
-
-def test_devices_are_listed_and_revoked(fake_v1, tmp_credentials,
-                                        client_credentials):
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.GET, "devices",
-                  {"items": [{"id": "d1", "name": "laptop", "current": True}]})
-    assert client.devices()[0]["id"] == "d1"
-
     fake_v1.route(responses.DELETE, "devices/d1", "", status=204)
-    client.revoke_device("d1")
+    logged_in.revoke_device("d1")
 
     assert fake_v1.calls[-1].request.method == "DELETE"
 
 
-def test_logout_ends_the_session_and_forgets_it(fake_v1, tmp_credentials,
-                                                client_credentials):
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
+@pytest.mark.parametrize("answer", [
+    {"body": "", "status": 204},
+    {"body": problem("session-ended", 401, reason="revoked"), "status": 401,
+     "content_type": "application/problem+json"},
+], ids=["live", "already-dead"])
+def test_logout_forgets_the_session(fake_v1, logged_in, tmp_credentials, answer):
+    '''Even one already gone: the remaining job is local.'''
+    fake_v1.route(responses.POST, "auth/revoke", **answer)
 
-    fake_v1.route(responses.POST, "auth/revoke", "", status=204)
-    client.logout()
-
-    assert tmp_credentials.refresh_token is None
-
-
-def test_logout_of_an_already_dead_session_still_forgets_it(
-        fake_v1, tmp_credentials, client_credentials):
-    '''The remaining job is local, and failing here would leave a user unable to
-    log out of a session that is already gone.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
-    client.login()
-
-    fake_v1.route(responses.POST, "auth/revoke",
-                  problem("session-ended", 401, reason="revoked"), status=401,
-                  content_type="application/problem+json")
-    client.logout()
+    logged_in.logout()
 
     assert tmp_credentials.refresh_token is None
 
 
-def _form(body):
-    from urllib.parse import parse_qs
+###########################
+# Configuring a server
+###########################
 
-    if isinstance(body, bytes):
-        body = body.decode()
-    return {k: v[0] for k, v in parse_qs(body).items()}
-
-
-def _proof_claims(proof):
-    import jwt
-
-    return jwt.decode(proof, options={"verify_signature": False})
-
-
-def test_reconfiguring_forgets_which_principal_the_old_server_used(
-        fake_v1, tmp_credentials, client_credentials, capabilities):
-    '''Pointing at a different server is not identity drift.
-
-    `user_id` is per server, so keeping one across a change of address would
-    have the first `me()` announce that this machine became somebody else --
-    on the one occasion when a different principal is exactly what was asked
-    for.
-    '''
+@pytest.mark.parametrize("software,said,unsaid", [
+    (None, ["This server runs siliconcompiler 0.38.9"], []),
+    ({"python": {"siliconcompiler": ["9.9.9"]}, "tools": {}},
+     ["which is not one of them", "before anything is uploaded"], []),
+    ({"python": {}, "tools": {}}, [], ["This server runs"]),
+], ids=["runs", "not-listed", "names-none"])
+def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credentials,
+                                             client_credentials, caplog, software, said,
+                                             unsaid):
+    '''🔴 Visible while somebody watches, not at the first submit; the server
+    still decides. A server naming no software is not second-guessed. A new
+    server is not identity drift, so the old principal is forgotten.'''
+    if software is not None:
+        capabilities["software"] = software
+        fake_v1.replace(responses.GET, "", capabilities)
     tmp_credentials.set_user_id("who-the-old-server-called-me")
-
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u-new", "issuer": "local"})
 
-    client = Client(tmp_credentials)
-    client.configure_server(server=V1_URL.rsplit("/v1", 1)[0],
-                            clobber=True, prompt=False)
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).configure_server(
+        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
 
     assert tmp_credentials.user_id == "u-new"
-
-
-def test_the_derivation_salt_is_pinned():
-    '''🔴 Editing this constant is a silent, uncoordinated identity migration.
-
-    The salt is compile-time and ships in the source. It provides domain
-    separation, NOT secrecy -- anybody with the source computes the same
-    digest, which is fine, because its whole job is to keep this project's
-    hash of a machine id different from every other program's hash of the same
-    machine id.
-
-    What it must never do is change. Every unauthenticated deployment derives
-    its subjects from it, so a new value makes every existing user a stranger
-    on every server at once: their jobs are still there and are no longer
-    theirs. There is no migration path, because the server cannot know the old
-    subject and the new one are the same person.
-
-    A comment asking for that is not a gate. This is.
-    '''
-    from siliconcompiler.remote.client import identity
-
-    assert identity._SALT == b"siliconcompiler.remote.v1"
-
-    # And the shape it produces, so a change to the derivation ITSELF is caught
-    # too -- reordering the inputs or dropping a separator is the same break
-    # with none of the visibility.
-    with mock.patch.object(identity, "machine_fingerprint",
-                           return_value=("a-machine-id", "linux_machine_id")), \
-         mock.patch.object(identity, "_uid", return_value="1000"):
-        subject, label, source = identity.local_subject()
-
-    assert subject == "ef75e01d65b55facdf7413b2840745d7:1000"
-    assert label == "7eb20bb0b9607154b02dac185bb497d7"
-    assert source == "linux_machine_id"
+    assert all(line in caplog.text for line in said)
+    assert not any(line in caplog.text for line in unsaid)
 
 
 ###########################
 # 🔴 A refusal must never become a flood
 ###########################
 
-def test_a_stale_refresh_token_does_not_recurse(fake_v1, tmp_credentials,
-                                                client_credentials):
-    '''🔴 A 401 from the TOKEN endpoint is not an expired access token.
-
-    Treating it as one made the client refresh in answer to a failed refresh,
-    and the loop was not bounded by the retry counter: every hop went through
-    login(), which starts a fresh request with the counter back at zero. It
-    ended in a RecursionError after a couple of hundred REAL round trips, so
-    the client flooded the server on its way to crashing.
-    '''
-    tmp_credentials.save_tokens({"refresh_token": "long-since-revoked"})
-
-    fake_v1.route(responses.POST, "auth/token", {"error": "invalid_grant"}, status=400)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    assert Client(tmp_credentials).me()["id"] == "u1"
-
-    grants = [_form(c.request.body)["grant_type"]
-              for c in fake_v1.calls if c.request.method == "POST"]
-    # Exactly two: the refresh that was refused, then the enrolment that
-    # replaced it. Not a third, and certainly not two hundred.
-    assert grants == ["refresh_token", "client_credentials"]
-
-
-def test_a_stale_refresh_token_is_replaced_on_disk(fake_v1, tmp_credentials,
-                                                   client_credentials):
-    '''Self-healing, so the next command costs one request rather than two.'''
-    tmp_credentials.save_tokens({"refresh_token": "long-since-revoked"})
-
-    fake_v1.route(responses.POST, "auth/token", {"error": "invalid_grant"}, status=400)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    Client(tmp_credentials).me()
-
-    assert tmp_credentials.refresh_token == "refresh-token-one"
-
-
 def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
-    '''There is no access token on one, so there is nothing a refresh could
-    repair.'''
+    '''It has no access token for a refresh to repair.'''
     tmp_credentials.save_tokens({"refresh_token": "whatever"})
-
-    fake_v1.route(responses.POST, "auth/token",
-                  problem("invalid-token", 401), status=401,
-                  content_type="application/problem+json")
+    _refused(fake_v1, "auth/token", "invalid-token", 401, method=responses.POST)
 
     client = Client(tmp_credentials)
     with pytest.raises(ServerProblem):
         client.transport.login({"grant_type": "refresh_token",
                                 "refresh_token": "whatever"})
 
-    posts = [c for c in fake_v1.calls if c.request.method == "POST"]
-    assert len(posts) == 1
+    assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1
 
 
 def test_a_refresh_cannot_start_inside_a_refresh(fake_v1, tmp_credentials):
-    '''Belt and braces behind the check above. A refresh that provokes a
-    refresh is the one failure here that costs the SERVER rather than this
-    process, so it is impossible by construction rather than by one condition
-    being right.'''
+    '''Impossible by construction: that loop costs the server.'''
     tmp_credentials.save_tokens({"refresh_token": "a-token"})
     client = Client(tmp_credentials)
 
     client.transport._refreshing = True
     assert client.transport.refresh() is False
     assert not fake_v1.calls[1:]        # nothing beyond discovery
-
-
-def test_configure_says_what_the_server_runs(fake_v1, tmp_credentials,
-                                             client_credentials, caplog):
-    '''🔴 The check is the client's and the decision is the server's.
-
-    A client that skips it is not broken -- it gets a `version-skew` a moment
-    later -- and a server that trusted it would be. What saying it here buys is
-    that the mismatch is visible while somebody is watching, rather than at the
-    first submit of the first job.
-    '''
-    import logging
-
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
-
-    caplog.set_level(logging.INFO)
-    Client(tmp_credentials).configure_server(
-        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
-
-    assert "This server runs siliconcompiler 0.38.9" in caplog.text
-
-
-def test_configure_says_so_when_this_machine_is_not_on_the_list(
-        fake_v1, capabilities, tmp_credentials, client_credentials, caplog):
-    '''Before a job exists, which is the cheapest possible refusal.'''
-    import logging
-
-    capabilities["software"] = {"python": {"siliconcompiler": ["9.9.9"]},
-                                "tools": {}}
-    fake_v1.replace(responses.GET, "", capabilities)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
-
-    caplog.set_level(logging.INFO)
-    Client(tmp_credentials).configure_server(
-        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
-
-    assert "which is not one of them" in caplog.text
-    assert "before anything is uploaded" in caplog.text
-
-
-def test_a_server_that_names_no_software_is_not_second_guessed(
-        fake_v1, capabilities, tmp_credentials, client_credentials, caplog):
-    '''REQUIRED on the wire, so its absence is an older or a broken server
-    rather than a deployment with an opinion.'''
-    import logging
-
-    capabilities["software"] = {"python": {}, "tools": {}}
-    fake_v1.replace(responses.GET, "", capabilities)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u-1", "issuer": "local"})
-
-    caplog.set_level(logging.INFO)
-    Client(tmp_credentials).configure_server(
-        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
-
-    assert "This server runs" not in caplog.text

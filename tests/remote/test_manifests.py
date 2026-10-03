@@ -9,8 +9,8 @@ from siliconcompiler.remote import manifests
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 
-# Reading a manifest somebody else wrote: every class it names is looked up
-# among the classes already loaded, and nothing is imported on its behalf.
+# A manifest somebody else wrote: every class it names is looked up among the
+# classes already loaded, and nothing is imported on its behalf.
 
 
 @pytest.fixture
@@ -26,17 +26,13 @@ def unloaded(monkeypatch):
     return marker
 
 
-def imported(marker):
-    return os.path.exists(marker)
-
-
 def test_a_class_a_manifest_names_is_looked_up_and_not_imported(unloaded):
     cfg = Project().getdict()
     cfg["__meta__"]["class"] = "sc_not_yet_loaded/NamedProject"
 
     project = manifests.read(cfg=cfg)
 
-    assert not imported(unloaded)
+    assert not os.path.exists(unloaded)
     assert type(project) is Project               # unknown: its base type
 
 
@@ -49,8 +45,7 @@ def test_a_class_already_loaded_resolves(unloaded):
 
 
 def test_a_task_class_is_never_imported_by_reading(unloaded):
-    '''Only its name is read, whole manifest and all; the caller checks it
-    against the loaded classes before anything asks for the task.'''
+    '''Only its name is read; the caller checks it against the loaded classes.'''
     flow = Flowgraph("f")
     flow.node("known", NOPTask())
     flow.node("unknown", NOPTask())
@@ -64,7 +59,7 @@ def test_a_task_class_is_never_imported_by_reading(unloaded):
     names = {node: read.get_flow().get_graph_node(node, "0").get_taskmodule()
              for node in ("known", "unknown")}
 
-    assert not imported(unloaded)
+    assert not os.path.exists(unloaded)
     assert names["unknown"] == "sc_not_yet_loaded/NamedTask"
     known = manifests.known_classes()
     assert names["known"] in known
