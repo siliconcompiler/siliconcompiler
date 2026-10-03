@@ -570,8 +570,11 @@
         "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
     },
     {
+        "cache": false,
         "design": "ibex",
         "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
         "target": "gt2n_6t_w31"
     },
     {
