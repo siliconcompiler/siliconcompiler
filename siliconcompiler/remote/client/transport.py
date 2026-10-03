@@ -156,10 +156,6 @@ class Transport:
         # Where this server serves its error `type` pages, from `Link: rel="help"`.
         self.help_pages: Optional[str] = None
 
-    ######################################################################
-    # Tokens
-    ######################################################################
-
     @property
     def access_token(self) -> Optional[str]:
         if self._access_expires is not None and time.monotonic() >= self._access_expires:
@@ -180,10 +176,6 @@ class Transport:
     def api_origin(self) -> str:
         return origin_of(self.base_url)
 
-    ######################################################################
-    # Headers
-    ######################################################################
-
     def operator_headers(self, url: str) -> Dict[str, str]:
         '''The operator headers a request to ``url`` carries.
 
@@ -192,10 +184,6 @@ class Transport:
         if origin_of(url) != self.api_origin:
             return {}
         return self._credentials.headers()
-
-    ######################################################################
-    # The request
-    ######################################################################
 
     def request(self, method: str, path: str, *,
                 authenticated: bool = True,
@@ -381,10 +369,6 @@ class Transport:
         if self.relogin is not None:
             self.relogin(None)
 
-    ######################################################################
-    # The clock
-    ######################################################################
-
     def _correct_clock(self, response) -> bool:
         '''Correct later proofs by the server's `Date`, once, saying so.'''
         skew = _skew(response)
@@ -416,10 +400,6 @@ class Transport:
         self.warn("This server says the API this client uses is deprecated"
                   + (f", and it goes away on {clean(sunset)}" if sunset else "")
                   + ". Upgrade SiliconCompiler.")
-
-    ######################################################################
-    # Storage and streams
-    ######################################################################
 
     def put_object(self, url: str, headers: Dict[str, str], path) -> None:
         '''Send the bytes to wherever the grant points.
@@ -498,10 +478,6 @@ class Transport:
             raise
 
         return dest
-
-    ######################################################################
-    # Login
-    ######################################################################
 
     def token(self, form: Dict[str, str]) -> Dict[str, Any]:
         '''`POST /v1/auth/token`: a grant for a session. A proof and no token.'''

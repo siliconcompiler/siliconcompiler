@@ -115,10 +115,6 @@ def site(monkeypatch):
     capture._module_distributions.cache_clear()
 
 
-###########################
-# What the code reaches
-###########################
-
 def test_what_a_source_imports_by_distribution(site):
     '''Absolute imports by top-level module, and the framework's; not relative
     ones or the standard library; what nothing installs is warned of.'''
@@ -185,10 +181,6 @@ def test_a_test_module_that_cannot_be_read_stops_the_work(site):
         capture.reach([os.path.abspath("tb.py")])
 
 
-###########################
-# The lists
-###########################
-
 def test_the_lists_are_what_the_code_reaches_and_what_that_depends_on(site):
     '''🔴 Canonical names at installed versions, constraining only what the
     install needs through `Requires-Dist` -- never the rest of this machine.'''
@@ -242,10 +234,6 @@ def test_a_closure_past_the_servers_bounds_stops_the_run(site, monkeypatch):
                        match="reaches 2 installed distributions.*at most 1"):
         capture.lists({"scfakeumi": set()}, [])
 
-
-###########################
-# The wheels
-###########################
 
 def test_an_install_from_a_local_file_is_repacked_as_a_pure_wheel(site):
     '''What was installed and its metadata, nothing pip wrote at install, and
@@ -321,10 +309,6 @@ def test_an_editable_build_that_is_not_a_pure_wheel_stops_with_why(site, tag, ba
     assert not [name for name in os.listdir(".") if name.endswith(".whl")]
 
 
-###########################
-# The task's half
-###########################
-
 class RunsATestbench(NOPTask):
     '''A task whose tool runs a testbench of the user's.'''
 
@@ -372,10 +356,6 @@ def test_a_cocotb_node_names_its_testbench_and_leaves_cocotb_to_the_image():
     assert [os.path.basename(path) for path in wanted.sources] == ["test_gcd.py"]
     assert wanted.framework == ("cocotb",)
 
-
-###########################
-# The client, end to end
-###########################
 
 @pytest.fixture
 def offers_python_env(fake_v1, capabilities):
@@ -563,10 +543,6 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
         json.loads(cancel.request.body)["reason"]
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
 
-
-###########################
-# What the account may do, and what the job ran
-###########################
 
 @pytest.mark.parametrize("granted,wheel,stops", [
     # No `authorized`, as sc-server's: nothing granted gates nothing.

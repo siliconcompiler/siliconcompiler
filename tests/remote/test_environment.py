@@ -62,10 +62,6 @@ def simple_index(flat, yanked=()):
     return root.as_uri() + "/"
 
 
-###########################
-# The lists' grammar
-###########################
-
 def test_what_the_lists_take_and_how_the_builder_writes_them():
     packages = environment.parse({"requirements": ["numpy==1.26.4", "pyuvm==3.0.0"],
                                   "constraints": ["scapy==2.5.0", "cocotbext-eth==0.1.28"]})
@@ -121,10 +117,6 @@ def test_the_bounds_and_each_name_once_across_both_lists_as_pep_503_sees_it():
     with pytest.raises(environment.PackagesError, match="is an object"):
         environment.parse(["numpy==1.0"])
 
-
-###########################
-# A wheel, held to what an upload may carry
-###########################
 
 def test_a_pure_wheel_is_taken(tmp_path):
     path = make_wheel(tmp_path, "scfake-helper", "0.1.0")
@@ -185,10 +177,6 @@ def test_a_wheel_misnamed_not_a_zip_or_holding_a_link_is_refused(tmp_path):
         environment.check_wheel(path)
 
 
-###########################
-# The deployment
-###########################
-
 @pytest.mark.parametrize("values,offered", [
     ({"features": ["python.env"]}, True),                    # host mode installs them
     ({"containers": True, "env_builder": True}, True),       # in containers, the builder
@@ -230,10 +218,6 @@ def test_the_packages_go_on_the_path_of_a_node_running_the_users_python_only(
     assert path("stepone")[:2] == [site, layer]
     assert site not in path("steptwo") and layer not in path("steptwo")
 
-
-###########################
-# At create
-###########################
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
@@ -313,10 +297,6 @@ def test_a_listed_python_name_is_answered_from_what_this_server_holds(
     assert response.get_json()["unresolved"] == [
         {"kind": "python", "name": name, "requirement": [pin], "available": available}]
 
-
-###########################
-# While staging
-###########################
 
 @pytest.fixture
 def dispatcher(server):

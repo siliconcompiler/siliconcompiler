@@ -90,10 +90,6 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
                     self._in_flight.discard(token)
         return held()
 
-    ######################################################################
-    # Where a user's work lives
-    ######################################################################
-
     def user_root(self, user_id: str) -> Path:
         return self._datadir / "users" / user_id
 

@@ -79,10 +79,6 @@ class Client:
         transport.warn = self.logger.warning
         return transport
 
-    ######################################################################
-    # Configuration
-    ######################################################################
-
     @property
     def transport(self) -> Transport:
         if self._transport is None:
@@ -119,10 +115,6 @@ class Client:
         self.logger.info("Directory whitelist:")
         for entry in whitelist or ["  (empty)"]:
             self.logger.info(f"  {entry}" if whitelist else entry)
-
-    ######################################################################
-    # Discovery
-    ######################################################################
 
     def capabilities(self, notices: bool = True) -> Dict[str, Any]:
         '''``GET /v1``, sent with no credential.
@@ -247,10 +239,6 @@ class Client:
             used = format_binary(stored.get("used") or 0, "B", digits=1, show_unit=True,
                                  compact=True, default="—")
             self.logger.info(f"Storage: {used}")
-
-    ######################################################################
-    # Sessions
-    ######################################################################
 
     def login(self) -> Dict[str, Any]:
         '''Obtain a session, the way this deployment offers one (identity §3).
@@ -560,10 +548,6 @@ class Client:
             self.credentials.forget_tokens()
             self.transport.set_tokens(None)
 
-    ######################################################################
-    # CI and operator headers
-    ######################################################################
-
     def ci_setup(self, server: Optional[str] = None) -> None:
         '''Write the store from the CI secret in the environment, for a CI job.
 
@@ -647,10 +631,6 @@ class Client:
         except Exception:                                        # noqa: BLE001
             return False
 
-    ######################################################################
-    # Identity
-    ######################################################################
-
     def me(self, remind: bool = True) -> Dict[str, Any]:
         '''``GET /v1/me``, remembering which principal this server saw.
         ``remind=False`` leaves naming unaccepted terms to the caller.'''
@@ -714,10 +694,6 @@ class Client:
         '''Revoke a machine, ending every session it holds.'''
         self.ensure_session()
         self.transport.request("DELETE", f"devices/{device_id}")
-
-    ######################################################################
-    # Jobs
-    ######################################################################
 
     def create_job(self, design: str, jobname: str, *,
                    flow: Optional[str] = None,
@@ -891,10 +867,6 @@ class Client:
         self.ensure_session()
         self.transport.request("DELETE", f"jobs/{job_id}")
 
-    ######################################################################
-    # Artifacts
-    ######################################################################
-
     def artifacts(self, job_id: str, **filters) -> list:
         '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
 
@@ -988,10 +960,6 @@ class Client:
         from siliconcompiler.remote.client.logs import LogTail
 
         return LogTail(self, job_id, step, index).follow(write=write)
-
-    ######################################################################
-    # sc-remote -configure
-    ######################################################################
 
     def configure_server(self, server: Optional[str] = None,
                          clobber: bool = False,

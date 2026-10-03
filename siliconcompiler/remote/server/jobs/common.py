@@ -119,10 +119,6 @@ class _Supply:
         return self._sources.allowlisted(source, ref)
 
 
-######################################################################
-# Small things, kept out of the class
-######################################################################
-
 def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """What a job needs from its image, by bucket:
     `descriptor.requested_versions`.

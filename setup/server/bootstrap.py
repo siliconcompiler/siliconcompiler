@@ -120,10 +120,6 @@ def say(message: str) -> None:
     print(f"| bootstrap | {message}", flush=True)
 
 
-######################################################################
-# The docker socket, for exactly two calls
-######################################################################
-
 class _Daemon(HTTPConnection):
     '''The Engine API over its unix socket.
 
@@ -364,10 +360,6 @@ def pushed_as(local: str, repository: str):
             return ref[len(prefix):]
     return None
 
-
-######################################################################
-# The steps
-######################################################################
 
 def wait_for_registry() -> None:
     host, _, port = PULL_FROM.partition(":")

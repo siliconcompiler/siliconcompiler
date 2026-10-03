@@ -19,7 +19,6 @@
 ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 
 
-##############################################################################
 # Stage 1 -- work out which version this is.
 #
 # siliconcompiler's version is derived from git by setuptools_scm. It cannot be
@@ -48,7 +47,6 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 # unreachable from in here. That is why `_version.py` is the second source: an
 # editable install has already written the answer into the tree, and reading it
 # is what lets a worktree build with plain `docker compose up`.
-##############################################################################
 FROM ubuntu:24.04 AS version
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -84,14 +82,12 @@ RUN --mount=type=bind,target=/ctx set -eu; \
     echo "$version" > /version
 
 
-##############################################################################
 # Stage 2 -- build a wheel at that version.
 #
 # Only the wheel crosses into the final image. The source is copied by name --
 # the package and the four files its metadata reads -- so nothing else in the
 # tree can invalidate it; Dockerfile.dockerignore says the same thing from the
 # other side.
-##############################################################################
 FROM ubuntu:24.04 AS wheel
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -114,14 +110,12 @@ RUN set -eu; \
     ls -l /wheels
 
 
-##############################################################################
 # Stage 2 -- the cluster image.
 #
 # sc_tools brings slurm, slurmrestd, the EDA tools, munge, git and an Ubuntu
 # 24.04 userland. sc_tools rather than sc_runner: the two are the same except
 # that sc_runner also pip-installs a released siliconcompiler, which this
 # image would immediately overwrite with the wheel from stage 1.
-##############################################################################
 FROM ${SC_TOOLS_IMAGE} AS cluster
 
 # The virtualenv siliconcompiler lives in, ahead of everything on PATH: the
@@ -185,7 +179,6 @@ WORKDIR /sc_server
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 
-##############################################################################
 # Stage 3 -- the framework image.
 #
 # SiliconCompiler with no EDA tools, for the nodes that do not run one.
@@ -208,7 +201,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # A `target:` rather than a Dockerfile of its own, so the two images share
 # one build graph: this stage copies out of `cluster` and buildx resolves
 # the order itself. docker-compose.yml builds both.
-##############################################################################
 FROM ubuntu:24.04 AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -261,7 +253,6 @@ ENV LD_LIBRARY_PATH="/sc_tools/lib"
 WORKDIR /sc_server
 
 
-##############################################################################
 # Stage 4 -- the server image.
 #
 # slurmctld, slurmdbd, slurmrestd and the SiliconCompiler server, with no EDA
@@ -279,7 +270,6 @@ WORKDIR /sc_server
 #
 # Built on `runtime`, which already carries the venv, the Slurm CLIENT and the
 # slurm account -- so what is added here is the daemons and what they dlopen.
-##############################################################################
 FROM runtime AS server
 
 ARG DEBIAN_FRONTEND=noninteractive

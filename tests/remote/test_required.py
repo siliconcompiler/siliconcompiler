@@ -74,10 +74,6 @@ def reading_mylib(gcd_design, tmp_path, pdk=None):
     return reading(gcd_design, tmp_path, ("library", "mylib", *DATASHEET), pdk=pdk, libs=[lib])
 
 
-###########################
-# The set
-###########################
-
 def test_the_set_is_worked_out_by_setup_on_a_copy_and_carried_in_the_manifest(
         gcd_design, tmp_path):
     '''🔴 `require` is empty until setup runs, in the image; the run's own setup
@@ -141,10 +137,6 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
     assert "lambda" not in names and "mylib" in names
 
 
-###########################
-# The client
-###########################
-
 @pytest.mark.parametrize("setup_runs", [True, False])
 def test_only_what_the_flow_reads_goes_up_unless_its_setup_cannot_run_here(
         gcd_design, tmp_path, logged_in, monkeypatch, setup_runs):
@@ -189,10 +181,6 @@ def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
     taken = [name for _, _, names in os.walk(collectiondir(project)) for name in names]
     assert "datasheet.pdf" in taken and "other.pdf" not in taken
 
-
-###########################
-# The server
-###########################
 
 @pytest.fixture
 def dispatcher(server):

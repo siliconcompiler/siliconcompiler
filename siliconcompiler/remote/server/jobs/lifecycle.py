@@ -18,10 +18,6 @@ from siliconcompiler.remote.server.state.store import ACTIVE_STATES, TERMINAL_ST
 class LifecycleMixin:
     '''What a caller does to a job once it exists.'''
 
-    ######################################################################
-    # 16, 17. list and get
-    ######################################################################
-
     def listing(self, session, args) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         '''The caller's jobs, newest first, over a keyset cursor on
         `(created_at, id)`, the ordering the partial indexes carry.'''
@@ -104,10 +100,6 @@ class LifecycleMixin:
             self.reconcile(job)
             job = self._row(job_id)
         return self.wire(job)
-
-    ######################################################################
-    # 18, 19. cancel and delete
-    ######################################################################
 
     def cancel(self, session, job_id: str, reason: Optional[str]) -> Dict[str, Any]:
         '''Endpoint 18: `cancelling` where work is in flight, else `cancelled`.

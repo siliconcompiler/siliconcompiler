@@ -19,10 +19,6 @@ def _thumbprint(key):
     return dpop.jwk_thumbprint(dpop.public_jwk(key))
 
 
-###########################
-# Keys and thumbprints
-###########################
-
 def test_a_key_round_trips_through_pem_and_two_keys_are_two_machines(key):
     '''A different thumbprint is a different machine.'''
     again = dpop.load_key(dpop.serialize_key(key))
@@ -53,10 +49,6 @@ def test_a_jwk_missing_a_member_names_it():
     with pytest.raises(dpop.DPoPError, match="crv"):
         dpop.jwk_thumbprint({"kty": "EC", "x": "a", "y": "b"})
 
-
-###########################
-# Signing and verifying
-###########################
 
 def test_a_proof_verifies_and_returns_its_thumbprint(key):
     proof = dpop.sign_proof(key, "POST", URL)
@@ -144,10 +136,6 @@ def test_a_proof_signed_by_a_clock_ahead_is_held_to_the_same_window(key, ahead, 
         with pytest.raises(dpop.DPoPError, match="window"):
             dpop.verify_proof(proof, "GET", URL)
 
-
-###########################
-# Things that are not proofs
-###########################
 
 def _forged(key, claims=None, typ="dpop+jwt", jwk=None, signer="same", algorithm="ES256"):
     signed_with = {"same": key, "other": dpop.generate_key(), "none": None}[signer]

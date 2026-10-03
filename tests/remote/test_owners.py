@@ -71,10 +71,6 @@ def decide(project, key, n=0):
             owners.uploads(project, key, dataroot, resolvers))
 
 
-###########################
-# Who owns it, and where it comes from
-###########################
-
 def test_every_owner_is_told_apart(project, tmp_path):
     '''⚠️ PDK and StdCellLibrary subclass Design, so they are tested first --
     the other way round every PDK is the user's design and always uploaded.'''
@@ -130,10 +126,6 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
     assert decide(project, ("library", "mypdk", *DATASHEET)) == (origin, uploads)
 
 
-###########################
-# Private: supplied by name, never uploaded
-###########################
-
 @pytest.mark.parametrize("scheme", [
     "file+private", "git+private", "git+https+private", "git+ssh+private",
     "ssh+private", "http+private", "https+private"])
@@ -173,10 +165,6 @@ def test_the_marker_is_tested_in_one_place():
     assert not owners.is_private(FileResolver("x", None, "/a"))
     assert not owners.is_private(GitResolver("x", None, "git+ssh://host/a.git", "v1"))
 
-
-###########################
-# What the client sends, and no credential in it
-###########################
 
 def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_credential(
         project, tmp_path):
@@ -269,10 +257,6 @@ def test_a_masked_source_is_never_fetched(project, tmp_path):
     library = {"library": {"secret": {"secret": str(tmp_path)}}}
     assert status(sent, "secret", supply(private=library)).status == owners.SUPPLIED
 
-
-###########################
-# collect(), told what to take: a value at a time
-###########################
 
 def uploaded_by_owner(project):
     '''What a remote run hands `collect`, by the owner rule alone.'''
@@ -386,10 +370,6 @@ def test_a_value_goes_up_on_its_own(project, tmp_path, second, origin):
     taken = collected_names(project)
     assert "datasheet.pdf" in taken and "other.pdf" not in taken
 
-
-###########################
-# The server's half: every file uploaded or supplied by identity
-###########################
 
 class Supply:
     '''A server, as `account_records` asks it.'''
@@ -531,10 +511,6 @@ def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_fo
     assert entry(Supply(allowed=[GITHUB])).status == owners.FETCH
     assert entry(Supply()).status == owners.UNAVAILABLE
 
-
-###########################
-# ... and at submit
-###########################
 
 @pytest.fixture
 def dispatcher(server):
@@ -682,10 +658,6 @@ def test_what_is_skipped_is_what_collect_leaves_out(key):
 
     assert owners.skipped(key) == (filter_collection_keys([(key, None, None)]) == [])
 
-
-###########################
-# A dataroot is named by its keypath (surface D298)
-###########################
 
 RUN = ("tool", "acme_sim", "task", "run", "dataroot", "scripts")
 CHECK = ("tool", "acme_sim", "task", "check", "dataroot", "scripts")

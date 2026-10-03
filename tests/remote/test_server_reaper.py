@@ -56,10 +56,6 @@ def stored(server, job_id):
             for row in artifact_rows(server, job_id)]
 
 
-###########################
-# Expired artifacts
-###########################
-
 def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
         server, server_client, key, token, finished):
     '''🔴 The row stays, so *where did my results go* stays answerable. 🔴
@@ -135,10 +131,6 @@ def test_an_artifact_on_legal_hold_is_never_reaped(server, finished):
     assert all(stored(server, finished["id"]))
 
 
-###########################
-# Build directories
-###########################
-
 def test_a_build_tree_goes_only_after_everything_it_produced(server, finished):
     '''🔴 Never before: the tree is what the artifacts were indexed FROM, and
     the portal reads a node's log out of it. In retention, nothing goes.'''
@@ -193,10 +185,6 @@ def test_bytes_that_arrived_are_kept_past_the_grants_expiry(
         == "abandoned"
     assert storage.stat_upload(job["id"]) is None
 
-
-###########################
-# Container bundles
-###########################
 
 def test_a_superseded_bundle_is_reclaimed_and_a_live_one_is_not(server):
     '''A rebuild's new digest supersedes the old row, and used to leave its

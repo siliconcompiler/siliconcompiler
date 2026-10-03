@@ -49,10 +49,6 @@ def test_jobs_delete_gates_a_delete(server, server_client, key, job_archive, dis
     assert 'scope="jobs:delete"' in response.headers["WWW-Authenticate"]
 
 
-###########################
-# Staging failures that are this server's
-###########################
-
 def test_a_staging_step_that_breaks_is_staging_failed(server, server_client, key, token,
                                                       job_archive, dispatcher, monkeypatch):
     '''The catch-all: `failed`, never `rejected`, and `detail` names only what failed.'''

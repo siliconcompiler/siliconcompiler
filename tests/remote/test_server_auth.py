@@ -41,10 +41,6 @@ def refreshing(client, token, signer, **extra):
                      {"grant_type": "refresh_token", "refresh_token": token, **extra})
 
 
-###########################
-# Scope
-###########################
-
 def test_the_vocabulary_is_the_registered_scopes():
     '''Every one <resource>:<action>, none administrative; omitting scope asks
     for all of them.'''
@@ -73,10 +69,6 @@ def test_nothing_recognised_left_is_invalid_scope():
 
     assert raised.value.error == "invalid_scope"
 
-
-###########################
-# client_credentials
-###########################
 
 def test_a_session_with_no_human_involved(client, key, server):
     '''`no-store` is RFC 6749's MUST on tokens; `scope` is always sent (stricter
@@ -152,10 +144,6 @@ def test_a_method_refusal_at_an_oauth_endpoint_is_problem_json(client, path):
     assert slug(response) == "method-not-allowed"
     assert "error" not in response.get_json()
 
-
-###########################
-# The binding
-###########################
 
 @pytest.mark.parametrize("address", ["127.0.0.1", "::1"])
 def test_one_user_cannot_claim_another(client, key, server, address):
@@ -237,10 +225,6 @@ def test_a_changed_derivation_with_the_same_key_is_a_new_identity(server, client
         "SELECT kind FROM device_events ORDER BY id")] == ["enrolled", "revoked", "enrolled"]
 
 
-###########################
-# Presenting a token
-###########################
-
 def test_a_token_needs_a_fresh_proof_by_its_own_key(client, key):
     '''The point of DPoP: a stolen token proves nothing alone, and one proof
     is one request.'''
@@ -320,10 +304,6 @@ def test_a_proof_signed_for_a_canonical_equivalent_is_accepted(server_client, ke
 
     assert response.status_code == 200, response.get_json()
 
-
-###########################
-# Refresh
-###########################
 
 def test_a_refresh_rotates_and_a_lost_response_gets_the_same_pair(client, key, server):
     '''A client whose response was lost retries a token already rotated:
@@ -438,10 +418,6 @@ def test_a_refresh_counts_as_the_device_being_seen(client, key):
     assert seen(rotated["access_token"]) >= first
 
 
-###########################
-# Ending a session
-###########################
-
 def test_a_revoked_session_says_so_in_the_wire_vocabulary(client, key, server):
     '''Revoking needs no scope: a logout that can be scoped away is a session
     nobody can close. Three stored reasons, one client branch; the column
@@ -474,10 +450,6 @@ def test_revoking_a_device_ends_its_sessions(client, key):
                 token).status_code == 204
     assert call(client, key, "GET", "/v1/me", token).status_code == 401
 
-
-###########################
-# Configured public origins
-###########################
 
 def proxied(tmp_path, *origins):
     from siliconcompiler.remote.server.app import create_app
@@ -554,10 +526,6 @@ def test_htu_and_handed_out_urls_come_from_config_behind_a_proxy(tmp_path):
     wrong = via(client, key, "http://backend:8080", "GET", "/v1/me", token)
     assert (wrong.status_code, slug(wrong)) == (401, "invalid-dpop-proof")
 
-
-###########################
-# GET /v1/me
-###########################
 
 def test_me_reports_the_callers_account(client, key):
     '''`authorized` is omitted, since {} would claim "granted nothing" where

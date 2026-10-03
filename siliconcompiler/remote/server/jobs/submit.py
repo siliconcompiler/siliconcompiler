@@ -26,10 +26,6 @@ from siliconcompiler.remote.server.state.store import PENDING_STATES, now
 class SubmitMixin:
     '''The upload.'''
 
-    ######################################################################
-    # 14. upload-grant
-    ######################################################################
-
     def grant(self, session, job_id: str, url_root: str,
               body: Dict[str, Any]) -> Dict[str, Any]:
         '''Endpoint 14: a grant for the archive about to be uploaded.
@@ -95,10 +91,6 @@ class SubmitMixin:
             "headers": {"content-length": str(ceiling)},
             "expires_at": _from_epoch(expires),
         }
-
-    ######################################################################
-    # 15. submit
-    ######################################################################
 
     def submit(self, session, job_id: str, body: Dict[str, Any],
                idempotency_key: Optional[str]) -> Dict[str, Any]:
@@ -310,10 +302,6 @@ class SubmitMixin:
                             detail=f"{os.path.relpath(path, str(unpacked))} is a link "
                                    "outside the outputs of the nodes this archive "
                                    "carries"))
-
-    ######################################################################
-    # What a run's files are, and where the server's copies come from
-    ######################################################################
 
     def _account(self, job, summary, unpacked: Path):
         '''Every file the manifest names, as how it reaches the run; refuse

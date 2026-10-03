@@ -45,10 +45,6 @@ def a_manifest(nop_project, where) -> Path:
     return tree
 
 
-###########################
-# No manifest is parsed in the server process
-###########################
-
 @pytest.mark.real_read
 @pytest.mark.timeout(300)
 def test_no_manifest_is_parsed_in_the_server_process(
@@ -93,10 +89,6 @@ def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
     assert not marker.exists()
     assert not dispatcher.submitted
 
-
-###########################
-# No credential in the manifest (surface D302)
-###########################
 
 @pytest.mark.parametrize("where", ["root", "upstream"])
 def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere(
@@ -191,10 +183,6 @@ def test_a_run_from_part_way_counts_only_the_nodes_it_runs(nop_project, tmp_path
     assert RemoteRun(nop_project, None)._flow_descriptor() == ("nopflow", 1)
 
 
-###########################
-# What the read is given, and what it is not
-###########################
-
 @pytest.mark.real_read
 def test_the_read_holds_none_of_the_servers_variables(tmp_path, monkeypatch):
     '''An empty environment, its own HOME and cwd, stdin closed, only the three
@@ -240,10 +228,6 @@ def test_the_read_contains_itself_where_the_host_allows(tmp_path, nop_project):
     assert raw["contained"] == achieved
     assert raw["contained"]["limits"] is True
 
-
-###########################
-# The summary is untrusted input
-###########################
 
 def read_as(job_archive, server_client, key, token, monkeypatch, damage):
     '''Submit with the read's summary passed through ``damage``.'''
@@ -327,10 +311,6 @@ def test_a_read_the_job_stops_waiting_for_is_killed(tmp_path, monkeypatch):
     assert time.monotonic() - started < 10
 
 
-###########################
-# The checks the read makes
-###########################
-
 def test_a_manifest_for_another_job_name_is_declared_mismatch(
         server_client, key, token, job_archive, nop_project, dispatcher):
     nop_project.option.set_jobname("other")
@@ -373,10 +353,6 @@ def test_a_project_with_no_pdk_where_it_takes_one_is_resource_unresolved(
     assert summary["outcome"]["members"] == {"resource_kind": "pdk"}
 
 
-###########################
-# The run loads the uploaded manifest
-###########################
-
 def test_the_run_loads_the_manifest_as_it_was_uploaded(
         server, server_client, key, token, job_archive, dispatcher):
     '''🔴 Byte for byte the upload's; the overrides and the summary are data
@@ -406,10 +382,6 @@ def test_the_run_loads_the_manifest_as_it_was_uploaded(
     assert (root / "gcd" / "job0").is_dir()
     assert not (root / "gcd" / "job0" / runspec.SUMMARY_FILENAME).exists()
 
-
-###########################
-# In the job's own image, where containers are configured
-###########################
 
 class ReadingDispatcher(FakeDispatcher):
     '''Runs the read it is handed in this process, recording what it was asked.'''

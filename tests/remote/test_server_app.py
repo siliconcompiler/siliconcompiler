@@ -42,10 +42,6 @@ def create_app(datadir):
     return create_app(datadir)
 
 
-###########################
-# Endpoint 1: GET /v1
-###########################
-
 def test_get_v1_is_complete_on_a_bare_datadir(client):
     '''The one endpoint whose every field is real on day one. Two feature
     strings, since one could not say whether a deployment serves the archive
@@ -96,10 +92,6 @@ def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
     assert client.get("/v1").get_json()["software"] == FALLBACK_SOFTWARE
 
 
-###########################
-# Endpoint 2: GET /v1/healthz
-###########################
-
 def test_healthz_says_pass_and_nothing_more(client):
     '''`status` is the ONLY member: with no credential, a diagnostic or a
     version tells anyone what to look up. Notices are on capabilities.'''
@@ -127,10 +119,6 @@ def test_a_broken_store_fails_the_probe_rather_than_raising(server, monkeypatch,
     assert resp.status_code == 503
     assert resp.get_json() == {"status": "fail"}
 
-
-###########################
-# A problem's detail
-###########################
 
 def test_a_detail_never_carries_more_than_a_line_of_borrowed_text():
     '''🔴 A tool's exception or a member's name can carry a path the CLIENT
@@ -200,10 +188,6 @@ def test_the_detail_bound_binds_and_is_not_published():
     assert "max_detail_chars" not in app.test_client().get("/v1").get_json()["limits"]
     assert len(errors.bound("x" * 500)) <= 43          # 40 plus the ellipsis
 
-
-###########################
-# Config
-###########################
 
 def test_a_config_file_overrides_what_it_names_and_keeps_the_rest():
     '''A notice's `starts_at` and `ends_at` are REQUIRED and nullable. It is
@@ -291,10 +275,6 @@ def test_every_private_root_is_given_to_jobs_once():
         "/opt/pdks/acme", "/opt/acme", "/opt/acme-check"]
 
 
-###########################
-# Persistence
-###########################
-
 def test_the_store_survives_a_restart_and_storage_is_a_file_uri_in_it(server, client):
     '''A restart used to lose every running job. A location is a row and
     uri_base a URI, so file:// is a first-class deployment.'''
@@ -310,10 +290,6 @@ def test_the_store_survives_a_restart_and_storage_is_a_file_uri_in_it(server, cl
     assert location["uri_base"].endswith("/artifacts/")
     assert location["writable"] == 1
 
-
-###########################
-# Errors
-###########################
 
 def test_the_registry_is_the_contracts_thirty_eight():
     '''Frozen at v1 in SiliconCompiler's namespace, not a deployment's, so a
@@ -393,10 +369,6 @@ def test_every_refusal_names_its_request(client):
     assert client.get("/v1/no/such/path", headers={"traceparent": "garbage"}) \
         .get_json()["trace_id"] != routed["trace_id"]
 
-
-###########################
-# The command line
-###########################
 
 def test_help_works_without_the_server_extra(capsys):
     '''The docs build renders the apps reference from exactly this.'''

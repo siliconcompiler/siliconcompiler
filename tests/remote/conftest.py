@@ -39,9 +39,6 @@ def machine_fingerprint(monkeypatch):
     return real
 
 
-###########################
-# The conformance rig
-###########################
 #
 # Canned answers, for what a working server cannot be made to say on demand
 # (`use_dpop_nonce`, a device limit exceeded, a proxy's HTML 502) and the client
@@ -159,9 +156,6 @@ def tmp_credentials():
     return creds
 
 
-###########################
-# The integration rig, in-process
-###########################
 #
 # A real store, archive, dispatcher and run, against `app.test_client()`.
 

@@ -265,10 +265,6 @@ def test_a_tool_nobody_drives_cannot_be_tested_and_is_not_refused(bootstrap):
     assert not [arg for arg in images[-1] if arg.startswith("openroad==")]
 
 
-######################################################################
-# Nothing to do when nothing changed
-######################################################################
-
 def digest(letter):
     return "sha256:" + letter * 64
 

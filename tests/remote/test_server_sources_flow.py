@@ -124,10 +124,6 @@ def collected(project, *keypath, n=None):
     return {f"sc_collected_files/{hashed}": b"sent by the client\n"}
 
 
-###########################
-# Create: a lookup, never a fetch
-###########################
-
 @pytest.mark.parametrize("sources,asked", [
     # Allowlisted and not held: assumed fetchable. Behind a key it lacks: asked for.
     ([{"keypath": LAMBDA_KEYPATH, "source": LAMBDA, "ref": "v0.2.22", "private": False},
@@ -297,10 +293,6 @@ def test_one_dataroot_named_twice_is_refused(server_client, key, token):
     assert "twice" in response.get_json()["detail"]
 
 
-###########################
-# After submit: fetched while staging
-###########################
-
 def test_an_allowlisted_source_is_fetched_after_submit_then_dispatched(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     '''No request waits on the fetch, and it happens BEFORE `queued`, which
@@ -437,10 +429,6 @@ def test_a_held_copy_records_its_commit_and_holds_no_moving_ref(tmp_path, monkey
     pinned = store.fetch("https://example.com/ip.git", "v1.0", 10)
     assert store.held("https://example.com/ip.git", "v1.0") == pinned
 
-
-###########################
-# The follow-up archive
-###########################
 
 @pytest.mark.parametrize("member", ["manifest", "wheel"])
 def test_a_follow_up_may_hold_only_what_was_asked_for(
@@ -583,10 +571,6 @@ def test_a_follow_up_holds_the_asked_value_and_no_other_of_its_parameter(
         assert response.get_json()["reason"] == "unrequested_member"
 
 
-###########################
-# A dataroot is named by its keypath (surface D298)
-###########################
-
 @pytest.fixture
 def acme_project(gcd_design, tmp_path):
     '''Two tasks of one tool, each reading a `scripts` dataroot from an
@@ -633,10 +617,6 @@ def test_a_follow_up_answers_one_tasks_dataroot_by_its_keypath(
         assert response.status_code == 422
         assert response.get_json()["reason"] == "unrequested_member"
 
-
-###########################
-# A private dataroot may be fetched, never uploaded or asked for (surface D299)
-###########################
 
 def remote_private(source):
     '''A private PDK fetched from ``source`` at `v1`.'''

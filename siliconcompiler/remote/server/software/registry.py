@@ -81,10 +81,6 @@ def _resolve_digest(registry_ref: str) -> str:
         "pass -digest sha256:... if you know the one it will have")
 
 
-######################################################################
-# The commands
-######################################################################
-
 def _cmd_list(store, args) -> int:
     catalogue = images.catalogue(store, include_retired=args.all)
 

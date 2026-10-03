@@ -149,10 +149,6 @@ class TokenIssuer:
         own key from it, so no signature passes for another purpose.'''
         return self._secret
 
-    ######################################################################
-    # Minting
-    ######################################################################
-
     def client_credentials(self, subject: str, jkt: str,
                            requested_scope: Optional[str],
                            machine_id_hash: Optional[str] = None,
@@ -402,10 +398,6 @@ class TokenIssuer:
             "scope": scope,
         }
 
-    ######################################################################
-    # Presenting
-    ######################################################################
-
     def authenticate(self, authorization: Optional[str], proof: Optional[str],
                      method: str, url: str) -> Session:
         '''Verify an access token and the proof presented with it.'''
@@ -482,10 +474,6 @@ class TokenIssuer:
             if oauth:
                 raise OAuthError("invalid_dpop_proof", "proof replayed")
             raise ProblemError("invalid-dpop-proof", detail="proof replayed")
-
-    ######################################################################
-    # Ending
-    ######################################################################
 
     def revoke(self, session: Session) -> None:
         '''End this session.'''

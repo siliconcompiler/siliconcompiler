@@ -104,10 +104,6 @@ class Credentials:
         '''Use the store in ``auth_dir`` instead; nothing is copied, so its key is new.'''
         self._open(Path(auth_dir) / STORE_FILENAME)
 
-    ######################################################################
-    # Reading
-    ######################################################################
-
     @property
     def server(self) -> Optional[str]:
         '''The configured server's base URL, which keys its entry.'''
@@ -143,10 +139,6 @@ class Credentials:
         if value:
             return value.strip()
         return self._entry().get("ci_credential") or None
-
-    ######################################################################
-    # Changing
-    ######################################################################
 
     @contextlib.contextmanager
     def transaction(self):
@@ -228,10 +220,6 @@ class Credentials:
         parse_ci_secret(secret)
         self._update_entry(ci_credential=secret.strip(), refresh_token=None)
 
-    ######################################################################
-    # The key
-    ######################################################################
-
     @property
     def key_path(self) -> Path:
         return self.auth_dir / KEY_FILENAME
@@ -268,10 +256,6 @@ class Credentials:
                     entry = dict(entry)
                     entry.pop("refresh_token")
                     self._store.set(_SERVERS, server, entry)
-
-    ######################################################################
-    # The store's files
-    ######################################################################
 
     def check_store(self) -> None:
         '''🔴 Refuse a store others can read, rather than repair it: the directory
@@ -323,10 +307,6 @@ class Credentials:
     def _write(self, path: Path, payload: bytes) -> None:
         self._ensure_dir()
         _write_atomic(path, payload)
-
-    ######################################################################
-    # What an older client left
-    ######################################################################
 
     def _migrate(self, config: Optional[Path]) -> None:
         '''Move an older client's server and whitelist into the store, once.'''

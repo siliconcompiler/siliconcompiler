@@ -105,10 +105,6 @@ def landed(project, step, *path):
     return os.path.isfile(os.path.join(workdir(project, step=step, index="0"), *path))
 
 
-###########################
-# A listing is the answer, even when the bytes are not
-###########################
-
 def test_a_manifest_alone_is_a_successful_run_and_fills_in_every_node(
         fake_v1, results, nop_project, caplog):
     '''🔴 The manifest carries the record. Having no journal, its per-node
@@ -165,10 +161,6 @@ def test_a_refused_archive_and_no_manifest_still_fetch_the_rest(fake_v1, results
     assert "does not keep those" in caplog.text
     assert "nothing to retry" in caplog.text
 
-
-###########################
-# 🔴 Five states, five sentences
-###########################
 
 def test_the_five_states_are_different_sentences(results):
     '''🔴 Deleted before expiry; only `deleted_cause: expired` is the reaper,
@@ -272,10 +264,6 @@ def test_only_what_landed_is_counted_as_retrieved(fake_v1, results, caplog):
     assert "/v1/jobs/j1/artifacts/art-unheardof-stepone-0" not in fetched(fake_v1)
 
 
-###########################
-# Putting it back
-###########################
-
 @pytest.mark.parametrize("kind", ["outputs", "node"])
 def test_an_archive_lands_in_the_nodes_own_directory(fake_v1, results, nop_project, kind):
     '''Stored relative to the node's directory: step, index and kind are enough.'''
@@ -344,10 +332,6 @@ def test_the_advice_names_the_file_the_client_actually_writes():
     assert REMOTE_JOB_LOG in NO_NODE_FAILED
 
 
-###########################
-# 🔴 The tolerance rule
-###########################
-
 def test_a_proxys_html_502_on_the_listing_is_rendered_and_not_fatal_mid_run(fake_v1,
                                                                             results):
     '''problem+json is promised only for what a handler produced. Mid-run,
@@ -386,10 +370,6 @@ def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in, t
     assert not any("/logs" in call.request.path_url for call in fake_v1.calls)
 
 
-###########################
-# Taking results as the run goes
-###########################
-
 def test_a_nodes_results_are_taken_when_it_finishes_and_not_again_by_the_sweep(
         fake_v1, results, nop_project):
     '''🔴 As each node finishes, so the local record stays current; the final
@@ -424,10 +404,6 @@ def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
     assert len(listings(fake_v1)) == 1
     assert len(fetched(fake_v1)) == 2
 
-
-###########################
-# What not to pull, and a node's manifest where its archive is withheld
-###########################
 
 def ceiling(fake_v1, limit):
     '''🔴 THIS caller's ceiling, on `GET /v1/me`: it can differ per account.'''
@@ -516,10 +492,6 @@ def test_the_upload_manifest_is_never_folded_back_in(results, nop_project):
     assert nop_project.get("metric", "warnings", step="stepone", index="0") == 3
 
 
-###########################
-# Said once per reason, and what is never written
-###########################
-
 def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
     '''⚠️ One line per object buries the one that differs, which keeps its own.'''
     serve(fake_v1, [artifact(kind, step, "0", fetchable=False)
@@ -588,10 +560,6 @@ def test_a_returned_manifest_folds_in_only_the_nodes_it_ran_as_data(results, nop
     assert "planted_module_never_imported" not in sys.modules
     assert nop_project.get("record", "remoteid") == "the-real-job"
 
-
-###########################
-# A node archive is not self-contained (client-v1-migration.md)
-###########################
 
 def serve_nodes(fake_v1, archives):
     serve(fake_v1, [artifact("node", step, "0") for step in archives],

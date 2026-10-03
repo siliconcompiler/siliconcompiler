@@ -249,10 +249,6 @@ def _tail(text: str, lines: int = 20) -> str:
     return "\n".join((text or "").strip().splitlines()[-lines:])
 
 
-######################################################################
-# The proxy: the build's only way out
-######################################################################
-
 class Proxy:
     '''An HTTP proxy on a unix socket that admits an allowlist, and nothing else.
 

@@ -59,10 +59,6 @@ def node_log(client, key, token, job_id):
     return call(client, key, "GET", f"/v1/jobs/{job_id}/logs?step=stepone&index=0", token)
 
 
-###########################
-# The presets
-###########################
-
 def test_the_presets_are_config(tmp_path):
     '''Mode 1 is the defaults; an unknown mode is refused; and a preset names
     only keys the config has, or it claims a restriction it does not make.'''
@@ -105,10 +101,6 @@ def test_the_mode_is_what_get_v1_publishes(server_client):
     assert published["limits"]["concurrent_jobs"] == 1
     assert published["limits"]["max_download_bytes"] == 20971520
 
-
-###########################
-# What the API hands over, and what the portal still does
-###########################
 
 @pytest.mark.parametrize("mode", [2])
 def test_a_kind_the_api_withholds_is_listed_and_not_approved(
@@ -192,10 +184,6 @@ def test_mode_two_serves_each_nodes_log_and_no_job_stream(
     assert (whole.status_code, whole.get_json()["feature"]) == (501, "logs.stream.job")
     assert "Retry-After" not in whole.headers
 
-
-###########################
-# A PDK, library or tool nobody may use
-###########################
 
 @pytest.fixture
 def lint_project(nop_project):
@@ -283,10 +271,6 @@ def test_the_libraries_are_the_main_library_and_the_rest():
     assert _libraries(Manifest(mainlib="a", asiclib=["a", "b"])) == ["a", "b"]
     assert _libraries(Manifest()) == []
 
-
-###########################
-# Mode 4: a server that fetches nothing
-###########################
 
 @pytest.mark.parametrize("mode", [4])
 def test_mode_four_publishes_what_mode_one_does(server_client, tmp_path):

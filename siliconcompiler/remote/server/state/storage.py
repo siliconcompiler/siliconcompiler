@@ -68,10 +68,6 @@ class Storage:
         # signature must never pass as a token's.
         self._key = hashlib.blake2b(secret, person=b"sc-storage", digest_size=32).digest()
 
-    ######################################################################
-    # Uploads
-    ######################################################################
-
     def upload_path(self, job_id: str) -> Path:
         '''Where one job's staged archive is, whether or not it is there yet.'''
         return self.uploads / job_id
@@ -137,10 +133,6 @@ class Storage:
         self.upload_path(job_id).unlink(missing_ok=True)
         self.upload_path(job_id).with_name(job_id + ".part").unlink(missing_ok=True)
 
-    ######################################################################
-    # Artifacts
-    ######################################################################
-
     def artifact_dir(self, job_id: str) -> Path:
         return self.artifacts / job_id
 
@@ -185,8 +177,6 @@ class Storage:
                         signature: str, when: float) -> None:
         self._verify(lambda deadline: f"download\n{artifact_id}\n{deadline}",
                      expires_at, signature, when, "this link has expired")
-
-    ######################################################################
 
     def _verify(self, message, expires_at, signature, when: float, expired: str,
                 malformed: str = "malformed link") -> None:

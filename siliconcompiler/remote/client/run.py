@@ -112,8 +112,6 @@ class RemoteRun:
         self._python_pins = None
         self._software = None
 
-    ######################################################################
-
     def run(self) -> None:
         if self.project.get('arg', 'step') or self.project.get('arg', 'index'):
             raise RemoteError(
@@ -133,10 +131,6 @@ class RemoteRun:
             job_id = self._start()
 
         self._watch(job_id)
-
-    ######################################################################
-    # Starting
-    ######################################################################
 
     def _start(self) -> str:
         self._preflight()
@@ -1075,10 +1069,6 @@ class RemoteRun:
             if normalized:
                 found.append(normalized)
         return found
-
-    ######################################################################
-    # Watching
-    ######################################################################
 
     def reconnect(self, job_id: str) -> None:
         '''Re-enter the wait for a job that is already running.

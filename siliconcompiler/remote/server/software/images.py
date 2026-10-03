@@ -166,10 +166,6 @@ class Plan(NamedTuple):
                 if image and image in self.refs}
 
 
-######################################################################
-# Reading the registry
-######################################################################
-
 def own_version() -> str:
     '''The SiliconCompiler this server runs: the one version every job resolves to (profile §5).
 
@@ -280,10 +276,6 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
 
     return tracked
 
-
-######################################################################
-# The resolution
-######################################################################
 
 def resolve(images, requirements: Sequence[Requirement]):
     '''The one image that fits, or None, ranked by :func:`_rank`.'''
@@ -588,10 +580,6 @@ def _present_but_unversioned(requirements: Sequence[Requirement], images):
     return None
 
 
-######################################################################
-# Naming an image
-######################################################################
-
 def pinned_ref(registry_ref: str, digest: str) -> str:
     '''What actually gets pulled: the repository at a digest, never a tag.
 
@@ -838,11 +826,6 @@ def _is_bind(entry) -> bool:
     return entry.get("type") == "bind" or "bind" in options or "rbind" in options
 
 
-######################################################################
-# Derived images: a job's Python packages, layered on a node's image (§L)
-######################################################################
-
-
 def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
                constrain=(), indexes=(), source_builds: bool = False) -> str:
     '''The cache key of a derived image (implementation-notes §L).
@@ -969,10 +952,6 @@ def is_staged(bundle) -> bool:
     '''Whether a bundle is there and complete: its ``config.json``, renamed in last.'''
     return (Path(bundle) / "config.json").is_file()
 
-
-######################################################################
-# Writing it
-######################################################################
 
 def driver_allowed(driver: str, allowed: Sequence[str] = ()) -> bool:
     '''Whether ``driver`` is a module this server will import (D95).

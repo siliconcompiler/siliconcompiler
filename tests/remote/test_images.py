@@ -69,10 +69,6 @@ def refused(store, requires, nodes, **kwargs):
     return raised.value
 
 
-###########################
-# Naming what runs
-###########################
-
 @pytest.mark.parametrize("ref,expected", [
     ("ghcr.io/org/sc:0.39.1", "ghcr.io/org/sc"),
     ("ghcr.io/org/sc", "ghcr.io/org/sc"),
@@ -127,10 +123,6 @@ def test_rebuilding_a_tag_supersedes_the_build_before_it(registry, store):
     assert store.one("SELECT retired_at FROM images WHERE id = ?",
                      (before["id"],))["retired_at"]
 
-
-###########################
-# The resolution
-###########################
 
 @pytest.mark.parametrize("requires", [
     py("siliconcompiler", "0.39.1"),
@@ -288,10 +280,6 @@ def test_what_is_retired_stops_satisfying_and_never_runs_on_the_host(
     assert problem.error.slug == "software-unavailable"
 
 
-###########################
-# What GET /v1 says about it
-###########################
-
 def test_a_version_is_advertised_only_where_an_image_holds_it(registry, store):
     '''⚠️ Without containers there are no images, so the join would advertise
     nothing while the versions it genuinely runs sit in the table.'''
@@ -303,10 +291,6 @@ def test_a_version_is_advertised_only_where_an_image_holds_it(registry, store):
     assert store.advertised_software(containers=False)["python"] == \
         {"siliconcompiler": ["0.39.1", "0.40.0"]}
 
-
-###########################
-# What the compute node does with it
-###########################
 
 def test_tracking_is_the_deployments_to_turn_on(nop_project, tmp_path):
     """`track_provenance`: each node records its machine, through the run file.
@@ -529,10 +513,6 @@ def test_what_a_node_needs_is_declared_and_never_inferred():
     assert ExecInputTask()._remote_inherits_env is True
 
 
-###########################
-# Versions: normalised, and reported vs published_date
-###########################
-
 def test_a_version_is_normalised_when_it_is_registered(store):
     '''🔴 At registration, not request time, so client and server releases
     cannot normalise one string differently and silently disagree. An image
@@ -603,10 +583,6 @@ def test_every_bucket_is_listed_and_reported_sorts_above_published_date(store):
     assert live["tools"]["magic"] == ["8.3.2", "20260924"]
 
 
-###########################
-# What the job ran in
-###########################
-
 def test_a_descriptor_resolves_to_its_digests_with_no_upload(registry, store):
     '''🔴 What lets create fold them into the job identity: resolution needs the
     declared versions and the registry, nothing else; nothing to run is refused.'''
@@ -674,10 +650,6 @@ def test_requested_versions_is_the_one_member_and_every_value_is_a_list():
         requirements({"requested_versions": {"python": {"siliconcompiler": "==0.39.1"}}})
 
 
-###########################
-# What software may be registered as
-###########################
-
 @pytest.mark.parametrize("name,kind,driver,match", [
     ("za-sclib", "python", "za_sclib.tools", "a driver is what makes"),
     # 🔴 D95: the probe imports the driver, and anyone can register software.
@@ -720,10 +692,6 @@ def test_the_registry_command_records_the_distribution_a_version_is_read_from(st
 
     assert _recorded(store, "slang") == {"driver": None, "version_package": "pyslang"}
 
-
-###########################
-# Two images, identical versions
-###########################
 
 @pytest.mark.parametrize("built_a,built_b,pin_a,pin_b", [
     # The build time breaks the tie preference cannot, against the pin.
@@ -768,10 +736,6 @@ def test_preference_wins_over_recency_and_the_build_time(store):
 
     assert plan.ref(plan.job).startswith("ghcr.io/x/old@")
 
-
-###########################
-# The interpreter a node running the user's Python needs (surface D293)
-###########################
 
 @pytest.fixture
 def pythons(store):

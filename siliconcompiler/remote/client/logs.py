@@ -83,8 +83,6 @@ class LogTail:
 
             time.sleep(self.retry or RECONNECT_SECONDS)
 
-    ######################################################################
-
     def _consume(self, response, emit):
         '''Read one stream to its end. Returns (produced anything, finished).'''
         produced = False

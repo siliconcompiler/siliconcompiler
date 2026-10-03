@@ -130,10 +130,6 @@ def test_the_stream_url_is_opaque_to_the_client(logged_in, fake_v1, no_wait):
     assert followed.request.url == target
 
 
-###########################
-# Polling
-###########################
-
 def job(state):
     return {"id": "j1", "state": state, "terminal": state == "completed", "nodes": []}
 

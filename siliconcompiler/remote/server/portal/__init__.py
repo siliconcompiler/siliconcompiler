@@ -127,10 +127,6 @@ class Sessions:
                 del self._sessions[cookie]
 
 
-######################################################################
-# Getting in
-######################################################################
-
 def _sessions() -> Sessions:
     return flask.current_app.config["SC_PORTAL"]
 
@@ -317,10 +313,6 @@ def logout():
     response.delete_cookie(COOKIE)
     return response
 
-
-######################################################################
-# Jobs
-######################################################################
 
 @blueprint.route("/portal/", methods=["GET"])
 @screen
@@ -579,10 +571,6 @@ def delete(session, job_id):
     return flask.redirect(flask.url_for("portal.jobs"))
 
 
-######################################################################
-# Artifacts and logs
-######################################################################
-
 @blueprint.route("/portal/jobs/<job_id>/artifacts", methods=["GET"])
 @screen
 def artifacts(session, job_id):
@@ -647,10 +635,6 @@ def fetch(session, job_id, artifact_id):
         "artifacts.download", job_id=job_id, artifact_id=row["id"],
         expires=expires, sig=signature))
 
-
-######################################################################
-# Looking inside an archive
-######################################################################
 
 # 🔴 What a browser may render: a short allow-list, the omissions the point. A
 # job's HTML or SVG served from this origin would be stored XSS; everything else
@@ -865,10 +849,6 @@ def log(session, job_id, step, index):
         stream=stream, available=[name for name, _ in available], chosen=chosen)
 
 
-######################################################################
-# Devices and account
-######################################################################
-
 @blueprint.route("/portal/devices", methods=["GET"])
 @screen
 def devices(session):
@@ -902,10 +882,6 @@ def account(session):
         containers=config["containers"])
 
 
-######################################################################
-# What this deployment is
-######################################################################
-
 @blueprint.route("/portal/server", methods=["GET"])
 @screen
 def deployment(session):
@@ -929,10 +905,6 @@ def deployment(session):
         containers=config["containers"],
         cluster=flask.current_app.config.get("SC_CLUSTER"))
 
-
-######################################################################
-# Images and software
-######################################################################
 
 @blueprint.route("/portal/images", methods=["GET"])
 @screen

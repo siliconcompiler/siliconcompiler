@@ -92,10 +92,6 @@ class Results:
 
         self._titles = None
 
-    ######################################################################
-    # What not to pull
-    ######################################################################
-
     def _ours(self, items) -> List[Dict[str, Any]]:
         '''🔴 The rows for this job's flow: a row naming any other node, `..`
         included, is ignored, so nothing writes outside the job directory.'''
@@ -164,10 +160,6 @@ class Results:
             f"each larger than the {ceiling} this account may "
             f"download over the API: {names}. The web portal is the way to "
             "get them -- sc-remote -portal opens it.")
-
-    ######################################################################
-    # During the run
-    ######################################################################
 
     def take(self, job_id: str, job: Dict[str, Any]) -> int:
         '''Fetch what each node left as it finishes, one listing per poll.
@@ -273,10 +265,6 @@ class Results:
         self.logger.info(f"Retrieved {self._landed} objects")
         return landed
 
-    ######################################################################
-    # The five sentences
-    ######################################################################
-
     def _report_withheld(self, items: List[Dict[str, Any]]) -> None:
         '''One line per reason, ⚠️ not one per object, so the one that differs is read.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
@@ -360,10 +348,6 @@ class Results:
                             for entry in terms if isinstance(entry, dict)
                             and entry.get("id") and entry.get("title")}
         return self._titles
-
-    ######################################################################
-    # Putting it back
-    ######################################################################
 
     def _retrieve(self, job_id: str, item: Dict[str, Any]) -> int:
         kind = item.get("kind")

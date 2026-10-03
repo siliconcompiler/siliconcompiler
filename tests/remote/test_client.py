@@ -41,10 +41,6 @@ def _healthy(fake_v1):
                   content_type="application/health+json")
 
 
-###########################
-# Building a URL
-###########################
-
 def test_a_path_is_joined_not_urljoined():
     '''urljoin("https://host/v1", "jobs") drops the version prefix.'''
     assert join_url("https://host/v1", "jobs") == "https://host/v1/jobs"
@@ -82,10 +78,6 @@ def test_configuring_an_ipv6_server_keeps_its_port():
     assert _split_address("https://me:secret@example.com")[2] is True
 
 
-###########################
-# No server configured
-###########################
-
 def test_a_client_without_a_server_builds_and_says_so(caplog):
     '''Constructing must not raise, or `sc-remote -configure` could not fix it.'''
     caplog.set_level(logging.INFO)
@@ -99,10 +91,6 @@ def test_a_client_without_a_server_builds_and_says_so(caplog):
     with pytest.raises(RemoteError, match="sc-remote -configure"):
         client.me()
 
-
-###########################
-# Discovery
-###########################
 
 def test_capabilities_carry_no_credential_and_a_proof(fake_v1, tmp_credentials, capabilities):
     body = Client(tmp_credentials).capabilities()
@@ -229,10 +217,6 @@ def test_a_deprecation_warns_once_per_session_with_its_sunset(
     assert "Sat, 01 May 2027 00:00:00 GMT" in warned[0].message
 
 
-###########################
-# Upcoming terms
-###########################
-
 def terms_entry(accepted_at=None, can_decide=True):
     '''A `terms` entry as surface D309 has it: `can_decide`, and no URL.'''
     return {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
@@ -334,10 +318,6 @@ def test_an_upcoming_version_is_only_reported_where_no_page_is_offered(
         assert "accepted early" not in caplog.text
 
 
-###########################
-# Login
-###########################
-
 def test_login_needs_no_human_and_asserts_a_derived_subject(
         fake_v1, tmp_credentials, client_credentials):
     '''client_id=local:<derivation>, which RFC 6749 already registers.'''
@@ -428,10 +408,6 @@ def test_a_dead_refresh_token_falls_back_to_enrolling_once(
         assert "used elsewhere" in caplog.text
 
 
-###########################
-# The three things a 401 means
-###########################
-
 def test_an_expired_token_is_refreshed_silently(logged_in, fake_v1, tmp_credentials,
                                                 client_credentials):
     _refused(fake_v1, "me", "invalid-token", 401,
@@ -479,10 +455,6 @@ def test_a_refused_proof_fails_and_says_when_the_clock_is_off(logged_in, fake_v1
         assert "clock is" not in str(raised.value)
 
 
-###########################
-# Identity continuity
-###########################
-
 def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
         fake_v1, tmp_credentials, client_credentials, caplog):
     '''A reimage, container or changed uid replaces the principal; without
@@ -497,10 +469,6 @@ def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
     assert "different user" in caplog.text
     assert tmp_credentials.user_id == "the-new-me"
 
-
-###########################
-# Rendering a refusal
-###########################
 
 @pytest.mark.parametrize("body,status,said", [
     (problem("limit-exceeded", 429, limit="concurrent_jobs", detail="four already running",
@@ -554,10 +522,6 @@ def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
     assert "retrying it unchanged will not help" in str(raised.value)
 
 
-###########################
-# Devices
-###########################
-
 def test_devices_are_listed_across_pages_and_revoked(fake_v1, logged_in):
     fake_v1.route(responses.GET, "devices", {"items": [{"id": "d1", "current": True}]},
                   headers={"Link": f'<{V1_URL}/devices?cursor=c2>; rel="next"'})
@@ -586,10 +550,6 @@ def test_logout_forgets_the_session(fake_v1, logged_in, tmp_credentials, answer)
     assert tmp_credentials.refresh_token is None
 
 
-###########################
-# Configuring a server
-###########################
-
 @pytest.mark.parametrize("software,said,unsaid", [
     (None, ["This server runs siliconcompiler 0.38.9"], []),
     ({"python": {"siliconcompiler": ["9.9.9"]}, "tools": {}},
@@ -617,10 +577,6 @@ def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credenti
     assert all(line in caplog.text for line in said)
     assert not any(line in caplog.text for line in unsaid)
 
-
-###########################
-# 🔴 A refusal must never become a flood
-###########################
 
 def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
     '''It has no access token for a refresh to repair.'''

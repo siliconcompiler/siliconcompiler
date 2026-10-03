@@ -182,10 +182,6 @@ def test_nothing_is_left_behind_by_a_refusal(tmp_path):
     assert not (tmp_path / "dest" / "shadow").exists()
 
 
-###########################
-# Links that resolve inside the archive (contract.md's Links row; D65)
-###########################
-
 def test_an_inward_symlink_is_extracted_as_a_link(tmp_path):
     '''A pass-through: one node's output linked to another's, staying in the archive.'''
     archive = build(tmp_path / "a.tar.gz", [

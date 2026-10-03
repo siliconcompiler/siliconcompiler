@@ -121,10 +121,6 @@ def finished(server, server_client, key, token, job_archive, dispatcher, me):
     return job
 
 
-###########################
-# Getting in
-###########################
-
 def test_the_portal_is_served_wherever_the_api_is(signed_in):
     '''Over plain http to a peer beyond this machine too (§O): the server warns
     at startup instead.'''
@@ -342,10 +338,6 @@ def test_signing_out_ends_it(signed_in):
     assert signed_in.get("/portal/").status_code == 401
 
 
-###########################
-# The screens
-###########################
-
 @pytest.mark.parametrize("path,says", [
     ("/portal/", []),
     ("/portal/devices", []),
@@ -382,10 +374,6 @@ def test_the_server_screen_answers_what_v1_answers(signed_in, server_client):
     assert "<details>" in text
 
 
-###########################
-# The rule the portal exists under
-###########################
-
 def test_a_stranger_cannot_read_another_persons_job(
         server_client, key, token, job_archive, dispatcher, signed_in):
     '''🔴 Through JobService.owned, the API's own predicate.'''
@@ -415,10 +403,6 @@ def test_cancelling_from_the_browser_moves_the_job_and_needs_its_own_form(
     assert read["state"] == "cancelling"
     assert dispatcher.cancelled == ["fake:1"]
 
-
-###########################
-# What a run produced
-###########################
 
 def test_a_nodes_metrics_come_from_the_table_the_jobs_end_filled(
         server, server_client, key, token, job_archive, dispatcher, me, signed_in):
@@ -538,10 +522,6 @@ def test_a_node_offers_every_log_it_wrote(signed_in, finished):
         signed_in, f"/portal/jobs/{finished['id']}/logs/stepone/0?file=stepone.log")
 
 
-###########################
-# Curating the registry
-###########################
-
 def operator(server):
     store = server.config["SC_STORE"]
     return store, store.upsert_user("operator", "someone@host")["id"]
@@ -606,10 +586,6 @@ def test_the_operator_can_record_a_tool_that_reports_nothing(signed_in, server):
         "WHERE software_name = 'magic'")["version_source"] == "published_date"
 
 
-###########################
-# A failed job says why, on the page
-###########################
-
 def test_a_failed_jobs_page_says_why_and_offers_the_servers_records(
         server, server_client, key, token, job_archive, dispatcher, me, signed_in):
     '''A run that died before any node, every node `cancelled`. The frozen
@@ -655,10 +631,6 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
     assert "not\nthat anyone cancelled it" not in text
     assert "the job ended before that node started" not in text
 
-
-###########################
-# Looking inside an archive
-###########################
 
 def test_a_node_archive_is_browsed_one_member_at_a_time_by_name(signed_in, finished,
                                                                 server):
@@ -756,10 +728,6 @@ def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
     assert response.headers["X-Content-Type-Options"] == "nosniff"
 
 
-###########################
-# Limits, and deleting what a run produced
-###########################
-
 def test_delete_needs_the_job_named(signed_in, finished):
     '''⚠️ A speed bump, not a security control (CSRF is that): the button sat
     one position from the link people click constantly.'''
@@ -838,10 +806,6 @@ def test_the_nodes_table_is_in_the_order_the_run_reaches_them():
         ("a", "0"), ("b", "0"), ("b", "1")]
 
 
-###########################
-# Arriving cold on a job link
-###########################
-
 def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
                                                      finished):
     '''🔴 Otherwise "here is your job" answered "here is a list, find it".'''
@@ -871,10 +835,6 @@ def test_the_return_path_is_never_an_open_redirect(server_client, key, token):
         # A spent handover is also an acceptable answer here.
         server_client.delete_cookie("sc_portal_next", domain="localhost")
 
-
-###########################
-# Watching a run, archiving and discarding
-###########################
 
 def test_only_a_job_still_going_refreshes_and_it_cannot_be_archived(
         server_client, key, token, job_archive, dispatcher, signed_in, finished):

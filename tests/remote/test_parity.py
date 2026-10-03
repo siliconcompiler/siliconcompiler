@@ -171,10 +171,6 @@ def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, mon
     assert "server" in str(raised.value).lower()
 
 
-###########################
-# The CLI, against a live server
-###########################
-
 def run_cli(monkeypatch, *args):
     from siliconcompiler.apps import sc_remote
     monkeypatch.setattr("sys.argv", ["sc-remote", "-credentials", credentials(), *args])

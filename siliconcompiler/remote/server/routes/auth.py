@@ -214,10 +214,6 @@ def revoke():
     return response
 
 
-######################################################################
-# Endpoint 6: a page for a person's browser
-######################################################################
-
 # What a request may name: the page each id lands on.
 _PAGES = ("job_id", "terms_id", "artifact_id")
 

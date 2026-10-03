@@ -77,10 +77,6 @@ def _offer(fake_v1, capabilities, *grants):
                                         "grant_types_supported": list(grants)})
 
 
-###########################
-# Nonces, in both shapes
-###########################
-
 def test_a_nonce_asked_for_at_the_token_endpoint_is_sent_again(
         fake_v1, tmp_credentials, client_credentials):
     '''At an OAuth endpoint it is `use_dpop_nonce` in the OAuth shape.'''
@@ -125,10 +121,6 @@ def test_a_nonce_is_kept_per_origin(logged_in, fake_v1):
     assert transport._nonces["https://sc-server.test"] == "this-one"
     assert transport._nonces["https://elsewhere.test"] == "not-this-one"
 
-
-###########################
-# The OAuth shape
-###########################
 
 def test_a_problem_at_the_token_endpoint_is_read_as_a_problem(
         fake_v1, tmp_credentials, client_credentials, no_sleep):
@@ -179,10 +171,6 @@ def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
     assert "grant_types_supported" not in tmp_credentials.path.read_text()
 
 
-###########################
-# The edge, and redirects followed by hand
-###########################
-
 @pytest.mark.parametrize("body,status,headers", [
     ("<html><body>Forbidden</body></html>", 403, None),
     ("", 302, {"Location": "https://idp.example/login"}),
@@ -230,10 +218,6 @@ def test_a_followed_redirect_gets_operator_headers_only_on_the_apis_origin(
         location.startswith("https://sc-server.test/")
     assert "Authorization" not in followed.headers and "DPoP" not in followed.headers
 
-
-###########################
-# No credential from the environment (surface D305)
-###########################
 
 @pytest.fixture
 def netrc_everywhere(tmp_path, monkeypatch):
@@ -374,10 +358,6 @@ def test_a_header_value_is_read_from_a_pipe(monkeypatch):
     assert read_secret("CF-Access-Client-Secret") == "piped-value"
 
 
-###########################
-# One refresh at a time
-###########################
-
 def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
                                                    client_credentials):
     '''🔴 A process that waited for the lock uses what is in the store: a
@@ -414,10 +394,6 @@ def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
     assert [_form(r.body)["refresh_token"] for r in _posts(fake_v1)] == ["r1", "r1"]
     assert tmp_credentials.refresh_token == "r2"
 
-
-###########################
-# The store
-###########################
 
 @posix_only
 @pytest.mark.parametrize("which", ["dir", "key", "store"])
@@ -517,10 +493,6 @@ def test_the_auth_dir_can_be_moved(monkeypatch, tmp_path):
 
     assert creds.key_path.parent == tmp_path / "elsewhere"
 
-
-###########################
-# What the store holds, and what it took over
-###########################
 
 def _store_file(credentials):
     return json.loads(credentials.path.read_text())
@@ -657,10 +629,6 @@ def test_credentials_naming_an_older_file_finds_the_store_it_moved_to(tmp_path, 
     assert "point -credentials there" in caplog.text
 
 
-###########################
-# The device grant
-###########################
-
 @pytest.fixture
 def device(fake_v1, capabilities):
     _offer(fake_v1, capabilities, GRANT_DEVICE_CODE, "refresh_token")
@@ -715,10 +683,6 @@ def test_a_denied_device_login_says_why(fake_v1, tmp_credentials, device, no_sle
 
     assert said in str(raised.value)
 
-
-###########################
-# Token exchange
-###########################
 
 @pytest.fixture
 def exchange(fake_v1, capabilities, ci_secret):
@@ -908,10 +872,6 @@ def test_ci_setup_without_a_terminal_asks_nothing(tmp_path, monkeypatch, ci_secr
 
     assert creds.headers() == {}
 
-
-###########################
-# Rotating the key
-###########################
 
 def test_a_rotation_revokes_the_old_device_with_the_old_key(
         logged_in, fake_v1, tmp_credentials, client_credentials):

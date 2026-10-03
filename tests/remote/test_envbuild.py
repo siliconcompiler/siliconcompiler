@@ -30,10 +30,6 @@ def digest(letter):
     return "sha256:" + letter * 64
 
 
-###########################
-# The layer, and the registry
-###########################
-
 @pytest.mark.parametrize("ref,parts", [
     ("registry:5000/sc-runtime@sha256:" + "a" * 64,
      ("registry:5000", "sc-runtime", "sha256:" + "a" * 64)),
@@ -169,10 +165,6 @@ def test_a_derived_image_is_the_base_with_one_layer_more_and_an_index_takes_none
         oci.derive(base, layer, comment="")
 
 
-###########################
-# The install: pipbuild
-###########################
-
 def test_the_install_imports_nothing_but_the_standard_library():
     '''🔴 It runs under the base image's Python, whose SiliconCompiler may be a
     release without this module -- or without any of this server.'''
@@ -278,10 +270,6 @@ def test_a_failed_install_says_which_and_whether_it_was_the_network(
     assert (result["unresolved"], result["network"]) == (named, network)
     assert not (tmp_path / "site").exists()
 
-
-###########################
-# The install, for real: pip against a Python that holds cocotb
-###########################
 
 @pytest.fixture
 def image_python(tmp_path):
@@ -400,10 +388,6 @@ def test_an_install_that_cannot_finish_says_why_and_leaves_nothing(
     check(result, expected)
     assert not (tmp_path / "out" / "site").exists()
 
-
-###########################
-# The build container
-###########################
 
 BASE = {
     "ociVersion": "1.0.2",
@@ -603,10 +587,6 @@ def test_the_result_is_written_whatever_happens(tmp_path):
     assert (result["ok"], result["reason"]) == (False, "error")
 
 
-###########################
-# The proxy: the build's only way out
-###########################
-
 def start_proxy(allowlist, **kwargs):
     path = os.path.join(tempfile.mkdtemp(prefix="sc-t-"), "proxy.sock")
     running = envbuild.Proxy(path, allowlist, **kwargs)
@@ -723,10 +703,6 @@ def test_only_an_exact_index_host_may_be_a_private_address(
     assert asked == [public_only]
 
 
-###########################
-# The registry: derived images
-###########################
-
 @pytest.fixture
 def store(runs_test_version):
     from siliconcompiler.remote.server.state.store import Store
@@ -823,10 +799,6 @@ def test_a_bundle_lives_as_long_as_its_base(store, tmp_path):
     images.sweep_bundles(root, store)
     assert list(root.iterdir()) == []
 
-
-###########################
-# While staging
-###########################
 
 flask = pytest.importorskip("flask", reason="the server extra is not installed")
 

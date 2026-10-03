@@ -54,10 +54,6 @@ class Invalid(ValueError):
     '''A summary that does not hold to its shape: the manifest was not read.'''
 
 
-######################################################################
-# The server's half: what it asks, and what it accepts back
-######################################################################
-
 def _outputs_manifests(tree) -> List[str]:
     '''Each manifest under `<step>/<index>/outputs/` in ``tree``, relative, never through a link.'''
     found = []
@@ -201,10 +197,6 @@ def _key(key, fail, text) -> None:
     for part in key:
         text(part, "a keypath's part", MAX_NAME)
 
-
-######################################################################
-# The reading process's half
-######################################################################
 
 def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     '''Read the job's manifest, make every check that reads it, and return the summary.
@@ -414,10 +406,6 @@ def _libraries(project) -> List[str]:
                 found.append(name)
     return found
 
-
-######################################################################
-# Containment, which this process applies to itself
-######################################################################
 
 # Defaults; the server passes its own through the environment.
 CPU_SECONDS = 300

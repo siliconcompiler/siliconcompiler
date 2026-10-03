@@ -182,10 +182,6 @@ class Store:
     def __exit__(self, *exc) -> None:
         self.close()
 
-    ######################################################################
-    # Queries
-    ######################################################################
-
     def execute(self, sql: str, params=()) -> sqlite3.Cursor:
         '''Run one parameterised statement. Nothing interpolates a value into
         SQL: names, hashes and identities here are user-supplied.'''
@@ -237,10 +233,6 @@ class Store:
         con.execute("COMMIT")
         return result
 
-    ######################################################################
-    # Writes every phase needs
-    ######################################################################
-
     def upsert_user(self, issuer: str, subject: str, **fields) -> sqlite3.Row:
         '''Find or create the user for an (issuer, subject): self-asserted
         namespacing, not a boundary (see `identity.auth`).'''
@@ -264,10 +256,6 @@ class Store:
             "INSERT INTO storage_locations (id, uri_base, writable) VALUES (?, ?, 1) "
             "ON CONFLICT (id) DO UPDATE SET uri_base = excluded.uri_base",
             (location_id, uri_base))
-
-    ######################################################################
-    # Reads the capabilities block needs
-    ######################################################################
 
     def advertised_software(self, containers: bool = True) -> dict:
         '''``GET /v1``'s ``software``: every runnable version, best first, by

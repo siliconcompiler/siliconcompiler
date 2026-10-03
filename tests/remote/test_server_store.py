@@ -28,10 +28,6 @@ def in_a_thread(work):
     return result
 
 
-###########################
-# The schema
-###########################
-
 def test_the_store_is_created_on_first_open():
     '''A datadir never used starts a working server.'''
     path = Path("nested/server.db")
@@ -191,10 +187,6 @@ def test_a_store_from_another_schema_version_is_refused_saying_what_to_do(versio
         assert said in str(raised.value)
 
 
-###########################
-# The capabilities join
-###########################
-
 def _declare(store, user, name, kind, versions):
     store.execute("INSERT INTO software (name, display_name, kind, added_by) "
                   "VALUES (?, ?, ?, ?)", (name, name, kind, user))
@@ -246,10 +238,6 @@ def test_a_retired_image_stops_advertising_its_contents():
         assert store.advertised_software() == {"python": {}, "tools": {}, "interpreter": {}}
 
 
-###########################
-# Transactions and threads
-###########################
-
 def test_a_failed_transaction_leaves_nothing_behind():
     with Store("server.db") as store:
         user = store.upsert_user("local", "machine:1000")
@@ -278,10 +266,6 @@ def test_a_second_thread_gets_a_working_connection():
     assert "error" not in result, result.get("error")
     assert result["value"] == 1
 
-
-###########################
-# 🔴 Connections are given back
-###########################
 
 @pytest.mark.skipif(not os.path.isdir("/proc/self/fd"),
                     reason="needs /proc to count descriptors")

@@ -196,10 +196,6 @@ class StagingMixin:
             self._keep_staging_record(job_id)
             self._store.release()
 
-    ######################################################################
-    # The staging limit, and the record staging leaves (surface D294, D295)
-    ######################################################################
-
     def _staging_limit(self, job) -> int:
         '''The caller's `max_staging_seconds`, as `GET /v1/me` publishes it.'''
         from siliconcompiler.remote.server.identity import accounts
@@ -362,10 +358,6 @@ class StagingMixin:
             "entitlement-denied", resource_kind=kind, resource=name,
             detail=f"this flow uses a {kind} this deployment does not allow"
                    + (f", and {more} more" if more else "")))
-
-    ######################################################################
-    # The manifest's read (contract §1)
-    ######################################################################
 
     def _read(self, job, root: Path) -> Dict[str, Any]:
         '''Read the uploaded manifest in a process of its own and act on what

@@ -18,10 +18,6 @@ from siliconcompiler.remote.client.errors import describe
 ORIGIN = "https://sc-server.test"
 
 
-###########################
-# The nonce challenge: retried once, in both shapes
-###########################
-
 def test_a_second_nonce_challenge_is_the_answer(logged_in, fake_v1):
     for nonce in ("one", "two"):
         fake_v1.route(responses.GET, "me", problem("dpop-nonce-required", 401),
@@ -46,10 +42,6 @@ def test_a_second_nonce_challenge_at_the_token_endpoint_is_the_answer(
 
     assert len([c for c in fake_v1.calls if c.request.url.endswith("/auth/token")]) == 2
 
-
-###########################
-# Unknown values
-###########################
 
 def test_an_unknown_response_member_is_ignored(logged_in, fake_v1, capabilities,
                                                nop_project, monkeypatch):
@@ -90,10 +82,6 @@ def test_every_oauth_error_is_read_for_error_and_reason(fake_v1, logged_in, path
     assert (raised.value.error, raised.value.reason) == (body["error"], body.get("reason"))
 
 
-###########################
-# Server text on a terminal
-###########################
-
 def test_server_text_loses_its_control_characters_and_keeps_its_colour():
     text = describe(problem("run-failed", None,
                             detail="bad\x00 bell\x07 clear\x1b[2J red\x1b[31mX\x1b[0m\ttab"))
@@ -128,10 +116,6 @@ def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
     assert opened == []
     assert "http://portal.test/approve" in caplog.text
 
-
-###########################
-# A terms refusal
-###########################
 
 def terms_refusal(fake_v1):
     fake_v1.route(responses.POST, "jobs", problem(

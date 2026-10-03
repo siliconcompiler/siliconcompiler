@@ -149,10 +149,6 @@ def delete(session, job_id):
     return response
 
 
-######################################################################
-# Not an endpoint: the target of the upload grant
-######################################################################
-
 @blueprint.route("/storage/upload/<job_id>", methods=["PUT"])
 def upload(job_id):
     '''Where the bytes actually go: this deployment's stand-in for a presigned

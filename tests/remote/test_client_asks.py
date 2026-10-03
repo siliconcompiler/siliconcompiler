@@ -149,10 +149,6 @@ def test_a_compiled_package_asked_for_cancels_naming_its_file(rig, site, monkeyp
         row["state_reason"]
 
 
-###########################
-# Never a partial answer
-###########################
-
 def _cancel_reason(fake_v1):
     cancel, = [c for c in fake_v1.calls if c.request.path_url.endswith("/cancel")]
     return json.loads(cancel.request.body)["reason"]

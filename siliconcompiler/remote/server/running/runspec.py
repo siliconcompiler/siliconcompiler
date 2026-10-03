@@ -284,10 +284,6 @@ def apply_run(project, run: Dict[str, Any]) -> None:
     point_dataroots(project, run["dataroots"])
 
 
-######################################################################
-# The progress file
-######################################################################
-
 def read_images(path) -> Tuple[Dict[str, str], List[str]]:
     '''Each bundle's source reference, and what to mount into it.'''
     try:

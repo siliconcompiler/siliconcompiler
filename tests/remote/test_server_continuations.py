@@ -92,10 +92,6 @@ def submitted(server_client, key, token, archive, **body):
                         submit(server_client, key, token, job["id"], digest, size))
 
 
-###########################
-# Create
-###########################
-
 def test_an_entry_is_recorded_and_echoed(server, server_client, key, token, me):
     earlier_id = ran(server, me)
 
@@ -183,10 +179,6 @@ def test_results_built_on_what_nobody_may_use_are_refused(server, server_client,
     assert (response.status_code, slug(response)) == (403, "entitlement-denied")
     assert response.get_json()["resource"] == "secret130"
 
-
-###########################
-# Submit, and the copy
-###########################
 
 def test_the_results_are_copied_in_while_staging(server, server_client, key, token, me,
                                                  job_archive, nop_project, dispatcher):
@@ -329,10 +321,6 @@ def test_a_submit_rechecks_what_create_accepted(server, server_client, key, toke
                            submit(server_client, key, token, job["id"], digest, size))) \
         == "deleted"
 
-
-###########################
-# A copied node's links (surface *Passed-through files are resolved while staging*)
-###########################
 
 def three_nodes(project, both=False):
     '''stepone -> steptwo -> stepthree, run from stepthree: it reads steptwo,

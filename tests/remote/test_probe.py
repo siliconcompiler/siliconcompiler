@@ -32,10 +32,6 @@ def framed(name, *lines, here=True):
                     *(f"{line}\n" for line in lines), f"--sc-probe-end:{name}\n"])
 
 
-###########################
-# What to run
-###########################
-
 @pytest.mark.parametrize("name,driver,expected", [
     ("klayout", KLAYOUT, ["klayout", "-zz", "-v"]),
     ("openroad", OPENROAD, ["openroad", "-version"]),
@@ -63,10 +59,6 @@ def test_a_kind_outside_the_closed_set_is_refused():
         probe.command_for("openroad", "library", OPENROAD)
 
 
-###########################
-# Reading what came back
-###########################
-
 @pytest.mark.parametrize("name,kind,said,driver,expected", [
     # 🔴 The driver's own parser and normaliser: `26Q3-...` is not PEP 440.
     ("openroad", "tool", "1 26Q3-2418-g3ab04b4dd1\n", OPENROAD,
@@ -79,10 +71,6 @@ def test_a_kind_outside_the_closed_set_is_refused():
 def test_an_answer_is_read_by_the_drivers_parser(name, kind, said, driver, expected):
     assert probe.read_answer(name, kind, said, driver) == expected
 
-
-###########################
-# The script, and the framing
-###########################
 
 def test_the_script_frames_every_name_and_guards_it_on_the_executable():
     '''🔴 Unguarded, a missing tool leaves the shell's `not found` in the frame
@@ -120,10 +108,6 @@ def test_the_frame_survives_a_tool_that_colours_its_output():
 def test_a_frame_is_split_out_exactly(output, expected):
     assert probe._split(output)[0] == expected
 
-
-###########################
-# End to end, on this machine
-###########################
 
 def test_probing_this_machine_answers_for_what_is_here(quiet_restored):
     '''⚠️ magic's `present` is None, not False: nobody drives it, so presence
@@ -168,10 +152,6 @@ def test_probing_nothing_is_a_usage_error(quiet_restored):
     assert logging.root.manager.disable < logging.CRITICAL
 
 
-###########################
-# Three outcomes, not two
-###########################
-
 def test_present_and_silent_is_told_apart_from_not_there():
     '''🔴 Decides whether a registration is refused, and by the presence
     marker, NEVER by a parse failing (an unguarded `not found` parses as `0`).'''
@@ -213,10 +193,6 @@ def test_an_answer_is_a_version_or_is_kept_as_unparsed(said, version, unparsed):
     assert (found["version"], found["unparsed"], found["present"]) == \
         (version, unparsed, True)
 
-
-###########################
-# 🔴 Bounded: the output is somebody else's image's
-###########################
 
 def test_each_answer_is_cut_to_its_share_in_the_image():
     '''The END is kept, since parsers read the last lines.'''

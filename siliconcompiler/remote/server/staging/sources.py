@@ -132,8 +132,6 @@ class SourceStore:
             _remove(staging)
             raise
 
-    ######################################################################
-
     def _resolve(self, source: str, ref: Optional[str], into: Path, timeout: float):
         '''Resolve ``source`` in `staging.fetch` into ``into``; returns ``(commit, moving)``.'''
         from siliconcompiler.package import RemoteResolver

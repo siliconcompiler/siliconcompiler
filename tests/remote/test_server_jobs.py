@@ -152,10 +152,6 @@ def settles_between_readings(server, me, job, dispatcher):
     dispatcher.is_alive = gone
 
 
-###########################
-# 13. create
-###########################
-
 def test_create_returns_the_job_object_and_a_location(server_client, key, token):
     '''`project` is null on a personal job, never absent; no `upload` member,
     the grant being its own endpoint.'''
@@ -297,10 +293,6 @@ def test_pending_uploads_is_a_ceiling_naming_the_jobs_holding_it(
     assert refused.headers["Retry-After"]           # without it, a client guesses
 
 
-###########################
-# Idempotency-Key
-###########################
-
 def test_the_same_key_and_the_same_body_is_the_same_job(server_client, key, token):
     first = create(server_client, key, token, idempotency_key="k1")
     second = create(server_client, key, token, idempotency_key="k1")
@@ -372,10 +364,6 @@ def test_a_retry_while_the_original_is_handled_is_in_progress(
     assert response.get_json()["reason"] == "in_progress"
     assert int(response.headers["Retry-After"]) >= 1
 
-
-###########################
-# Job reuse
-###########################
 
 @pytest.fixture
 def reuses(server):
@@ -480,10 +468,6 @@ def test_without_jobs_reuse_a_hash_is_validated_and_ignored(
     assert (stored["run_hash"], stored["job_identity"]) == ("hash-1", None)
 
 
-###########################
-# 14. upload-grant, and the signed PUT
-###########################
-
 def test_the_grant_fixes_the_size_and_a_re_issue_repeats_it(server_client, key, token):
     '''`200`, since re-issue is the point; the first grant fixes the size
     (D125) and a re-issue cannot widen it. The job is now `awaiting_input`.'''
@@ -568,10 +552,6 @@ def test_an_upload_past_the_ceiling_is_refused_as_it_arrives(server_client, key,
 
     assert (response.status_code, slug(response)) == (413, "upload-too-large")
 
-
-###########################
-# 15. submit
-###########################
 
 def test_submit_runs_the_job(server, server_client, key, token, job_archive, dispatcher):
     '''`staging` always, since the request only matched the digest; then
@@ -803,10 +783,6 @@ def test_a_manifests_scheduler_settings_are_overridden(nop_project, tmp_path):
     assert not nop_project.option.scheduler.get_options(step="stepone", index="0")
 
 
-###########################
-# 17. get
-###########################
-
 def test_another_user_can_neither_read_nor_list_my_job(server_client, key, token):
     '''404, not 403: a 403 would confirm the id belongs to somebody.'''
     job = create(server_client, key, token).get_json()
@@ -861,10 +837,6 @@ def test_no_job_object_carries_a_portal_url(server, server_client, key, token,
         assert "web_url" not in job
         assert not any("portal" in str(value) for value in job.values()), job
 
-
-###########################
-# 16. list
-###########################
 
 def test_paging_is_a_keyset_over_the_published_ordering(server_client, key, token):
     '''Following `Link` until it is absent, on the last page, sees every job.'''
@@ -953,10 +925,6 @@ def test_a_poll_interval_below_one_whole_second_is_refused(value):
     with pytest.raises(ValueError, match="poll_interval_seconds"):
         _check_policy(dict(DEFAULTS, poll_interval_seconds=value))
 
-
-###########################
-# 18. cancel
-###########################
 
 def test_a_running_job_moves_to_cancelling(server_client, key, token, job_archive, dispatcher):
     '''Not `cancelled`: the scheduler writes the terminal state, and a 202 with
@@ -1119,10 +1087,6 @@ def test_the_servers_own_reasons_keep_their_bound(
     assert served.endswith("...") and len(served) < 110
 
 
-###########################
-# 19. delete
-###########################
-
 def test_delete_refuses_a_job_that_is_still_spending(server_client, key, token,
                                                      job_archive, dispatcher):
     '''"Delete it and its data" cannot mean "hide it and keep spending".'''
@@ -1167,10 +1131,6 @@ def test_a_delete_is_idempotent_unlisted_and_keeps_the_audit_trail(
     assert len(server.config["SC_STORE"].all(
         "SELECT * FROM job_state_transitions WHERE job_id = ?", (job["id"],))) >= 2
 
-
-###########################
-# Reconciliation
-###########################
 
 def test_cannot_tell_is_not_the_same_as_gone(server, server_client, key, token,
                                              job_archive, dispatcher):
@@ -1229,10 +1189,6 @@ def test_a_silent_run_is_lost_even_while_the_scheduler_says_running(
     if state == "failed":
         assert body["error"]["type"].endswith("run-interrupted")
 
-
-###########################
-# Which scheduler job a node became
-###########################
 
 def count_node_jobs(dispatcher):
     asked = []
@@ -1340,10 +1296,6 @@ def test_a_lost_run_is_reported_leaving_no_node_running(
                                           for step, index in still_running]
     assert dispatcher.cancelled == []
 
-
-###########################
-# Why it failed, in the run's own words
-###########################
 
 def test_a_failed_run_publishes_the_reason_the_run_gave(
         server, server_client, key, token, job_archive, dispatcher, me):
@@ -1467,10 +1419,6 @@ def test_a_job_the_scheduler_would_not_take_is_staging_failed_and_listed_as_it_e
     assert b"staging failed: " in text and b"slurmctld is not answering" in text
 
 
-###########################
-# Terminal only once listed (surface D308, D310)
-###########################
-
 def _states_when_indexed(monkeypatch, server, method):
     '''Record, at each call of a JobService indexing method, the job's and its
     nodes' states as the store then holds them.'''
@@ -1547,10 +1495,6 @@ def test_a_lost_or_cancelled_run_ends_only_after_what_it_left_is_listed(
     assert None in run_logs(server_client, key, token, job)
 
 
-###########################
-# A job nobody ever uploaded to
-###########################
-
 def test_a_job_whose_upload_never_arrived_is_abandoned(server, server_client, key, token):
     '''`abandoned`, which nothing wrote: such a job held a `pending_uploads`
     slot for ever, its portal page reloading. A slow upload and a dead script
@@ -1582,10 +1526,6 @@ def test_the_sweep_settles_the_jobs_nobody_opens(server, server_client, key, tok
     assert server.config["SC_STORE"].one(
         "SELECT state FROM jobs WHERE id = ?", (created["id"],))["state"] == "abandoned"
 
-
-###########################
-# Placing a job in a container
-###########################
 
 def digest(letter):
     return "sha256:" + letter * 64

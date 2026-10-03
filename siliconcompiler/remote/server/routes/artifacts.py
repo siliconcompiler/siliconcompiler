@@ -138,10 +138,6 @@ def _job_stream_redirect(job_id, expires):
     return response
 
 
-######################################################################
-# Not an endpoint: where a 303 above points
-######################################################################
-
 @blueprint.route("/stream/logs/<job_id>", methods=["GET"])
 def tail_job(job_id):
     '''Every node's live log, merged, where a coordinate-less `303` points:

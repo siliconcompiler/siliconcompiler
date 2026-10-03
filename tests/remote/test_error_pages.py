@@ -124,10 +124,6 @@ def test_the_render_script_writes_every_page():
         main(["site"])
 
 
-###########################
-# Served from this host
-###########################
-
 @pytest.mark.parametrize("path", ["/server-errors/entitlement-denied",
                                   "/server-errors/entitlement-denied.html"])
 def test_a_page_is_served_by_its_slug_with_or_without_the_extension(server_client,
@@ -182,10 +178,6 @@ def test_the_type_in_a_body_is_still_the_public_one(server_client):
 
     assert body["type"].startswith("https://siliconcompiler.com/server-errors/")
 
-
-###########################
-# 🔴 Naming its own copy
-###########################
 
 def help_of(response):
     found = re.fullmatch(r'<([^>]*)>;\s*rel="help"', response.headers.get("Link", ""))

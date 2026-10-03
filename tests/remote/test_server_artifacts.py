@@ -116,10 +116,6 @@ def _members(server, row):
         return {member.name: member for member in tar.getmembers()}
 
 
-###########################
-# Indexing
-###########################
-
 def test_a_finished_run_is_indexed(server_client, key, token, finished):
     '''Per node: its log; its `node` archive, indexed as the node finishes; its
     reports (🔴 a deliberate second copy -- kilobytes, still fetchable when the
@@ -206,10 +202,6 @@ def test_a_job_that_ran_nothing_lists_only_what_was_sent(server_client, key, tok
     assert items[0]["digest"] == digest and items[0]["size_bytes"] == size
 
 
-###########################
-# 21. the listing
-###########################
-
 def test_the_listing_filters_by_kind_step_and_index(server_client, key, token, finished):
     '''An absent kind is a true answer (this deployment stores `node`, not
     `outputs`); an unknown one is refused.'''
@@ -277,10 +269,6 @@ def test_a_deleted_jobs_subresources_are_gone(server_client, key, token, finishe
     assert call(server_client, key, "GET", f"/v1/jobs/{finished['id']}",
                 token).status_code == 200
 
-
-###########################
-# 22. the bytes
-###########################
 
 def test_every_artifact_is_a_303_to_its_gzip_on_a_signed_route(server_client, key, token,
                                                                finished):
@@ -424,10 +412,6 @@ def test_a_withheld_member_is_worse_than_a_pending_one():
     assert artifacts.worst([None, None]) is None
 
 
-###########################
-# max_download_bytes
-###########################
-
 def _ceiling(server, bytes_allowed):
     server.config["SC_CONFIG"].limits["max_download_bytes"] = bytes_allowed
 
@@ -490,10 +474,6 @@ def test_a_log_is_the_same_bytes_and_therefore_the_same_ceiling(
     assert (response.status_code, slug(response)) == (403, "download-too-large")
     assert response.get_json()["limit"] == "max_download_bytes"
 
-
-###########################
-# 20. one node's log
-###########################
 
 def _ended_stream(server_client, key, token, job_id):
     '''Open a finished node's stream; the `logs` artifact its `node_state` names.'''
@@ -566,10 +546,6 @@ def test_a_node_log_names_a_node_this_job_has(server_client, key, token, finishe
         assert call(server_client, key, "GET", logs + half, token).status_code == 400
 
 
-###########################
-# The store's own guards
-###########################
-
 def _insert(store, like, **values):
     '''Another artifact row at ``like``'s coordinates, as a racing indexer would.'''
     row = {"id": str(uuid.uuid4()), "job_id": like["job_id"], "step": like["step"],
@@ -613,10 +589,6 @@ def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
         with pytest.raises(sqlite3.IntegrityError):
             _insert(store, first, **refused)
 
-
-###########################
-# What a node's archives hold
-###########################
 
 def test_a_node_input_is_what_it_was_handed_and_no_member_of_its_archive(
         server_client, key, token, finished):
@@ -771,10 +743,6 @@ def test_a_log_that_is_a_link_out_is_not_indexed(server, finished, tmp_path):
     assert all(not member.isfile() for member in members["node"].values())
 
 
-###########################
-# A refused upload: kept, except when it is restricted
-###########################
-
 def _uploads(server, job_id):
     return server.config["SC_STORE"].all(
         "SELECT * FROM artifacts WHERE job_id = ? AND upload_seq IS NOT NULL "
@@ -826,10 +794,6 @@ def test_an_upload_refused_for_a_private_value_is_deleted_and_the_reason_kept(
         "'rejected'", (job["id"],))["reason"]
     assert "cells.lef" in reason and "sha256:abc" in reason
 
-
-###########################
-# The run's own log
-###########################
 
 def _job_logs(server, server_client, key, token, job_archive, **files):
     '''Run with ``files`` (`job_log`, `backup`, `run_log`) left behind; the

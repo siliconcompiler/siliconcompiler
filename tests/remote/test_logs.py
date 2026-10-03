@@ -118,10 +118,6 @@ def stream_url(server_client, key, token, job_id, step="place", index="0", heade
     return response.headers["Location"].split("http://localhost", 1)[1]
 
 
-###########################
-# 🔴 The redirect, the gate, and concurrent_log_streams
-###########################
-
 def test_a_stream_url_is_its_own_grant_for_one_connection(server, server_client, key,
                                                           token, running):
     '''Unsigned, or signed as a download, is refused. 🔴 It lasts no longer
@@ -266,10 +262,6 @@ def test_the_published_stream_limit_is_enforced_per_caller_and_given_back(
     assert limiter.held(me) == 0
 
 
-###########################
-# Over a real socket: a generator response, chunked, and a reader hanging up
-###########################
-
 @pytest.fixture
 def live(tmp_path):
     with live_server(tmp_path) as (client, app, job_id, logs):
@@ -377,10 +369,6 @@ def test_a_tail_after_the_node_finished_gets_the_archive_and_no_session(live):
 
     assert client.tail_log(job_id, "place", "0") == "all done\n"
 
-
-###########################
-# The runner: a skipped node is not a failed one, and the caller's settings stand
-###########################
 
 def test_a_skipped_node_is_settled_as_skipped_and_published_at_once(nop_project,
                                                                     monkeypatch):

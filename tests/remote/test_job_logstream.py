@@ -16,10 +16,6 @@ from siliconcompiler.remote.server.outputs import logstream                  # n
 # one stream. The rule an implementation gets wrong is that the id is the JOB's.
 
 
-###########################
-# The merge, without a server
-###########################
-
 class Job:
     '''Nodes' logs on disk, and the states a stream asks about.'''
 
@@ -220,10 +216,6 @@ def test_a_good_id_is_a_seek_into_the_index(tmp_path):
     assert rest == [("e3", "c\n")]
 
 
-###########################
-# The endpoint
-###########################
-
 @pytest.fixture
 def job(server, server_client, key, token):
     '''A running job with two nodes, both logging.'''
@@ -329,10 +321,6 @@ def test_the_job_stream_implies_the_others(tmp_path):
     with pytest.raises(ValueError, match="logs.stream.job without logs.stream"):
         Config.load(tmp_path)
 
-
-###########################
-# The client, over a real socket
-###########################
 
 @pytest.fixture
 def live(tmp_path):

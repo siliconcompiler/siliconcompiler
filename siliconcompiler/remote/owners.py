@@ -741,10 +741,6 @@ def _weigh(path: str, counted: Set[Tuple[int, int]]) -> Tuple[int, int]:
     return size, files
 
 
-###########################
-# What the flow reads (D129)
-###########################
-
 # Read by the framework whatever the task declares (`SchedulerNode.get_required_keys`,
 # less `exe`, a name).
 _TASK_READS = ("prescript", "postscript", "refdir", "script")

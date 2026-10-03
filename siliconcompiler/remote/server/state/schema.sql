@@ -20,10 +20,6 @@
 PRAGMA foreign_keys = ON;
 
 
---------------------------------------------------------------------------
--- 1. Identity
---------------------------------------------------------------------------
-
 CREATE TABLE users (
     id              text PRIMARY KEY,               -- opaque; this is the JWT `sub`
     issuer          text NOT NULL,                  -- 'local' for an auto-provisioned identity,
@@ -46,10 +42,6 @@ CREATE TABLE users (
 );
 CREATE UNIQUE INDEX users_email_key ON users (lower(email)) WHERE email IS NOT NULL;
 
-
---------------------------------------------------------------------------
--- 2. Sessions and devices
---------------------------------------------------------------------------
 
 CREATE TABLE devices (
     id                 text PRIMARY KEY,
@@ -120,10 +112,6 @@ CREATE TABLE refresh_tokens (
 );
 CREATE INDEX refresh_family_idx ON refresh_tokens (family_id);
 
-
---------------------------------------------------------------------------
--- 4. Jobs
---------------------------------------------------------------------------
 
 CREATE TABLE job_states (                           -- the closed set, as a table
     state    text PRIMARY KEY,
@@ -350,10 +338,6 @@ CREATE TABLE job_continuations (                    -- a run starting part-way (
 );
 
 
---------------------------------------------------------------------------
--- 5. Artifacts
---------------------------------------------------------------------------
-
 CREATE TABLE artifact_kinds (                       -- the vocabulary, and how long each kind is
     kind              text PRIMARY KEY,             -- kept. retention_seconds is a floor that is
     retention_seconds integer                       -- READ. NULL = the floor and nothing more
@@ -448,10 +432,6 @@ CREATE UNIQUE INDEX artifacts_one_per_node_idx
     ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''),
                   coalesce(upload_seq, 0));
 
-
---------------------------------------------------------------------------
--- 8. Software and images
---------------------------------------------------------------------------
 
 CREATE TABLE software (                             -- what this deployment knows how to run
     name          text PRIMARY KEY,                 -- the DISTRIBUTION name, and the wire key:
@@ -573,9 +553,6 @@ CREATE TABLE image_contents (                       -- what is INSIDE it -- decl
 CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version);
 
 
---------------------------------------------------------------------------
--- 9. Per-user ceilings
---------------------------------------------------------------------------
 -- 🔴 SPARSE: a row exists only where somebody overrode something, and a NULL
 -- column inherits the deployment's value from config.json. The contract pairs
 -- this table with `plans`, which this profile does not have: hence no `plan_id`.

@@ -107,10 +107,6 @@ def _cancelled(fake_v1):
     fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelled"), status=202)
 
 
-###########################
-# The node state mapping
-###########################
-
 @pytest.mark.parametrize("state,terminal,expected", [
     ("pending", False, "pending"), ("queued", False, "queued"),
     ("running", False, "running"), ("completed", True, "success"),
@@ -124,10 +120,6 @@ def _cancelled(fake_v1):
 def test_every_node_state_maps(state, terminal, expected):
     assert node_status(state, terminal) == expected
 
-
-###########################
-# The submit
-###########################
 
 def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, caplog):
     '''🔴 The PUT addresses storage, which may be somebody else's bucket. The
@@ -279,10 +271,6 @@ def test_a_cocotb_node_names_siliconcompilers_cocotb_range(fake_v1, logged_in, g
     assert RemoteRun(project, logged_in)._requested_python()["cocotb"] == declared
 
 
-###########################
-# Polling
-###########################
-
 def test_the_loop_ends_on_terminal_and_not_on_the_name(fake_v1, run, no_sleep):
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"))
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("quiescing", terminal=True))
@@ -319,10 +307,6 @@ def test_node_states_are_recorded_and_unknown_nodes_ignored(fake_v1, run, nop_pr
     assert nop_project.get('record', 'status', step="stepone", index="0") == "success"
     assert nop_project.get('record', 'status', step="steptwo", index="0") == "skipped"
 
-
-###########################
-# 🔴 A refusal ends the wait; a server error does not
-###########################
 
 def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
     '''🔴 Falling through would announce a finished job with nothing in it.'''
@@ -368,10 +352,6 @@ def test_reconnect_re_enters_the_wait(fake_v1, run):
 
     run.reconnect("01J9-job")
 
-
-###########################
-# A page for a person's browser: POST /v1/auth/browser (surface D309)
-###########################
 
 SIGN_IN = {"url": "https://sc-server.test/portal/enter?token=t",
            "expires_at": "2026-10-01T18:04:30Z"}
@@ -473,10 +453,6 @@ def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened):
     assert not opened
 
 
-###########################
-# Listing, cancelling, deleting
-###########################
-
 @pytest.mark.parametrize("link", [
     "</v1/jobs?limit=1&cursor=abc&kept=1>; rel=next",
     '</v1/jobs?cursor=zzz>; rel="prev", </v1/jobs?limit=1&cursor=abc&kept=1>; rel="next"',
@@ -572,9 +548,6 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
     assert fake_v1.calls[-1].request.headers["Content-Length"] == "20"
 
 
-###########################
-# Every refusal renders
-###########################
 #
 # 🔴 The half the integration rig cannot reach: a working server cannot be
 # made to report a limit it does not have or refuse a feature it implements.
@@ -684,10 +657,6 @@ def test_a_keyed_create_refused_by_a_gateway_is_retried_then_rendered(fake_v1, l
     assert len(creates) == 3 and len({r.headers["Idempotency-Key"] for r in creates}) == 1
 
 
-###########################
-# A failed run says why, without opening a URL
-###########################
-
 def _failed_poll(fake_v1, run, caplog, level="INFO", **body):
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("failed", **body))
     fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
@@ -740,10 +709,6 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, nodes, error,
     assert all(line in text for line in said)
     assert not any(line in text for line in unsaid)
 
-
-###########################
-# Watching a run
-###########################
 
 def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, capsys):
     '''🔴 A node's log line already says which node it came from.'''
@@ -950,10 +915,6 @@ def test_a_log_asked_too_early_is_asked_again(fake_v1, run):
     assert ("stepone", "0") in tails._started
 
 
-###########################
-# What the flow will reach for
-###########################
-
 def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabilities,
                                                         monkeypatch):
     '''Client-v1-migration D16: create decides, from a `GET /v1` this client
@@ -1051,10 +1012,6 @@ def test_a_development_client_asks_by_prefix_rather_than_exactly():
     with pytest.raises(InvalidSpecifier):
         SpecifierSet("==0.38.10.dev*")
 
-
-###########################
-# What is uploaded
-###########################
 
 def _members(run, tmp_path):
     '''The upload's members by name, and each regular file's bytes.'''
@@ -1246,10 +1203,6 @@ def test_an_upstream_node_without_its_outputs_is_continued_from_its_recorded_job
     assert not {n for n in names if n.startswith("stepone")}
 
 
-###########################
-# The server's own page for an error
-###########################
-
 @pytest.mark.parametrize("link,page", [
     ('</server-errors/not-found>; rel="help"', "https://sc-server.test/server-errors/"),
     (None, "https://siliconcompiler.com/server-errors/"),
@@ -1280,10 +1233,6 @@ def test_a_failed_jobs_reason_points_at_the_servers_page():
 
     assert "https://sc-server.test/server-errors/run-failed" in said
 
-
-###########################
-# What the server cannot supply, it asks for (D114, D124)
-###########################
 
 def _acme(project, tag):
     from siliconcompiler import PDK
@@ -1396,10 +1345,6 @@ def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state
     assert ("not fully submitted" in caplog.text and "Ctrl-C again" in caplog.text) == \
         (state == "staging")
 
-
-###########################
-# Create before pack, 202 in staging, and what will not be submitted
-###########################
 
 @pytest.mark.parametrize("refusal,said", [
     # A private task root this server does not hold (surface D298).
@@ -1525,10 +1470,6 @@ def test_a_task_class_no_package_provides_stops_before_create(fake_v1, run, monk
         run._preflight()
 
 
-###########################
-# Links in what goes up (contract.md, *An upload keeps links*; client-v1-migration D4)
-###########################
-
 def _three_nodes(project, both=False):
     '''stepone -> steptwo -> stepthree, run from stepthree; with ``both``,
     stepthree reads stepone too.'''
@@ -1624,10 +1565,6 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
     with pytest.raises(RemoteError, match="steptwo/0/outputs/gcd.vg is a link to"):
         run._check_upstream_files()
 
-
-###########################
-# The v1 API changes of 2026-09-29, the client's half
-###########################
 
 def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project, tmp_path):
     '''🔴 Never the name alone: many objects use the default, `root` (D282).'''

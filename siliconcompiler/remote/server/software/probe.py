@@ -242,10 +242,6 @@ def _locally(text: str) -> str:
     return done.stdout
 
 
-######################################################################
-# Reaching the driver
-######################################################################
-
 def _split(output: str):
     '''``(captured, present)``: everything between each name's markers, and whether it was there.'''
     captured: Dict[str, str] = {}
@@ -341,10 +337,6 @@ def _subclasses(cls) -> List[Any]:
                 found.append(grandchild)
     return found
 
-
-######################################################################
-# Asking this machine
-######################################################################
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(

@@ -176,8 +176,6 @@ def _add_regular(tar, packing: "_Packing", handle, info, dir_path: Path, arcname
     _add_open(tar, handle, info, arcname)
 
 
-######################################################################
-
 def _parts(root, path):
     '''``path`` as components under ``root``, lexically; PermissionError if not under it.'''
     root = os.path.abspath(str(root))
@@ -268,10 +266,6 @@ def _dir_info(tar, arcname: str, info) -> tarfile.TarInfo:
     member.mode = stat.S_IMODE(info.st_mode)
     return member
 
-
-######################################################################
-# Where there is no dir_fd
-######################################################################
 
 def _open_file_by_path(root, path) -> int:
     if not inside(root, path):

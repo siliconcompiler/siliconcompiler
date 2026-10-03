@@ -110,10 +110,6 @@ def test_a_python_source_is_answered_without_importing_its_parent(tmp_path, monk
     assert not marker.exists()
 
 
-###########################
-# A job nobody is at (surface D165)
-###########################
-
 def _with_node(project, task, name):
     from siliconcompiler import Flowgraph
     from siliconcompiler.tools.builtin.nop import NOPTask
