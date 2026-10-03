@@ -1,26 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>terms-not-accepted &middot; SiliconCompiler server errors</title>
-<meta name="description" content="There is an agreement you have not accepted, and it covers something this request needs.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / terms-not-accepted</p>
-  <h1>terms-not-accepted</h1>
-  <p class="title">Terms not accepted</p>
-  <p class="meta">
-    <span class="status">403 Forbidden</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/terms-not-accepted</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "Terms not accepted" %}
+{% set status = "403 Forbidden" %}
+{% set description = "There is an agreement you have not accepted, and it covers something this request needs." %}
+{% set also_on_a_job = true %}
+{% block main %}
 <p>There is a terms document you have not accepted, and it covers something this request needs.</p>
 
 <p><strong>This one you can fix yourself.</strong> <code>blocked_by</code> lists every document in
@@ -94,23 +77,7 @@ it ends the job <code>rejected</code> with this on its <code>error</code>; and a
 <code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code> and <code>&hellip;/logs</code>, for what the
 artifact or log derives from.</p>
 
-<h2>Getting help with your specific failure</h2>
-
-<div class="do">
-<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
-&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
-window.</p>
-<ul>
-  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
-      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
-  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
-      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
-      that finds the run.</li>
-  <li><code>instance</code> &mdash; the request this happened to.</li>
-</ul>
-<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
-hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
-</div>
+{% include "_help.html" %}
 
 <h2>What this is not</h2>
 
@@ -119,14 +86,4 @@ hold the resource at all. This means you hold it and have not signed for it.</p>
 
 <p><code>artifact-not-approved</code> (<code>403</code>) is a per-object decision on a specific
 output, not a document you can accept. It needs a human approval process, not a click.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}

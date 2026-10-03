@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>job-state-conflict &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The job’s current state does not allow this call: a submit or upload grant past awaiting_input, a grant re-issue with a different bytes, or deleting a job that is not terminal.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / job-state-conflict</p>
-  <h1>job-state-conflict</h1>
-  <p class="title">The job is not in a state that allows this</p>
-  <p class="meta">
-    <span class="status">409 Conflict</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/job-state-conflict</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "The job is not in a state that allows this" %}
+{% set status = "409 Conflict" %}
+{% set description = "The job’s current state does not allow this call: a submit or upload grant past awaiting_input, a grant re-issue with a different bytes, or deleting a job that is not terminal." %}
+{% block main %}
 <p>The job&rsquo;s current state does not allow the call you made: a submit that is not a replay of the original, or an upload grant, for a job past <code>awaiting_input</code>; a submit for a job holding no upload; an upload-grant re-issue naming a different <code>size_bytes</code> or <code>digest</code> from the ones the archive&rsquo;s first grant fixed; or <code>DELETE</code> of a job that is not terminal. With <code>reason: "in_progress"</code> and <code>Retry-After</code>, it is a create or a submit repeating an <code>Idempotency-Key</code> whose original request the server is still handling.</p>
 <h2>What to do</h2>
 
@@ -63,20 +45,7 @@
 </tbody>
 </table>
 
-<h2>Getting help with your specific failure</h2>
-
-<div class="do">
-<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
-&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
-window.</p>
-<ul>
-  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
-      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
-  <li><code>instance</code> &mdash; the request this happened to.</li>
-</ul>
-<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
-hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
-</div>
+{% include "_help.html" %}
 
 <h2>What this is not</h2>
 
@@ -85,14 +54,4 @@ hits it and it cannot see your response &mdash; <code>trace_id</code> is what co
 <p><a href="not-found.html"><code>not-found</code></a> (<code>404</code>) is a job that does not exist or is not yours. A <code>409</code> means the job is established and its state is the problem.</p>
 
 <p><a href="idempotency-key-reuse.html"><code>idempotency-key-reuse</code></a> (<code>422</code>) is a key sent again with a different request. A true replay of the original submit is answered with the original response, not with either.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}

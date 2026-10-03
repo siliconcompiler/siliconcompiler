@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>not-found &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The thing you asked for does not exist, or it exists and is not yours. Those are deliberately indistinguishable.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / not-found</p>
-  <h1>not-found</h1>
-  <p class="title">Not found</p>
-  <p class="meta">
-    <span class="status">404 Not Found</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/not-found</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "Not found" %}
+{% set status = "404 Not Found" %}
+{% set description = "The thing you asked for does not exist, or it exists and is not yours. Those are deliberately indistinguishable." %}
+{% block main %}
 <p>The thing you asked for does not exist, <strong>or it exists and is not yours</strong>. This page
 is here to tell you that those two cases are deliberately indistinguishable.</p>
 
@@ -72,20 +54,7 @@ case you are in. That is the whole point &mdash; a <code>detail</code> that leak
 worth reporting.</p>
 </div>
 
-<h2>Getting help with your specific failure</h2>
-
-<div class="do">
-<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
-&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
-window.</p>
-<ul>
-  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
-      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
-  <li><code>instance</code> &mdash; the request this happened to.</li>
-</ul>
-<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
-hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
-</div>
+{% include "_help.html" %}
 
 <h2>What this is not</h2>
 
@@ -101,14 +70,4 @@ problem.</strong></p>
 <p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> (<code>403</code>) is used
 where existence is <em>not</em> secret &mdash; a PDK you may not use is named in your own manifest,
 so refusing it plainly reveals nothing you did not already know.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}

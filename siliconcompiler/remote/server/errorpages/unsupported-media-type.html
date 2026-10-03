@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>unsupported-media-type &middot; SiliconCompiler server errors</title>
-<meta name="description" content="A Content-Type this endpoint does not accept. Often answered below the handler, untyped.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / unsupported-media-type</p>
-  <h1>unsupported-media-type</h1>
-  <p class="title">Unsupported media type</p>
-  <p class="meta">
-    <span class="status">415 Unsupported Media Type</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/unsupported-media-type</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "Unsupported media type" %}
+{% set status = "415 Unsupported Media Type" %}
+{% set description = "A Content-Type this endpoint does not accept. Often answered below the handler, untyped." %}
+{% block main %}
 <p>The request body&rsquo;s <code>Content-Type</code> is not one this endpoint accepts.</p>
 <h2>What to do</h2>
 
@@ -61,20 +43,7 @@ at all. Treat a non-<code>problem+json</code> <code>415</code> exactly as you wo
 </tbody>
 </table>
 
-<h2>Getting help with your specific failure</h2>
-
-<div class="do">
-<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
-&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
-window.</p>
-<ul>
-  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
-      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
-  <li><code>instance</code> &mdash; the request this happened to.</li>
-</ul>
-<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
-hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
-</div>
+{% include "_help.html" %}
 
 <h2>At the two OAuth endpoints</h2>
 
@@ -85,14 +54,4 @@ OAuth processing, and in <code>problem+json</code> there as everywhere &mdash; n
 <h2>What this is not</h2>
 
 <p><a href="not-acceptable.html"><code>not-acceptable</code></a> is about what you accept back.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}

@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>session-ended &middot; SiliconCompiler server errors</title>
-<meta name="description" content="The session is over. reason says why. Re-authenticate; never refresh.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / session-ended</p>
-  <h1>session-ended</h1>
-  <p class="title">Session ended</p>
-  <p class="meta">
-    <span class="status">401 Unauthorized</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/session-ended</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "Session ended" %}
+{% set status = "401 Unauthorized" %}
+{% set description = "The session is over. reason says why. Re-authenticate; never refresh." %}
+{% block main %}
 <p>The session behind your token is over, and no refresh will revive it.</p>
 <h2>What to do</h2>
 
@@ -71,32 +53,9 @@
 </tbody>
 </table>
 
-<h2>Getting help with your specific failure</h2>
-
-<div class="do">
-<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
-&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
-window.</p>
-<ul>
-  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
-      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
-  <li><code>instance</code> &mdash; the request this happened to.</li>
-</ul>
-<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
-hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
-</div>
+{% include "_help.html" %}
 
 <h2>What this is not</h2>
 
 <p><a href="invalid-token.html"><code>invalid-token</code></a> is refreshed. This one never is.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}

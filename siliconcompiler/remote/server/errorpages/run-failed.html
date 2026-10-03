@@ -1,26 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>run-failed &middot; SiliconCompiler server errors</title>
-<meta name="description" content="Never an HTTP response. A type on a job’s or node’s error object.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / run-failed</p>
-  <h1>run-failed</h1>
-  <p class="title">The run failed</p>
-  <p class="meta">
-    <span class="status">Not an HTTP response</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/run-failed</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "The run failed" %}
+{% set status = "Not an HTTP response" %}
+{% set description = "Never an HTTP response. A type on a job’s or node’s error object." %}
+{% block main %}
 <p>The run itself failed, in a way resubmitting unchanged repeats. The job was accepted and ran, and a node &mdash; or the run around the nodes &mdash; ended in failure: a tool or flow failure, or a deployment time or memory limit, with <code>detail</code> naming the limit.</p>
 <h2>What to do</h2>
 
@@ -68,14 +50,4 @@ hits it and it cannot see your job &mdash; the job id is what connects the two.<
 <h2>What this is not</h2>
 
 <p><a href="run-interrupted.html"><code>run-interrupted</code></a> is the environment ending the run &mdash; preemption, a failed compute node, a lost job, an image that could not be pulled &mdash; and resubmitting unchanged may work.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}

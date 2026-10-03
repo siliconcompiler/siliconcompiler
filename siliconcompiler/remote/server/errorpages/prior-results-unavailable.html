@@ -1,26 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>prior-results-unavailable &middot; SiliconCompiler server errors</title>
-<meta name="description" content="A continues_from entry names results that cannot be used.">
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header class="page">
-  <p class="crumb"><a href="index.html">siliconcompiler.com/server-errors</a> / prior-results-unavailable</p>
-  <h1>prior-results-unavailable</h1>
-  <p class="title">Those earlier results cannot be used</p>
-  <p class="meta">
-    <span class="status">422 Unprocessable Content</span>
-    <span class="uri">https://siliconcompiler.com/server-errors/prior-results-unavailable</span>
-  </p>
-  <hr>
-</header>
-
-<main>
+{% extends "_layout.html" %}
+{% set title = "Those earlier results cannot be used" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "A continues_from entry names results that cannot be used." %}
+{% set also_on_a_job = true %}
+{% block main %}
 <p>A run that starts part-way through its flow takes the results of a node it does not run from an earlier job, named in create&rsquo;s <code>continues_from</code>. One of those entries names results that cannot be used: <code>step</code>, <code>index</code> and <code>job_id</code> say which, and <code>reason</code> says why.</p>
 <h2>What to do</h2>
 
@@ -74,35 +57,9 @@
 </tbody>
 </table>
 
-<h2>Getting help with your specific failure</h2>
-
-<div class="do">
-<p>Two members of the body identify your exact request. <strong>Quote both when you escalate</strong>
-&mdash; with them, whoever helps you finds the one request instead of searching a five-minute
-window.</p>
-<ul>
-  <li><code>trace_id</code> &mdash; the request&rsquo;s W3C trace id: the one your client&rsquo;s
-      <code>traceparent</code> carried, where it sent one, so your own logs can find it too.</li>
-  <li>Where this arrived on a job&rsquo;s <code>error</code> rather than on a request, there is no
-      <code>trace_id</code>: <strong>quote the job&rsquo;s <code>id</code></strong>, the one identifier
-      that finds the run.</li>
-  <li><code>instance</code> &mdash; the request this happened to.</li>
-</ul>
-<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
-hits it and it cannot see your response &mdash; <code>trace_id</code> is what connects the two.</p>
-</div>
+{% include "_help.html" %}
 
 <h2>What this is not</h2>
 
 <p><a href="archive-rejected.html"><code>archive-rejected</code></a> with <code>reason: "missing_member"</code> is a node the run reads whose results the client sent neither in the archive nor as a job in <code>continues_from</code>.</p>
-</main>
-
-<footer>
-  <p>Normative definition: the error <code>type</code> registry in the SiliconCompiler
-  <code>v1</code> API contract. This page is a rendering of it &mdash; where the two disagree, the
-  registry is right.</p>
-  <p><a href="index.html">All error types</a></p>
-</footer>
-
-</body>
-</html>
+{% endblock %}
