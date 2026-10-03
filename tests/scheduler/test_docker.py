@@ -164,19 +164,14 @@ def test_run_passes_uid_and_gid(project):
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
-@pytest.mark.parametrize("has_auth", [True, False])
-def test_the_session_store_is_never_a_task_containers_to_see(project, tmp_path,
-                                                             monkeypatch, has_auth):
-    """🔴 A node is given ~/.sc read-only, and never ~/.sc/auth: the DPoP key
-    and the sessions that act as this user stay on the host. An empty tmpfs
-    covers it -- only where it exists, since a read-only mount cannot take a
-    new mount point."""
+def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, tmp_path,
+                                                                     monkeypatch):
+    """A node reads one file from ~/.sc, so that file is all it is given:
+    nothing else there -- a remote client's key and sessions in ~/.sc/auth,
+    say -- reaches a tool."""
     home = tmp_path / ".sc"
-    home.mkdir()
+    (home / "auth").mkdir(parents=True)
     (home / "email.json").write_text("{}")
-    if has_auth:
-        (home / "auth").mkdir(mode=0o700)
-        (home / "auth" / "dpop-key.pem").write_text("secret")
     monkeypatch.setattr("siliconcompiler.scheduler.docker.default_email_credentials_file",
                         lambda: str(home / "email.json"))
 
@@ -190,12 +185,9 @@ def test_the_session_store_is_never_a_task_containers_to_see(project, tmp_path,
     with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
         node.run()
 
-    kwargs = client.containers.run.call_args.kwargs
-    assert f"{home}:/sc_home/.sc:ro" in kwargs['volumes']
-    if has_auth:
-        assert set(kwargs['tmpfs']) == {"/sc_home/.sc/auth"}
-    else:
-        assert kwargs['tmpfs'] == {}
+    volumes = client.containers.run.call_args.kwargs['volumes']
+    assert f"{home / 'email.json'}:/sc_home/.sc/email.json:ro" in volumes
+    assert not any(volume.startswith(f"{home}:") for volume in volumes)
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')

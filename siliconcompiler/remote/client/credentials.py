@@ -37,9 +37,9 @@ first. A refresh token is rotated by one process at a time: a second process
 writing back the copy it read earlier would put back a spent token, which the
 server reads as reuse, and ends the session.
 
-The store is a directory of its own for one reason: ``scheduler/docker.py``
-mounts ``~/.sc`` into task containers, and one path is something a narrower
-mount can leave out.
+The store is a directory of its own, private to the user, so anything that
+hands out part of ``~/.sc`` leaves it out as one path. ``scheduler/docker.py``
+gives a task container ``email.json`` alone.
 '''
 
 import contextlib
