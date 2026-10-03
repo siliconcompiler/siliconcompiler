@@ -239,12 +239,8 @@ def test_get_plugin():
 
 def test_no_internal_entrypoints():
     """
-    siliconcompiler must not register its own plugin groups; built-ins are wired up in
-    code so they work regardless of how siliconcompiler was installed. External packages
-    may still register into these groups.
-
-    A failure here usually means stale install metadata from before the entry points were
-    removed - reinstall siliconcompiler to regenerate it.
+    siliconcompiler registers none of its own plugin entry points; built-ins are wired up in code.
+    A failure usually means stale install metadata: reinstall siliconcompiler.
     """
     for group in ("showtask", "path_resolver", "docs", "install"):
         for entry in entry_points(group=f"siliconcompiler.{group}"):
@@ -385,10 +381,6 @@ def test_invalid_regex_error(caplog):
     assert "Invalid regex pattern" in caplog.text
 
 
-# ---------------------------------------------------------------------------
-# check_python_dependencies (pre-run informative dependency check)
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def logger():
     return logging.getLogger("test-python-deps")
@@ -413,11 +405,6 @@ class FakeSpec:
     def __init__(self, origin=None, locations=None):
         self.origin = origin
         self.submodule_search_locations = locations
-
-
-# ---------------------------------------------------------------------------
-# _import_toml / _load_pyproject_data
-# ---------------------------------------------------------------------------
 
 
 def test_load_pyproject_data_valid(tmp_path):
@@ -446,11 +433,6 @@ def test_load_pyproject_data_no_toml_parser(tmp_path, monkeypatch):
     assert _load_pyproject_data(str(pyproject)) is None
 
 
-# ---------------------------------------------------------------------------
-# _installed_distribution_versions
-# ---------------------------------------------------------------------------
-
-
 def test_installed_distribution_versions(monkeypatch):
     dists = [
         FakeDist("Foo_Bar", "1.2.3"),
@@ -462,11 +444,6 @@ def test_installed_distribution_versions(monkeypatch):
 
     installed = _installed_distribution_versions()
     assert installed == {"foo-bar": "1.2.3"}
-
-
-# ---------------------------------------------------------------------------
-# _evaluate_requirement
-# ---------------------------------------------------------------------------
 
 
 def test_evaluate_requirement_unparsable():
@@ -531,11 +508,6 @@ def test_evaluate_requirement_marker_evaluate_raises(monkeypatch):
     assert _evaluate_requirement("foo", {}) == ("skip", None, None)
 
 
-# ---------------------------------------------------------------------------
-# _check_optional_group
-# ---------------------------------------------------------------------------
-
-
 def test_check_optional_group_non_string_and_all_skipped(logger, caplog):
     with caplog.at_level(logging.WARNING):
         # None entry is skipped; marker-excluded entry is skipped -> nothing applicable.
@@ -584,11 +556,6 @@ def test_check_optional_group_fully_installed_silent(logger, caplog):
             "docs", ["a >= 1.0", "b"], {"a": "1.0", "b": "1.0"}, "demo", logger)
     assert issues == 0
     assert caplog.records == []
-
-
-# ---------------------------------------------------------------------------
-# _check_project_dependencies
-# ---------------------------------------------------------------------------
 
 
 def test_check_project_dependencies_not_a_dict(logger):
@@ -731,11 +698,6 @@ def test_check_project_dependencies_clean_no_hint(logger, caplog):
     assert caplog.records == []
 
 
-# ---------------------------------------------------------------------------
-# _locate_pyproject_for_module
-# ---------------------------------------------------------------------------
-
-
 def test_locate_pyproject_find_spec_raises(monkeypatch):
     def _boom(_):
         raise ValueError("bad module")
@@ -795,11 +757,6 @@ def test_locate_pyproject_walk_stops_at_root(monkeypatch, tmp_path):
     assert _locate_pyproject_for_module("pkg") is None
 
 
-# ---------------------------------------------------------------------------
-# _find_editable_pyproject_paths
-# ---------------------------------------------------------------------------
-
-
 def _install_fake_resolver(monkeypatch, mapping, editable, locate):
     import siliconcompiler.package as package
 
@@ -847,11 +804,6 @@ def test_find_editable_pyproject_paths_mapping_raises(monkeypatch):
         package.PythonPathResolver, "get_python_module_mapping",
         staticmethod(_boom))
     assert _find_editable_pyproject_paths() == []
-
-
-# ---------------------------------------------------------------------------
-# check_python_dependencies (orchestrator)
-# ---------------------------------------------------------------------------
 
 
 def test_check_python_dependencies_happy(monkeypatch, tmp_path, logger, caplog):
@@ -925,10 +877,6 @@ def test_check_python_dependencies_isolates_per_project(
         "run 'pip install -e .' to update",
     ]
 
-
-# ============================================================================
-# tarfile extraction filter
-# ============================================================================
 
 @pytest.fixture
 def symlink_archive():
@@ -1050,13 +998,7 @@ def test_corrected_filter_extracts_valid_symlink(broken_tarfile_data_filter, sym
 
 
 def test_corrected_filter_preserves_linkname(broken_tarfile_data_filter):
-    """
-    The link is passed on with the structure the archive gave it, redundant
-    components and all -- only its separators are localized. Tidying the structure
-    up would be a guess about what the archive meant, and it would also decide the
-    link textually while the check resolves it, as
-    test_corrected_filter_still_rejects_a_link_through_a_planted_directory shows.
-    """
+    """The filter keeps the archive's linkname, './' and all, and only localizes separators."""
     member = tarfile.TarInfo("pkg/libs.tech/ngspice/install.py")
     member.type = tarfile.SYMTYPE
     member.linkname = "../xschem/./install.py"
@@ -1103,12 +1045,8 @@ def test_corrected_filter_still_rejects_escaping_name(broken_tarfile_data_filter
 def test_corrected_filter_still_rejects_a_link_through_a_planted_directory(
         broken_tarfile_data_filter):
     """
-    An archive can leave a symlinked directory behind and then route a later link
-    through it, so that the same '..' means one thing textually and another on
-    disk. 'here' resolves to the destination itself, which makes 'here/inside' one
-    level deep, not two -- so '../..' climbs out even though counting the
-    components of the name says it cannot. The check has to resolve the path, not
-    count it.
+    A link through a planted 'here' -> '.' directory is rejected: '../..' from here/inside
+    escapes on disk, though counting the name's components says it cannot.
     """
     dest = os.path.abspath("dest")
     os.makedirs(os.path.join(dest, "inside"), exist_ok=True)
@@ -1162,22 +1100,12 @@ def test_corrected_filter_honors_a_skipped_member(broken_tarfile_data_filter, mo
     assert utils._symlink_safe_data_filter(member, os.getcwd()) is None
 
 
-#############################
-# Zstandard bindings
-#
 # Zstandard entered the stdlib in Python 3.14 (PEP 784) and is carried to 3.10-3.13
 # by the 'backports.zstd' dependency, so which module answers below depends on the
 # interpreter. Nothing here names one: the point is that every supported release
 # reaches a working implementation.
-#############################
 def test_zstd_available():
-    """
-    Every supported interpreter can read Zstandard.
-
-    The one test that fails if the dependency declaration is wrong -- a marker that
-    misfires, or a bound that excludes the release under test -- and it fails on the
-    release it is wrong for, rather than at the first PDK download that needs it.
-    """
+    """Every supported interpreter can read Zstandard, so a wrong dependency marker fails here."""
     assert utils.zstd_available() is True, utils.zstd_unavailable_message()
 
 
@@ -1197,13 +1125,7 @@ def test_open_zstd_stream_round_trip():
 
 
 def test_open_zstd_stream_is_seekable():
-    """
-    The decompressed stream can be seeked, which is what tarfile needs of it.
-
-    Reading a tar means jumping between headers and member data; a stream that only
-    moves forward would need ``mode="r|"`` and would give up random access to the
-    archive.
-    """
+    """The decompressed stream is seekable, which tarfile needs for random access."""
     with utils.open_zstd_stream(BytesIO(utils._zstd.compress(b"0123456789"))) as stream:
         assert stream.seekable() is True
         stream.seek(4)
@@ -1213,12 +1135,7 @@ def test_open_zstd_stream_is_seekable():
 
 
 def test_open_zstd_stream_reads_multiple_frames():
-    """
-    Concatenated frames read as one continuous stream.
-
-    Zstandard files are free to be multi-frame, and a compressor that splits its
-    output would otherwise appear to produce a truncated archive.
-    """
+    """Concatenated Zstandard frames read as one continuous stream."""
     blob = utils._zstd.compress(b"first") + utils._zstd.compress(b"second")
 
     with utils.open_zstd_stream(BytesIO(blob)) as stream:
@@ -1233,12 +1150,7 @@ def test_open_zstd_stream_rejects_other_data():
 
 
 def test_open_zstd_stream_leaves_the_source_open():
-    """
-    Closing the decompressor does not close what it was reading from.
-
-    The caller owns the downloaded buffer and may still need to hand it to another
-    reader -- which is exactly what identifying an archive by trial does.
-    """
+    """Closing the decompressor leaves the source buffer open for another reader."""
     source = BytesIO(utils._zstd.compress(b"payload"))
 
     with utils.open_zstd_stream(source) as stream:
@@ -1257,12 +1169,7 @@ def test_open_zstd_stream_without_bindings(monkeypatch):
 
 
 def test_zstd_errors_without_bindings(monkeypatch):
-    """
-    With no bindings there is no error class to catch, and the empty tuple says so.
-
-    An ``except`` clause splatting it then matches nothing, which is right: the
-    caller never opened a zstd stream to fail.
-    """
+    """Without bindings zstd_errors() is (), so an except clause using it matches nothing."""
     monkeypatch.setattr(utils, "_zstd", None)
 
     assert utils.zstd_errors() == ()
@@ -1295,12 +1202,7 @@ def test_is_zstd(data, expected):
 
 
 def test_is_zstd_accepts_a_leading_skippable_frame():
-    """
-    A stream that opens with a skippable frame is still Zstandard.
-
-    Built the way a writer would rather than from a magic constant, so this stays
-    honest about what the decompressor accepts: it must read the same bytes back.
-    """
+    """A stream that opens with a skippable frame is Zstandard and still decompresses."""
     frame = struct.pack("<II", 0x184D2A50, 4) + b"meta" + utils._zstd.compress(b"payload")
 
     assert utils.is_zstd(frame) is True
@@ -1310,10 +1212,8 @@ def test_is_zstd_accepts_a_leading_skippable_frame():
 
 def test_is_zstd_recognizes_what_it_cannot_read(monkeypatch):
     """
-    Recognizing the format does not depend on being able to decompress it.
-
-    That separation is what lets a download on an interpreter without the bindings
-    be reported as unsupported rather than as unrecognized.
+    is_zstd() recognizes the format without bindings, so such a download is reported as
+    unsupported rather than unrecognized.
     """
     blob = utils._zstd.compress(b"payload")
     monkeypatch.setattr(utils, "_zstd", None)

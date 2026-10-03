@@ -23,7 +23,7 @@ def main():
     Requires: openroad, klayout; interposer (via lambdapdk)
     '''
 
-    # --- Design Setup ---
+    # Design Setup
     # Create a design schema for the interposer.
     design = Design("interposer")
     # Set up a 'dataroot' for local files, relative to this script's location.
@@ -34,7 +34,7 @@ def main():
         design.set_topmodule("interposer")
         design.add_file("interposer.v")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create a project, linking the design to a flow and target.
     project = ASIC(design)
 
@@ -44,12 +44,12 @@ def main():
     # Load the specialized interposer target.
     interposer_demo(project)
 
-    # --- Physical Constraints ---
+    # Physical Constraints
     # Explicitly define the physical dimensions of the interposer die.
     # This is a critical piece of information for the routing tool.
     project.constraint.area.set_dieoutline(500, 1000)
 
-    # --- Custom Flowgraph Creation ---
+    # Custom Flowgraph Creation
     # We will build a custom flow by combining two pre-defined flows.
     # 'Flowgraph' allows for programmatic creation of flows.
     flow = Flowgraph("compositeflow")
@@ -68,7 +68,7 @@ def main():
     # Set the project's flow to our newly created composite flow.
     project.set_flow(flow)
 
-    # --- Task-Specific Configuration ---
+    # Task-Specific Configuration
     # Now we configure individual tasks (tools) within our custom flow.
 
     # 1. Configure the RDL Router (OpenROAD).
@@ -86,7 +86,7 @@ def main():
     # Get the DRC task object and set a variable to specify which DRC deck to use.
     DRCTask.find_task(project).set_klayout_drcname("drc")
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Run the entire composite flow.
     project.run()
 

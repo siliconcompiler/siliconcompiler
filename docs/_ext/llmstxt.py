@@ -361,12 +361,12 @@ def _summary(doctree):
 # content the author chose, they appear inside literal blocks that smartquotes
 # never touches, and mangling them would corrupt the page.
 _TYPOGRAPHIC = {
-    "‘": "'", "’": "'",           # single quotes
-    "“": '"', "”": '"',           # double quotes
-    "–": "--", "—": "--",         # en and em dash, both from ``--``
-    "…": "...",                        # ellipsis
-    " ": " ",                          # non-breaking space
-    "‑": "-",                          # non-breaking hyphen
+    "\u2018": "'", "\u2019": "'",     # single quotes
+    "\u201c": '"', "\u201d": '"',     # double quotes
+    "\u2013": "--", "\u2014": "--",   # en and em dash, both from ``--``
+    "\u2026": "...",                  # ellipsis
+    "\u00a0": " ",                    # non-breaking space
+    "\u2011": "-",                    # non-breaking hyphen
 }
 
 _ASCII = str.maketrans(_TYPOGRAPHIC)

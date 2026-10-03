@@ -8,9 +8,6 @@ from siliconcompiler.flows import interposerflow
 from siliconcompiler.flows import drcflow
 
 
-####################################################
-# Target Setup Function
-####################################################
 def interposer_demo(project: ASIC):
     """
     Configure a siliconcompiler project for generating a passive interposer layout.

@@ -21,7 +21,6 @@ from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler._metadata import detailed_version
 
 
-##########################
 def main():
     """
     Run a single node (specified by step and index) from a SiliconCompiler project
@@ -33,7 +32,7 @@ def main():
     and optionally writes a gzipped tar archive of results.
 
     Returns:
-        int: Exit code — 0 on successful node execution, 1 if the node failed.
+        int: Exit code -- 0 on successful node execution, 1 if the node failed.
     """
     # Can't use Project.cmdline because we don't want a bunch of extra logger information
     parser = argparse.ArgumentParser(prog='run_node',
@@ -152,7 +151,6 @@ def main():
     return 0
 
 
-##########################
 if __name__ == "__main__":
     # This makes the script executable.
     sys.exit(main())

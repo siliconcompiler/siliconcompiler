@@ -489,17 +489,8 @@ def test_replay_file():
 
 
 def test_replay_file_non_ascii_under_c_locale():
-    """A UTF-8 manifest replays whatever encoding the host locale names.
-
-    Manifests are written as UTF-8, but this read them back with a bare
-    ``open()``, which decodes using the locale instead. A server running under
-    ``LANG=C`` failed a whole job on 'ascii' codec can't decode byte 0xce --
-    one Greek letter in a node's journal. SC now writes ASCII manifests, so
-    this covers the ones already on disk from earlier versions.
-
-    A subprocess is unavoidable: CPython resolves the locale encoding once at
-    interpreter startup, so patching :mod:`locale` in-process does not reach
-    ``open()`` and the test would pass with the fix reverted.
+    """A UTF-8 manifest from an earlier version replays under LANG=C. A subprocess is needed
+    because CPython fixes the locale encoding at interpreter startup.
     """
     replay = [
         {

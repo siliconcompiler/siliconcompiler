@@ -122,10 +122,6 @@ def test_dirty_warning(project_logger, caplog, tmp_path):
     assert "The repo of the cached data is dirty." in caplog.text
 
 
-# ============================================================================
-# Additional GitResolver Tests
-# ============================================================================
-
 def test_git_resolver_get_resolver():
     """Test get_resolver returns correct mapping for Git schemes."""
     from siliconcompiler.package.git import get_resolver
@@ -308,11 +304,8 @@ def test_git_path_quotes_token(monkeypatch):
 ])
 def test_forge_token_not_sent_to_lookalike_host(monkeypatch, env, source):
     """
-    A forge's own token is never handed to a host that forge does not own.
-
-    A forge name in some DNS label says nothing about who controls the host, so
-    it cannot be what unlocks the ambient GITHUB_TOKEN/GITLAB_TOKEN. Without a
-    GIT_TOKEN these URLs must carry no credential at all.
+    A forge's token is never sent to a host that merely has the forge's name in it; without
+    GIT_TOKEN such a URL carries no credential at all.
     """
     monkeypatch.setenv(env, "secret")
 
@@ -342,11 +335,8 @@ def test_saas_forge(hostname, expect):
 
 def test_git_path_percent_encoded_username(monkeypatch):
     """
-    A percent-escaped username round-trips instead of being double-encoded.
-
-    ParseResult.username hands back the raw escapes, so re-quoting without
-    decoding first would turn 'user%40corp' into 'user%2540corp' and
-    authenticate as the wrong name.
+    A percent-escaped username round-trips instead of being double-encoded ('user%40corp'
+    must not become 'user%2540corp').
     """
     monkeypatch.setenv("GIT_TOKEN", "tok")
 
@@ -442,12 +432,8 @@ def test_git_path_hostless_url(monkeypatch):
 
 def test_git_env_disables_prompt_without_tty():
     """
-    Without a terminal neither prompting route can be answered, so both close.
-
-    GIT_TERMINAL_PROMPT only closes the terminal one. An askpass helper left in
-    the environment would still be called and would block on a dialog no build
-    machine shows, so GIT_ASKPASS is emptied as well -- git then skips askpass
-    entirely, including the core.askpass and SSH_ASKPASS fallbacks.
+    Without a terminal, _git_env disables both the terminal prompt and askpass; an inherited
+    askpass helper would otherwise block a build machine on a dialog nobody sees.
     """
     with patch.object(sys, "stdin", MagicMock(isatty=MagicMock(return_value=False))):
         assert GitResolver._git_env() == {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": ""}
@@ -522,13 +508,8 @@ def test_clone_logs_redacted_url_but_clones_with_the_real_one(monkeypatch, caplo
 ])
 def test_auth_failure_is_not_permanent(error):
     """
-    A credential failure must stay retryable.
-
-    The failure cache is keyed by cache_id -- a hash of the source URI and
-    reference -- which says nothing about credentials. Recording an auth failure
-    as settled would outlive the expired token that caused it and keep refusing
-    the source after a valid one is set. The HTTPS resolver takes the same
-    position on 401 and 403.
+    Auth and connection failures are not permanent: the failure cache is keyed without
+    credentials, so it would outlive the expired token that caused the failure.
     """
     resolver = GitResolver("test", None, "git+https://github.com/o/r.git", "main")
     assert resolver.is_permanent_failure(error) is False
@@ -624,11 +605,8 @@ def test_git_sends_token_as_password_on_the_wire(auth_probe, monkeypatch):
 @pytest.mark.skipif(not shutil.which("git"), reason="git is not installed")
 def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
     """
-    An unrecognised host sends the same bytes as before but does not prompt.
-
-    'tok123@host' and 'tok123:@host' are byte-identical on the wire. The colon is
-    what tells git a password was supplied, so a refusal ends there instead of
-    falling through to a prompt that a machine with no terminal cannot answer.
+    An unrecognised host gets 'tok123:@', which sends the same bytes as 'tok123@' but, once
+    refused, fails instead of falling through to a password prompt.
     """
     port, seen = auth_probe
     monkeypatch.setenv("GIT_TOKEN", "tok123")
@@ -648,11 +626,8 @@ def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
 @pytest.mark.skipif(not shutil.which("git"), reason="git is not installed")
 def test_git_bare_username_form_is_the_defect(auth_probe):
     """
-    Pins the behaviour that made this a defect, so the reasoning stays checkable.
-
-    The old form sends exactly what the new one does and then, when refused, has
-    nowhere left to go. With prompting disabled that surfaces as a terminal
-    error; on a CI runner it was an ENXIO on /dev/tty.
+    The old bare 'tok123@' form sends the same bytes but, once refused, falls through to a
+    password prompt; this pins the defect the empty-password form avoids.
     """
     port, seen = auth_probe
 
@@ -805,11 +780,6 @@ def test_git_resolver_include_submodule_true(value):
                            "main")
     assert resolver.include_submodules is True
     assert resolver.git_path == "https://github.com/owner/repo.git"
-
-
-# ============================================================================
-# Git LFS Tests
-# ============================================================================
 
 
 def test_git_resolver_include_lfs_default():

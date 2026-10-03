@@ -329,14 +329,10 @@ def test_vcd_viewer_preference(available, expected):
     assert proc.stdout.strip() == expected
 
 
-# ---------------------------------------------------------------------------
-# Tool-hint resolution against the real built-in registry.
-#
 # showtasks() registers OpenROADWeb *before* OpenROADShow so that the
 # "later registration wins" rule makes openroad/show the default viewer for
 # odb/def/vg. These pin that the -tool hint agrees with the default instead of
 # inverting it.
-# ---------------------------------------------------------------------------
 
 OPENROAD_SHOW_EXTS = ["odb", "def", "vg"]
 
@@ -355,12 +351,7 @@ def test_openroad_default_viewer_is_show_not_web(ext):
 @pytest.mark.timeout(300)
 @pytest.mark.parametrize("ext", OPENROAD_SHOW_EXTS)
 def test_openroad_tool_only_hint_matches_default(ext):
-    """"-tool openroad" must not downgrade the choice to openroad/web.
-
-    Regression: find_task_by_spec() walked the registry forward while the
-    automatic fallback walked it backward, so naming the tool selected the
-    task the registration order was set up to lose.
-    """
+    """-tool openroad alone picks openroad/show, the same task as no hint, not openroad/web."""
     task = ShowTask.get_task(ext, tool="openroad")
 
     assert (task.tool(), task.task()) == ("openroad", "show"), \
@@ -510,12 +501,8 @@ with patch("importlib.metadata.entry_points", lambda group: []):
 
 @pytest.mark.parametrize("when", ["late", "early"])
 def test_registry_order_independent_of_viewer_import_order(when):
-    """showtools decides priority even if a viewer module was imported first.
-
-    Regression: register_task() wrote through to a dict, and assigning an
-    existing key leaves it in place. Importing openroad.show before the first
-    get_task() therefore let the module-path-sorted subclass recursion pin
-    WebTask after ShowTask, making openroad/web the default for odb.
+    """Registry order, and so openroad/show as the odb default, holds even when a viewer module
+    is imported before the first get_task().
     """
     proc = subprocess.run([sys.executable, "-c", IMPORT_ORDER_PROBE, when],
                           capture_output=True, text=True)
@@ -540,12 +527,10 @@ def test_registry_order_independent_of_viewer_import_order(when):
     assert hinted == "openroad/show"
 
 
-# ---------------------------------------------------------------------------
 # vg is claimed by three open tasks. showtasks() registers opensta last, so it
 # wins the extension. What keeps odb ahead of vg in the search Project.show()
 # falls back on is separate: openroad/open lists vg last of the three formats
 # it reads.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.quick
@@ -579,21 +564,13 @@ def test_open_tasks_for_vg_in_priority_order():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_open_extension_map_search_order():
-    """odb stays ahead of vg: adding vg openers must not change what show() finds.
-
-    Regression guard on registration order. get_extension_map() lists extensions
-    in first-encounter order over the registry, so registering a vg-only task
-    before openroad would move vg to the head of the list Project.show() walks
-    when it has no filename, and `sc-show -open` would pick a netlist over the
-    odb of the same node.
-
-    Relative positions rather than the whole list: register_task() writes to a
-    process-wide registry, so doubles registered by other test modules are
-    still present here.
+    """odb and def stay ahead of vg in the extension map, so show() with no filename opens the
+    odb rather than the netlist.
     """
     ext_map = OpenTask.get_extension_map()
     exts = list(ext_map.keys())
 
+    # Relative positions: doubles from other test modules share the process-wide registry.
     assert exts.index("odb") < exts.index("vg")
     assert exts.index("def") < exts.index("vg")
 
@@ -610,9 +587,6 @@ def test_open_registration_leaves_show_alone():
     assert ScreenshotTask.get_task("def").tool() in ("openroad", "klayout")
 
 
-# ---------------------------------------------------------------------------
-# Extension search order.
-#
 # get_extension_map()'s key order is what Project.show() searches a build
 # directory in, and the search is extension-major, so it is a global priority
 # across every node rather than a tie-break inside one.
@@ -622,7 +596,6 @@ def test_open_registration_leaves_show_alone():
 # higher-priority tool. These pin the outcome rather than the mechanism, and on
 # relative order only -- an installed plugin outranks every core viewer, so its
 # formats legitimately lead the list.
-# ---------------------------------------------------------------------------
 
 #: Formats an ASIC flow emits into the same node, so their relative order is
 #: the only part of the search that can actually change which file is shown.
@@ -678,11 +651,7 @@ def test_tool_filtered_order_keeps_priority():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_order_is_derived_from_declared_extensions(monkeypatch):
-    """Nothing holds a list of extensions -- a task's own order decides.
-
-    Reversing what openroad declares has to reverse the search, or the order
-    is coming from somewhere other than the tools.
-    """
+    """Search order follows the extensions tasks declare: reversing openroad's reverses it."""
     for task_cls in (openroad_show.ShowTask, openroad_show.WebTask):
         monkeypatch.setattr(task_cls, "get_supported_task_extentions",
                             lambda self: ["vg", "def", "odb"])
@@ -695,14 +664,8 @@ def test_order_is_derived_from_declared_extensions(monkeypatch):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_single_format_viewer_cannot_promote_its_extension():
-    """opensta reads only a vg, and that is not an opinion about richness.
-
-    It is registered last, so it wins the vg extension and outranks openroad
-    on every tie. Taking the *worst* rank any task gives an extension rather
-    than the best is what stops that from dragging vg to the head of the
-    search: openroad reads all three formats and ranks vg last, so the
-    informed opinion decides. A new single-format viewer can therefore only
-    ever demote an extension, never displace what a build is shown from.
+    """opensta wins vg but, reading only vg, cannot move it up the search order: an extension
+    ranks by the worst position any task gives it.
     """
     assert OpenTask.get_task("vg").tool() == "opensta"
 
@@ -712,11 +675,8 @@ def test_single_format_viewer_cannot_promote_its_extension():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_priority_is_independent_of_registration_order():
-    """klayout must stay registered first without owning the head of the search.
-
-    Registration order answers "which tool wins a shared extension" and is read
-    backwards to do it; this pins that using it for the search order too did not
-    invert it.
+    """Search order is not registration order: odb leads, while def still goes to openroad and
+    gds to klayout.
     """
     ext_map = ShowTask.get_extension_map()
 
@@ -728,12 +688,8 @@ def test_priority_is_independent_of_registration_order():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_project_show_picks_odb_over_sibling_def(monkeypatch):
-    """The regression: a node holding both is shown from the odb.
-
-    Both artifacts sit in write.views/0/outputs, and the def used to win
-    because it led the search order. The def is the weaker view -- no netlist
-    and no dbModule tree, since SC's <top>.vg is one flat module -- so reading
-    it costs hierarchy that the odb beside it carries.
+    """Project.show() opens a node holding both a def and an odb from the odb, which keeps the
+    hierarchy the def lacks.
     """
     from pathlib import Path
     from siliconcompiler import Flowgraph

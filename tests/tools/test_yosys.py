@@ -292,11 +292,7 @@ def test_hier_opt_not_used_when_flattening():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_hier_opt_loop_converges():
-    '''The opt_hier loop repeats until the design stops changing.
-
-    A single opt_hier only advances one level of hierarchy, so a converged run has
-    to report more rounds than that on a four-deep design.
-    '''
+    '''The opt_hier loop repeats to convergence, over more than one round on a four-deep design.'''
     lines = _run_asic_synthesis(_deep_hierarchy_design(), True,
                                 flatten=False, auto_flatten=False,
                                 hier_opt=True, hier_opt_max_rounds=10)
@@ -315,12 +311,7 @@ def test_hier_opt_loop_converges():
 
 
 def test_hier_opt_max_rounds_rejects_zero(heartbeat_design):
-    """A zero round limit would run neither loop, so the schema rules it out.
-
-    synth's own opt_hier calls advance the design by a single level of hierarchy and
-    measurably do nothing on their own, so there is no useful configuration below one
-    round.
-    """
+    """hier_opt_max_rounds rejects zero, which would run neither opt_hier loop."""
     node = _asic_synthesis_node(heartbeat_design)
     with node.runtime():
         with pytest.raises(ValueError):

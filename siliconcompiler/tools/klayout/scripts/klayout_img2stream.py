@@ -36,7 +36,7 @@ def png_to_gds(
     from klayout_utils import get_write_options  # noqa E402
 
     # 1. Load image via QImage (supports PNG, JPEG, etc.) into a PixelBuffer.
-    # pixel() returns ARGB as a packed uint32; composite over white so transparent→light.
+    # pixel() returns ARGB as a packed uint32; composite over white so transparent->light.
     print(f"Loading {image_path}...")
 
     img_buf = pya.PixelBuffer.from_qimage(pya.QImage(image_path))
@@ -124,10 +124,10 @@ def png_to_gds(
         r_up_right = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
         r_up_left = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
 
-        # --- KISS TYPE 1: (\) Diagonal ---
+        # KISS TYPE 1: (\) Diagonal
         bridges_1 = (r_right & r_up) - region - r_up_right
 
-        # --- KISS TYPE 2: (/) Diagonal ---
+        # KISS TYPE 2: (/) Diagonal
         bridges_2 = (r_left & r_up) - region - r_up_left
 
         # Check for fixed point: if no new bridges are needed, terminate the loop

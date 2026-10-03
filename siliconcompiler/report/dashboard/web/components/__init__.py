@@ -28,7 +28,6 @@ from siliconcompiler.report.dashboard.web.components import flowgraph
 from siliconcompiler.utils.paths import workdir, jobdir
 
 
-# --- Constants for Page Configuration ---
 SC_ABOUT = [
     f"SiliconCompiler {sc_version}",
     '''A compiler framework that automates translation from source code to
@@ -206,7 +205,7 @@ def file_viewer(project, path, page_key=None, header_col_width=0.89):
         streamlit.error(f'{path} is not a file')
         return
 
-    # --- File Header and Download Button ---
+    # File Header and Download Button
     relative_path = os.path.relpath(path, jobdir(project))
     filename = os.path.basename(path)
     file_extension = utils.get_file_ext(path)
@@ -224,7 +223,7 @@ def file_viewer(project, path, page_key=None, header_col_width=0.89):
                 file_name=filename,
                 width='stretch')
 
-    # --- File Content Viewer ---
+    # File Content Viewer
     try:
         if file_extension in ('jpg', 'jpeg', 'png'):
             streamlit.image(path)
@@ -273,7 +272,7 @@ def manifest_viewer(project, header_col_width=0.70):
         project (Project): The project object whose manifest will be displayed.
         header_col_width (float): The percentage of width for the header.
     """
-    # --- Header and Settings ---
+    # Header and Settings
     end_column_widths = (1 - header_col_width) / 2
     header_col, settings_col, download_col = \
         streamlit.columns(
@@ -305,7 +304,7 @@ def manifest_viewer(project, header_col_width=0.70):
             data=json.dumps(project.getdict(), indent=2),
             mime="application/json", width='stretch')
 
-    # --- Manifest Display ---
+    # Manifest Display
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
         state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
     if not expand_keys:
@@ -327,7 +326,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
     all_nodes = metric_dataframe.columns.tolist()
     all_metrics = list(metric_to_metric_unit_map.values())
 
-    # --- Header and Settings ---
+    # Header and Settings
     header_col, settings_col = streamlit.columns(
         [header_col_width, 1 - header_col_width], gap="large")
     with header_col:
@@ -339,7 +338,7 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
             display_nodes = streamlit.multiselect('Pick nodes to include', all_nodes, [])
             display_metrics = streamlit.multiselect('Pick metrics to include?', all_metrics, [])
 
-    # --- Filter and Display Dataframe ---
+    # Filter and Display Dataframe
     if not display_nodes:
         display_nodes = all_nodes
     if not display_metrics:
@@ -413,7 +412,7 @@ def node_file_tree_viewer(project, step, index):
         streamlit.markdown("No files to show")
         return
 
-    # --- Prepare data for the tree component ---
+    # Prepare data for the tree component
     lookup = {}
     tree_items = []
     metrics_source, file_metrics = report.get_metrics_source(project, step, index)
@@ -452,7 +451,7 @@ def node_file_tree_viewer(project, step, index):
 
     tree_items = [make_item(file) for file in logs_and_reports]
 
-    # --- Render the tree ---
+    # Render the tree
     selected = sac.tree(
         items=tree_items,
         format_func=lambda v: lookup.get(v, v),

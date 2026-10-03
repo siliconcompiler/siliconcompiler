@@ -13,9 +13,6 @@ from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort, \
 from lambdapdk.sky130.libs.sky130io import Sky130LambdaLib_IO
 
 
-####################################################
-# Target Setup Function
-####################################################
 def skywater130_demo(
         project: ASIC,
         syn_np: int = 1,

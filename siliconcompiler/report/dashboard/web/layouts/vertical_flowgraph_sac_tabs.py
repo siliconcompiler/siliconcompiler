@@ -32,7 +32,7 @@ def layout():
     # Render the main page header (title, job selector, settings)
     components.page_header()
 
-    # --- Define the tab items ---
+    # Define the tab items
     # Note: "Node Information" is not a separate tab in this layout.
     tab_headings = [
         sac.TabsItem("Metrics", icon='stack'),
@@ -49,7 +49,7 @@ def layout():
     # Render the tabs and get the user's selection
     tab_selected = _common.sac_tabs(tab_headings)
 
-    # --- Render the content for the selected tab ---
+    # Render the content for the selected tab
     if tab_selected == "Metrics":
         # This tab contains the flowgraph, metrics table, and node details.
         if state.get_key(state.DISPLAY_FLOWGRAPH):

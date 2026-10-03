@@ -259,15 +259,8 @@ def test_collect_subdirectory(path_keys):
 
 
 def test_collect_script_inside_refdir_not_duplicated(path_keys):
-    """A script that lives inside a refdir should be stored only via the refdir;
-    its own hashed path names that copy rather than holding a second one.
-    Regression test for sc-issue duplicating OpenROAD scripts that are already
-    part of the collected refdir.
-
-    Mimics the sc-issue path: collect() is called with an explicit ``directory``
-    that differs from ``collectiondir(project)``, so the script's refdir search
-    path (which uses ``collectiondir(project)`` internally) resolves to the
-    original filesystem location rather than the destination collection dir."""
+    """A script inside a collected refdir is stored only via the refdir, even when collect()
+    targets a directory other than collectiondir(project), as sc-issue does."""
 
     os.makedirs('scripts/apr', exist_ok=True)
     with open('scripts/apr/sc_test.tcl', 'w') as f:

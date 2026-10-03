@@ -101,11 +101,8 @@ def test_docker_run(docker_image, project):
 
 
 def test_run_streams_manifest_into_container(project):
-    """The manifest is handed over in memory, never staged on the host.
-
-    A file staged in the job directory is shared by every node, and
-    write_manifest() truncates in place, so parallel siblings could read torn
-    JSON. Each container has its own filesystem, so the collision cannot arise.
+    """The manifest is streamed into the container, never staged in the shared job directory,
+    where parallel siblings could read it half-written.
     """
 
     node = DockerSchedulerNode(project, "stepone", "0")
@@ -140,10 +137,8 @@ def test_run_streams_manifest_into_container(project):
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix uid/gid mapping')
 def test_run_passes_uid_and_gid(project):
-    """The container must run as the host's uid, gid and supplementary groups.
-
-    A bare uid leaves docker to pick the group from the image's /etc/passwd,
-    falling back to gid 0, so build artifacts land on the host owned by root.
+    """The container runs as the host's uid, gid and supplementary groups, so build artifacts
+    do not land on the host owned by root.
     """
 
     node = DockerSchedulerNode(project, "stepone", "0")
@@ -192,11 +187,7 @@ def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, tm
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
 def test_run_stops_container_without_grace_period(project):
-    """Teardown must not sit through the daemon's SIGTERM grace period.
-
-    The container's PID 1 is an interactive shell that ignores SIGTERM, so a
-    plain stop() costs the full 10s timeout on every node.
-    """
+    """Teardown stops the container with no grace period, as its shell PID 1 ignores SIGTERM."""
 
     node = DockerSchedulerNode(project, "stepone", "0")
 

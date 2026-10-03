@@ -14,7 +14,7 @@ from siliconcompiler import ASIC
 from siliconcompiler.targets import freepdk45_demo
 
 
-# --- Migen Hardware Description ---
+# Migen Hardware Description
 # This class defines the 'Heartbeat' hardware module using Migen's syntax.
 class Heartbeat(Module):
     """
@@ -28,11 +28,11 @@ class Heartbeat(Module):
         N (int): The bit-width of the internal counter.
     """
     def __init__(self, N: int = 8):
-        # --- I/O Declaration ---
+        # I/O Declaration
         # Declare a 1-bit output signal for the module.
         self.out = Signal()
 
-        # --- Internal Register Declaration ---
+        # Internal Register Declaration
         # Declare an N-bit register to be used as a counter.
         self.counter_reg = Signal(N)
 
@@ -59,7 +59,7 @@ def main():
 
     Requires: migen (pip), yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     """
-    # --- Verilog Generation ---
+    # Verilog Generation
     # Instantiate the Migen Heartbeat module.
     heartbeat = Heartbeat()
     # Convert the Migen module into a Verilog file.
@@ -68,7 +68,7 @@ def main():
     # and write it to 'heartbeat.v'.
     convert(heartbeat, ios={heartbeat.out}, name='heartbeat').write('heartbeat.v')
 
-    # --- SiliconCompiler Design Setup ---
+    # SiliconCompiler Design Setup
     # Create a design object to hold the configuration.
     design = Design("heartbeat")
 
@@ -88,7 +88,7 @@ def main():
     with design.active_dataroot("heartbeat"), design.active_fileset("sdc"):
         design.add_file("heartbeat.sdc")
 
-    # --- SiliconCompiler Project Setup ---
+    # SiliconCompiler Project Setup
     # Create an ASIC project from the design configuration.
     project = ASIC(design)
 
@@ -100,7 +100,7 @@ def main():
     # and tool flow for this technology.
     freepdk45_demo(project)
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).
     project.run()
 

@@ -356,7 +356,7 @@ class SchedulerNode:
             formatter = self.__project._logger_console.formatter
             # In the child, the parent's logger handlers (terminal handler,
             # dashboard sink, etc.) are still attached via fork. Some of those
-            # — notably the dashboard's LogBufferHandler — write into a
+            # -- notably the dashboard's LogBufferHandler -- write into a
             # manager-backed queue shared with the parent, so a direct child
             # emit plus the parent's QueueListener dispatch would deliver the
             # same record twice. Drop every inherited handler and install only

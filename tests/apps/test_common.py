@@ -360,13 +360,7 @@ def test_pick_manifest_from_file_in_outputs(asic_gcd, make_manifests, tmp_path):
 
 
 def test_pick_manifest_from_file_direct_outside_cwd(asic_gcd, tmp_path):
-    '''Manifest sits next to the source file but outside the cwd build tree.
-
-    Simulates passing an absolute path like
-    build/<design>/<jobname>/<step>/<index>/outputs/foo.vg
-    where the manifest <design>.pkg.json is in the same directory but cannot
-    be discovered by walking cwd.
-    '''
+    '''A manifest beside the source file is found even when the cwd scan cannot reach it.'''
     outputs_dir = tmp_path / "outputs"
     outputs_dir.mkdir()
 

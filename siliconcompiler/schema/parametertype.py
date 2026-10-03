@@ -300,7 +300,7 @@ class NodeType:
         Tcl decodes a script using the *system* encoding, which follows the
         host's locale. A manifest written as UTF-8 and read back under LANG=C
         does not merely display oddly -- it decodes to a different string:
-        "café-Ω µm" comes back with a length of 12 instead of 9, so a path or a
+        each non-ASCII character comes back as two or more, so a path or a
         design name silently stops matching. Escaping sidesteps the question,
         because an ASCII file decodes the same way under every locale.
 

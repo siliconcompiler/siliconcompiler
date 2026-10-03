@@ -28,7 +28,6 @@ class CheckLibraryFlow(Flowgraph):
         self.node("check", CheckLibraryTask())
 
 
-##################################################
 if __name__ == "__main__":
     flow = CheckLibraryFlow()
     flow.write_flowgraph(f"{flow.name}.png")

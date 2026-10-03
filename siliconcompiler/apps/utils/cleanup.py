@@ -7,7 +7,6 @@ from siliconcompiler.package.cleanup import cleanup_cache, format_size, DEFAULT_
 from siliconcompiler.utils.paths import cachedir as cachedir_path
 
 
-###########################
 def main():
     progname = "cleanup"
     description = """
@@ -94,6 +93,5 @@ def main():
     return 0
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

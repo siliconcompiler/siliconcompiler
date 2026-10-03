@@ -205,6 +205,5 @@ To run a testcase, use:
         return 0
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

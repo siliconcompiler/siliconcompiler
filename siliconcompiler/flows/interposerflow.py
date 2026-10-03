@@ -27,7 +27,6 @@ class InterposerFlow(Flowgraph):
         self.edge('rdlroute', 'write_gds')
 
 
-##################################################
 if __name__ == "__main__":
     flow = InterposerFlow()
     flow.write_flowgraph(f"{flow.name}.png")

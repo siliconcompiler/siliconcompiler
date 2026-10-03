@@ -13,9 +13,6 @@ from lambdapdk.gf180.libs.gf180sram import GF180Lambdalib_SinglePort, \
 from lambdapdk.gf180.libs.gf180io import GF180Lambdalib_IO_5LM
 
 
-####################################################
-# Target Setup Function
-####################################################
 def gf180_demo(
         project: ASIC,
         syn_np: int = 1,

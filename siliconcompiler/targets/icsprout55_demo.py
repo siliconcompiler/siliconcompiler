@@ -9,9 +9,6 @@ from siliconcompiler.targets._utils import detect_elaboration_language
 from lambdapdk.icsprout55.libs.stdcells import ICS55StdCellRVT, ICS55StdCellHVT, ICS55StdCellLVT
 
 
-####################################################
-# Target Setup Function
-####################################################
 def icsprout55_demo(
         project: ASIC,
         syn_np: int = 1,

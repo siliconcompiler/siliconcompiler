@@ -354,13 +354,8 @@ def test_link_without_input(mm_design):
 
 
 def test_input_across_two_filesets_is_ambiguous(datadir):
-    """Two selected filesets each holding a .mlir is a design the task cannot
-    resolve, so it says so rather than reading whichever came first.
-
-    _setup_input declares a required key for *every* fileset holding the
-    filetype, so taking the first match here would read one file while claiming
-    to depend on both -- and which one won would follow fileset ordering.
-    """
+    """A .mlir in each of two selected filesets is an error rather than a pick of whichever comes
+    first, since _setup_input declares a required key for every fileset holding one."""
     design = Design("mm")
     design.set_dataroot("root", datadir)
     with design.active_dataroot("root"):
@@ -470,11 +465,7 @@ def test_link_runtimesupport_setter(mm_design):
 
 
 def test_upstream_input_is_not_faked_from_filesets(mm_design):
-    """A node the flow feeds must never fall back to the design's own sources.
-
-    Falling back would re-read the original TOSA and silently drop every
-    transformation the upstream nodes made.
-    """
+    """A node the flow feeds reads its upstream input, never the design's own sources."""
     proj = Project(mm_design)
     proj.add_fileset("rtl")
 
@@ -716,11 +707,7 @@ def test_tosa_to_linalg(mm_design):
 
 
 def test_link_handles_a_renamed_support_module(mm_design, datadir):
-    """LinkTask takes whatever the upstream produced, not a name it knows.
-
-    The support module is named after RuntimeTask's source, so hardcoding
-    memref_copy.ll here would break the moment that source is changed.
-    """
+    """LinkTask links the support module the upstream produced, not a hardcoded memref_copy.ll."""
     proj = _link_flow(mm_design)
     RuntimeTask.find_task(proj).set_mlir_source(os.path.join(datadir, "gcd.c"))
     _setup_upstream(proj, "translate", "runtime")

@@ -14,9 +14,9 @@ def main():
     2. Standalone signoff (LVS and DRC) on the resulting GDSII layout.
     """
 
-    # --- Part 1: RTL-to-GDSII Compilation ---
+    # Part 1: RTL-to-GDSII Compilation
 
-    # --- Design Setup ---
+    # Design Setup
     # Create a design object to hold the configuration.
     design = Design("gcd")
 
@@ -32,7 +32,7 @@ def main():
     with design.active_dataroot("gcd"), design.active_fileset("sdc"):
         design.add_file("gcd.sdc")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create an ASIC project from the design configuration.
     project = ASIC(design)
 
@@ -47,14 +47,14 @@ def main():
     # Set a unique name for this job run.
     project.option.set_jobname("rtl2gds")
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).
     project.run()
 
     # Print a summary of the results (timing, area, power, etc.).
     project.summary()
 
-    # --- Part 2: Standalone LVS and DRC Verification ---
+    # Part 2: Standalone LVS and DRC Verification
 
     # After the first run, we find the paths to the output GDSII and netlist files...
     # ...and add them to a new 'layout' fileset. These files will be the

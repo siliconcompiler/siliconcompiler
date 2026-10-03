@@ -4,7 +4,6 @@ import sys
 from siliconcompiler import Project
 
 
-###########################
 def main():
     progname = "summarize"
     description = """
@@ -28,6 +27,5 @@ def main():
     return 0
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

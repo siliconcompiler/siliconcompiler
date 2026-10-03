@@ -132,9 +132,6 @@ class VerilatorTask(CCache):
                     continue
                 options.append(f'-D{value}')
 
-            #######################
-            # Sources
-            #######################
             sources = []
             for filetype in ("systemverilog", "verilog"):
                 for lib, fileset in filesets:

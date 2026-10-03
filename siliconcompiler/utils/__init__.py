@@ -690,7 +690,6 @@ def get_file_template(path: str,
     return env.get_template(path)
 
 
-#######################################
 def safecompare(value: Union[int, float], op: str, goal: Union[int, float]) -> bool:
     """
     Compares a value against a goal using a string operator.
@@ -724,7 +723,6 @@ def safecompare(value: Union[int, float], op: str, goal: Union[int, float]) -> b
         raise ValueError(f"Illegal comparison operation {op}")
 
 
-###########################################################################
 def grep(logger: logging.Logger, args: str, line: str) -> Union[None, str]:
     """
     Emulates the Unix grep command on a string.
@@ -742,7 +740,7 @@ def grep(logger: logging.Logger, args: str, line: str) -> Union[None, str]:
     if line is None:
         return None
 
-    # --- 1. Initialize Options and Parse Arguments ---
+    # 1. Initialize Options and Parse Arguments
     options = {
         '-v': False,  # Invert the sense of matching
         '-i': False,  # Ignore case distinctions
@@ -792,7 +790,7 @@ def grep(logger: logging.Logger, args: str, line: str) -> Union[None, str]:
     if not pattern:
         return None
 
-    # --- 2. Prepare Regex Flags and Pattern Modifiers ---
+    # 2. Prepare Regex Flags and Pattern Modifiers
 
     regex_flags = 0
     if options['-i']:
@@ -809,7 +807,7 @@ def grep(logger: logging.Logger, args: str, line: str) -> Union[None, str]:
         # Exact line match, using the prepared pattern (which may have \b already)
         pattern_to_search = rf"^{pattern_to_search}$"
 
-    # --- 3. Perform Search ---
+    # 3. Perform Search
     try:
         # re.search is used to find the pattern anywhere in the line
         match = re.search(pattern_to_search, line, regex_flags)
@@ -818,7 +816,7 @@ def grep(logger: logging.Logger, args: str, line: str) -> Union[None, str]:
         logger.error(f"Invalid regex pattern '{pattern}': {e}")
         return None
 
-    # --- 4. Handle Inversion (-v) and Final Return ---
+    # 4. Handle Inversion (-v) and Final Return
 
     # Check if a result should be returned: (Match found) XOR (Invert is on)
     should_return = bool(match) != options["-v"]

@@ -439,7 +439,6 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    ###########################################################################
     def graph(self, subflow: "Flowgraph", name: Optional[str] = None) -> None:
         '''
         Instantiates a sub-flowgraph within the current flowgraph.
@@ -1818,9 +1817,6 @@ class FlowgraphNodeSchema(BaseSchema):
         return bool(self.get_input())
 
 
-###############################################################################
-# Flow Configuration
-###############################################################################
 def schema_flowgraph(schema: FlowgraphNodeSchema):
     '''
     Defines the schema parameters for a flowgraph node.

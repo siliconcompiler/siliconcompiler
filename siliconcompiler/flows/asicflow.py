@@ -733,7 +733,6 @@ class SODAASICFlow(ASICFlow):
                 for strategy in SODA_STRATEGIES]
 
 
-##################################################
 if __name__ == "__main__":
     for flowcls in [ASICFlow, SV2VASICFlow, HLSASICFlow, VHDLASICFlow, ChiselASICFlow,
                     SODAASICFlow]:

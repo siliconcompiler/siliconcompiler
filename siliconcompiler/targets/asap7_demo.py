@@ -14,9 +14,6 @@ from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, \
 from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 
 
-####################################################
-# Target Setup Function
-####################################################
 def asap7_demo(
         project: ASIC,
         syn_np: int = 1,
@@ -29,7 +26,7 @@ def asap7_demo(
 
         Sets the main and additional standard-cell libraries (RVT, LVT, SLVT), installs synthesis
         and full ASIC flows, selects the "asap7" PDK, creates slow/typical/fast STA scenarios
-        using NLDM delay model, applies area constraints (40% core density, 1 µm core margin),
+        using NLDM delay model, applies area constraints (40% core density, 1 um core margin),
         and registers example IP/macro library aliases.
 
         Parameters:

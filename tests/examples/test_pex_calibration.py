@@ -7,13 +7,8 @@ import os.path
 @pytest.mark.nocpulimit
 @pytest.mark.timeout(1800)
 def test_py_calibrate():
-    """Daily guard: keep the PEX estimate calibration example working end to end.
-
-    Drives ``examples/pex_calibration/calibrate.py`` on a single small design
-    (gcd, rather than the full demo survey, for runtime): the bench_wires
-    initial-model phase and the calibration-survey phase, then the reuse
-    (no-rerun) path. Checks deck-consistent initial values, sane per-layer
-    correction factors, and that the data files are written and reused.
+    """The PEX calibration example runs end to end on gcd, gives deck-consistent initial values
+    and sane per-layer factors, and reuses its data files on a second call.
     """
     from siliconcompiler.tools.openroad.utils import pex_calibrate as pc
     from pex_calibration import calibrate
@@ -71,12 +66,8 @@ def test_py_calibrate():
 @pytest.mark.nocpulimit
 @pytest.mark.timeout(2400)
 def test_py_calibrate_score(capsys):
-    """Exercise the --score path end to end: derive, then re-route the survey
-    uncorrected and calibrated and print the per-net error table.
-
-    Smoke-checks that the scoring path runs and produces a before/after summary
-    (not that the win is a specific size - a single tiny design is too noisy to
-    pin a number).
+    """The --score path runs end to end and prints a before/after error summary; the size of the
+    win is not checked, as one tiny design is too noisy to pin a number.
     """
     from siliconcompiler.tools.openroad.utils import pex_calibrate as pc
     from pex_calibration import calibrate

@@ -88,7 +88,7 @@ class PEXBenchTask(PEXBaseTask):
 class PEXBenchExtractTask(PEXBaseTask):
     '''
     Extract the ``bench_wires`` patterns with the PDK's OpenRCX deck to derive
-    the initial per-layer estimate model (resistance Ω/μm, capacitance F/μm).
+    the initial per-layer estimate model (resistance ohm/um, capacitance F/um).
 
     Walks the per-segment parasitics (the same method as the calibrate task) to
     produce one row per (corner, layer). These values seed

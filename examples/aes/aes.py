@@ -16,7 +16,7 @@ def main():
     Requires: yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
-    # --- Design Setup ---
+    # Design Setup
     # The Design object is a blueprint that holds all the configuration
     # for a specific hardware design.
     design = Design("aes")
@@ -38,7 +38,7 @@ def main():
     with design.active_dataroot("aes"), design.active_fileset("sdc"):
         design.add_file("aes.sdc")
 
-    # --- Project Setup ---
+    # Project Setup
     # The ASIC object links the design blueprint to a specific
     # technology target and compilation flow.
     project = ASIC(design)
@@ -48,14 +48,14 @@ def main():
     project.add_fileset("rtl")
     project.add_fileset("sdc")
 
-    # --- Target Loading ---
+    # Target Loading
     # Load the target configuration. The `freepdk45_demo` target sets up the
     # project with all the necessary settings for the FreePDK45 technology,
     # including the process design kit (PDK), standard cell libraries,
     # and a default tool flow.
     freepdk45_demo(project)
 
-    # --- Execution ---
+    # Execution
     # The run() command executes the flow the target set up, ASICFlow, which
     # runs these steps:
     # 1. Elaboration (resolving the RTL sources into a single design)
@@ -70,7 +70,7 @@ def main():
     # DRCFlow, LVSFlow and SignoffFlow, which this example does not load.
     project.run()
 
-    # --- Analysis ---
+    # Analysis
     # The summary() command prints a report of the key metrics from the run,
     # such as Worst Negative Slack (WNS) for timing, total cell area,
     # and power consumption estimates.

@@ -11,9 +11,6 @@ from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort, \
     FakeRAM45Lambdalib_SinglePortRegfile
 
 
-####################################################
-# Target Setup Function
-####################################################
 def freepdk45_demo(
         project: ASIC,
         syn_np: int = 1,

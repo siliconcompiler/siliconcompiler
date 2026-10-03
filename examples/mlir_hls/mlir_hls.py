@@ -17,7 +17,7 @@ from siliconcompiler.flows.asicflow import HLSASICFlow
 
 
 def main():
-    # --- Design Setup ---
+    # Design Setup
     # A Design encapsulates all the source files, parameters, and
     # settings for a specific hardware design.
     design = Design("mlir")
@@ -36,7 +36,7 @@ def main():
         # tool (in this case, based on MLIR) will convert into Verilog.
         design.add_file("main_kernel.ll")
 
-    # --- Project Setup ---
+    # Project Setup
     # An ASIC links the design's sources to a specific physical
     # implementation flow and target technology.
     project = ASIC(design)
@@ -48,7 +48,7 @@ def main():
     # FreePDK45 technology and its associated libraries and tools.
     freepdk45_demo(project)
 
-    # --- Flow Configuration ---
+    # Flow Configuration
     # Set the flow to 'HLSASICFlow'. This is the key step. Instead of a
     # standard RTL-to-GDSII flow, this flow inserts an HLS tool (like Polygeist/MLIR)
     # at the beginning to automatically generate the RTL from the `.ll` source file.
@@ -56,11 +56,11 @@ def main():
     # (syn, place, route, etc.).
     project.set_flow(HLSASICFlow())
 
-    # --- Execution ---
+    # Execution
     # Run the complete HLS and ASIC flow.
     project.run()
 
-    # --- Analysis ---
+    # Analysis
     # Display a summary of the final results, including timing, area, and power metrics.
     project.summary()
 

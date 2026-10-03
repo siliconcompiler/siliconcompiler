@@ -280,14 +280,8 @@ def _read_scan_chains(report):
 @pytest.mark.eda
 @pytest.mark.timeout(600)
 def test_openroad_scan_chain_insertion(sky130_heartbeat):
-    """Run global placement with scan chains on, end to end.
-
-    Nothing else in the suite executes the DFT half of sc_global_placement.tcl:
-    the parameter tests only check that the setters read back. That gap let the
-    script keep calling preview_dft/insert_dft for fourteen months after
-    OpenROAD renamed them to report_dft_plan/execute_dft_plan, so this test
-    exists mainly to fail loudly the next time a DFT command is renamed.
-    """
+    """Global placement with scan chains on runs the DFT commands end to end.
+    It is the only test that executes them, so it fails loudly when OpenROAD renames one."""
     task = global_placement.GlobalPlacementTask.find_task(sky130_heartbeat)
     task.set_openroad_enablescanchains(True)
 
@@ -354,11 +348,7 @@ def test_openroad_scan_chain_insertion(sky130_heartbeat):
 @pytest.mark.eda
 @pytest.mark.timeout(600)
 def test_openroad_scan_chain_architect_parameters(sky130_heartbeat):
-    """clock_mixing / max_length / max_chains must reach set_dft_config.
-
-    clock_mixing in particular is a methodology choice, not a tuning knob: many
-    DFT flows disallow mixing clock domains within a chain outright.
-    """
+    """clock_mixing, max_length and max_chains reach set_dft_config and shape the scan plan."""
     task = global_placement.GlobalPlacementTask.find_task(sky130_heartbeat)
     task.set_openroad_enablescanchains(True)
     task.set_openroad_scanclockmixing("no_mix")
@@ -426,13 +416,7 @@ def _read_layer_rc_caps(path):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_openroad_rccorrection_scales_set_layer_rc(asic_heartbeat):
-    """The PDK's rccorrection must actually reach set_layer_rc.
-
-    This is the payoff of the whole PEX calibration path (pdk rccorrection ->
-    sc_get_corrmap -> sc_setup_pex -> set_layer_rc); everything else only checks
-    that the factors are *derived* correctly. Runs one APR node and reads back
-    OpenROAD's own report_layer_rc output, which the APR preamble always writes.
-    """
+    """The PDK's rccorrection reaches set_layer_rc, read back from OpenROAD's report_layer_rc."""
     pdk = asic_heartbeat.get_library(str(asic_heartbeat.get("asic", "pdk")))
     model = {layer: cap for corner, layertype, layer, _, cap
              in pdk.get("tool", "openroad", "rclayer")
@@ -1161,8 +1145,8 @@ def test_openroad_apr_parameter_rsz_hold_slack_margin():
 
 def test_openroad_apr_parameter_rsz_skip_pin_swap():
     task = _apr.OpenROADRSZTimingParameter()
-    # Both transforms are on in ORFS and LibreLane; they were skipped in SC only
-    # because of LEC issues that have since been fixed upstream.
+    # Pin swapping and gate cloning were skipped only while they broke LEC,
+    # which OpenROAD has since fixed.
     assert task.get("var", "rsz_skip_pin_swap") is False
     task.set_openroad_rszskippinswap(True)
     assert task.get("var", "rsz_skip_pin_swap") is True
@@ -1284,12 +1268,8 @@ def test_openroad_apr_parameter_rsz_phases():
 
 
 def test_openroad_apr_parameter_rsz_phases_rejects_unknown():
-    """The phase names are matched exactly by OpenROAD, so reject a typo at set time.
-
-    "legacy" is the wrong case and "LEGACY_MT" is real upstream but undocumented, so
-    deliberately not offered. The member list comes from RSZ_PHASES rather than being
-    written out, so adding a phase updates the expectation with it.
-    """
+    """Unknown rsz_phases names, including a wrong-case one, are rejected at set time.
+    LEGACY_MT is real in OpenROAD but undocumented, so it is deliberately not offered."""
     task = _apr.OpenROADRSZTimingParameter()
     members = ", ".join(sorted(_apr.RSZ_PHASES))
     for bad in ("legacy", "LEGACY_MT"):
@@ -1822,12 +1802,8 @@ def test_openroad_fillmetal_insertion_parameter_add_fill():
 
 
 def test_openroad_fillmetal_insertion_skips_when_disabled(asic_gcd):
-    """fin_add_fill=False must drop the node, not run a process that fills nothing.
-
-    The reason is asserted because the ordering matters: the disabled check has to
-    come before the PDK rule lookup, or a disabled task on a PDK with no rules would
-    report the wrong cause.
-    """
+    """fin_add_fill=False skips the node as disabled, checked ahead of the PDK rule lookup so the
+    reported cause is the right one."""
     fillmetal_insertion.FillMetalTask.find_task(asic_gcd).set_openroad_addfill(False)
 
     node = SchedulerNode(asic_gcd, "dfm.metal_fill", "0")
@@ -2121,11 +2097,8 @@ def test_openroad_cleanup_synth_parameter_repair_synth_timing():
 
 
 def test_openroad_cleanup_synth_restricts_the_move_sequence():
-    """Only the moves a pre-placement pass can justify, and no final sizing pass.
-
-    Buffer insertion, cloning and load splitting are wire-delay driven and there is no
-    wire length yet, so the default sequence is deliberately narrower than the tool's.
-    """
+    """CleanupSynthTask defaults to unbuffer and sizeup with no final sizing, since the
+    wire-driven moves have no wire length to work with before placement."""
     task = synth_cleanup.CleanupSynthTask()
     assert task.get("var", "rsz_sequence") == ["unbuffer", "sizeup"]
     assert task.get("var", "rsz_skip_final_sizing") is True
@@ -2498,9 +2471,6 @@ def test_openroad_rcx_extract_parameter_corner():
     assert task.get("var", "corner") == 'test_corner'
 
 
-##############################################################################
-# PEX task setup
-##############################################################################
 def _rcx_project(design):
     """A project running the OpenRCX deck-generation flow (NOP for the PEX tool)."""
     from siliconcompiler import ASIC
@@ -2782,12 +2752,7 @@ def test_openroad_pex_bench_extract_setup_requires_openrcx(asic_gcd):
 
 
 def test_openroad_pex_bench_tolerates_non_lef_aprtechfileset(asic_gcd, tmp_path):
-    """An APR tech fileset without a LEF must not be required to carry one.
-
-    https://github.com/siliconcompiler/siliconcompiler/issues/5250 -- PDKs put
-    non-LEF filesets (fill rules, tracks, viarules) in aprtechfileset, and
-    requiring a LEF from each blocked the PEX bench before any tool ran.
-    """
+    """The PEX bench does not require a LEF from a non-LEF aprtechfileset (issue #5250)."""
     asic_gcd.set_flow(GeneratePEXEstimateFlow())
 
     pdk = asic_gcd.get_library(str(asic_gcd.get("asic", "pdk")))
@@ -3118,11 +3083,6 @@ def test_openroad_repair_timing_parameter_skip_recover_power():
     assert task.get("var", "rsz_skip_recover_power") is True
 
 
-# ----------------------------------------------------------------------
-# DetailedRouteAntennaRepairTask
-# ----------------------------------------------------------------------
-
-
 def test_openroad_detailed_route_antenna_repair_identity():
     """Its own node and task, so route.detailed reports pure routing results and the
     diode/reroute cost is attributable on its own."""
@@ -3136,9 +3096,7 @@ def test_openroad_detailed_route_antenna_repair_parameters():
     task = detailed_route.DetailedRouteAntennaRepairTask()
     assert task.get("var", "ant_check") is True
     assert task.get("var", "ant_repair") is True
-    # ORFS passes no -ratio_margin in either antenna loop.
     assert task.get("var", "ant_margin") == 0
-    # ORFS MAX_REPAIR_ANTENNAS_ITER_DRT.
     assert task.get("var", "ant_reroute_iterations") == 5
     # ant_iterations bounds a single repair_antennas call and is a pre-route knob,
     # so it deliberately stays off this task.
@@ -3234,20 +3192,11 @@ def test_openroad_repair_timing_parameter_wns_sequence():
 
 
 def test_openroad_repair_timing_parameter_wns_sequence_appends_to_default():
-    """This is the one move list with a non-empty default, so adding extends it.
-
-    Replacing the sequence needs clobber. Pinned because the asymmetry with
-    rsz_sequence and rsz_phases -- both empty by default, where add and set coincide
-    on a fresh task -- is easy to trip over.
-    """
+    """Adding to rsz_wns_sequence extends its default; unlike rsz_sequence and rsz_phases, that
+    default is not empty, so replacing it needs clobber."""
     task = repair_timing.RepairTimingTask()
     task.add_openroad_rszwnssequence("sizeup")
     assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute", "sizeup"]
-
-
-# ----------------------------------------------------------------------
-# PostRouteRepairTimingTask
-# ----------------------------------------------------------------------
 
 
 def test_openroad_post_route_repair_timing_identity():
@@ -3359,11 +3308,6 @@ def test_openroad_screenshot_parameter_include_report_images():
     task.set_openroad_includereportimages(False, step='screenshot', index='1')
     assert task.get("var", "include_report_images", step='screenshot', index='1') is False
     assert task.get("var", "include_report_images") is True
-
-
-# ----------------------------------------------------------------------
-# OpenTask: identity + file copying
-# ----------------------------------------------------------------------
 
 
 def test_openroad_open_basics():
@@ -3489,14 +3433,8 @@ def test_openroad_open_copy_basic_def(open_project):
     openroad_show.WebTask,
 ])
 def test_openroad_open_copy_never_pairs_vg_with_def(open_project, task_cls):
-    """No vg is staged beside a def, for any viewer.
-
-    read_input_files.tcl links a netlist found next to a def with -hier, which puts
-    read_def into floorplan_initialize mode and drops def content the netlist does not
-    declare. write_verilog escapes the hierarchy delimiter, so a design that kept its
-    hierarchy through synthesis loses everything. WebTask keeps enablehier on for
-    netlist-only views, so it must be covered here too.
-    """
+    """No viewer stages a vg beside a def, since read_input_files.tcl would link it with -hier
+    and read_def would drop the def content the netlist does not declare."""
     _set_open_flow(open_project, task_cls=task_cls)
 
     src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
@@ -3605,7 +3543,7 @@ def test_openroad_open_copy_unknown_job_falls_back(open_project):
 
 
 def test_openroad_open_copy_no_shownode(open_project):
-    """Without a shownode, only the showfilepath is copied — no companion lookup."""
+    """Without a shownode, only the showfilepath is copied -- no companion lookup."""
     src_outputs = _populate_outputs(open_project, "route.detailed", "0", {
         "gcd.def": "def-content",
         "gcd.vg": "vg-content",
@@ -3654,14 +3592,12 @@ def test_openroad_show_screenshot_inherit_copy(open_project, task_cls):
     assert os.path.exists("inputs/gcd.sdc")
 
 
-# ----------------------------------------------------------------------
 # Regression guard: every OpenROAD open/show/screenshot variant must end up
 # pointing at sc_open.tcl with the right sc_do_screenshot value. The original
 # bug here was that ShowTask/ScreenshotTask called set_script("sc_show.tcl")
 # *after* OpenTask.setup() had already set sc_open.tcl, but set_script defaults
 # to clobber=False so the override was a silent no-op and the screenshot path
 # ran the wrong script.
-# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("task_cls", [
@@ -3671,14 +3607,7 @@ def test_openroad_show_screenshot_inherit_copy(open_project, task_cls):
     screenshot.ScreenshotTask,
 ])
 def test_openroad_open_script_is_sc_open(asic_gcd, tmp_path, monkeypatch, task_cls):
-    """All OpenROAD open variants must end up running sc_open.tcl after full setup.
-
-    Regression guard: previously ShowTask/ScreenshotTask called
-    ``set_script("sc_show.tcl")`` after OpenTask.setup() had already set
-    ``sc_open.tcl``. Because ``set_script`` defaults to ``clobber=False``, the
-    second call was a silent no-op and the screenshot path ran the wrong
-    script. This test ensures every variant resolves to ``sc_open.tcl``.
-    """
+    """Every OpenROAD open variant resolves to sc_open.tcl after full setup, not sc_show.tcl."""
     monkeypatch.chdir(tmp_path)
     asic_gcd.option.set_builddir(str(tmp_path / "build"))
 
@@ -3720,9 +3649,6 @@ def test_openroad_sc_show_tcl_removed(scroot):
         f"{script_path} should be removed; sc_open.tcl is now the single entry script"
 
 
-# ---------------------------------------------------------------------------
-# OpenRCX per-corner rules merge utility (utils/rcx_merge.py)
-# ---------------------------------------------------------------------------
 def _single_corner(layer_count, corner_tag):
     """Build a minimal single-corner OpenRCX rules file body."""
     return (
@@ -4062,12 +3988,7 @@ def _split_multicorner(text):
 
 
 def test_rcx_merge_roundtrip_reference():
-    """Splitting a multi-corner rules file and re-merging reproduces it.
-
-    Uses an inline reference that matches the OpenRCX output format, so the
-    round-trip confirms the merge emits the exact multi-corner layout without
-    depending on any external file.
-    """
+    """Splitting a multi-corner OpenRCX rules file and re-merging it reproduces it exactly."""
     original = _REFERENCE_3CORNERS
 
     per_corner = _split_multicorner(original)
@@ -4079,12 +4000,6 @@ def test_rcx_merge_roundtrip_reference():
     assert merge_openrcx_rules(files) == original
 
 
-##############################################################################
-# pex_calibrate utility
-##############################################################################
-##############################################################################
-# Target resolution
-##############################################################################
 def test_resolve_target_callable():
     def my_target(project):
         pass
@@ -4120,16 +4035,10 @@ def test_resolve_target_dotted():
     assert fn.__name__ == "freepdk45_demo"
 
 
-##############################################################################
-# PDK introspection
-##############################################################################
 def test_derive_pdk_name():
     assert pc.derive_pdk_name("freepdk45_demo") == "freepdk45"
 
 
-##############################################################################
-# Designs
-##############################################################################
 def test_demo_designs_build():
     # Construction is network-free (git dataroots fetch lazily at run time).
     designs = [design_cls() for design_cls in pc.DEMO_DESIGNS.values()]
@@ -4182,9 +4091,6 @@ def _via(res, source="pdk"):
     return {"res": res, "cap": None, "layertype": "via", "source": source}
 
 
-##############################################################################
-# CSV data files (round-trip)
-##############################################################################
 def test_rclayer_csv_round_trip():
     model = {
         "typical": {
@@ -4231,9 +4137,6 @@ def test_write_rccorr_skips_none_cap_factor():
     assert got["typical"]["metal3"]["cap_factor"] == 0.5
 
 
-##############################################################################
-# Factor math and line rendering
-##############################################################################
 def test_compute_factors():
     # pooled: sum_len, sum_cap (F), sum_res (ohm), nseg
     pooled = {"metal2": [100.0, 50.0e-15, 357.14, 10]}
@@ -4370,9 +4273,6 @@ def test_format_rccorr_lines():
     assert 'pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.6960)' in out
 
 
-##############################################################################
-# Orchestration: caching / rerun / print (no EDA - the flows are stubbed)
-##############################################################################
 # Stand-in survey design: the flows are stubbed out, so only the list length
 # matters - but it must be non-empty, since calibrate() rejects an empty survey.
 _DUMMY_DESIGN = pc._bench_design()
@@ -4542,9 +4442,6 @@ def test_main_print_only_missing_files(monkeypatch, capsys):
         capsys.readouterr().err
 
 
-##############################################################################
-# Scoring (quantify the win) - EDA-free math + wiring
-##############################################################################
 def test_apply_factors_cap_only_and_clears_previous():
     pdk = OpenROADPDK()
     pdk.add_openroad_rccorrection("typical", "metal9", cap_factor=0.5)  # cleared
@@ -4640,13 +4537,8 @@ def test_calibrate_score_path(monkeypatch, capsys):
 
 
 def test_openroad_mode_sdcfileset_is_per_node(asic_gcd, tmp_path):
-    """The tcl manifest carries the node's sdcfileset, so the required keys must be
-    the node's too.
-
-    sdcfileset is PerNode.OPTIONAL, and sc_manifest.tcl is written with the value
-    resolved for the running node. Declaring the global value here would hash and
-    copy files read_timing_constraints.tcl never reads, and miss the ones it does.
-    """
+    """The required SDC keys come from the node's sdcfileset, the value the tcl manifest
+    carries, not from the global one."""
     design = asic_gcd.design
 
     sdc = tmp_path / "mode.sdc"
@@ -4670,9 +4562,6 @@ def test_openroad_mode_sdcfileset_is_per_node(asic_gcd, tmp_path):
     assert f"library,{design.name},fileset,globalsdc,file,sdc" not in require
 
 
-##############################################################################
-# Delay model / CCS
-##############################################################################
 def _select_delaymodel(project, delaymodel):
     '''Point the target at ``delaymodel``, registering a ccs libcorner fileset.
 

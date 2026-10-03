@@ -19,10 +19,6 @@ from siliconcompiler.package.scp import SCPResolver
 from siliconcompiler import Project
 
 
-# ============================================================================
-# Initialization Tests
-# ============================================================================
-
 def test_init_basic():
     """Test basic initialization with standard arguments."""
     resolver = SCPResolver("testscp", Project(),
@@ -59,9 +55,6 @@ def test_init_with_port_in_url():
     assert resolver.host_port == 2222
 
 
-# ============================================================================
-# Cache Checking Tests
-# ============================================================================
 def test_check_cache_exists(tmp_path):
     """Test that check_cache returns True when cache directory exists."""
     proj = Project("testproj")
@@ -96,10 +89,6 @@ def test_check_cache_with_cached_files(tmp_path):
 
     assert resolver.check_cache() is True
 
-
-# ============================================================================
-# Remote Resolution Tests
-# ============================================================================
 
 @patch("siliconcompiler.package.scp.subprocess.run")
 @patch("siliconcompiler.package.scp.shutil.which")
@@ -218,10 +207,6 @@ def test_resolve_remote_logs_stdout_stderr_on_error(mock_which, mock_run, mock_l
     assert actual_calls == expected_calls
 
 
-# ============================================================================
-# Full Resolve Workflow Tests
-# ============================================================================
-
 @patch("siliconcompiler.package.scp.subprocess.run")
 @patch("siliconcompiler.package.scp.shutil.which")
 def test_resolve_with_no_cache(mock_which, mock_run, tmp_path):
@@ -277,10 +262,6 @@ def test_resolve_returns_correct_path(mock_which, mock_run, tmp_path):
     # The result should be the exact cache path
     assert result == resolver.cache_path
 
-
-# ============================================================================
-# Edge Cases and Special Scenarios
-# ============================================================================
 
 @patch("siliconcompiler.package.scp.subprocess.run")
 @patch("siliconcompiler.package.scp.shutil.which")
@@ -381,10 +362,6 @@ def test_subprocess_receives_correct_kwargs(mock_which, mock_run, tmp_path):
     assert kwargs == {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "text": True}
 
 
-# ============================================================================
-# Port Handling Tests
-# ============================================================================
-
 @patch("siliconcompiler.package.scp.subprocess.run")
 @patch("siliconcompiler.package.scp.shutil.which")
 def test_command_with_default_port(mock_which, mock_run, tmp_path):
@@ -430,10 +407,6 @@ def test_command_with_custom_port(mock_which, mock_run, tmp_path):
     remote_target = command[port_index + 2]
     assert remote_target == "github.com:/test_owner/test_repo"
 
-
-# ============================================================================
-# Integration Tests
-# ============================================================================
 
 @patch("siliconcompiler.package.scp.subprocess.run")
 @patch("siliconcompiler.package.scp.shutil.which")

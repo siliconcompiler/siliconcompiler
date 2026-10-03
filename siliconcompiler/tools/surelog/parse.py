@@ -191,30 +191,18 @@ class ElaborateTask(Task):
 
         options.append('+libext+.sv+.v')
 
-        #####################
-        # Include paths
-        #####################
         for value in idirs:
             options.append('-I' + value)
 
-        #######################
-        # Variable Definitions
-        #######################
         for value in defines:
             options.append('-D' + value)
 
-        #######################
-        # Command files
-        #######################
         cmdfiles = []
         for lib, fileset in filesets:
             cmdfiles.extend(lib.get_file(fileset=fileset, filetype="commandfile"))
         for value in distinct(cmdfiles):
             options.extend(['-f', value])
 
-        #######################
-        # Sources
-        #######################
         sources = []
         for filetype in ("systemverilog", "verilog"):
             for lib, fileset in filesets:
@@ -222,14 +210,8 @@ class ElaborateTask(Task):
         for value in distinct(sources):
             options.append(value)
 
-        #######################
-        # Top Module
-        #######################
         options.extend(['-top', self.design_topmodule])
 
-        ###############################
-        # Parameters (top module only)
-        ###############################
         # Set up user-provided parameters to ensure we elaborate the correct modules
         for param, value in params:
             options.append(f'-P{param}={value}')

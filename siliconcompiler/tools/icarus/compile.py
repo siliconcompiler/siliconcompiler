@@ -178,22 +178,13 @@ endmodule
         for param in design.getkeys("fileset", fileset, "param"):
             params.append((param, design.get("fileset", fileset, "param", param)))
 
-        ###############################
-        # Parameters (top module only)
-        ###############################
         # Set up user-provided parameters to ensure we elaborate the correct modules
         for param, value in params:
             options.append(f"-P{self.design_topmodule}.{param}={value}")
 
-        #####################
-        # Include paths
-        #####################
         for idir in idirs:
             options.append('-I' + idir)
 
-        #######################
-        # Variable Definitions
-        #######################
         for define in defines:
             options.append('-D' + define)
 
@@ -201,9 +192,6 @@ endmodule
         options.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
         options.append(f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.vcd\"")
 
-        #######################
-        # Command files
-        #######################
         # Auto-generated timescale command file (see pre_process)
         if self.get("var", "timescale"):
             options.extend(['-f', 'sc_timescale.f'])
@@ -214,9 +202,6 @@ endmodule
         for value in distinct(cmdfiles):
             options.extend(['-f', value])
 
-        #######################
-        # Sources
-        #######################
         sources = []
         for filetype in ("systemverilog", "verilog"):
             for lib, fileset in filesets:

@@ -108,12 +108,8 @@ def test_chisel_parameter_targetdir():
     assert task.get("var", "targetdir") == 'build'
 
 
-# ============================================================================
-# COURSIER_CACHE
-#
 # ConvertTask duplicates the three checks the CCache mixin makes, so these
 # mirror the mixin's own tests: divergence between the two shows up here.
-# ============================================================================
 
 @pytest.fixture
 def convert_node(datadir, monkeypatch):

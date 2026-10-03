@@ -53,7 +53,7 @@ class CliDashboard(AbstractDashboard):
         # Ensure the dashboard is properly stopped on program exit. Register
         # via a weakref trampoline so the atexit registry does not pin this
         # dashboard (and, transitively, its project) alive for the whole
-        # process — a bound-method registration would leak both.
+        # process -- a bound-method registration would leak both.
         self.__atexit_func = weak_atexit_call(self.stop)
         atexit.register(self.__atexit_func)
 
@@ -112,8 +112,8 @@ class CliDashboard(AbstractDashboard):
         screen. Passing ``None`` detaches the dashboard sink and restores
         normal terminal output.
 
-        The project's ``_logger_console`` handler is left in place — only its
-        emit is suppressed via a filter — so any external code that holds a
+        The project's ``_logger_console`` handler is left in place -- only its
+        emit is suppressed via a filter -- so any external code that holds a
         reference to it (taskscheduler, schedulernode, etc.) keeps working.
 
         Args:
@@ -127,7 +127,7 @@ class CliDashboard(AbstractDashboard):
 
         if self._dashboard_handler is not None:
             if logger is self._logger:
-                # Same logger — no-op fast path.
+                # Same logger -- no-op fast path.
                 return
             # Different logger: move the dashboard handler over so we don't
             # leak it on the old logger. In practice the project's logger
@@ -142,7 +142,7 @@ class CliDashboard(AbstractDashboard):
             return
 
         if not self._dashboard._active:
-            # Headless / non-terminal environment — nothing to attach to.
+            # Headless / non-terminal environment -- nothing to attach to.
             self._logger = logger
             return
 
@@ -172,7 +172,7 @@ class CliDashboard(AbstractDashboard):
                     try:
                         # handle() (not emit()) applies the handler's level and
                         # filters and acquires its lock, per the logging
-                        # contract — safer than driving emit() directly.
+                        # contract -- safer than driving emit() directly.
                         self._dashboard_handler.handle(record)
                     except Exception:
                         pass

@@ -177,7 +177,6 @@ class XDMXyceDVFlow(Flowgraph):
         return cls(np=3)
 
 
-##################################################
 if __name__ == "__main__":
     for tool in ["icarus", "icarus-cocotb", "verilator", "verilator-cocotb", "xyce", "xdm-xyce"]:
         flow = DVFlow(tool=tool, np=3)

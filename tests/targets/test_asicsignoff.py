@@ -86,7 +86,7 @@ def test_target_signoff(name, examples_root):
     project.set("option", "quiet", True)
     project.option.set_jobname("rtl2gds")
 
-    # --- Part 1: RTL-to-GDS ---
+    # Part 1: RTL-to-GDS
     assert project.run()
 
     gds = project.find_result("gds", step="write.gds")
@@ -96,7 +96,7 @@ def test_target_signoff(name, examples_root):
     if not cfg["flow"]:
         return
 
-    # --- Part 2: signoff (DRC, and LVS where available) ---
+    # Part 2: signoff (DRC, and LVS where available)
     # Feed the generated layout (and gate-level netlist for LVS) back in as the
     # input to the signoff flow the target declared.
     with design.active_fileset("layout"):

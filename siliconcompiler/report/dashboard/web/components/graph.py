@@ -154,7 +154,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
         node_to_step_index_map[node] for node in selected_nodes
     ]
 
-    # --- Data Fetching and Preparation ---
+    # Data Fetching and Preparation
     if transpose:
         x_axis_label, color_label = 'nodes', 'runs'
     else:
@@ -179,7 +179,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
                     })
     filtered_df = DataFrame(plot_data).dropna()
 
-    # --- Chart Configuration and Rendering ---
+    # Chart Configuration and Rendering
     if not filtered_df.empty:
         sort_order = {
             "runs": state.get_key(state.GRAPH_JOBS),
@@ -233,7 +233,7 @@ def viewer(node_to_step_index_map):
     if state.get_key(state.GRAPH_JOBS) is None:
         state.set_key(state.GRAPH_JOBS, state.get_projects())
 
-    # --- UI Layout ---
+    # UI Layout
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')
     with job_selector_col:
         job_selector()

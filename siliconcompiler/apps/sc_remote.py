@@ -303,6 +303,5 @@ def _print_status(logger, job) -> None:
         logger.error(f"  error:   {job['error'].get('title')}")
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

@@ -76,7 +76,6 @@ class MagicDRCFlow(Flowgraph):
         self.node("drc", MagicDRC())
 
 
-##################################################
 if __name__ == "__main__":
     flow = DRCFlow()
     flow.write_flowgraph(f"{flow.name}.png")

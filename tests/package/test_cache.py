@@ -535,10 +535,6 @@ def test_thread_lock_is_per_id():
     assert cache.thread_lock("id0") is not cache.thread_lock("id1")
 
 
-# ============================================================================
-# Ownership
-# ============================================================================
-
 def test_repr():
     cache = PathCache()
     cache.set("id0", "/path")
@@ -589,10 +585,6 @@ def test_cache_is_reachable_before_any_project_exists():
 
     assert Resolver("n", None, "source://x").cache is MPManager.get_path_cache()
 
-
-# ============================================================================
-# Poor inputs
-# ============================================================================
 
 @pytest.mark.parametrize("value", ("notanumber", None, [], {}, object()))
 def test_set_max_attempts_not_a_number(value):

@@ -138,7 +138,6 @@ class LECFlow(Flowgraph):
                 cls(tool="yosys")]
 
 
-##################################################
 if __name__ == "__main__":
     for flowcls in [PropertyCheckFlow, LECFlow]:
         flow = flowcls()

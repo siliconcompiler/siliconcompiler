@@ -258,7 +258,6 @@ class FPGAVPROpenSTAFlow(FPGAVPRFlow):
         ]
 
 
-##################################################
 if __name__ == "__main__":
     for flow in [FPGANextPNRFlow(), FPGAVPRFlow(), FPGAXilinxFlow()]:
         flow.write_flowgraph(f"{flow.name}.png")

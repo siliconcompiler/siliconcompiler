@@ -426,7 +426,7 @@ def test_stop_dumps_full_log_buffer(dashboard):
 @pytest.mark.timeout(30)
 def test_stop_without_force_does_not_dump_log(dashboard):
     """A normal teardown or Ctrl+C interrupt (force=False) must NOT reprint the
-    full log buffer — that dump is reserved for failure teardowns."""
+    full log buffer -- that dump is reserved for failure teardowns."""
     board = dashboard._dashboard
 
     for i in range(40):
@@ -1368,12 +1368,8 @@ def test_progress_bar_runtime_in_progress_parallel_running(dashboard_medium):
 
 @pytest.mark.timeout(30)
 def test_progress_bar_runtime_resumed_job_uses_recorded_totaltime(dashboard_medium):
-    """A resumed job: prior-session done nodes contribute via totaltime metric.
-
-    The two prior-session nodes are strictly sequential (intervals [0, 40] and
-    [40, 90]) so no parallelism is detected — this isolates the resumed wall-time
-    computation across a session boundary from the parallelism display path.
-    """
+    """A resumed job's wall time starts from the prior session's recorded totaltime. The prior
+    nodes run back to back, so no parallelism column is shown."""
     dashboard = dashboard_medium._dashboard
     now = time.time()
     # Prior session: two sequential nodes. Final wall checkpoint = 90.
@@ -1852,12 +1848,8 @@ def test_get_job_with_status(mock_project, fake_console):
 
 @pytest.mark.timeout(30)
 def test_get_job_topology_cached(mock_project, fake_console):
-    """Repeated _get_job calls on the same project must reuse the cached
-    flowgraph topology rather than re-running the recursive distance walk.
-
-    The cache key is the design/jobname pair; status changes that don't
-    introduce/remove SKIPPED nodes must hit the cache.
-    """
+    """_get_job reuses the topology cached under design/jobname across status changes that do
+    not add or remove SKIPPED nodes."""
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
@@ -1898,16 +1890,8 @@ def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
 @pytest.mark.timeout(30)
 def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
                                                   monkeypatch):
-    """The recursive `get_node_distance` walk inside `_get_flow_topology`
-    is the expensive piece we're trying to avoid. After the first call
-    seeds the cache, status-only refreshes must not call it again.
-
-    Uses `RuntimeFlowgraph.get_execution_order` as a miss-only sentinel:
-    it is invoked exclusively from the cache-miss branch of
-    `_get_flow_topology`, so its call count equals the number of real
-    rebuilds. We also pin object identity to catch in-place rebuilds that
-    a presence-only check (`project_id in _topology_cache`) would miss.
-    """
+    """Status-only refreshes after the first _get_job neither rebuild the flow topology nor rerun
+    its recursive distance walk."""
     dashboard = MPManager.get_dashboard()
     real_get_exec_order = RuntimeFlowgraph.get_execution_order
     exec_calls = []
@@ -1916,15 +1900,16 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
         exec_calls.append(self)
         return real_get_exec_order(self, *args, **kwargs)
 
+    # get_execution_order runs only on a cache miss, so its call count is the rebuild count.
     monkeypatch.setattr(RuntimeFlowgraph, "get_execution_order", counting)
 
-    # First call: cache miss — get_execution_order must be invoked.
+    # First call: cache miss -- get_execution_order must be invoked.
     dashboard._get_job(mock_project)
     after_seed = len(exec_calls)
     assert after_seed >= 1
     seeded = dashboard._topology_cache["test_design/test_job"]
 
-    # Status-only refreshes: cache hits — must reuse the same _FlowTopology
+    # Status-only refreshes: cache hits -- must reuse the same _FlowTopology
     # object and must not invoke get_execution_order again.
     dashboard._get_job(mock_project)
     mock_project.set("record", "status", "running",
@@ -1946,7 +1931,7 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
 @pytest.mark.timeout(30)
 def test_get_job_status_counts_correct_with_cache(mock_project, fake_console):
     """Status-derived counters (success/error/finished/visible) must update
-    on every call even when the topology cache is reused — they are
+    on every call even when the topology cache is reused -- they are
     deliberately *not* part of the cache."""
     dashboard = MPManager.get_dashboard()
 
@@ -2367,10 +2352,6 @@ def test_update_rendable_data_no_jobs(mock_project, fake_console):
     assert len(dashboard._render_data.jobs) == 0
 
 
-# ---------------------------------------------------------------------------
-# LogBufferHandler.formatter_source
-# ---------------------------------------------------------------------------
-
 def _info_record(msg="hello"):
     return logging.LogRecord(
         name="test", level=logging.INFO, pathname=__file__, lineno=1,
@@ -2429,14 +2410,10 @@ def test_log_buffer_handler_falls_back_when_source_has_no_formatter():
     assert handler.format(_info_record("hi")) == "OWN:hi"
 
 
-# ---------------------------------------------------------------------------
-# CliDashboard set_logger / _detach_logger
-# ---------------------------------------------------------------------------
-
 @pytest.mark.timeout(30)
 def test_set_logger_adds_dashboard_handler_without_removing_terminal(
         mock_project, fake_console):
-    """Attaching must not swap or detach the project's terminal handler —
+    """Attaching must not swap or detach the project's terminal handler --
     other components (scheduler, slurm, docker, remote) hold references to
     it and would break if it disappeared."""
     with patch("threading.Thread"):
@@ -2552,7 +2529,7 @@ def test_detach_logger_is_idempotent(mock_project, fake_console):
 @pytest.mark.timeout(30)
 def test_attach_detach_attach_cycle(mock_project, fake_console):
     """A second attach after detach should produce the same end-state as
-    the first — this is what the future user-quit + resume path relies on."""
+    the first -- this is what the future user-quit + resume path relies on."""
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
     terminal = mock_project._logger_console
@@ -2564,7 +2541,7 @@ def test_attach_detach_attach_cycle(mock_project, fake_console):
     second_handler = dash._dashboard_handler
 
     assert second_handler is not None
-    # The handler instance may be reused or new — either is fine. What
+    # The handler instance may be reused or new -- either is fine. What
     # matters is the end-state: attached to logger, filter active.
     assert second_handler in mock_project.logger.handlers
     assert dash._suppress_filter in terminal.filters
@@ -2633,10 +2610,6 @@ def test_should_disable_with_breakpoint(project_logger, caplog):
     assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
 
 
-# ---------------------------------------------------------------------------
-# CliDashboard atexit lifecycle (issue #5035)
-# ---------------------------------------------------------------------------
-
 @pytest.mark.timeout(30)
 def test_init_registers_atexit_hook(mock_project, fake_console):
     """__init__ registers a weakref trampoline with atexit so the dashboard is
@@ -2671,12 +2644,8 @@ def test_atexit_hook_does_not_pin_dashboard(mock_project, fake_console):
 
 @pytest.mark.timeout(30)
 def test_weak_atexit_call_tolerates_non_bound_method():
-    """weak_atexit_call must not choke on a non-bound callable. WeakMethod
-    rejects anything without __self__/__func__ (e.g. a plain function or a
-    unittest.mock double). This happens in practice when CliDashboard.stop is
-    patched at the class level while a dashboard is (re)constructed — e.g. the
-    deepcopy in Project._record_history rebuilds the dashboard. The trampoline
-    must build and, when invoked, call through to the callable."""
+    """weak_atexit_call accepts a non-bound callable such as a mock, which WeakMethod rejects,
+    and the trampoline calls through to it."""
     from unittest.mock import MagicMock
     from siliconcompiler.report.dashboard import weak_atexit_call
 
@@ -2717,11 +2686,8 @@ def test_stop_unregisters_atexit_hook(mock_project, fake_console):
 
 @pytest.mark.timeout(30)
 def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console):
-    """Even when the underlying dashboard teardown raises (e.g. MPManager
-    proxy objects torn down during multiprocess exit), stop() must not
-    propagate and must still release the atexit hook. Otherwise the dangling
-    hook fires again at exit and surfaces as "Exception ignored in atexit
-    callback" (issue #5035)."""
+    """stop() does not raise and still releases the atexit hook when dashboard teardown raises
+    (issue #5035)."""
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
 
@@ -2739,7 +2705,7 @@ def test_stop_unregisters_atexit_when_teardown_raises(mock_project, fake_console
 @pytest.mark.timeout(30)
 def test_stop_restores_logger_when_teardown_raises(mock_project, fake_console):
     """A raising dashboard teardown must not leave the dashboard log sink
-    attached — the logger is restored via the finally block."""
+    attached -- the logger is restored via the finally block."""
     with patch("threading.Thread"):
         dash = CliDashboard(mock_project)
 
