@@ -777,9 +777,6 @@ def test_check_filepaths_depth_partial():
         assert cf.call_count == 3
 
 
-# ── _write_depgraph static method ────────────────────────────────────────────
-
-
 def _capture_dot(filename, root, graph, **kwargs):
     """Run _write_depgraph with a mocked graphviz.Digraph; return the mock."""
     dot = MagicMock()
@@ -790,7 +787,7 @@ def _capture_dot(filename, root, graph, **kwargs):
 
 
 def _node_calls(dot):
-    """Return dict mapping node id → kwargs from dot.node call_args_list."""
+    """Return dict mapping node id -> kwargs from dot.node call_args_list."""
     return {c.args[0]: c.kwargs for c in dot.node.call_args_list}
 
 
@@ -904,9 +901,6 @@ def test_write_depgraph_static_partial_node_styles():
     calls = _node_calls(dot)
     assert calls["root"]["label"] == "Root Node"
     assert calls["child"]["label"] == "child"
-
-
-# ── write_depgraph → _write_depgraph delegation ──────────────────────────────
 
 
 class _TestDep(NamedSchema, DependencySchema):

@@ -119,8 +119,6 @@ class Uniquified:
 
         self._setup()
 
-    # -- setup ---------------------------------------------------------------
-
     def _resolve_modules(self) -> Dict[str, Tuple[Design, str]]:
         """Map each target module to the dependency design/fileset that defines it."""
         pairs = self._design.get_fileset(self._filesets)
@@ -260,8 +258,6 @@ class Uniquified:
                                  generated["variants"][combo.name])
         return self._outdir
 
-    # -- state ---------------------------------------------------------------
-
     @property
     def design(self) -> Design:
         """The design the generated filesets were added to."""
@@ -367,8 +363,6 @@ class Uniquified:
         path = f"g_{variant}/{self._instance}"
         return f"{parent}/{path}" if parent else path
 
-    # -- build ---------------------------------------------------------------
-
     def _select(self, macros: Optional[Union[str, Sequence[str]]]) -> List[str]:
         variants = self.variant_names
         if macros is None:
@@ -467,8 +461,6 @@ class Uniquified:
             if os.path.exists(manifest):
                 self._macros[variant] = StdCellLibrary.from_manifest(filepath=manifest)
         return dict(self._macros)
-
-    # -- integration ---------------------------------------------------------
 
     def wireup(self, project: ASIC, require_all: bool = True) -> ASIC:
         """Wire the wrappers and macros into a parent ASIC project.

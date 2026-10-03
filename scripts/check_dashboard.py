@@ -10,7 +10,7 @@ verifying dashboard/logging changes.
     python scripts/check_dashboard.py            # dashboard on (the interesting case)
     python scripts/check_dashboard.py --lines 60 # more log lines to overflow the pane
     python scripts/check_dashboard.py --nodashboard   # baseline: plain terminal logging
-    python scripts/check_dashboard.py --hang     # then hit Ctrl+C — see below
+    python scripts/check_dashboard.py --hang     # then hit Ctrl+C -- see below
     python scripts/check_dashboard.py --multi    # several runs sharing ONE dashboard
     python scripts/check_dashboard.py --multi --jobs 4 --nodes 6  # bigger multi run
     python scripts/check_dashboard.py --serial   # several run() calls, one after another
@@ -22,10 +22,10 @@ Builds a one-node flow whose task logs many lines and then FAILS during setup(),
 i.e. "a run that fails immediately after the dashboard opens". A few lines are
 also logged BEFORE run() to exercise history-seeding of the dashboard log pane.
 
-What to look for (Issue #2 — "log truncated when the dashboard is open")
+What to look for (Issue #2 -- "log truncated when the dashboard is open")
 ------------------------------------------------------------------------
 * While running, the live pane shows only the last handful of "noisy line N".
-* When it fails, the dashboard tears down and — under a "Full log" rule — the
+* When it fails, the dashboard tears down and -- under a "Full log" rule -- the
   ENTIRE tail (all noisy lines + the failure messages) is reprinted to normal
   scrollback, followed by the "Run failed" error and the RuntimeError.
 * The "pre-run banner" lines logged before run() should appear in the dashboard
@@ -34,35 +34,35 @@ What to look for (Issue #2 — "log truncated when the dashboard is open")
 Before the fix the dashboard only reprinted the ~dozen visible lines, so the
 tail that explains the failure was lost.
 
-What to look for (Ctrl+C — "an interrupt is not a failure")
+What to look for (Ctrl+C -- "an interrupt is not a failure")
 -----------------------------------------------------------
 Run with --hang; the task logs the noisy lines and then sleeps. Press Ctrl+C.
-The dashboard should tear down WITHOUT printing a "Full log" dump — an
+The dashboard should tear down WITHOUT printing a "Full log" dump -- an
 interrupt is a clean exit, not a failure, so the tail is not reprinted.
 
-What to look for (--multi — several SC runs in ONE dashboard)
+What to look for (--multi -- several SC runs in ONE dashboard)
 -------------------------------------------------------------
 The CLI dashboard Board is a process-wide singleton (MPManager.get_dashboard())
 keyed by design/jobname, so several Project.run() calls in the SAME process
 render as separate rows/progress bars in ONE live view. Because the Board and
 its render thread live entirely in the main process, the concurrency here is
-threads — each run still forks its own node workers internally, but they all
+threads -- each run still forks its own node workers internally, but they all
 feed the one main-process dashboard. Expect --jobs progress bars advancing
 together, each labelled design_k/job0, then all completing.
 
-What to look for (--serial — end-of-run teardown between sequential runs)
+What to look for (--serial -- end-of-run teardown between sequential runs)
 ------------------------------------------------------------------------
 This exercises the "auto-disconnect at end of run" behavior. Each run() now
 tears the dashboard down in its finally (the summary hack is gone): the logger
 is restored and the atexit hook is unregistered, then the shared Board stops
 once its jobs are complete. So between serial runs you should see:
-* the live view come down and the terminal become usable again — a between-runs
+* the live view come down and the terminal become usable again -- a between-runs
   banner line prints to NORMAL scrollback (not hidden behind the live view);
 * the next run() re-open a fresh dashboard cycle for the next design;
 * a per-run report that the finished Project is reclaimed once its reference is
   dropped. The end-of-run stop() unregisters the (weakref) atexit trampoline and
-  the non-pinning hook lets GC reclaim the project — so expect "reclaimed: True".
-On an interactive TTY (screen=True) expect an alt-screen flip per run — that is
+  the non-pinning hook lets GC reclaim the project -- so expect "reclaimed: True".
+On an interactive TTY (screen=True) expect an alt-screen flip per run -- that is
 the known/parked cost of tearing down per run; a future screen=False switch
 removes it.
 """
@@ -183,7 +183,7 @@ def run_serial(jobs, nodes):
     As a diagnostic, we also drop the only reference to each finished project,
     force a GC, and REPORT whether it was reclaimed. The end-of-run stop()
     unregisters the (weakref) atexit trampoline, and because that hook never
-    pinned the dashboard/project, GC reclaims the project — so expect
+    pinned the dashboard/project, GC reclaims the project -- so expect
     "reclaimed: True".
     """
     import gc

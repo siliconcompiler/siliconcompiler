@@ -17,7 +17,7 @@ def main():
     runs a specialized compilation flow to handle the Chisel to Verilog
     conversion, and finally displays a summary and the final layout.
     """
-    # --- Design Setup ---
+    # Design Setup
     # Create a design object to hold the configuration.
     design = Design("gcd")
 
@@ -37,7 +37,7 @@ def main():
     with design.active_dataroot("gcd"), design.active_fileset("sdc"):
         design.add_file("gcd_chisel.sdc")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create an ASIC project from the design configuration.
     project = ASIC(design)
 
@@ -52,7 +52,7 @@ def main():
     # beginning, before running the standard synthesis and PnR tools.
     project.set_flow(ChiselASICFlow())
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Execute the complete compilation flow.
     project.run()
 

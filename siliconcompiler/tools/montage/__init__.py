@@ -1,5 +1,5 @@
 '''
-ImageMagick® is a free and open-source software suite for displaying, converting, and editing raster
+ImageMagick is a free and open-source software suite for displaying, converting, and editing raster
 image and vector image files.
 It can read and write over 200 image file formats, and can support a wide range of image
 manipulation operations, such as resizing, cropping, and color correction.

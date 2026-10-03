@@ -257,9 +257,6 @@ class CocotbTask(Task):
         # what reports a missing cocotb, so without cocotb it is built without
         # cocotb's parts.
 
-        ##########################################
-        # PATH: add cocotb libs directory
-        ##########################################
         if include_path and _has_cocotb:
             libs_dir = str(cocotb_tools.config.libs_dir)
             path_parts = envs.get("PATH", "").split(os.pathsep)
@@ -267,9 +264,6 @@ class CocotbTask(Task):
                 path_parts.insert(0, libs_dir)
             envs["PATH"] = os.pathsep.join(p for p in path_parts if p)
 
-        ##########################################
-        # PYTHONPATH: add dirs to python path
-        ##########################################
         python_path = [p for p in envs.get("PYTHONPATH", "").split(os.pathsep) if p]
 
         # Get test module directories
@@ -284,9 +278,6 @@ class CocotbTask(Task):
         # Set new python path
         envs["PYTHONPATH"] = os.pathsep.join(python_path)
 
-        ##########################################
-        # GPI_USERS / PYGPI_PYTHON_BIN: the Python this node runs on
-        ##########################################
         # Resolved here rather than in setup(): these are absolute paths into
         # whichever Python and cocotb execute the node. GPI_USERS lists the
         # libraries the GPI layer loads to bring Python up inside the

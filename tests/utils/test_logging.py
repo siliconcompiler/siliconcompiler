@@ -11,10 +11,6 @@ from siliconcompiler.utils.logging import (
     SCColorLoggerFormatter, SCLoggerFormatter, SC_LOG, SC_LOGERROR)
 
 
-# ---------------------------------------------------------------------------
-# SCSuppressLoggerFilter
-# ---------------------------------------------------------------------------
-
 def _make_record(level=logging.INFO, msg="hello"):
     return logging.LogRecord(
         name="test", level=level, pathname=__file__, lineno=1,
@@ -70,10 +66,6 @@ def test_suppress_filter_attached_to_handler_blocks_emit():
     assert received == ["first", "third"]
 
 
-# ---------------------------------------------------------------------------
-# SCTeeLoggerHandler
-# ---------------------------------------------------------------------------
-
 class _Capture(logging.Handler):
     def __init__(self):
         super().__init__()
@@ -120,7 +112,7 @@ def test_tee_skips_specified_handler(logger):
 
 def test_tee_resolves_handlers_dynamically(logger):
     """A handler added to the logger after the tee was constructed must
-    still receive forwarded records — this is the whole point of using a
+    still receive forwarded records -- this is the whole point of using a
     tee rather than passing a static handler list to the QueueListener."""
     tee = SCTeeLoggerHandler(logger)
 
@@ -138,7 +130,7 @@ def test_tee_resolves_handlers_dynamically(logger):
 
 def test_tee_picks_up_removed_handlers(logger):
     """Conversely, removing a handler from the logger must stop forwarding
-    to it — the tee should not retain a stale reference."""
+    to it -- the tee should not retain a stale reference."""
     a = _Capture()
     logger.addHandler(a)
 
@@ -152,7 +144,7 @@ def test_tee_picks_up_removed_handlers(logger):
 
 def test_tee_skips_itself_to_prevent_recursion(logger):
     """If the tee is ever attached to the logger it watches, emitting must
-    not recurse infinitely — the tee skips itself in addition to ``skip``."""
+    not recurse infinitely -- the tee skips itself in addition to ``skip``."""
     capture = _Capture()
     logger.addHandler(capture)
 
@@ -181,10 +173,6 @@ def test_tee_tolerates_handler_emit_failure(logger):
 
     assert good.records == ["survive"]
 
-
-# ---------------------------------------------------------------------------
-# SCHistoryLogHandler
-# ---------------------------------------------------------------------------
 
 def test_history_retains_emitted_records():
     h = SCHistoryLogHandler()
@@ -255,10 +243,6 @@ def test_history_captures_through_logger():
 
     assert [r.getMessage() for r in h.records] == ["captured value", "warned"]
 
-
-# ---------------------------------------------------------------------------
-# console_quiet / SCConsoleQuietFilter
-# ---------------------------------------------------------------------------
 
 def test_console_quiet_filter_passes_untagged_records():
     f = SCConsoleQuietFilter()
@@ -421,10 +405,6 @@ def test_history_drops_quiet_records():
     assert [r.getMessage() for r in h.records] == ["kept"]
 
 
-# ---------------------------------------------------------------------------
-# Tool output levels
-# ---------------------------------------------------------------------------
-
 def test_tool_levels_are_named():
     assert logging.getLevelName(SC_LOG) == "LOG"
     assert logging.getLevelName(SC_LOGERROR) == "LOGERROR"
@@ -463,10 +443,6 @@ def test_logerror_is_colored_like_error():
     # LOG stands in for INFO, which is left uncolored.
     assert formatter.format(_make_record(level=SC_LOG, msg="x")).startswith("| LOG")
 
-
-# ---------------------------------------------------------------------------
-# report_schema_warnings
-# ---------------------------------------------------------------------------
 
 def _warn_newer_schema(text="0.99.0 is newer"):
     warnings.warn(text, SchemaVersionWarning)

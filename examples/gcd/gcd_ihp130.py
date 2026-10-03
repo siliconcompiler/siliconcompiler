@@ -17,9 +17,9 @@ def main():
     2. A standalone Design Rule Check (DRC) on the resulting GDSII layout.
     """
 
-    # --- Part 1: RTL-to-GDSII Compilation ---
+    # Part 1: RTL-to-GDSII Compilation
 
-    # --- Design Setup ---
+    # Design Setup
     # Create a design object to hold the configuration.
     design = Design("gcd")
 
@@ -35,7 +35,7 @@ def main():
     with design.active_dataroot("gcd"), design.active_fileset("sdc"):
         design.add_file("gcd.sdc")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create an ASIC project from the design configuration.
     project = ASIC(design)
 
@@ -47,14 +47,14 @@ def main():
     # and the default RTL-to-GDSII tool flow.
     ihp130_demo(project)
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).
     project.run()
 
     # Print a summary of the results (timing, area, power, etc.).
     project.summary()
 
-    # --- Part 2: Standalone DRC Verification ---
+    # Part 2: Standalone DRC Verification
 
     # After the first run, we find the path to the output GDSII file...
     # ...and add it to a new 'layout' fileset. This GDSII file will be the

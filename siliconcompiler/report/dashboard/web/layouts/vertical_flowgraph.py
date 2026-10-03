@@ -30,7 +30,7 @@ def layout():
     # Render the main page header (title, job selector, settings)
     components.page_header()
 
-    # --- Dynamically create tabs based on available data ---
+    # Dynamically create tabs based on available data
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
     if os.path.isfile(os.path.join(jobdir(project), f'{project.name}.png')):
         tab_headings.append("Design Preview")
@@ -42,7 +42,7 @@ def layout():
     # Create a dictionary mapping tab names to the tab container objects
     tabs = {name: tab for name, tab in zip(tab_headings, streamlit.tabs(tab_headings))}
 
-    # --- Populate the "Metrics" tab ---
+    # Populate the "Metrics" tab
     with tabs["Metrics"]:
         if state.get_key(state.DISPLAY_FLOWGRAPH):
             # Create a two-column layout for the flowgraph and main content
@@ -85,18 +85,18 @@ def layout():
                 step, index = node_to_step_index_map[state.get_selected_node()]
                 components.node_viewer(project, step, index, metric_dataframe)
 
-    # --- Populate the "Manifest" tab ---
+    # Populate the "Manifest" tab
     with tabs["Manifest"]:
         components.manifest_viewer(project)
 
-    # --- Populate the "File Viewer" tab ---
+    # Populate the "File Viewer" tab
     with tabs["File Viewer"]:
         components.file_viewer(
             project,
             state.get_key(state.SELECTED_FILE),
             page_key=state.SELECTED_FILE_PAGE)
 
-    # --- Populate conditional tabs ---
+    # Populate conditional tabs
     if "Design Preview" in tabs:
         with tabs["Design Preview"]:
             components.file_viewer(project, os.path.join(jobdir(project), f'{project.name}.png'))

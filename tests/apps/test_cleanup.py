@@ -74,10 +74,6 @@ def cache_with_dataroot_entries(temp_cache_dir):
     return temp_cache_dir
 
 
-# ============================================================================
-# Tests for basic functionality
-# ============================================================================
-
 def test_cleanup_collects_dataroot_entries(monkeypatch, cache_with_dataroot_entries):
     '''The app is pointed at the cache root and reaches the data sources inside it.'''
     monkeypatch.setattr('sys.argv', [
@@ -189,10 +185,6 @@ def test_cleanup_different_threshold(monkeypatch, cache_with_old_entries):
     assert not recent_entry.exists()
 
 
-# ============================================================================
-# Tests for edge cases
-# ============================================================================
-
 def test_cleanup_nonexistent_cache_dir(monkeypatch, tmp_path):
     '''Test cleanup handles nonexistent cache directory gracefully.'''
     nonexistent = tmp_path / "nonexistent_cache"
@@ -259,10 +251,6 @@ def test_cleanup_with_sc_lock_file(monkeypatch, temp_cache_dir):
     assert not entry.exists()
 
 
-# ============================================================================
-# Tests for error handling
-# ============================================================================
-
 def test_cleanup_stat_error_handling(monkeypatch, temp_cache_dir, capsys):
     '''Test cleanup handles entries with unreadable lock files gracefully.'''
     entry = temp_cache_dir / "entry-readable"
@@ -298,10 +286,6 @@ def test_cleanup_cache_dir_is_file(monkeypatch, tmp_path):
     result = cleanup.main()
     assert result == 1
 
-
-# ============================================================================
-# Tests for lock file handling
-# ============================================================================
 
 def test_cleanup_removes_both_lock_types(monkeypatch, temp_cache_dir):
     '''Test cleanup removes both .lock and .sc_lock files.'''
@@ -354,10 +338,6 @@ def test_cleanup_lock_file_time_is_used(monkeypatch, temp_cache_dir):
     # Entry should NOT be deleted because lock file is recent
     assert entry.exists()
 
-
-# ============================================================================
-# Tests for size calculations
-# ============================================================================
 
 def test_cleanup_calculates_size(monkeypatch, cache_with_old_entries, capsys):
     '''Test cleanup correctly calculates directory sizes.'''
@@ -418,10 +398,6 @@ def test_cleanup_summary_shows_total_size(monkeypatch, cache_with_old_entries, c
     assert "entries removed" in output
 
 
-# ============================================================================
-# Tests for command-line arguments
-# ============================================================================
-
 def test_cleanup_default_days(monkeypatch, cache_with_old_entries):
     '''Test cleanup uses default 90 days when not specified.'''
     # Entry is 91 days old
@@ -470,10 +446,6 @@ def test_cleanup_dryrun_true_prevents_deletion(monkeypatch, cache_with_old_entri
     assert old_entry.exists()
 
 
-# ============================================================================
-# Tests for read-only cache handling
-# ============================================================================
-
 def test_cleanup_handles_readonly_entries(monkeypatch, cache_with_old_entries):
     '''Test cleanup can delete read-only cache entries.'''
     old_entry = cache_with_old_entries / "old-entry-1234567890ab"
@@ -496,10 +468,6 @@ def test_cleanup_handles_readonly_entries(monkeypatch, cache_with_old_entries):
     # Should be able to delete read-only files
     assert not old_entry.exists()
 
-
-# ============================================================================
-# Tests for logging and output
-# ============================================================================
 
 def test_cleanup_logs_cache_directory(monkeypatch, temp_cache_dir, capsys):
     '''Test cleanup logs the cache directory being scanned.'''
@@ -544,10 +512,6 @@ def test_cleanup_logs_days_threshold(monkeypatch, temp_cache_dir, capsys):
     output = capsys.readouterr().out
     assert "Removing entries not accessed in 42 days" in output
 
-
-# ============================================================================
-# Tests for complex scenarios
-# ============================================================================
 
 def test_cleanup_mixed_old_recent_and_no_lock(monkeypatch, temp_cache_dir):
     '''Test cleanup with mix of old, recent, and entries without lock files.'''
@@ -648,10 +612,6 @@ def test_cleanup_with_nested_directories(monkeypatch, temp_cache_dir):
     assert not entry.exists()
     assert not lock.exists()
 
-
-# ============================================================================
-# Tests for return codes
-# ============================================================================
 
 def test_cleanup_returns_zero_on_success(monkeypatch, temp_cache_dir):
     '''Test cleanup returns 0 on success.'''

@@ -930,7 +930,7 @@ class RemoteResolver(Resolver):
         will not create a dirty warning in git repositories.
 
         Any directory named ``.git`` is skipped so git's internal state (including
-        ``.git/lfs/tmp`` and per-submodule ``.git/modules/<name>``) stays writable —
+        ``.git/lfs/tmp`` and per-submodule ``.git/modules/<name>``) stays writable --
         otherwise routine git operations like diff/status fail on LFS-tracked repos
         because the clean filter cannot buffer through ``.git/lfs/tmp``.
 

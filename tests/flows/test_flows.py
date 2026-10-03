@@ -206,11 +206,8 @@ def test_routing_flow_node_order():
 
 
 def test_routing_flow_reduction_consumes_the_last_route_node():
-    """With np>1 the reduction has to read the end of the chain, not detailed routing.
-
-    Appending a node to the chain without moving the min edge would leave the
-    reduction picking the pre-repair database while every per-index chain still looked
-    correct, so this pins which node feeds it.
+    """With np>1 the min reduction reads the end of each route chain, not detailed routing.
+    Otherwise it picks the pre-repair database while each per-index chain still looks right.
     """
     flow = RoutingFlow("routing", np=3)
 
@@ -312,10 +309,8 @@ def test_detect_elaboration_language_multiple_filesets():
     assert detect_elaboration_language(proj) == "vhdl"
 
 
-# ---------------------------------------------------------------------------
 # Incomplete / malformed project setups: detection must never raise, it should
 # always fall back to the (possibly customized) default language.
-# ---------------------------------------------------------------------------
 
 def test_detect_elaboration_language_no_design():
     # An empty project has no design name set.

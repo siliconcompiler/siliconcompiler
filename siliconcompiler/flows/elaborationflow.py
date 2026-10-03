@@ -229,7 +229,6 @@ class BluespecElaborationFlow(Flowgraph):
         self.node("convert", BluespecConvertTask())
 
 
-##################################################
 if __name__ == "__main__":
     for flowcls in [SlangElaborationFlow,
                     SV2VElaborationFlow,

@@ -372,11 +372,8 @@ def test_ccache_dir(heartbeat_design, monkeypatch):
 
 
 def test_ccache_dir_survives_the_node_export(heartbeat_design, monkeypatch):
-    """The node exports the variables, then asks again to write the replay script.
-
-    The second answer has to match the first, or a replay would run without the
-    cache the run itself used.
-    """
+    """CCACHE_DIR is unchanged when asked again after the node exported it, so the replay
+    script uses the cache the run did."""
     monkeypatch.delenv("CCACHE_DIR", raising=False)
 
     proj = Project(heartbeat_design)

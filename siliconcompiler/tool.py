@@ -173,7 +173,7 @@ def _split_io_lines(buffer: str) -> Tuple[List[str], str]:
             start = i
         elif c == '\r':
             if i + 1 >= n:
-                # Trailing \r — defer in case next read starts with \n.
+                # Trailing \r -- defer in case next read starts with \n.
                 break
             lines.append(buffer[start:i])
             if buffer[i + 1] == '\n':
@@ -219,7 +219,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     if pty is None:
         raise RuntimeError("pty module is not available on this platform")
 
-    # POSIX-only modules — kept inside the function since this is the only
+    # POSIX-only modules -- kept inside the function since this is the only
     # place they're used and they're not importable on Windows.
     import select
     import signal
@@ -235,7 +235,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     # ``/dev/null`` fd (see CPython multiprocessing/process.py and
     # multiprocessing/util.py). Crucially, ``sys.stdin.close()`` does NOT
     # close the underlying fd 0 because the Python stdio wrappers are
-    # built with ``closefd=False`` — so fd 0 stays attached to the user's
+    # built with ``closefd=False`` -- so fd 0 stays attached to the user's
     # real terminal, but ``sys.stdin.fileno()`` now returns the /dev/null
     # fd (typically 3). Reading from that path gives instant EOF and
     # silently breaks Enter/Tab/arrow forwarding. This is also why the
@@ -280,11 +280,11 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
             return -1
 
     # Fallback chain when /dev/tty is unavailable:
-    #   1. fd 0 / fd 1 directly — matches what ``pty.spawn`` did and works
+    #   1. fd 0 / fd 1 directly -- matches what ``pty.spawn`` did and works
     #      around the multiprocessing-worker case where ``sys.stdin`` has
     #      been reassigned to wrap a /dev/null fd while fd 0 itself still
     #      points at the real terminal.
-    #   2. ``sys.stdin.fileno()`` / ``sys.stdout.fileno()`` — covers
+    #   2. ``sys.stdin.fileno()`` / ``sys.stdout.fileno()`` -- covers
     #      embedded environments that genuinely reassign fd 0/1.
     if tty_fd >= 0:
         parent_in = parent_out = tty_fd
@@ -295,12 +295,12 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     # parent's stdin is a real terminal: querying its window size and
     # listening for SIGWINCH. The TIOCGWINSZ ioctl fails with ENOTTY on a
     # pipe or regular file, and SIGWINCH is delivered by the kernel only
-    # when a terminal actually resizes — so attempting either against a
+    # when a terminal actually resizes -- so attempting either against a
     # non-TTY would just produce errors with no upside.
     #
     # NOTE: this flag does NOT gate stdin forwarding or raw-mode setup.
     # Those run whenever we have any stdin fd at all, with the calls
-    # wrapped in try/except — see below for why that matters for tab
+    # wrapped in try/except -- see below for why that matters for tab
     # completion and arrow keys.
     parent_is_tty = parent_in >= 0 and os.isatty(parent_in)
 
@@ -331,7 +331,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
 
     # Apply raw mode opportunistically whenever we have an stdin fd. Without
     # raw mode the parent terminal stays line-disciplined, which means the
-    # user has to press Enter before any keystroke reaches the child — fatal
+    # user has to press Enter before any keystroke reaches the child -- fatal
     # for tab completion, arrow-key history, and tclreadline-style editing.
     # ``setraw`` on a non-TTY fd raises termios.error and is silently
     # ignored, mirroring ``pty.spawn``'s behaviour.
@@ -344,7 +344,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
             old_attrs = None
 
     # Always forward parent stdin when we have a valid fd. ``pty.spawn``
-    # does the same — gating this on ``isatty`` would silently break
+    # does the same -- gating this on ``isatty`` would silently break
     # interactive sessions whose stdin is a real TTY but reports otherwise
     # (e.g. inherited through a multiprocessing worker on some setups).
     readable = [master_fd]
@@ -367,7 +367,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
             except OSError:
                 return False
             if chunk == 0:
-                # No progress — treat as failure rather than spin.
+                # No progress -- treat as failure rather than spin.
                 return False
             written += chunk
         return True
@@ -379,7 +379,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     # open would leave the user's terminal stuck in raw mode.
     #
     # The outer try/finally guarantees ``os.waitpid`` runs even if the
-    # log open/close raises — the child of pty.fork() must always be
+    # log open/close raises -- the child of pty.fork() must always be
     # reaped, otherwise it lingers as a zombie.
     log_writer = None
     status = None
@@ -418,7 +418,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
                         readable.remove(parent_in)
                         continue
                     if not _write_all(master_fd, data):
-                        # Child PTY closed / errored — exit the loop and
+                        # Child PTY closed / errored -- exit the loop and
                         # let the cleanup + waitpid path run.
                         break
         finally:
@@ -731,7 +731,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     def _io_runtime_flow(self) -> RuntimeFlowgraph:
         """
         Runtime view of the flow that honors the project's ``from`` / ``to``
-        / ``prune`` options — i.e. the nodes that will actually run this
+        / ``prune`` options -- i.e. the nodes that will actually run this
         invocation. Distinct from ``schema_flowruntime`` (which is the full
         graph minus pruned nodes), used by IO validation so that nodes
         outside the active run are treated as on-disk dependencies.
@@ -1632,7 +1632,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
             if breakpoint and sys.platform in ('darwin', 'linux'):
                 # Interactive PTY session. NOTE: this path is intentionally
-                # supervised by the user, not by SC — the timeout, memory
+                # supervised by the user, not by SC -- the timeout, memory
                 # limit, and nice settings applied to the standard subprocess
                 # path below are NOT enforced here. See _run_breakpoint for
                 # details on winsize/SIGWINCH/raw-mode handling.
@@ -1995,9 +1995,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         EditableSchema(self).insert("var", name, param)
         return param
 
-    ###############################################################
-    # Task settings
-    ###############################################################
     def add_required_key(self, obj: Union[BaseSchema, str], *key: str,
                          step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         '''
@@ -2517,9 +2514,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         else:
             return self.add("warningoff", type, step=step, index=index)
 
-    ###############################################################
-    # Tool settings
-    ###############################################################
     def set_exe(self, exe: Optional[str] = None, vswitch: Optional[Union[str, List[str]]] = None,
                 format: Optional[str] = None,
                 step: Optional[str] = None, index: Optional[Union[str, int]] = None,
@@ -2729,9 +2723,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 keys.append((obj, key))
         return keys
 
-    ###############################################################
-    # Schema
-    ###############################################################
     def get(self, *keypath: str, field: Optional[str] = 'value',
             step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         if step is None:
@@ -2954,9 +2945,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return docs
 
-    ###############################################################
-    # Task methods
-    ###############################################################
     @classmethod
     def make_docs(cls):
         from siliconcompiler import Flowgraph, Design, Project

@@ -866,11 +866,7 @@ def test_normalize_float_range_invalid(range_str, value, match):
     ("int", "tuple", False),
 ])
 def test_istype(sctype, check, expect):
-    """istype matches the top-level type only, without recursing into containers.
-
-    Checks are exercised both as classes (``list``, ``NodeEnumType``, ...) and
-    as the equivalent :meth:`astype` string tokens (``'list'``, ``'enum'``, ...).
-    """
+    """istype matches the top-level type only, given as a class or as an astype string token."""
     assert NodeType.istype(sctype, check) is expect
 
 

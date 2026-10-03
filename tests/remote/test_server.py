@@ -34,7 +34,6 @@ def _job_owner(nfs_path):
         return json.load(f)
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserver_credential,
                               scserver_nfs_path):
@@ -75,7 +74,6 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
     assert _job_owner(scserver_nfs_path) == {'username': user}
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
                                   scserver_credential):
@@ -135,14 +133,9 @@ def test_server(gcd_remote_test, scserver_nfs_path):
     assert _job_owner(scserver_nfs_path) == {'username': None}
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_server_partial(gcd_remote_test):
-    '''Basic sc-server test: Run a local instance of a server, and build the GCD
-       example using loopback network calls to that server.
-
-       This test runs a partial flowgraph on the remote server.
-    '''
+    '''A remote run with option 'to' set runs the flowgraph only up to that step.'''
 
     # Get the partially-configured GCD project object from the fixture.
     gcd_project = gcd_remote_test()
@@ -187,10 +180,6 @@ def test_server_slurm(gcd_remote_test):
     assert gcd_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
 
-
-###########################
-# Unit tests for Server class
-###########################
 
 def test_server_init():
     '''Test Server initialization'''
@@ -617,9 +606,7 @@ async def test_handle_delete_job_owner():
 @pytest.mark.asyncio
 async def test_handle_delete_job_unowned_is_open():
     '''A job submitted without authentication has no owner, so anyone may delete it.
-
-    That is this reference server's documented behaviour on an unauthenticated
-    server, not a gap: with no identity on the request there is nothing to check.
+    That is intended, not a gap.
     '''
     server = Server()
     server.set('option', 'auth', False)
@@ -1199,10 +1186,6 @@ async def test_handle_get_results_with_auth_error():
     assert response.status == 403
 
 
-###########################
-# Job tracking helpers
-###########################
-
 def _make_server(cluster='local', auth=False):
     '''Server with a working nfs mount, ready to have handlers called on it.'''
     server = Server()
@@ -1227,10 +1210,6 @@ def _register_job(server, job_hash, nodes=None, username=None, project=None):
                                            'project': project}
     return job_name
 
-
-###########################
-# job ownership, across every handler that names a job
-###########################
 
 def _authed_server_with_job(job_hash, owner):
     """A server with one job owned by `owner`, and two users who can authenticate."""
@@ -1393,12 +1372,8 @@ def _job_request(handler, job_hash, username, node='step0'):
 @pytest.mark.parametrize("case,auth,owner,caller,refused", _OWNERSHIP_CASES,
                          ids=[c[0] for c in _OWNERSHIP_CASES])
 async def test_job_ownership(handler, case, auth, owner, caller, refused):
-    """Every handler that names a job agrees on who may act on it.
-
-    The unowned rows matter as much as the refused one: a job submitted without
-    authentication has no owner, and anybody holding its hash may act on it. That is
-    this server's intended behaviour, so it is asserted rather than left to be
-    tightened by accident.
+    """Every handler that names a job agrees on who may act on it; a job submitted without
+    authentication has no owner, and anyone holding its hash may act on it, by design.
     """
     job_hash = 'a' * 32
     server = _server_holding_job(job_hash, owner, auth)
@@ -1414,10 +1389,6 @@ async def test_job_ownership(handler, case, auth, owner, caller, refused):
         # was not refused is this test's
         assert response.status != 403, case
 
-
-###########################
-# handle_cancel_job
-###########################
 
 @pytest.mark.asyncio
 async def test_handle_cancel_job_not_running():
@@ -1509,13 +1480,7 @@ async def test_handle_cancel_job_invalid_params(params):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('cluster', ['local', 'slurm', 'docker'])
 async def test_handle_cancel_job_asks_the_job(cluster, gcd_nop_project):
-    '''Every cluster is canceled the same way.
-
-    Where a job's nodes run is the job's own business: the project reaches its
-    scheduler, the scheduler ends its nodes, and a node that dispatched
-    elsewhere releases that itself. The server used to branch on the cluster
-    here and reach past all of it.
-    '''
+    '''Every cluster is canceled the same way, by calling cancel() on the job's scheduler.'''
     server = _make_server(cluster=cluster)
     job_hash = 'd' * 32
     job_name = _register_job(server, job_hash, project=gcd_nop_project)
@@ -1556,10 +1521,6 @@ async def test_handle_cancel_job_then_check_progress():
     response = await server.handle_check_progress(progress_request)
     assert json.loads(response.body)['status'] == JobStatus.CANCELED
 
-
-###########################
-# check_progress per-node reporting
-###########################
 
 @pytest.mark.asyncio
 async def test_handle_check_progress_elapsed_time():
@@ -1626,10 +1587,6 @@ async def test_handle_check_progress_claimed_job():
     assert body['message'] == {}
 
 
-###########################
-# Routing
-###########################
-
 def test_server_routes():
     '''Every documented endpoint is routed, and results are not served
        statically'''
@@ -1666,10 +1623,6 @@ def test_server_run_creates_staging():
     assert os.path.isdir(server.staging_mount)
     assert os.path.dirname(server.staging_mount) == server.nfs_mount
 
-
-###########################
-# Upload staging
-###########################
 
 class _MockPart:
     def __init__(self, name, data=None, chunks=None):
@@ -1758,10 +1711,6 @@ async def test_handle_remote_run_removes_failed_upload(gcd_nop_project):
     assert os.listdir(server.staging_mount) == []
 
 
-###########################
-# Job bookkeeping
-###########################
-
 def test_remote_sc_tracks_and_clears_nodes(gcd_nop_project, monkeypatch):
     '''remote_sc publishes the node list while the job runs, and takes it back
        down afterwards'''
@@ -1788,11 +1737,8 @@ def test_remote_sc_tracks_and_clears_nodes(gcd_nop_project, monkeypatch):
 
 
 def test_remote_sc_reports_a_cancel_as_a_cancel(gcd_nop_project, monkeypatch):
-    '''A canceled run raises like any incomplete flow, but it is not a failure
-
-    The run stops by raising -- it never reached its exit nodes -- and that
-    exception would otherwise come out of the job thread as a traceback, for an
-    outcome the client asked for.
+    '''remote_sc treats the exception a canceled run raises as a cancel, not a failure, and
+    clears the job's state.
     '''
     server = _make_server()
     job_hash = 'd' * 32
@@ -1877,10 +1823,6 @@ async def test_shutdown_with_no_jobs():
     assert not mock_halt.called
 
 
-###########################
-# Live server
-###########################
-
 @pytest.mark.timeout(60)
 def test_server_does_not_serve_mount(scserver, scserver_nfs_path):
     '''A GET cannot walk out of the results endpoint into the mount'''
@@ -1933,10 +1875,6 @@ async def test_handle_delete_job_archive_only():
     assert response.status == 200
     assert not os.path.exists(tar_file)
 
-
-###########################
-# Upload size
-###########################
 
 def test_max_upload_size_default():
     '''A job is as big as it is: the server does not cap it unless told to'''
@@ -2004,10 +1942,6 @@ def test_server_enforces_upload_limit(scserver):
     assert resp.status_code == 413
 
 
-###########################
-# Progress callbacks
-###########################
-
 def _callback_project(server, job_hash):
     '''A project set up the way remote_sc() leaves one for the callbacks:
        build directory under the job's own root on the mount.'''
@@ -2052,11 +1986,8 @@ def test_run_start_publishes_node_statuses():
 
 
 def test_run_start_applies_a_cancel_that_beat_the_run():
-    '''A cancel can land after the job is claimed but before its thread reaches
-       Project.run(), where there is no scheduler yet to hand it to.
-
-    It is recorded rather than lost, and pre_run is the first point past that
-    window: the scheduler exists and no node has been launched.
+    '''A cancel recorded before the job's run had a scheduler is applied when the run starts,
+       before any node is launched.
     '''
     server = _make_server()
     job_hash = 'd' * 32
@@ -2128,10 +2059,6 @@ def test_node_end_archives_and_stops_the_clock():
     assert node['status'] == NodeStatus.SUCCESS
     assert node['endtime'] >= node['starttime']
 
-
-###########################
-# Remaining server paths
-###########################
 
 def test_run_loads_users_json():
     '''run() imports the user table when authentication is on'''
@@ -2288,11 +2215,8 @@ async def test_shutdown_tolerates_job_finishing_first():
     'A' * 32,
 ])
 def test_server_get_results_rejects_bad_job_hash(scserver, scserver_nfs_path, job_hash):
-    '''A job hash from the URL cannot walk out of the mount.
-
-    aiohttp percent-decodes a path segment into match_info, so '%2e%2e%2f'
-    reaches the handler as '../' -- the hash has to be validated before it is
-    joined onto a path, not merely matched by the route.
+    '''A malformed job hash in the URL is rejected with 400, including a percent-encoded
+    traversal, which aiohttp decodes to '../' before the handler sees it.
     '''
     port = scserver()
 
@@ -2305,12 +2229,9 @@ def test_server_get_results_rejects_bad_job_hash(scserver, scserver_nfs_path, jo
 
 @pytest.mark.timeout(60)
 def test_server_get_results_cannot_escape_mount(scserver, scserver_nfs_path):
-    '''The traversal that reaches a real file outside the mount is refused.
-
-    Escaping needs the path to stay resolvable, so this lays out what an
-    unchecked hash of '../x' resolves to: a sibling directory of the mount, and
-    the archive name the handler builds, one level above it.
-    '''
+    '''A '../x' job hash is refused even when the file it resolves to exists outside the mount.'''
+    # what an unchecked '../x' resolves to: a sibling of the mount, and the archive
+    # name the handler builds one level above it
     outside = os.path.dirname(scserver_nfs_path)
     os.makedirs(os.path.join(outside, 'x'), exist_ok=True)
     with open(os.path.join(outside, 'x_None.tar.gz'), 'w') as f:

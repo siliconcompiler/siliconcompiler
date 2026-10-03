@@ -12,9 +12,6 @@ from lambdapdk.ihp130.libs.sg13g2_sram import IHP130Lambdalib_SinglePort, \
 from lambdapdk.ihp130.libs.sg13g2_io import IHP130LambdaLib_IO_1p2
 
 
-####################################################
-# Target Setup Function
-####################################################
 def ihp130_demo(
         project: ASIC,
         syn_np: int = 1,

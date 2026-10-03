@@ -92,9 +92,6 @@ def test_scheduler():
     assert opt.get("scheduler", field="schema") is opt.scheduler
 
 
-###########################
-# OptionSchema Tests
-###########################
 def test_remote():
     option = OptionSchema()
     option.set_remote(True)
@@ -336,9 +333,6 @@ def test_callbacks_invalid():
         OptionSchema()._add_callback("invalid", None)
 
 
-###########################
-# SchedulerSchema Tests
-###########################
 def test_name():
     scheduler = OptionSchema().scheduler
     scheduler.set_name('slurm')

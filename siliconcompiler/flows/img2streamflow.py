@@ -33,7 +33,6 @@ class Img2StreamFlow(Flowgraph):
         ]
 
 
-##################################################
 if __name__ == "__main__":
     flow = Img2StreamFlow()
     flow.write_flowgraph(f"{flow.name}.png")

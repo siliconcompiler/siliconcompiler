@@ -172,13 +172,7 @@ def test_runtime_args_clock(gcd_design):
 
 
 def test_clock_period_uses_the_library_multiplier(gcd_design):
-    """A library whose timing is not in ns scales the period bambu is given.
-
-    The multiplier lives at ['tool','bambu','clock_multiplier'] on the main
-    library, the same shape as the device name. Reading it from anywhere else
-    fails silently -- valid() just returns False and the period stays unscaled,
-    which is a 1000x error on a library like asap7 that works in ps.
-    """
+    """The main library's bambu clock_multiplier scales the period, for a library not in ns."""
     from siliconcompiler import ASIC
     from siliconcompiler.tools.bambu import BambuStdCellLibrary
 
@@ -316,12 +310,7 @@ def test_verilator_parallel_only_for_verilator(datadir):
 
 
 def test_upstream_testbench_reaches_generate_tb(datadir):
-    """A front end that emits the testbench alongside the IR needs no fileset.
-
-    soda-opt writes <kernel>_testbench.c, so when the flow supplies it the node
-    takes it from inputs/ rather than making the caller name a fileset that
-    holds a file the flow already produced.
-    """
+    """An upstream node's testbench reaches --generate-tb from inputs/, with no fileset needed."""
     from siliconcompiler import ASIC
     from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
 
@@ -725,12 +714,7 @@ def test_resource_summary_report(main_kernel_project, datadir):
 
 
 def test_printdot_graphs_are_collected_as_reports(main_kernel_project, datadir):
-    """--print-dot writes a design-shaped tree of graphs, so they are reports.
-
-    They cannot be outputs: outputs/ is checked against the declared list and an
-    undeclared file there fails the node, while the number and names of these
-    depend on the functions in the design.
-    """
+    """--print-dot graphs are collected under reports/ with their tree intact, not into outputs/."""
     task = convert.ConvertTask.find_task(main_kernel_project)
     task.set_bambu_printdot(True)
 
@@ -791,13 +775,8 @@ def test_no_resource_report_without_the_block(main_kernel_project, datadir, tmp_
 
 
 def test_cycles_are_parsed_even_though_nothing_stores_them(main_kernel_project, datadir):
-    """The value is read now, so it lands the day a cycles metric exists.
-
-    record_metric() drops an unknown metric on the floor, so the parse cannot be
-    observed through the schema; capture the call instead. Without this the
-    regex could rot silently until someone adds the metric and wonders why it
-    is empty.
-    """
+    """post_process() parses the cycle count even though no metric stores it yet.
+    record_metric() drops unknown metrics, so the test captures the call instead."""
     node = SchedulerNode(main_kernel_project, "convert", "0")
 
     os.makedirs("outputs", exist_ok=True)
@@ -995,12 +974,8 @@ def test_simulator_is_an_enum():
 @pytest.mark.eda
 @pytest.mark.timeout(900)
 def test_simulation_reports_cycles(datadir):
-    """Simulating really does produce the cycle counts the driver parses.
-
-    Needs a working simulation toolchain -- verilator plus the headers bambu's
-    MDPI runtime compiles against (linux-libc-dev and the 32-bit sets); without
-    them bambu fails building its wrapper rather than reporting anything.
-    """
+    """Simulating prints the total cycle count the driver parses. Needs verilator and the
+    headers bambu's MDPI runtime builds against (linux-libc-dev and the 32-bit sets)."""
     from siliconcompiler.targets import freepdk45_demo
 
     design = Design("gcd")
@@ -1036,13 +1011,8 @@ def test_simulation_reports_cycles(datadir):
 
 
 def test_asic_without_a_target(gcd_design):
-    """An ASIC project that has not loaded a target still builds a command line.
-
-    ['asic','mainlib'] is a valid keypath on every ASIC project but is empty
-    until a target fills it in, so asking whether the keypath is valid says
-    nothing about whether there is a library to read a device name from. The
-    clock multiplier is read the same way and has the same trap.
-    """
+    """An ASIC project with no target still builds a command line, with no --device or clock
+    scaling: ['asic','mainlib'] is a valid keypath but stays empty until a target sets it."""
     proj = ASIC(gcd_design)
     proj.add_fileset(["rtl", "sdc"])
 
@@ -1181,12 +1151,8 @@ def test_c_sources_still_carry_their_compile_flags(datadir):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_llvm_from_upstream_node_run(datadir):
-    """bambu synthesizes LLVM IR handed to it by an upstream node.
-
-    This is how the MLIR front ends reach bambu: the design's filesets hold
-    MLIR, and the IR to synthesize is produced by the flow. The import task
-    stages the IR verbatim, standing in for that front end.
-    """
+    """bambu synthesizes LLVM IR handed over by an upstream node, as from an MLIR front end;
+    an import task stands in for that front end."""
     from siliconcompiler import ASIC
     from siliconcompiler.targets import freepdk45_demo
     from siliconcompiler.tools.builtin.importfiles import ImportFilesTask

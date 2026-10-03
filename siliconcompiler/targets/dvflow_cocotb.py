@@ -44,19 +44,12 @@ def dvflow_cocotb(
     project.set_flow(IcarusCocotbDVFlow(np=np))
     project.add_dep(VerilatorCocotbDVFlow(np=np))
 
-    ####################################
-    # Setup icarus flow
-    ####################################
     compile_task = IcarusCompileTask.find_task(project)
 
     compile_task.set_trace_enabled(trace)
 
     if timescale is not None:
         compile_task.set_icarus_timescale(unit=timescale[0], precision=timescale[1])
-
-    ####################################
-    # Setup verilator flow
-    ####################################
 
     # Enable waveform tracing (must be enabled on both compile and simulate tasks)
     compile_task = VerilatorCompileTask.find_task(project)
@@ -70,10 +63,6 @@ def dvflow_cocotb(
         enable=trace,
         trace_type=trace_type
     )
-
-    ####################################
-    # Set cocotb settings for flows
-    ####################################
 
     # Optionally set a random seed for reproducibility
     if seed is not None:

@@ -50,7 +50,6 @@ def process_liberty_file(input_file, logger=None):
 
 if __name__ == "__main__":
     # Parse and validate arguments
-    # ==============================================================================
     parser = argparse.ArgumentParser(
         description='Replaces occurrences of cells in def or verilog files')
     parser.add_argument('--patterns', '-p', required=True,

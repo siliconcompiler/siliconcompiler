@@ -171,7 +171,7 @@ class SCHistoryLogHandler(logging.Handler):
     Retains the most recent log records in a bounded in-memory ring buffer.
 
     Attached to the project logger for the lifetime of the project so a
-    component that attaches late — notably the CLI dashboard's log pane — can
+    component that attaches late -- notably the CLI dashboard's log pane -- can
     be seeded with the history that preceded it, rather than starting blank.
 
     Raw :class:`logging.LogRecord` objects are stored (not formatted strings)
@@ -205,8 +205,8 @@ class SCHistoryLogHandler(logging.Handler):
         """Drop all retained records.
 
         Called once a consumer (the dashboard log pane) has drained the
-        history into its own buffer, so the same records are not handed out —
-        and re-rendered — again on a later attach. Held under the handler lock
+        history into its own buffer, so the same records are not handed out --
+        and re-rendered -- again on a later attach. Held under the handler lock
         so it cannot race with a concurrent ``emit``.
         """
         self.acquire()
@@ -220,7 +220,7 @@ class SCHistoryLogHandler(logging.Handler):
 
         The snapshot and the clear happen under the handler lock together, so
         a record emitted concurrently is either fully included in the returned
-        list or retained for the next drain — never lost in a window between a
+        list or retained for the next drain -- never lost in a window between a
         separate ``records`` read and ``clear`` call.
         """
         self.acquire()
@@ -237,7 +237,7 @@ class SCSuppressLoggerFilter(logging.Filter):
     A togglable filter that suppresses every record while ``active`` is True.
     Used to silence an existing handler without detaching it (so external
     references to the handler stay valid) while another component owns the
-    terminal — e.g. the CLI dashboard's live view.
+    terminal -- e.g. the CLI dashboard's live view.
     """
 
     def __init__(self):

@@ -199,7 +199,7 @@ class TimingTaskBase(OpenSTATask):
                 raise LookupError(f'{self.get("var", "timing_mode")} is not a defined mode')
         self.add_required_key("var", "top_n_paths")
         self.add_required_key("var", "unique_path_groups_per_clock")
-        # NOTE: opensta_generic_sdc is intentionally not required — the opensta scripts only read it
+        # NOTE: opensta_generic_sdc is intentionally not required; the opensta scripts only read it
         # in a commented-out fallback (the live reader is OpenROAD's separate same-named parameter).
 
         skip_reports = set(self.get("var", "skip_reports"))

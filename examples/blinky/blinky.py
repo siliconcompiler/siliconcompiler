@@ -20,7 +20,7 @@ def main():
     Requires: yosys, nextpnr, icepack -- no PDK; targets a Lattice iCE40 UP5K
     '''
 
-    # --- Design Setup ---
+    # Design Setup
     # Create a design schema to hold the project's configuration.
     design = Design("blinky")
     # Set up a 'dataroot' to easily reference local files.
@@ -37,7 +37,7 @@ def main():
     with design.active_dataroot("blinky"), design.active_fileset("pcf"):
         design.add_file("icebreaker.pcf")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create an FPGA, which is tailored for FPGA-specific needs.
     project = FPGA(design)
 
@@ -45,17 +45,17 @@ def main():
     project.add_fileset("rtl")
     project.add_fileset("pcf")
 
-    # --- FPGA Target Configuration ---
+    # FPGA Target Configuration
     # Apply this FPGA configuration to the project.
     project.set_fpga(ICE40Up5k_sg48())
 
-    # --- Flow Loading ---
+    # Flow Loading
     # Set the compilation flow. The FPGANextPNRFlow is a pre-built flow
     # that uses open-source tools like Yosys for synthesis and nextpnr
     # for place-and-route.
     project.set_flow(fpgaflow.FPGANextPNRFlow())
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Run the entire FPGA flow. This will synthesize the RTL, place and route
     # the design onto the FPGA fabric, and generate a final bitstream file.
     # The 'assert' will cause the script to exit if the run fails.

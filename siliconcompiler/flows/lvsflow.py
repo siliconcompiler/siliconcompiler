@@ -29,7 +29,6 @@ class MagicLVSFlow(Flowgraph):
         self.edge("extspice", "lvs")
 
 
-##################################################
 if __name__ == "__main__":
     flow = MagicLVSFlow()
     flow.write_flowgraph(f"{flow.name}.png")

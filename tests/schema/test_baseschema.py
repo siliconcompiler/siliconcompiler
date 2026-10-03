@@ -875,8 +875,6 @@ def _simple_schema(value=None):
     return schema
 
 
-# ---------------------------------------------------------------- stream target
-
 def test_write_manifest_stream_matches_file():
     """A stream target produces exactly what the path target would."""
     schema = _simple_schema()
@@ -988,8 +986,6 @@ def test_write_manifest_stream_is_readable_manifest():
     assert manifest["test0"]["test1"]["node"]["*"]["*"]["value"] == "roundtrip"
 
 
-# ------------------------------------------------------------- pathlib target
-
 def test_write_manifest_pathlib():
     """A pathlib.Path target matches the str target byte for byte."""
     schema = _simple_schema()
@@ -1002,12 +998,7 @@ def test_write_manifest_pathlib():
 
 
 def test_write_manifest_bytes_path():
-    """A bytes path is a path, not a stream.
-
-    ``open()`` and ``os.path.splitext()`` both take bytes, so this worked before
-    the target check existed; a path test that omits bytes turns it into a
-    confusing "'bytes' object has no attribute 'write'".
-    """
+    """write_manifest treats a bytes path as a path, not a stream."""
     schema = _simple_schema("bytes_path")
 
     schema.write_manifest(b"test.json")
@@ -1018,12 +1009,7 @@ def test_write_manifest_bytes_path():
 
 
 def test_write_manifest_bytes_path_gz():
-    """Extension sniffing must work for bytes paths too.
-
-    ``os.path.splitext(b"x.gz")`` yields ``b".gz"``, which never compares equal
-    to ``".gz"``, so without normalising the path the file would be written
-    uncompressed under a .gz name.
-    """
+    """A bytes .gz path is written compressed, though its splitext() extension is b".gz"."""
     schema = _simple_schema("bytes_gz")
 
     schema.write_manifest(b"test.json.gz")
@@ -1044,11 +1030,8 @@ def test_write_manifest_bytes_matches_str():
 
 
 def test_write_manifest_pathlib_is_never_written_to_directly():
-    """A Path is a destination to open, not a stream to write into.
-
-    The check has to key off the path types, not off whether the target has a
-    ``write`` attribute: that is an open-ended test, and it is the paths that
-    are the closed set.
+    """A Path is opened, never written to, even when it has a write() method: the check keys off
+    the path types, not off the write attribute.
     """
 
     class LoudPath(type(Path("x"))):
@@ -1072,14 +1055,8 @@ def test_write_manifest_pathlib_gz():
         assert json.loads(f.read())["test0"]["test1"]
 
 
-# ------------------------------------------------- serialize-before-open order
-
 def test_write_manifest_leaves_file_intact_on_failure():
-    """Serialization happens before the destination is opened.
-
-    Opening first meant a failure part way through getdict() had already
-    truncated whatever was at that path.
-    """
+    """A failing getdict() leaves an existing file intact: serialization precedes the open."""
 
     class Boom(BaseSchema):
         def getdict(self, *args, **kwargs):
@@ -1105,8 +1082,6 @@ def test_write_manifest_creates_no_file_on_failure():
         Boom().write_manifest("test.json")
     assert not os.path.isfile("test.json")
 
-
-# ------------------------------------------------------- __open_file contextmanager
 
 def _open_file(*args, **kwargs):
     return BaseSchema._BaseSchema__open_file(*args, **kwargs)
@@ -1167,14 +1142,8 @@ def test_write_manifest_stdjson(monkeypatch):
 
 @pytest.mark.parametrize("stdjson", (False, True))
 def test_write_manifest_non_ascii(monkeypatch, stdjson):
-    """The manifest must be pure ASCII whichever JSON library is installed.
-
-    ``json.dumps`` escapes non-ASCII by default (``ensure_ascii``); orjson has
-    no such option and emits UTF-8. That made the manifest's encoding depend on
-    which library happened to be present, and a server -- which has orjson --
-    read one back with a bare ``open()`` under ``LANG=C`` and failed the whole
-    job on 'ascii' codec can't decode byte 0xce. An ASCII manifest is decodable
-    by any reader, rather than relying on every reader remembering encoding=.
+    """The manifest is pure ASCII with or without orjson, which emits UTF-8, so a reader with no
+    encoding= under LANG=C can still load it.
     """
     import json
     if stdjson:
@@ -1200,16 +1169,8 @@ def test_write_manifest_non_ascii(monkeypatch, stdjson):
 
 
 def test_write_manifest_non_ascii_escapes_in_place(monkeypatch):
-    """Making the manifest ASCII must not re-serialize it.
-
-    ``json.dumps`` skips its C encoder whenever ``indent`` is set, so falling
-    back to the stdlib pushes the entire manifest -- megabytes of it, thousands
-    of times over a run -- through the pure-Python encoder. A single Greek
-    letter in one tool's help string cost 45% of a test suite's runtime that
-    way, because it made every manifest take the slow path.
-
-    Astral characters are the reason this is not simply ``backslashreplace``:
-    that escapes per byte and emits ``\\xNN``, which is not legal JSON.
+    """With orjson, non-ASCII is escaped in place rather than re-serialized through the slow
+    pure-Python json.dumps, and astral characters become surrogate pairs.
     """
     import json
     from siliconcompiler.schema import baseschema
@@ -4338,11 +4299,8 @@ def test_generate_doc_detailed():
 
 
 def test_generate_doc_sections_titled_by_keypath(sphinx_doc):
-    """Generated sections are titled with the full keypath, not the leaf key.
-
-    Leaf keys repeat heavily across the schema, and sections sharing a title are
-    indistinguishable in search results and score identically, so a query for a
-    common key returns a wall of identical entries.
+    """Generated doc sections are titled with the full keypath, not the leaf key, which repeats
+    across the schema.
     """
     pytest.importorskip("sphinx")
     from docutils import nodes

@@ -392,9 +392,6 @@ class RecordSchema(BaseSchema):
         return RecordSchema.__name__
 
 
-###########################################################################
-# Run Record
-###########################################################################
 def schema_record(schema):
     """
     Adds record schema parameters to the given schema.

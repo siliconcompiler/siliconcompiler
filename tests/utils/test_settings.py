@@ -116,12 +116,8 @@ def test_set_appends_new_keys_in_write_order(settings_file):
 
 
 def test_set_moves_rewritten_key_to_the_end(settings_file):
-    """Re-writing a key re-positions it, it does not update it in place.
-
-    Callers that read a category as an ordered list treat position as
-    precedence -- see OpenTask.register_task, where a later registration has to
-    outrank an earlier one. Plain dict assignment keeps an existing key where
-    it first landed, which would pin precedence to whoever wrote it first.
+    """Re-writing a key moves it to the end of its category rather than updating it in place;
+    callers such as OpenTask.register_task read position as precedence.
     """
     manager = SettingsManager(settings_file, logging.getLogger())
     manager.set('order', 'first', 1)
@@ -187,12 +183,8 @@ def test_set_ordering_survives_save_and_reload(settings_file):
 
 
 def test_set_ordering_with_system_layer(settings_file, system_file):
-    """System defaults lead; a user key that shadows one keeps the system slot.
-
-    get_category() builds the system layer first and updates it with the user
-    layer, so re-writing a shadowing key moves it within the user dict but not
-    within the merged view. Only categories with no system layer -- such as the
-    in-memory transient registry -- can rely on the merged order.
+    """System keys lead get_category(); a re-written user key that shadows one keeps the system
+    key's slot.
     """
     _write_json(system_file, {'order': {'sys_a': 1, 'sys_b': 2}})
     manager = SettingsManager(settings_file, logging.getLogger(),
@@ -272,7 +264,6 @@ def test_load_generic_exception(tmp_path, caplog):
     assert "Unexpected error loading settings" in caplog.text
 
 
-# --- LOCKING TESTS ---
 def test_lock_file_exists(settings_file):
     """Test that the .lock file exists after saving."""
     manager = SettingsManager(settings_file, logging.getLogger())
@@ -308,11 +299,6 @@ def test_filepath_none():
     # Set/Get should work in memory
     manager.set('memory', 'test', 123)
     assert manager.get('memory', 'test') == 123
-
-
-# ---------------------------------------------------------------------------
-# System settings layer (defaults + system priority)
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -591,12 +577,7 @@ def test_lock_category_released_on_exception(settings_file):
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
 def test_locks_reset_after_fork(settings_file, wait_for_child):
-    """
-    A child forked while a category was held does not inherit the wait.
-
-    The lock was taken by a thread that does not exist in the child, so nothing
-    will ever release it; the child gets fresh locks instead.
-    """
+    """A child forked while a thread holds a category lock gets fresh locks instead of blocking."""
     manager = SettingsManager(settings_file, logging.getLogger())
     manager.set("a", "key", 1)
 
@@ -631,7 +612,6 @@ def test_locks_reset_after_fork(settings_file, wait_for_child):
     assert read_ok, "forked child failed to read the category"
 
 
-# --- ATOMIC SAVES ---
 posix_only = pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
 
 
@@ -863,7 +843,6 @@ def test_transaction_lifts_save_refusal(settings_file):
         assert json.load(f) == {"keep": {"this": True}, "new": {"key": 1}}
 
 
-# --- TRANSACTIONS ---
 def test_transaction_keeps_another_managers_write(settings_file):
     """The lost update: both managers loaded before either wrote."""
     first = SettingsManager(settings_file, logging.getLogger())

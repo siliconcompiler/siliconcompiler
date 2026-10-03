@@ -106,7 +106,7 @@ class WebDashboard(AbstractDashboard):
 
         # Ensure cleanup is called on exit. Register via a weakref trampoline
         # so the atexit registry does not pin this dashboard (and, transitively,
-        # its project) alive for the whole process — a bound-method
+        # its project) alive for the whole process -- a bound-method
         # registration would leak both.
         self.__atexit_func = weak_atexit_call(self.__cleanup)
         atexit.register(self.__atexit_func)

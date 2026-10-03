@@ -160,7 +160,6 @@ class PEXCalibrateFlow(Flowgraph):
         self.edge(routed_node, "calibrate")
 
 
-##################################################
 if __name__ == "__main__":
     flow = GenerateOpenRCXFlow(nop.NOPTask(), corners=3, serial_extraction=True)
     flow.write_flowgraph(f"{flow.name}.png", background="white")

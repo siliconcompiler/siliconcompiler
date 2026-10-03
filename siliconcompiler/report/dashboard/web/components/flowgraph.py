@@ -8,7 +8,6 @@ from siliconcompiler import NodeStatus
 from streamlit_agraph import Node, Edge, Config
 
 
-# --- Constants ---
 # Defines the color scheme for nodes based on their execution status.
 NODE_COLORS = {
     NodeStatus.SUCCESS: '#70db70',  # green
@@ -45,19 +44,19 @@ def get_nodes_and_edges(project):
     if not project.option.get_flow():
         return nodes, edges
 
-    # --- Style Configuration ---
+    # Style Configuration
     default_node_border_width = 1
     successful_path_node_width = 3
     default_edge_width = 3
     successful_path_edge_width = 5
 
-    # --- Data Extraction ---
+    # Data Extraction
     node_dependencies = report.get_flowgraph_edges(project)
     successful_path = report.get_flowgraph_path(project)
     flowgraph_schema = project.get_flow()
     entry_exit_nodes = flowgraph_schema.get_entry_nodes() + flowgraph_schema.get_exit_nodes()
 
-    # --- Node and Edge Creation ---
+    # Node and Edge Creation
     for step, index in node_dependencies:
         # 1. Build the Node
         node_border_width = default_node_border_width

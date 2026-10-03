@@ -46,9 +46,6 @@ class KLayoutOperation:
         self._pending: Dict[str, Any] = {key: value for key, value in values.items()
                                          if value is not None}
 
-    ###############################################################
-    # Definition, overridden by each operation
-    ###############################################################
     @property
     def optype(self) -> str:
         """
@@ -69,9 +66,6 @@ class KLayoutOperation:
 
         }
 
-    ###############################################################
-    # Storage, private to this class
-    ###############################################################
     def _key(self, field: str) -> str:
         """
         Returns the name of the task parameter backing ``field``.
@@ -206,9 +200,6 @@ class KLayoutOperation:
         """
         return self._task.add_required_key("var", self._key(field), step=step, index=index)
 
-    ###############################################################
-    # Public surface
-    ###############################################################
     @property
     def name(self) -> Optional[str]:
         """
@@ -1040,9 +1031,6 @@ class OperationsTask(KLayoutStreamTask):
             "operations", f"[(<{optypes}>,str)]",
             "ordered (operation type, operation name) pairs to perform")
 
-    ###############################################################
-    # Operations
-    ###############################################################
     def __allocate_name(self, optype: str) -> str:
         """Returns an unused name for an operation of the given type."""
         used = set()
@@ -1212,9 +1200,6 @@ class OperationsTask(KLayoutStreamTask):
 
         return True
 
-    ###############################################################
-    # Task
-    ###############################################################
     def task(self):
         return "operations"
 

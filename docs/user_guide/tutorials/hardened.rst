@@ -110,7 +110,7 @@ This generates the physical layout required for the macro.
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :start-at: def build_and
-    :end-before: # --- Packaging the Macro ---
+    :end-before: # Packaging the Macro
 
 .. figure:: /_screenshots/hardened/and.png
     :align: center
@@ -125,7 +125,7 @@ We gather the results from the previous build step and register them into the li
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :start-at: # --- Packaging the Macro ---
+    :start-at: # Packaging the Macro
     :end-at: return library
 
 Step 4: Running the ASIC flow on module **top**

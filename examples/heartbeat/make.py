@@ -481,9 +481,7 @@ def power(pnr_jobname: Optional[str] = None, sim_jobname: Optional[str] = None):
     vcd = sim.find_result(step="simulate", index="0", directory="reports",
                           filename="heartbeat_tb.vcd")
 
-    # ------------------------------------------------------------------
     # Timing signoff: netlist + SDC (macro filesets) + SPEF (inputs) + VCD -> power
-    # ------------------------------------------------------------------
     signoff = ASIC()
     # The macro is self-contained and already provides the 'netlist' (structural,
     # for STA) and 'sdc' filesets, so use it as the signoff design directly

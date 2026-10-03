@@ -126,27 +126,15 @@ class SlangTask(Task):
         for param in design.getkeys("fileset", fileset, "param"):
             params.append((param, design.get("fileset", fileset, "param", param)))
 
-        #####################
-        # Include paths
-        #####################
         if idirs:
             options.extend(['--include-directory', f'{",".join(idirs)}'])
 
-        #######################
-        # Variable Definitions
-        #######################
         for value in defines:
             options.extend(['-D', value])
 
-        #######################
-        # Variable Undefinitions
-        #######################
         for value in undefines:
             options.extend(['-U', value])
 
-        #######################
-        # Command files
-        #######################
         cmdfiles = []
         for lib, fileset in filesets:
             cmdfiles.extend(lib.get_file(fileset=fileset, filetype="commandfile"))
@@ -154,9 +142,6 @@ class SlangTask(Task):
         if cmdfiles:
             options.extend(['-F', f'{",".join(cmdfiles)}'])
 
-        #######################
-        # Sources
-        #######################
         sources = []
         for filetype in ("systemverilog", "verilog"):
             for lib, fileset in filesets:
@@ -164,14 +149,8 @@ class SlangTask(Task):
         for value in distinct(sources):
             options.append(value)
 
-        #######################
-        # Top Module
-        #######################
         options.extend(['--top', self.design_topmodule])
 
-        ###############################
-        # Parameters (top module only)
-        ###############################
         # Set up user-provided parameters to ensure we elaborate the correct modules
         for param, value in params:
             options.extend(['-G', f'{param}={value}'])

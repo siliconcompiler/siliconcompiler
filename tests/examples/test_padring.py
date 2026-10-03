@@ -21,13 +21,8 @@ def test_py_padring():
 @pytest.mark.eda
 @pytest.mark.timeout(300)
 def test_padring_is_complete():
-    '''The ring is what this example exists to demonstrate, so check it got built.
-
-    A pad that never gets placed is the failure this guards against: OpenROAD
-    will happily floorplan a design whose ring is half missing if the selection
-    in padring.tcl stops matching the generated instance names, and the GDS still
-    appears. Counting the placed cells per side catches that, where checking only
-    for an output file would not.
+    '''All four IO rows are fully placed; OpenROAD floorplans a half-missing ring without error
+    if the selection in padring.tcl stops matching the instance names.
     '''
     from padring import padring
 

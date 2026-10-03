@@ -96,7 +96,6 @@ class SynthesisFlow(Flowgraph):
         ]
 
 
-##################################################
 if __name__ == "__main__":
     for flow in SynthesisFlow.make_docs():
         flow.write_flowgraph(f"{flow.name}.png")

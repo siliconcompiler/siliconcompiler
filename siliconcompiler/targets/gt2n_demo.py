@@ -10,9 +10,6 @@ from lambdapdk.gt2n.libs.stdcells import GT2N6TW31LVT, GT2N6TW31HVT, GT2N6TW31SV
     GT2N6TW31ELVT
 
 
-####################################################
-# Target Setup Function
-####################################################
 def gt2n_demo(
         project: ASIC,
         syn_np: int = 1,

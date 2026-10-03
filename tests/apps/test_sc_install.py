@@ -343,12 +343,7 @@ def test_install_two_tools(call, monkeypatch, capfd):
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_install_two_tools_onefail(monkeypatch, capfd):
     """
-    Verify that installing two tools where one installation fails results in a nonzero exit
-    and correct summary output.
-
-    Mocks the available tools to "yosys" and "openroad", simulates a failure for "openroad",
-    runs the installer for both tools, and asserts that sc_install.main() returns 1 and that
-    stdout contains the installed and failed tool summaries.
+    When one of two installs fails, sc-install exits 1 and reports installed and failed tools.
     """
     def return_os():
         return {

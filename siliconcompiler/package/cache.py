@@ -123,9 +123,6 @@ class PathCache:
         self.__lock = threading.RLock()
         self.__download_locks: Dict[str, threading.Lock] = {}
 
-    # ------------------------------------------------------------------
-    # Resolved paths
-    # ------------------------------------------------------------------
     def get(self, cache_id: str) -> Optional[str]:
         """
         Returns the cached path for a data source.
@@ -150,9 +147,6 @@ class PathCache:
         with self.__lock:
             self.__paths[cache_id] = str(path)
 
-    # ------------------------------------------------------------------
-    # Failure tracking
-    # ------------------------------------------------------------------
     def attempts(self, cache_id: str) -> int:
         """
         Returns how many times resolving a data source has failed.
@@ -264,9 +258,6 @@ class PathCache:
             self.__failures.pop(cache_id, None)
             self.__permanent.discard(cache_id)
 
-    # ------------------------------------------------------------------
-    # Retry policy
-    # ------------------------------------------------------------------
     @property
     def max_attempts(self) -> int:
         """int: Times a data source may fail to resolve before being abandoned."""
@@ -415,9 +406,6 @@ class PathCache:
         if delay > 0:
             time.sleep(delay)
 
-    # ------------------------------------------------------------------
-    # Central seeding and export
-    # ------------------------------------------------------------------
     def export(self) -> Dict[str, Any]:
         """
         Returns a serializable snapshot of the cache contents.
@@ -507,9 +495,6 @@ class PathCache:
             self.__failures.clear()
             self.__permanent.clear()
 
-    # ------------------------------------------------------------------
-    # Download mutex
-    # ------------------------------------------------------------------
     def thread_lock(self, cache_id: str) -> threading.Lock:
         """
         Returns the download lock for a data source, creating it if needed.

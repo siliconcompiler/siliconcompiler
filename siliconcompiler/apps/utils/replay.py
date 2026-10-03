@@ -40,7 +40,6 @@ def wrap_text(data):
     return textwrap.wrap(data)
 
 
-###########################
 def main():
     progname = "replay"
     description = """
@@ -199,6 +198,5 @@ def main():
     return 0
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

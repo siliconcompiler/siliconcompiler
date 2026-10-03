@@ -140,9 +140,6 @@ class PipelineTask(OptTask):
     :meth:`set_mlir_pipeline`.
     '''
 
-    ###############################################################
-    # Definition, overridden by each lowering
-    ###############################################################
     @property
     def _pipeline(self) -> Optional[str]:
         """
@@ -193,9 +190,6 @@ class PassesTask(OptTask):
     :meth:`add_mlir_passes`.
     '''
 
-    ###############################################################
-    # Definition, overridden by each lowering
-    ###############################################################
     @property
     def _passes(self) -> List[str]:
         """

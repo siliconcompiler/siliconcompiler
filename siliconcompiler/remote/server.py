@@ -109,7 +109,6 @@ class Server(ServerSchema):
     # How long __shutdown() waits for a running job to wind down.
     __SHUTDOWN_TIMEOUT = 10
 
-    ####################
     def __init__(self):
         '''
         Init method for Server object
@@ -278,7 +277,6 @@ class Server(ServerSchema):
         # Start the async server.
         web.run_app(self.app, port=self.get('option', 'port'))
 
-    ####################
     async def handle_remote_run(self, request):
         '''
         API handler for 'remote_run' commands. This method delegates
@@ -415,7 +413,6 @@ class Server(ServerSchema):
                                   'interval': self.checkinterval,
                                   'job_hash': job_hash})
 
-    ####################
     async def handle_get_results(self, request):
         '''
         API handler to redirect 'get_results' POST calls.
@@ -449,7 +446,6 @@ class Server(ServerSchema):
 
         return web.FileResponse(zipfn)
 
-    ####################
     async def handle_cancel_job(self, request):
         '''
         API handler for 'cancel_job' requests. Stop a job that is currently
@@ -490,7 +486,6 @@ class Server(ServerSchema):
         return web.json_response({'message': f'Canceling job: {job_hash}.',
                                   'success': True})
 
-    ####################
     async def handle_delete_job(self, request):
         '''
         API handler for 'delete_job' requests. Delete a job from shared
@@ -541,7 +536,6 @@ class Server(ServerSchema):
 
         return self.__response("Job deleted.", success=True)
 
-    ####################
     async def handle_check_progress(self, request):
         '''
         API handler for the 'check progress' endpoint. Currently,
@@ -620,7 +614,6 @@ class Server(ServerSchema):
         minutes, seconds = divmod(seconds, 60)
         return f'{hours}:{minutes:02d}:{seconds:02d}'
 
-    ####################
     async def handle_check_server(self, request):
         '''
         API handler for the 'check user' endpoint.
@@ -658,7 +651,6 @@ class Server(ServerSchema):
         else:
             return job_hash
 
-    ####################
     def __cancel_job(self, job_name):
         '''
         Mark a job canceled and stop it.
@@ -688,7 +680,6 @@ class Server(ServerSchema):
         if scheduler:
             scheduler.cancel()
 
-    ####################
     async def __shutdown(self, app):
         '''
         aiohttp cleanup hook: deal with jobs that are still running when the
@@ -726,7 +717,6 @@ class Server(ServerSchema):
             if info['thread'].is_alive():
                 self.logger.warning(f"Job did not stop in time: {info['jobhash']}")
 
-    ####################
     def remote_sc(self, project, username):
         '''
         Async method to delegate an '.run()' command to a host,
@@ -758,7 +748,6 @@ class Server(ServerSchema):
                 self.sc_canceled_jobs.discard(sc_job_name)
                 self.sc_project_lookup.pop(project, None)
 
-    ####################
     def __run_job(self, project, job_hash, sc_job_name):
         '''
         Set up the job's node tracking and run it. Called on the job's own
@@ -811,7 +800,6 @@ class Server(ServerSchema):
         # Run the job.
         project.run()
 
-    ####################
     def __auth_password(self, username, password):
         '''
         Helper method to authenticate a username : password combination.
@@ -853,11 +841,9 @@ class Server(ServerSchema):
 
         return (params, None)
 
-    ###################
     def __response(self, message, status=200, **fields):
         return web.json_response({'message': message, **fields}, status=status)
 
-    ###################
     def __not_owner_response(self, **fields):
         '''
         The answer to a request naming a job that belongs to somebody else.
@@ -868,11 +854,9 @@ class Server(ServerSchema):
         return web.json_response({'message': 'Error: job belongs to another user.',
                                   **fields}, status=403)
 
-    ###################
     def __job_owner_file(self, job_hash):
         return os.path.join(self.build_root, job_hash, '.owner')
 
-    ###################
     def __record_job_owner(self, job_hash, username):
         '''
         Records who submitted a job so that a later request naming it can be checked
@@ -886,7 +870,6 @@ class Server(ServerSchema):
         with open(self.__job_owner_file(job_hash), 'w') as f:
             json.dump({'username': username}, f)
 
-    ###################
     def __job_belongs_to(self, job_hash, username):
         '''
         Whether the given user may act on the given job.
@@ -920,13 +903,11 @@ class Server(ServerSchema):
 
         return owner == username
 
-    ###################
     @property
     def nfs_mount(self):
         # Ensure that NFS mounting path is absolute.
         return os.path.abspath(self.get('option', 'nfsmount'))
 
-    ###################
     @property
     def build_root(self):
         """Where job directories live, one per job hash.
@@ -937,7 +918,6 @@ class Server(ServerSchema):
         """
         return os.path.join(self.nfs_mount, 'builds')
 
-    ###################
     @property
     def cache_dir(self):
         """Where the whole cluster caches what it keeps between runs.
@@ -949,14 +929,12 @@ class Server(ServerSchema):
         """
         return os.path.join(self.nfs_mount, 'cache')
 
-    ###################
     @property
     def staging_mount(self):
         # Uploads are staged here rather than in nfs_mount itself, which holds
         # one directory per job hash.
         return os.path.join(self.nfs_mount, '.staging')
 
-    ###################
     @property
     def max_upload_size(self):
         # Schema is in MB, aiohttp wants bytes.
@@ -970,7 +948,6 @@ class Server(ServerSchema):
             return sys.maxsize
         return limit * 1024 * 1024
 
-    ###################
     @property
     def checkinterval(self):
         return self.get('option', 'checkinterval')

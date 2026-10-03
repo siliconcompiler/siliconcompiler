@@ -54,7 +54,7 @@ within a job only one :term:`flowgraph node` runs at a time.
 .. literalinclude:: examples/parallel/parallel.py
    :language: python
    :start-after: def run_serial():
-   :end-before: # ------
+   :end-before: # 2. Indexed: parallel *within* a job.
    :dedent: 4
 
 :keypath:`option,scheduler,maxnodes` is pinned to ``1`` here only to make the
@@ -79,7 +79,7 @@ Flows expose this through ``_np`` arguments -- ``syn_np`` here, and
 .. literalinclude:: examples/parallel/parallel.py
    :language: python
    :start-after: def run_indexed():
-   :end-before: # ------
+   :end-before: # 3. Processes: parallel *across* jobs.
    :dedent: 4
 
 This is the approach to reach for when you want to *explore* -- several tool

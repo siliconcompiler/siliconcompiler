@@ -422,9 +422,6 @@ def flatten(layout: pya.Layout) -> pya.Layout:
     return layout
 
 
-###############################################################
-# Operation handlers
-###############################################################
 def op_merge(layout: pya.Layout, schema: Any, opname: str) -> pya.Layout:
     '''
     Merges the streams named by a ``merge`` operation into the layout.

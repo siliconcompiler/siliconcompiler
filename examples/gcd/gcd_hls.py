@@ -16,7 +16,7 @@ def main():
     into Verilog RTL, and then runs that RTL through the standard GDSII compilation
     process.
     """
-    # --- Design Setup ---
+    # Design Setup
     # Create a design object to hold the configuration.
     design = Design("gcd")
 
@@ -34,7 +34,7 @@ def main():
     with design.active_dataroot("gcd"), design.active_fileset("sdc"):
         design.add_file("gcd_hls.sdc")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create an ASIC project from the design configuration.
     project = ASIC(design)
 
@@ -49,7 +49,7 @@ def main():
     # beginning to convert the C code to Verilog.
     project.set_flow(HLSASICFlow())
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Execute the complete HLS-to-GDSII compilation flow.
     project.run()
 

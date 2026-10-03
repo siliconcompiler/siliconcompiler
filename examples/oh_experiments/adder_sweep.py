@@ -29,7 +29,7 @@ def main():
     # Define the list of data widths we want to sweep through for our adder.
     datawidths = [8, 16, 32, 64]
 
-    # --- Design Setup ---
+    # Design Setup
     # A Design encapsulates all the source files, parameters, and
     # settings for a specific hardware design.
     design = Design("oh_add")
@@ -57,7 +57,7 @@ def main():
             # will use this value during elaboration.
             design.set_param("N", str(n))
 
-    # --- Project Setup ---
+    # Project Setup
     # An ASIC links a design schema to a specific flow and target.
     proj = ASIC(design)
     # Load the freepdk45_demo target, which configures the project for the
@@ -66,7 +66,7 @@ def main():
     # Set the flow to 'synflow', a pre-defined sequence of steps for running synthesis.
     proj.set_flow("synflow")
 
-    # --- Data Gathering ---
+    # Data Gathering
     # This list will store the synthesis area result for each data width.
     area = []
     # Loop through the data widths again, this time to run the synthesis flow for each one.
@@ -85,7 +85,7 @@ def main():
         # We use the jobname to access the history of the specific run we just completed.
         area.append(proj.history(f"N{n}").get('metric', 'cellarea', step='synthesis', index='0'))
 
-    # --- Plotting and Reporting Results ---
+    # Plotting and Reporting Results
     # Check if matplotlib was successfully imported.
     if plt:
         # Create a plot of data width vs. cell area.

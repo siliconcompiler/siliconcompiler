@@ -57,14 +57,8 @@ def test_dependency_path_download_http(project_logger, datadir, path, ref, cache
 @responses.activate
 def test_dependency_path_download_http_zstd(project_logger, datadir, caplog):
     """
-    A Zstandard artifact resolves end to end, over the real transfer stack.
-
-    The unit tests above hand :meth:`resolve_remote` a mocked response; this goes
-    through ``resolve()`` and an actual ``requests`` download, which is where a
-    binary body could still be mangled in transit before any decompressor sees it.
-    Ciel publishes its PDK artifacts this way, which is what brought zstd here, so
-    the archive is the existing fixture recompressed rather than a second copy
-    checked in.
+    A zstd tarball resolves end to end through resolve() and a real requests download, where a
+    binary body could still be mangled before it is decompressed.
     """
     with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
         body = _zstd_compress(gzip.decompress(f.read()))
@@ -149,11 +143,8 @@ def test_download_status_is_not_retried(status):
 @responses.activate
 def test_download_status_is_retried(status):
     """
-    A server having a bad minute may not be having a bad hour, and the rest of
-    these describe a passing condition too: 401 and 403 turn into a 200 once a
-    token is granted, and GitHub answers 403 for rate limiting. Retiring one would
-    also block a later resolver for the same source that does have credentials,
-    since the budget is keyed by source and reference alone.
+    Transient statuses, 401 and 403 included, use up the retry budget but never become permanent:
+    those two clear once a token is granted, and GitHub rate-limits with 403.
     """
     resolver = _failing_resolver(status)
 
@@ -200,10 +191,6 @@ def test_resolve_remote_relative_symlink(broken_tarfile_data_filter):
     with open(installer, "rb") as f:
         assert f.read() == b"hello"
 
-
-# ============================================================================
-# Additional HTTPResolver Tests
-# ============================================================================
 
 def test_http_resolver_get_resolver():
     """Test get_resolver returns correct mapping for HTTP/HTTPS schemes."""
@@ -559,14 +546,10 @@ def test_http_resolver_resolve_remote_bz2_tarball():
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
 
 
-# ============================================================================
-# Compressed archive handling
-#
 # Every fixture below is built with the same bindings the resolver reads it back
 # with, so these run unchanged on an interpreter using the stdlib
 # ``compression.zstd`` (3.14+) and on one using the ``backports.zstd`` package
 # (3.10-3.13), exercising whichever the shim selected.
-# ============================================================================
 
 #: Tar compressions the resolver accepts, as (archive suffix, tarfile mode
 #: suffix). "zst" is not a mode stdlib tarfile can write before 3.14, and is
@@ -650,12 +633,7 @@ def test_http_resolver_resolve_remote_compressed_tarball(suffix, compression):
     ("zst", "zstd tar"),
 ))
 def test_extract_archive_reports_the_format_it_found(compression, expected):
-    """
-    The format that read an archive is reported back, and logged.
-
-    Which one answered is the first thing worth knowing when a download unpacks
-    into something unexpected, since the name it arrived under does not decide it.
-    """
+    """extract_archive reports the format it detected from the contents, not from the name."""
     archive = BytesIO(_tarball({"test.txt": b"test"}, compression))
 
     assert extract_archive(archive, ".", "https://example.com/data") == expected
@@ -671,12 +649,7 @@ def test_extract_archive_reports_zip():
 
 
 def test_http_resolver_resolve_remote_zstd_identified_by_contents():
-    """
-    A zstd archive is unpacked on its contents, not its name.
-
-    The extension is the server's to choose and is routinely wrong -- what decides
-    is the frame magic, as it already did for the other compressions.
-    """
+    """A zstd archive served as .tar.gz is unpacked by its frame magic, not its extension."""
     project = Project("testproj")
     project.option.set_cachedir(".")
 
@@ -688,12 +661,7 @@ def test_http_resolver_resolve_remote_zstd_identified_by_contents():
 
 
 def test_http_resolver_resolve_remote_zstd_with_leading_skippable_frame():
-    """
-    An archive that opens with a skippable frame unpacks like any other.
-
-    A stream is free to lead with metadata that carries no compressed payload, and
-    the decompressor reads straight past it.
-    """
+    """A zstd archive that opens with a skippable (metadata-only) frame unpacks like any other."""
     project = Project("testproj")
     project.option.set_cachedir(".")
 
@@ -705,12 +673,7 @@ def test_http_resolver_resolve_remote_zstd_with_leading_skippable_frame():
 
 
 def test_http_resolver_resolve_remote_zstd_nested_layout():
-    """
-    A zstd archive with a real PDK's directory depth unpacks whole.
-
-    Shaped after a Ciel artifact, which is what brought zstd here: a tarball of a
-    library's views, several directories deep and thousands of members long.
-    """
+    """A zstd archive laid out like a PDK library, several directories deep, unpacks whole."""
     project = Project("testproj")
     project.option.set_cachedir(".")
 
@@ -731,11 +694,8 @@ def test_http_resolver_resolve_remote_zstd_nested_layout():
                     reason="release predates the PEP 706 extraction filters")
 def test_http_resolver_resolve_remote_zstd_applies_extraction_filter():
     """
-    The extraction filter covers the zstd path too, and its verdict still settles.
-
-    This is what the decompress-then-extract split buys: one stdlib ``tarfile``
-    reads every archive, so the filter that guards a gzip download guards a zstd
-    one, and the refusal it raises is the class the retry logic knows to stop on.
+    The tarfile extraction filter guards zstd downloads too, raising the OutsideDestinationError
+    the retry logic treats as settled.
     """
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -764,10 +724,8 @@ def test_http_resolver_zstd_filter_refusal_is_permanent():
 
 def test_http_resolver_resolve_remote_zstd_that_is_not_a_tar():
     """
-    A readable zstd frame holding something other than a tar is not an archive.
-
-    It must land on the ordinary "unknown format" error rather than leaking the
-    decompressor's own exception to the caller.
+    A zstd frame holding something other than a tar raises the ordinary unknown-format error,
+    not the decompressor's own exception.
     """
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -782,13 +740,8 @@ def test_http_resolver_resolve_remote_zstd_that_is_not_a_tar():
 @pytest.mark.parametrize("compression", ("gz", "zst"))
 def test_http_resolver_resolve_remote_truncated_tarball_stays_retryable(compression):
     """
-    A half-transferred archive is a transfer that broke, not an answer.
-
-    Truncation is what the attempt budget exists for, and zstd reports it the way
-    gzip has all along -- the decompressor runs out of input rather than rejecting
-    the format -- so both are parametrized here to keep them answering alike. What
-    matters either way is that neither is mistaken for the settled case: an
-    environment missing the zstd bindings, which no retry can change.
+    A truncated gzip or zstd archive stays retryable, not mistaken for the permanent failure of
+    missing zstd bindings.
     """
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -809,16 +762,8 @@ def test_http_resolver_resolve_remote_truncated_tarball_stays_retryable(compress
                          ids=("plain", "leading-skippable-frame"))
 def test_http_resolver_resolve_remote_zstd_without_bindings(monkeypatch, prefix):
     """
-    An environment that cannot read zstd says so, and stops asking.
-
-    Retrying would re-download the whole archive to reach the same conclusion --
-    for a PDK artifact, hundreds of megabytes to re-learn that a package is
-    missing -- so the source is abandoned on the first attempt with an error
-    naming what would fix it.
-
-    A stream leading with a skippable frame has to reach the same verdict: it is
-    just as much a zstd archive, and telling the user it is invalid would send them
-    looking for a corrupt download instead of a missing package.
+    Without zstd bindings a zstd archive, even one led by a skippable frame, fails permanently
+    on the first attempt with an error naming the package to install.
     """
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -852,10 +797,8 @@ def test_http_resolver_resolve_remote_unknown_format_is_not_blamed_on_zstd(monke
 @pytest.mark.parametrize("suffix,compression", _COMPRESSIONS)
 def test_http_resolver_resolve_remote_github_flatten_compressed(suffix, compression):
     """
-    The GitHub flattening recovers a dotted release from every archive suffix.
-
-    A name the suffix table misses falls back to a guess that gives up at the
-    first '.', which would look for 'repo-1' here and quietly skip the flatten.
+    A GitHub archive of a dotted release (v1.0.2) is flattened for every compressed suffix;
+    a suffix the table misses would look for 'repo-1' and silently skip the flatten.
     """
     project = Project("testproj")
     project.option.set_cachedir(".")
@@ -869,10 +812,6 @@ def test_http_resolver_resolve_remote_github_flatten_compressed(suffix, compress
     assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
     assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0.2"))
 
-
-# ============================================================================
-# HTTPResolver._get_headers() tests
-# ============================================================================
 
 def test_http_resolver_get_headers_non_github_url(monkeypatch):
     """Test _get_headers returns empty dict for non-GitHub URLs."""

@@ -20,7 +20,6 @@ Alias = dict[
 ]
 
 
-###########################################################################
 class Design(DependencySchema, PathSchema, NamedSchema):
     '''
     Schema for a 'design'.
@@ -88,7 +87,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
         return super().add_dep(obj, clobber=clobber)
 
-    ###############################################
     def add_file(self,
                  filename: Union[List[Union[Path, str]], Set[Union[Path, str]],
                                  Tuple[Union[Path, str], ...], Path, str],
@@ -133,7 +131,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         fs = self.__get_filesetobj(fileset)
         return fs.add_file(filename=filename, filetype=filetype, clobber=clobber, dataroot=dataroot)
 
-    ###############################################
     def get_file(self,
                  fileset: Optional[str] = None,
                  filetype: Optional[str] = None) -> List[str]:
@@ -168,7 +165,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
         return filelist
 
-    ###############################################
     def has_file(self, fileset: Optional[str] = None, filetype: Optional[str] = None) -> bool:
         """Returns true if the fileset contains files.
 
@@ -300,7 +296,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
         return fileset in self.getkeys("fileset")
 
-    ############################################
     def set_topmodule(self,
                       value: str,
                       fileset: Optional[str] = None) -> str:
@@ -334,7 +329,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         fs = self.__get_filesetobj(fileset)
         return fs.get_topmodule()
 
-    ##############################################
     def add_idir(self,
                  value: str,
                  fileset: Optional[str] = None,
@@ -380,7 +374,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         """
         return self.__get_filesetobj(fileset).has_idir()
 
-    ##############################################
     def add_define(self,
                    value: str,
                    fileset: Optional[str] = None,
@@ -413,7 +406,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         fs = self.__get_filesetobj(fileset)
         return fs.get_define()
 
-    ##############################################
     def add_undefine(self,
                      value: str,
                      fileset: Optional[str] = None,
@@ -446,7 +438,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         fs = self.__get_filesetobj(fileset)
         return fs.get_undefine()
 
-    ###############################################
     def add_libdir(self,
                    value: str,
                    fileset: Optional[str] = None,
@@ -492,7 +483,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         """
         return self.__get_filesetobj(fileset).has_libdir()
 
-    ###############################################
     def add_lib(self,
                 value: str,
                 fileset: Optional[str] = None,
@@ -524,7 +514,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         fs = self.__get_filesetobj(fileset)
         return fs.get_lib()
 
-    ###############################################
     def set_param(self,
                   name: str,
                   value: str,
@@ -559,7 +548,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         fs = self.__get_filesetobj(fileset)
         return fs.get_param(name)
 
-    ###############################################
     def add_depfileset(self, dep: Union["Design", str],
                        depfileset: Optional[str] = None,
                        fileset: Optional[str] = None):
@@ -668,7 +656,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         else:
             raise ValueError(f"Unable to determine filetype of: {path}")
 
-    ###############################################
     def write_fileset(self,
                       filename: str,
                       fileset: Optional[Union[Iterable[str], str]] = None,
@@ -791,7 +778,6 @@ class Design(DependencySchema, PathSchema, NamedSchema):
                         f = os.path.relpath(f, pdir)
                     self.add_file(f, dataroot=dataroot_name)
 
-    ################################################
     def read_fileset(self,
                      filename: str,
                      fileset: Optional[str] = None,

@@ -77,14 +77,8 @@ def test_keyboard_check_key_with_start(monkeypatch):
 
 @pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
 def test_keyboard_start_non_tty_stdin_does_not_raise(monkeypatch):
-    """A stdin that is not a terminal must disable hotkeys, not fail the run.
-
-    ``termios.error`` does not subclass ``OSError`` -- its MRO is
-    ``(termios.error, Exception, BaseException, object)`` -- so guarding the
-    probe with ``except OSError`` missed the one case it was written for.
-    Every ``multiprocessing`` worker is handed /dev/null on stdin, as is
-    anything under nohup, cron or a CI runner that closes stdin, so this used
-    to take down every concurrent ``Project.run()`` that opened a dashboard.
+    """A non-terminal stdin disables hotkeys instead of failing the run; termios.error is not an
+    OSError, and every multiprocessing worker gets /dev/null on stdin.
     """
     def not_a_tty(_):
         raise keyboard_mod.termios.error(25, 'Inappropriate ioctl for device')
@@ -105,11 +99,7 @@ def test_keyboard_start_non_tty_stdin_does_not_raise(monkeypatch):
 
 @pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
 def test_keyboard_start_setcbreak_failure_leaves_no_state(monkeypatch):
-    """A probe that succeeds but a mode change that fails must not be recorded.
-
-    Saving settings for a terminal we never reconfigured would have stop()
-    push them back onto a terminal that never changed.
-    """
+    """A failed setcbreak after a successful probe leaves no settings for stop() to restore."""
     monkeypatch.setattr(keyboard_mod.termios, 'tcgetattr', lambda x: 'settings')
     monkeypatch.delattr(keyboard_mod.Keyboard, 'old_settings', raising=False)
 

@@ -881,10 +881,8 @@ def test_klayout_add_operation_name_reused_for_other_type():
 
 
 def test_klayout_operations_dispatch_table_complete():
-    '''Every operation type has a handler in the tool script, and vice versa.
-
-    The script imports pya, so it is parsed rather than imported.
-    '''
+    '''Every operation type has a handler in the tool script, and vice versa. The script imports
+    pya, so it is parsed rather than imported.'''
     script = os.path.join(os.path.dirname(operations.__file__),
                           "scripts", "klayout_operations.py")
     tree = ast.parse(open(script).read())

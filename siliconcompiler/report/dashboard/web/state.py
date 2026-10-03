@@ -22,7 +22,6 @@ import streamlit_javascript
 from siliconcompiler import Project
 from siliconcompiler.utils.multiprocessing import get_file_lock
 
-# --- State Keys ---
 # These constants define the keys used to store and access data in
 # streamlit.session_state, ensuring consistency across the application.
 
@@ -57,7 +56,6 @@ APP_STOPPED_REFRESH = "app_stopped_refresh"
 MAX_DICT_ITEMS_TO_SHOW = "max_dict_items"
 MAX_FILE_LINES_TO_SHOW = "max_file_lines"
 
-# --- Debugging ---
 _DEBUG = False
 DEVELOPER = False
 
