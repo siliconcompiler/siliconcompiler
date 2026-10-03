@@ -27,7 +27,11 @@ prefix-matches until the ``..`` is resolved.
 
 🔴 **No glob widens the address rule**: a name that resolves to a private,
 loopback, link-local or otherwise non-public address is never connected to,
-whatever the list says, and every redirect hop is matched again.
+whatever the list says.
+
+⚠️ The source a job names is matched whole. What its fetch reaches after it --
+a redirect, a submodule, an LFS store -- goes through a proxy that sees only a
+host, so it is held to the list's hosts and not their paths (`staging.fetch`).
 '''
 
 import ipaddress
@@ -49,9 +53,10 @@ logger = logging.getLogger("sc-server")
 
 # SiliconCompiler's GitHub organisation, which is what lambdapdk needs: it
 # registers `https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/`
-# with its version as the ref, and GitHub redirects archives to codeload --
-# KEEPING the owner and repository in the path, so the narrower entry is enough.
-# ⚠️ The whole codeload host would admit every public repository's archive.
+# with its version as the ref, and GitHub redirects archives to codeload,
+# keeping the owner and repository in the path. ⚠️ A redirect is held to the
+# host alone, so the codeload entry admits whatever GitHub redirects to there;
+# its path still binds a source a job names at codeload directly.
 DEFAULT = ["https://github.com/siliconcompiler/",
            "https://codeload.github.com/siliconcompiler/"]
 

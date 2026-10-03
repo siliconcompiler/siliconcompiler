@@ -186,9 +186,11 @@ of the upload is asked for, not supplied from this host.
 `https://codeload.github.com/siliconcompiler/`, where GitHub's archive
 redirects land &mdash; which is what lambdapdk needs. Entries may be globs: a
 host wildcard only as the whole leftmost label (`*.example.com`), `*` within
-one path segment. An unsafe entry stops the server at startup. Every redirect
-hop is checked again, and a name resolving to a private or link-local address
-is never connected to.
+one path segment. An unsafe entry stops the server at startup. The source a
+job names is matched whole; a redirect, submodule or LFS store the fetch then
+reaches is held to the list's hosts and not their paths
+([PROFILE.md §6](PROFILE.md#where-sc-server-falls-short)). A name resolving to
+a private or link-local address is never connected to.
 
 The fetch runs while the job is `staging`, between `awaiting_input` and
 `queued`; a job with nothing to fetch goes straight to `queued`. A source that

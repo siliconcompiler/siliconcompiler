@@ -87,7 +87,7 @@ routed and refused.
 | 14 | `POST /v1/jobs/{id}/upload-grant` | a `PUT` to a signed route on this host, since `file://` storage cannot presign ([§2](#the-stream-host-and-storage-are-this-host)) |
 | 15 | `POST /v1/jobs/{id}/submit` | the contract's staging: the digest checked before anything is opened, then the archive, then the manifest, read by this server's own SiliconCompiler in a subprocess of its own ([§5](#5-images-and-software)), and the job's Python packages installed ([§3](#pythonenv-only-where-there-is-somewhere-safe-to-build)) |
 | 16 | `GET /v1/jobs` | the caller's jobs, newest first, over a keyset cursor; `?project=` is `501 feature-unsupported` |
-| 17 | `GET /v1/jobs/{id}` | the whole job object, with no portal URL: a job's page comes from endpoint 6. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#two-gaps-where-sc-server-falls-short) says it can |
+| 17 | `GET /v1/jobs/{id}` | the whole job object, with no portal URL: a job's page comes from endpoint 6. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#where-sc-server-falls-short) says it can |
 | 18 | `POST /v1/jobs/{id}/cancel` | a `reason` of at most 300 characters, served whole on the transitions and on each node it stopped |
 | 19 | `DELETE /v1/jobs/{id}` | deletes the job's data; the job object stays readable |
 | 20 | `GET /v1/jobs/{id}/logs` | `logs.stream` and `logs.stream.job` are advertised, so a node or job gets a `303` to a stream on this host: live while it runs, and for a finished one a stream that ends at once, naming its archived `logs` artifact |
@@ -376,7 +376,7 @@ None of these is new vocabulary.
 | exceeds a published ceiling | `limit-exceeded` naming the key as `limits` spells it, or a static one's own `type`: `node-limit-exceeded`, `upload-too-large`, `download-too-large` |
 | stages past `max_staging_seconds` | the job `failed`, `staging-timed-out`, `limit: "max_staging_seconds"` |
 
-### Two gaps where `sc-server` falls short
+### Where `sc-server` falls short
 
 **Some Slurm interruptions read as `run-failed`.** A job the scheduler loses
 ends `failed` with `run-interrupted`, as the contract says, and each node it was
@@ -399,6 +399,18 @@ importing it fails. Host mode, and Docker on Linux, never collect, and are
 unaffected. The contract is unchanged; this is `sc-server`'s gap, to be fixed on
 SiliconCompiler's `main`:
 [`collect/uploaded-collection-rebuilt.md`](../../../plans/siliconcompiler/collect/uploaded-collection-rebuilt.md).
+
+**Past the source, the allowlist binds by host.** The contract checks every URL
+a fetch contacts against the allowlist, path included: each redirect hop,
+submodule and LFS endpoint (surface *Every URL contacted is checked*). **Where
+`sc-server` falls short:** the source a job names is matched whole, path and
+all, before the fetch starts. The fetch then runs in a process of its own whose
+only way out is a proxy, and a proxy that does not break TLS sees a host and
+never a path, so a redirect, a submodule or an LFS store is held to the
+allowlist's hosts alone. With the default list, a redirect to any path on
+`codeload.github.com` is followed. The address rule is unaffected: no fetch
+reaches a private or link-local address. The contract is unchanged; this is
+`sc-server`'s gap.
 
 ### Credentials, as far as this profile has them
 
