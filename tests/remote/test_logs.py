@@ -619,6 +619,22 @@ def test_a_skipped_node_is_reported_as_skipped(nop_project):
     assert runner._progress["nodes"]["stepone/0"]["state"] == "completed"
 
 
+def test_a_run_grown_past_its_window_fails_naming_the_node(nop_project):
+    '''🔴 The server runs only the nodes it admitted (surface D225): where
+    SiliconCompiler widens `-from` to rebuild an upstream whose results cannot
+    supply the run, the run fails before any node starts, naming it.'''
+    from siliconcompiler.remote.server.running import runner
+
+    nop_project.option.add_from("steptwo")
+    runner._progress = {"nodes": {"steptwo/0": {"state": "pending"}}}
+    runner._hold_the_window(nop_project)
+
+    # What SiliconCompiler does when stepone's results are missing.
+    nop_project.option.add_from("stepone", clobber=True)
+    with pytest.raises(RuntimeError, match="would rebuild stepone/0"):
+        runner._hold_the_window(nop_project)
+
+
 def test_a_node_the_run_never_reached_is_still_cancelled(nop_project):
     '''The case `cancelled` is for: no recorded status at all, because the run
     stopped before it got there. Decided by the sweep at the end, never by

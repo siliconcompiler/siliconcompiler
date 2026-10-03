@@ -51,12 +51,6 @@ class Scheduler:
     """
     __MAX_LOG_BACKUPS: Final[int] = 5
 
-    #: Whether a run may pull an excluded upstream back into ``[option,from]``
-    #: when it cannot supply its consumers. A caller running a fixed window --
-    #: sc-server, which admitted exactly that window -- turns it off, and the
-    #: run then fails naming the upstream instead.
-    widen_from: bool = True
-
     def __init__(self, project: "Project"):
         """
         Initializes the Scheduler.
@@ -618,12 +612,6 @@ class Scheduler:
                 # Either everything is satisfied, or what is left is a flowgraph
                 # error that adding a node cannot fix.
                 return
-
-            if not Scheduler.widen_from:
-                self.__logger.error(
-                    f"{self.__format_nodes(rebuild)} cannot supply what depends on it, "
-                    "and this run's [option,from] may not be widened to rebuild it.")
-                raise SCRuntimeError("the results this run reads are missing a file")
 
             self.__logger.warning(
                 f"Adding {self.__format_nodes(rebuild)} to this run: the existing build "

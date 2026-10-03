@@ -153,13 +153,9 @@ def run(manifest: Path) -> int:
     global _progress_path, _progress
 
     from siliconcompiler import Project
-    from siliconcompiler.scheduler.scheduler import Scheduler
     from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
     _leave_the_allocation()
-    # 🔴 The window the server admitted is the window that runs: a node whose
-    # upstream results lack a file fails, never widening `-from` to rebuild it.
-    Scheduler.widen_from = False
 
     project = Project.from_manifest(filepath=str(manifest))
     # The server's answer to how this run executes: its build and cache
@@ -311,8 +307,23 @@ def _before_the_flow(project) -> None:
     before the flow starts and they are sequenced here rather than fighting
     over the slot.
     '''
+    _hold_the_window(project)
     _settle(project)
     _fetch_images(project)
+
+
+def _hold_the_window(project) -> None:
+    '''🔴 Fail the run where it has grown past the nodes the server admitted
+    (surface D225). SiliconCompiler widens ``[option,from]`` to rebuild an
+    upstream node whose results cannot supply what depends on it; here that
+    would run a node the job never declared, with no image planned for it.'''
+    added = sorted(set(runtime_nodes(project)) - {
+        tuple(key.split("/", 1)) for key in _progress["nodes"]})
+    if added:
+        raise RuntimeError(
+            f"the results this run reads cannot supply it: SiliconCompiler would "
+            f"rebuild {', '.join('/'.join(node) for node in added)}, which this job "
+            "does not run")
 
 
 def _fetch_images(project) -> None:
