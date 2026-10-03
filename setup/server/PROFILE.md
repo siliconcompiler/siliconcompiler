@@ -87,7 +87,7 @@ routed and refused.
 | 14 | `POST /v1/jobs/{id}/upload-grant` | a `PUT` to a signed route on this host, since `file://` storage cannot presign ([§2](#the-stream-host-and-storage-are-this-host)) |
 | 15 | `POST /v1/jobs/{id}/submit` | the contract's staging: the digest checked before anything is opened, then the archive, then the manifest, read by this server's own SiliconCompiler in a subprocess of its own ([§5](#5-images-and-software)), and the job's Python packages installed ([§3](#pythonenv-only-where-there-is-somewhere-safe-to-build)) |
 | 16 | `GET /v1/jobs` | the caller's jobs, newest first, over a keyset cursor; `?project=` is `501 feature-unsupported` |
-| 17 | `GET /v1/jobs/{id}` | the whole job object, with no portal URL: a job's page comes from endpoint 6. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#one-gap-some-slurm-interruptions-read-as-run-failed) says it can |
+| 17 | `GET /v1/jobs/{id}` | the whole job object, with no portal URL: a job's page comes from endpoint 6. `resolved_versions` is absent where nodes run on the host ([§5](#5-images-and-software)). A failed node's `error` names what [§6](#two-gaps-where-sc-server-falls-short) says it can |
 | 18 | `POST /v1/jobs/{id}/cancel` | a `reason` of at most 300 characters, served whole on the transitions and on each node it stopped |
 | 19 | `DELETE /v1/jobs/{id}` | deletes the job's data; the job object stays readable |
 | 20 | `GET /v1/jobs/{id}/logs` | `logs.stream` and `logs.stream.job` are advertised, so a node or job gets a `303` to a stream on this host: live while it runs, and for a finished one a stream that ends at once, naming its archived `logs` artifact |
@@ -376,17 +376,29 @@ None of these is new vocabulary.
 | exceeds a published ceiling | `limit-exceeded` naming the key as `limits` spells it, or a static one's own `type`: `node-limit-exceeded`, `upload-too-large`, `download-too-large` |
 | stages past `max_staging_seconds` | the job `failed`, `staging-timed-out`, `limit: "max_staging_seconds"` |
 
-### One gap: some Slurm interruptions read as `run-failed`
+### Two gaps where `sc-server` falls short
 
-A job the scheduler loses ends `failed` with `run-interrupted`, as the contract
-says, and each node it was running with it. So does a node whose image the
-runtime could not pull, Docker's or a Slurm bundle's, and its job: `detail`
-names the image, and the job-level `logs` the pull's error. A Docker
-out-of-memory kill is `run-failed` with `detail` naming the memory limit, and a
-node past its time limit names that. **Where `sc-server` falls short:** a node
-ended by Slurm preemption or a `NODE_FAIL` ends `failed` with `run-failed`, as a
-node whose tool failed does, and a Slurm `OUT_OF_MEMORY` is not named as a
-memory limit. The contract is unchanged; this is `sc-server`'s gap.
+**Some Slurm interruptions read as `run-failed`.** A job the scheduler loses
+ends `failed` with `run-interrupted`, as the contract says, and each node it was
+running with it. So does a node whose image the runtime could not pull, Docker's
+or a Slurm bundle's, and its job: `detail` names the image, and the job-level
+`logs` the pull's error. A Docker out-of-memory kill is `run-failed` with
+`detail` naming the memory limit, and a node past its time limit names that.
+**Where `sc-server` falls short:** a node ended by Slurm preemption or a
+`NODE_FAIL` ends `failed` with `run-failed`, as a node whose tool failed does,
+and a Slurm `OUT_OF_MEMORY` is not named as a memory limit. The contract is
+unchanged; this is `sc-server`'s gap.
+
+**On Slurm, a job's helper modules are lost.** The contract puts the user's own
+modules on the tool's path (surface *A node's own Python packages*). **Where
+`sc-server` falls short:** a job dispatched to Slurm collects, before it starts,
+every key whose files are outside Slurm's `sharedpaths`, which `sc-server` does
+not set, and the collect rebuilds the uploaded collection from the manifest's
+values. A helper module, which no value names, is left behind, and a test
+importing it fails. Host mode, and Docker on Linux, never collect, and are
+unaffected. The contract is unchanged; this is `sc-server`'s gap, to be fixed on
+SiliconCompiler's `main`:
+[`collect/uploaded-collection-rebuilt.md`](../../../plans/siliconcompiler/collect/uploaded-collection-rebuilt.md).
 
 ### Credentials, as far as this profile has them
 

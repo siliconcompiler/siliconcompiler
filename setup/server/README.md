@@ -936,6 +936,17 @@ metering tables, and no `admin_actions` or `admin_elevations`: there is no
 administrative mode, and registering or retiring an image or a software version
 names its actor in its own row.
 
+One database backend, SQLite. A second -- MySQL in the compose stack, SQLite
+locally -- was asked about and declined. Every SQL call goes through one
+chokepoint in `Store`, so placeholders, the `sqlite3` references and the
+`"index"` identifiers are one place each; the schema is the wall. It has 17
+partial indexes, four of them UNIQUE, and one --
+`devices_dpop_jkt_idx … WHERE revoked_at IS NULL`, one live device per key --
+cannot be expressed in MySQL without a generated column, so the two schemas
+would differ in shape and not just in dialect. Postgres is the far cheaper
+target if one is ever wanted: it takes the partial indexes, `ON CONFLICT` and
+the expression indexes as written.
+
 ### The operator CLI
 
 `python3 -m siliconcompiler.remote.server.software.registry -datadir <datadir>` is
