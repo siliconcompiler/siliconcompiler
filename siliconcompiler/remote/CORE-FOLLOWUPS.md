@@ -20,11 +20,4 @@ item is fixed, it is removed, and the commit that fixes it says so.
 
 ## Open
 
-Each is SiliconCompiler's to make on `main`, planned in the plans repository,
-and the branch takes it by merging `main` once it lands. The numbers stay, since
-CONTRACT-CHANGES item 2 names them.
-
-- **9. A server-side run rebuilds the collection it was uploaded with**, losing
-  a job's helper modules where a Slurm-dispatched run collects before it
-  starts. Planned:
-  [`collect/uploaded-collection-rebuilt.md`](../../../plans/siliconcompiler/collect/uploaded-collection-rebuilt.md).
+Nothing open.
