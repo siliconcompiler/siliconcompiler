@@ -456,9 +456,13 @@ jobs:
         working-directory: setup/server
         run: docker compose down -v
 
+  # The design matrix is .github/workflows/config/gallery_designs.json, read
+  # from this repo at sc-ref. Not fail-fast: one failing design would cancel
+  # the rest and hide their results.
   gallery:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.rungallery }}
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
     with:
       sc-ref: ${{ github.ref }}
       concurrency: 30
+      fail-fast: false

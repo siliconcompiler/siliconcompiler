@@ -875,8 +875,6 @@ def _simple_schema(value=None):
     return schema
 
 
-# ---------------------------------------------------------------- stream target
-
 def test_write_manifest_stream_matches_file():
     """A stream target produces exactly what the path target would."""
     schema = _simple_schema()
@@ -988,8 +986,6 @@ def test_write_manifest_stream_is_readable_manifest():
     assert manifest["test0"]["test1"]["node"]["*"]["*"]["value"] == "roundtrip"
 
 
-# ------------------------------------------------------------- pathlib target
-
 def test_write_manifest_pathlib():
     """A pathlib.Path target matches the str target byte for byte."""
     schema = _simple_schema()
@@ -1059,8 +1055,6 @@ def test_write_manifest_pathlib_gz():
         assert json.loads(f.read())["test0"]["test1"]
 
 
-# ------------------------------------------------- serialize-before-open order
-
 def test_write_manifest_leaves_file_intact_on_failure():
     """A failing getdict() leaves an existing file intact: serialization precedes the open."""
 
@@ -1088,8 +1082,6 @@ def test_write_manifest_creates_no_file_on_failure():
         Boom().write_manifest("test.json")
     assert not os.path.isfile("test.json")
 
-
-# ------------------------------------------------------- __open_file contextmanager
 
 def _open_file(*args, **kwargs):
     return BaseSchema._BaseSchema__open_file(*args, **kwargs)

@@ -1119,8 +1119,6 @@ def test_check_flowgraph_io_reports_an_unsatisfiable_input(
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
 
 
-# -- switching flows over a shared build directory -----------------------------
-#
 # Reported from CI (2026-09-16): an asicflow run was interrupted with Ctrl+C, the
 # project was switched to a different asic flow, and the rerun stopped with a node
 # not receiving its inputs. Deleting the build directory cleared it.
@@ -1386,8 +1384,6 @@ def test_flow_change_check_is_quiet_without_a_job_manifest(gcd_design):
     assert Scheduler(project)._Scheduler__configure_check_flow_changed() is None
 
 
-# -- a full reset must not resurrect a node setup() removed --------------------
-#
 # From the reported CI failure (ebrick_south, 2026-09-16):
 #
 #   WARNING | Removing route.repair_timing/0 due to post route timing repair is disabled
@@ -1537,9 +1533,6 @@ def test_mark_pending_leaves_a_skipped_node_alone(basic_project):
         NodeStatus.PENDING
 
 
-# -- a node removed from the run cannot fail to receive inputs -----------------
-
-
 def test_is_skipped_tracks_both_the_set_and_the_record(basic_project):
     """Either signal means the node does not execute, and the rest of the IO path
     already treats a record-SKIPPED node as absent."""
@@ -1604,8 +1597,6 @@ def test_check_flowgraph_io_still_fails_for_a_live_node(project_logger, basic_pr
     assert "Invalid flow: detailed/0 will not receive required input top.odb.gz" in caplog.text
 
 
-# -- pulling excluded upstreams back into the run ------------------------------
-#
 # option.from says where the user wants the run to start. It is not a claim that
 # what sits on disk ahead of that point is usable, so when it is not, the upstream
 # is re-run rather than the run being aborted.

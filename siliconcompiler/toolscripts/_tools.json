@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "c4d317e4fa2398b9880920a1411c20258a2175a9",
+    "git-commit": "50927c93d1947a4cd9fa62ceaa887a3a81725709",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
@@ -52,7 +52,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "0e19cc06095fb5e11b7f722dd610aee7a5848e9b",
+    "git-commit": "7a034b56de14b485ddf8fd97b420a6f37a91c00d",
     "auto-update": true,
     "_comment-prune-dirs": [
       "The archive globs are measured against a build of this image. They",
@@ -411,7 +411,7 @@
     ]
   },
   "chisel": {
-    "version": "2.0.9",
+    "version": "2.0.10",
     "git-url": "https://github.com/sbt/sbt.git",
     "auto-update": true,
     "docker-prune-dirs": [

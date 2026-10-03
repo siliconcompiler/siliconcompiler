@@ -5566,8 +5566,6 @@ def test_open_task_get_show_workdir():
     assert callable(task.get_show_workdir)
 
 
-# -- Task._validate_io ---------------------------------------------------------
-
 @pytest.fixture
 def io_project():
     """Empty project with a design but no flow; tests build their own flow."""
@@ -5806,8 +5804,6 @@ def test_validate_io_duplicate_input_fails(project_logger, io_project, caplog):
     assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
 
 
-# -- Task._get_required_inputs -------------------------------------------------
-#
 # ``input`` is declared once, before the run, when nothing has failed. The
 # requirement set can therefore only shrink at runtime, and only for names that
 # no *live* upstream still offers -- an upstream whose failure [option,continue]
