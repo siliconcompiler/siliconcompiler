@@ -9,7 +9,6 @@ import contextlib
 import copy
 import importlib
 import logging
-import threading
 import warnings
 import pathlib
 
@@ -113,41 +112,6 @@ class LazyLoad(Enum):
         Returns true when the current section should not be loaded.
         """
         return self == LazyLoad.ON
-
-
-# The classes a manifest may name, per thread, where a caller restricted them.
-_RESTRICTED = threading.local()
-
-
-@contextlib.contextmanager
-def known_classes_only():
-    """
-    Resolve every class a manifest names among the classes already loaded in
-    this process, and import nothing on its behalf.
-
-    Reading a manifest normally imports the module its ``__meta__`` names --
-    and a flowgraph node's ``taskmodule`` -- before checking what it is, so the
-    module's import-time code runs for whoever wrote the manifest. Inside this
-    context a name is looked up in a snapshot of the loaded subclasses of
-    :class:`BaseSchema`, keyed ``module/Class``: a class that is not there
-    resolves to its base type, and a task module that is not there raises
-    :class:`ImportError`. For a process reading manifests it did not write.
-
-    Per thread, and nestable.
-    """
-    def recurse(cls):
-        found = {cls}
-        for sub in cls.__subclasses__():
-            found |= recurse(sub)
-        return found
-
-    previous = getattr(_RESTRICTED, "classes", None)
-    _RESTRICTED.classes = {f"{cls.__module__}/{cls.__name__}": cls
-                           for cls in recurse(BaseSchema)}
-    try:
-        yield
-    finally:
-        _RESTRICTED.classes = previous
 
 
 class BaseSchema:
@@ -338,14 +302,6 @@ class BaseSchema:
         return cls_map
 
     @staticmethod
-    def _known_classes() -> Optional[Dict[str, Type["BaseSchema"]]]:
-        """
-        The classes a manifest may name on this thread, where they are
-        restricted by :func:`known_classes_only`, or None.
-        """
-        return getattr(_RESTRICTED, "classes", None)
-
-    @staticmethod
     @cache
     def __load_schema_class(cls_name: str) -> Optional[Type["BaseSchema"]]:
         """
@@ -379,14 +335,9 @@ class BaseSchema:
         cls_name = meta.get("class", None)
         clss = []
         if cls_name:
-            known = BaseSchema._known_classes()
-            if known is not None:
-                # Restricted: looked up, never imported. See known_classes_only.
-                cls = known.get(cls_name, None)
-            else:
-                cls = cls_map.get(cls_name, None)
-                if not cls:
-                    cls = BaseSchema.__load_schema_class(cls_name)
+            cls = cls_map.get(cls_name, None)
+            if not cls:
+                cls = BaseSchema.__load_schema_class(cls_name)
             if cls:
                 clss.append(cls)
         sc_type = cls_map.get(meta.get("sctype", None), None)

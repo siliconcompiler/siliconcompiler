@@ -642,11 +642,9 @@ class Results:
         that starts part-way through marks every node it did not load pending.
         Loaded with the classes already here, importing nothing it names.
         '''
-        from siliconcompiler import Project
-        from siliconcompiler.schema.baseschema import known_classes_only
+        from siliconcompiler.remote import manifests
 
-        with known_classes_only():
-            final = Project.from_manifest(filepath=path)
+        final = manifests.read(path)
         for group in ("record", "metric"):
             for key in final.getkeys(group):
                 param = final.get(group, key, field=None)

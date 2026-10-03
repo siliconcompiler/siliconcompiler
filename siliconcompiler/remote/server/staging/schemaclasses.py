@@ -12,7 +12,7 @@ So the allowlist is the classes the reading process's installation provides,
 loaded once as it starts: SiliconCompiler whole, its tool drivers, and every
 installed distribution that depends on it -- the PDKs and libraries, a site's
 own drivers. A manifest's name is looked up among them
-(`known_classes_only`). A class that is not there resolves to its base type,
+(`remote.manifests`). A class that is not there resolves to its base type,
 as it always has; a node's TASK class that is not there is refused
 (`software-unavailable`, `unknown_class`), because a task's own methods run on
 the node.
@@ -28,9 +28,7 @@ import threading
 
 from importlib import metadata
 
-from siliconcompiler.schema.baseschema import known_classes_only
-
-__all__ = ["load", "reading", "known"]
+__all__ = ["load"]
 
 
 logger = logging.getLogger("sc-server")
@@ -56,20 +54,6 @@ def load() -> None:
         _loaded = True
         logger.info(f"loaded the schema classes of {', '.join(packages)} "
                     f"({walked} modules)")
-
-
-def reading():
-    '''The context every manifest a job uploaded is read in.'''
-    load()
-    return known_classes_only()
-
-
-def known():
-    '''The ``module/Class`` names a manifest may resolve to, inside
-    :func:`reading`.'''
-    from siliconcompiler.schema.baseschema import BaseSchema
-
-    return set(BaseSchema._known_classes() or ())
 
 
 def _dependents():

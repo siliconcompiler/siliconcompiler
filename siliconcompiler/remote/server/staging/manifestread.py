@@ -176,9 +176,8 @@ def validate(summary: Any) -> Dict[str, Any]:
             node([entry.get("step"), entry.get("index")], "a node")
             text(entry.get("task"), "a node's task class", optional=True)
             text(entry.get("tool"), "a node's tool", MAX_NAME, optional=True)
-            if not all(isinstance(entry.get(flag), bool)
-                       for flag in ("resolved", "inherits", "python")):
-                fail("a node's resolved, inherits and python are not booleans")
+            if not all(isinstance(entry.get(flag), bool) for flag in ("inherits", "python")):
+                fail("a node's inherits and python are not booleans")
 
     for edge in listed(summary.get("edges") or [], "edges", MAX_NODES * 4):
         if not isinstance(edge, list) or len(edge) != 4:
@@ -237,14 +236,14 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
 
     Runs in the reading process. Classes and task modules the manifest names
     are looked up among what this installation provides and never imported
-    (`schemaclasses.reading`), and the extracted tree is never on
-    ``sys.path``.
+    (`schemaclasses.load`, `remote.manifests`), and the extracted tree is
+    never on ``sys.path``.
     '''
     import warnings
 
-    from siliconcompiler import Project
     from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
+    from siliconcompiler.remote import manifests
     from siliconcompiler.remote import owners
     from siliconcompiler.remote import runflow
     from siliconcompiler.remote.server.staging import schemaclasses
@@ -263,154 +262,154 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
         return summary
 
     manifest = os.path.join(tree, f"{design}.pkg.json")
-    with schemaclasses.reading():
-        # 🔴 Reading a manifest is only BACKWARDS compatible, and the failure
-        # in the other direction is silent: a newer one holds keys this schema
-        # does not have, dropped, and values whose type changed, replaced. So
-        # SiliconCompiler's own warning is the refusal here.
-        with warnings.catch_warnings(record=True) as raised:
-            warnings.simplefilter("always", SchemaVersionWarning)
-            try:
-                # Whole, not lazily: every class it names is resolved here.
-                project = Project.from_manifest(filepath=manifest, lazyload=False)
-            except Exception as e:                               # noqa: BLE001
-                return refuse("archive-rejected",
-                              f"the uploaded manifest could not be read: {e}",
-                              reason="invalid_manifest")
-
-        newer = [str(warning.message) for warning in raised
-                 if issubclass(warning.category, SchemaVersionWarning)]
-        if newer:
-            wanted = ", ".join(asked.get("requires_siliconcompiler") or []) or "any"
-            return refuse("declared-mismatch",
-                          f"this server cannot read that manifest: {newer[0]}. It was "
-                          "written by a newer SiliconCompiler than the one the job "
-                          f"resolved to ({wanted}), and reading one is only backwards "
-                          "compatible")
-
-        summary["design"], summary["jobname"] = project.name, project.option.get_jobname()
-        if project.name != design or project.option.get_jobname() != jobname:
-            return refuse("declared-mismatch",
-                          f"the manifest is {project.name}/{project.option.get_jobname()} "
-                          f"and the job is {design}/{jobname}")
-
-        # 🔴 Each dataroot whose path carries userinfo, by its keypath and
-        # never its value (surface D302): the server refuses the archive for
-        # it, against this report, and nothing here records the path.
-        summary["credentials"] = [list(keypath)
-                                  for keypath, path in owners.dataroot_paths(project)
-                                  if owners.has_userinfo(path)]
-        # And in every upstream node's, under `<step>/<index>/outputs/`, which
-        # the input keeps alike (surface D307).
-        for member in _outputs_manifests(tree):
-            try:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    upstream = Project.from_manifest(filepath=os.path.join(tree, member),
-                                                     lazyload=False)
-            except Exception as e:                               # noqa: BLE001
-                return refuse("archive-rejected",
-                              f"the uploaded manifest {member} could not be read: {e}",
-                              reason="invalid_manifest")
-            for keypath, path in owners.dataroot_paths(upstream):
-                if owners.has_userinfo(path) and list(keypath) not in summary["credentials"]:
-                    summary["credentials"].append(list(keypath))
-
+    schemaclasses.load()
+    # 🔴 Reading a manifest is only BACKWARDS compatible, and the failure
+    # in the other direction is silent: a newer one holds keys this schema
+    # does not have, dropped, and values whose type changed, replaced. So
+    # SiliconCompiler's own warning is the refusal here.
+    with warnings.catch_warnings(record=True) as raised:
+        warnings.simplefilter("always", SchemaVersionWarning)
         try:
-            runtime = runflow.runtime_flow(project)
-            nodes = list(runtime.get_nodes())
-        except Exception as e:                                   # noqa: BLE001
-            return refuse("archive-rejected", f"the manifest names no runnable flow: {e}",
-                          reason="invalid_manifest")
-        if not nodes:
-            return refuse("archive-rejected", "the manifest's flow has no nodes to run",
-                          reason="invalid_manifest")
-
-        flow = project.get_flow()
-        summary["flow"] = flow.name
-        tools = runflow.node_tools(flow, nodes)
-        edges = [[in_step, in_index, step, index]
-                 for step, index in nodes
-                 for in_step, in_index in runtime.get_node_inputs(step, index)
-                 if (in_step, in_index) in nodes]
-        inherits = runflow.inheriting_nodes(flow, nodes,
-                                            [tuple(edge) for edge in edges])
-        known = schemaclasses.known()
-        python = runflow.python_nodes(flow, nodes)
-        summary["nodes"] = [{
-            "step": step, "index": index,
-            "task": flow.get_graph_node(step, index).get_taskmodule(),
-            "resolved": flow.get_graph_node(step, index).get_taskmodule() in known,
-            "tool": tools.get((step, index)),
-            "inherits": (step, index) in inherits,
-            "python": (step, index) in python} for step, index in nodes]
-        summary["edges"] = edges
-        summary["tools"] = sorted({tool for tool in tools.values() if tool})
-
-        # 🔴 A node's task class this installation does not provide is refused
-        # (surface D163): its own setup and pre- and post-processing run on the
-        # node, so running it as its base class would silently lose them.
-        unknown: Dict[str, List[str]] = {}
-        for entry in summary["nodes"]:
-            if not entry["resolved"]:
-                unknown.setdefault(entry["task"], []).append(
-                    f"{entry['step']}/{entry['index']}")
-        if unknown:
-            named = "; ".join(f"{', '.join(where)} runs {name}"
-                              for name, where in sorted(unknown.items()))
-            return refuse(
-                "software-unavailable",
-                f"this server does not have the task class each of these nodes runs: "
-                f"{named}. A task's own setup runs on the node, so it is not run as its "
-                "base class instead",
-                reason="unknown_class",
-                unresolved=[{"kind": "class", "name": name, "requirement": [],
-                             "available": []}
-                            for name in sorted(unknown)])
-
-        refused = _unattended(project, nodes)
-        if refused:
-            return refuse("archive-rejected", refused[1], reason=refused[0])
-
-        try:
-            from siliconcompiler.flowgraph import Flowgraph
-            for step, index in nodes:
-                Flowgraph.check_node_name(step, index)
-        except ValueError as e:
+            # Whole, not lazily: every class it names is resolved here.
+            project = manifests.read(manifest, lazyload=False)
+        except Exception as e:                               # noqa: BLE001
             return refuse("archive-rejected",
-                          f"the manifest's flow names a node that is not one: {e}",
+                          f"the uploaded manifest could not be read: {e}",
                           reason="invalid_manifest")
 
-        summary["upstream"] = [list(node) for node in runflow.upstream_nodes(
-            project, {tuple(node) for node in asked.get("skipped") or []})]
-        # The PDK this run needs; the literal 'none' where the class has no
-        # PDK setting; None where it has one and it is unset. 'none' is a value
-        # rather than a NULL: a flow that needs no PDK has resolved its PDK
-        # requirement, and the column's CHECK on admitted jobs has to be able
-        # to tell that apart from one that has not been resolved yet.
-        summary["pdk"] = (project.get("asic", "pdk") or None) \
-            if project.valid("asic", "pdk") else "none"
-        summary["libraries"] = _libraries(project)
-        # The FPGA device this run targets, or None for a flow with none.
+    newer = [str(warning.message) for warning in raised
+             if issubclass(warning.category, SchemaVersionWarning)]
+    if newer:
+        wanted = ", ".join(asked.get("requires_siliconcompiler") or []) or "any"
+        return refuse("declared-mismatch",
+                      f"this server cannot read that manifest: {newer[0]}. It was "
+                      "written by a newer SiliconCompiler than the one the job "
+                      f"resolved to ({wanted}), and reading one is only backwards "
+                      "compatible")
+
+    summary["design"], summary["jobname"] = project.name, project.option.get_jobname()
+    if project.name != design or project.option.get_jobname() != jobname:
+        return refuse("declared-mismatch",
+                      f"the manifest is {project.name}/{project.option.get_jobname()} "
+                      f"and the job is {design}/{jobname}")
+
+    # 🔴 Each dataroot whose path carries userinfo, by its keypath and
+    # never its value (surface D302): the server refuses the archive for
+    # it, against this report, and nothing here records the path.
+    summary["credentials"] = [list(keypath)
+                              for keypath, path in owners.dataroot_paths(project)
+                              if owners.has_userinfo(path)]
+    # And in every upstream node's, under `<step>/<index>/outputs/`, which
+    # the input keeps alike (surface D307).
+    for member in _outputs_manifests(tree):
         try:
-            summary["fpga"] = project.get("fpga", "device") or None
-        except Exception:                                       # noqa: BLE001
-            pass
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                upstream = manifests.read(os.path.join(tree, member), lazyload=False)
+        except Exception as e:                               # noqa: BLE001
+            return refuse("archive-rejected",
+                          f"the uploaded manifest {member} could not be read: {e}",
+                          reason="invalid_manifest")
+        for keypath, path in owners.dataroot_paths(upstream):
+            if owners.has_userinfo(path) and list(keypath) not in summary["credentials"]:
+                summary["credentials"].append(list(keypath))
 
-        required = owners.required(project)
-        summary["required"] = sorted([list(key) for key in required]) \
-            if required is not None else None
-        summary["values"] = owners.value_records(
-            project, os.path.join(tree, "sc_collected_files"), required)
+    try:
+        runtime = runflow.runtime_flow(project)
+        nodes = list(runtime.get_nodes())
+    except Exception as e:                                   # noqa: BLE001
+        return refuse("archive-rejected", f"the manifest names no runnable flow: {e}",
+                      reason="invalid_manifest")
+    if not nodes:
+        return refuse("archive-rejected", "the manifest's flow has no nodes to run",
+                      reason="invalid_manifest")
 
-        # 🔴 The PDK fails closed only where the class has a PDK setting: one
-        # left unset there is not knowing which, and a class without one
-        # resolves to 'none'.
-        if summary["pdk"] is None:
-            return refuse("resource-unresolved",
-                          f"this {type(project).__name__} project sets no PDK: set one "
-                          "with set_pdk() before it is submitted",
-                          resource_kind="pdk")
+    flow = project.get_flow()
+    summary["flow"] = flow.name
+    tasks = {node: flow.get_graph_node(*node).get_taskmodule() for node in nodes}
+
+    # 🔴 A node's task class this installation does not provide is refused
+    # (surface D163): its own setup and pre- and post-processing run on the
+    # node, so running it as its base class would silently lose them. Checked
+    # by name, before anything below asks for a task -- which imports it.
+    known = manifests.known_classes()
+    unknown: Dict[str, List[str]] = {}
+    for (step, index), name in tasks.items():
+        if name not in known:
+            unknown.setdefault(name, []).append(f"{step}/{index}")
+    if unknown:
+        named = "; ".join(f"{', '.join(where)} runs {name}"
+                          for name, where in sorted(unknown.items()))
+        return refuse(
+            "software-unavailable",
+            f"this server does not have the task class each of these nodes runs: "
+            f"{named}. A task's own setup runs on the node, so it is not run as its "
+            "base class instead",
+            reason="unknown_class",
+            unresolved=[{"kind": "class", "name": name, "requirement": [],
+                         "available": []}
+                        for name in sorted(unknown)])
+
+    tools = runflow.node_tools(flow, nodes)
+    edges = [[in_step, in_index, step, index]
+             for step, index in nodes
+             for in_step, in_index in runtime.get_node_inputs(step, index)
+             if (in_step, in_index) in nodes]
+    inherits = runflow.inheriting_nodes(flow, nodes,
+                                        [tuple(edge) for edge in edges])
+    python = runflow.python_nodes(flow, nodes)
+    summary["nodes"] = [{
+        "step": step, "index": index,
+        "task": tasks[(step, index)],
+        "tool": tools.get((step, index)),
+        "inherits": (step, index) in inherits,
+        "python": (step, index) in python} for step, index in nodes]
+    summary["edges"] = edges
+    summary["tools"] = sorted({tool for tool in tools.values() if tool})
+
+    refused = _unattended(project, nodes)
+    if refused:
+        return refuse("archive-rejected", refused[1], reason=refused[0])
+
+    try:
+        from siliconcompiler.flowgraph import Flowgraph
+        for step, index in nodes:
+            Flowgraph.check_node_name(step, index)
+    except ValueError as e:
+        return refuse("archive-rejected",
+                      f"the manifest's flow names a node that is not one: {e}",
+                      reason="invalid_manifest")
+
+    summary["upstream"] = [list(node) for node in runflow.upstream_nodes(
+        project, {tuple(node) for node in asked.get("skipped") or []})]
+    # The PDK this run needs; the literal 'none' where the class has no
+    # PDK setting; None where it has one and it is unset. 'none' is a value
+    # rather than a NULL: a flow that needs no PDK has resolved its PDK
+    # requirement, and the column's CHECK on admitted jobs has to be able
+    # to tell that apart from one that has not been resolved yet.
+    summary["pdk"] = (project.get("asic", "pdk") or None) \
+        if project.valid("asic", "pdk") else "none"
+    summary["libraries"] = _libraries(project)
+    # The FPGA device this run targets, or None for a flow with none.
+    try:
+        summary["fpga"] = project.get("fpga", "device") or None
+    except Exception:                                       # noqa: BLE001
+        pass
+
+    required = owners.required(project)
+    summary["required"] = sorted([list(key) for key in required]) \
+        if required is not None else None
+    summary["values"] = owners.value_records(
+        project, os.path.join(tree, "sc_collected_files"), required)
+
+    # 🔴 The PDK fails closed only where the class has a PDK setting: one
+    # left unset there is not knowing which, and a class without one
+    # resolves to 'none'.
+    if summary["pdk"] is None:
+        return refuse("resource-unresolved",
+                      f"this {type(project).__name__} project sets no PDK: set one "
+                      "with set_pdk() before it is submitted",
+                      resource_kind="pdk")
     return summary
 
 
