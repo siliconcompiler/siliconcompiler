@@ -135,6 +135,41 @@ in-tree examples. Deleting outright is for names that never shipped in a release
 Moving a method onto a base class or mixin is not a removal -- the old call site
 still resolves through the MRO -- but check that it does.
 
+## Changing code in this repository
+
+**Leave the tree no bigger than the change needs.** When several fixes would
+work, prefer one that removes code, then one that adds no new surface.
+
+- Search for an existing helper and extend it before writing a new one.
+- Fix the cause, not the symptom. A small diff that adds a local workaround is
+  worse than a larger one that removes the reason for it.
+- Delete what your change leaves unused -- a function, a branch, an argument, a
+  fixture -- in the same PR. Released public API is the exception above.
+- Fold a near-duplicate into the code you are touching rather than adding
+  another copy. For tests, that means `pytest.mark.parametrize`, after checking
+  the case is not already covered.
+- No speculative code: no options, hooks or fallbacks that nothing uses yet. One
+  call site is not an abstraction.
+
+**Comments and docstrings:**
+
+- **ASCII only**, in code, comments and docstrings: `--` for a dash, straight
+  quotes, `...` for an ellipsis, no box-drawing rules. The exceptions are strings
+  the UI displays, such as the dashboard's box drawing or a unit symbol, and test
+  data that checks Unicode handling.
+- **Brief.** Say why, where the code cannot. In tests a comment is a line or
+  two; in package code it can run longer, but a long comment makes the code
+  around it harder to read. Do not narrate the next line or recount how the
+  code got here; that is the commit message. No divider or section-heading
+  comments.
+- **A test docstring is at most two sentences** saying what the test checks,
+  with the issue it guards if there is one. A long or intricate test may need a
+  little more; none needs paragraphs.
+  `"""cleanup() releases the atexit hook even when stop() raises (issue #5035)."""`
+- **Do not refer to other repositories** -- sibling packages, forks or a local
+  checkout. Describe the behavior where it is used. Link outside the repo only to
+  credit code adapted from elsewhere, or to the upstream bug a workaround waits on.
+
 ## Repo layout
 
 | Path | Contents |
@@ -179,6 +214,26 @@ Requires: sby, yosys
 """
 ```
 
+## Running tests
+
+```sh
+pytest -n logical -m "not eda and not docker"     # the suite that needs no tools
+pytest tests/test_design.py                       # one file
+pytest tests/test_design.py::test_design_keys     # one test
+```
+
+Markers, fixtures, what CI runs and where a new test goes are in
+[tests/README.md](tests/README.md).
+
+- **`eda` tests need the EDA tools installed**, and `docker` tests need Docker.
+  To run `eda` tests locally, set `SCTESTCACHE=<dir>` so they share one
+  download cache, as CI does.
+- **Every test has a 15-second timeout**, from `pyproject.toml`. A test that
+  needs longer says so with `@pytest.mark.timeout(N)`.
+- **Each test already runs in its own temporary directory**, set up by an
+  autouse fixture in `tests/conftest.py`. Do not request `tmp_path` just to get
+  a clean working directory.
+
 ## Before you open a PR
 
 Every PR is gated on **four** lint jobs plus the test suite and the docs build.
@@ -192,7 +247,7 @@ pip install -e .[test,lint,docs]
 flake8 --statistics .                              # 1. Python
 tclfmt --check . && tclint .                       # 2. TCL
 codespell                                          # 3. spelling -- prose included
-pytest -m "not eda"                                # tests, no EDA tools needed
+pytest -n logical -m "not eda and not docker"     # tests, as CI runs them
 cd docs && make html                               # warnings are errors
 ```
 
