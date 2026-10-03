@@ -363,11 +363,8 @@ def test_past_its_retention_and_not_yet_swept_is_still_fetchable(
 
 def test_an_artifact_still_being_described_is_not_ready_nor_is_its_node(
         server, server_client, key, token, finished):
-    '''The live bug: a permanent `403` told a client to abandon an artifact
-    about to be fetchable. Listed once described, so a client
-    fetching at `terminal` misses nothing; its `node` archive is held back,
-    refused as its worst member is: transient, not a blanket
-    `artifact-not-approved`.'''
+    '''An artifact still being described, and its `node` archive, are left out of the listing and
+    refused `409 not-ready`, never a permanent `403` that would make a client abandon them.'''
     items = listing(server_client, key, token, finished["id"])
     log, node = _item(items, "logs", "stepone"), _item(items, "node", "stepone")
     other = _item(items, "node", "steptwo")

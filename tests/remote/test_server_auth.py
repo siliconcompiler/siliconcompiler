@@ -528,11 +528,9 @@ def test_htu_and_handed_out_urls_come_from_config_behind_a_proxy(tmp_path):
 
 
 def test_me_reports_the_callers_account(client, key):
-    '''`authorized` is omitted, since {} would claim "granted nothing" where
-    there are no grants; `projects` is sent empty, deliberately. `limits`
-    are the caller's effective values: `GET /v1` takes no credential, so cannot
-    vary by caller. `usage` is derived, never metered: `used` this calendar
-    month, `total` everything, `null` on a stock.'''
+    '''`GET /v1/me` carries the caller's effective limits, which `GET /v1` cannot, no `authorized`
+    where there are no grants, and empty `projects`. `usage` is derived, never metered: `used` this
+    calendar month, `total` everything, `null` on a stock.'''
     token = login(client, key).get_json()["access_token"]
     body = call(client, key, "GET", "/v1/me", token).get_json()
 

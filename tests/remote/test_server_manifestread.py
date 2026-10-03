@@ -94,11 +94,9 @@ def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
 def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere(
         server, server_client, key, token, job_archive, nop_project, dispatcher, caplog,
         tmp_path, where):
-    '''As a client that did not strip it would send it, in the root
-    manifest or an upstream node's under `<step>/<index>/outputs/`:
-    `archive-rejected`, `credential`, the first such keypath and every
-    one in `detail`, never the value -- in no response, row, log line or file
-    this server wrote. Nor is the upload kept: only the record of why.'''
+    '''A credential in the root manifest or an upstream node's `<step>/<index>/outputs/` is
+    `archive-rejected` (`credential`), naming every such keypath and never the value in any
+    response, row, log line or file. The upload is not kept, only the record of why.'''
     import copy
     import logging
 

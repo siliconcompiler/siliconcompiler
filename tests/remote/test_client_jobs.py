@@ -953,10 +953,10 @@ class DeclaresAVersion(__import__("siliconcompiler").Task):
 ])
 def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_nop_project,
                                                        task, wanted):
-    '''So a deployment with no image for a tool refuses before the upload.
-    The version is what setup declared on the worked-out copy; `[]` is any
-    version, where setup could not run here. SiliconCompiler's own nodes
-    name no tool, or an operator registers one no image can claim.'''
+    '''The descriptor names each tool the flow needs, at the version setup declared (`[]` where
+    setup could not run here), so a deployment with no image for one refuses before the upload.
+    SiliconCompiler's own nodes name none, or an operator would register a tool no image can claim.
+    '''
     from siliconcompiler import Flowgraph
     from siliconcompiler.tools.builtin.nop import NOPTask
     from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis

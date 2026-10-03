@@ -46,11 +46,8 @@ def software(bootstrap):
 
 
 def test_the_images_are_tagged_with_the_siliconcompiler_version(bootstrap):
-    '''A loop binding each tool's version to `version` shadowed the
-    parameter, so both images were tagged with mlir's `19.1.5`.
-
-    And `-built` is a timestamp, never the publish date: the date is a VERSION
-    for a silent tool; `built_at` breaks ties between same-day builds.'''
+    '''Both images are tagged with siliconcompiler's version, not the last tool's (a loop variable
+    once shadowed it), and `-built` is a build timestamp, never a publish date.'''
     register(bootstrap, {tool: {"kind": "tool", "version": f"{n}.0", "present": True}
                          for n, tool in enumerate(bootstrap.TOOLS)})
 
@@ -112,11 +109,9 @@ def test_every_tool_records_its_kind_and_the_driver_the_table_names(bootstrap):
 
 def test_the_catalogue_is_spelled_out_and_covers_every_tool_siliconcompiler_drives(
         bootstrap):
-    '''Spelled out, not worked out: `kepler-formal` is driven from
-    `siliconcompiler.tools.keplerformal`. So every entry must import, and the
-    tasks (not a list here) keep out `builtin` and `execute`. A tool missing
-    from it is refused by name; `NOT_PUBLISHED` tells a deliberate omission
-    (`vivado`) from a forgotten one.'''
+    '''The catalogue is spelled out, since a tool's name need not match its module (`kepler-formal`
+    is `tools.keplerformal`), so every entry must import. A tool missing from it is refused by name,
+    and `NOT_PUBLISHED` tells a deliberate omission (`vivado`) from a forgotten one.'''
     import pkgutil
 
     import siliconcompiler.tools
@@ -215,11 +210,9 @@ def test_what_it_holds_is_logged_with_both_numbers_where_they_differ(
 
 
 def test_each_image_declares_only_what_the_probe_found_in_it(bootstrap):
-    '''Every tool is asked of every image; declaring one not there gets a
-    node dispatched into a container without it. `slang` is a tool whose
-    version is a distribution, and arrives with siliconcompiler -- why the
-    small image declares anything. cocotb is a python name a cocotb node asks
-    for, declared where found.'''
+    '''Every tool is asked of every image, and each declares only what the probe found, since a node
+    sent to an image without its tool fails. The small image still declares `slang`, which arrives
+    with siliconcompiler, and cocotb where it is found.'''
     assert bootstrap.AS_DISTRIBUTION["slang"] == "pyslang"
     assert "slang" in bootstrap.TOOLS
 

@@ -1884,9 +1884,8 @@ def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
 
 def test_a_host_deployment_places_nothing_and_resolves_nothing(
         server, server_client, key, token, job_archive, dispatcher):
-    '''NULL image ids, not a default: `image_id` is what a node ran in.
-    `resolved_versions` absent, as `{}` would claim it ran nothing. No queue,
-    which a deployment without a partition for this leaves to the cluster.'''
+    '''A host deployment records NULL image ids, no `resolved_versions` (`{}` would claim it ran
+    nothing) and no queue, which it leaves to the cluster.'''
     job, _ = submitted(server_client, key, token, job_archive())
 
     store = server.config["SC_STORE"]

@@ -58,12 +58,9 @@ def stored(server, job_id):
 
 def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
         server, server_client, key, token, finished):
-    '''The row stays, so *where did my results go* stays answerable.
-    `deleted_at` IS set: `fetchable`'s ladder first asks whether the bytes are
-    there, and retention lapsing ends HERE, so a NULL would report reaped
-    bytes fetchable. NULL `deleted_by` is the reaper -- a client reads the
-    enum `expired`, and `deleted_reason` is prose for a person's deletion.
-    Recording it also makes the sweep idempotent across a rig's restarts.'''
+    '''An expired artifact loses its bytes and keeps its row, with `deleted_at` set (else
+    `fetchable` would report reaped bytes) and a NULL `deleted_by`, which a client reads as
+    `expired`. A second sweep finds nothing to do.'''
     rows = artifact_rows(server, finished["id"])
     assert rows
     server.config["SC_STORE"].execute(EXPIRED + "WHERE job_id = ?", (finished["id"],))

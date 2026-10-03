@@ -43,13 +43,9 @@ def create_app(datadir):
 
 
 def test_get_v1_is_complete_on_a_bare_datadir(client):
-    '''The one endpoint whose every field is real on day one. Two feature
-    strings, since one could not say whether a deployment serves the archive
-    or the live tail; `grant_types_supported`, not `identity_assurance`, is
-    what a client branches on, so the device grant is not in it. Every limit
-    is a base unit, spelled as the refusal naming it is. `terms_url` is
-    absent rather than null. With no image registered, `software` is this
-    process's SiliconCompiler and Python.'''
+    '''`GET /v1` is complete on a bare datadir: every limit an integer in base units, two feature
+    strings, no device grant, no `terms_url`, and `software` this process's SiliconCompiler and
+    Python.'''
     resp = client.get("/v1")
 
     assert resp.status_code == 200

@@ -136,15 +136,8 @@ def test_rebuilding_a_tag_supersedes_the_build_before_it(registry, store):
 ], ids=["bare", "unnamed", "range", "python-list", "tool-range", "tool-list",
         "tool-empty", "untracked"])
 def test_each_node_resolves_to_the_smallest_image_that_fits(registry, store, requires):
-    '''Per node and by digest: an import node never pulls the OpenROAD
-    image, a node declaring nothing (a builtin join) gets the job's own, and a
-    rebuilt tag cannot change what runs.
-
-    A bare version means exactly that; a range is resolved here, not by the
-    client (the image join is over combinations); a list is alternatives, as a
-    `Task`'s version is; an empty list is any version (what a client sends,
-    since setup() runs in the image); a version this deployment does not
-    track is no requirement (`version-skew` at create answers it).'''
+    '''Each node resolves by digest to the smallest image that fits: an import node never pulls the
+    OpenROAD image, and a node declaring nothing (a builtin join) gets the job's own.'''
     plan = images.plan_for_job(store, requires,
                                {("import", "0"): None, ("place", "0"): "openroad"})
 

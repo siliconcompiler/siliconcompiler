@@ -473,11 +473,9 @@ def test_an_upload_refused_as_unsafe_is_kept_and_never_opened(
 
 
 def test_the_artifacts_screen_lists_them_grouped_by_node(server, signed_in, finished, me):
-    '''The listing is (items, cursor), and a template handed the tuple
-    rendered an empty page once. Grouped by node, because the node is what a
-    discard removes, with a node's inputs as their own row; deleting the job
-    is here and not on the job page; a typed discard reason is labelled as
-    public.'''
+    '''The screen groups artifacts by node, the unit a discard removes, with a node's inputs as
+    their own row, and holds the job's delete button. A template once handed the (items, cursor)
+    tuple rendered an empty page.'''
     inputs = node_root(server, me, finished, "steptwo") / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)
     (inputs / "gcd.vg").write_text("module gcd; endmodule\n")
@@ -496,9 +494,9 @@ def test_the_artifacts_screen_lists_them_grouped_by_node(server, signed_in, fini
 
 def test_a_finished_jobs_page_draws_the_flow_and_opens_its_archives(
         server, signed_in, finished):
-    '''Drawn on the server, not by a JavaScript graph library every release
-    would pay for. `reports` there SHOWS the reports rather than download a
-    tarball. It no longer refreshes: nothing is left to watch.'''
+    '''The flow is drawn on the server, with no JavaScript graph library, and `reports` shows the
+    reports instead of downloading a tarball. The page no longer refreshes: nothing is left to
+    watch.'''
     text = page(signed_in, f"/portal/jobs/{finished['id']}")
 
     assert "<svg" in text
@@ -763,9 +761,9 @@ def test_the_portal_is_the_way_past_the_download_ceiling(signed_in, finished,
 
 
 def test_the_account_page_shows_each_ceiling_beside_its_default(signed_in, server, me):
-    '''Two columns: one value says neither *is this mine* nor *what would
-    it be otherwise*. Read-only, as this deployment has no admin mode.
-    `max_staging_seconds` is the deployment's alone.'''
+    '''Each ceiling shows beside its default, since one value says neither *is this mine* nor *what
+    would it be otherwise*. The page is read-only, and `max_staging_seconds` is the deployment's
+    alone.'''
     import re
 
     from siliconcompiler.remote.server.identity import accounts

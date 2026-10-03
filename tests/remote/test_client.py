@@ -559,9 +559,8 @@ def test_logout_forgets_the_session(fake_v1, logged_in, tmp_credentials, answer)
 def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credentials,
                                              client_credentials, caplog, software, said,
                                              unsaid):
-    '''Visible while somebody watches, not at the first submit; the server
-    still decides. A server naming no software is not second-guessed. A new
-    server is not identity drift, so the old principal is forgotten.'''
+    '''`-configure` reports the software the server runs, and does not second-guess a server that
+    names none. A new server is not identity drift, so the old principal is forgotten.'''
     if software is not None:
         capabilities["software"] = software
         fake_v1.replace(responses.GET, "", capabilities)
