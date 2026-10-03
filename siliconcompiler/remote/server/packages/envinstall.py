@@ -1,26 +1,14 @@
 '''
-Installing a job's Python packages on the host, while the job is staging.
+Installing a job's Python packages on the host, while the job is staging, so
+one that will not install rejects the job before any node runs. A deployment
+running containers builds a derived image instead (`envbuild`), with the same
+install (`pipbuild`).
 
-Where nodes run on this host -- this server without containers, dispatching
-locally -- the job's `python_packages` and its uploaded wheels are installed
-here while the job is `staging`, so a package that will not install rejects
-the job before any node runs rather than failing the run.
-
-🔴 **Each install is an environment of its own, named by its key, with a pip
-cache of its own** (implementation-notes §L), so no two jobs ever write one
-environment or one cache at once: the second to ask for a key waits on the
-first and reuses what it finished, as a builder's layer is reused.
-
-A deployment that runs containers builds a derived image instead --
-`envbuild` -- with the same install, `pipbuild`.
-
-🔴 **Nothing the job wrote is handed to pip.** The lists were held to their
-grammar at create, and the files pip reads are this server's own, written from
-what parsed. **Wheels only**: a source distribution builds only in the isolated
-builder. **From the deployment's `package_indexes`**, never an index a job
-names. What this Python already holds is never installed a second time -- see
-`pipbuild`. The result goes on the tool's `PYTHONPATH` through a `site` link in
-the job's directory, and never on SiliconCompiler's own.
+🔴 Each install is an environment of its own, by key, with its own pip cache
+(implementation-notes §L): the second job asking for a key waits and reuses.
+🔴 Nothing the job wrote is handed to pip: the files are this server's, wheels
+only (source builds only in the isolated builder), from `package_indexes`
+only. The result goes on the tool's `PYTHONPATH`, never SiliconCompiler's.
 '''
 
 import hashlib
@@ -61,11 +49,9 @@ def digest(path) -> str:
 
 
 def recorded(target) -> Dict[str, Any]:
-    '''What the install of ``target`` added: each distribution with its
-    version, each version substituted within its release line, and each listed
-    version this host's own copy was kept over -- kept beside the environment,
-    so a cached one reports the same as a fresh one (profile §5,
-    *`resolved_versions` covers images only*).'''
+    '''What the install of ``target`` added, kept beside it so a cached one reports alike.
+
+    Installed, substituted and ignored versions (profile §5).'''
     try:
         with open(f"{target}.json") as f:
             found = json.load(f)
@@ -79,18 +65,11 @@ def recorded(target) -> Dict[str, Any]:
 
 def install(packages: environment.Packages, wheels: Sequence[str], root: Path, logger,
             constrain=(), indexes=(), timeout=None, echo=None) -> Tuple[str, Dict[str, Any]]:
-    '''A job's packages into a directory of their own under ``root``, built
-    once and shared by every job asking for the same set, as a builder's layer
-    is. Returns the directory and what its install added (:func:`recorded`).
-    Raises InstallFailed.
+    '''Install a job's packages under ``root``, once per set; returns (directory, :func:`recorded`).
 
-    Keyed by this Python, this platform, what it holds, the indexes, the job's
-    `requested_versions.python` names, the files this server writes and each wheel's
-    digest -- the install adds to what this Python holds and comes from where
-    the indexes say, so all of it is part of what the result means. Built
-    under a lock beside it and moved into place whole, so a directory that
-    exists is one that is finished. ``timeout`` bounds the install, and
-    ``echo`` is handed pip's output, whole.
+    Keyed by everything the result depends on: this Python, platform and
+    holdings, the indexes and every input file. Built under a lock and moved
+    into place whole, so an existing directory is finished. Raises InstallFailed.
     '''
     from siliconcompiler.remote.server.packages import pipbuild
     from siliconcompiler.utils.multiprocessing import get_file_lock
@@ -112,8 +91,7 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
 
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
-    # One lock per environment, which keeps out another process and another
-    # thread of this one alike: two jobs staging in one server are threads.
+    # Excludes processes and threads alike: two jobs staging are threads.
     with get_file_lock(target).locked():
         if target.is_dir():
             return str(target), recorded(target)
@@ -137,7 +115,6 @@ def install(packages: environment.Packages, wheels: Sequence[str], root: Path, l
         if result["returncode"] != 0:
             shutil.rmtree(staging, ignore_errors=True)
             raise InstallFailed(result)
-        # Nothing to install is still an environment: this host held it all.
         staging.mkdir(exist_ok=True)
         with open(f"{target}.json", "w") as f:
             json.dump({"installed": [list(pair) for pair in result.get("installed") or []],

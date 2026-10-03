@@ -1,20 +1,13 @@
 '''
 The job: creating one, feeding it bytes, running it, and saying what it did.
 
-Everything above this module is HTTP and everything below it is a filesystem or
-a scheduler. The ordering rules that matter are here, and one of them is a
-security property rather than a preference:
-
 🔴 **submit checks the digest against what storage reports and answers `202`;
 only then, while staging, is the archive extracted, the manifest read and every
 check re-run against what the read returned.** Getting that order wrong is how
-an archive bomb gets opened. Nothing in this file may be reordered without
-reading that sentence again.
+an archive bomb gets opened. Reorder nothing here without reading this again.
 
-🔴 **No manifest is parsed in this process** (contract §1, *No server process
-holding credentials parses a manifest*). The read runs while the job stages, in
-a process of its own (`manifestread`, started by `sandbox`), and this module
-acts only on the data summary it returns.
+🔴 **No manifest is parsed in this process** (contract §1): the read runs in a
+process of its own (`manifestread`), and only its data summary is acted on.
 
 One module per step of a job's life, composed into
 :class:`~siliconcompiler.remote.server.jobs.service.JobService`:

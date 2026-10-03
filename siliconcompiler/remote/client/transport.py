@@ -1,24 +1,14 @@
 '''
-The one request path.
+The one request path: every API request goes through :meth:`Transport.request`,
+so none forgets its token, DPoP proof, ``User-Agent`` or operator headers.
 
-Every request this client makes to the API goes through :meth:`Transport.request`.
-That is a design requirement rather than a tidy-up: under ``v1`` each request
-carries an ``Authorization`` header, a freshly signed DPoP proof, a
-``User-Agent`` and any operator-configured headers, so a second call site is a
-call site that forgets one.
+🔴 Two error shapes: OAuth refusals at ``/v1/auth/token`` and ``/v1/auth/device``
+are ``{"error", "error_description", "reason"}``, all else problem+json, so the
+``Content-Type`` is read first.
 
-🔴 **Two error shapes, keyed on the endpoint.** At ``/v1/auth/token`` and
-``/v1/auth/device`` what OAuth processing refuses arrives as ``{"error",
-"error_description", "reason"}``; everything else, the transport-level
-refusals at those two endpoints included, is problem+json. So the
-``Content-Type`` is read first, and a client branches on ``error`` or ``type``,
-then on ``reason``.
-
-🔴 **Redirects are never followed by the HTTP library.** It would carry this
-session's headers and proof to wherever the redirect points. A ``303`` from the
-logs or artifact endpoints is followed by hand, with no ``Authorization`` and no
-proof; any other redirect on a ``/v1`` path is an intermediary refusing the
-request, reported as the edge.
+🔴 The HTTP library never follows a redirect: it would carry the session's
+headers and proof along. A ``303`` is followed by hand without them; any other
+redirect on a ``/v1`` path is the edge refusing.
 '''
 
 import email.utils
@@ -44,40 +34,26 @@ __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
 
 logger = logging.getLogger(__name__)
 
-# How many times a request is re-sent after a nonce challenge, a clock
-# correction, a silent refresh or a lost answer. Low on purpose: each of these
-# is a server telling the client exactly what to do differently, so needing
-# more than one means the answer did not help.
+# Low on purpose: each retry follows the server's exact instruction, so a second
+# failure means it did not help.
 MAX_RETRIES = 2
 
-# How many times a wait the server asked for (`Retry-After`) is honoured before
-# giving up, for the waits the transport takes on itself.
+# `Retry-After` waits honoured before giving up.
 MAX_WAITS = 10
 
 TIMEOUT_SECONDS = 30
 
 
-# Stable and product-named, never randomised and never the library's default:
-# an edge in front of the API allowlists it rather than challenging it.
+# Stable and product-named, so an edge can allowlist it.
 USER_AGENT = f"siliconcompiler/{__version__}"
 
 
 class _NoEnvironmentCredential(requests.auth.AuthBase):
-    '''The session's own `auth`, which adds nothing: a request goes out with
-    only what this client put on it (surface D305).
+    '''A session `auth` that adds nothing: requests sends only what was set (surface D305).
 
-    🔴 **requests fills a missing `auth` from `~/.netrc`** while `trust_env` is
-    on, and its `HTTPBasicAuth` then replaces whatever `Authorization` the
-    request carried -- the API's `DPoP <token>` included -- with the netrc
-    login, which would go to the API, to storage and to a stream host alike.
-    An `auth` of the session's own is never replaced. `trust_env` stays on,
-    because it is also what applies `HTTPS_PROXY`, `NO_PROXY` and
-    `REQUESTS_CA_BUNDLE`.
-
-    ⚠️ **It holds only while requests follows no redirect itself**: its
-    `rebuild_auth` reads netrc again for the new URL, whatever `auth` says.
-    Every request here sends `allow_redirects=False`, and a redirect is
-    followed by hand (:meth:`Transport.follow`).
+    🔴 Without it requests fills `auth` from `~/.netrc`, replacing the DPoP
+    `Authorization` everywhere. `trust_env` stays on for proxies and CA bundles.
+    ⚠️ Holds only with `allow_redirects=False`: `rebuild_auth` rereads netrc.
     '''
 
     def __call__(self, r):
@@ -110,28 +86,18 @@ class OAuthRefusal(RemoteError):
 
 
 class LoginRequired(RemoteError):
-    '''The session cannot be refreshed and a fresh login is the answer: a
-    refresh refused `invalid_grant` with no reason, such as a changed
-    fingerprint.'''
+    '''A refresh refused `invalid_grant` with no reason: log in afresh.'''
 
 
 def join_url(base: str, path: str = "") -> str:
-    '''Join a path onto a base URL, keeping the base's own path.
-
-    Explicitly not ``urljoin``: with a base of ``https://host/v1`` it returns
-    ``https://host/jobs``, silently dropping the version prefix.
-    '''
+    '''Join a path onto a base URL, keeping the base's path: ``urljoin`` drops ``/v1``.'''
     if not path:
         return base.rstrip("/")
     return f"{base.rstrip('/')}/{path.lstrip('/')}"
 
 
 def normalize_server(address: str, port: Optional[int] = None) -> str:
-    '''The base URL for a configured server address.
-
-    The scheme comes from the address, never from the port: a server on :8000
-    is not plaintext because of its port number.
-    '''
+    '''The base URL for a server address; the scheme comes from it, never the port.'''
     from urllib3.exceptions import LocationParseError
     from urllib3.util import Url, parse_url
 
@@ -169,31 +135,25 @@ class Transport:
         self._session.auth = _NoEnvironmentCredential()
 
         self._access_token: Optional[str] = None
-        # When the access token runs out, from its response's `expires_in`,
-        # never assumed.
         self._access_expires: Optional[float] = None
 
         # One nonce per origin: the stream host's is not the API's.
         self._nonces: Dict[str, str] = {}
 
-        # The server's clock minus this one's, once a proof was refused for its
-        # time; later proofs are corrected by it.
+        # Server clock minus ours, once a proof was refused for its time.
         self._clock_offset = 0.0
 
         self._refreshing = False
         self._deprecation_warned = False
 
-        # Set by the client: how a fresh login is had, how a CI session trades
-        # again, and what fingerprint a refresh carries.
+        # Set by the client.
         self.relogin: Optional[Callable[[Optional[str]], None]] = None
         self.trade: Optional[Callable[[], Any]] = None
         self.fingerprint: Callable[[], Dict[str, str]] = dict
 
-        # Where messages go, so they reach the run's own log.
         self.warn: Callable[[str], None] = logger.warning
 
-        # Where this server serves its own error `type` pages, once it has
-        # said so with a `Link: <...>; rel="help"`.
+        # Where this server serves its error `type` pages, from `Link: rel="help"`.
         self.help_pages: Optional[str] = None
 
     ######################################################################
@@ -208,8 +168,7 @@ class Transport:
 
     def set_tokens(self, access_token: Optional[str],
                    expires_in: Optional[int] = None) -> None:
-        '''Hold an access token, until its ``expires_in``. The refresh token
-        is the store's, and never held here.'''
+        '''Hold an access token until its ``expires_in``; the refresh token stays in the store.'''
         self._access_token = access_token
         self._access_expires = (time.monotonic() + max(0, int(expires_in) - 5)
                                 if access_token and expires_in else None)
@@ -226,12 +185,9 @@ class Transport:
     ######################################################################
 
     def operator_headers(self, url: str) -> Dict[str, str]:
-        '''The operator-configured headers a request to ``url`` carries.
+        '''The operator headers a request to ``url`` carries.
 
-        🔴 To the API's origin, its signed routes included, and nowhere else
-        (surface D304): a server sends a client to no other origin that
-        requires one, so a stream or storage URL elsewhere gets none, whatever
-        a redirect names.
+        🔴 Only to the API's origin, whatever a redirect names (surface D304).
         '''
         if origin_of(url) != self.api_origin:
             return {}
@@ -256,15 +212,13 @@ class Transport:
                 _nonced: bool = False) -> requests.Response:
         '''Send one request, proof and all.
 
-        ``expect_redirect`` says the caller expects a ``303`` and follows it
-        itself; a redirect nobody expected is the edge. ``absolute`` takes
-        ``path`` as a whole URL the server gave, such as a `Link` target.
+        ``expect_redirect``: the caller follows a ``303`` itself; an unexpected
+        redirect is the edge. ``absolute``: ``path`` is a whole URL the server gave.
         '''
         url = path if absolute else self.url(path)
 
         if authenticated and self.access_token is None:
-            # Expired by its own `expires_in`, or never had: one refresh, or a
-            # login, before the request rather than a 401 after it.
+            # Renew before the request rather than take a 401.
             self._renew()
 
         sent = {"User-Agent": USER_AGENT, **self.operator_headers(url), **(headers or {})}
@@ -276,8 +230,7 @@ class Transport:
                     "not logged in to this server: run sc-remote -configure")
             sent["Authorization"] = f"DPoP {token}"
 
-        # A fresh proof per request, retries included: `htm` and `htu` bind it
-        # to this method and URI, and the server remembers its `jti`.
+        # A fresh proof per request, retries included: the server remembers its `jti`.
         sent["DPoP"] = dpop.sign_proof(
             self._key, method, url, access_token=token,
             nonce=self._nonces.get(origin_of(url)),
@@ -294,9 +247,8 @@ class Transport:
                 headers=sent, timeout=TIMEOUT_SECONDS, allow_redirects=False,
                 stream=stream)
         except (requests.Timeout, requests.ConnectionError) as e:
-            # A lost answer. Every retry carries a fresh proof and the same
-            # body: a refresh inside the server's grace window gets the same
-            # pair, and a keyed create or submit replays.
+            # A lost answer: safe to resend, since a refresh in the grace window
+            # gets the same pair and a keyed create or submit replays.
             if _attempt < MAX_RETRIES and (isinstance(e, requests.Timeout) or oauth):
                 time.sleep(2 ** _attempt)
                 return self.request(**again, _attempt=_attempt + 1, _waits=_waits)
@@ -321,9 +273,7 @@ class Transport:
                 return response
             raise EdgeRefused(self.api_origin)
 
-        # An HTML page in place of an answer is an access layer's refusal. A
-        # gateway's 5xx is HTML too, but it says the server is unwell, not that
-        # the request was refused, and it is handled as the failure it is.
+        # HTML below 500 is an access layer's refusal; a gateway's HTML 5xx is a failure.
         if response.status_code < 500 and response.status_code != 204 and \
                 (response.headers.get("Content-Type") or "").lower().startswith("text/html"):
             raise EdgeRefused(self.api_origin)
@@ -334,17 +284,11 @@ class Transport:
         return self._handle_refusal(response, again, attempt=_attempt, waits=_waits)
 
     def _handle_refusal(self, response, again, *, attempt, waits):
-        '''Several answers wear the same status, and they are different answers.
-
-        A client that only refreshes on 401 loops for ever on a nonce challenge,
-        and one that refreshes on `session-ended` loops for ever on a dead
-        session.
-        '''
+        '''Act on a refusal by its slug, not its status alone: refreshing on every
+        401 loops on a nonce challenge, and on `session-ended` on a dead session.'''
         status = response.status_code
 
-        # 🔴 At the two OAuth endpoints the Content-Type decides the shape:
-        # problem+json is a transport-level refusal, handled by status and type
-        # below and never read for `error`.
+        # 🔴 At the OAuth endpoints, problem+json is handled below, never read for `error`.
         if again["oauth"] and not (response.headers.get("Content-Type") or "").lower() \
                 .startswith("application/problem+json"):
             return self._handle_oauth(response, again, attempt=attempt, waits=waits)
@@ -356,44 +300,38 @@ class Transport:
         if status == 401 and attempt < MAX_RETRIES:
             if (slug == "dpop-nonce-required" or "use_dpop_nonce" in challenge) \
                     and not again["_nonced"]:
-                # The server wants the nonce it just gave, for this origin:
-                # retried once, and a second challenge is the answer.
+                # Once: a second challenge is the answer.
                 return self.request(**{**again, "_nonced": True},
                                     _attempt=attempt + 1, _waits=waits)
 
             if slug == "invalid-dpop-proof" and self._correct_clock(response):
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
-            # 🔴 Only an AUTHENTICATED request can have an expired access token
-            # worth renewing; an unauthenticated one refreshing on its own 401
-            # is a refresh that fails, asks for a refresh, and fails again.
+            # 🔴 Only an AUTHENTICATED request renews: an unauthenticated refresh
+            # renewing on its own 401 would loop.
             if again["authenticated"] and slug == "invalid-token":
                 self._access_token = None
                 self._renew()
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
             if again["authenticated"] and slug == "session-ended" and self.relogin:
-                # Re-authenticate, and never refresh: the refresh token is the
-                # session that ended.
+                # Never refresh: the refresh token is the session that ended.
                 self.set_tokens(None)
                 self._credentials.forget_tokens()
                 self.relogin(problem.get("reason"))
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
-        # Waited out only where the server said how long, and only for the
-        # answers whose meaning is *later*: a request rate, and a keyed retry
-        # the server is still handling.
+        # Waited out only where the server said how long and the answer means *later*.
         wait = _retry_after(response)
         if wait is not None and waits < MAX_WAITS and (
                 slug == "rate-limited"
                 or (slug == "job-state-conflict" and problem.get("reason") == "in_progress")
-                # A retry that cannot do something twice: a read, or a keyed write.
+                # Only what cannot happen twice: a read, or a keyed write.
                 or (status >= 500 and (again["method"] in ("GET", "HEAD")
                                        or "Idempotency-Key" in (again["headers"] or {})))):
             time.sleep(wait)
             return self.request(**again, _attempt=attempt, _waits=waits + 1)
-        # A keyed create or submit replays, so a 5xx is retried with the same
-        # key and body even where the server named no wait.
+        # A keyed create or submit replays, so a 5xx is retried even with no wait named.
         if status >= 500 and wait is None and attempt < MAX_RETRIES \
                 and again["method"] == "POST" and "Idempotency-Key" in (again["headers"] or {}):
             time.sleep(2 ** attempt)
@@ -413,7 +351,6 @@ class Transport:
         except ValueError:
             body = None
         if not isinstance(body, dict) or not isinstance(body.get("error"), str):
-            # Neither shape: an untyped failure of its status.
             raise ServerProblem(_problem_body(response), response.status_code)
 
         error = body["error"]
@@ -428,8 +365,7 @@ class Transport:
                            body.get("reason"), response.status_code)
 
     def _renew(self) -> None:
-        '''Get an access token: refresh where there is a session, trade again
-        where this is CI, and log in where neither works.'''
+        '''Get an access token: trade again on CI, else refresh, else log in.'''
         if self.trade is not None:
             self.trade()
             return
@@ -442,7 +378,6 @@ class Transport:
                 raise
             self.relogin(reason)
             return
-        # No refresh token to spend.
         if self.relogin is not None:
             self.relogin(None)
 
@@ -451,8 +386,7 @@ class Transport:
     ######################################################################
 
     def _correct_clock(self, response) -> bool:
-        '''A proof refused for its time: take the server's clock from `Date`,
-        correct later proofs by the offset, and say so -- once.'''
+        '''Correct later proofs by the server's `Date`, once, saying so.'''
         skew = _skew(response)
         if skew is None or abs(skew) <= dpop.PROOF_LIFETIME_SECONDS or self._clock_offset:
             return False
@@ -490,10 +424,8 @@ class Transport:
     def put_object(self, url: str, headers: Dict[str, str], path) -> None:
         '''Send the bytes to wherever the grant points.
 
-        The one request that does NOT go through :meth:`request`, and the
-        exception is the contract: this addresses storage, not the API. A
-        presigned URL carries its own credential in its signature, so it gets no
-        `Authorization`, no proof, and no operator header on another origin.
+        Not through :meth:`request`: a presigned URL carries its own credential,
+        so it gets no `Authorization`, proof, or off-origin operator header.
         '''
         sent = {"User-Agent": USER_AGENT, **self.operator_headers(url),
                 **dict(headers or {})}
@@ -503,21 +435,15 @@ class Transport:
                     url, data=f, headers=sent, timeout=TIMEOUT_SECONDS,
                     allow_redirects=False)
             except requests.RequestException as e:
-                # 🔴 The URL is a capability: never printed, error messages
-                # included.
+                # 🔴 The URL is a capability: never printed.
                 raise RemoteError(f"could not upload the archive: {_why(e)}") from None
 
         if response.status_code >= 400:
             raise ServerProblem(_problem_body(response), response.status_code)
 
     def follow(self, response, headers=None, kind: str = "storage"):
-        '''Follow a 303 by hand, with this session left behind.
-
-        No `Authorization` and no proof, whatever the target's origin; never
-        from https to http; operator headers only to the API's own origin, its
-        signed routes included (:meth:`operator_headers`). `kind` is `storage` or `stream`,
-        and names it in a failure.
-        '''
+        '''Follow a 303 by hand, leaving the session behind: no `Authorization`
+        or proof, and never https to http. `kind` names the target in a failure.'''
         if response.status_code not in (301, 302, 303, 307, 308):
             return response
 
@@ -527,9 +453,7 @@ class Transport:
         from urllib.parse import urljoin
         target = urljoin(response.url or self.base_url, target)
 
-        # 🔴 Contract rule 5 (D70): an answer to an https request sends the
-        # client only to https URLs, and one to an http request may send it to
-        # either. So http to https is followed, and https to http never is.
+        # 🔴 Contract rule 5 (D70): https never redirects to http.
         ours, theirs = urlsplit(self.base_url).scheme, urlsplit(target).scheme
         if theirs not in ("http", "https") or (ours == "https" and theirs != "https"):
             raise RemoteError(f"the server redirected an {ours} request to {theirs}, "
@@ -547,12 +471,10 @@ class Transport:
                               f"{_why(e)}") from None
 
     def save(self, response, dest) -> str:
-        '''Stream a response body to a file, through a temporary name, so an
-        interrupted download never leaves something that looks complete.
+        '''Stream a response body to a file via a temporary name, so an
+        interrupted download never looks complete.
 
-        🔴 **Only the bytes are written.** A refusal from storage, or a
-        redirect it answered with -- which nothing here follows -- is never
-        saved as the object.'''
+        🔴 Only the bytes: a refusal or redirect is never saved as the object.'''
         import os
         import shutil
 
@@ -595,18 +517,13 @@ class Transport:
         return body
 
     def refresh(self) -> bool:
-        '''Spend the refresh token for a new access token.
+        '''Spend the refresh token for a new access token; whether it worked.
 
-        🔴 **One refresh at a time, per store**: inside the store's transaction,
-        which re-reads it under its lock. A process that waited uses the token
-        the last refresh wrote, never the one it held before: presenting a
-        rotated one after the grace window would end every worker's session.
-        Returns whether it worked; raises `SessionEnded` or `LoginRequired`
-        where a login is the answer.
+        🔴 One refresh at a time per store, inside its locked transaction: a
+        rotated token presented after the grace window ends every worker's session.
         '''
         if self._refreshing:
-            # A refresh that provokes a refresh costs the SERVER: impossible by
-            # construction rather than by one condition being right.
+            # Impossible by construction: a nested refresh costs the SERVER.
             logger.debug("declining to refresh inside a refresh")
             return False
 
@@ -617,8 +534,7 @@ class Transport:
                 if not refresh_token:
                     return False
 
-                # No `scope`: a refresh returns the session's full scope. The
-                # fingerprint pair, where one can be derived.
+                # No `scope`: a refresh returns the session's full scope.
                 form = {"grant_type": "refresh_token", "refresh_token": refresh_token,
                         **self.fingerprint()}
                 try:
@@ -632,8 +548,7 @@ class Transport:
                     self._credentials.save_tokens(body)
                     return True
 
-            # Out of the transaction: forgetting the dead token inside it would
-            # be rolled back by the raise that follows.
+            # Outside the transaction, which the raise below would roll back.
             self.set_tokens(None)
             self._credentials.forget_tokens()
             if refused.reason:
@@ -641,8 +556,6 @@ class Transport:
                     {"type": "https://siliconcompiler.com/server-errors/session-ended",
                      "title": "Session ended", "reason": refused.reason,
                      "detail": refused.description}, refused.status) from None
-            # A changed fingerprint, or a token the server does not know: the
-            # person logs in again.
             raise LoginRequired(refused.description or "log in again") from None
         finally:
             self._refreshing = False
@@ -693,8 +606,7 @@ def _why(exc: Exception) -> str:
 
 
 def help_url(response) -> Optional[str]:
-    '''The page a server names for this response's error, as an absolute URL
-    (`Link: <...>; rel="help"`), resolved against the URL that was called.'''
+    '''The absolute URL of the `Link: rel="help"` page for this response's error.'''
     from urllib.parse import urljoin
 
     try:
@@ -707,13 +619,8 @@ def help_url(response) -> Optional[str]:
 
 
 def _problem_body(response: requests.Response) -> Dict[str, Any]:
-    '''What the server said, as far as it can be read.
-
-    problem+json is promised only for what a handler produced; routing, a
-    framework's own validation and any proxy answer in their own shapes. A body
-    with no `type` is synthesised so every caller sees one shape, and nothing
-    pretends the server named a condition.
-    '''
+    '''What the server said, as problem+json; one with no `type` is synthesised,
+    so nothing pretends the server named a condition.'''
     try:
         body = response.json()
     except ValueError:

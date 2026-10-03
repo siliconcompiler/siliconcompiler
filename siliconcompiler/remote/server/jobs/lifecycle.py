@@ -1,8 +1,6 @@
 '''
 What a caller does to a job once it exists: list it, read it, cancel it, delete
 it, archive it (surface §16 to §19).
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import shutil
@@ -25,13 +23,8 @@ class LifecycleMixin:
     ######################################################################
 
     def listing(self, session, args) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        '''The caller's jobs, newest first, over a keyset cursor.
-
-        Ordered by `(created_at, id)` descending, which is the ordering the
-        partial indexes carry, and the cursor is a keyset over both. The id is
-        only the tiebreaker, so any unique id pages correctly; a UUIDv4 orders
-        two jobs created in the same millisecond at random.
-        '''
+        '''The caller's jobs, newest first, over a keyset cursor on
+        `(created_at, id)`, the ordering the partial indexes carry.'''
         where = ["user_id = ?", "deleted_at IS NULL"]
         params: List[Any] = [session.user_id]
 
@@ -117,21 +110,16 @@ class LifecycleMixin:
     ######################################################################
 
     def cancel(self, session, job_id: str, reason: Optional[str]) -> Dict[str, Any]:
-        '''Endpoint 18. `cancelling` where work is in flight -- `staging`,
-        `queued` or `running` -- and `cancelled` where there is none.
+        '''Endpoint 18: `cancelling` where work is in flight, else `cancelled`.
 
-        🔴 **The write is conditional on the state it moves from**, so a job the
-        scheduler has already ended stays as it is, and the `202` carries it.
-        The scheduler side then writes `cancelled` once the work stops; a job
-        still staging has no scheduler id, and its `cancelled` is written here,
-        by the staging thread, when it stops.
+        🔴 The write is conditional on the state it moves from, so a job that
+        already ended stays as it is. `cancelled` follows once the work stops,
+        written for a staging job by the staging thread.
         '''
         job = self.owned(session, job_id)
 
         if reason is not None:
-            # 🔴 Checked, never repaired (surface §6), and never echoed: at
-            # most MAX_REASON Unicode code points, and no control character
-            # (surface D306).
+            # 🔴 Checked, never repaired or echoed (surface §6, D306).
             if not isinstance(reason, str):
                 raise ProblemError("invalid-request", detail="reason is a string")
             if len(reason) > MAX_REASON:
@@ -207,19 +195,14 @@ class LifecycleMixin:
             path.unlink(missing_ok=True)
         self._storage.discard_upload(job["id"])
 
-        # 🔴 **An artifact under legal hold is never deleted** (entitlements
-        # D54), by its owner or anybody: its row and its bytes stay, and the
-        # rest go -- through `_unlink`, never a sweep of the job's directory,
-        # which would take the held bytes with it.
+        # 🔴 An artifact under legal hold is never deleted (entitlements D54),
+        # so the rest go through `_unlink`, never a sweep of the directory.
         going = self._store.all(
             "SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? "
             "AND deleted_at IS NULL AND legal_hold_at IS NULL", (job["id"],))
         self._unlink(going)
 
-        # The row stays, with `deleted_at` set, rather than taking a `deleted`
-        # state, which would erase whether the job had completed, failed or
-        # been rejected -- the one fact you want when somebody asks where
-        # their results went.
+        # `deleted_at`, not a `deleted` state, which would erase how it ended.
         with self._store.transaction():
             who = f"deleted by {self.whodunnit(session, job)}"
             self._store.execute(
@@ -235,16 +218,9 @@ class LifecycleMixin:
                      reason: str) -> int:
         '''Throw away what ONE node produced, and keep the run.
 
-        🔴 **The node is the unit of deletion, and per-artifact would be the
-        wrong grain.** There is no deleting a node's reports and keeping its
-        logs: the node archive holds both, so removing one row while the
-        archive still carried a copy would free nothing and make its
-        `deleted_at` a claim the disk disagreed with. Taking the coordinates
-        together is what actually reclaims the space.
-
-        ⚠️ Job-level rows -- the manifest, the run's own log -- belong to no
-        node and are never touched here. `discard_artifacts` is the whole-job
-        version and takes those too.
+        🔴 The node, not the artifact, is the unit: its archive holds every
+        kind, so deleting one row would free nothing. Job-level rows are left
+        to `discard_artifacts`.
         '''
         job = self.owned(session, job_id)
 
@@ -258,8 +234,7 @@ class LifecycleMixin:
             raise ProblemError(
                 "not-found", detail=f"no node {step}/{index} in this job")
 
-        # The node's results, and not the operators' record of how it ran
-        # (surface D295): that goes with the job, or with its own retention.
+        # Not the operators' record of how it ran (surface D295).
         rows = self._store.all(
             'SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? '
             'AND step = ? AND "index" = ? AND deleted_at IS NULL '
@@ -274,9 +249,7 @@ class LifecycleMixin:
                 "  AND kind <> 'diagnostics'",
                 (now(), session.user_id, reason, job_id, step, index))
 
-        # 🔴 The node's working tree goes with them, for the reason
-        # `discard_artifacts` takes the job's. Only this node's directory, so
-        # the rest of the run is untouched.
+        # 🔴 This node's working tree goes too, as in `discard_artifacts`.
         work = (self.job_root(job["user_id"], job["id"]) / job["design"] /
                 job["jobname"] / step / index)
         shutil.rmtree(work, ignore_errors=True)
@@ -285,8 +258,8 @@ class LifecycleMixin:
         return len(rows)
 
     def _unlink(self, rows) -> None:
-        '''Drop the bytes of some artifact rows. The rows are the caller's; an
-        object another live row still names is left where it is.'''
+        '''Drop the bytes of some artifact rows, leaving an object another live
+        row still names.'''
         going = [row["id"] for row in rows]
         for row in rows:
             if artifacts.referenced_elsewhere(self._store, row, going):
@@ -301,20 +274,12 @@ class LifecycleMixin:
     def discard_artifacts(self, session, job_id: str, reason: str) -> int:
         '''Throw away what a run produced, and keep the run.
 
-        🔴 **Not `DELETE /v1/jobs/{id}`, and the difference is the whole point.**
-        Deleting the JOB sets `jobs.deleted_at`, which by the contract takes it
-        out of the collection entirely -- the job is gone from every listing and
-        reachable only by id. That is far more than somebody means when they
-        ask to reclaim the space a finished run is using.
+        🔴 Not `DELETE /v1/jobs/{id}`, which takes the job out of every listing:
+        here the bytes go and every row stays, so *where did my results go*
+        stays answerable.
 
-        This deletes the OBJECTS: the bytes go, every row stays and stays
-        listed, and the job keeps its states, its timings and its place in the
-        list. *Where did my results go* remains answerable, which is the entire
-        reason the artifact rows outlive their contents.
-
-        ⚠️ A legal hold is skipped rather than refused. One held object should
-        not stop a person clearing the other forty, and the table would reject
-        the write anyway -- an artifact cannot be both held and deleted.
+        ⚠️ A legal hold is skipped, not refused: one held object should not stop
+        clearing the other forty.
         '''
         job = self.owned(session, job_id)
 
@@ -335,10 +300,8 @@ class LifecycleMixin:
                 "  AND legal_hold_at IS NULL",
                 (now(), session.user_id, reason, job_id))
 
-        # 🔴 The build tree goes with them. It is what the artifacts were
-        # indexed FROM, so leaving it would reclaim the smaller copy and keep
-        # the larger one -- and the portal reads a node's log out of it, which
-        # would then outlive the artifact that replaced it.
+        # 🔴 The build tree goes too: the artifacts were indexed FROM it, and
+        # the portal reads logs out of it.
         shutil.rmtree(self.job_root(job["user_id"], job["id"]),
                       ignore_errors=True)
 
@@ -348,16 +311,11 @@ class LifecycleMixin:
     def archive(self, session, job_id: str, archived: bool) -> None:
         '''Put a job away, or take it back out.
 
-        ⚠️ **A view preference and not an operation on the run**, which is why
-        the contract gives it no endpoint and names the portal as its writer.
-        Nothing about the job changes: a direct read still answers, every
-        subresource still works, and only the default collection stops
-        including it.
+        ⚠️ A view preference, not an operation on the run: only the default
+        collection stops including it, and the portal is its writer.
 
-        🔴 Terminal only, and the constraint is in the schema as well as here.
-        A queued job holds a `concurrent_jobs` slot and a created one holds a
-        live upload grant, so hiding a job that is still going makes *why can I
-        not submit* unanswerable from any screen.
+        🔴 Terminal only (the schema agrees): a live job holds a slot, and hiding
+        it makes *why can I not submit* unanswerable.
         '''
         job = self.owned(session, job_id)
 

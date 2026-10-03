@@ -1,23 +1,13 @@
 '''
-Starting the manifest's read, and holding it to its limits.
+Starting the manifest's read (`manifestread`), and holding it to its limits.
 
-The read itself is `manifestread`. This is the server's side of it: a process
-started from this server's own SiliconCompiler with nothing of the server's in
-it, given one request, killed at a wall-clock limit or when the job leaves
-`staging`, and read back bounded.
-
-🔴 **What the process starts with** (profile §5; implementation-notes §E):
-
-- an empty environment: its own ``HOME`` and ``TMPDIR``, and the one
-  ``PYTHONPATH`` entry that finds this server's own SiliconCompiler, so none of
-  the server's variables -- no credential, no proxy, no path to the data
-  directory -- reaches it;
-- a working directory of its own, empty, in the job root and outside the tree
-  the upload expanded into, so the upload is never on its ``sys.path``;
-- no inherited descriptor and ``stdin`` closed;
-- one request naming the extracted tree, and nothing else of the server's.
-
-It then contains itself before it opens anything (`manifestread.contain`).
+🔴 The process starts with nothing of the server's (profile §5;
+implementation-notes §E): an empty environment bar its own ``HOME``,
+``TMPDIR`` and the ``PYTHONPATH`` of this server's SiliconCompiler, so no
+credential, proxy or data-directory path; an empty working directory outside
+the upload's tree, so the upload is never on ``sys.path``; no inherited
+descriptor; and one request. It is killed at a wall-clock limit or when the job
+leaves `staging`, and contains itself before opening anything.
 '''
 
 import functools
@@ -36,20 +26,16 @@ __all__ = ["ReadFailed", "Cancelled", "run_read", "run_read_in_bundle",
            "run_read_in_image", "probe", "READ_DIRNAME"]
 
 
-# The read's own directory in the job root, beside the progress file and
-# outside the extraction root: its request, its output, its HOME.
+# The read's own directory in the job root, outside the extraction root.
 READ_DIRNAME = "sc-server-read"
 
-# How often a running read is looked at: its exit, the clock, and the job.
 _POLL_SECONDS = 0.25
 
-# What of a failed read's stderr is kept for the server's log.
 _TAIL_BYTES = 4000
 
 
 class ReadFailed(Exception):
-    '''The read did not produce a summary. ``timed_out`` where it ran past the
-    time it was given, which may be what was left of the job's staging.'''
+    '''The read did not produce a summary; ``timed_out`` where it ran past its time.'''
 
     def __init__(self, message: str, timed_out: bool = False):
         super().__init__(message)
@@ -64,12 +50,10 @@ def run_read(asked: Dict[str, Any], workdir, timeout: float,
              alive: Optional[Callable[[], bool]] = None,
              cpu_seconds: Optional[int] = None,
              memory_bytes: Optional[int] = None) -> Any:
-    '''Run one read on this host; its summary, parsed, not yet validated.
+    '''Run one read on this host; returns its summary, parsed, not yet validated.
 
-    Raises :class:`ReadFailed` for a read that ran past its limits or
-    returned nothing parseable, :class:`Cancelled` where ``alive`` stopped
-    answering true, and ``OSError`` where the process could not be started --
-    this server's own failure, not the manifest's.
+    Raises :class:`ReadFailed`, :class:`Cancelled` once ``alive`` is false, or
+    ``OSError`` for this server's own failure to start it.
     '''
     workdir = _fresh(workdir)
     home = workdir / "home"
@@ -110,9 +94,7 @@ def run_read_in_bundle(dispatcher, asked: Dict[str, Any], workdir, bundle: str,
                        timeout: float, alive: Optional[Callable[[], bool]] = None,
                        queue: Optional[str] = None, cpu_seconds: Optional[int] = None,
                        memory_bytes: Optional[int] = None) -> Any:
-    '''Run one read in the job's own image, as a batch job of its own in a
-    bundle made by `images.read_bundle` (profile D63: in the job's container
-    where containers are configured). As :func:`run_read` answers.'''
+    '''Run one read as a batch job in the job's own image (`images.read_bundle`, profile D63).'''
     workdir = _fresh(workdir)
     command = [*_python(), "-m", "siliconcompiler.remote.server.staging.manifestread",
                json.dumps(asked)]
@@ -140,9 +122,7 @@ def run_read_in_image(asked: Dict[str, Any], workdir, image: str, timeout: float
                       alive: Optional[Callable[[], bool]] = None,
                       cpu_seconds: Optional[int] = None,
                       memory_bytes: Optional[int] = None) -> Any:
-    '''Run one read in the job's own image, as a container of its own: no
-    network, and the job's extracted tree, read-only, the only thing mounted.
-    As :func:`run_read` answers; ``OSError`` where the image cannot be had.'''
+    '''Run one read in a container of the job's image: no network, only the tree, read-only.'''
     import docker
     import docker.errors
 
@@ -223,9 +203,7 @@ def _summary_in(stdout_path: Path, stderr_path: Path) -> Any:
 
 
 def probe() -> Dict[str, bool]:
-    '''What a read's containment achieves on this host: a real read's
-    process, with an empty request, asked only to contain itself. Once per
-    process.'''
+    '''What a read's containment achieves on this host, asked once of a real read process.'''
     return dict(_probe())
 
 
@@ -248,8 +226,7 @@ def _probe() -> Dict[str, bool]:
 
 
 def _python():
-    '''This server's own interpreter, isolated from its user site, and --
-    where Python can -- from the working directory as a path entry.'''
+    '''This server's interpreter, without user site or (3.11+) the cwd on its path.'''
     flags = ["-s", "-B"]
     if sys.version_info >= (3, 11):
         flags.append("-P")
@@ -268,8 +245,7 @@ def _environment(home: Path, cpu_seconds: Optional[int] = None,
 
     env = {"HOME": str(home), "TMPDIR": str(home), "LC_ALL": "C.UTF-8",
            "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1",
-           # The server's own install, which is not the job's: a development
-           # checkout is on no default path.
+           # The server's own install: a development checkout is on no default path.
            "PYTHONPATH": str(Path(siliconcompiler.__file__).resolve().parent.parent)}
     if cpu_seconds:
         env["SC_READ_CPU_SECONDS"] = str(int(cpu_seconds))
@@ -295,8 +271,6 @@ def _signal_name(code: int) -> str:
             name = signal.Signals(-code).name
         except ValueError:
             name = f"signal {-code}"
-        # A CPU limit is SIGXCPU, and a memory limit usually a MemoryError or
-        # a SIGKILL from the kernel.
         return f"on {name}"
     return f"with exit status {code}"
 

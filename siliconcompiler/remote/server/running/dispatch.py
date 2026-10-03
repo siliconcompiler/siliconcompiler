@@ -1,17 +1,11 @@
 '''
 Handing a job to whatever runs it.
 
-🔴 **The job is the unit of submission.** One batch job per run, its id recorded
-in ``jobs.scheduler_job_id``, polled once per run -- never a blocking ``srun``
-per node held open by the API process for the length of the run, which would
-make the API process a Slurm submit host.
-
-✅ **It is also what makes a REST transport a swap rather than a rewrite.**
-``slurmrestd`` submits *batch* jobs only: ``POST /slurm/vX/job/submit`` is the
-``sbatch`` equivalent and there is no ``srun`` over REST. So ``sbatch`` and REST
-are one design with two transports, and the seam that matters is not a base
-class with one implementation -- it is that ``jobs.scheduler_job_id`` is just
-text and that this is the only module which knows what it means.
+🔴 One batch job per run, its id in ``jobs.scheduler_job_id`` and polled, never
+a blocking ``srun`` per node held open by the API process, which would make it
+a Slurm submit host. ``slurmrestd`` submits batch jobs only, so a REST
+transport is a swap: the id is just text, and only this module knows what it
+means.
 '''
 
 import logging
@@ -31,9 +25,7 @@ __all__ = ["dispatcher_for", "Dispatcher", "LocalDispatcher", "SlurmDispatcher",
 
 logger = logging.getLogger("sc-server")
 
-# Bounds on the scheduler commands. A wedged controller must not stall a request
-# handler: every one of these runs while somebody is waiting on an HTTP
-# response.
+# Scheduler commands run inside requests, so a wedged controller must not stall one.
 COMMAND_TIMEOUT = 20
 
 RUN_SCRIPT = "sc-server-run.sh"
@@ -58,9 +50,7 @@ class Dispatcher:
     def is_alive(self, scheduler_job_id: str) -> bool:
         '''Whether the scheduler still has this job.
 
-        Only ever consulted as a tie-breaker. The run's own progress file is
-        what says what happened; this answers the different question of whether
-        anything is still there to write one.
+        Only a tie-breaker: the run's progress file says what happened.
         '''
         raise NotImplementedError
 
@@ -69,52 +59,36 @@ class Dispatcher:
 
     def submit_build(self, name: str, workspace: Path, spec: Path,
                      queue: Optional[str] = None) -> str:
-        '''Start one environment build (`envbuild`), which writes its result
-        into ``workspace``. Returns an id `is_alive` answers for.'''
+        '''Start one environment build (`envbuild`) into ``workspace``; returns its id.'''
         raise NotImplementedError
 
     def submit_read(self, name: str, workdir: Path, command: List[str], bundle: str,
                     timeout: int, queue: Optional[str] = None) -> str:
-        '''Start one manifest read (`manifestread`) in ``bundle``, writing
-        its summary to ``workdir``/summary.json. Returns an id `is_alive`
-        answers for. Only where a job's own process runs in a bundle.'''
+        '''Start one manifest read (`manifestread`) in ``bundle``; returns its id.
+
+        It writes ``workdir``/summary.json. Only where jobs run in bundles.'''
         raise NotImplementedError
 
     def node_jobs(self, job_id: str, nodes) -> Dict[Tuple[str, str], str]:
-        '''The scheduler's own id for each node of this job, where it has one.
-
-        🔴 Only meaningful where a node IS a scheduler job. On a deployment that
-        runs the whole flow in one process the nodes are processes inside it,
-        and an empty answer is the truthful one rather than a gap -- which is
-        why `job_nodes.scheduler_job_id` is nullable.
-        '''
+        '''The scheduler's own id for each node of this job, where a node is a scheduler job.'''
         return {}
 
     def running_nodes(self, job_id: str, nodes) -> List[str]:
-        '''The node jobs the scheduler still has. Nothing, where nodes are not
-        scheduler jobs.'''
+        '''The node jobs the scheduler still has.'''
         return []
 
     def describe(self, scheduler_job_id: str) -> Optional[str]:
-        '''What the scheduler says of one of its jobs, as text for the
-        operators' `diagnostics` record, or None where it keeps nothing worth
-        reading.'''
+        '''What the scheduler says of one of its jobs, for `diagnostics`, or None.'''
         return None
 
 
 class LocalDispatcher(Dispatcher):
-    '''Run it here, in a process of its own.
-
-    Not a test double: a single-machine deployment with no cluster is an
-    ordinary way to run this server, and it is what ``-cluster local`` means.
-    '''
+    '''Run it here, in a process of its own: ``-cluster local``, not a test double.'''
 
     name = "local"
 
     def __init__(self):
-        # Kept so a finished child is reaped rather than left a zombie, which
-        # would answer `is_alive` forever. Lost across a restart, which is what
-        # the /proc fallback below is for.
+        # Kept so a finished child is reaped, not left a zombie that is alive forever.
         self._children: Dict[int, subprocess.Popen] = {}
 
     def submit(self, job_id: str, jobroot: Path, manifest: Path,
@@ -126,8 +100,7 @@ class LocalDispatcher(Dispatcher):
                  str(manifest)],
                 cwd=str(jobroot), stdin=subprocess.DEVNULL,
                 stdout=log, stderr=subprocess.STDOUT,
-                # Its own session, so the run does not die with the server and
-                # is not signalled by a Ctrl-C meant for the console.
+                # Its own session, so it survives the server and its Ctrl-C.
                 start_new_session=True)
         finally:
             log.close()
@@ -161,11 +134,8 @@ class LocalDispatcher(Dispatcher):
         if process is not None:
             return process.poll() is None
 
-        # Started before this process was, so there is nothing to reap and the
-        # question is only whether the pid is still there. Read rather than
-        # signalled: after a restart the run is not our child, and a pid can
-        # have been reused by then -- /proc carries the command line, which a
-        # bare kill(pid, 0) does not.
+        # Started before a restart: check the command line in /proc, since the
+        # pid may have been reused and kill(pid, 0) cannot tell.
         try:
             with open(f"/proc/{pid}/cmdline", "rb") as f:
                 command = f.read()
@@ -176,14 +146,11 @@ class LocalDispatcher(Dispatcher):
             return False
 
     def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
-        # `node_job_ids` is empty here by construction: nodes are processes in
-        # the run's own tree, and the process group below covers them.
         pid = _local_pid(scheduler_job_id)
         if pid is None:
             return
         try:
-            # The whole session: the run forks node processes, and signalling
-            # only the parent leaves them running with nothing to report them.
+            # The whole session, so the forked node processes stop too.
             os.killpg(pid, signal.SIGTERM)
         except OSError as e:
             logger.debug(f"could not signal {scheduler_job_id}: {e}")
@@ -192,8 +159,7 @@ class LocalDispatcher(Dispatcher):
 class SlurmDispatcher(Dispatcher):
     '''``sbatch`` it, and ask ``squeue`` about it.
 
-    The script is written into the job's own directory rather than passed with
-    ``--wrap``, so what was submitted is readable next to what it produced.
+    Scripts go in the job's directory, not ``--wrap``, so what ran is readable.
     '''
 
     name = "slurm"
@@ -215,12 +181,8 @@ class SlurmDispatcher(Dispatcher):
 
         command = [
             "sbatch", "--parsable",
-            # 🔴 A node failure ends this run; it does not silently start it
-            # again. Slurm's default is to requeue, and a requeued batch job
-            # re-executes the runner from the top -- against a build directory
-            # that already has output in it, and quite possibly after this
-            # server has already declared the job lost and told its owner so.
-            # One dispatch, one outcome, and a resubmit is the owner's to make.
+            # 🔴 A requeue would rerun the runner over existing output, maybe
+            # after the job was declared lost. One dispatch, one outcome.
             "--no-requeue",
             f"--job-name=sc-{job_id}",
             f"--chdir={jobroot}",
@@ -228,21 +190,13 @@ class SlurmDispatcher(Dispatcher):
         ]
 
         if queue:
-            # A partition of its own, because this process coordinates rather
-            # than computes. On a compute partition it is a node slot held for
-            # the length of the flow doing nothing.
+            # Its own partition: it coordinates, and would idle in a compute slot.
             command.append(f"--partition={queue}")
 
         if image:
-            # 🔴 The framework image, and this is what makes version matching
-            # real rather than half-done: the process that INTERPRETS the
-            # manifest is then the SiliconCompiler the job asked for, not
-            # whichever one this cluster happens to have installed.
-            #
-            # ⚠️ Which puts a requirement on that image: it submits every node,
-            # so it needs the Slurm client, slurm.conf and the munge socket
-            # inside it. An image that has SiliconCompiler and no srun cannot
-            # be a framework image on a cluster.
+            # 🔴 The framework image, so the manifest is interpreted by the
+            # SiliconCompiler the job asked for. ⚠️ It submits every node, so it
+            # needs the Slurm client, slurm.conf and the munge socket.
             command.append(f"--container={image}")
 
         command.append(str(script))
@@ -260,11 +214,8 @@ class SlurmDispatcher(Dispatcher):
                      queue: Optional[str] = None) -> str:
         '''``sbatch`` one environment build onto a compute node.
 
-        🔴 **On the host, not in a container**: the build starts a container of
-        its own -- a step in this allocation, network-isolated -- and has to
-        run the proxy that container reaches out through. So no
-        ``--container`` here, and the host needs the Slurm client, the
-        container runtime and skopeo and umoci, which a compute node has.
+        🔴 On the host, no ``--container``: the build starts its own isolated
+        container and runs the proxy it reaches out through.
         '''
         from siliconcompiler.remote.server.packages.envbuild import LOG
 
@@ -282,8 +233,7 @@ class SlurmDispatcher(Dispatcher):
                    f"--job-name=sc-envbuild-{name}", f"--chdir={workspace}",
                    f"--output={workspace / LOG}"]
         if queue:
-            # The builder queue: a burst of builds after a new tool image is
-            # registered waits here, not in the node slots flows run in.
+            # So a burst of builds waits here, not in the node slots flows use.
             command.append(f"--partition={queue}")
         command.append(str(script))
 
@@ -297,11 +247,9 @@ class SlurmDispatcher(Dispatcher):
                     timeout: int, queue: Optional[str] = None) -> str:
         '''``sbatch`` one manifest read into the job's own image.
 
-        🔴 **Nothing of this process's goes with it**: ``--export=NONE``, and
-        the bundle mounts the job's extracted tree read-only and nothing else,
-        in a network namespace of its own (`images.read_bundle`). The summary
-        comes back on the job's stdout, which Slurm writes outside the
-        container.
+        🔴 Nothing of this process's goes with it: ``--export=NONE``, and the
+        bundle mounts only the extracted tree, read-only, with no network
+        (`images.read_bundle`). The summary comes back on stdout.
         '''
         script = workdir / READ_SCRIPT
         script.write_text(
@@ -333,15 +281,10 @@ class SlurmDispatcher(Dispatcher):
         if queued.returncode == 0 and queued.stdout.strip():
             return True
 
-        # squeue forgets a job minutes after it ends, so an empty answer is not
-        # yet evidence: it means "not running now", which is also true of a job
-        # that finished thirty seconds ago and whose progress file is about to
-        # be read. sacct is the one that remembers.
+        # squeue forgets a job minutes after it ends; sacct remembers.
         finished = _run(["sacct", "-n", "-X", "-j", scheduler_job_id, "-o", "State"])
         if finished.returncode != 0:
-            # No accounting configured: the honest answer is "cannot tell", and
-            # the safe direction is to believe the job is still there rather
-            # than to declare a running job lost.
+            # No accounting: cannot tell, so never declare a running job lost.
             return True
 
         states = {line.strip().split()[0] for line in finished.stdout.splitlines()
@@ -352,9 +295,7 @@ class SlurmDispatcher(Dispatcher):
                               "RESIZING", "SUSPENDED", "REQUEUED"})
 
     def describe(self, scheduler_job_id: str) -> Optional[str]:
-        '''`sacct` and `scontrol show job` for one job, whole: the
-        accounting record, which survives the job, and the controller's view,
-        which lasts as long as `MinJobAge` keeps it.'''
+        '''`sacct` and `scontrol show job` for one job, whole.'''
         said = []
         for command in (["sacct", "-j", scheduler_job_id, "--parsable2",
                          "--format=JobID,JobName,Partition,State,ExitCode,Start,End,"
@@ -365,24 +306,13 @@ class SlurmDispatcher(Dispatcher):
         return "\n".join(said)
 
     def cancel(self, scheduler_job_id: str, node_job_ids=()) -> None:
-        '''Stop the run, and stop the work it started.
+        '''Stop the run, and the node jobs it started, named rather than left to Slurm.
 
-        🔴 The nodes are jobs of their own, so cancelling the orchestrator
-        alone leaves them to Slurm's own cleanup -- which usually does end them,
-        because a job dies with the ``srun`` that allocated it, but "usually"
-        is not what a cancel should rest on when the alternative is naming them.
-
-        Node ids first in the one call, so the work stops before the process
-        coordinating it does. One call rather than one per node: a cancel is
-        rare and user-initiated, and it should still not be N requests into
-        slurmctld.
+        One ``scancel``, node ids first, so the work stops before its coordinator.
         '''
         targets = [str(node_id) for node_id in node_job_ids if node_id]
         if scheduler_job_id:
-            # Falsy when the run is already gone and only its orphans are being
-            # reaped: scancel on a job that has finished answers with an error,
-            # and a warning per cancelled job would train an operator to ignore
-            # them.
+            # Falsy when only orphans are reaped: scancel on a finished job errors.
             targets.append(scheduler_job_id)
 
         if not targets:
@@ -394,32 +324,18 @@ class SlurmDispatcher(Dispatcher):
                 f"scancel {' '.join(targets)} failed: {completed.stderr.strip()}")
 
     def node_jobs(self, job_id: str, nodes) -> Dict[Tuple[str, str], str]:
-        '''Which Slurm job each node became.
+        '''Which Slurm job each node became, by the name the server can derive.
 
-        Addressed by NAME, because the name is derived from this server's own
-        job id -- ``SlurmSchedulerNode.get_job_name`` spells it
-        ``<remoteid>_<step>_<index>`` -- so nothing has to be passed back from
-        the compute node to know what to ask for.
+        ``SlurmSchedulerNode.get_job_name`` spells it ``<remoteid>_<step>_<index>``.
         '''
         return self._by_name(job_id, nodes, remembered=True)
 
     def running_nodes(self, job_id: str, nodes) -> List[str]:
-        '''The node jobs the scheduler still has, as ids.
-
-        🔴 Still has, which is the whole difference from `node_jobs`. This is
-        what a reaper needs: a job that already finished must not be
-        scancelled (see `cancel`).
-        '''
+        '''The node jobs the scheduler still has, as ids: a finished one is never scancelled.'''
         return list(self._by_name(job_id, nodes, remembered=False).values())
 
     def _by_name(self, job_id: str, nodes, remembered: bool):
-        '''Look node jobs up by the name the server can derive for them.
-
-        ⚠️ Two queries and not one per node. `squeue` answers for the jobs that
-        still exist, which is what a cancel needs; `sacct` is asked only for
-        whatever is left, and only when a caller wants the ones squeue has
-        forgotten -- the record, after a node has finished.
-        '''
+        '''Look node jobs up by name: `squeue`, then `sacct` for the rest if ``remembered``.'''
         wanted = {f"{job_id}_{step}_{index}": (step, index) for step, index in nodes}
         if not wanted:
             return {}
@@ -438,9 +354,7 @@ class SlurmDispatcher(Dispatcher):
 
             completed = _run(command)
             if completed.returncode != 0:
-                # No accounting configured, or a wedged controller. A missing id
-                # is a gap in the record, not a reason to fail the request that
-                # happened to be reconciling this job.
+                # A missing id is a gap in the record, not a failed request.
                 continue
 
             for line in completed.stdout.splitlines():

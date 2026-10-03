@@ -1,14 +1,9 @@
 '''
-What a submitted run executes, read the same way at both ends.
+What a submitted run executes, read the same way at both ends so they agree on
+which nodes a run covers.
 
-The client decides from it what to upload, what to name in `continues_from`
-and what tools to ask for; the server, which rows to write, what an upload must
-hold and where each node runs. Two copies would be two answers to which nodes a
-run covers, so both ends call these.
-
-🔴 **Outside `server/` on purpose, and it imports no Flask**: the client runs
-without the server extra, and importing anything under
-`siliconcompiler.remote.server` loads the server package.
+🔴 Outside `server/` on purpose, importing no Flask: the client runs without the
+server extra.
 '''
 
 from typing import Dict, List, Optional, Set, Tuple
@@ -18,13 +13,7 @@ __all__ = ["runtime_flow", "runtime_nodes", "upstream_nodes", "outputs_present",
 
 
 def runtime_flow(project):
-    '''The flow this run will actually execute.
-
-    Not ``project.get_flow()``: ``from``, ``to`` and ``prune`` narrow a
-    flowgraph to the part a particular run covers, and a server that wrote a
-    row per node of the whole graph would report nodes that were never going to
-    run as pending for ever.
-    '''
+    '''The flow this run will actually execute, narrowed by ``from``, ``to`` and ``prune``.'''
     from siliconcompiler.flowgraph import RuntimeFlowgraph
 
     return RuntimeFlowgraph(
@@ -35,21 +24,13 @@ def runtime_flow(project):
 
 
 def runtime_nodes(project) -> List[Tuple[str, str]]:
-    '''The nodes this run will execute, in flowgraph order.
-
-    The server writes a row per node at submit, and the run reports against
-    the same list, which keeps the job object's ``progress`` counts matching
-    what actually ran.
-    '''
+    '''The nodes this run will execute, in flowgraph order.'''
     return list(runtime_flow(project).get_nodes())
 
 
 def upstream_nodes(project, skipped=()) -> List[Tuple[str, str]]:
-    '''The nodes a run reads and does not run: every node outside the run
-    that a node in it takes inputs from (surface D175). A node in ``skipped``
-    -- skipped in the job that ran it -- is looked through to its own inputs,
-    since it has no results to read.
-    '''
+    '''The nodes outside the run that it takes inputs from (surface D175).
+    A node in ``skipped`` has no results, so it is looked through to its inputs.'''
     runtime = runtime_flow(project)
     flow = project.get_flow()
     pruned = set(project.option.get_prune() or [])
@@ -72,8 +53,7 @@ def upstream_nodes(project, skipped=()) -> List[Tuple[str, str]]:
 
 
 def outputs_present(node_dir, design: str) -> bool:
-    '''Whether a node's results are there: a file under its ``outputs/`` other
-    than its own manifest. The same test on both ends.'''
+    '''Whether a node's ``outputs/`` holds a file other than its own manifest.'''
     import os
 
     outputs = os.path.join(str(node_dir), "outputs")
@@ -87,22 +67,11 @@ def outputs_present(node_dir, design: str) -> bool:
 
 
 def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
-    '''What each node's image must hold, which is what the resolution needs.
+    '''The tool each node's image must hold, per node: submit resolves an image each.
 
-    🔴 **Asked of the task and never inferred.** `Task._remote_toolname`
-    declares it; every rule that guesses gets a real task wrong. Inferring
-    from `exe` says *nothing* for the slang tasks, which have no executable
-    and drive `pyslang` in this process -- and an image without pyslang cannot
-    run them. Inferring from the tool NAME says *builtin*, which is not a
-    thing anybody installs.
-
-    🔴 Per node rather than a set for the whole flow, because submit resolves N
-    images and not one: an `import` node needing nothing but Python has no
-    business pulling a twelve-gigabyte OpenROAD image, and the only thing that
-    can tell them apart is what each node declares.
-
-    ⚠️ Read off a BARE task -- no setup, no project -- so a forty-node flow
-    costs forty attribute reads and nothing else.
+    🔴 Asked of the task (`Task._remote_toolname`), never inferred: `exe` says
+    nothing for the pyslang tasks, and the tool name says *builtin*.
+    ⚠️ Read off a BARE task, no setup, so it costs an attribute read per node.
     '''
     wanted: Dict[Tuple[str, str], Optional[str]] = {}
     for step, index in nodes:
@@ -110,9 +79,7 @@ def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
             wanted[(step, index)] = flow.get_task_module(step, index)() \
                 ._remote_toolname
         except Exception:                                       # noqa: BLE001
-            # A task that will not load declares nothing, which places the
-            # node in the job's own image -- the safe direction, since that is
-            # what a node needing nothing gets.
+            # The job's own image: the safe direction.
             wanted[(step, index)] = None
     return wanted
 
@@ -121,14 +88,8 @@ def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
                                                  Optional[Tuple[str, str]]]:
     '''Nodes that run wherever their input node ran, and where that is.
 
-    🆕 The execute tasks assemble a command out of the manifest, so there is
-    nothing to require an image for -- and the environment that produced the
-    inputs is the one most likely to be able to run it. Following the previous
-    node costs nothing when it does not.
-
-    ⚠️ The FIRST input, where there is more than one. A task computing a
-    command over several inputs has no better claim on one of them, and
-    picking deterministically beats picking arbitrarily.
+    🆕 An execute task's command comes from the manifest, so the image that made
+    its inputs is likeliest to run it. ⚠️ The FIRST input: deterministic.
     '''
     before: Dict[Tuple[str, str], Tuple[str, str]] = {}
     for from_step, from_index, to_step, to_index in edges:
@@ -145,12 +106,8 @@ def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
 
 
 def python_nodes(flow, nodes) -> Set[Tuple[str, str]]:
-    '''The nodes whose task runs the user's Python: its class reports what
-    that Python needs (`Task.get_python_environment`). Where the job's Python
-    packages are installed, and whose tool finds them on its `PYTHONPATH`.
-
-    Read off the class, never a setup: the read runs none.
-    '''
+    '''The nodes whose task overrides `Task.get_python_environment`, so runs the
+    user's Python and gets the job's packages. Read off the class, running no setup.'''
     from siliconcompiler.tool import Task
 
     found = set()

@@ -1,24 +1,13 @@
 '''
-What a version means, in containers.
+What a version means in containers: the registry of software, versions and
+images, and resolving a job's requirements to them.
 
-🔴 **The submitter names a version and the operator names the image.** That
-inversion is the whole safety argument, and it is why this is in the server at
-all: a client that could name an image would choose what executes on the
-cluster, which is a supply-chain hole on a deployment anyone can reach. A client
-that names ``siliconcompiler==0.38.9`` is naming *data*, which either matches a
-row an operator added on purpose or does not.
-
-🔴 **The registry is also the switch.** A deployment that registers nothing runs
-jobs on the host, with both ``image_id`` columns NULL for the life of every
-job -- and a bare Slurm cluster with no container runtime is conforming, not
-degraded. What turns the other behaviour on is ``containers`` in the
-deployment's config, because whether the compute nodes can run a container is
-not something the API process can find out by looking.
-
-⚠️ **``image_contents`` is declared and unverified.** Nothing here opens an
-image to check that what it claims to hold is inside it, so a wrong row means a
-job runs in a container without what it asked for and fails at run time rather
-than at submit. Saying so is what keeps the row from being read as a guarantee.
+🔴 The submitter names a version and the operator names the image: a client that
+could name an image would choose what executes on the cluster. The registry is
+also the switch: one that registers nothing runs jobs on the host, which is
+conforming; ``containers`` in the config turns images on.
+⚠️ ``image_contents`` is declared and unverified here: a wrong row fails a job at
+run time, not at submit.
 '''
 
 import json
@@ -48,21 +37,14 @@ __all__ = ["BUCKETS", "PRIMARY", "Held", "Requirement", "Plan", "bundle_path",
 logger = logging.getLogger("sc-server")
 
 
-# The distribution every node needs, whatever else it needs: the run is a
-# SiliconCompiler process before it is anything else. It is also the key
-# `GET /v1`'s `software` map is REQUIRED to carry, and the version whose
-# `preference` breaks a tie between two images that both fit.
+# What every node needs; the key `GET /v1`'s `software` must carry, and whose
+# `preference` breaks a tie between images.
 PRIMARY = "siliconcompiler"
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-# 🔴 A CLOSED set, and all three keys are always present on the wire -- a
-# client branches on them. A bucket may be `{}`: a deployment running no
-# containers publishes no tools.
-#
-# ⚠️ The kind is singular and the bucket is a collection, which is why the two
-# are spelled differently and why the mapping is written down rather than
-# derived by adding an "s".
+# 🔴 Kind -> bucket, a closed set with all three keys always on the wire, a
+# bucket possibly `{}`. ⚠️ Written out, not derived by adding an "s".
 BUCKETS = {"python": "python", "tool": "tools", "interpreter": "interpreter"}
 
 # A requirement's `kind` on a `software-unavailable` `unresolved` entry
@@ -73,27 +55,10 @@ UNRESOLVED_KIND = {"library": "python", "tool": "tools", "interpreter": "interpr
 class Requirement(NamedTuple):
     '''One thing an image has to hold.
 
-    ``wanted`` is a tuple of **PEP 440 specifier sets, any one of which will
-    do** -- ``(">=0.38,<0.40",)``, ``("==2.0", ">=26Q3")`` -- and empty for
-    *any live version of this software*, which is the ordinary case for a tool:
-    SiliconCompiler does not know which version of OpenROAD it will find until
-    the node runs.
-
-    🔴 **A list rather than one string, because that is what SiliconCompiler
-    already means by a version requirement.** `Task.get('version')` is a list
-    of specifier sets and `check_exe_version` accepts a tool that matches ANY
-    of them -- so a flow with two tasks of the same tool has two lists, and
-    collapsing them to one string would either lose one or invent an
-    intersection nobody asked for. ⚠️ Alternatives are OR; a single set's
-    commas are still AND.
-
-    🔴 **A range on the wire and never in storage** (:func:`register_version`
-    keeps storage exact). ``GET /v1``'s ``software`` map is flat per name,
-    while the image join is over combinations, so a client resolving each
-    requirement on its own can name a set no single image holds, with every
-    version published and satisfiable and nothing to run them in.
-    Only the server can answer *which image has both*, so only the server
-    resolves.
+    ``wanted`` is PEP 440 specifier sets, any one of which will do, as in
+    `Task.get('version')`; empty is any live version. ⚠️ Alternatives are OR,
+    a set's commas AND. 🔴 A range on the wire, never in storage: only the
+    server can answer *which image holds all of these*, so only it resolves.
     '''
     name: str
     wanted: Tuple[str, ...]
@@ -105,19 +70,13 @@ class Requirement(NamedTuple):
         return f"{self.name}{' or '.join(self.wanted)}"
 
 
-# A specifier begins with an operator; anything else is a bare version, and a
-# bare version means `==`. The same leniency `Task.check_exe_version` has, for
-# the same reason: it is what people write.
 _HAS_OPERATOR = re.compile(r"^\s*(===|==|!=|~=|<=|>=|<|>)")
 
 
 def specifiers(declared) -> Tuple[str, ...]:
-    '''What the client asked for, as PEP 440 specifier sets. Empty is *any*.
+    '''What the client asked for, as PEP 440 specifier sets; empty is *any*.
 
-    Takes one string or a list of them, because a requirement is a list and
-    one alternative is the ordinary case. ⚠️ A bare ``0.38.9`` becomes
-    ``==0.38.9`` rather than being refused: `Task.check_exe_version` reads it
-    the same way, and it is what a person writes.
+    ⚠️ A bare ``0.38.9`` means ``==0.38.9``, as in `Task.check_exe_version`.
     '''
     if declared is None:
         return ()
@@ -128,23 +87,13 @@ def specifiers(declared) -> Tuple[str, ...]:
     for one in given:
         text = str(one).strip()
         if not text:
-            # An empty string is how a client says *any version of this*, which
-            # is not the same as not naming the tool at all.
             continue
         wanted.append(text if _HAS_OPERATOR.match(text) else f"=={text}")
     return tuple(wanted)
 
 
 def normalize(version: str) -> str:
-    '''One version, in PEP 440's own spelling, or unchanged.
-
-    🔴 **At registration and not at request time** -- see
-    :func:`register_version`.
-
-    A value that is not PEP 440 comes back unchanged -- a `published_date`
-    row, or an image's declared contents being looked up. A `reported` one is
-    never stored that way: :func:`register_version` refuses it.
-    '''
+    '''One version in PEP 440's own spelling, or unchanged if it is not PEP 440.'''
     from packaging.version import InvalidVersion, Version
 
     try:
@@ -164,18 +113,10 @@ def _is_pep440(version: str) -> bool:
 
 
 def matches(version: str, source: str, wanted: Sequence[str]) -> bool:
-    '''Whether one registered version answers one requirement.
+    '''Whether one registered version answers one requirement: any alternative will do.
 
-    ⚠️ **Any alternative will do**, which is `Task.check_exe_version`'s rule
-    one level up: a requirement is a list of specifier sets and a tool that
-    matches one of them is acceptable. An empty list is *any version*.
-
-    🔴 **`published_date` never answers, whatever the numbers say.** A tool
-    that reports no version is recorded with the date its image was published
-    -- a complete tool list beats a partial one -- but `20260924` beats `2.0.1`
-    under every comparison there is, so an unversioned build from years ago
-    would outrank a current release for ever. The mark exists for exactly this
-    check, and it is made before any comparison.
+    🔴 A `published_date` version never answers a specifier: `20260924` beats
+    `2.0.1` under every comparison, so an old unversioned build would win forever.
     '''
     if not wanted:
         return True
@@ -187,25 +128,18 @@ def matches(version: str, source: str, wanted: Sequence[str]) -> bool:
 
     for one in wanted:
         try:
-            # prereleases=True: a server that registered 1.0rc1 registered it
-            # on purpose, and silently skipping it would refuse a job for a
-            # version the catalogue lists.
+            # A registered prerelease was registered on purpose.
             if Version(version) in SpecifierSet(one, prereleases=True):
                 return True
         except (InvalidSpecifier, InvalidVersion):
-            # Either side unparsable falls back to the only comparison that is
-            # always defined: the exact string somebody registered.
+            # Unparsable: the exact registered string.
             if one.lstrip("=") == version:
                 return True
     return False
 
 
 class Held(NamedTuple):
-    '''One distribution an image declares, as the resolution reads it.
-
-    A named tuple rather than a bare one: a positional unpack of five is how
-    the wrong field gets compared.
-    '''
+    '''One distribution an image declares, as the resolution reads it.'''
     name: str
     version: str
     preference: int
@@ -216,10 +150,7 @@ class Held(NamedTuple):
 class Plan(NamedTuple):
     '''Which image each part of one job runs in.
 
-    ``refs`` carries the pinned reference for every id the plan names, because
-    the store records an id and the thing that has to be pulled is a repository
-    at a digest. Resolving it once here is what keeps the runner from needing a
-    database connection on a compute node.
+    ``refs`` pins every id, so the runner needs no database to know what to pull.
     '''
     job: Optional[str]                              # images.id, or None
     nodes: Dict[Tuple[str, str], Optional[str]]     # (step, index) -> images.id
@@ -229,12 +160,7 @@ class Plan(NamedTuple):
         return self.refs.get(image_id) if image_id else None
 
     def placements(self) -> Dict[Tuple[str, str], str]:
-        '''Every node that has an image, as the reference to pull.
-
-        What goes into the manifest the compute node loads. Empty on a
-        deployment that runs no containers, which leaves every node running on
-        the host.
-        '''
+        '''Every node that has an image, as the reference to pull.'''
         return {node: self.refs[image]
                 for node, image in self.nodes.items()
                 if image and image in self.refs}
@@ -245,13 +171,9 @@ class Plan(NamedTuple):
 ######################################################################
 
 def own_version() -> str:
-    '''The SiliconCompiler this server runs: the one version it advertises,
-    and the one every job resolves to (profile §5).
+    '''The SiliconCompiler this server runs: the one version every job resolves to (profile §5).
 
-    🔴 **One version, because the manifest's read is this server's own
-    SiliconCompiler** (`manifestread`). A job that resolved to another would
-    have its manifest read by a SiliconCompiler that is not its own, which
-    reading a manifest is only backwards compatible enough to survive by luck.
+    🔴 One, because the manifest's read is this server's own SiliconCompiler.
     '''
     from siliconcompiler import __version__
 
@@ -268,16 +190,10 @@ def holds_own_version(image) -> bool:
 def live_images(store) -> List[Dict[str, Any]]:
     '''Every image this deployment may run, with what it declares it holds.
 
-    Two queries and the join in Python rather than one query per resolution.
-    A registry is tens of rows read once per submit, and the matching rule
-    (:func:`matches`, :func:`_satisfies`) -- any one of the alternatives where
-    a version was named, any live version where one was not -- is a dynamic
-    ``HAVING`` in SQL and a few readable lines in Python. This is the most
-    dangerous data in the schema; being able to read the rule matters more
-    than the query plan.
+    The match is in Python, not a dynamic SQL ``HAVING``: being able to read
+    the rule over the most dangerous data matters more than the query plan.
     '''
-    # 🔴 A derived image is never a candidate: it is reached only by its
-    # derivation key, or one user's packages would place another user's node.
+    # 🔴 Never a derived image, or one user's packages would place another's node.
     rows = store.all(
         "SELECT id, registry_ref, digest, note, built_at, resolved_at FROM images "
         "WHERE retired_at IS NULL AND derived_from IS NULL ORDER BY registry_ref")
@@ -304,11 +220,7 @@ def live_images(store) -> List[Dict[str, Any]]:
 
 
 def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
-    '''The whole registry, for an operator to look at.
-
-    Read by the ``registry`` command and by the portal's images screen --
-    which is why it is here and not in either of them.
-    '''
+    '''The whole registry, for the ``registry`` command and the portal's images screen.'''
     where = "" if include_retired else " WHERE retired_at IS NULL"
 
     software = [dict(row) for row in store.all(
@@ -329,8 +241,6 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
     for image in rows:
         image["contents"] = holds.get(image["id"], [])
 
-    # The server's own, apart from what an operator registered: a derived image
-    # is a node's Python layered on one of those.
     images = [row for row in rows if not row.get("derived_from")]
     derived = [row for row in rows if row.get("derived_from")]
     bases = {row["id"]: row["registry_ref"] for row in store.all(
@@ -345,40 +255,13 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
 
 
 def live_software(store) -> Dict[str, Dict[str, List[str]]]:
-    '''Which distributions this deployment tracks, at which versions, in the
-    three buckets.
+    '''Which distributions this deployment tracks, at which versions, in the three buckets.
 
-    🔴 **`python` and `tools`, and the split is structural rather than
-    cosmetic: the two are satisfied differently.** The python set by ONE image,
-    `jobs.image_id` (:func:`declared_requirements`); a tool PER NODE, by an
-    image holding the python set and that tool, `job_nodes.image_id`.
-    Flattened, you cannot tell which names have to land together, and that is
-    the question the join asks. `interpreter` holds the one name `python`, an
-    image's own Python, which only a node running the user's Python is matched
-    on (surface D293).
-
-    🔴 **The test a requirement is generated by.** A tool nobody registered
-    raises no requirement at all, so a deployment that curates images for the
-    framework and says nothing about OpenROAD is not claiming to have an
-    OpenROAD image and is not refused for lacking one. Registering the name is
-    how an operator takes that claim on.
-
-    ⚠️ **Keyed on the software rather than on its versions**, so a name whose
-    every version has been retired is still tracked, with an empty list. The
-    claim belongs to the name: retiring a version says *not this one*, and
-    retiring the software is how an operator says *not any more*. Collapsing
-    the two would make withdrawing the last version silently hand every job
-    back to the host it was meant to stop running on.
-
-    🔴 **A `reported` version sorts above a `published_date` one whatever the
-    numbers say**, for the reason in :func:`matches`.
-
-    ⚠️ **Both kinds appear here, and `GET /v1`'s `software` has nowhere to
-    carry the mark**, so a client's preflight can say yes to a version
-    requirement this server will then refuse. Accepted: the preflight is
-    advisory and the server is binding. The condition is that the refusal says
-    *present but reports no version* rather than *no image matches* -- see
-    `_unsatisfiable`.
+    🔴 The split is structural: the python set is satisfied by one image per job,
+    a tool per node (surface D293 for `interpreter`). Only a registered name
+    raises a requirement at all. ⚠️ Keyed on the software, so a name whose
+    every version is retired is still tracked, with none: retiring the last
+    version must not hand jobs back to the host. 🔴 `reported` versions sort first.
     '''
     tracked: Dict[str, Dict[str, List[str]]] = {bucket: {} for bucket in BUCKETS.values()}
 
@@ -403,17 +286,7 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
 ######################################################################
 
 def resolve(images, requirements: Sequence[Requirement]):
-    '''The one image that fits, or None.
-
-    Ranked, because more than one image may satisfy a job (:func:`_rank`):
-
-    1. 🔴 **The `preference` of its `siliconcompiler` version**, which is the
-       operator's own ordering -- never newest-wins.
-    2. 🔴 **The fewest declared contents**: the most specific image that still
-       fits wins.
-    3. The tiebreaks, ending at the registry reference, so the answer is the
-       same every time.
-    '''
+    '''The one image that fits, or None, ranked by :func:`_rank`.'''
     fits = [image for image in images if _satisfies(image, requirements)]
     if not fits:
         return None
@@ -434,41 +307,16 @@ def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
 def _rank(image, requirements: Sequence[Requirement] = ()):
     '''Lower sorts first: preference, specificity, build time, pin time, then the name.
 
-    🔴 **`preference` first, and NOT the newest version** -- the schema already
-    refuses newest-wins, because a rebuilt image is newer and is not
-    necessarily preferred. Where no requirement names a version this is the
-    whole answer.
-
-    🔴 **Then the fewest declared contents, and this is the rule that makes the
-    buckets pay.** Every image holds `siliconcompiler`, the twelve-gigabyte
-    tool image included, so a framework node's requirement set is satisfied by
-    all of them -- and they usually carry the SAME version, so preference ties
-    and decides nothing. The most specific image that still fits is what gets
-    an import node into the python-only image. Its own interpreter is not
-    counted: every image has one. There is no `python_only` flag: an image
-    whose contents are all `kind = 'python'`, beside its interpreter, already
-    is one, and a boolean beside a derivable fact is a second source that
-    drifts.
-
-    🆕 **Then `built_at`, newest first**, which is the tie two images carrying
-    identical versions leave -- same preference, same contents, nothing left to
-    choose by. ⚠️ `built_at` before `resolved_at`: the latter records when
-    the operator pinned the tag, so registering a two-year-old image today
-    would make it the newest, and pinning an old image on purpose is a
-    reproducibility case rather than a mistake. An image whose manifest said
-    nothing sorts last among its ties.
-
-    **Then `resolved_at`, latest first, where `built_at` cannot decide** --
-    equal, or NULL on both. It is builder-stamped, and ko, Nix and Bazel stamp
-    1970 by design, so two reproducible builds tie on it every time; without
-    this the reference sorting first would pick.
+    🔴 The operator's `preference`, never newest-wins: a rebuilt image is newer,
+    not preferred. 🔴 Then the fewest declared contents (bar the interpreter),
+    so a framework node lands in the python-only image rather than the huge
+    tool image holding the same SC. 🆕 Then `built_at`, ⚠️ before
+    `resolved_at`, which is when the tag was pinned; `resolved_at` still
+    breaks ties between reproducible builds stamped 1970.
     '''
     preference = max((entry.preference for entry in image["contents"]
                       if entry.name == PRIMARY), default=None)
-    # 🔴 And every other name asked for, the same way (surface D177): where
-    # two images hold a tool at different versions, the operator's
-    # preference chooses, a reported version before a publish date -- never
-    # whichever image was built last.
+    # 🔴 Every other name asked for by preference too, never build time (surface D177).
     chosen = []
     for want in requirements:
         if want.name == PRIMARY:
@@ -477,13 +325,9 @@ def _rank(image, requirements: Sequence[Requirement] = ()):
                 and matches(entry.version, entry.source, want.wanted)]
         chosen.append(min(((entry.source != "reported", -entry.preference)
                            for entry in held), default=(True, 0)))
-    # An image holding no framework at all ranks below every one that does,
-    # rather than being excluded: it can still be the only thing that fits a
-    # requirement set which never mentioned the framework.
+    # No framework ranks last, not excluded: it may be the only fit.
     return (-preference if preference is not None else 1,
             tuple(chosen),
-            # Every image has its own Python, so that says nothing about how
-            # much an image holds.
             sum(1 for entry in image["contents"] if entry.kind != "interpreter"),
             _newest_first(image["built_at"]),
             _newest_first(image["resolved_at"]),
@@ -491,13 +335,7 @@ def _rank(image, requirements: Sequence[Requirement] = ()):
 
 
 def _newest_first(built_at: Optional[str]) -> str:
-    '''A sort key that puts the newest build first and an unknown one last.
-
-    RFC 3339 sorts as a string, so inverting it is a character-wise complement
-    rather than a parse -- and an unknown build time gets a key that sorts
-    after every real one instead of being treated as the oldest, which would
-    be a claim the row does not make.
-    '''
+    '''A sort key putting the newest RFC 3339 time first and an unknown one last.'''
     if not built_at:
         return "~"                      # after every digit, dash and colon
     return "".join(chr(0x7e - (ord(c) - 0x20)) if 0x20 <= ord(c) < 0x7f else c
@@ -510,30 +348,17 @@ def plan_for_job(store, requires: Dict[str, Any],
                  python_nodes=()) -> Plan:
     '''Which image every node of this job runs in.
 
-    🔴 **N images, not one.** A forty-node flow over six tools resolves six, and
-    a node whose tool this deployment tracks but has no image for fails the
-    WHOLE submit -- before anything runs, which is the correct direction. The
-    alternative is a job that queues, dispatches, and dies on node thirty-one
-    with the cluster already paid for.
-
-    ⚠️ **Called only where the deployment runs containers**, so an empty
-    registry here is a misconfiguration and not the bare-Slurm case: that one
-    never reaches this function. A server whose last image was retired under it
-    refuses submits rather than quietly running them on the host, which is what
-    the operator turned the switch off to get.
-
-    🔴 **A node that runs the user's Python -- ``python_nodes`` -- is also
-    matched on `requested_versions.interpreter`** (surface D293): its tests
-    run in its image's own Python, so that is the version that has to be the
-    one the user's modules were written against.
+    🔴 A node no image can place fails the whole submit, before anything runs.
+    ⚠️ Only called where containers run, so an empty registry refuses rather
+    than falling back to the host. 🔴 ``python_nodes`` are also matched on
+    `requested_versions.interpreter` (surface D293).
     '''
     images = live_images(store)
     software = live_software(store)
     python_nodes = set(python_nodes)
     interpreter = interpreter_requirement(requires)
 
-    # 🔴 The python set alone decides the JOB image (`declared_requirements`):
-    # picked at create (`job_image_for`), and kept while it is still live.
+    # 🔴 The python set alone decides the job image, picked at create and kept while live.
     pinned = declared_requirements(software, requires)
     job_image = next((image for image in images if image["id"] == job_image_id), None) \
         or resolve_declared(images, pinned)
@@ -548,21 +373,13 @@ def plan_for_job(store, requires: Dict[str, Any],
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
         if not tool:
-            # 🆕 A node that declares nothing but says it follows its input
-            # runs where that input ran: the execute tasks build a command out
-            # of the manifest, so there is nothing to require an image for, and
-            # the environment that produced the inputs is the one most likely
-            # to be able to run it.
-            #
-            # ⚠️ In flowgraph order, so the node it follows is already placed.
-            # An input that is not (a node outside this run) falls back to the
-            # job's image, which is what a node needing nothing gets anyway.
+            # 🆕 A node declaring nothing that follows its input runs where that
+            # input ran. ⚠️ Flowgraph order places the input first; one outside
+            # this run falls back to the job's image.
             after = inherits.get(node)
             nodes[node] = (nodes.get(after) if node in inherits else None) \
                 or job_image["id"]
             if interpreter and node in python_nodes:
-                # Where it would run, if that has the Python it needs; the
-                # image the python set and that Python resolve to, if not.
                 here = next(image for image in images if image["id"] == nodes[node])
                 if not _satisfies(here, [interpreter]):
                     found = resolve(images, list(pinned) + [interpreter])
@@ -573,23 +390,10 @@ def plan_for_job(store, requires: Dict[str, Any],
             continue
 
         if tool not in held:
-            # 🔴 **A requirement no live image holds is fatal.** Where every
-            # node runs in a container the registry IS the world: there is
-            # nowhere for it to run, and placing it anywhere means dispatching
-            # a node that cannot work: with nothing raising a requirement it
-            # would land in the PYTHON-ONLY image and die there, with every
-            # other node cancelled behind it.
-            #
-            # ⚠️ What a node needs is DECLARED by its task, so nothing here
-            # infers it: `Task._remote_toolname` says `openroad` for an
-            # OpenROAD task, `slang` for one that has no executable at all, and
-            # nothing for a builtin. See `runflow.node_tools`.
-            #
-            # 🔴 Distinct from *registered and in no image*, and the detail
-            # says which: one is an operator who curated a tool and has not
-            # built an image holding it, the other is a flow reaching for
-            # something nobody here offers at all. They are fixed in different
-            # places by different people.
+            # 🔴 Fatal: with containers the registry is the world, and placed
+            # anywhere the node would die in the python-only image. ⚠️ The task
+            # declares its tool (`runflow.node_tools`). Distinct from a tool
+            # registered but in no image: different people fix the two.
             step, index = node
             raise ProblemError(
                 "resource-unavailable", resource_kind="tool", resource=tool,
@@ -599,22 +403,15 @@ def plan_for_job(store, requires: Dict[str, Any],
                        "registered, and an operator adds one with "
                        "'registry add-software' and 'registry add-image'")
 
-        # 🔴 The python set PLUS this node's tool, which is exactly what
-        # `job_nodes.image_id` means. Resolved per node, because two
-        # tools need not be in one image and requiring that would mean one
-        # image holding everything -- and because two NODES may want different
-        # versions of the same tool.
-        #
-        # ⚠️ Pinning narrows the candidates BEFORE any tie is broken: with
-        # `siliconcompiler==0.38.9` in the python set, `built_at` chooses the
-        # newest OpenROAD *among images holding that SC*, not the newest image.
+        # 🔴 The python set plus this node's tool, `job_nodes.image_id`, per
+        # node: tools need not share an image. ⚠️ Pinning narrows candidates
+        # before any tie is broken.
         asked = ((requires or {}).get("tools") or {}).get(tool)
         wants = list(pinned) + ([interpreter] if interpreter and node in python_nodes
                                 else []) + [Requirement(tool, specifiers(asked), "tool")]
         found = resolve(images, wants)
         if found is None:
-            # 🔴 Kept and not raised: a job missing two tools reports both,
-            # not the first one this loop happened to reach.
+            # 🔴 Kept, not raised: a job missing two tools reports both.
             failed.setdefault(wants[-1], wants)
             continue
         nodes[node] = found["id"]
@@ -626,9 +423,7 @@ def plan_for_job(store, requires: Dict[str, Any],
 
 
 def interpreter_requirement(requires: Dict[str, Any]) -> Optional[Requirement]:
-    '''`requested_versions.interpreter`, as the requirement each image a node
-    running the user's Python resolves to must meet; None where the job sent
-    none, and is not constrained by it.'''
+    '''`requested_versions.interpreter` as a Requirement, or None where the job sent none.'''
     asked = ((requires or {}).get(BUCKETS["interpreter"]) or {}).get(INTERPRETER)
     if asked is None:
         return None
@@ -638,24 +433,9 @@ def interpreter_requirement(requires: Dict[str, Any]) -> Optional[Requirement]:
 def declared_requirements(software, requires: Dict[str, Any]) -> List[Requirement]:
     '''What the run's own Python process needs: the `python` bucket.
 
-    The framework, plus any library the client asked for. A name no live image
-    holds was refused at create, `software-unavailable`, before this is asked.
-
-    🔴 **One image has to satisfy all of it**, because these names share a
-    process: `siliconcompiler` and a site library run in the same interpreter,
-    so spreading them over two containers is not a deployment, it is a broken
-    one. The `tools` bucket is the opposite and is resolved per node.
-
-    🔴 **The framework is always this server's own version** (:func:`own_version`),
-    beside whatever the client asked for: create refused a requirement that
-    version does not satisfy, so the pin only narrows what was asked, and a
-    requirement it contradicts is refused naming the client's. Every image a
-    job resolves to, its nodes' included, holds that version.
-
-    🔴 **Computable without the upload**, which is what lets create resolve
-    images as well as submit: it needs the declared versions and the registry
-    and nothing else. That is what keeps the create-time reuse check able to
-    skip the upload entirely.
+    🔴 One image must satisfy all of it, since these names share an interpreter.
+    🔴 The framework is always this server's own version (:func:`own_version`).
+    🔴 Computable without the upload, so create can resolve the image too.
     '''
     tracked = software["python"]
     asked = (requires or {}).get("python") or {}
@@ -680,29 +460,19 @@ def resolve_declared(images, requirements: Sequence[Requirement]):
 
 
 def job_image_for(store, requires: Dict[str, Any]) -> Dict[str, Any]:
-    '''The image a job's own process runs in, from its `requested_versions.python`
-    alone: picked at create, before anything is uploaded (surface §13, *Create
-    picks the job's image from `requested_versions.python` alone*; database D145).
-    Raises the refusal create answers with where nothing fits.'''
+    '''The job's own image from `requested_versions.python` alone, picked at create.
+
+    Surface §13; database D145. Raises the refusal create answers with.'''
     return resolve_declared(live_images(store),
                             declared_requirements(live_software(store), requires))
 
 
 def contents_of(store, image_ids: Sequence[Optional[str]],
                 interpreter_ids: Sequence[Optional[str]] = ()) -> Dict[str, List[str]]:
-    '''Every version the given images declare, keyed by distribution -- and,
-    in the `interpreter` bucket, the Python of ``interpreter_ids`` alone: the
-    images a node running the user's Python ran in, the only ones whose Python
-    the job depends on (surface D293).
+    '''Every version the given images declare, by distribution: what a job actually ran.
 
-    🔴 **What a job ran, once a request can carry a range.** Nothing else can
-    answer it: the descriptor says what was asked for and the answer is
-    whatever this server chose.
-
-    ⚠️ A list per name and not one string, for the same reason `GET /v1`'s
-    `software` is a list. A wide flow resolves several images, and where the
-    client pinned nothing they can legitimately hold different versions of the
-    same distribution -- so a single value would have to pick one and be wrong.
+    The `interpreter` bucket holds only ``interpreter_ids``' Python (surface
+    D293). ⚠️ A list per name: a wide flow's images may differ.
     '''
     wanted = {image_id for image_id in image_ids if image_id}
     interpreted = {image_id for image_id in interpreter_ids if image_id}
@@ -716,14 +486,12 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
         if version not in versions:
             versions.append(version)
 
-    # A derived image is its base plus what its layer installed:
-    # `resolved_versions` lists what was installed, a substitution included.
+    # A derived image is its base plus what its layer installed.
     for row in store.all(
             f"SELECT id, derived_from, installed FROM images WHERE derived_from IS NOT NULL "
             f"AND id IN ({', '.join('?' * len(wanted))})", tuple(wanted)):
         wanted.add(row["derived_from"])
         if row["id"] in interpreted:
-            # A derived image runs its base's Python.
             interpreted.add(row["derived_from"])
         for name, version in json.loads(row["installed"] or "[]"):
             add("python", canonical(name), version)
@@ -748,26 +516,11 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
 
 
 def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
-    '''No live image holds the python set -- and which way it failed.
+    '''No live image holds the python set: `software-unavailable` with a `reason` (D110).
 
-    🔴 **`software-unavailable`, carrying `unresolved` and a `reason`** (D110).
-    One string cannot say which of several requirements failed, nor describe
-    the python set failing as a COMBINATION: every one of them has to be in
-    the same image.
-
-    - ``reason: "unavailable"`` -- a requirement no image satisfies on its
-      own. Every such requirement is listed, not only the first.
-    - ``reason: "combination"`` -- every requirement is satisfied by SOME
-      image and no single image holds them together. Every python requirement
-      is then listed, each with what is available, because the fix is choosing
-      versions that exist side by side.
-
-    Each alternative of a requirement is checked separately -- there may be an
-    image for each -- and a requirement is met if any of them is.
-
-    ⚠️ Not `entitlement-denied` -- *this deployment does not have it*, not
-    *you may not use it* -- and not `resource-unavailable`, which is software
-    this server has never heard of, in any version.
+    ``unavailable`` lists every requirement no image satisfies alone;
+    ``combination`` lists all of them when each exists but never together.
+    ⚠️ Not `entitlement-denied`, nor `resource-unavailable` (never heard of).
     '''
     alone = [want for want in requirements if resolve(images, [want]) is None]
     if alone:
@@ -777,17 +530,10 @@ def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
 
 def _unsatisfiable_tools(failures: Sequence[Sequence[Requirement]],
                          images) -> ProblemError:
-    '''Every node tool no image could place, as one refusal.
-
-    Each entry of ``failures`` is the python set plus one node's tool. A tool
-    that no image holds at the version asked is ``unavailable``; one that does
-    exist, beside a python set that also exists, and never in the same image as
-    it, is a ``combination`` -- and names both halves.
-    '''
+    '''Every node tool no image could place, as one refusal, as :func:`_unsatisfiable`.'''
     unavailable = []
     for wants in failures:
-        # The node's tool, and the Python it asked for where it runs the
-        # user's: whichever no image holds at all is what is missing.
+        # The node's tool and interpreter: whichever no image holds is missing.
         for want in [want for want in wants if want.kind == "interpreter"] + [wants[-1]]:
             if resolve(images, [want]) is None and want not in unavailable:
                 unavailable.append(want)
@@ -805,10 +551,7 @@ def _unsatisfiable_tools(failures: Sequence[Sequence[Requirement]],
 def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
                           images) -> ProblemError:
     entries = [{"kind": UNRESOLVED_KIND[want.kind], "name": want.name,
-                # The alternatives exactly as they were asked for; empty is
-                # "any version".
                 "requirement": list(want.wanted or ()),
-                # Every version of it a live image holds, to offer instead.
                 "available": sorted({entry.version for image in images
                                      for entry in image["contents"]
                                      if entry.name == want.name})}
@@ -816,9 +559,7 @@ def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
 
     unversioned = _present_but_unversioned(unresolved, images)
     if reason == "unavailable" and unversioned:
-        # 🔴 Said, because it is the one that is otherwise a mystery: the name
-        # is here, in `GET /v1`'s software list, and no image holding it
-        # reports a version, so nothing can match a version requirement.
+        # 🔴 Otherwise a mystery: `GET /v1` lists the name, so a preflight passed.
         detail = (f"this server has {unversioned.name}, and every image holding "
                   "it reports no version for it -- so nothing here can be matched "
                   "against a version requirement. Ask for it without a version, "
@@ -836,12 +577,7 @@ def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
 
 
 def _present_but_unversioned(requirements: Sequence[Requirement], images):
-    '''The first requirement whose name is held, but never with a version.
-
-    Distinguishes *this server does not have it* from *this server has it and
-    cannot tell you which one*. Only a requirement that NAMES a version can hit
-    this: one that does not is satisfied by any live version, mark or no mark.
-    '''
+    '''The first version-naming requirement whose name is held, but never with a version.'''
     for want in requirements:
         if not want.wanted:
             continue
@@ -859,57 +595,27 @@ def _present_but_unversioned(requirements: Sequence[Requirement], images):
 def pinned_ref(registry_ref: str, digest: str) -> str:
     '''What actually gets pulled: the repository at a digest, never a tag.
 
-    🔴 `registry_ref` is only what a human typed. Rebuilding
-    `sc-runtime:0.39.1` must not change what runs -- that takes a
-    re-registration, which is a write somebody made on purpose. Two jobs a month
-    apart silently running different code is the failure the stored digest
-    exists to prevent, and it only prevents it if this is the string that is
-    used.
+    🔴 Rebuilding a tag must not change what runs; only a re-registration may.
     '''
     from docker.utils import parse_repository_tag
 
-    # Any tag or digest taken off -- twice, since `repo:tag@digest` keeps its
-    # tag on the repository -- and a registry's port, `localhost:5000/sc`, kept.
+    # Twice, since `repo:tag@digest` keeps its tag; a registry's port is kept.
     repository = parse_repository_tag(parse_repository_tag(registry_ref)[0])[0]
     return f"{repository}@{digest}"
 
 
 def bundle_path(root, digest: str):
-    '''Where the OCI bundle for one image lives.
-
-    Content-addressed and shared: two jobs naming the same digest are the same
-    bytes, so they unpack once and every later run finds it. It sits beside the
-    store rather than under a user's tree for the same reason -- a root
-    filesystem is read-only and identical for everybody, and per-user copies of
-    a twelve-gigabyte image would be the one cost this design exists to avoid.
-    '''
+    '''Where the OCI bundle for one image lives: by digest, unpacked once for everybody.'''
     return Path(root) / digest.replace("sha256:", "")
 
 
 def stage_bundle(root, ref: str, digest: str, mounts=()):
-    '''Unpack one image into a bundle Slurm can run, if it is not there.
+    '''Unpack one image into a bundle ``srun --container`` can run; returns its path.
 
-    🔴 ``srun --container`` takes a bundle on disk and not a registry
-    reference, so somebody has to do this. Shared by the three callers that
-    need it at three different moments -- an operator staging ahead of time,
-    submit making sure the FRAMEWORK bundle exists before ``sbatch`` names it,
-    and the run fetching a node's image while that node reports ``preparing``
-    -- because three implementations of an unpack is three ways for a bundle to
-    be subtly different.
-
-    Built through a ``.part`` directory and renamed, so a bundle either exists
-    complete or does not exist at all. Two callers wanting the same digest race
-    and one loses the rename; losing is fine, because the content is addressed
-    by that digest and both copies are the same bytes.
-
-    ``mounts`` are the host directories a job needs to see from inside -- the
-    build tree it writes to and the cache it reads. They go into the bundle's
-    own ``config.json`` rather than into ``oci.conf``, because the shared tree
-    is this server's business and a mount configured on the cluster would apply
-    to every container Slurm ever ran, including ones it knows nothing about.
-
-    Returns the bundle path. Already staged is a no-op, which is what makes it
-    safe to call on every submit.
+    One implementation for all three callers, so bundles never differ. Built
+    through ``.part`` and renamed: a lost race is the same bytes. ``mounts``
+    go into the bundle's ``config.json``, not ``oci.conf``, which would apply
+    to every container Slurm runs. Already staged is a no-op.
     '''
     import os
     import shutil
@@ -935,12 +641,8 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
     try:
         subprocess.run(["skopeo", "copy", f"docker://{ref}", f"oci:{layout}:sc"],
                        check=True)
-        # 🔴 `--rootless` only when this really is unprivileged, and it is not
-        # a safety flag: it makes umoci write a spec with a USER namespace and
-        # no uid mapping, and a container in one cannot mount its own /proc.
-        # The failure is "mount `proc` to `proc`: Operation not permitted",
-        # which reads like a missing capability rather than like a spec that
-        # asked for an unprivileged container nobody wanted.
+        # 🔴 `--rootless` only when unprivileged, not as a safety flag: its user
+        # namespace without a uid map cannot mount /proc.
         unpack = ["umoci", "unpack", "--image", f"{layout}:sc", str(staging)]
         if os.geteuid() != 0:
             unpack.insert(2, "--rootless")
@@ -950,7 +652,6 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
         try:
             staging.rename(target)
         except OSError:
-            # Somebody else finished first. Their bundle is this bundle.
             if not is_staged(target):
                 raise
     finally:
@@ -961,24 +662,11 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
 
 
 def sweep_bundles(root, store) -> int:
-    '''Reclaim the unpacked bundles nothing can run any more. Returns bytes.
+    '''Reclaim the unpacked bundles nothing can run any more; returns bytes.
 
-    🔴 **Without this a rig fills its disk: each rebuild leaves a
-    multi-gigabyte bundle behind.** A bundle is an image unpacked onto the
-    filesystem, and a rebuild produces a new digest, which supersedes the old
-    row and leaves the old bundle where it was.
-
-    ⚠️ **Superseded is not the same as unused, and that is what the query is
-    for.** An image row is never deleted, because *what did this run in* has to
-    stay answerable -- but the BYTES are only needed while something might
-    start in them. A retired image that no unfinished job names can go; one
-    that a running job names cannot, because `--container` points straight at
-    this path and pulling it out from under a job is a failure with no sensible
-    message.
-
-    Also takes the `.part` and `.oci` directories a crashed unpack leaves.
-    Those are intermediate by construction -- the real bundle is renamed into
-    place last -- so one being present means nothing is using it.
+    ⚠️ Superseded is not unused: a retired image an unfinished job names is
+    kept, since `--container` points straight at it. A crashed unpack's
+    `.part` and `.oci` directories go too.
     '''
     import shutil
 
@@ -988,16 +676,12 @@ def sweep_bundles(root, store) -> int:
     if not root.is_dir():
         return 0
 
-    # A derived bundle is its base's root filesystem with a layer bound in, so
-    # it is only as runnable as its base: kept while the base is live, and the
-    # base kept whatever became of it while a job might start in the derived.
+    # A derived bundle runs its base's root filesystem: live only with its base.
     keep = {row["digest"].replace("sha256:", "") for row in store.all(
         "SELECT i.digest FROM images i LEFT JOIN images b ON b.id = i.derived_from "
         "WHERE i.retired_at IS NULL AND (i.derived_from IS NULL OR b.retired_at IS NULL)")}
 
-    # An image whose bytes something might still start in, retired or not, and
-    # the base under it. Both columns, because a job records the framework
-    # image and each node records its own.
+    # Anything an unfinished job or node might start in, retired or not, and its base.
     terminal = tuple(sorted(TERMINAL_STATES))
     live = f"j.state NOT IN ({', '.join('?' * len(terminal))})"
     busy = set()
@@ -1040,9 +724,8 @@ def _weigh(path) -> int:
     return total
 
 
-# Never held by a container's process on this cluster (profile D39). A compute
-# node that is itself a container needs NET_ADMIN, for crun to bring up the
-# build container's loopback; the processes inside get none of it.
+# Never held by a container's process (profile D39), though a containerised
+# compute node needs NET_ADMIN for crun to bring up the build loopback.
 WITHHELD_CAPABILITIES = ("CAP_NET_ADMIN",)
 
 
@@ -1057,29 +740,16 @@ def drop_capabilities(spec) -> None:
 def _prepare_spec(config, mounts) -> None:
     '''Make the unpacked bundle runnable for a job on this cluster.
 
-    ⚠️ Two edits, and both are about what an image knows nothing about: it
-    describes a filesystem, and a job needs a machine.
-
-    **The mounts.** A container's root filesystem is the image's, so without
-    them a node starts in a world where its own build directory does not exist.
-    Bind mounts at the same path inside as out, because the manifest the run
-    loads names absolute paths resolved on the server -- a different path
-    inside would need every one of them rewritten.
-
-    🔴 **The network namespace is removed.** A container in its own one cannot
-    reach `slurmctld`, which is fatal for the framework image -- it submits
-    every node of the flow it is driving -- and wrong for a task that needs a
-    licence server. A compute job belongs on the cluster's network.
+    Mounts at the same path inside as out, since the manifest names absolute
+    server paths. 🔴 The network namespace is removed: the framework image must
+    reach `slurmctld` to submit nodes, and tasks may need a licence server.
     '''
     with open(config) as f:
         spec = json.load(f)
 
     drop_capabilities(spec)
 
-    # ⚠️ An image's config asks for a terminal because a person usually runs
-    # it. Slurm does not give one: it captures stdout to a file, and crun then
-    # dies with "tcgetattr: Inappropriate ioctl for device" before the task
-    # starts -- which says nothing about a terminal to anybody reading it.
+    # ⚠️ Slurm gives no terminal, and crun dies on "tcgetattr" if one is asked for.
     spec.setdefault("process", {})["terminal"] = False
 
     namespaces = spec.get("linux", {}).get("namespaces")
@@ -1097,8 +767,7 @@ def _add_mounts(spec, mounts) -> None:
     '''Bind each host path at the same path inside, once.'''
     existing = {entry.get("destination") for entry in spec.get("mounts", [])}
     for mount in mounts:
-        # A path, bound read-write; or `(path, "ro")` -- a root this server
-        # SUPPLIES to jobs, which a job must be able to read and never change.
+        # A path, read-write; or `(path, "ro")` for a root the server supplies.
         path, mode = (mount if isinstance(mount, (tuple, list)) else (mount, "rw"))
         path = str(path)
         if path in existing:
@@ -1113,10 +782,7 @@ def _add_mounts(spec, mounts) -> None:
 
 
 def _borrowed_root(spec, bundle, readonly: Optional[bool] = None) -> Dict[str, Any]:
-    '''``spec``'s root filesystem as an absolute path -- its ``root.path``
-    read against ``bundle``, the bundle ``spec`` came from -- so another
-    bundle's configuration can run it in place rather than copy it.
-    Read-only where ``readonly`` says so, and otherwise as ``spec`` has it.'''
+    '''``spec``'s root filesystem as an absolute path, so another bundle can run it in place.'''
     root = spec.get("root") or {}
     where = Path(root.get("path") or "rootfs")
     return {"path": str((where if where.is_absolute() else Path(bundle) / where).resolve()),
@@ -1124,19 +790,11 @@ def _borrowed_root(spec, bundle, readonly: Optional[bool] = None) -> Dict[str, A
 
 
 def job_bundle(shared, target, mounts):
-    '''One job's bundle: a shared one's configuration over its root
-    filesystem, with this job's own mounts. Returns ``target``.
+    '''One job's bundle: the shared root filesystem with this job's own mounts.
 
-    🔴 **What keeps the signing key and the store out of a job's view.** A
-    shared bundle is unpacked once per digest and run by every job, so a mount
-    baked into it is every job's. What a job may see -- its own tree and cache
-    read-write, the roots this server supplies read-only -- goes here, in a
-    configuration of its own that borrows the shared root filesystem, as a
-    derived image's does.
-
-    ⚠️ ``target`` must be somewhere no job can write, or a node could rewrite
-    what the next one is started with. It is rewritten whole each time, through
-    a temporary file.
+    🔴 What keeps the signing key and the store out of a job's view: a mount in
+    a shared bundle would be every job's. ⚠️ ``target`` must be unwritable by
+    any job, or a node could rewrite what the next one starts with.
     '''
     target = Path(target)
     with open(Path(shared) / "config.json") as f:
@@ -1150,16 +808,11 @@ def job_bundle(shared, target, mounts):
 
 
 def read_bundle(shared, target, tree):
-    '''A bundle for reading one job's manifest in the job's own image: the
-    shared bundle's root filesystem, with the job's extracted ``tree`` mounted
-    read-only and nothing else bound, in a network namespace of its own.
-    Returns ``target``.
+    '''A bundle for reading one job's manifest in its own image.
 
-    🔴 **The staging sandbox, on this profile** (implementation-notes §E; profile
-    D63): no credential -- nothing of the data directory, no munge socket, no
-    slurm.conf -- no PDK data, no private root, and no network. It is the
-    shared bundle with every bind mount taken away, since a mount baked into a
-    shared bundle is every job's.
+    🔴 The staging sandbox (implementation-notes §E; profile D63): every bind
+    mount removed but ``tree``, read-only, and its own network namespace, so no
+    credential, munge socket, PDK data, private root or network.
     '''
     target = Path(target)
     with open(Path(shared) / "config.json") as f:
@@ -1192,16 +845,10 @@ def _is_bind(entry) -> bool:
 
 def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
                constrain=(), indexes=(), source_builds: bool = False) -> str:
-    '''The cache key of a derived image (implementation-notes §L, *What it
-    caches*): its base, the requirements and constraints files the server
-    wrote, each uploaded wheel's digest, the job's sorted
-    `requested_versions.python` names, and the index configuration -- the
-    indexes it installed from, in order, and whether source builds were on --
-    since a package set means something different from another index.
+    '''The cache key of a derived image (implementation-notes §L).
 
-    The base's Python tag, and the versions of what it holds, are functions of
-    its digest, so neither is asked for separately: each could only be learned
-    by running the image.'''
+    The index configuration is in it, since a package set means something else
+    from another index; the base's Python is a function of its digest.'''
     import hashlib
 
     return hashlib.sha256(json.dumps(
@@ -1213,15 +860,10 @@ def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
 
 def drop_built(store, name: str, version: Optional[str], actor: str,
                environments=None) -> List[str]:
-    '''Stop reusing every environment built with ``name`` in it -- at
-    ``version``, where one is given -- so the next job asking for that set
-    builds it again: each derived image holding it is retired, and, where
-    ``environments`` names host mode's directory, each environment there
-    holding it is removed. Returns what went, by reference or directory.
+    '''Stop reusing every environment built with ``name`` (at ``version``); returns what went.
 
-    For a package found wrong after it was built: a yanked release, a broken
-    wheel, a security fix. The rows stay, retired, so what a job ran in stays
-    answerable.'''
+    For a yanked or broken package: derived images are retired, host
+    ``environments`` removed. The rows stay, so what a job ran in stays answerable.'''
     import shutil
 
     wanted = canonical(name)
@@ -1261,17 +903,13 @@ def derived_image(store, base_id: str, key: str) -> Optional[Dict[str, Any]]:
 
 def register_derived(store, base_id: str, registry_ref: str, digest: str, key: str,
                      installed: Sequence[Tuple[str, str]], note: str) -> str:
-    '''Record an image the server built. Returns its id.
+    '''Record an image the server built; returns its id.
 
-    🔴 `registered_via = 'derived'` and no person: nobody registered it, the
-    builder produced it. It holds no `image_contents` -- it is its base's plus
-    `installed` -- so no requirement resolves to it and `GET /v1` never lists
-    it.
+    🔴 No `image_contents`, so no requirement resolves to it and `GET /v1` never lists it.
     '''
     if not _DIGEST.match(digest or ""):
         raise ValueError(f"{digest!r} is not a sha256 digest")
-    # Two builds of one key -- a restart, two processes -- are the same
-    # environment: the first registered is the one every later job reuses.
+    # Two builds of one key: the first registered is the one reused.
     existing = store.one("SELECT id FROM images WHERE digest = ? OR "
                          "(derived_from = ? AND derivation = ? AND retired_at IS NULL)",
                          (digest, base_id, key))
@@ -1290,15 +928,9 @@ def register_derived(store, base_id: str, registry_ref: str, digest: str, key: s
 
 
 def stage_derived_bundle(root, base_digest: str, digest: str, layer):
-    '''The bundle a derived image runs as, from its base's and its layer.
+    '''The bundle a derived image runs as: its staged base's, with the layer at `IMAGE_SITE`.
 
-    🔴 **Not a second unpack of the base.** A derived image is its base plus
-    one layer, so its bundle is the base's configuration -- its mounts, its
-    environment -- with the base's root filesystem and the layer bound in at
-    `IMAGE_SITE`. The same files the image would unpack to, without a copy of a
-    tool image per environment. The base bundle has to be staged first.
-
-    Built through a `.part` directory and renamed, as `stage_bundle` is.
+    🔴 Not a second unpack of the base, so no tool-image copy per environment.
     '''
     import shutil
 
@@ -1317,8 +949,7 @@ def stage_derived_bundle(root, base_digest: str, digest: str, layer):
     with open(base / "config.json") as f:
         spec = json.load(f)
     spec["root"] = _borrowed_root(spec, base)
-    # Where a derived image's layer puts a job's Python packages. On the tool's
-    # PYTHONPATH only -- see `Task.get_runtime_environmental_variables`.
+    # On the tool's PYTHONPATH only (`Task.get_runtime_environmental_variables`).
     spec.setdefault("mounts", []).append({
         "destination": IMAGE_SITE, "type": "bind", "source": str(target / "layer"),
         "options": ["rbind", "ro", "nosuid", "nodev"]})
@@ -1335,11 +966,7 @@ def stage_derived_bundle(root, base_digest: str, digest: str, layer):
 
 
 def is_staged(bundle) -> bool:
-    '''Whether a bundle is there and complete.
-
-    An OCI bundle is a directory, so its existence says nothing: the config is
-    what a finished one has, and the unpack renames it into place last.
-    '''
+    '''Whether a bundle is there and complete: its ``config.json``, renamed in last.'''
     return (Path(bundle) / "config.json").is_file()
 
 
@@ -1350,12 +977,8 @@ def is_staged(bundle) -> bool:
 def driver_allowed(driver: str, allowed: Sequence[str] = ()) -> bool:
     '''Whether ``driver`` is a module this server will import (D95).
 
-    🔴 **The probe imports it on the server**, so an open field would let
-    whoever registers software choose what the server imports -- on this
-    profile, anyone. A driver is a module under ``siliconcompiler.tools`` or
-    one the deployment's configuration names; SiliconCompiler has no tools
-    entry-point group, so an out-of-tree driver is configuration, never a form
-    field.
+    🔴 The probe imports it on the server, so it is under ``siliconcompiler.tools``
+    or named by configuration, never a free form field anyone could fill.
     '''
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*", driver or ""):
         return False
@@ -1368,39 +991,12 @@ def register_software(store, name: str, display_name: str, actor: str,
                       kind: str, driver: Optional[str] = None,
                       version_package: Optional[str] = None,
                       allowed_drivers: Sequence[str] = ()) -> str:
-    '''Declare that this deployment curates images for a distribution.
+    '''Declare that this deployment curates images for a distribution; returns the kind.
 
-    ⚠️ It is a claim with teeth: from here on, a job whose flow needs this tool
-    and finds no image holding it is refused at submit. That is the point --
-    the alternative is a job that dispatches into a container without the tool
-    it needs.
-
-    🔴 **`kind` is stated and is deliberately not derived.** Deriving it means
-    asking THIS process whether it can import the name or drive it, and this
-    process is not the image: it works for SiliconCompiler's own in-tree
-    drivers and quietly gives the wrong answer for everything else, which is
-    the worst shape a derivation can have. It decides which bucket the name is
-    published in and therefore whether one image has to hold it or each node's
-    does, so it is an operator's statement.
-
-    🔴 **`driver` is the module carrying a tool's Task driver**, and it is what
-    a probe running inside an image is handed. It cannot be worked out there
-    either: a driver can live in any package -- a site library ships its own
-    and a proprietary tool's never will be in this tree -- and the in-tree path
-    is not reliable in-tree, where `kepler-formal` is driven from
-    `...tools.keplerformal`.
-
-    🔴 **`version_package` is the same class of fact: how do I get this name's
-    version.** A tool can have no executable at all -- slang's driver runs
-    pyslang in the framework's own process -- and still has to be placed in an
-    image holding it. The distribution is not called what the tool is called,
-    so the mapping is recorded rather than guessed.
-
-    ⚠️ A tool with no driver is legitimate: it is in the image, this deployment
-    lists it, and nothing here can ask its version. That is what
-    `published_date` records.
-
-    Returns the kind that was recorded.
+    ⚠️ A claim with teeth: a job needing this tool with no image holding it is
+    refused at submit. 🔴 `kind`, `driver` (the tool's Task module, handed to a
+    probe) and `version_package` (where a driverless or exe-less tool's version
+    comes from) are stated, never derived: this process is not the image.
     '''
     if kind not in KINDS:
         raise ValueError(
@@ -1439,36 +1035,20 @@ def register_software(store, name: str, display_name: str, actor: str,
 
 def register_version(store, name: str, version: str, actor: str,
                      preference: int = 0, source: str = "reported") -> str:
-    '''One exact version. Returns the spelling that was stored.
+    '''Register one exact version; returns the spelling stored.
 
-    🔴 **Exact in STORAGE, and that rule is scoped to storage.** A stored range
-    is a promise nobody can check against anything; the wire carries specifiers
-    and they are matched against these rows. An exact version is a row somebody
-    added on purpose.
-
-    🔴 **Normalised here, at registration, and not at request time.** It keeps
-    per-tool version handling off the request path, and it removes a skew that
-    would otherwise be silent: a client and a server on different SC releases
-    normalising the same string differently would disagree about whether an
-    image matched, and neither would say so.
-
-    ⚠️ ``source="published_date"`` is how a tool that reports no version gets
-    into the catalogue at all -- a complete tool list beats a partial one. What
-    it costs is that such a row can never satisfy a version requirement and
-    always sorts below a reported one, whatever the numbers say.
+    🔴 Exact in storage; the wire's specifiers are matched against these rows.
+    🔴 Normalised here, not at request time, so client and server never disagree
+    silently. ⚠️ ``published_date`` lets a tool reporting no version in,
+    at the cost of never satisfying a version requirement.
     '''
     if store.one("SELECT name FROM software WHERE name = ?", (name,)) is None:
         raise ValueError(f"{name} is not registered software; add it first")
     if source not in ("reported", "published_date"):
         raise ValueError(f"{source} is not a version source")
 
-    # 🔴 A `reported` version that has no PEP 440 form is refused, not stored.
-    # It is the contract's `version_norm NOT NULL` said in code: the row has
-    # nothing to put there, so it cannot be written. Never coerce, pad or
-    # substitute to get one in -- a parser handed output it did not expect can
-    # return anything (`initialize`, out of gtkwave's `Could not initialize
-    # GTK!`), and a rewritten value hides that from the operator who needs to
-    # see it. The row is `published_date`, which is the fallback that works.
+    # 🔴 Refused, never coerced (`version_norm NOT NULL`): a parser fed odd
+    # output returns anything (`initialize` from gtkwave), and a rewrite hides it.
     if source == "reported" and not _is_pep440(version):
         raise ValueError(
             f"{name} {version!r} is not a PEP 440 version, so it cannot be "
@@ -1490,15 +1070,9 @@ def register_version(store, name: str, version: str, actor: str,
 
 
 def _contains(values: Optional[Sequence[str]]) -> List[Tuple[str, str]]:
-    '''An image's declared contents as an operator writes them --
-    ``siliconcompiler==0.38.9``, to ``registry add-image -contains`` or the
-    portal's form -- as the pairs :func:`register_image` takes. Raises
-    ValueError naming the first that is not ``name==version``.
+    '''Parse ``name==version`` contents, as an operator writes them, for :func:`register_image`.
 
-    ``==`` and nothing else: no ranges anywhere in this registry. A range needs
-    a version-comparison grammar that the client, the server and every tool
-    agree on, and two implementations disagreeing about what ``>=0.38`` covers
-    is a job dispatched into the wrong container.
+    ``==`` only: no ranges anywhere in this registry.
     '''
     pairs = []
     for value in values or []:
@@ -1515,29 +1089,16 @@ def register_image(store, registry_ref: str, digest: str,
                    built_at: Optional[str] = None) -> str:
     '''Register a container this deployment may run.
 
-    🔴 **The most dangerous write in this schema: it chooses what code executes
-    on the cluster.** Higher stakes than any read permission -- a grant decides
-    who may see something, this decides what runs as the account the job maps
-    to. So it takes a person, every time: the CI registration path is
-    crucible's and does not exist here, and ``registered_via`` is only ever
-    `derived`, for an image the server built (:func:`register_derived`).
-
-    ⚠️ ``built_at`` comes off the image's own manifest and is the only thing
-    that separates two images carrying identical versions. It is optional
-    because a manifest may not carry one, and NULL means exactly that rather
-    than *old*.
+    🔴 The most dangerous write in this schema: it chooses what code executes on
+    the cluster, so it takes a person every time. ⚠️ ``built_at`` is from the
+    image's manifest; NULL means unknown, not old.
     '''
     if not _DIGEST.match(digest or ""):
         raise ValueError(f"{digest!r} is not a sha256 digest")
     if not contents:
         raise ValueError("an image with no declared contents can satisfy nothing")
 
-    # 🔴 Normalised before it is looked up, with the SAME rule that stored it.
-    # `verilator 5.052` is stored as `5.52` -- PEP 440 strips the leading zero
-    # -- so a caller naming the version the tool actually printed would be told
-    # it is not registered, by the registry that just registered it. The
-    # normalisation has to happen wherever a version is named, not only where
-    # one is written.
+    # 🔴 Normalised as stored: `verilator 5.052` is stored as `5.52`.
     contents = [(name, normalize(version)) for name, version in contents]
 
     for name, version in contents:
@@ -1549,15 +1110,8 @@ def register_image(store, registry_ref: str, digest: str,
     existing = store.one("SELECT id FROM images WHERE digest = ?", (digest,))
     image_id = existing["id"] if existing else str(uuid.uuid4())
 
-    # 🔴 One live image per reference. The digest identifies the BYTES and the
-    # reference identifies the thing an operator curates, so re-registering a
-    # rebuilt tag supersedes the build before it rather than standing beside
-    # it. Two live rows for one reference are indistinguishable to the
-    # resolution -- same declared contents, same name -- so it would pick
-    # between them arbitrarily, and a rebuild would appear to have no effect
-    # while the old bytes went on running.
-    #
-    # ⚠️ Superseded and not deleted, as `retire_image` says.
+    # 🔴 One live image per reference: a rebuilt tag supersedes (⚠️ retires, never
+    # deletes) the build before it, or the resolution would pick arbitrarily.
     superseded = [row["id"] for row in store.all(
         "SELECT id FROM images WHERE registry_ref = ? AND digest <> ? "
         "  AND retired_at IS NULL", (registry_ref, digest))]
@@ -1569,9 +1123,7 @@ def register_image(store, registry_ref: str, digest: str,
                 (now(), actor, old_id))
 
         if existing:
-            # Re-registering the same bytes under a new tag or a new content
-            # list. The digest is the identity, so this is an update rather than
-            # a second row claiming to be the same image.
+            # The digest is the identity: same bytes, new tag or contents.
             store.execute(
                 "UPDATE images SET registry_ref = ?, resolved_at = ?, note = ?, "
                 "  built_at = ?, registered_by = ?, retired_at = NULL, "
@@ -1599,11 +1151,7 @@ def register_image(store, registry_ref: str, digest: str,
 
 
 def retire_image(store, image_id: str, actor: str) -> None:
-    '''Stop dispatching into it, and keep the row.
-
-    ⚠️ Images are never deleted. A job from last year names one, and *what did
-    this run in* has to stay answerable after the image stops being used.
-    '''
+    '''Stop dispatching into it; ⚠️ the row stays, so *what did this run in* stays answerable.'''
     _retire(store, "images", "id = ?", (image_id,), actor)
 
 
@@ -1617,12 +1165,7 @@ def retire_software(store, name: str, actor: str) -> None:
 
 
 def _retire(store, table: str, where: str, params, actor: str) -> None:
-    '''Set the pair of columns every one of these tables carries.
-
-    ``retired_at`` and ``retired_by`` are written together or not at all: each
-    table CHECKs that they agree, so a retirement with no actor is refused by
-    the store rather than recorded as a fact nobody owns.
-    '''
+    '''Set ``retired_at`` and ``retired_by`` together, as each table's CHECK requires.'''
     with store.transaction():
         store.execute(
             f"UPDATE {table} SET retired_at = ?, retired_by = ? "

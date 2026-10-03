@@ -1,15 +1,10 @@
 '''
-What a submitted job becomes, in one place.
+What a submitted job becomes: the settings the server applies to an uploaded
+manifest, and the files the run and the API process speak through. No Flask:
+both the API process and the batch job read it, on different machines.
 
-Two things live here and they are the same decision seen from both ends: the
-settings the server applies to an uploaded manifest before anything runs, and the
-file the run writes back so the server can say what it is doing. Nothing in this
-module imports Flask -- it is read by the API process and by the process the
-batch job starts, and those are not the same machine.
-
-🔴 **The settings list is the sanitation policy**, and it is applied in this one
-place: two copies would drift apart, and *"two spellings of the same setup are
-two hashes of the same job"* is the run hash's precondition.
+🔴 The settings list is the sanitation policy, applied in this one place: two
+copies would drift, and two spellings of one setup would be two run hashes.
 '''
 
 import json
@@ -28,55 +23,37 @@ __all__ = ["normalize", "node_image", "node_state", "exit_code", "PROGRESS_FILEN
            "write_json"]
 
 
-# Written by the run, read by the API process, and the only channel between
-# them. It sits in the job's own directory rather than in the store because the
-# two processes share a filesystem and need not share a database -- which is the
-# property that lets the scheduler and the API be separated later.
+# Run -> API process, the only channel between them: a shared filesystem, no
+# shared database.
 PROGRESS_FILENAME = "sc-server-progress.json"
 
-# Written by the API process, read by the run, and it answers exactly one
-# question: where do the bytes for this container come from.
-#
-# 🔴 It is not a second copy of the placement. The manifest already says which
-# node runs in what, because that is what SiliconCompiler's scheduler executes
-# with -- but a bundle path names a directory that may not exist yet, and
-# nothing in that path says which registry reference to unpack into it. Two
-# consumers, two different facts.
+# API process -> run: which registry reference each bundle path unpacks from,
+# which the manifest's placement cannot say.
 IMAGES_FILENAME = "sc-server-images.json"
 
-# Written by the API process, read by the run: what the run needs from the
-# server -- the job id, the build and cache directories, each node's
-# placement, the cluster, and where each dataroot is supplied. The runner
-# applies it to the uploaded manifest in the job's own SiliconCompiler
-# (`apply_run`); nothing in the API process rewrites the manifest.
+# API process -> run: what `apply_run` applies to the uploaded manifest.
 RUN_FILENAME = "sc-server-run.json"
 
-# Where the run puts each uploaded dataroot's files back together, one
-# directory per dataroot, under the job root: outside the collection, which a
-# run that collects before it starts moves aside (`point_dataroots`).
+# Each uploaded dataroot rebuilt, outside the collection a re-collect moves aside.
 UPLOADS_DIRNAME = "sc-server-uploads"
 
-# What the manifest's read returned (`manifestread`), kept for a resumed
-# staging and a follow-up's allowed set. Written by the API process; no
-# upload can reach it.
+# The manifest read's result (`manifestread`), for a resumed staging and a follow-up.
 SUMMARY_FILENAME = "sc-server-summary.json"
 
-# Every `option,scheduler` key: placement is the deployment's, so each is reset
-# before the server writes its own.
+# Placement is the deployment's, so every `option,scheduler` key is reset first.
 SCHEDULER_KEYS = ("cores", "defer", "maxnodes", "maxthreads", "memory",
                   "msgcontact", "msgevent", "name", "options", "queue")
 
 
 def state_dir(manifest) -> Path:
-    '''Where the server's own files for a run live: the job root, above the
-    `<design>/<jobname>/` an upload expands into, so no upload can write them.
-    The run's manifest is `<job root>/<design>/<jobname>/<design>.pkg.json`.'''
+    '''The job root, where the server's own files for a run live.
+
+    It is above the `<design>/<jobname>/` an upload expands into, so no upload
+    can write them.'''
     return Path(os.path.abspath(manifest)).parents[2]
 
 
-# SiliconCompiler's runner has its own node vocabulary and it is not the
-# contract's. The mapping happens here, at the boundary, which is what keeps the
-# published set closed without freezing another project's enum.
+# SiliconCompiler's node vocabulary to the contract's, mapped at the boundary.
 _NODE_STATES = {
     "pending": "pending",
     "queued": "queued",
@@ -89,8 +66,7 @@ _NODE_STATES = {
 
 
 def exit_code(value) -> Optional[int]:
-    '''A node's exit code as published: 0-255, a signal N as 128+N -- a
-    Python return code of -N included -- and None where the tool never exited.'''
+    '''A node's exit code as published: 0-255, signal N (or -N) as 128+N, None if none.'''
     if value is None or isinstance(value, bool):
         return None
     try:
@@ -105,11 +81,7 @@ def exit_code(value) -> Optional[int]:
 def node_state(status: Optional[str]) -> str:
     '''One SiliconCompiler node status as one of the contract's eight.
 
-    An unmapped status is a mapping bug rather than something to pass through:
-    a client switches on this vocabulary, so an unknown value reaching the wire
-    would be a state nobody can read. Reported as `failed`, which is the safe
-    direction -- terminal, and visible -- rather than leaving a node that will
-    never move looking like one that still might.
+    An unmapped status is `failed`, terminal and visible, never passed through.
     '''
     if not status:
         return "pending"
@@ -120,57 +92,19 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
               cluster: str = "local", track: bool = False) -> None:
     '''Everything the server decides about how a submitted run executes.
 
-    Applied by the run itself as it starts (:func:`apply_run`): after submit
-    has verified the digest and staging has bound the archive limits. A
-    client's manifest asserts what to build; every setting here is the
-    server's answer to how, and none of them is negotiable:
+    Applied by the run itself (:func:`apply_run`). None of it is negotiable:
+    no dashboard or display, per-user build and cache directories, the
+    server's job id as the remote id, 🔴 remote off (left on, the compute node
+    submits the job again), and tracking where ``track``. The cache is per
+    user, not shared: ``ccache`` and ``coursier`` dirs would get the first
+    user's uid, and ``chmod`` cannot repair them.
 
-    - **no dashboard** -- there is no terminal on the server
-    - **the build directory** -- ``<datadir>/users/<user>/builds/<job>/``, per
-      user as well as per job, so the ownership record is not a file inside
-      the directory it protects
-    - **the cache** -- ``<datadir>/users/<user>/cache/``, per user. Not
-      cluster-wide, though that would save a PDK copy per user: ``ccache`` and
-      ``coursier`` create their own directories, so under a shared tree they
-      land with the first user's uid and the second gets ``EPERM`` -- and
-      ``chmod`` is owner-only, so nothing can repair a directory it did not
-      create
-    - 🔴 **remote off** -- the one setting whose absence is an infinite loop.
-      Left on, the compute node submits the job again
-    - **no display** -- there is none on a compute node
-    - **the remote id** -- the server-owned job id, which is what a user pastes
-      back into ``sc-remote``
-    - **tracking**, where ``track`` -- the deployment's ``track_provenance``:
-      each node records the machine it ran on. Only ever turned on here
-
-    🔴 **`quiet` is deliberately NOT set**: it is the submitter's, and a
-    manifest that comes back saying `quiet` when the caller never asked for it
-    does not describe their run. `runner._silence_console` keeps the server's
-    stdout quiet instead.
-
-    🔴 **On a cluster every node is its own Slurm job, and that is set here.**
-    The API process still submits exactly one thing and polls one id -- the
-    run's orchestrator -- so it is not a Slurm submit host and the REST
-    transport stays a swap. The orchestrator computes nothing: it drives the
-    flow and hands each node to the cluster.
-
-    ⚠️ **The per-node CONTAINER rides on that**, for the deployments that run
-    them, and 🔴 **how depends on what is scheduling, because the two mechanisms
-    are mutually exclusive.** ``option,scheduler,name`` holds ONE value, so a
-    node placed by SiliconCompiler's docker scheduler is a node Slurm never
-    sees.
-
-    ================  ====================================================
-    ``cluster``       how a node's image reaches it
-    ================  ====================================================
-    ``slurm``         ``srun --container <bundle>`` on the node's own job
-    ``local``         SiliconCompiler's docker scheduler, by digest
-    ================  ====================================================
-
-    ⚠️ **``option,scheduler,queue`` is only free on the second row**: for
-    Slurm it is the PARTITION and goes straight to ``srun --partition``.
-    Writing an image reference into it on a cluster would submit every node to
-    a partition named after a container.
+    🔴 `quiet` is deliberately not set: it is the submitter's
+    (`runner._silence_console` instead). 🔴 On a cluster every node is its own
+    Slurm job, so the API process still polls one orchestrator id. 🔴 A node's
+    image is ``srun --container`` there and the docker scheduler by digest on
+    ``local``: ``option,scheduler,name`` holds one value. ⚠️ For Slurm,
+    ``option,scheduler,queue`` is the partition, so never an image reference.
     '''
     project.option.set_nodashboard(True)
     project.option.set_builddir(str(builddir))
@@ -181,29 +115,19 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
     project.option.set_jobincr(False)
     project.set('record', 'remoteid', job_id)
     if track:
-        # Where each node ran, in its record: the deployment's
-        # `track_provenance`. Off, the job's own setting stands.
+        # Off, the job's own setting stands.
         project.option.set_track(True)
     for key in SCHEDULER_KEYS:
         project.get('option', 'scheduler', key, field=None).reset()
 
     if cluster == "slurm":
-        # 🔴 EVERY node is its own Slurm job, image or no image. The cluster is
-        # what should be scheduling the work: inside one allocation a flow can
-        # never use more than the machine it landed on, so scaling the cluster
-        # would do nothing for a single run -- and the orchestrator could not
-        # be given a partition of its own, because the work would follow it
-        # there.
-        #
-        # ⚠️ A job and not a step, which `runner._leave_the_allocation` sees
-        # to: on a step, per-node placement would look configured and do
-        # nothing.
+        # 🔴 Every node its own Slurm job, image or not: inside one allocation a
+        # flow never outgrows its machine. ⚠️ A job, not a step
+        # (`runner._leave_the_allocation`).
         for step, index in runtime_nodes(project):
             project.option.scheduler.set_name('slurm', step=step, index=index)
-            # A node's terminal state is final, and Slurm already keeps it so:
-            # a node is an `srun` job, and Slurm requeues only batch jobs. 🔴
-            # Never `--no-requeue` here, which is an sbatch option: srun
-            # refuses it and exits 255 before the node is submitted.
+            # 🔴 Never `--no-requeue` here: srun refuses that sbatch option and
+            # exits 255, and Slurm requeues only batch jobs anyway.
 
             where = (images or {}).get((step, index))
             if where:
@@ -220,11 +144,8 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
 def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
     '''How this node is placed, as ``(mechanism, where)``, or None.
 
-    Read back out of the manifest by the runner, which has no database
-    connection and should not need one: the server wrote the answer into the
-    same file the run loads. ``mechanism`` is ``container`` for a Slurm step
-    naming an OCI bundle and ``image`` for a digest the docker scheduler pulls,
-    and the runner has to make a different thing exist for each.
+    ``container`` is an OCI bundle for ``srun``, ``image`` a digest the docker
+    scheduler pulls.
     '''
     try:
         placed_by = project.option.scheduler.get_name(step=step, index=index)
@@ -244,17 +165,12 @@ def node_image(project, step: str, index: str) -> Optional[Tuple[str, str]]:
 
 
 def dataroot_targets(entries, collection, uploads=None) -> List[List[Optional[str]]]:
-    '''Where each dataroot the run reads is supplied, from `owners.account_records`'s
-    answer: a supplied one as ``[keypath, target]``, at this server's own copy
-    -- a held source, or an operator's private root -- and an uploaded one as
-    ``[keypath, target, collection]``, at a directory of its own under
-    ``uploads`` that the run builds from this job's collection
-    (:func:`point_dataroots`). An installed package is left out, since it is
-    found by name, and so are files in no dataroot.
+    '''Where each dataroot the run reads is supplied, from `owners.account_records`.
 
-    ``uploads`` defaults to the job root's :data:`UPLOADS_DIRNAME`, the job
-    root being the one ``collection`` -- `<design>/<jobname>/sc_collected_files`
-    -- is under.'''
+    A supplied one is ``[keypath, server_copy]``; an uploaded one is
+    ``[keypath, target, collection]``, the target a directory under ``uploads``
+    (default: the job root's :data:`UPLOADS_DIRNAME`) the run rebuilds.
+    Installed packages and files in no dataroot are left out.'''
     import hashlib
 
     from siliconcompiler.remote import owners
@@ -268,33 +184,19 @@ def dataroot_targets(entries, collection, uploads=None) -> List[List[Optional[st
         if entry.status == owners.SUPPLIED and entry.root:
             found.append([list(entry.keypath), str(entry.root)])
         elif entry.status == owners.UPLOADED:
-            # One per dataroot, by its keypath, so two that share a name stay
-            # apart; hashed, since a dataroot's name is whatever its owner typed.
+            # By keypath, so two sharing a name stay apart; hashed, as names are free text.
             name = hashlib.sha1(json.dumps(list(entry.keypath)).encode()).hexdigest()[:16]
             found.append([list(entry.keypath), str(Path(uploads) / name), str(collection)])
     return found
 
 
 def point_dataroots(project, targets) -> int:
-    '''Point every dataroot at the copy the run will actually read.
+    '''Point every dataroot at the copy the run will read; returns how many.
 
-    ``targets`` is :func:`dataroot_targets`' answer.
-
-    🔴 **Two things at once.** The manifest the run writes then records, for
-    each dataroot, which copy it resolved to -- the upload's or the server's
-    (D111) -- which is what a job's page shows. And no dataroot is left naming
-    a path on the submitter's machine, so nothing in the run can reach one:
-    the server never reads a path a job names (D112).
-
-    🔴 **An uploaded dataroot is rebuilt before it is pointed**, each value
-    from where `collect` filed it to its own path under the dataroot's target.
-    A collected file is filed by its dataroot's `collection_id`, a hash of the
-    dataroot's source, so pointing the source anywhere moves where the run
-    looks: the files are found at the target itself instead, by path, as any
-    local dataroot's are. That holds where the run collects again before it
-    starts, which moves the collection aside but never the target.
-
-    Returns how many dataroots were pointed.
+    🔴 The run's manifest then records which copy each resolved to (D111), and
+    no dataroot names a path on the submitter's machine (D112). An uploaded
+    dataroot is rebuilt first: collected files are filed by a hash of the
+    dataroot's source, so repointing it would lose them.
     '''
     uploaded: Dict[Tuple[str, ...], Tuple[str, str]] = {
         tuple(entry[0]): (entry[1], entry[2]) for entry in targets
@@ -302,9 +204,7 @@ def point_dataroots(project, targets) -> int:
     if uploaded:
         _rebuild_uploads(project, uploaded)
 
-    # 🔴 By the dataroot's own keypath -- the parameter's key less `path` --
-    # so each task's dataroot is pointed on its own, never every task of the
-    # tool at the first one's copy.
+    # 🔴 By the dataroot's own keypath, so each task's is pointed on its own.
     by = {tuple(entry[0]): entry[1] for entry in targets}
     pointed = 0
     for key in sorted(project.allkeys(include_default=False)):
@@ -320,13 +220,11 @@ def point_dataroots(project, targets) -> int:
 
 
 def _rebuild_uploads(project, uploaded: Dict[Tuple[str, ...], Tuple[str, str]]) -> None:
-    '''Each value under an uploaded dataroot, from the collection to its own
-    path under that dataroot's target -- linked where it can be, else copied.
+    '''Link or copy each uploaded dataroot's values from the collection to its target.
 
-    Read before any dataroot is pointed, since where `collect` filed a value
-    is computed from its dataroot as the manifest has it. A value not in the
-    collection is left out, and the run does not find it: never looked for
-    anywhere else. Both ends are confined, so no value reaches past either.
+    Before any dataroot is pointed, which would move where `collect` filed
+    them. Both ends are confined, and a value not collected is never
+    looked for elsewhere.
     '''
     import shutil
 
@@ -376,13 +274,9 @@ def read_run(path) -> Optional[Dict[str, Any]]:
 
 
 def apply_run(project, run: Dict[str, Any]) -> None:
-    '''The server's overrides, applied to the uploaded manifest by the run
-    itself, in the job's own SiliconCompiler: :func:`normalize`, then
-    :func:`point_dataroots`.
+    '''Apply the server's overrides in the job's own SiliconCompiler.
 
-    🔴 **Here and nowhere else.** The API process never rewrites a manifest
-    (contract §1): it writes what the run needs as data, and this is where the
-    manifest becomes the one the run executes.
+    🔴 Here and nowhere else: the API process never rewrites a manifest (contract §1).
     '''
     normalize(project, run["job_id"], run["builddir"], run["cachedir"],
               images={(step, index): where for step, index, where in run["placements"]},
@@ -395,8 +289,7 @@ def apply_run(project, run: Dict[str, Any]) -> None:
 ######################################################################
 
 def read_images(path) -> Tuple[Dict[str, str], List[str]]:
-    '''What the run needs to make a bundle exist: where from, and what to
-    mount into it.'''
+    '''Each bundle's source reference, and what to mount into it.'''
     try:
         with open(path) as f:
             body = json.load(f)
@@ -410,8 +303,7 @@ def read_images(path) -> Tuple[Dict[str, str], List[str]]:
 
 
 def read_bundles(path) -> Tuple[Dict[str, str], List[Any]]:
-    '''Each job bundle's shared bundle, and what the job's own bundles
-    mount.'''
+    '''Each job bundle's shared bundle, and what the job's own bundles mount.'''
     try:
         with open(path) as f:
             body = json.load(f)
@@ -433,24 +325,16 @@ def _mount(mount):
 
 def write_images(path, sources: Dict[str, str], mounts, shared=None,
                  job_mounts=()) -> None:
-    '''``mounts`` are baked into a shared bundle when the run unpacks it;
-    ``shared`` maps each job bundle to its shared one, and ``job_mounts`` are
-    what the job's own bundles add over it.'''
+    '''``mounts`` go into a shared bundle; ``job_mounts`` into the job's own over it.'''
     write_json(path, {"sources": sources, "mounts": [_mount(m) for m in mounts],
                       "shared": dict(shared or {}),
                       "job_mounts": [_mount(m) for m in job_mounts]})
 
 
 def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
-    '''What the run last said, or None.
-
-    Every failure to read is None rather than an exception: this is read on a
-    poll, the writer replaces the file underneath it, and a reader that raised
-    would turn a millisecond of rename into a failed request.
-    '''
+    '''What the run last said, or None on any failure to read: it is read on a poll.'''
     try:
-        # 🔴 The run writes this file, inside the job's tree: given the job's
-        # ``root``, a link planted in its place is refused, not followed.
+        # 🔴 The run writes this file: given ``root``, a planted link is refused.
         if root is not None:
             from siliconcompiler.remote.server.outputs import confine
             opened = confine.open_inside(root, path, "r")
@@ -465,12 +349,7 @@ def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
 
 
 def write_json(path, body: Any) -> None:
-    '''Replace one of the server's own files atomically -- the progress file
-    among them.
-
-    A reader on the other side of a shared filesystem gets the previous
-    complete answer or the next one, never half of either.
-    '''
+    '''Replace one of the server's own files atomically, for a reader across a shared filesystem.'''
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -8,12 +8,7 @@
 </p>
 
 {% if available | length > 1 %}
-{#
-  A node writes more than one log and they answer different questions:
-  `sc_<step>_<index>.log` is SiliconCompiler's record of the node, and
-  `<step>.log` is what the tool printed -- which is where a synthesis error
-  actually is.
-#}
+{# `sc_<step>_<index>.log` is SiliconCompiler's record; `<step>.log` has the tool's errors. #}
 <form method="get" class="panel">
   <label>Log
     <select name="file" onchange="this.form.submit()">
@@ -27,11 +22,7 @@
 {% endif %}
 
 {% if stream %}
-  {#
-    🔴 The viewer follows the SAME signed stream URL the command line does.
-    Log streaming is the API; this is a viewer for it, not a second
-    implementation of tailing.
-  #}
+  {# 🔴 The same signed stream URL the CLI follows: a viewer, not a second tail. #}
   <p class="muted">Following this node as it runs.</p>
   <pre class="log" id="log"></pre>
   <script>

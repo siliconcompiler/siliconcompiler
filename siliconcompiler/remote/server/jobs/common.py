@@ -1,6 +1,5 @@
 '''
-What the job service's parts share: its constants, the small helpers kept
-out of the class, and the exceptions staging raises.
+The job service's shared constants, helpers and staging exceptions.
 '''
 
 import base64
@@ -26,16 +25,12 @@ logger = logging.getLogger("sc-server")
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 # 🔴 How often ONE process will ask the scheduler about ONE job, at most.
-# Deliberately decoupled from `poll_interval_seconds`: reading a job is a local
-# SQLite read and a stat, and can be answered as fast as anybody asks, while
-# `squeue` is one or more RPCs into slurmctld and is the only part that leaves
-# the machine. Without this, shortening the poll interval would multiply the
-# load on slurmctld by the same factor.
+# Decoupled from `poll_interval_seconds`: a job read is local, `squeue` is RPCs
+# into slurmctld, and a shorter poll must not multiply them.
 SCHEDULER_QUERY_FLOOR = 5
 
-# Job reuse returns a result the hash determines and never a refusal it does
-# not: `rejected` is an entitlement decision about a person at a moment, and
-# `cancelled` and `abandoned` are somebody having stopped.
+# Reuse returns only what the hash determines: `rejected` was a decision about
+# a person at a moment, `cancelled` and `abandoned` somebody stopping.
 REUSABLE_STATES = ("completed", "failed")
 
 # What a job-stream request is told for each capability the deployment lacks,
@@ -47,34 +42,28 @@ _WITHOUT = {
                        "stream; follow each running node instead",
 }
 
-# The two surfaces a caller reaches a job through. They disagree about exactly
-# two things -- `max_download_bytes` and `api_fetchable_kinds` -- and both are
-# decided from this one value.
+# The two surfaces a caller reaches a job through; they differ only in
+# `max_download_bytes` and `api_fetchable_kinds`.
 SURFACES = ("api", "portal")
 
-# Long enough for any real design or job name and short enough that the column,
-# the path and the log line all stay sane.
 MAX_NAME = 100
 
-# A cancel's `reason`, at most (surface D288): refused above it, never cut, and
-# served whole -- what is accepted is what everyone reads.
+# A cancel's `reason`, at most (surface D288): refused above it, never cut.
 MAX_REASON = 300
 
-# What a caller's reason may not hold: it is served as it arrived, so a control
-# character is refused at the boundary rather than stripped on the way out.
+# Refused in a caller's reason, which is served as it arrived.
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
-# `design` and `jobname`, which become path segments under the job's own root
-# (see `_name`). The manifest's own copies are checked again at submit against
-# the same rule -- an upload is the other end of this.
+# `design` and `jobname` (see `_name`); the manifest's copies are held to it
+# again at submit.
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 # How long an `Idempotency-Key` is honoured (surface §6).
 IDEMPOTENCY_SECONDS = 24 * 3600
 
 
-# Node archives already reported as sitting over a member deleted on its own,
-# so a client polling the listing does not raise the same alert every second.
+# Node archives already alerted on for a member deleted on its own, so a
+# polling client does not raise the same alert every second.
 _ALERTED: Set[str] = set()
 
 
@@ -86,12 +75,11 @@ class _Supply:
         self._sources = sources
 
     def package(self, module: str) -> bool:
-        '''Whether this installation has ``module``, asked without importing
-        anything a job named (contract §1).
+        '''Whether this installation has ``module``, without importing anything
+        a job named (contract §1).
 
-        ⚠️ `find_spec` on a dotted name imports its parent first, so only a
-        top-level name is looked up -- which runs nothing -- and a submodule is
-        answered only once its parent is already loaded here.
+        ⚠️ `find_spec` on a dotted name imports its parent, so a submodule is
+        answered only once its parent is already loaded.
         '''
         import importlib.util
         import sys
@@ -105,9 +93,8 @@ class _Supply:
             return False
 
     def private_root(self, keypath) -> Optional[str]:
-        '''This server's own copy of a private dataroot, by its keypath: a
-        library's from `library`, and a task's from `task` for that one task,
-        else from `tool` for every task of the tool.'''
+        '''This server's own copy of a private dataroot, by its keypath; a
+        task's from `task`, else from `tool`.'''
         if not owners.is_dataroot_keypath(keypath):
             return None
         mapped = self._config["private_dataroots"] or {}
@@ -119,16 +106,14 @@ class _Supply:
             or ((mapped.get("tool") or {}).get(tool) or {}).get(root)
 
     def held(self, source, ref) -> Optional[str]:
-        # Nothing is held on a server that fetches nothing: a copy left from
-        # before would supply the job and skip the path it exists to test.
+        # A leftover copy would skip the path a fetch-nothing server tests.
         if self._config["fetch_fails"]:
             return None
         return self._sources.held(source, ref)
 
     def allowlisted(self, source, ref) -> bool:
-        # 🔴 A source whose query values were masked on the way here
-        # (`?token=***`) says what it is, not enough to be fetched from: it is
-        # never fetched, so the client is asked for it instead.
+        # 🔴 A masked source (`?token=***`) cannot be fetched from, so the
+        # client is asked for it instead.
         if owners.is_masked(source):
             return False
         return self._sources.allowlisted(source, ref)
@@ -142,20 +127,15 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """What a job needs from its image, by bucket:
     `descriptor.requested_versions`.
 
-    🔴 **The one member, and it names every Python distribution the job
-    imports**, pinned exactly -- a name not in `requested_versions` is not
-    required, and the job may land in an image without it. There is no
-    `versions` member and no fallback to one (D126, superseded).
+    🔴 It names every Python distribution the job imports; a name left out is
+    not required.
 
-    🔴 **Each value is a LIST of PEP 440 specifier sets, any one of which
-    satisfies**, and a bare string is refused: that is what SiliconCompiler
-    means by a version requirement -- `Task.get('version')` is a list, and two
-    tasks of one tool contribute two entries. `[]` is *any version*, which is
-    not the same as leaving the name out.
+    🔴 Each value is a LIST of PEP 440 specifier sets, any one satisfying, as
+    `Task.get('version')` is; a bare string is refused, and `[]` is *any
+    version*, not the same as leaving the name out.
 
-    🔴 **By bucket, and a flat map is refused.** The whole `python` set
-    shares an interpreter and must be held by ONE image, while a tool is
-    satisfied per node; accepting a flat map would mean guessing which.
+    🔴 By bucket, and a flat map is refused: the `python` set must share ONE
+    image, a tool is satisfied per node, and a flat map would mean guessing.
     """
     from siliconcompiler.remote.server.software.images import BUCKETS, INTERPRETER
 
@@ -208,8 +188,8 @@ SOURCE_MEMBERS = ("keypath", "source", "ref", "private")
 
 
 def _only(body: Dict[str, Any], allowed, where: str) -> None:
-    '''An unknown member is refused, never ignored: a misspelled optional
-    member would otherwise be a check the caller believes they asked for.'''
+    '''Refuse an unknown member, which a misspelling would otherwise make a
+    check the caller believes they asked for.'''
     unknown = sorted(set(body) - set(allowed))
     if unknown:
         raise ProblemError(
@@ -222,9 +202,8 @@ def _name(value, field: str) -> str:
     if not isinstance(value, str) or not value:
         raise ProblemError("invalid-request", detail=f"{field} is required")
     if len(value) > MAX_NAME or not _NAME_RE.match(value):
-        # Both of these become a path segment under the job's own root, so the
-        # check is not cosmetic: it is the reason a manifest cannot name its way
-        # out of the directory the server gave it.
+        # A path segment under the job's root: this is what keeps a manifest
+        # from naming its way out of it.
         raise ProblemError(
             "invalid-request",
             detail=f"{field} must be at most {MAX_NAME} characters of "
@@ -237,9 +216,8 @@ _RUN_HASH = re.compile(r"^[\x20-\x7e]{1,128}$")
 
 def _extract_outputs(archive_path: Path, tree: Path, step: str, index: str, limits,
                      only: Optional[str] = None) -> None:
-    '''The ``outputs/`` of a node archive -- or the one member ``only``
-    names -- into ``tree``, at ``<step>/<index>/``, under an upload's rules:
-    its links kept, bounded by the job's tree rather than the node's.'''
+    '''A node archive's ``outputs/``, or the one member ``only`` names, into
+    ``tree`` at ``<step>/<index>/``, under an upload's rules.'''
     def wanted(name):
         if only is not None:
             return name == only or only.startswith(f"{name}/") or name.startswith(f"{only}/")
@@ -250,9 +228,8 @@ def _extract_outputs(archive_path: Path, tree: Path, step: str, index: str, limi
 
 
 def _link_home(tree: Path, link: Path):
-    '''Where a link under ``tree`` points, as ``((step, index), member)``
-    with ``member`` relative to that node -- or None where it is not a node's
-    ``outputs/``.'''
+    '''Where a link under ``tree`` points, as ``((step, index), member)``, or
+    None where it is not into a node's ``outputs/``.'''
     target = os.readlink(link)
     if os.path.isabs(target):
         return None
@@ -266,7 +243,7 @@ def _link_home(tree: Path, link: Path):
 
 def _python_packages(member) -> Optional[environment.Packages]:
     '''`python_packages`, held to its grammar and bounds; None where it is
-    absent or lists nothing. `400 invalid-request`, naming the entry.'''
+    absent or lists nothing.'''
     if member is None:
         return None
     try:
@@ -335,13 +312,8 @@ def _resources(summary) -> List[Tuple[str, str]]:
 
 
 def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
-    '''The descriptor's `sources`, checked, with every query value masked --
-    or None where there are none.
-
-    `private` is OPTIONAL and defaults to false. A private entry carries
-    `source` and `ref` where its dataroot has a remote one (surface D308),
-    masked here as any other's; a local one has neither.
-    '''
+    '''The descriptor's `sources`, checked, with every query value masked, or
+    None where there are none. `private` defaults to false.'''
     declared = descriptor.get("sources")
     if declared is None:
         return None
@@ -355,9 +327,8 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
                                       "optional source, ref and private")
         _only(item, SOURCE_MEMBERS, "a source")
         keypath = item.get("keypath")
-        # 🔴 One of the two places SiliconCompiler keeps a dataroot, and
-        # nothing else: this server does not guess what owns one (surface
-        # D298).
+        # 🔴 One of SiliconCompiler's two dataroot keypaths, and nothing else:
+        # no guessing what owns one (surface D298).
         if not owners.is_dataroot_keypath(keypath) or \
                 any(len(part) > MAX_NAME for part in keypath):
             raise ProblemError(
@@ -371,22 +342,18 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         if tuple(keypath) in seen:
             raise ProblemError("invalid-request", detail=f"sources names {where} twice")
         seen.add(tuple(keypath))
-        # A private entry may carry its source and ref (surface D299): a copy
-        # this server holds, or a fetch, supplies it as well as the operator's
-        # copy does. `private` is what says it is never uploaded or asked for.
+        # A private entry may carry its source and ref too (surface D299, D308).
         private = item.get("private", False)
         entry = {"keypath": list(keypath), "private": private}
         if isinstance(item.get("source"), str):
-            # 🔴 Refused, never stripped (surface D310): no client sends
-            # userinfo, so one that did is told which entry -- by its keypath in
-            # `detail`, never the value, which is neither stored nor logged.
+            # 🔴 Refused, never stripped (surface D310), naming the keypath and
+            # never the value, which is neither stored nor logged.
             if owners.has_userinfo(item["source"]):
                 raise ProblemError(
                     "invalid-request",
                     detail=f"{where}: a source carries no userinfo -- no user name and "
                            "no secret ahead of its host")
-            # Masked again, as the client masks it (`Resolver.safe_source`): a
-            # query's token a client sent anyway is neither stored nor logged.
+            # Masked again, as the client does (`Resolver.safe_source`).
             try:
                 entry["source"] = owners.masked(item["source"])
             except ValueError:
@@ -399,8 +366,8 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
 
 
 def _python_names(job) -> List[str]:
-    '''What the job's `requested_versions.python` names: the image holds each, and
-    none is ever installed. Part of what a derived image is keyed on.'''
+    '''What the job's `requested_versions.python` names: the image holds each,
+    none is installed, and a derived image is keyed on them.'''
     from siliconcompiler.remote.server.software.images import BUCKETS
 
     return sorted(requirements(json.loads(job["descriptor"] or "{}") or {})
@@ -436,8 +403,7 @@ class _Absent(Exception):
 
 def _install_lines(record, where: str) -> List[str]:
     '''What an install of the job's Python packages did, for the job-level
-    log: what it added, what it substituted within a release line, and each
-    listed version the target's own copy was kept over.'''
+    log: added, substituted, and listed versions the target's own copy beat.'''
     added = ", ".join(f"{name}=={version}" for name, version in record.get("installed") or [])
     lines = [f"The job's Python packages, on {where}: installed "
              f"{added or f'nothing beyond what {where} holds'}"]
@@ -462,22 +428,19 @@ class _ServerFailure(Exception):
 
 
 class _StagingTimedOut(Exception):
-    '''This pass of staging ran past the caller's `max_staging_seconds`:
-    `staging-timed-out`, the job's own limit (surface D294). Its message says
-    what staging was doing when the time ran out.'''
+    '''This pass of staging ran past `max_staging_seconds`: `staging-timed-out`
+    (surface D294), its message what staging was doing.'''
 
 
-# The run's final manifest, read once as plain JSON for its metrics: larger
-# than this is left unread, since the panel is not worth parsing gigabytes.
+# A larger final manifest is not read for its metrics.
 METRICS_MANIFEST_BYTES = 256 * 1024 * 1024
 # Each value kept for the panel, bounded as `detail` is.
 _METRIC_VALUE_CHARS = 1000
 
 
 def _node_metrics(manifest: Path) -> Dict[Tuple[str, str], Tuple[Dict[str, Any], Dict[str, Any]]]:
-    '''``{(step, index): (metrics, records)}`` out of a run's final manifest,
-    read as plain JSON. Empty where there is none, or it is too large or not
-    JSON.'''
+    '''``{(step, index): (metrics, records)}`` from a run's final manifest,
+    read as plain JSON; empty where it is absent, too large or not JSON.'''
     try:
         if manifest.stat().st_size > METRICS_MANIFEST_BYTES:
             logger.info(f"{manifest} is too large to read its metrics from")
@@ -521,9 +484,8 @@ def _node_metrics(manifest: Path) -> Dict[Tuple[str, str], Tuple[Dict[str, Any],
 def _problem_from(outcome: Dict[str, Any]) -> ProblemError:
     '''The refusal a read reported, with only the members its type carries.
 
-    🔴 **A read's members are written by whatever the manifest made the read
-    do**, so each is taken by name and shape, never passed through: a member
-    called `status` or `type` would otherwise be a field of the problem body.
+    🔴 The manifest controls what a read reports, so each member is taken by
+    name and shape, never passed through: a `status` would land in the body.
     '''
     members: Dict[str, Any] = {}
     given = outcome.get("members") or {}
@@ -557,8 +519,8 @@ def _sent_back_for(result: Dict[str, Any], packages=None) -> List[Tuple[str, str
 
 
 def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> ProblemError:
-    '''What an install that will not resolve tells the job's owner: each
-    package, its version, and the target Python and platform.'''
+    '''The refusal for an install that will not resolve, naming each package
+    and the target Python and platform.'''
     target = f"{result.get('python') or 'its Python'} ({result.get('version') or '?'}) " \
              f"on {result.get('platform') or 'its platform'}"
 
@@ -579,9 +541,7 @@ def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> Problem
         detail=_bounded(
             f"the job's Python packages will not install{where} for {target}: "
             f"{', '.join(named) or 'the uploaded wheels'}"
-            # 🔴 Said, because it is the one the user can act on (surface
-            # D291): a compiled package with no wheel for this platform needs
-            # one published to the deployment's index.
+            # 🔴 Said, because the user can act on it (surface D291).
             + (f"; {', '.join(only_source)} has only a source distribution for it, "
                "and this deployment builds none: publish a wheel for this platform "
                "to its index" if only_source else "")
@@ -598,10 +558,8 @@ def _bounded(text: str, limit: int = 1000) -> str:
 def _after(when: str, seconds: int) -> str:
     """`seconds` after a stored timestamp, in the format the store writes.
 
-    🔴 Milliseconds, three digits, exactly as `store.now()` writes them. These
-    are compared as STRINGS against stored timestamps, so a fraction of the
-    wrong length does not compare wrong by a rounding error -- it compares
-    wrong by character: `.12Z` sorts after `.123Z`, because `Z` is above `3`.
+    🔴 Exactly `store.now()`'s three-digit milliseconds: compared as STRINGS, a
+    shorter fraction sorts wrong (`.12Z` after `.123Z`).
     """
     from datetime import timedelta
 
@@ -614,11 +572,8 @@ def _after(when: str, seconds: int) -> str:
 
 
 def _ago(seconds: int) -> str:
-    """The timestamp `seconds` ago, in the one format this store writes.
-
-    A string comparison, because that is what the column holds and what `now()`
-    produces -- RFC 3339 in UTC to milliseconds sorts lexically.
-    """
+    """The timestamp `seconds` ago, in the store's format, which sorts as a
+    string."""
     from datetime import datetime, timedelta, timezone
 
     return stamp(datetime.now(timezone.utc) - timedelta(seconds=seconds))
@@ -632,22 +587,11 @@ def _expired_key(bound_at: Optional[str]) -> bool:
 def _error(error_type: Optional[str],
            detail: Optional[str] = None,
            members: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    '''A job's error, as an RFC 9457 object.
+    '''A job's error, as an RFC 9457 object; a node's has the same shape, its
+    `detail` arriving in ``members`` (surface §17).
 
-    🔴 `detail` is what makes it worth reading. `type` and `title` are frozen
-    and identical on every deployment and for every occurrence -- *The run
-    failed* is true of every failed run there has ever been -- so without a
-    `detail` the object says only that something went wrong, which the `state`
-    already said.
-
-    ⚠️ Bounded like every other `detail`, and this is the path that needs it
-    most: a run's reason can be a tool's own exception text, which carries
-    whatever paths the client's design named. It does not pass through
-    `problem()`, so the bound is applied here rather than inherited.
-
-    A node's error has the same shape (surface §17, *A node's `error`*). A
-    node has no transitions to carry its `detail`, so it arrives in
-    ``members`` beside the type's own, and is bounded the same way.
+    ⚠️ Bounded here, since it bypasses `problem()`: a run's reason can be a
+    tool's exception text carrying paths the client's design named.
     '''
     if not error_type:
         return None
@@ -662,8 +606,7 @@ def _error(error_type: Optional[str],
     # The registry's status, and none for a type that is never a response.
     if registered is not None and registered.status is not None:
         body["status"] = registered.status
-    # Prose that only repeats the slug is not prose: the slug is already the
-    # `type`, and a client branches on that.
+    # A detail that only repeats the slug says nothing the `type` does not.
     if detail and detail != slug:
         body["detail"] = bound(detail)
     for name, value in extra.items():
@@ -672,14 +615,12 @@ def _error(error_type: Optional[str],
 
 
 def _node_error(state: str, node: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
-    '''A node's error, as its `type` URI and the members beside it, from what
-    the runner reported of it: ``(None, None)`` unless it failed.
+    '''A node's error, as its `type` URI and members, from what the runner
+    reported: ``(None, None)`` unless it failed.
 
-    🔴 **`run-interrupted` where the environment ended it** -- an image that
-    would not pull, before the flow started -- so resubmitting unchanged may
-    work; **`run-failed` otherwise**, a time or memory limit included, with
-    `detail` naming the limit (surface §17). A plain failure names its exit
-    status and points at the node's log, which is where the tool said why.
+    🔴 `run-interrupted` where the environment ended it (an image would not
+    pull), so resubmitting unchanged may work; `run-failed` otherwise, a time
+    or memory limit included (surface §17).
     '''
     if state != "failed":
         return None, None
@@ -705,9 +646,8 @@ def _members_json(members: Dict[str, Any]) -> Optional[str]:
 
 
 def _flag(value, name: str) -> bool:
-    '''A boolean query parameter: `true` or `false`, as S §16 defines one,
-    and anything else `invalid-request` (S §6) -- never read as false, which
-    would answer a filter the caller did not ask for.'''
+    '''A boolean query parameter, `true` or `false` (S §16); anything else is
+    `invalid-request` (S §6), never read as false.'''
     if value == "true":
         return True
     if value == "false":
@@ -731,12 +671,8 @@ def _encode_cursor(row) -> str:
 
 
 def _decode_cursor(cursor: str) -> Tuple[str, str]:
-    '''Opaque on the wire, and refused rather than guessed at.
-
-    A cursor is only ever taken from a `Link` header, so one that does not
-    decode was made up -- and continuing from a made-up position would silently
-    skip rows.
-    '''
+    '''Opaque on the wire, and refused rather than guessed at: one that does
+    not decode was made up, and continuing from it would skip rows.'''
     try:
         padded = cursor + "=" * (-len(cursor) % 4)
         created_at, _, job_id = base64.urlsafe_b64decode(padded).decode().partition("|")

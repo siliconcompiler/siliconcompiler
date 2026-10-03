@@ -1,8 +1,6 @@
 '''
 Handing a staged job to the scheduler: its images resolved, the run file
 written, and the submission recorded.
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import json
@@ -23,9 +21,8 @@ class DispatchMixin:
     '''Handing a staged job to the scheduler.'''
 
     def _dispatch(self, job, summary, entries, plan=None) -> None:
-        '''Resolve images, write the manifest the run will load, and hand
-        the job to the scheduler. ``plan`` is the images already resolved
-        while staging, with any the job's Python packages were built into.'''
+        '''Resolve images, write the run file, and hand the job to the
+        scheduler. ``plan`` is any image plan staging already resolved.'''
         root = self.job_root(job["user_id"], job["id"])
         if plan is None:
             plan = self._resolve_images(job, summary)
@@ -37,9 +34,7 @@ class DispatchMixin:
             raise self._refuse(job, problem) from None
 
         try:
-            # The job's own root, so the batch script and the run's stdout land
-            # beside what the run produced and go away with it when the job is
-            # deleted.
+            # The job's own root, so the batch script and stdout go with the job.
             scheduler_job_id = self._dispatcher.submit(
                 job["id"], root, manifest, image=bundle,
                 queue=self._config["batch_queue"])
@@ -55,17 +50,12 @@ class DispatchMixin:
     def _resolve_images(self, job, summary):
         '''Which container every node of this job runs in.
 
-        🔴 Before the dispatcher is called and after the archive is open, which
-        is the only place both facts are in hand: the flow's real node list
-        comes from the manifest, and nothing may be handed to the cluster that
-        this server cannot place. A node whose tool this deployment tracks and
-        has no image for fails the WHOLE submit here, rather than queueing and
-        dying on node thirty-one with the cluster already paid for.
+        🔴 After the manifest's read gives the real node list and before
+        dispatch: a tracked tool with no image fails the WHOLE job here, not on
+        node thirty-one with the cluster already paid for.
 
-        ⚠️ Skipped entirely where the deployment runs no containers, and that
-        answer is NULL rather than a default image -- `job_nodes.image_id` is
-        *what that node actually ran in*, so writing one for a node that ran on
-        the host would be a record of something that did not happen.
+        ⚠️ Without containers every node is NULL, never a default image:
+        `job_nodes.image_id` records what the node actually ran in.
         '''
         if not self._config["containers"]:
             return images.Plan(None, {node: None for node in summary["nodes"]}, {})
@@ -78,9 +68,7 @@ class DispatchMixin:
                                        job_image_id=job["image_id"],
                                        python_nodes=summary["python"])
         except ProblemError as problem:
-            # Its own slug, not a guessed one: `plan_for_job` refuses for more
-            # than one reason and the job must record the one the caller was
-            # given.
+            # The refusal's own slug: `plan_for_job` refuses for several reasons.
             raise self._refuse(job, problem) from None
         # Each image the job's nodes run in, in its `staging` record.
         placed: Dict[str, list] = {}
@@ -94,19 +82,11 @@ class DispatchMixin:
     def _framework_bundle(self, job, plan) -> Optional[str]:
         '''The container the job's own orchestrating process runs in.
 
-        🔴 This is what makes version matching real rather than half-done. The
-        per-node images decide what each TOOL runs in; this decides what
-        interprets the manifest -- and without it a job asking for
-        SiliconCompiler 0.39 has its flow driven by whatever version the cluster
-        installed, which is the question version-matched-images.md calls the
-        real one.
+        🔴 Node images decide what each TOOL runs in; this decides which
+        SiliconCompiler drives the flow, or the cluster's own would.
 
-        Staged here rather than on the compute node, because `sbatch
-        --container` names a bundle that has to exist before the job starts and
-        there is nothing running yet to unpack it. It is a no-op once staged, so
-        the cost falls on the first submit after an operator registers an image
-        -- and `registry add-image -stage` is how an operator keeps it off the
-        request path entirely.
+        Staged here, since `sbatch --container` needs the bundle before the job
+        starts; `registry add-image -stage` keeps it off the request path.
         '''
         if self._dispatcher.name != "slurm" or not plan.job:
             return None
@@ -124,10 +104,8 @@ class DispatchMixin:
                 common, self.job_bundles(job["id"]) / Path(common).name,
                 self.framework_mounts(job)))
         except Exception as e:                                   # noqa: BLE001
-            # Refused rather than dispatched without it. Dropping the image
-            # silently would run the job against whatever SiliconCompiler this
-            # cluster has, which is the thing the registry exists to stop --
-            # and it would do it while the record said otherwise.
+            # Refused rather than run on the cluster's SiliconCompiler while the
+            # record says otherwise.
             raise _ServerFailure(f"this server could not unpack the image the job's "
                                  f"own process runs in: {e}") from None
 
@@ -161,22 +139,17 @@ class DispatchMixin:
         return True
 
     def _write_run(self, job, root: Path, summary, plan, entries=()) -> Path:
-        '''What the run needs from this server, as data beside the manifest;
-        the manifest the run loads, which is the one uploaded.
+        '''Write what the run needs from this server beside the manifest, and
+        return the uploaded manifest the run loads.
 
-        🔴 **Nothing here rewrites the manifest.** The runner loads it, in the
-        job's own SiliconCompiler, and applies these overrides there
-        (`runspec.apply_run`): the job id, the build and cache directories,
-        each node's placement, the cluster, and where each dataroot is
-        supplied. The list itself is `runspec.normalize`, the file both ends
-        read.
+        🔴 Nothing here rewrites the manifest: the runner applies these
+        overrides in the job's own SiliconCompiler (`runspec.apply_run`).
         '''
         cache = self.cache_dir(job["user_id"])
         cache.mkdir(parents=True, exist_ok=True)
 
-        # Where each node's image reaches it depends on what is scheduling: a
-        # Slurm step names an unpacked bundle, and the docker scheduler pulls a
-        # digest. The dispatcher is the only thing that knows which.
+        # A Slurm step names an unpacked bundle; the docker scheduler pulls a
+        # digest.
         placements = plan.placements()
         sources = {}
 
@@ -193,10 +166,8 @@ class DispatchMixin:
                 sources[bundle] = ref
                 shared[bundle] = str(common)
 
-        # 🔴 Every dataroot points at the copy the run will actually read --
-        # this job's upload, or this server's own supplied copy -- so the
-        # manifest the run writes records which, and no dataroot is left
-        # naming a path on the submitter's machine (D111, D112).
+        # 🔴 Every dataroot points at the copy the run reads, the upload or a
+        # supplied copy, never the submitter's path (D111, D112).
         unpacked = root / job["design"] / job["jobname"]
         runspec.write_run(
             root / runspec.RUN_FILENAME, job_id=job["id"], builddir=root, cachedir=cache,
@@ -205,8 +176,7 @@ class DispatchMixin:
                                                uploads=root / runspec.UPLOADS_DIRNAME),
             track=self._config["track_provenance"])
 
-        # Only the bundles need a source: a digest the docker scheduler pulls
-        # already says where it comes from.
+        # Only the bundles need a source; a pulled digest says where it is from.
         runspec.write_images(
             root / runspec.IMAGES_FILENAME,
             sources, self.container_mounts() if sources else [],

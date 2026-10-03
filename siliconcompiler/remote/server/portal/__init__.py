@@ -1,21 +1,14 @@
 '''
 The portal: ten screens over the same decisions the API makes.
 
-🔴 **Every authorization decision here goes through the code the API handlers
-call** -- ``JobService.owned``, ``accounts.owned_device``, and the rest. Not
-because duplication is untidy, but because a portal query that forgets
-``WHERE user_id =`` answers ``200`` and looks correct. There is one place to
-forget it, and it is shared.
+🔴 Every authorization decision goes through the code the API handlers call
+(``JobService.owned``, ``accounts.owned_device``...): a portal query that
+forgets ``WHERE user_id =`` answers ``200`` and looks correct.
 
-⚠️ **The portal does not call its own API over HTTP.** A browser holds no device
-key, and an HTTP client that could reach ``/v1`` would need a credential that is
-not key-bound -- the one shape the auth model exists to avoid. So it reads
-through the shared layer instead, and every link it hands the browser for bytes
-is a *signed* storage URL, whose signature is the whole credential.
-
-🔴 **A portal session is a cookie and never becomes an API credential.** It
-mints no access token and carries no DPoP binding. A path from one to the other
-would be the shortest way around the key pinning, so there is none.
+⚠️ It does not call its own API over HTTP: a browser holds no device key, so it
+reads the shared layer, and every bytes link is a signed storage URL. 🔴 A
+portal session is a cookie and never becomes an API credential: that would be
+the shortest way around the key pinning.
 '''
 
 import json
@@ -50,31 +43,22 @@ blueprint = flask.Blueprint("portal", __name__, template_folder="templates")
 
 COOKIE = "sc_portal"
 
-# Seconds to a minute, because the URL is handed to a browser on the same
-# machine and there is no legitimate slow path. It reaches the browser's
-# history and possibly an access log, so spending it on arrival is what makes
-# both worthless.
+# Short and single-use: the URL lands in browser history and maybe an access log.
 HANDOVER_SECONDS = 60
 
-# The page somebody was turned away from, kept just long enough to run one
-# command and come back. Separate from the session cookie because it is not a
-# credential: it is a breadcrumb, and it is treated as untrusted input.
+# The page somebody was turned away from: a breadcrumb, not a credential, and
+# untrusted input.
 NEXT_COOKIE = "sc_portal_next"
 HANDOVER_NEXT_SECONDS = 900
 
-# A working session. Not the API's twelve days: a browser session is a
-# convenience and re-obtaining one costs a single command.
+# Not the API's twelve days: another session costs one command.
 SESSION_SECONDS = 43200
 
 
 class Sessions:
     '''Browser sessions, in memory and nowhere else.
 
-    🔴 Deliberately not a table. crucible's portal session is its identity
-    provider's and is in none of its tables either -- session state is not
-    what this schema is for. A handover token that lives under a minute has no
-    business surviving a restart, and a browser session that does not survive
-    one is a person running ``sc-remote -portal`` again.
+    🔴 Deliberately not a table: losing one on restart costs ``sc-remote -portal``.
     '''
 
     def __init__(self):
@@ -83,11 +67,9 @@ class Sessions:
         self._lock = threading.Lock()
 
     def offer(self, user_id: str, landing=None):
-        """Mint a single-use token for one browser: ``(token, when it stops
-        working)``, as an epoch time.
+        """Mint a single-use token for one browser; returns ``(token, epoch expiry)``.
 
-        `landing` is where to send it once the cookie is set -- built by the
-        caller from an id, because this class stores what it is given.
+        `landing` is built by the caller from an id: this class stores what it is given.
         """
         token = secrets.token_urlsafe(32)
         expires = time.time() + HANDOVER_SECONDS
@@ -97,10 +79,9 @@ class Sessions:
         return token, expires
 
     def redeem(self, token: str):
-        '''Spend a handover token. Returns ``(cookie, csrf, landing)`` or None.
+        '''Spend a handover token; returns ``(cookie, csrf, landing)`` or None.
 
-        🔴 Removed before it is checked, so a token cannot be redeemed twice
-        even by two requests arriving together.
+        🔴 Removed before it is checked, so two requests together cannot both redeem it.
         '''
         with self._lock:
             self._expire()
@@ -163,25 +144,17 @@ def _store():
 
 
 def _held():
-    '''This request's live session, as `Sessions.lookup` answers: looked up
-    once per request, by whichever of the sign-in check, the CSRF check and
-    the templates asks first.'''
+    '''This request's live session (`Sessions.lookup`), looked up once per request.'''
     if "sc_portal_session" not in flask.g:
         flask.g.sc_portal_session = _sessions().lookup(flask.request.cookies.get(COOKIE))
     return flask.g.sc_portal_session
 
 
 def caller():
-    '''The signed-in user, as the SAME Session object the API builds.
+    '''The signed-in user, as the same Session object the API builds.
 
-    🔴 The point of returning the API's own type: every service call below then
-    takes the identical argument an API handler would pass, so there is no
-    second notion of who is asking.
-
-    ⚠️ It carries the full scope set rather than a narrowed one, and that is
-    honest rather than lax -- the portal offers exactly what the API offers this
-    person. What it is NOT is a credential: nothing here can be presented to
-    ``/v1``.
+    🔴 So there is no second notion of who is asking. ⚠️ The full scope set is
+    what the API offers this person; it is not a credential for ``/v1``.
     '''
     held = _held()
     if held is None:
@@ -200,10 +173,8 @@ def screen(handler):
     def guarded(*args, **kwargs):
         session = caller()
         if session is None:
-            # 🔴 Remember where they were going. A portal link opened cold --
-            # a bookmark, or one pasted from elsewhere -- would otherwise land
-            # on the jobs list after signing in. It goes in a cookie because
-            # the CLI mints the handover and never sees this request.
+            # 🔴 Remember where they were going, in a cookie: the CLI that mints
+            # the handover never sees this request.
             page = flask.make_response(flask.render_template("signin.html"), 401)
             if flask.request.method == "GET":
                 page.set_cookie(
@@ -214,9 +185,7 @@ def screen(handler):
 
         if flask.request.method == "POST" and not secrets.compare_digest(
                 flask.request.form.get("csrf", ""), _held()[1]):
-            # A form posted from somewhere else. SameSite=Strict already
-            # refuses the cookie on a cross-site POST; this is the half that
-            # does not depend on the browser being recent.
+            # Beside SameSite=Strict, for a browser too old to honour it.
             return flask.render_template(
                 "problem.html", title="That form did not come from here",
                 detail="Reload the page and try again."), 403
@@ -233,11 +202,7 @@ def screen(handler):
 
 @blueprint.app_template_filter("runtime")
 def _runtime(node) -> str:
-    '''How long a node took, or how long it has been going.
-
-    Computed here rather than in the template because a template that can do
-    arithmetic on timestamps is a template that will.
-    '''
+    '''How long a node took, or how long it has been going.'''
     started, finished = node.get("started_at"), node.get("finished_at")
     if not started:
         return "\u2014"
@@ -265,12 +230,7 @@ def _size(num_bytes) -> str:
 
 @blueprint.app_template_filter("digest")
 def _digest(digest) -> markupsafe.Markup:
-    """A digest, short enough for a table and whole on hover.
-
-    The prefix and twelve hex digits tell two objects apart at a glance; the
-    whole value is what a person compares against a file they hold, so it is
-    one hover away -- and on the page that looks inside the object, in full.
-    """
+    """A digest, short enough for a table and whole on hover."""
     if not digest:
         return markupsafe.Markup('<span class="muted">\u2014</span>')
     text = str(digest)
@@ -290,24 +250,16 @@ def _duration(seconds) -> str:
 def _when(timestamp) -> markupsafe.Markup:
     '''One instant, as the reader's own clock shows it.
 
-    🔴 The server cannot know the browser's timezone, and it must not guess:
-    the container's clock is UTC, the person reading is not, and a bare
-    `2026-09-24 01:34` with no zone is the worst of the three answers because
-    it looks right.
-
-    So the instant goes out as UTC in a `<time datetime>` -- which is what it
-    is -- and ten lines of inline script at the bottom of every page rewrite
-    the text to local. ⚠️ **That spends half of "server-rendered Python, no
-    JavaScript build": there is still no build, no dependency and no
-    toolchain, and the page is correct and readable with scripting off**,
-    which is the half that is load-bearing.
+    🔴 The server cannot know the browser's timezone, and a zoneless time looks
+    right while being wrong. So it goes out as UTC in a `<time datetime>`, and
+    a small inline script rewrites it to local. ⚠️ The page stays correct
+    with scripting off, and there is still no JavaScript build.
     '''
     if not timestamp:
         return markupsafe.Markup('<span class="muted">\u2014</span>')
 
     text = str(timestamp)
-    # "2026-09-24T01:34:12.218Z" -> "2026-09-24 01:34:12 UTC", which is what a
-    # reader sees if the script never runs.
+    # What a reader sees if the script never runs.
     readable = text[:19].replace("T", " ") + " UTC"
     return markupsafe.Markup(
         f'<time datetime="{markupsafe.escape(text)}" '
@@ -342,18 +294,9 @@ def enter():
 
     cookie, _csrf, landing = redeemed
 
-    # 🔴 The handover's own destination first. The CLI knew which job it had
-    # just submitted; the cookie only knows where this browser was turned away
-    # from, which is nothing at all when the browser is being opened for the
-    # first time.
-    #
-    # 🔴 The breadcrumb is followed only as a local portal path. Anything can
-    # set a cookie on this origin, and a redirect that follows one is an open
-    # redirect -- the classic phishing primitive, made worse here because the
-    # person has just been told this link is the trustworthy way in. A path
-    # beginning `/portal/` is never `//`, which a browser reads as a
-    # scheme-relative host. This is the one redirect target a request carries;
-    # the handover's landing is built from an id (`POST /v1/auth/browser`).
+    # 🔴 The handover's own destination first, then the breadcrumb.
+    # 🔴 The breadcrumb only as a local `/portal/` path, never `//`: anything
+    # can set a cookie here, and following one blindly is an open redirect.
     wanted = flask.request.cookies.get(NEXT_COOKIE)
     if not (isinstance(wanted, str) and wanted.startswith("/portal/")):
         wanted = None
@@ -362,9 +305,7 @@ def enter():
     response.set_cookie(
         COOKIE, cookie, max_age=SESSION_SECONDS, httponly=True,
         samesite="Strict",
-        # Only over https where the request arrived over https: this profile is
-        # permitted plaintext, and a Secure cookie on a plaintext deployment is
-        # a session that silently never arrives.
+        # On a permitted plaintext deployment a Secure cookie would never arrive.
         secure=flask.request.is_secure)
     return response
 
@@ -388,10 +329,8 @@ def jobs(session):
     args.setdefault("limit", "50")
     items, _cursor = _jobs().listing(session, args)
 
-    # 🔴 `archived` is the one filter here whose default is not *everything*:
-    # absent means the unarchived list, `true` means only the archived ones,
-    # and there is deliberately no value meaning both -- a mixed list is the
-    # state archiving exists to end. So the screen needs a way back (jobs.html).
+    # 🔴 `archived` deliberately has no value meaning both: a mixed list is what
+    # archiving exists to end.
     return flask.render_template(
         "jobs.html", jobs=items,
         state=flask.request.args.get("state", ""),
@@ -408,59 +347,39 @@ def job(session, job_id):
         "SELECT * FROM job_state_transitions WHERE job_id = ? "
         "ORDER BY occurred_at", (job_id,))
 
-    # 🔴 A list, every page followed. `JobService.artifacts` returns
-    # (items, cursor), and handing that tuple straight to a template renders a
-    # page with nothing on it and no error.
+    # 🔴 Every page followed: the raw (items, cursor) tuple renders silently empty.
     items = _all_artifacts(session, job_id)
 
     per_node = {}
     for item in items:
         per_node.setdefault((item["step"], item["index"]), []).append(item)
 
-    # 🔴 The same order as the picture beside it, which is the order the run
-    # reaches them -- not the alphabetical one the API lists.
+    # 🔴 The run's order, as the picture beside it, not the API's alphabetical one.
     detail["nodes"] = running_order(detail, edges)
 
     return flask.render_template(
         "job.html", job=detail, edges=edges, history=history,
         placements=_jobs().node_placements(session, job_id), per_node=per_node,
         job_level=per_node.get((None, None), []),
-        # The run's own log, so the job page can offer it as a button rather
-        # than as a row three tables down. It is the first thing anybody wants
-        # on a job that failed outside a node.
         job_log=next((item for item in per_node.get((None, None), [])
                       if item["kind"] == "logs" and item["fetchable"]), None),
-        # Beside it, and never inside it: the server's record of the job from
-        # create to dispatch (surface D295).
+        # Beside the run's log, never inside it (surface D295).
         staging_log=next((item for item in per_node.get((None, None), [])
                           if item["kind"] == "staging" and item["fetchable"]), None),
-        # The operators' record, where the runner's own log is when the flow
-        # wrote none.
         diagnostics=next((item for item in per_node.get((None, None), [])
                           if item["kind"] == "diagnostics" and item["fetchable"]), None),
         graph=_graph(detail, edges))
 
 
-# One box, and the numbers are the whole layout engine.
-#
-# ⚠️ Laid out DOWNWARDS, not across. A flow is deep and narrow -- asicflow is
-# twenty-three nodes in about as many stages -- so left-to-right makes a
-# picture wider than any page and one box tall, which is a scrollbar rather
-# than a diagram. Downwards it is narrow enough to sit beside the tables.
+# ⚠️ Laid out downwards: a flow is deep and narrow, so across would be a scrollbar.
 _BOX_W, _BOX_H, _GAP_X, _GAP_Y, _PAD = 132, 28, 14, 22, 12
 
 
 def _depths(nodes, edges):
-    """How far into the run each node is: its level in the flowgraph's own
-    execution order (`Flowgraph.get_execution_order`), the longest path to it.
+    """Each node's level in `Flowgraph.get_execution_order`.
 
-    🔴 For a flowgraph that IS the order the work happens in, which is why the
-    same number lays out the picture and sorts the table beside it. Two views
-    of one run disagreeing about what comes first is worse than either ordering
-    on its own.
-
-    Built from the job's rows as a flowgraph of no-op nodes: the portal never
-    reads the manifest, and a job's task classes are not this server's to load.
+    🔴 One number lays out the picture and sorts the table, so the two agree.
+    Built from the job's rows as no-op nodes: the portal never reads the manifest.
     """
     from siliconcompiler import Flowgraph
     from siliconcompiler.tools.builtin.nop import NOPTask
@@ -475,8 +394,7 @@ def _depths(nodes, edges):
             target = (edge["to_step"], edge["to_index"])
             if source in known and target in known:
                 flow.edge(source[0], target[0], tail_index=source[1], head_index=target[1])
-        # A cycle cannot happen in a flowgraph, and a layout routine is not the
-        # place to find out that one did -- nor to loop on it.
+        # A cycle cannot happen, and a layout routine must not loop on one.
         if flow.validate(logger=logging.getLogger("sc-server")):
             return {node: level for level, row in enumerate(flow.get_execution_order())
                     for node in row}
@@ -486,15 +404,9 @@ def _depths(nodes, edges):
 
 
 def running_order(job, edges):
-    """The job's nodes, in the order the run reaches them.
+    """The job's nodes in the order the run reaches them, ties broken by name.
 
-    ⚠️ The API lists nodes by name, which puts `elaborate` in the MIDDLE of a
-    23-node asicflow, between `cts` and `floorplan`. That is a fine ordering
-    for a listing a client will sort itself and the wrong one for a table
-    somebody reads top to bottom while the run is going.
-
-    Ties break on the name, so two runs of the same flow render identically and
-    a reload never reshuffles the rows.
+    ⚠️ The API's by-name order puts `elaborate` between `cts` and `floorplan`.
     """
     nodes = [(node["step"], node["index"]) for node in job.get("nodes") or []]
     depth = _depths(nodes, edges)
@@ -505,15 +417,9 @@ def running_order(job, edges):
 
 
 def _graph(job, edges):
-    '''The flowgraph, as inline SVG.
+    '''The flowgraph as inline SVG, drawn here: 🔴 the portal has no JavaScript build.
 
-    🔴 Drawn on the server, in about forty lines, rather than by a JavaScript
-    graph library: the portal has no build (`base.html` says why).
-
-    A layered layout: a node's ROW is the longest path to it, which for a
-    flowgraph is exactly the order the work happens in, read top to bottom.
-    Columns inside a row are the order the nodes were listed, so two runs of
-    the same flow draw the same picture.
+    A node's row is its depth (:func:`_depths`); within a row, listing order.
     '''
     nodes = [(node["step"], node["index"]) for node in job.get("nodes") or []]
     if not nodes:
@@ -531,8 +437,6 @@ def _graph(job, edges):
 
     place = {}
     for depth_of, members in columns.items():
-        # Centred, so a fan-out reads as one and a single-node stage sits under
-        # the stage above it rather than hard against the left edge.
         offset = (widest - len(members)) * (_BOX_W + _GAP_X) / 2
         for across, node in enumerate(members):
             place[node] = (_PAD + offset + across * (_BOX_W + _GAP_X),
@@ -559,8 +463,7 @@ def _graph(job, edges):
 
     for node, (x, y) in place.items():
         step, index = node
-        # A name that fits the box. The full one is in the box's <title>, which
-        # is what a browser shows on hover -- so nothing is lost, only folded.
+        # The full name is in the <title>, shown on hover.
         clipped = step if len(step) <= 16 else step[:15] + "\u2026"
         out.append(
             f'<g class="node {states.get(node, "pending")}">'
@@ -578,13 +481,9 @@ def _plain(value: str) -> str:
 
 
 def _all_artifacts(session, job_id, args=None):
-    '''Every artifact, following the cursor.
+    '''Every artifact, following the cursor, boundedly.
 
-    ⚠️ The endpoint pages at 50 and caps at 200, which is right for an API and
-    wrong for a screen: a forty-node flow produces more than either, and a page
-    that silently shows the first fifty is a page that says *this run produced
-    fifty things*. Bounded anyway, because a loop over somebody else's cursor
-    should not be the thing that hangs a request.
+    ⚠️ A screen showing only the first page would misstate what the run produced.
     '''
     query = dict(args or {})
     query["limit"] = "200"
@@ -604,10 +503,7 @@ def _all_artifacts(session, job_id, args=None):
 @blueprint.route("/portal/jobs/<job_id>/cancel", methods=["POST"])
 @screen
 def cancel(session, job_id):
-    # Never None. `reason` is optional on the wire -- requiring it would make
-    # a Ctrl-C inexpressible -- but a cancel with nothing recorded leaves a job
-    # page that says only "cancelled", and the owner's own question is which of
-    # their windows did it.
+    # Never empty: the owner's question is which of their windows cancelled it.
     reason = (flask.request.form.get("reason") or "").strip()
     _jobs().cancel(session, job_id, reason or "cancelled from the portal")
     return flask.redirect(flask.url_for("portal.job", job_id=job_id))
@@ -616,11 +512,7 @@ def cancel(session, job_id):
 @blueprint.route("/portal/jobs/<job_id>/archive", methods=["POST"])
 @screen
 def archive(session, job_id):
-    """Put a job away, or take it back out.
-
-    ⚠️ The portal is the writer because the contract gives archiving no
-    endpoint: it is a view preference, not an operation on the run.
-    """
+    """Put a job away, or take it back out: ⚠️ a view preference with no API endpoint."""
     _jobs().archive(session, job_id,
                     archived=flask.request.form.get("archived") == "1")
     return flask.redirect(flask.url_for("portal.job", job_id=job_id))
@@ -629,12 +521,9 @@ def archive(session, job_id):
 @blueprint.route("/portal/jobs/<job_id>/discard", methods=["POST"])
 @screen
 def discard(session, job_id):
-    """Throw away what a run produced, and keep the run.
+    """Throw away what a run produced, and keep the run and its artifact rows.
 
-    🔴 Distinct from `delete` below. This reclaims the bytes; the job stays in
-    the list with its states, its timings and its artifact rows, so *where did
-    my results go* is still answerable. Deleting the JOB takes it out of the
-    collection.
+    🔴 Distinct from `delete`, which takes the job out of the collection.
     """
     job = _jobs().get(session, job_id)
     expected = f"{job['design']}/{job['jobname']}"
@@ -644,8 +533,7 @@ def discard(session, job_id):
             "invalid-request",
             detail=f"type {expected} to confirm discarding what this run produced")
 
-    # Where nobody states a reason one is supplied, as a cancel does, so the
-    # attribution is in the text and never a published user id.
+    # A supplied reason carries the attribution, never a published user id.
     reason = " ".join((flask.request.form.get("reason") or "").split())
     _jobs().discard_artifacts(
         session, job_id,
@@ -658,16 +546,8 @@ def discard(session, job_id):
 def discard_node(session, job_id):
     """Throw away one node's output.
 
-    🔴 **The node and not one artifact, which is what the grouped listing on
-    this page is for.** A node's logs, its reports and its archive are three
-    rows over one set of bytes -- the archive holds the other two -- so
-    deleting a row on its own frees nothing and leaves a `deleted_at` the disk
-    disagrees with.
-
-    ⚠️ No typed confirmation, unlike the two whole-job buttons. This takes one
-    node out of a run somebody is looking at, it is named beside the node it
-    affects, and asking people to type something for every row is how a
-    confirmation stops being read.
+    🔴 The node, not one artifact: its rows share bytes, so one row alone frees
+    nothing. ⚠️ No typed confirmation per row, or confirmations stop being read.
     """
     step = (flask.request.form.get("step") or "").strip()
     index = (flask.request.form.get("index") or "").strip()
@@ -682,16 +562,10 @@ def discard_node(session, job_id):
 @blueprint.route("/portal/jobs/<job_id>/delete", methods=["POST"])
 @screen
 def delete(session, job_id):
-    '''Remove the job itself, which takes it out of every listing.
+    '''Remove the job itself, reachable only by id afterwards.
 
-    ⚠️ The confirmation is a speed bump and not a security control -- CSRF is
-    what stops somebody else pressing this. It is here because one wrong click
-    would take the job out of every listing.
-
-    🔴 This is the heavier of the two. `jobs.deleted_at` removes the job from
-    the collection, so it is reachable only by id afterwards -- which is more
-    than most people mean by "delete the results". That is what `discard`
-    above is for.
+    ⚠️ The confirmation is a speed bump, not a security control (CSRF is).
+    🔴 The heavier of the two; `discard` is what most people mean.
     '''
     job = _jobs().get(session, job_id)
     expected = f"{job['design']}/{job['jobname']}"
@@ -726,13 +600,7 @@ def artifacts(session, job_id):
 
 
 def _uploads(items, job):
-    """Every archive the job took, in the order they arrived.
-
-    Job-level `input` rows: the first upload, and one per follow-up a job sent
-    back for its sources carried. Shown apart from the run's own objects,
-    because they are what went IN. The last is marked `unopened` where the job
-    was refused before it passed its safety checks, and gets no look-inside.
-    """
+    """Every upload the job took, in order; the last marked `unopened` per `UNOPENED`."""
     uploads = sorted((dict(item) for item in items
                       if item.get("kind") == "input" and item.get("step") is None),
                      key=lambda item: (item.get("created_at") or "", item.get("id") or ""))
@@ -743,16 +611,10 @@ def _uploads(items, job):
 
 
 def _by_node(items):
-    """The listing grouped by the node each object came from.
+    """The listing grouped by node, job-level objects first.
 
-    🔴 **Because the node is the unit of deletion** (`discard_node`), and a
-    flat table of kinds makes it look as though a row could go on its own. The
-    button that removes a node's rows has to sit against all of them.
-
-    Job-level objects come first, under no node -- the manifest and the run's
-    own log belong to the run and are not any node's to discard. Nodes follow
-    in the order the listing gave, which is creation order, so a node that
-    finished first is first.
+    🔴 The node is the unit of deletion (`discard_node`), so its button sits
+    against all its rows.
     """
     groups, seen = [], {}
 
@@ -769,21 +631,11 @@ def _by_node(items):
 @blueprint.route("/portal/jobs/<job_id>/artifacts/<artifact_id>", methods=["GET"])
 @screen
 def fetch(session, job_id, artifact_id):
-    '''Hand the browser a signed URL for the bytes.
+    '''Hand the browser a signed URL for the bytes, after the API's own refusals.
 
-    🔴 The same row and the same refusals the API answers with, and then the
-    same signature: a browser can follow a signed storage URL because the
-    signature is the credential. Nothing here invents a way for a cookie to
-    authorise a download.
-
-    ⚠️ **One refusal is not the same, and it is the only one:
-    `max_download_bytes` does not apply here.** That ceiling exists so an
-    automated sweep does not pull gigabytes nobody asked for, and it has no API
-    override for the same reason -- a limit a caller can switch off is not one.
-    This is the surface it is allowed to be lifted on, because the request is a
-    person clicking one object. It is stated as `surface="portal"` rather than
-    left implicit, so the exception is visible at both ends -- and it lifts
-    `api_fetchable_kinds` for the same reason.
+    🔴 The signature is the credential; a cookie never authorises a download.
+    ⚠️ The one difference, explicit as `surface="portal"`: `max_download_bytes`
+    and `api_fetchable_kinds` are lifted for a person clicking one object.
     '''
     row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
     storage = flask.current_app.config["SC_STORAGE"]
@@ -800,15 +652,9 @@ def fetch(session, job_id, artifact_id):
 # Looking inside an archive
 ######################################################################
 
-# What may be handed to a browser with a media type that lets it render.
-#
-# 🔴 A short allow-list rather than a guess from the extension, and the
-# omissions are the point. An artifact is bytes a JOB produced, so a design
-# that writes an HTML file would otherwise get it served from the portal's own
-# origin -- stored cross-site scripting, with the run as the delivery
-# mechanism. SVG is left out for the same reason: it is a document that can
-# carry script, not a picture. Everything not on this list is served as plain
-# text or downloaded, and nothing is ever served as text/html.
+# 🔴 What a browser may render: a short allow-list, the omissions the point. A
+# job's HTML or SVG served from this origin would be stored XSS; everything else
+# is plain text or a download, never text/html.
 _RENDERABLE = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
@@ -817,23 +663,16 @@ _RENDERABLE = {
     ".webp": "image/webp",
 }
 
-# Read into memory to show, and no further. A report is kilobytes; a DEF in the
-# same archive is not, and a page is not where you read one.
+# Read into memory to show, and no further.
 MAX_INLINE_BYTES = 2 * 1024 * 1024
 
-# 🔴 How large an archive this will open at all, and the reason is that a
-# gzipped tar HAS NO INDEX. Listing what one holds means decompressing the
-# whole stream, so a six-gigabyte node archive is a minute of a request thread
-# before the first row is drawn -- and then again for the file somebody clicks.
-# The object people actually want to read is the `reports` archive, which is
-# kilobytes; above this the answer is to download the whole node, which costs
-# the same bytes and does not hold a worker.
+# 🔴 The largest archive opened at all: a gzipped tar has no index, so listing
+# one decompresses it whole on a request thread. Above this, download it.
 MAX_BROWSE_BYTES = 1024 * 1024 * 1024
 
 
 def _stored_at(row):
-    """Where the bytes of one artifact are, or a refusal. The portal is where
-    an administrator reads what the API never hands over (ladder row 3)."""
+    """Where one artifact's bytes are, admin view (ladder row 3), or a refusal."""
     if not fetchable(row, admin=True):
         raise ProblemError("not-found", detail="those bytes are not available")
 
@@ -844,15 +683,9 @@ def _stored_at(row):
 def _member(archive, wanted: str):
     """One entry, matched against the archive's own list.
 
-    🔴 Matched rather than joined. The name comes from a query string, and a
-    tar can hold `../` in a member name whatever this server does -- so nothing
-    here builds a path out of what the caller sent. It is compared, and a name
-    the archive does not contain simply is not found.
-
-    🔴 **A regular member only, and never a link followed** (surface D159).
-    `extractfile` resolves a symbolic or hard link to the member it names, so
-    serving one would make a link a second name for any file in the archive;
-    `isfile()` is false for both, and that is the whole check.
+    🔴 Matched, never joined into a path: the name comes from a query string.
+    🔴 A regular member only (surface D159): `extractfile` follows links, and
+    `isfile()` is false for both kinds.
     """
     with tarfile.open(archive, "r:*") as tar:
         for entry in tar.getmembers():
@@ -868,21 +701,14 @@ def _member(archive, wanted: str):
 def inside(session, job_id, artifact_id):
     """What one archive holds, and one file out of it.
 
-    ⚠️ Served from the archive rather than from the build directory, and that
-    is deliberate: the working tree is deleted when a job is, and the artifact
-    is the thing with a retention date on it. Reading what is retained is the
-    same answer the API would give.
+    ⚠️ From the archive, deliberately not the build directory: the artifact is
+    what is retained.
     """
     detail = _jobs().get(session, job_id)
-    # `surface="portal"` for the same reason the download does, and with one more:
-    # nothing leaves this server whole. What is served is one member, bounded
-    # by MAX_INLINE_BYTES, out of an archive bounded by MAX_BROWSE_BYTES.
+    # As the download, and only one bounded member leaves the server.
     row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
 
-    # 🔴 Never opened: an upload refused before its archive passed the safety
-    # checks. Listing it decompresses all of it -- the bomb it was refused for,
-    # on every click. The bytes are kept and can be downloaded; the refusal is
-    # what is shown.
+    # 🔴 Never opened (`UNOPENED`): the refusal is shown instead.
     job = _jobs().owned(session, job_id)
     if unopened(_store(), row, job["error_type"]):
         return flask.render_template("inside.html", job=detail, item=row,
@@ -890,9 +716,7 @@ def inside(session, job_id, artifact_id):
 
     archive = _stored_at(row)
 
-    # A log or a manifest is one file and has nothing to look inside. Showing
-    # it is still what somebody clicked, so this is the viewer for both rather
-    # than a refusal and a second screen.
+    # A single-file artifact is shown here too.
     one_file = row["kind"] in ("manifest", "staging") or (
         row["kind"] == "logs" and row["step"] is None)
     if one_file:
@@ -924,12 +748,10 @@ def inside(session, job_id, artifact_id):
 
 
 def _show_one(detail, row, path):
-    """An artifact that is a single file: the run's log, the staging record,
-    or a manifest."""
+    """An artifact that is a single file: the run's log, the staging record, or a manifest."""
     import gzip
 
     try:
-        # Gzipped, like every artifact.
         with gzip.open(path, "rb") as handle:
             data = handle.read(MAX_INLINE_BYTES + 1)
     except OSError as e:
@@ -956,8 +778,7 @@ def _show(detail, row, archive, wanted: str):
         media = _RENDERABLE.get(suffix)
         response = flask.make_response(data[:MAX_INLINE_BYTES])
         response.headers["Content-Type"] = media or "text/plain; charset=utf-8"
-        # Belt and braces around the allow-list above: no sniffing, and a
-        # policy that would stop anything that did slip through from running.
+        # Belt and braces around the allow-list: no sniffing, and no script runs.
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Content-Security-Policy"] = \
             "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'"
@@ -981,12 +802,7 @@ def _show(detail, row, archive, wanted: str):
 @blueprint.route("/portal/jobs/<job_id>/metrics/<step>/<index>", methods=["GET"])
 @screen
 def metrics(session, job_id, step, index):
-    '''One node's metrics and records.
-
-    🔴 **From the table the job's end filled**, never from the `manifest`
-    artifact and never through SiliconCompiler (contract §1): the panel needs
-    no artifact fetch and no manifest parse on each view.
-    '''
+    '''One node's metrics and records, 🔴 from the table, never a manifest parse (contract §1).'''
     detail = _jobs().get(session, job_id)
     found = _jobs().node_metrics(session, job_id, step, index)
     if found is None:
@@ -1005,8 +821,7 @@ def log(session, job_id, step, index):
 
     detail = _jobs().get(session, job_id)
 
-    # Every log this node left, so somebody looking for the TOOL's complaint is
-    # not sent to SiliconCompiler's own record of the node.
+    # Every log this node left, the tool's as well as SiliconCompiler's.
     available = _jobs().node_logs(session, job_id, step, index)
     wanted = flask.request.args.get("file")
     chosen = next((name for name, _ in available if name == wanted),
@@ -1021,8 +836,7 @@ def log(session, job_id, step, index):
         try:
             text = _jobs().read_node_file(session, job_id, picked)
         except OSError:
-            # Named, never explained: the reason is about this server's
-            # tree, and a link planted in it is exactly what is refused.
+            # Never explained: the reason is about this server's tree.
             text = "(that log could not be read)"
     elif finished:
         # The working directory is gone; the archive is what is left.
@@ -1037,8 +851,7 @@ def log(session, job_id, step, index):
             text = f"(the archived log could not be read: {e})"
 
     if not finished and not text:
-        # Running. The browser follows the same signed stream URL the CLI does,
-        # bounded by the portal session as an API stream is by its token.
+        # The CLI's signed stream URL, bounded by the portal session.
         storage = flask.current_app.config["SC_STORAGE"]
         expires = int(session.expires_at or time.time())
         nonce = secrets.token_urlsafe(8)
@@ -1081,8 +894,6 @@ def account(session):
         user=accounts.user(_store(), session.user_id),
         limits=accounts.account_limits(
             config, accounts.effective_limits(_store(), config, session.user_id)),
-        # Beside this account's own, so the screen can say whether somebody
-        # set one.
         default_limits=config.limits,
         overridable=accounts.OVERRIDABLE,
         usage=accounts.usage(_store(), session.user_id),
@@ -1098,17 +909,10 @@ def account(session):
 @blueprint.route("/portal/server", methods=["GET"])
 @screen
 def deployment(session):
-    """`GET /v1` and `GET /v1/healthz`, as a page.
+    """`GET /v1` and `GET /v1/healthz`, as a page, with the raw JSON folded away.
 
-    🔴 Built by CALLING the endpoints' own code, not by reading config and
-    hoping it matches. `capabilities` and `healthz` are the two answers a
-    client branches on, and a screen that renders a second opinion of them is
-    a screen that can disagree with the API about what this server promises --
-    which is worse than no screen, because somebody would trust it.
-
-    ⚠️ The raw JSON is on the page too, folded away. This deployment is a
-    reference implementation, so *what does `GET /v1` actually return* is a
-    question its own portal should be able to answer without curl.
+    🔴 Built by calling the endpoints' own code, so it can never disagree with
+    the API about what this server promises.
     """
     from siliconcompiler.remote.server.routes import meta
 
@@ -1117,8 +921,6 @@ def deployment(session):
 
     published = config.capabilities(meta.advertised_software(store, config))
 
-    # The same read the liveness probe makes, and the same three answers. It is
-    # cheap on purpose -- a probe is scraped every few seconds.
     health = {"status": meta.health_status(store)}
 
     return flask.render_template(
@@ -1187,9 +989,7 @@ def add_software(session):
 @blueprint.route("/portal/images/register", methods=["POST"])
 @screen
 def register_image(session):
-    '''🔴 The most dangerous write this server has (`images.register_image`),
-    so it takes a person and records them.
-    '''
+    '''🔴 The most dangerous write (`images.register_image`): it records the person.'''
     ref = (flask.request.form.get("ref") or "").strip()
     digest = (flask.request.form.get("digest") or "").strip()
     contains = [line.strip() for line

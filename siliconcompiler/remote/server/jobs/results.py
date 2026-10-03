@@ -1,8 +1,6 @@
 '''
 What a run left, as a caller reaches it: artifacts, their bytes, and node and
 job logs, through the same ownership and approval checks.
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 from pathlib import Path
@@ -15,9 +13,7 @@ from siliconcompiler.remote.server.jobs.common import (
 from siliconcompiler.remote.server.outputs import artifacts, confine
 from siliconcompiler.remote.server.state.store import TERMINAL_NODE_STATES, TERMINAL_STATES
 
-# The kinds that are not a `node` archive's members: other archives, the
-# `input` the archive leaves out, and the server's own records, which are never
-# in a node's tree.
+# The kinds that are never a `node` archive's members.
 _NOT_MEMBERS = ("node", "issue", "input", "staging", "diagnostics")
 _NOT_A_MEMBER = f"kind NOT IN ({', '.join('?' * len(_NOT_MEMBERS))})"
 
@@ -28,25 +24,17 @@ _NOT_STARTED = ("pending", "queued", "preparing")
 class ResultsMixin:
     '''What a run left, as a caller reaches it.'''
 
-    ######################################################################
-    # Artifacts
-    ######################################################################
-
     def _surface_allows(self, surface: str, kind: str) -> bool:
-        '''Whether ``surface`` hands over artifacts of ``kind``.
-
-        🔴 **`api_fetchable_kinds` binds the API and not the portal**, for the
-        reason `max_download_bytes` does (see `artifact`).
-        '''
+        '''Whether ``surface`` hands over artifacts of ``kind``;
+        `api_fetchable_kinds` binds the API only (see `artifact`).'''
         if surface not in SURFACES:
             raise ValueError(f"{surface} is not a surface")
         return surface == "portal" or self._config.api_fetchable(kind)
 
     def _members_refusal(self, row, surface: str) -> Optional[str]:
-        '''Row 4: a `node` archive is fetchable only when every artifact at its
-        coordinates is -- other `node` rows and `issue` excepted -- because it
-        holds them all, and handing it over would hand over any one that is
-        not. Returns the WORST member's refusal (D120), or None.'''
+        '''Ladder row 4: a `node` archive holds every artifact at its
+        coordinates, so it is fetchable only when they all are. Returns the
+        WORST member's refusal (D120), or None.'''
         if row["kind"] != "node":
             return None
         members = self._store.all(
@@ -56,11 +44,8 @@ class ResultsMixin:
                                      admin=surface == "portal")
                     for member in members]
         if "not-found" in refusals and not row["deleted_at"]:
-            # 🔴 A member deleted on its own, under a live node archive
-            # (entitlements D41). Handing the archive over would undo the
-            # deletion, so it is `artifact-not-approved` -- and the state should
-            # not exist, since a node is reaped with its first member, so an
-            # operator is told: reaching it is a bug.
+            # 🔴 A member deleted on its own (entitlements D41): handing the
+            # archive over would undo the deletion. The state is a bug.
             if row["id"] not in _ALERTED:
                 _ALERTED.add(row["id"])
                 logger.error(f"node archive {row['id']} of job {row['job_id']} "
@@ -92,16 +77,14 @@ class ResultsMixin:
             else "this artifact is held back from download")
 
     def artifacts(self, session, job_id: str, args, surface: str = "api"):
-        '''Endpoint 21: what this run produced, as far as this caller is
-        concerned.'''
+        '''Endpoint 21: what this run produced, for this caller.'''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
             # The job stays readable and its subresources do not.
             raise ProblemError("not-found", detail="this job's data was deleted")
 
-        # 🔴 Listed once described (surface D308): never an artifact still
-        # being described, nor a `node` archive with such a member, so a client
-        # fetching at `terminal` misses nothing it could have had.
+        # 🔴 Listed once described, a `node` archive once its members are
+        # (surface D308).
         where = ["job_id = ?", "provenance <> 'pending'",
                  "NOT (kind = 'node' AND EXISTS (SELECT 1 FROM artifacts AS member "
                  "  WHERE member.job_id = artifacts.job_id AND member.step = artifacts.step "
@@ -149,17 +132,9 @@ class ResultsMixin:
                  surface: str = "api"):
         '''Endpoint 22's row, with the refusals it can make.
 
-        ``surface`` is what the two surfaces disagree about, and it is a
-        parameter rather than two code paths so that the disagreement is
-        written down in one place: ``"api"`` or ``"portal"``. 🔴
-        **`max_download_bytes` and `api_fetchable_kinds` bind the API and not
-        the portal.** There is no API override for it -- no query
-        parameter, no header -- because a limit a caller can switch off is not
-        a limit. The portal is the way past it, and it is allowed to be because
-        it is a different surface with a person on it who has just clicked the
-        object: a browser download is somebody deciding, one object at a time,
-        and the ceiling exists to stop an automated sweep pulling gigabytes
-        nobody asked for.
+        🔴 `max_download_bytes` and `api_fetchable_kinds` bind the API, not the
+        portal, and nothing on the API overrides them: the portal is a person
+        clicking one object, and the ceiling stops an automated sweep.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
@@ -181,16 +156,8 @@ class ResultsMixin:
     def _check_download_ceiling(self, session, row) -> None:
         '''Refuse one object that is larger than this caller may pull.
 
-        🔴 The CALLER's number and not the deployment's: `max_download_bytes`
-        is the one limit a `user_limits` row may override, so reading
-        `config.limits` here would enforce a ceiling the account was
-        deliberately lifted above. `None` is unlimited, which is the wire's
-        meaning for it everywhere.
-
-        🔴 `403 download-too-large` (D117), not `429 limit-exceeded`: that one
-        means *refills*, and a client obeying its `Retry-After` on a ceiling
-        that never refills would retry for ever. The download side of
-        `upload-too-large`.
+        🔴 The CALLER's number, which `user_limits` may override, not
+        `config.limits`.
         '''
         from siliconcompiler.remote.server.identity import accounts
 
@@ -213,13 +180,11 @@ class ResultsMixin:
 
     def node_log(self, session, job_id: str, step: str, index: str,
                  surface: str = "api"):
-        '''Endpoint 20 for one node: whether its live stream may be opened.
+        '''Endpoint 20 for one node: whether its live stream may be opened;
+        returns the node.
 
-        🔴 **`/logs` is live output only** (surface §20). A running node
-        streams; a finished one streams too, and its stream ends at once
-        naming its `logs` artifact, which is fetched through endpoint 22. A
-        node not started is `409 not-ready`, and a finished node that kept no
-        log is `404`. Returns the node.
+        🔴 `/logs` is live output only (surface §20): a finished node's stream
+        ends at once, naming its `logs` artifact.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
@@ -250,28 +215,20 @@ class ResultsMixin:
                 "ORDER BY created_at LIMIT 1", (job["id"], step, index))
             if row is None:
                 raise ProblemError("not-found", detail=f"no log was kept for {step}/{index}")
-            # The stream names this artifact: a caller who could not fetch it
-            # is not handed it by asking for the log.
+            # The stream names it, so a caller who could not fetch it is refused.
             self._refuse_by_ladder(row, surface)
 
         return node
 
     def job_log(self, session, job_id: str):
-        '''Endpoint 20 with no coordinates: the whole job's live stream.
+        '''Endpoint 20 with no coordinates: the whole job's live stream;
+        returns the job, or refuses.
 
-        Returns the job when the answer is a stream -- which it is for a job
-        that is running AND for one that is over, whose stream sends `end` at
-        once. Everything else is a refusal.
+        🔴 A missing capability is named at its broadest, or a client would fall
+        back to per-node streams that fail too.
 
-        🔴 **A missing capability is named at its broadest**: `logs.stream`,
-        then `logs.stream.job`. A client told only that the job stream is
-        missing, on a deployment that serves no live log at all, would fall
-        back to per-node requests that fail too.
-
-        ⚠️ The terminal answer is deliberately not a refusal. A job can end
-        between the `303` and the connect, and the stream already answers that
-        with `end`; a request that arrives after the end is the same case
-        arriving late, and gets the same path.
+        ⚠️ A finished job is deliberately not refused: its stream sends `end` at
+        once, as for a job that ends between the `303` and the connect.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
@@ -307,8 +264,7 @@ class ResultsMixin:
             'ORDER BY step, "index"', (job_id,))]
 
     def node_states(self, job_id: str) -> Dict[Tuple[str, str], str]:
-        '''What every node is doing NOW, read fresh for a stream that asks
-        over and over.'''
+        '''What every node is doing NOW.'''
         return {(row["step"], row["index"]): row["state"] for row in self._store.all(
             'SELECT step, "index", state FROM job_nodes WHERE job_id = ?', (job_id,))}
 
@@ -316,19 +272,9 @@ class ResultsMixin:
         return self._row(job_id)["state"] in TERMINAL_STATES
 
     def node_logs(self, session, job_id: str, step: str, index: str):
-        '''Every log one node left, as (name, path).
-
-        🔴 A node writes more than one and they answer different questions.
-        `sc_<step>_<index>.log` is SiliconCompiler's own record of the node --
-        setup, inputs, timing -- and `<step>.log` is what the TOOL printed,
-        which is where a synthesis error actually is. Offering only the first
-        sends somebody looking for OpenROAD's complaint to a file that does not
-        contain it.
-
-        Read from the node's working directory rather than from the indexed
-        artifact, because only one of them is indexed. Ownership was decided
-        above, by the same predicate the API evaluates.
-        '''
+        '''Every log one node left, as (name, path), from its working
+        directory: SiliconCompiler's own record, and what the TOOL printed,
+        where a synthesis error actually is. Only the first is indexed.'''
         job = self.owned(session, job_id)
 
         workdir = (self.job_root(job["user_id"], job["id"]) / job["design"] /
@@ -336,27 +282,21 @@ class ResultsMixin:
         if not workdir.is_dir():
             return []
 
-        # SiliconCompiler's own first: it is the one that says what the node
-        # was asked to do, which is where to start when a node failed.
+        # SiliconCompiler's own first: where to start when a node failed.
         own = f"sc_{step}_{index}.log"
         found = sorted(workdir.glob("*.log"),
                        key=lambda path: (path.name != own, path.name))
         return [(path.name, path) for path in found]
 
     def stream_index_path(self, job_id: str) -> Path:
-        '''The job stream's event index (D121).
-
-        Outside the job's build directory, which an uploaded archive fills: an
-        index is the server's record of what it streamed, and a member could
-        otherwise be one.
-        '''
+        '''The job stream's event index (D121), outside the build directory an
+        uploaded archive fills, so no member can pose as one.'''
         return self._datadir / "streams" / f"{job_id}.idx"
 
     def read_node_file(self, session, job_id: str, path) -> str:
-        '''A file out of one of this caller's job trees, as text -- a regular
-        file under the job's root reached through no link. Raises OSError
-        otherwise: a node's code can leave a link in its own tree, and reading
-        through it would show the caller the host's files.'''
+        '''A regular file under one of this caller's job roots, as text,
+        reached through no link: a node can leave a link to the host's files.
+        Raises OSError otherwise.'''
         job = self.owned(session, job_id)
         with confine.open_inside(self.job_root(job["user_id"], job["id"]), path,
                                  "r", errors="replace") as handle:
@@ -368,11 +308,7 @@ class ResultsMixin:
                 job["jobname"] / step / index / f"sc_{step}_{index}.log")
 
     def node_state(self, job_id: str, step: str, index: str):
-        '''What this node is doing NOW.
-
-        Read fresh every time rather than captured, because a stream asks over
-        and over across the hours it may be open.
-        '''
+        '''What this node is doing NOW, read fresh each time.'''
         row = self._store.one(
             'SELECT state FROM job_nodes WHERE job_id = ? AND step = ? '
             'AND "index" = ?', (job_id, step, index))
@@ -381,11 +317,8 @@ class ResultsMixin:
     def node_log_artifact(self, job_id: str, step: str, index: str):
         '''The archived log's id, indexing it first if it is not there yet.
 
-        🔴 Called as a tail reaches the end of a node. The alternative is
-        waiting for the next poll to reconcile, which leaves a window where the
-        stream has said `terminal` and the archive it names does not exist --
-        so a client that follows the `end` event straight to `/logs` is told
-        there is no log for a node whose log it has just finished reading.
+        🔴 Called as a tail ends, so the `end` event never names an archive the
+        next poll has not yet made.
         '''
         self._index_node(self._row(job_id), step, index)
 

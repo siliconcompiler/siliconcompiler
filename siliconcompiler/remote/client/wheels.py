@@ -1,23 +1,11 @@
 '''
-The wheels a remote run uploads: one per distribution no index can supply
-(surface *Uploaded wheels*).
+The wheels a remote run uploads, one per distribution no index can supply
+(PEP 610 ``direct_url.json``; surface *Uploaded wheels*): a local-directory
+install is built with ``pip wheel --no-deps``, anything else repacked from its
+installed files (:func:`repack`).
 
-A distribution installed editable, from a local path or file, or from git has a
-``direct_url.json`` beside it (PEP 610), and no index would give the server the
-same thing. So the client builds it a wheel, and the server installs that with
-the rest -- copying files, running none of its code:
-
-- **an editable or local-directory install** is built from its source with
-  ``pip wheel --no-deps``, which applies the project's own packaging, its data
-  files included;
-- **any other install** -- from a file, an archive or git -- is repacked from
-  its installed files and ``dist-info`` (:func:`repack`), which is also how a
-  package the server asks for by name is answered.
-
-🔴 **Pure only, and refused here otherwise**: a wheel holding a compiled file,
-or tagged for a platform, was built for this machine and will not import on the
-node. Every wheel is held to the server's own check,
-`environment.check_wheel`, before anything is created.
+🔴 Pure only: a compiled or platform-tagged wheel will not import on the node,
+so each is held to the server's own `environment.check_wheel` before create.
 '''
 
 import base64
@@ -40,24 +28,17 @@ from siliconcompiler.remote.client.capture import CannotForward, direct_url
 __all__ = ["build", "repack"]
 
 
-# The zip timestamp every member of a repacked wheel carries, so the same
-# installed files make the same wheel -- and a server keyed on its digest
-# builds the job's packages once.
+# Fixed, so the same files make the same wheel and digest, which the server caches by.
 _EPOCH = (1980, 1, 1, 0, 0, 0)
 
-# What of an installed dist-info is not carried: pip writes these at install,
-# and a wheel carries its own RECORD and WHEEL.
+# Written by pip at install; a wheel carries its own RECORD and WHEEL.
 _INSTALL_RECORDS = {"RECORD", "INSTALLER", "REQUESTED", "direct_url.json", "WHEEL"}
 
 
 def build(dist: metadata.Distribution, directory: str,
           warn: Optional[Callable[[str], None]] = None) -> str:
-    '''A pure wheel of ``dist`` in ``directory``, as its path. Raises
-    CannotForward, naming the distribution and why.
-
-    ``warn`` is told of each file an editable install's module directory
-    holds and its wheel leaves out: the run here imports it from that
-    directory, and the node has only the wheel.'''
+    '''Build a pure wheel of ``dist`` in ``directory``; returns its path.
+    ``warn`` hears of files an editable install has that its wheel leaves out.'''
     name, version = _identity(dist)
     info = direct_url(dist) or {}
     source = _source_directory(info)
@@ -69,9 +50,6 @@ def build(dist: metadata.Distribution, directory: str,
         environment.check_wheel(path)
     except environment.WheelError as e:
         os.unlink(path)
-        # A compiled file is fixed where the platform is known: a wheel built
-        # for the server's, on its index. Anything else is the package's own
-        # packaging, which the server would reject after the upload.
         fix = ("Publish it to an index, as a wheel for the server's platform"
                if e.compiled else "Change its packaging so its wheel holds no such file")
         raise CannotForward(
@@ -89,9 +67,8 @@ def build(dist: metadata.Distribution, directory: str,
 
 
 def _left_out(wheel: str, source: str) -> List[str]:
-    '''Each file in the module directories of ``source`` -- at its top, or
-    under ``src/`` -- that the wheel built from it does not hold, as a path
-    under ``source``. Bytecode, dotfiles and links are not the package's.'''
+    '''Files in ``source``'s module directories (top or ``src/``) the wheel lacks,
+    bytecode, dotfiles and links aside.'''
     with zipfile.ZipFile(wheel) as archive:
         held = set(archive.namelist())
     tops = {member.split("/", 1)[0] for member in held if "/" in member}
@@ -118,9 +95,7 @@ def _left_out(wheel: str, source: str) -> List[str]:
 
 
 def repack(dist: metadata.Distribution, directory: str) -> str:
-    '''A wheel of ``dist`` from its installed files and ``dist-info``, as its
-    path. Raises CannotForward for one with a compiled file, or with no
-    record of what it installed.'''
+    '''Repack ``dist`` as a wheel from its installed files; returns its path.'''
     name, version = _identity(dist)
     what = f"{name} {version}"
     files = dist.files
@@ -128,16 +103,13 @@ def repack(dist: metadata.Distribution, directory: str) -> str:
         raise CannotForward(f"{what} records no list of its installed files, so it "
                             "cannot be repacked as a wheel")
 
-    # A canonical name separates with `-` alone, which a wheel's file name
-    # writes as `_`; a normalised version holds no `-`.
     stem = f"{name.replace('-', '_')}-{version}"
     dist_info = f"{stem}.dist-info"
     members: Dict[str, str] = {}
     for entry in files:
         parts = entry.parts
         if not parts or parts[0] == ".." or os.path.isabs(str(entry)):
-            # Scripts and data outside site-packages: a console script comes
-            # back from entry_points.txt when the wheel is installed.
+            # Outside site-packages: console scripts return from entry_points.txt.
             continue
         if "__pycache__" in parts or entry.suffix in (".pyc", ".pyo"):
             continue
@@ -199,8 +171,7 @@ def _identity(dist: metadata.Distribution):
 
 
 def _source_directory(info: dict):
-    '''The local directory an editable or local-directory install came from,
-    where it is still there; None for anything else.'''
+    '''The local directory an install came from, if still there; else None.'''
     url = info.get("url") or ""
     if "dir_info" not in info or not url.startswith("file:"):
         return None
@@ -212,9 +183,8 @@ def _pip_wheel(name: str, version: str, source: str, directory: str) -> str:
     '''``pip wheel --no-deps`` of ``source`` into ``directory``.'''
     out = tempfile.mkdtemp(prefix=".sc-wheel-", dir=directory)
     try:
-        # A fixed timestamp where the build backend honours it, so the same
-        # source makes the same wheel: 1980-01-02 UTC, which is on or after
-        # the first day a zip can record in every timezone.
+        # Reproducible where the backend honours it: 1980-01-02 UTC is a valid
+        # zip date in every timezone.
         env = dict(os.environ, SOURCE_DATE_EPOCH="315619200")
         done = subprocess.run(
             [sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-input",

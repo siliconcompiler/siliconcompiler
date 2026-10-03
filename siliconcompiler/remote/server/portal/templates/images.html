@@ -44,21 +44,14 @@
     <td>
       {%- for version in catalogue.versions if version.software_name == row.name -%}
       <span class="mono muted">{{ version.version }}</span>
-      {#-
-        🔴 Marked, because the number alone is a trap: it is the image's
-        publish date (`images.matches`).
-      -#}
+      {#- 🔴 Marked: the number is a publish date (`images.matches`). -#}
       {%- if version.version_source != 'reported' %}
       <span class="tag" title="the tool reports no version, so this is when its
             image was published; it can never satisfy a version requirement"
         >no version reported</span>
       {%- endif -%}
       {%- if version.preference %} <span class="muted">(pref {{ version.preference }})</span>{% endif -%}
-      {#
-        No per-version button once the distribution itself is retired: the
-        whole name has stopped raising a requirement, so retiring one of its
-        versions would change nothing and offering it says otherwise.
-      #}
+      {# No per-version button once the name is retired: it would change nothing. #}
       {%- if version.retired_at %} <span class="tag">retired</span>
       {%- elif not row.retired_at %}
       <form method="post" class="inline"
@@ -105,10 +98,7 @@
     <input type="text" name="driver"
            placeholder="siliconcompiler.tools.openroad" style="max-width:420px">
     <span class="muted">
-      {#
-        The module a probe inside an image imports to ask this tool its
-        version, which cannot be worked out there (`images.register_software`).
-      #}
+      {# What a probe imports to ask the tool's version (`images.register_software`). #}
       Where its Task driver lives. Leave it empty and no version can be read
       from an image for it.
     </span></label>
@@ -116,10 +106,7 @@
     <input type="text" name="version_package" placeholder="pyslang"
            style="max-width:420px">
     <span class="muted">
-      {#
-        slang is the case: its driver runs pyslang in SiliconCompiler's own
-        process, so there is nothing to run and ask.
-      #}
+      {# slang: its driver runs pyslang in-process, so there is nothing to run. #}
       Read the version from a python distribution of this name instead of by
       running the tool.
     </span></label>
@@ -172,10 +159,7 @@
 {% if catalogue.derived %}
 <h3>Built environments</h3>
 <p class="muted">
-  {#
-    Apart from the table above, because nobody registered these: the builder
-    made each one from a job's Python packages.
-  #}
+  {# Apart: the builder made these from jobs' Python packages; nobody registered them. #}
   A job's Python packages, installed by this server on one of the images
   above. Built once for each image and set of packages, and shared by every job
   asking for the same set.

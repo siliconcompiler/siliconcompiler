@@ -1,37 +1,18 @@
 '''
 What is actually inside an image, asked rather than declared.
 
-🔴 **The registry's one unverified claim is `image_contents`.** The
-``registry add-image`` command and the portal record what an operator types,
-and nothing opens the image to check, so a wrong row means a job runs in a
-container without what it asked for and fails at run time rather than at
-submit. This asks the image instead: ``setup/server/bootstrap.py`` runs it in
-each image it registers, and the CLI below asks this machine.
-
-**Three mechanisms, and the registry says which applies to which name:**
+🔴 `image_contents` is the registry's one unverified claim, so this asks the
+image: ``setup/server/bootstrap.py`` runs it in each image it registers.
 
 ``python``       ``importlib.metadata.version(<name>)``
 ``tool``         the driver's ``exe`` and ``vswitch``, read back through its
                  ``parse_version`` and ``normalize_version``
-``interpreter``  the image's own ``python3``, as ``X.Y.Z`` -- the one name
-                 ``python``, which a node running the user's Python is matched
-                 on (surface D293)
+``interpreter``  the image's own ``python3``, as ``X.Y.Z`` (surface D293)
 
-🔴 **The command runs in the image and the PARSING happens here, and that split
-is the whole design.** Running this module inside the image would work only for
-an image that has SiliconCompiler installed -- and most tool images do not.
-``ghcr.io/siliconcompiler/sc_tools`` is the obvious case: it is the image
-SiliconCompiler's own CI runs its tools in, and CI installs the framework into
-it at test time. Requiring the framework in every image an operator wants to
-register is requiring them to rebuild somebody else's image.
-
-So :func:`script` produces a shell script that runs the tools and frames each
-answer, and :func:`read_output` turns what came back into versions. The caller
-in between is whatever can start a container.
-
-🔴 **Neither the kind nor the driver is guessed.** Both are columns on
-``software``, set when the name is registered (`images.register_software`
-says why).
+🔴 The command runs in the image and the parsing happens here: most tool images
+(``sc_tools`` included) have no SiliconCompiler. :func:`script` writes the shell
+script, :func:`read_output` reads what came back; the kind and driver are
+registered columns, never guessed.
 '''
 
 import argparse
@@ -52,36 +33,25 @@ __all__ = ["ANSWER_BYTES", "INTERPRETER", "KINDS", "MARKER", "MAX_OUTPUT", "comm
            "read_output", "script"]
 
 
-# The closed set, and each is a mechanism rather than a label.
 KINDS = ("python", "tool", "interpreter")
 
 # The one name of the interpreter kind: the image's own Python (surface D293).
 INTERPRETER = "python"
 
-# What a caller greps for when it wants only the answer. One line, JSON after.
+# What a caller greps for: one line, JSON after.
 MARKER = "sc-probe:"
 
-# 🔴 How one name's answer is framed in the output, and it is framed because a
-# version check RUNS the tool: anything the tool prints on its way -- a banner,
-# a licence line, a warning -- lands in the same stream. Everything between one
-# name's markers belongs to it, and everything outside them belongs to nobody.
+# 🔴 Each name's answer is framed: a version check runs the tool, which may print
+# banners into the same stream.
 _BEGIN = "--sc-probe-begin:"
 _END = "--sc-probe-end:"
 
-# 🔴 Emitted only where the thing is THERE, and this is the load-bearing one.
-# *Present but would not say* is a legitimate row -- it is what
-# `published_date` exists for -- while *not there at all* has to refuse the
-# whole image registration, because writing the row says the image holds
-# something it does not, and then a node is placed in it and dies.
-#
-# ⚠️ **Never told apart by the version failing to parse** (see `script`).
-# Presence is the driver's own check: the executable existing, or
-# `PackageNotFoundError` not being raised.
+# 🔴 Emitted only where the thing is there. Present and mute is a row
+# (`published_date`); absent refuses the registration. ⚠️ Never inferred from
+# a version failing to parse.
 _HERE = "--sc-probe-here:"
 
-# 🔴 What runs a python distribution's version check, and it says PRESENT
-# before it says anything else. Absence is `PackageNotFoundError` -- the
-# packaging machinery's own answer -- and never a version that failed to parse.
+# Absence is `PackageNotFoundError`, never a version that failed to parse.
 _PYTHON_CHECK = (
     "import importlib.metadata as m\n"
     "try: v = m.version({name!r})\n"
@@ -90,27 +60,20 @@ _PYTHON_CHECK = (
     "print(v)\n"
 )
 
-# The image's own Python, which says PRESENT by running at all.
 _INTERPRETER_CHECK = (
     "import sys\n"
     "print({here!r})\n"
     "print('%d.%d.%d' % sys.version_info[:3])\n"
 )
 
-# 🔴 How much of a probe's output is read, and it is bounded because it comes out
-# of somebody else's image and is read on the server. A version check RUNS the
-# tool; a tool can print anything on its way, and an image can print anything
-# at all. `ANSWER_BYTES` is one name's share -- the END of what it said, since
-# parsers read the last lines (bambu's takes `split('\n')[-3]`) -- and is cut
-# in the image, by the script, and again here. `MAX_OUTPUT` is the whole read:
-# more than that and the probe is not believed at all.
+# 🔴 Bounded: the output comes from somebody else's image. `ANSWER_BYTES` is the
+# end of one name's answer (parsers read the last lines), cut in the image and
+# here; past `MAX_OUTPUT` the probe is not believed at all.
 ANSWER_BYTES = 16384
 MAX_OUTPUT = 1 << 20
 
-# What an operator is shown of an answer that did not parse.
 _UNPARSED_CHARS = 200
 
-# CSI and the rest of the escape sequences a colouring tool emits.
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 logger = logging.getLogger("sc-probe")
@@ -118,16 +81,9 @@ logger = logging.getLogger("sc-probe")
 
 def command_for(name: str, kind: str, driver: Optional[str] = None,
                 version_package: Optional[str] = None) -> Optional[List[str]]:
-    '''What to run inside the image to make this name answer.
+    '''What to run inside the image to make this name answer, or None where nothing can ask.
 
-    ⚠️ **Read without `shutil.which`.** `Task.get_exe` resolves the executable
-    against THIS machine's PATH and raises when it is missing, which is the
-    right behaviour for a run and the wrong one here: the tool is in the image,
-    not here, and its absence locally says nothing at all.
-
-    None where nothing can ask: a python name needs no driver and always has a
-    command, a tool with no driver has no executable to name, and a driver this
-    process cannot import cannot be read.
+    ⚠️ Not `Task.get_exe`, which checks this machine's PATH, not the image's.
     '''
     if kind not in KINDS:
         raise ValueError(f"{kind} is not a software kind")
@@ -135,9 +91,7 @@ def command_for(name: str, kind: str, driver: Optional[str] = None,
     if kind == "interpreter":
         return ["python3", "-c", _INTERPRETER_CHECK.format(here=_HERE + name)]
 
-    # 🔴 A tool can have no executable at all -- slang drives pyslang in this
-    # process -- and its version is then the distribution's. The marker still
-    # carries the TOOL's name, because that is what the registry calls it.
+    # 🔴 An exe-less tool (slang) takes its distribution's version, under the tool's name.
     if kind == "python" or version_package:
         return ["python3", "-c",
                 _PYTHON_CHECK.format(name=version_package or name,
@@ -145,11 +99,7 @@ def command_for(name: str, kind: str, driver: Optional[str] = None,
 
     exe, vswitch = exe_and_switch(name, driver)
     if not exe or not vswitch:
-        # A tool whose driver names no version switch cannot be ASKED its
-        # version. ⚠️ It can still be found -- see `executable_for` -- and
-        # those are two different questions: `kepler-formal`, `icepack` and
-        # `vcd2fst` all name an executable and no switch, so they are present
-        # and mute rather than absent.
+        # ⚠️ No switch: present and mute (`executable_for`), not absent.
         return None
     return [exe, *vswitch]
 
@@ -163,16 +113,10 @@ def exe_and_switch(name: str, driver: Optional[str]):
 
 def executable_for(name: str, kind: str, driver: Optional[str] = None,
                    version_package: Optional[str] = None) -> Optional[str]:
-    '''The program whose existence means this name is THERE.
+    '''The program whose existence means this name is there, or None.
 
-    🔴 **Separate from the version command.** Tied to being able to ask a
-    version, presence would make every tool whose driver names no version
-    switch untestable -- nothing would declare it, no image would hold it, and
-    a flow reaching for it would be refused although the binary is right
-    there.
-
-    None where presence is decided some other way -- a python distribution
-    answers for itself -- or cannot be decided at all.
+    🔴 Separate from the version command, or a tool with no version switch
+    could never be found present.
     '''
     if kind in ("python", "interpreter") or version_package:
         return None
@@ -183,25 +127,16 @@ def read_answer(name: str, kind: str, output: str,
                 driver: Optional[str] = None) -> Optional[Tuple[str, str]]:
     '''One name's captured output, as ``(comparable, reported)``.
 
-    🔴 **Two numbers, because they differ and both are wanted.** The comparable
-    one is what gets stored and matched; what the tool actually printed is what
-    an operator should see in a log. `verilator` says `5.052` and PEP 440 makes
-    that `5.52`; OpenROAD says `26Q3-2418-g3ab04b4dd1` and its own normaliser
-    makes that `26.3.2418`.
-
-    🔴 **The driver's `parse_version` and `normalize_version`, never a rule of
-    this module's own.** OpenROAD answers `-version` in four different shapes
-    and its parser knows all of them. Anything here that re-implemented the
-    reading would be a second copy that drifts from the one a real run uses.
+    Stored and matched vs. printed: `verilator` prints `5.052`, stored `5.52`.
+    🔴 Read by the driver's own `parse_version` and `normalize_version`, never
+    a second copy here that drifts.
     '''
     text = output or ""
     if not text.strip():
         return None
 
     if kind in ("python", "interpreter"):
-        # The LAST line, because anything the interpreter warned about on its
-        # way comes first. A distribution's version needs no normalising: it
-        # is PEP 440 already, by the packaging that declared it.
+        # The last line: warnings come first.
         said = text.strip().splitlines()[-1].strip()
         return (said, said) if said else None
 
@@ -212,9 +147,7 @@ def read_answer(name: str, kind: str, output: str,
         try:
             return task.normalize_version(reported), reported
         except Exception as e:                                   # noqa: BLE001
-            # A normaliser that cannot read its own tool's output. The raw
-            # string is still true and still selectable by name; what it loses
-            # is being matchable against a range.
+            # The raw string stays true; it just cannot match a range.
             logger.debug(f"{name}: could not normalize {reported}: {e}")
             return reported, reported
 
@@ -222,13 +155,7 @@ def read_answer(name: str, kind: str, output: str,
 
 
 def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
-    '''A shell script that asks every name, framed so the answers can be told
-    apart.
-
-    ⚠️ One script and one container rather than one each. A container start
-    per tool is a second of nothing eleven times over, and the framing already
-    does what separate runs would have bought.
-    '''
+    '''A shell script that asks every name in one container, each answer framed.'''
     lines = ["#!/bin/sh"]
     for name, kind, driver, package in map(_want, wanted):
         command = command_for(name, kind, driver, package)
@@ -236,28 +163,15 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
         lines.append(f"echo {shlex.quote(_BEGIN + name)}")
 
         if kind in ("python", "interpreter") or package:
-            # The python check reports its own presence (`_PYTHON_CHECK`).
-            #
-            # ⚠️ A wrapper's program is not asked for: an image holding the
-            # graphviz distribution holds `dot` too, because the image build
-            # installs it wherever SiliconCompiler brings the wrapper.
+            # Reports its own presence; ⚠️ a wrapper's program is not asked for.
             if command:
                 lines.append(_bounded(command))
         elif exe:
-            # 🔴 Guarded on the executable EXISTING, and this is not
-            # belt-and-braces. Without it a missing tool leaves the shell's own
-            # `openroad: not found` inside the frame, and OpenROAD's
-            # `parse_version` takes the last word of what it is given -- so an
-            # absent tool would be registered at version `0`, parsed out of the
-            # error message saying it is absent. An empty frame is the honest
-            # answer and the one that ends in `published_date`.
+            # 🔴 Guarded on the executable existing: otherwise OpenROAD's parser
+            # reads version `0` out of the shell's `openroad: not found`.
             lines.append(f"if command -v {shlex.quote(exe)} "
                          "> /dev/null 2>&1; then")
             lines.append(f"  echo {shlex.quote(_HERE + name)}")
-            # ⚠️ The version is asked INSIDE the presence guard and only where
-            # there is a switch to ask with. A tool that names an executable
-            # and no switch is present and mute, which is a row --
-            # `published_date` -- and not an absence.
             if command:
                 lines.append(f"  {_bounded(command)}")
             lines.append("fi")
@@ -266,26 +180,15 @@ def script(wanted: Sequence[Tuple[str, str, Optional[str]]]) -> str:
 
 
 def _bounded(command: List[str]) -> str:
-    '''One command, its output cut to the last `ANSWER_BYTES` in the image.
-
-    `2>&1` because a tool is as likely to answer on stderr, and `|| true`
-    because a non-zero exit is ordinary: several print their version and then
-    complain about having nothing to do.
-    '''
+    '''One command, stderr included and exit ignored, cut to the last `ANSWER_BYTES`.'''
     return f"{{ {shlex.join(command)} 2>&1 || true; }} | tail -c {ANSWER_BYTES}"
 
 
 def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
                 output: str) -> Dict[str, Dict[str, Any]]:
-    '''What :func:`script` printed, as name to kind and version.
+    '''What :func:`script` printed, as name to kind, version and presence.
 
-    ``version`` is None where nothing answered. Not an error: a tool this
-    deployment lists and nobody drives, or one that is not in this image, has
-    no version to read -- and saying so is what ``published_date`` is for.
-
-    Raises ValueError for more than `MAX_OUTPUT` characters: the probe is then
-    not believed at all, rather than read up to where it was cut -- a frame cut
-    off reads as a tool that is absent.
+    ValueError past `MAX_OUTPUT`: a truncated frame would read as an absent tool.
     '''
     if output and len(output) > MAX_OUTPUT:
         raise ValueError(f"the probe printed more than {MAX_OUTPUT} bytes")
@@ -293,45 +196,27 @@ def read_output(wanted: Sequence[Tuple[str, str, Optional[str]]],
 
     found: Dict[str, Dict[str, Any]] = {}
     for name, kind, driver, package in map(_want, wanted):
-        # A version read through a distribution is read the python way,
-        # whatever the registry calls the name.
         answer = read_answer(name, "python" if package else kind,
                              captured.get(name, ""), driver)
         version, reported = answer if answer else (None, None)
 
-        # 🔴 An answer that is not a PEP 440 version is no version, and it is
-        # said rather than rewritten. The presence check can be right and the
-        # parse wrong -- gtkwave without a display prints `Could not
-        # initialize GTK!`, and a parser counting words takes `initialize`.
-        # The store refuses such a value as `reported`
-        # (`images.register_version`), so the tool is present and mute:
-        # `published_date`. `unparsed` keeps what it said for the operator.
+        # 🔴 Not PEP 440 is no version, kept in `unparsed` rather than
+        # rewritten (`images.register_version`).
         unparsed = None
         from siliconcompiler.remote.server.software.images import _is_pep440
 
         if version is not None and not _is_pep440(version):
             version, unparsed = None, (reported or version)[:_UNPARSED_CHARS]
 
-        # Whether presence could be asked about at all. ⚠️ Not whether a
-        # VERSION could be: a tool naming an executable and no version switch
-        # is testable and mute; one naming neither cannot be tested, and
-        # untestable is not absent.
+        # ⚠️ Whether presence could be tested; untestable is not absent.
         testable = (command_for(name, kind, driver, package)
                     if kind in ("python", "interpreter") or package
                     else executable_for(name, kind, driver, package)) is not None
 
         found[name] = {"kind": kind, "version": version, "reported": reported,
                        "unparsed": unparsed,
-                       # 🔴 Three outcomes, not two. `present` and no version
-                       # is legitimate and is what `published_date` records;
-                       # absent means the image does not hold what a row would
-                       # claim it does, and that refuses the registration.
-                       #
-                       # ⚠️ None where presence could not be TESTED at all --
-                       # a tool nobody drives, which stays legitimate -- and
-                       # that is not the same as absent and must not be
-                       # treated as it. Only a test that ran and said no is
-                       # grounds to refuse an image.
+                       # 🔴 Three outcomes: only False refuses an image; None
+                       # is untested.
                        "present": present.get(name, False) if testable else None}
     return found
 
@@ -344,15 +229,9 @@ def _want(entry):
 
 def probe(wanted: Sequence[Tuple[str, str, Optional[str]]],
           run=None) -> Dict[str, Dict[str, Any]]:
-    '''Ask about each ``(name, kind, driver)``, running the script somewhere.
+    '''Ask about each ``(name, kind, driver)``; ``run`` runs the script (default: here).
 
-    ``run`` takes the script and returns what it printed; it defaults to this
-    machine, which is what makes the CLI useful for *what does this host hold*.
-    A caller with an image passes something that starts a container.
-
-    🔴 One path for both. The alternative -- a local implementation beside a
-    container one -- is two answers to the same question, and the one nobody
-    runs is the one that rots.
+    🔴 One path for this host and for an image, so neither rots.
     '''
     return read_output(wanted, (run or _locally)(script(wanted)))
 
@@ -368,24 +247,14 @@ def _locally(text: str) -> str:
 ######################################################################
 
 def _split(output: str):
-    '''Everything between each name's markers, and whether it was there.
-
-    Returns ``(captured, present)``. A name with no presence marker inside its
-    frame either was not there, or could not be tested -- the caller knows
-    which, because it knows whether it asked for a presence test.
-    '''
+    '''``(captured, present)``: everything between each name's markers, and whether it was there.'''
     captured: Dict[str, str] = {}
     present: Dict[str, bool] = {}
     name: Optional[str] = None
     lines: List[str] = []
 
     for line in output.splitlines():
-        # ⚠️ Escapes stripped before the marker is looked for. A tool that
-        # thinks it is on a terminal colours its output -- klayout puts
-        # `\x1b[0m` in front of the marker closing its own frame -- and a
-        # frame that never closes reads a tool that answered as absent.
-        # Giving the container no TTY is the real fix and this is the belt:
-        # nothing says a tool checks before colouring.
+        # ⚠️ Escapes stripped first: klayout puts `\x1b[0m` before its closing marker.
         stripped = _ANSI.sub("", line).strip()
         if stripped.startswith(_BEGIN):
             name, lines = stripped[len(_BEGIN):], []
@@ -395,15 +264,9 @@ def _split(output: str):
                 present[name] = True
         elif stripped.startswith(_END):
             if name is not None and stripped[len(_END):] == name:
-                # 🔴 The trailing newline is kept, and it is not cosmetic.
-                # `subprocess.run` hands `parse_version` output that ends in
-                # one, and a parser is entitled to count on that: bambu's
-                # takes `stdout.split('\n')[-3]`, so dropping it reads the
-                # line above the version and returns nothing. Whatever this
-                # reconstructs has to be what a real run would have passed.
-                #
-                # Cut here as well as in the image, for an image whose `tail`
-                # is missing or is not `tail`.
+                # 🔴 The trailing newline is kept, as a real run passes it:
+                # bambu's parser takes `split('\n')[-3]`. Cut here too, for an
+                # image with no `tail`.
                 captured[name] = ("\n".join(lines) + "\n")[-ANSWER_BYTES:]
             name, lines = None, []
         elif name is not None:
@@ -413,19 +276,12 @@ def _split(output: str):
 
 
 def _ask_driver(name: str, driver: Optional[str], read):
-    '''Build each Task in a driver module and hand the first that matches to
-    ``read``.
-
-    More than one class is tried, because the one that sets the executable is
-    usually a base the concrete tasks inherit and an abstract base cannot be
-    built.
-    '''
+    '''Hand the first Task in a driver module that builds and matches to ``read``.'''
     for task_cls in _drivers(name, driver):
         try:
             answer = _with_task(task_cls, name, read)
         except Exception as e:                                   # noqa: BLE001
-            # Ordinary: an abstract base, or a class whose make_docs needs
-            # something this machine has not got. The next one is tried.
+            # Ordinary: an abstract base, or one whose make_docs needs more.
             logger.debug(f"{name}/{task_cls.__name__}: {e}")
             continue
         if answer:
@@ -434,21 +290,10 @@ def _ask_driver(name: str, driver: Optional[str], read):
 
 
 def _with_task(task_cls, name: str, read):
-    '''Build one task the way the docs build it, bind it, and read from it.
+    '''Build one task the way the docs do, bind it, and read from it.
 
-    🔴 **`make_docs()` does the building, and that is the point of using it.**
-    What a task needs around it is the task's own knowledge and it differs: an
-    OpenROAD task needs an `ASIC` project with a real PDK target loaded, a
-    builtin task needs a bare `Project`, and a dozen classes override
-    `make_docs` to say so. Scaffolding built here would be a second answer to
-    that question -- right for the tasks somebody checked, silently wrong for
-    the rest, and stale the first time a driver needed something new.
-
-    ⚠️ **One thing has to be added back: `make_docs` returns an UNBOUND task.**
-    `exe` and `vswitch` are set per step and index -- that is what `setup()`
-    does -- so reading them off the returned object gets nothing. The project
-    it was built in is reachable as the schema's root, and re-entering a node
-    on it binds what `setup()` wrote.
+    🔴 `make_docs()` knows what each task needs around it; scaffolding here would
+    drift. ⚠️ It returns an unbound task, so a node is re-entered to bind `exe`.
     '''
     from siliconcompiler.scheduler import SchedulerNode
 
@@ -462,12 +307,7 @@ def _with_task(task_cls, name: str, read):
 
 
 def _drivers(name: str, driver: Optional[str]) -> List[Any]:
-    '''The Task classes in one module that drive one tool.
-
-    Bounded by the module the registry named, so nothing here searches: what is
-    imported is what was recorded, and the only filter is what each class says
-    it drives.
-    '''
+    '''The Task classes in the registered driver module, never a search.'''
     from siliconcompiler import Task
 
     if not driver:
@@ -479,11 +319,7 @@ def _drivers(name: str, driver: Optional[str]) -> List[Any]:
         logger.debug(f"{name}: could not import {driver}: {e}")
         return []
 
-    # ⚠️ A package's `__init__` usually holds the ABSTRACT base -- the one that
-    # calls `set_exe` -- and the buildable tasks are in its submodules. So a
-    # package is walked: importing only what was named finds a class that
-    # cannot be instantiated and reports no version for a tool that is right
-    # there.
+    # ⚠️ Walked: `__init__` usually holds only the abstract base.
     for found in pkgutil.walk_packages(getattr(module, "__path__", []),
                                        prefix=f"{driver}."):
         try:
@@ -543,12 +379,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not wanted:
         parser.error("nothing to probe: give at least one -python or -tool")
 
-    # 🔴 After the arguments are checked, and off by default: a usage error
-    # that had already quieted the logs would take the message about itself
-    # with it.
-    #
-    # ⚠️ Process-wide and nothing puts it back, which is right for a process
-    # whose whole job is this and wrong for anything else.
+    # 🔴 After argument checks, so a usage error is still shown. ⚠️ Process-wide.
     if not args.verbose:
         logging.disable(logging.CRITICAL)
 

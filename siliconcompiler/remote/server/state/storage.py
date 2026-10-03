@@ -1,15 +1,10 @@
 '''
 Where the bytes live, and how a client is let at them.
 
-The contract says an upload goes to a presigned ``PUT`` and never through the
-API process. That is a shape rather than a vendor: ``storage_locations.uri_base``
-is a URI, so ``file://`` is a first-class deployment and the "presigned" URL is a
-signed route on this host. Every other deployment swaps this module and nothing
-above it changes.
-
-The signature is the credential on that route -- no ``Authorization`` header, no
-DPoP proof -- because that is what a presigned URL is. What bounds it is that it
-names one job, expires, and binds the byte count the grant was issued for.
+``storage_locations.uri_base`` is a URI, so ``file://`` is a first-class
+deployment and the contract's presigned ``PUT`` is a signed route on this host;
+another backend swaps this module alone. The signature is that route's only
+credential, bounded by naming one job, expiring and binding the byte count.
 '''
 
 import base64
@@ -24,14 +19,11 @@ from urllib.parse import urlsplit, unquote
 __all__ = ["Storage", "SignatureError"]
 
 
-# A grant is short-lived on purpose: it is re-issuable, so a client whose upload
-# was interrupted asks for another rather than holding one open.
+# Short-lived on purpose: it is re-issuable, so an interrupted client asks again.
 GRANT_SECONDS = 900
 
-# 🔴 What a grant must outlast (surface §14): the upload is one PUT, with no
-# resume, and a re-issued grant for the same bytes starts it over -- so its
-# lifetime is what moving the largest upload takes over a slow link. About
-# fifteen minutes a GiB; never less than GRANT_SECONDS.
+# 🔴 What a grant must outlast (surface §14): the upload is one PUT with no
+# resume, so the largest upload over a slow link, about fifteen minutes a GiB.
 GRANT_BITS_PER_SECOND = 10_000_000
 
 
@@ -40,9 +32,7 @@ def grant_seconds(max_upload_bytes: int) -> int:
     return max(GRANT_SECONDS, -(-int(max_upload_bytes) * 8 // GRANT_BITS_PER_SECOND))
 
 
-# How long an artifact link stands up. Much shorter than an upload grant,
-# because nothing has to be prepared before it is used: the client is redirected
-# to it and follows it in the same breath.
+# Much shorter than an upload grant: the client follows the redirect at once.
 DOWNLOAD_SECONDS = 300
 
 _CHUNK = 1024 * 1024
@@ -55,11 +45,9 @@ class SignatureError(Exception):
 class Storage:
     '''One deployment's object store, over a local directory.
 
-    Two trees, and they are deliberately separate. ``uploads/`` holds what a
-    client PUT and nothing has yet looked at; ``artifacts/`` holds what a run
-    produced. An upload is not an artifact until it has been through
-    :mod:`~siliconcompiler.remote.server.staging.archive`, and mixing them would put
-    unexamined bytes in the tree that gets served back out.
+    ``uploads/`` and ``artifacts/`` are deliberately separate trees: an upload
+    is unexamined until :mod:`~siliconcompiler.remote.server.staging.archive`
+    has seen it, and must never be in the tree that gets served.
     '''
 
     def __init__(self, datadir, uri_base: str, secret: bytes):
@@ -76,10 +64,8 @@ class Storage:
         self.artifacts.mkdir(parents=True, exist_ok=True)
         self.uploads.mkdir(parents=True, exist_ok=True)
 
-        # Derived rather than reused. It is the same secret file the tokens are
-        # signed with -- one key for an operator to protect -- but a signature
-        # over a URL and a signature over a token must not be interchangeable,
-        # and a keyed derivation is what stops one being presented as the other.
+        # Derived, not reused: one secret for the operator, but a URL's
+        # signature must never pass as a token's.
         self._key = hashlib.blake2b(secret, person=b"sc-storage", digest_size=32).digest()
 
     ######################################################################
@@ -91,12 +77,8 @@ class Storage:
         return self.uploads / job_id
 
     def sign_upload(self, job_id: str, max_bytes: int, expires_at: int) -> str:
-        '''The capability half of the grant.
-
-        ``max_bytes`` is signed rather than merely published: the grant is
-        re-issuable, and a re-issue that could widen the byte count would make
-        `limits.max_upload_bytes` advisory.
-        '''
+        '''The capability half of the grant. ``max_bytes`` is signed, so a
+        re-issue cannot widen `limits.max_upload_bytes`.'''
         return self._sign(f"upload\n{job_id}\n{max_bytes}\n{expires_at}")
 
     def verify_upload(self, job_id: str, max_bytes: str, expires_at: str,
@@ -112,18 +94,13 @@ class Storage:
         return ceiling
 
     def receive(self, job_id: str, stream, ceiling: int) -> Tuple[int, str]:
-        '''Write one upload, counting as it goes.
-
-        The count is enforced here rather than from ``Content-Length``, which is
-        a claim the sender makes about a body it is still sending.
-        '''
+        '''Write one upload, counting as it goes: ``Content-Length`` is only the
+        sender's claim.'''
         path = self.upload_path(job_id)
         digest = hashlib.sha256()
         written = 0
 
-        # Written under a temporary name and renamed, so a half-received upload
-        # is never mistaken for a complete one by anything that only checks
-        # whether the file is there.
+        # Renamed into place, so a half-received upload never looks complete.
         partial = path.with_name(path.name + ".part")
         try:
             with open(partial, "wb") as f:
@@ -145,12 +122,8 @@ class Storage:
         return written, f"sha256:{digest.hexdigest()}"
 
     def stat_upload(self, job_id: str) -> Optional[Tuple[int, str]]:
-        '''What storage reports about a staged upload, or None if there is none.
-
-        Re-read from the object rather than remembered from the PUT. The digest
-        submit compares against has to describe the bytes that are on disk now,
-        or the comparison is between two things the client said.
-        '''
+        '''What storage reports about a staged upload, or None. Re-read from
+        disk, so submit never compares two things the client said.'''
         path = self.upload_path(job_id)
         if not path.is_file():
             return None
@@ -172,13 +145,8 @@ class Storage:
         return self.artifacts / job_id
 
     def artifact_path(self, storage_key: str) -> Path:
-        '''Where one artifact's bytes are.
-
-        The key is the server's own, never the client's, and it is resolved
-        against the artifact root and checked -- a storage layer that joins a
-        stored string onto a path without looking is one schema change away
-        from serving whatever that string says.
-        '''
+        '''Where one artifact's bytes are; the key is the server's own, and is
+        still confined to the artifact root.'''
         resolved = (self.artifacts / storage_key).resolve()
         root = self.artifacts.resolve()
         if root not in resolved.parents:
@@ -186,20 +154,13 @@ class Storage:
         return resolved
 
     def sign_download(self, artifact_id: str, expires_at: int) -> str:
-        '''The capability half of an artifact handover.
-
-        A different message prefix from an upload's, so a grant to PUT one job's
-        archive can never be presented as a grant to GET another job's outputs.
-        '''
+        '''The capability half of an artifact handover. Each grant has its own
+        prefix, so none can be presented as another.'''
         return self._sign(f"download\n{artifact_id}\n{expires_at}")
 
     def sign_stream(self, job_id: str, step: str, index: str,
                     expires_at: int, nonce: str = "") -> str:
-        '''The capability half of a live tail.
-
-        A third prefix, so none of the three grants this server issues can be
-        presented as either of the others.
-        '''
+        '''The capability half of a live tail.'''
         # The nonce makes every URL distinct, so each serves one connection.
         return self._sign(f"stream\n{job_id}\n{step}\n{index}\n{expires_at}\n{nonce}")
 
@@ -211,12 +172,8 @@ class Storage:
             expires_at, signature, when, "this stream link has expired")
 
     def sign_job_stream(self, job_id: str, expires_at: int, nonce: str = "") -> str:
-        '''The capability half of a whole job's live stream.
-
-        Its own prefix rather than the node form with empty coordinates, so a
-        job stream's signature can never be presented as a node's, nor the
-        other way round, however the URL is edited.
-        '''
+        '''The capability half of a whole job's live stream; its own prefix, not
+        the node form with empty coordinates.'''
         return self._sign(f"stream-job\n{job_id}\n{expires_at}\n{nonce}")
 
     def verify_job_stream(self, job_id: str, expires_at: str, signature: str,

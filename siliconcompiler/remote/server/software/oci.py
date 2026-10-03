@@ -1,22 +1,11 @@
 '''
-Deriving an image in a registry: the base, with one layer on top.
+Deriving an image in a registry: the base with one layer more (implementation-notes §L).
 
-A job's Python packages are built into a derived image (implementation-notes
-§L): the image a node resolved to with the job's packages in a layer of their
-own.
-This is how that image comes to exist without pulling the base. The base's
-layers are already in the registry, so the derived image is its manifest and
-config with one layer appended, and only three small blobs move -- the layer,
-the new config and the new manifest -- where copying the base down to add a
-layer would move gigabytes for a tool image.
-
-🔴 **In the base's own repository**, so every layer the new manifest names is
-one the registry already holds there: a manifest may only reference blobs its
-repository has.
-
-⚠️ The registry is spoken to without credentials -- this server's own, on the
-cluster's network, as `bootstrap` pushes to it -- and over plain HTTP where
-`registries.conf` marks it insecure, as skopeo would.
+Only the layer, the new config and the new manifest move; the base, often
+gigabytes, is never pulled. 🔴 Pushed to the base's own repository, since a
+manifest may only reference blobs its repository holds. ⚠️ No credentials (the
+cluster's own registry, as `bootstrap` pushes), and plain HTTP where
+`registries.conf` marks it insecure.
 '''
 
 import gzip
@@ -52,8 +41,7 @@ _TIMEOUT = 120
 
 
 def split_ref(ref: str) -> Tuple[str, str, str]:
-    '''`registry:5000/sc-tools@sha256:...` as (host, repository, reference),
-    read as docker reads a reference: an unqualified name is Docker Hub's.'''
+    '''``host/repository@digest`` as (host, repository, reference), as docker reads it.'''
     from docker.auth import resolve_repository_name
     from docker.errors import InvalidRepository
     from docker.utils import parse_repository_tag
@@ -71,12 +59,7 @@ def split_ref(ref: str) -> Tuple[str, str, str]:
 
 
 def layer_from(directory: Path, inside: str) -> Tuple[bytes, str, str]:
-    '''``directory`` as a gzipped layer that puts it at ``inside`` in the image.
-    Returns (bytes, digest of the gzip, digest of the tar -- the diff id).
-
-    Reproducible for the same tree: sorted, and no times or owners of this
-    machine's, so the same packages make the same layer.
-    '''
+    '''``directory`` as a reproducible gzipped layer at ``inside``: (bytes, digest, diff id).'''
     tarred = io.BytesIO()
     with tarfile.open(fileobj=tarred, mode="w", format=tarfile.PAX_FORMAT) as tar:
         parts = [part for part in inside.strip("/").split("/") if part]
@@ -108,13 +91,10 @@ def layer_from(directory: Path, inside: str) -> Tuple[bytes, str, str]:
 
 
 def derive(base_ref: str, layer: Tuple[bytes, str, str], comment: str) -> Tuple[str, str]:
-    '''Push the base with ``layer`` on top into the base's own repository, by
-    digest. Returns (``host/repository@digest``, digest).
+    '''Push the base with ``layer`` on top; returns (``host/repository@digest``, digest).
 
-    🔴 **By digest, with no tag** (profile D39): nothing names a derived image
-    but its content, so nothing can be pointed at other content later. ⚠️ A
-    registry garbage collection that deletes untagged manifests would take
-    them; this stack's registry runs none.'''
+    🔴 By digest, no tag (profile D39), so nothing can be repointed. ⚠️ A GC of
+    untagged manifests would take them; this stack's registry runs none.'''
     import requests
 
     host, repository, reference = split_ref(base_ref)
@@ -178,9 +158,7 @@ def _digest(data: bytes) -> str:
 
 
 def _scheme(host: str, confs=_REGISTRIES_CONF) -> str:
-    '''http where registries.conf marks the registry insecure, as skopeo reads
-    it; https otherwise. Read as TOML, so a commented-out key, a mirror's own
-    `insecure` and either quoting all read as skopeo reads them.'''
+    '''http where registries.conf (as TOML, as skopeo reads it) marks it insecure, else https.'''
     from siliconcompiler.utils import tomllib
 
     for conf in [os.environ.get("CONTAINERS_REGISTRIES_CONF"), *confs]:

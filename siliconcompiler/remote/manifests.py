@@ -1,19 +1,10 @@
 '''
-Reading a manifest somebody else wrote, importing nothing it names.
+Read a manifest somebody else wrote, importing nothing it names.
 
-SiliconCompiler reads a manifest by importing the module each ``__meta__``
-entry names and checking what it got afterwards, so that module's import-time
-code has already run for whoever wrote the manifest. Here every class a
-manifest names is looked up among the classes this process has already loaded
-first: one that is not there has its name dropped, and the reader takes the
-base type its ``sctype`` names, which is a lookup and never an import.
-
-A node's task class is not imported by reading at all: it is the node's
-``taskmodule`` string until something asks for the task. Check it against
-:func:`known_classes` before anything does.
-
-Used wherever a manifest crosses between the client and the server: the
-server's read of an upload, and the client's of what a job sent back.
+SiliconCompiler's reader imports each ``__meta__`` class, running its
+import-time code for the manifest's writer. Here a class not already loaded has
+its name dropped, and the base type is used. A node's ``taskmodule`` stays a
+string: check it against :func:`known_classes` before anything loads it.
 '''
 
 from typing import Any, Dict, Optional, Type
@@ -22,8 +13,7 @@ __all__ = ["known_classes", "read"]
 
 
 def known_classes() -> Dict[str, Type]:
-    '''Every loaded subclass of `BaseSchema`, keyed ``module/Class`` as a
-    manifest names one.'''
+    '''Every loaded subclass of `BaseSchema`, keyed ``module/Class``.'''
     from siliconcompiler.schema import BaseSchema
 
     found = {BaseSchema}
@@ -38,13 +28,11 @@ def known_classes() -> Dict[str, Type]:
 
 def read(path: Optional[str] = None, cfg: Optional[Dict[str, Any]] = None,
          lazyload: bool = True):
-    '''The manifest at ``path``, or the dictionary ``cfg``, loaded as a project
-    with nothing imported on its behalf.'''
+    '''The manifest at ``path``, or ``cfg``, as a project, importing nothing.'''
     from siliconcompiler import Project
     from siliconcompiler.schema import BaseSchema
 
     if path is not None:
-        # SiliconCompiler's own reader, a gzipped manifest included.
         cfg = BaseSchema._read_manifest(path)
     _forget_unknown(cfg, known_classes())
     return Project.from_manifest(cfg=cfg, lazyload=lazyload)

@@ -1,8 +1,6 @@
 '''
 A run that starts part-way through its flow: each node it reads and does not
 run, from the archive or the job that ran it (surface D175).
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import gzip
@@ -23,19 +21,10 @@ from siliconcompiler.remote.server.staging import archive
 class ContinuationsMixin:
     '''A run that starts part-way through its flow.'''
 
-    ######################################################################
-    # A run that starts part-way through its flow (surface D175)
-    ######################################################################
-
     def _account_upstream(self, job, summary, unpacked: Path):
-        '''Every node the run reads and does not run: in the archive, or
-        copied from the job `continues_from` names -- and none in neither.
-        Returns the nodes to copy, as ``((step, index), from_job)``.
-
-        A node in both is taken from the archive, and an entry for a node the
-        run does not read is not copied. What is copied is checked again, and
-        so is what it was built from.
-        '''
+        '''Every node the run reads and does not run, from the archive or else
+        `continues_from`, rechecked; returns those to copy, as
+        ``((step, index), from_job)``.'''
         continued = {(step, index): from_job
                      for step, index, from_job in self._continuations_of(job["id"])}
         copies = []
@@ -58,14 +47,10 @@ class ContinuationsMixin:
 
     def _copy_results(self, job, unpacked: Path, copies) -> None:
         '''Each node's outputs and manifest from the job that ran it, into
-        ``<step>/<index>/outputs/`` -- where uploaded results land, so the run
-        needs no change. The copied node gets no row and no artifacts here.
+        ``<step>/<index>/outputs/``, where uploaded results land.
 
-        🔴 **The archive is read as untrusted**, like every read of a job's
-        tree: an upload's rules (`archive.extract`), links included, and only
-        under ``outputs/``. A link to a passed-through file's home is then
-        resolved from the earlier job's own archives (:meth:`_resolve_links`),
-        and no bytes pass to or from the user.
+        🔴 The archive is read as untrusted, under an upload's rules
+        (`archive.extract`) and only under ``outputs/``.
         '''
         for (step, index), from_job in copies:
             held = {row["kind"]: row for row in self._store.all(
@@ -120,14 +105,9 @@ class ContinuationsMixin:
                     yield (top.name, node.name)
 
     def _resolve_links(self, job, unpacked: Path, node, from_job: str, in_place) -> None:
-        '''Every link in a copied node's ``outputs/`` to a file whose home is
-        not in place in this job's tree: the file itself, from the home node's
-        archive in the earlier job (surface *Passed-through files are resolved
-        while staging*).
-
-        Where the home is copied or uploaded, the link stays. Where the earlier
-        job itself took the home from another job, it has no archive of it:
-        its continuations are followed to the job that ran it.
+        '''Replace each link in a copied node's ``outputs/`` whose home is not in
+        this job's tree with the file, from the earlier job's archive of the
+        home (surface *Passed-through files are resolved while staging*).
         '''
         outputs = unpacked / node[0] / node[1] / "outputs"
         for dirpath, dirnames, filenames in os.walk(outputs, followlinks=False):
@@ -141,9 +121,8 @@ class ContinuationsMixin:
                 self._place_from_home(job, path, home, from_job, depth=0)
 
     def _place_from_home(self, job, path: Path, home, from_job: str, depth: int) -> None:
-        '''The file ``home`` names, from its node's archive in ``from_job``
-        -- or through ``from_job``'s own continuations -- at ``path``, in
-        place of the link.'''
+        '''Put the file ``home`` names at ``path``, from its node's archive in
+        ``from_job`` or, failing that, through that job's continuations.'''
         (step, index), member = home
         if depth > self.CONTINUATION_DEPTH:
             raise self._refuse_staging(job, ProblemError(
@@ -220,9 +199,8 @@ class ContinuationsMixin:
             'ORDER BY step, "index"', (job_id,))]
 
     def _check_continuations(self, user_id: str, continuations) -> None:
-        '''Every entry's results are usable, and none was built from something
-        nobody here may use -- at create before the upload, and again at
-        submit.'''
+        '''Every entry's results are usable and built from nothing denied here;
+        checked at create, and again at submit.'''
         for step, index, from_job in continuations:
             refused = self._continuation_refused(user_id, step, index, from_job)
             if refused:
@@ -230,9 +208,8 @@ class ContinuationsMixin:
                 raise ProblemError("prior-results-unavailable", step=step, index=index,
                                    job_id=from_job, reason=reason, detail=detail)
 
-        # 🔴 The job's resource set includes what it copies: without this a
-        # job could name a PDK the caller may use and continue from results
-        # built on one they may not. This profile's gate is `denied_resources`.
+        # 🔴 The job's resource set includes what it copies, or results built
+        # on a denied PDK could be continued from.
         for step, index, from_job in continuations:
             for kind, name in self._resources_of(from_job):
                 if self._config.denied(kind, name):
@@ -265,8 +242,7 @@ class ContinuationsMixin:
             'SELECT kind, deleted_at, withheld_at FROM artifacts WHERE job_id = ? '
             "AND step = ? AND \"index\" = ? AND kind IN ('node', 'manifest')",
             (from_job, step, index))}
-        # On this profile the artifact holding a node's outputs is its `node`
-        # archive: it keeps no `outputs` kind.
+        # This profile keeps a node's outputs in its `node` archive.
         for kind in ("node", "manifest"):
             if kind not in held or held[kind]["deleted_at"]:
                 return "expired", f"the {kind} artifact of {where} is gone"
@@ -276,8 +252,7 @@ class ContinuationsMixin:
         return None
 
     def _resources_of(self, job_id: str) -> List[Tuple[str, str]]:
-        '''What one job's results were built from: its PDK and libraries as
-        its manifest's read found them, and its tools.'''
+        '''What one job's results were built from: its PDK, libraries and tools.'''
         row = self._store.one("SELECT manifest_resources, manifest_tools "
                               "FROM jobs WHERE id = ?", (job_id,))
         if row is None:

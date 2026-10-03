@@ -1,8 +1,7 @@
 '''
 Endpoints 9 to 12: who I am, and which machines can act as me.
 
-``GET /v1/me`` is a mirror and never the gate: it tells a client what the server
-will do, and the server decides again at create and again at submit.
+``GET /v1/me`` is a mirror, never the gate: create and submit decide again.
 '''
 
 import flask
@@ -21,12 +20,8 @@ def _store():
 
 
 def _private(body, status: int = 200):
-    '''Every authenticated response is uncacheable.
-
-    A cache rule that ever matched /v1/* would serve one caller's response to
-    another's request, and these are the responses where that is a disclosure
-    rather than a nuisance.
-    '''
+    '''Every authenticated response is uncacheable: a cache rule matching
+    /v1/* would serve one caller's response to another.'''
     response = flask.jsonify(body)
     response.status_code = status
     response.headers["Cache-Control"] = "private, no-store"
@@ -36,23 +31,17 @@ def _private(body, status: int = 200):
 @blueprint.route("/v1/me", methods=["GET"])
 @require("profile:read")
 def me(session):
-    '''Endpoint 9.
-
-    `authorized` is omitted whole rather than sent empty: `{}` would claim *you
-    were granted nothing*, where the truth is *this server does not do grants*.
-    `projects` and `terms` are `[]`, which is the opposite rule and deliberate
-    -- *this account is in no projects* is a true statement.
-    '''
+    '''Endpoint 9. `authorized` is omitted, since `{}` would claim *granted
+    nothing* where this server does no grants; `projects` and `terms` are `[]`,
+    which is true.'''
     store = _store()
     config = flask.current_app.config["SC_CONFIG"]
 
     user = accounts.user(store, session.user_id)
 
     return _private({
-        # The client persists this per server address, which is how a user
-        # tells "my jobs were deleted" from "I am a different person now" --
-        # a reimage, a new container, a changed uid and a changed client salt
-        # each mint a new row, and those have very different next steps.
+        # The client keeps this per server, to tell "my jobs were deleted"
+        # from "I am a different identity now".
         "id": user["id"],
         "issuer": user["issuer"],
         "projects": [],
@@ -87,12 +76,8 @@ def get_device(session, device_id):
 @blueprint.route("/v1/devices/<device_id>", methods=["DELETE"])
 @require("devices:write")
 def revoke_device(session, device_id):
-    '''Endpoint 12: the only write on this surface.
-
-    Revoking a machine ends every session it holds. Idempotent: a device
-    already revoked answers the same way, because the caller's intent is
-    satisfied either way.
-    '''
+    '''Endpoint 12: revoking a machine ends every session it holds;
+    idempotent.'''
     device = accounts.owned_device(_store(), session, device_id)
 
     flask.current_app.config["SC_ISSUER"].revoke_device(
@@ -104,8 +89,8 @@ def revoke_device(session, device_id):
 
 
 def _device(row, session) -> dict:
-    '''One device, as the list and endpoint 11 both publish it -- byte for
-    byte the same object, `current` included (surface §10, §11).'''
+    '''One device, the same object in the list and endpoint 11 (surface §10,
+    §11).'''
     return {
         "id": row["id"],
         "name": row["name"],

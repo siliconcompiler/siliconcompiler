@@ -12,14 +12,11 @@
   <a href="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id) }}"
      >all {{ item.kind }} files</a>{% endif %}
 </p>
-{# In full here, where somebody compares it against a file they hold. #}
+{# In full here, to compare against a file somebody holds. #}
 <p class="mono muted" style="word-break:break-all">{{ item.digest }}</p>
 
 {% if refused is defined %}
-  {#
-    🔴 Refused before its archive passed the safety checks, so it is never
-    opened here: listing a gzipped tar decompresses all of it.
-  #}
+  {# 🔴 Never opened (`UNOPENED`): listing a gzipped tar decompresses all of it. #}
   <div class="panel warn">
     <p><b>This upload was refused before it was opened, and is not opened here.</b></p>
     <p class="muted">{{ refused.title or 'Refused' }}{% if refused.detail %} &mdash;
@@ -29,11 +26,7 @@
          >Download it</a> to look at it somewhere it cannot hurt.</p>
   </div>
 {% elif entries is not none %}
-  {#
-    🔴 The whole archive, before the file list: the job page links here rather
-    than to a download, and picking files out of a page one at a time is not a
-    substitute for taking the lot.
-  #}
+  {# 🔴 The whole archive first: picking files one at a time is no substitute. #}
   <p class="panel">
     <b>{{ entries | length }} file{{ '' if entries | length == 1 else 's' }}</b>
     <span class="muted">&middot; {{ item.size_bytes | size }} compressed</span>
@@ -61,10 +54,7 @@
   <p class="mono muted">{{ name }} &middot; {{ nbytes | size }}</p>
 
   {% if image %}
-    {#
-      Through the raw route, which serves a short allow-list of image types and
-      nothing else -- never text/html, and never SVG (`_RENDERABLE`).
-    #}
+    {# Via the raw route's image allow-list: never text/html or SVG (`_RENDERABLE`). #}
     <p><img src="{{ url_for('portal.inside', job_id=job.id, artifact_id=item.id,
                             file=name, raw=1) }}"
             alt="{{ name }}" style="max-width:100%;height:auto;

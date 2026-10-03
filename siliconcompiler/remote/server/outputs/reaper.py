@@ -1,29 +1,12 @@
 '''Taking back the disk, once, at startup.
 
-🔴 **Without this a rig fills its disk fast**, bundles first: every rebuild
-leaves a multi-gigabyte one behind (`images.sweep_bundles`).
+Bundles, expired artifacts' bytes, build trees and stale uploads go in that
+order, each making the next cheaper to decide. 🔴 Without this a rig fills its
+disk fast: every rebuild leaves a multi-gigabyte bundle (`images.sweep_bundles`).
 
-Four things accumulate, and they go in this order because each one makes the
-next cheaper to decide:
-
-``bundles``    an image unpacked onto the filesystem. The largest by far
-``artifacts``  bytes whose ``retained_until`` has passed. The row stays --
-               *where did my results go* has to stay answerable -- and records
-               that retention was what took them
-``builds``     a job's working tree, once nothing it produced is left. It is
-               the source the artifacts were indexed FROM, so it may only go
-               after them
-``uploads``    an upload left behind by a job no longer waiting for one
-
-⚠️ **At startup and nowhere else, deliberately.** A background thread is
-machinery this profile does not need: a demo rig is restarted constantly, and a
-deployment that runs for months wants a real scheduled job rather than
-something a web process does when it feels like it. What it must never be is a
-surprise inside somebody's request, which is the other place it could have
-gone.
-
-🔴 **Never fatal.** A server that will not start because it could not delete
-something is worse than a full disk, which at least says what it is.
+⚠️ At startup and nowhere else, deliberately: never a surprise inside a request,
+and a long-running deployment wants a real scheduled job. 🔴 Never fatal: a
+server that will not start is worse than a full disk.
 '''
 
 import logging
@@ -58,13 +41,10 @@ def sweep(store, storage, config, datadir) -> Dict[str, Any]:
         try:
             taken[name] = step(store, storage, config, datadir)
         except Exception as e:                                   # noqa: BLE001
-            # One kind failing must not stop the others, and none of them may
-            # stop the server.
             logger.warning(f"could not reclaim {name}: {e}")
             taken[name] = 0
 
-    # ⚠️ `abandoned` counts jobs and the rest count bytes, so it is reported
-    # on its own rather than summed into a figure that would then be wrong.
+    # ⚠️ `abandoned` counts jobs, not bytes.
     freed = sum(value for name, value in taken.items() if name != "abandoned")
     if freed:
         from siliconcompiler.utils.units import format_binary
@@ -89,21 +69,11 @@ def _bundles(store, storage, config, datadir) -> int:
 
 
 def _artifacts(store, storage, config, datadir) -> int:
-    '''Bytes past their retention. The row stays; only the bytes go.
+    '''Reclaim bytes past their retention; the row stays.
 
-    🔴 **`deleted_at` IS set, though a client renders it "deleted on 24 Sep".**
-    `fetchable` is decided by an ordered ladder whose first row is
-    `deleted_at`, and `retained_until` passing is deliberately NOT a row on it.
-    Without this write a reaped artifact falls through to the entitlement rows
-    and reports `fetchable: true` for bytes that are not there.
-
-    ✅ **An expiry is told from a deletion by `deleted_by`**, which stays NULL:
-    the listing publishes that as `deleted_cause: "expired"`. No
-    `deleted_reason`: that is prose, and only where a person deleted it
-    (surface §21).
-
-    A legal hold is skipped. It is not only policy -- the table would refuse
-    the write, since an artifact cannot be both held and deleted.
+    🔴 `deleted_at` is set: retention passing is not a ladder row, so without it
+    a reaped artifact reports `fetchable: true`. ✅ `deleted_by` stays NULL, which
+    reads as `deleted_cause: "expired"` (surface §21). A legal hold is skipped.
     '''
     from siliconcompiler.remote.server.outputs.artifacts import referenced_elsewhere
 
@@ -127,9 +97,7 @@ def _artifacts(store, storage, config, datadir) -> int:
             logger.debug(f"could not unlink {row['storage_key']}: {e}")
             continue
 
-        # 🔴 Recorded whether or not a file was there to unlink. The row is the
-        # claim that these bytes are unavailable, and an artifact whose file
-        # had already vanished is the case where that claim matters most.
+        # 🔴 Recorded whether or not a file was there to unlink.
         store.execute(
             "UPDATE artifacts SET deleted_at = ? WHERE id = ?", (now(), row["id"]))
         gone += 1
@@ -140,22 +108,12 @@ def _artifacts(store, storage, config, datadir) -> int:
 
 
 def _builds(store, storage, config, datadir) -> int:
-    '''A finished job's working tree, once nothing it produced is left.
+    '''Reclaim a finished job's working tree, once nothing it produced is left.
 
-    🔴 After the artifacts and never before: this tree is what they were
-    indexed FROM, and the portal reads a node's log straight out of it while it
-    is there. Once every artifact of a job is gone the tree holds nothing that
-    is still reachable, and it is the second largest thing on the disk.
-
-    ⚠️ A job with no artifacts at all is left alone. That is a run whose
-    indexing failed or has not happened, not a run whose results expired, and
-    deleting the only copy of it is the one mistake here that cannot be undone.
-
-    ⚠️ **An upload is not something the job produced**, and is counted on
-    neither side: a job-level `input` is written at submit, before anything
-    runs, and is its own file rather than one read out of this tree. Nor is
-    this server's own record of the job, `staging` and `diagnostics`, which
-    is not read out of the tree either.
+    🔴 After the artifacts, which are indexed from it. ⚠️ A job with no
+    artifacts is left alone: its indexing failed, and this is the only copy.
+    Uploads, `staging` and `diagnostics` are not read from the tree, so they
+    count on neither side.
     '''
     produced = ("NOT (a.kind = 'input' AND a.step IS NULL) "
                 "AND a.kind NOT IN ('staging', 'diagnostics')")
@@ -164,8 +122,6 @@ def _builds(store, storage, config, datadir) -> int:
         f"WHERE j.state IN ({', '.join('?' * len(_TERMINAL))}) "
         "  AND j.deleted_at IS NULL "
         f"  AND EXISTS (SELECT 1 FROM artifacts a WHERE a.job_id = j.id AND {produced}) "
-        # Nothing this job produced is still reachable: every artifact is
-        # either past its retention or was deleted outright.
         "  AND NOT EXISTS (SELECT 1 FROM artifacts a WHERE a.job_id = j.id "
         f"                  AND {produced} AND a.deleted_at IS NULL "
         "                  AND (a.retained_until IS NULL "
@@ -174,11 +130,8 @@ def _builds(store, storage, config, datadir) -> int:
 
     freed = 0
     for row in rows:
-        # 🔴 Insurance on the one operation here that cannot be undone. Both
-        # ids are NOT NULL primary keys, so an empty one is impossible -- and
-        # an empty one would make this path `<datadir>/users//builds/` and
-        # `rmtree` every user's work. A condition that cannot happen is exactly
-        # the one worth checking when being wrong costs that much.
+        # 🔴 Impossible, and checked anyway: an empty id would `rmtree`
+        # `<datadir>/users//builds/`, every user's work.
         if not row["user_id"] or not row["id"]:
             logger.warning("skipping a build directory with an empty id")
             continue
@@ -189,8 +142,6 @@ def _builds(store, storage, config, datadir) -> int:
 
         freed += images._weigh(root)
         shutil.rmtree(root, ignore_errors=True)
-        # Its bundles' configurations, which borrow shared root filesystems and
-        # are a few kilobytes: nothing of this job runs again.
         shutil.rmtree(datadir / "jobbundles" / row["id"], ignore_errors=True)
         logger.info(f"reclaimed the build directory of {row['id'][:8]}")
 
@@ -198,12 +149,10 @@ def _builds(store, storage, config, datadir) -> int:
 
 
 def _uploads(store, storage, config, datadir) -> int:
-    '''An upload left behind by a job that ended without submitting it.
+    '''Reclaim an upload left behind by a job that ended without submitting it.
 
-    🔴 **Bytes that arrived are kept until the job is abandoned**, never reaped
-    at the grant's expiry: the grant bounds when an upload may start, and a
-    job still waiting may yet be submitted. Cancel, abandon and delete discard
-    the upload themselves; this is the sweep behind them.
+    🔴 Never at the grant's expiry: the grant bounds when an upload may start,
+    and a job still waiting may yet be submitted.
     '''
     rows = store.all(
         f"SELECT id FROM jobs WHERE NOT {_PENDING} AND upload_grant_expires_at IS NOT NULL",
@@ -223,24 +172,14 @@ def _uploads(store, storage, config, datadir) -> int:
 
 
 def _abandoned(store, storage, config, datadir) -> int:
-    '''Jobs whose upload never arrived, settled at last.
+    '''Abandon jobs whose upload never arrived; returns a count of jobs.
 
-    🔴 **A job settles when somebody looks at it, and this is for the ones
-    nobody does.** `reconcile` abandons an expired job on read -- but a job
-    stuck in `created` is exactly the job nobody opens, and while it sits there
-    it holds a `pending_uploads` slot against its owner's allowance. That is
-    the failure worth catching: the ceiling is reached by jobs that no longer
-    exist in any meaningful sense.
-
-    ⚠️ Returns a count and not bytes, which is why `sweep` reports it
-    separately -- the number in the log is jobs, and nothing was freed on disk
-    beyond whatever `_uploads` already took.
+    🔴 `reconcile` settles a job on read, but a job stuck in `created` is the one
+    nobody opens, and it holds a `pending_uploads` slot meanwhile.
     '''
     from siliconcompiler.remote.server.jobs import JobService
 
-    # 🔴 Through the service, not a second UPDATE here. One writer for a state
-    # transition, or the two drift and only one of them writes the history row
-    # that says why.
+    # 🔴 Through the service, the one writer of state transitions and history.
     jobs = JobService(store, config, storage, None, datadir)
 
     moved = 0

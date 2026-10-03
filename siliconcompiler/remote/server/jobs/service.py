@@ -1,6 +1,5 @@
 '''
-The job service: one deployment's jobs, composed from one part per step
-of a job's life.
+The job service: one deployment's jobs, one mixin per step of a job's life.
 '''
 
 import os
@@ -24,11 +23,8 @@ from siliconcompiler.remote.server.jobs.submit import SubmitMixin
 
 class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, PythonEnvMixin,
                  DispatchMixin, LifecycleMixin, ReconcileMixin, ResultsMixin, RowsMixin):
-    '''One deployment's jobs.
-
-    Built once and held on the app, because it owns the dispatcher -- which for
-    a local deployment holds the handles to the processes it started.
-    '''
+    '''One deployment's jobs, built once and held on the app: it owns the
+    dispatcher, which locally holds the processes it started.'''
 
     def __init__(self, store, config, storage, dispatcher, datadir):
         self._store = store
@@ -40,8 +36,7 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         # Per job, the last time this process asked the scheduler anything.
         self._asked = {}
 
-        # This server's own copies of remote sources, fetched only from the
-        # allowlist, and what answers "can you supply this" by identity.
+        # Held copies of remote sources, and what answers "can you supply this".
         import threading
 
         from siliconcompiler.remote.server.staging import allowlist
@@ -52,17 +47,15 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
             [allowlist.parse(entry) for entry in (config["fetch_allowlist"] or [])])
         self._supply = _Supply(config, self._sources)
 
-        # The jobs whose sources are being fetched in this process, so a
-        # restart can tell one still in hand from one it has to pick up again.
+        # Jobs being staged in this process, so a restart can tell one in hand
+        # from one to pick up again.
         self._preparing = set()
         self._preparing_lock = threading.Lock()
-        # When each pass of staging in hand runs out of its
-        # `max_staging_seconds`, by `time.monotonic()`: set as the pass starts,
-        # so every phase runs against what is left (surface D294).
+        # Each staging pass's `max_staging_seconds` deadline, by
+        # `time.monotonic()`, set as it starts (surface D294).
         self._staging_deadlines: Dict[str, float] = {}
 
-        # One environment build per key at a time in this process: two jobs
-        # asking for the same set wait for one build, and the second reuses it.
+        # One environment build per key at a time; a second asker reuses it.
         self._building: Dict[str, Any] = {}
         self._building_lock = threading.Lock()
         # How a build is waited on -- `envbuild.wait_for`'s pacing.
@@ -108,30 +101,22 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         return self.user_root(user_id) / "cache"
 
     def container_mounts(self):
-        '''What every container this deployment runs must be able to see,
-        whoever's job it is: whatever the cluster needs named -- the munge
-        socket and slurm.conf on Slurm, since a framework image submits the
-        nodes of the flow it is driving. Baked into each shared bundle.
+        '''What every container must see, whoever's job it is; baked into each
+        shared bundle.
 
-        🔴 **Never the data directory.** It holds the token signing key and the
-        store, and every user's tree (profile §0). What one job sees is
-        :meth:`job_mounts`, in a bundle of its own.
+        🔴 Never the data directory: it holds the signing key, the store and
+        every user's tree (profile §0). One job's own is :meth:`job_mounts`.
         '''
         return [str(path) for path in (self._config["container_mounts"] or [])]
 
     def job_mounts(self, job):
-        '''What one job's node containers see: the job's own tree and its
-        user's cache read-write, and the roots this server supplies read-only.
+        '''What one job's node containers see: its tree and its user's cache
+        read-write, and the roots this server supplies read-only.
         '''
-        # 🔴 Supplied roots are READ-ONLY in the job: the held copies of remote
-        # sources and every private root the operator maps. A job reads what it
-        # is supplied and can change none of it -- the next job gets the same
-        # copy.
-        #
-        # ⚠️ **Every source a bundle binds must exist**, or the runtime cannot
-        # start the container at all ("cannot stat"): this server's own
-        # directories are made here, and an operator's root that is not there
-        # is left out, and said -- a job cannot be supplied from it anyway.
+        # 🔴 Supplied roots are READ-ONLY: the next job gets the same copy.
+        # ⚠️ Every bound source must exist or the container cannot start, so
+        # this server's own are made here and a missing operator root is left
+        # out, and said.
         own = [self.job_root(job["user_id"], job["id"]), self.cache_dir(job["user_id"]),
                self._datadir / "sources"]
         for path in own:
@@ -148,33 +133,26 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         return [(str(own[0]), "rw"), (str(own[1]), "rw"), (str(own[2]), "ro")] + private
 
     def framework_mounts(self, job):
-        '''What the job's own process sees, beside :meth:`job_mounts`: where
-        it unpacks the images its nodes run in, and where it writes their
-        bundles, which no node sees.'''
+        '''What the job's own process sees, beside :meth:`job_mounts`: the
+        unpacked images and its nodes' bundles, which no node sees.'''
         return self.job_mounts(job) + [(str(self.bundles_root()), "rw"),
                                        (str(self.job_bundles(job["id"])), "rw")]
 
     def job_bundles(self, job_id: str) -> Path:
-        '''Where one job's bundles are: outside its tree, so that no node of
-        it can rewrite what the next is started with.'''
+        '''Where one job's bundles are: outside its tree, so no node can
+        rewrite what the next is started with.'''
         return self._datadir / "jobbundles" / job_id
 
     def bundles_root(self) -> Path:
         '''Where unpacked container images live.
 
-        🔴 Beside the store rather than under a user's tree, which is the one
-        place in this layout that is deliberately NOT per user. A bundle is a
-        read-only root filesystem identical for everybody who runs that digest,
-        so per-user copies would buy nothing and cost a copy of every tool image
-        per user -- the one number decision 3 accepted for the cache and would
-        not accept twice.
+        🔴 Deliberately NOT per user, the one place in this layout: a bundle is
+        identical for everyone running that digest, and per-user copies would
+        cost every tool image per user (decision 3).
         '''
         return self._datadir / "images"
 
     def job_root(self, user_id: str, job_id: str) -> Path:
-        '''The build directory for one job of one user.
-
-        Per user as well as per job. The ownership record is `jobs.user_id`, in
-        the store, rather than a file inside the directory it protects.
-        '''
+        '''The build directory for one job of one user. Ownership is
+        `jobs.user_id`, not a file inside the directory it protects.'''
         return self.user_root(user_id) / "builds" / job_id

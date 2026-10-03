@@ -1,23 +1,14 @@
 '''
 Tailing a node that is still running.
 
-The bytes come off the shared filesystem, because that is where the run is
-already writing them: the compute node holds no database connection and makes no
-HTTP request, so a log reaching a client is a file being read by whichever
-process is serving the API. That is the same property the progress file rests
-on, and it is what lets the two be different machines.
+The bytes come off the shared filesystem, where the run already writes them:
+the compute node holds no database connection, so the API host and the compute
+node can be different machines.
 
-🔴 **The event ``id`` is the byte offset the reader reached**, which is what
-makes ``Last-Event-ID`` resumption exact rather than approximate: a client that
-reconnects hands back the offset it had, and the next read starts there. A
-line-number or a timestamp would both need the server to remember something
-about that client, and a stream host that remembers callers is one that cannot
-be restarted.
-
-⚠️ **Deliberately not a live tail of the *tool's* stdout.** What is streamed is
-``sc_<step>_<index>.log``, the same file the archived ``logs`` artifact holds, so
-the tail and the download are the same bytes. A client that tails to the end and
-then fetches the artifact sees no seam.
+🔴 A node stream's event ``id`` is the byte offset reached, so ``Last-Event-ID``
+resumption is exact and the stream host remembers nothing about its callers.
+⚠️ What is streamed is ``sc_<step>_<index>.log``, the file the ``logs`` artifact
+archives, so the tail and the download are the same bytes.
 '''
 
 import contextlib
@@ -45,18 +36,12 @@ __all__ = ["EventIndex", "events", "job_events", "resume_from", "resume_job",
 logger = logging.getLogger("sc-server")
 
 
-# How often the file is looked at while it is quiet. Short enough that a tail
-# feels live, long enough that a hundred idle streams are not a hundred stats a
-# second.
 POLL_SECONDS = 0.5
 
-# What the client is told to wait before reconnecting, per the SSE `retry`
-# field. The client re-requests /logs rather than reusing the target, so this
-# paces a re-authorization rather than a bare reconnect.
+# The SSE `retry`: it paces a re-request of /logs, so a re-authorization.
 RETRY_MS = 2000
 
-# Never emit an event larger than this. A node that writes a megabyte in one
-# burst becomes several events rather than one that no reader can buffer.
+# The largest event; a bigger burst becomes several.
 MAX_CHUNK = 64 * 1024
 
 
@@ -65,13 +50,9 @@ def events(path: Path, step: str, index: str, node_state, start: int,
            ended: bool = False) -> Iterator[bytes]:
     '''Yield SSE frames for one node's log until it ends or time runs out.
 
-    ``node_state`` is called to ask what the node is doing now -- a callable
-    rather than a value, because the answer changes underneath a stream that may
-    run for hours. ``deadline`` is when this capability expires; reaching it
-    ends the stream cleanly so the client re-requests ``/logs`` and gets a fresh
-    authorization, which is the whole reason the URL has its own lifetime.
-    Every ``keepalive`` seconds the log is silent, a comment says the stream is
-    still alive: SSE ignores it, and it costs a client nothing to receive.
+    ``node_state`` is a callable, since the state changes under a long stream.
+    ``deadline`` is when this capability expires: the stream ends cleanly and
+    the client re-requests ``/logs`` for a fresh authorization.
     '''
     offset = max(0, int(start))
     pending = b""
@@ -94,9 +75,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
         size = _size(path, root)
 
         if size < offset:
-            # The file got smaller, so the offset a client handed back points
-            # at bytes that are no longer there. Starting over is the only
-            # honest answer; silently seeking to the end would drop a log.
+            # Start over rather than seek to the end, which would drop a log.
             logger.warning(f"{path} shrank under a reader; restarting the tail")
             offset, pending = 0, b""
 
@@ -116,9 +95,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
         state = node_state()
 
         if state in TERMINAL_NODE_STATES:
-            # Drain whatever is left, including a final line with no newline on
-            # it: the run is over, so there is nothing more coming to complete
-            # it.
+            # Drain the rest, a final line with no newline included.
             text, pending = _split(pending, complete=True)
             if text:
                 yield _event("log", {
@@ -134,8 +111,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
             return
 
         if time.monotonic() >= deadline:
-            # Not an error and not the end of the log: this capability is over.
-            # The client re-requests /logs and resumes from its last id.
+            # The capability is over, not the log: the client resumes.
             yield _event("end", {"reason": "expired"})
             return
 
@@ -150,36 +126,16 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
                artifact_id, index, root=None) -> Iterator[bytes]:
     '''Yield SSE frames for every node of a job, merged, until it ends.
 
-    ``nodes`` is the job's node list in a fixed order -- the store's -- because
-    an index entry names a node by its place in it. ``path_of(step, index)`` is
-    where a node's log is, ``node_states()`` what every node is doing now,
-    ``job_over()`` whether the job is terminal, ``artifact_id(step, index)`` a
-    node's archived log once there is one, and ``index`` the job's
-    :class:`EventIndex`. ``start`` is what :func:`resume_job` read.
+    ``nodes`` is in the store's fixed order, since an index entry names a node
+    by its place in it. ``start`` is what :func:`resume_job` read.
 
-    🔴 **The id is job-wide, and that is the rule a merge gets wrong.** A
-    per-node id is a byte offset in ONE file, and resuming a merged stream from
-    one of those would start every other node at a position that is not its
-    own.
+    🔴 The id is job-wide and one number (D121): how many entries of the job's
+    :class:`EventIndex` this caller has been sent. ⚠️ Not a vector of per-node
+    offsets, which could pass what proxies accept for one `Last-Event-ID` on a
+    thousand-node flow.
 
-    🔴 **And it is one number, whatever the node count** (D121): the count of
-    entries in the job's event index that this caller has been sent. The index
-    records every `log` event the job's stream has ever carried -- which node,
-    where in its log, how long -- so every reader of the job is sent the same
-    events under the same ids, and resuming is one seek. ⚠️ Not a vector of
-    per-node offsets: even sparse, that could pass what common proxies accept
-    for one `Last-Event-ID` header on a thousand-node flow. The index is state
-    about the JOB; this host still keeps none about its callers.
-
-    Ordering is kept within a node and is arrival order across them: an entry
-    is appended when a reader finds a node's log has grown, node by node.
-
-    ⚠️ **A job already over when the stream opens gets `end` at once**, with
-    nothing replayed. It is the same answer as a job that ends between the
-    `303` and the connect, so the late request and the race are one path, and
-    the client reads the listing for `kind=logs`. `end` names no artifact on a
-    job stream: there is no single archive, and each node's `node_state`
-    already named its own.
+    ⚠️ A job already over when the stream opens gets `end` at once, nothing
+    replayed, the same as one ending between the `303` and the connect.
     '''
     position = start
     reported = [False] * len(nodes)
@@ -194,8 +150,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
     while True:
         progressed = False
 
-        # What the index already holds, which another reader may have put
-        # there: the same events under the same ids for everyone.
+        # What the index holds, possibly put there by another reader.
         for number, slot, offset, length in index.entries(position):
             step, node_index = nodes[slot]
             chunk, _ = _read(path_of(step, node_index), offset, length, root)
@@ -206,7 +161,6 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
         if progressed:
             continue
 
-        # Caught up: whatever the logs gained since becomes the next entries.
         states = node_states()
         if index.extend(nodes, path_of, states, root):
             continue
@@ -229,9 +183,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
             yield _event("end", {"reason": "terminal"})
             return
 
-        # Checked on a busy pass too: a job whose nodes never go quiet would
-        # otherwise hold a capability past its lifetime. The client resumes
-        # from the last id either way.
+        # Checked on a busy pass too, or a never-quiet job outlives its capability.
         if time.monotonic() >= deadline:
             yield _event("end", {"reason": "expired"})
             return
@@ -251,18 +203,12 @@ def _log(step: str, index: str, text: str, identifier: str) -> bytes:
                           "logged_at": _now(), "text": text}, identifier=identifier)
 
 
-# What marks a job stream's id, so a per-node one -- a bare hex offset -- is
-# never read as a position in the index.
+# Marks a job stream's id, so a per-node hex offset is never read as one.
 _JOB_ID_PREFIX = "e"
 
 
 def resume_job(header: Optional[str], fallback, index: "EventIndex") -> int:
-    '''How many of the index's entries the caller already has, or 0.
-
-    ⚠️ An id that does not fit the job -- a per-node id, or a position past
-    the end of this job's index -- starts from the beginning, as in
-    `resume_from`.
-    '''
+    '''How many of the index's entries the caller already has; 0 for an id not this job's.'''
     for candidate in (header, fallback):
         if not candidate:
             continue
@@ -282,14 +228,9 @@ def resume_job(header: Optional[str], fallback, index: "EventIndex") -> int:
 class EventIndex:
     '''Every `log` event a job's stream has carried: node, offset, length.
 
-    Appended as the job runs, by whichever reader finds a node's log has grown,
-    and never rewritten -- so an entry's number is an id that means the same
-    bytes to every reader, and resuming is a seek to it. Fixed-width entries,
-    so the seek is arithmetic.
-
-    One instance per reader. It remembers how far it has scanned and where each
-    node's indexed bytes end, which is state about the job read back from the
-    file, never about the caller.
+    Append-only, by whichever reader finds a log has grown, so an entry's number
+    means the same bytes to every reader. Fixed-width, so resuming is a seek.
+    One instance per reader; its state is about the job, never the caller.
     '''
 
     ENTRY = struct.Struct(">IQI")           # slot, byte offset, length
@@ -305,25 +246,21 @@ class EventIndex:
         return _size(self.path) // self.ENTRY.size
 
     def entries(self, start: int):
-        '''Every entry from number ``start`` on, as (number, slot, offset,
-        length).'''
+        '''Every entry from ``start`` on, as (number, slot, offset, length).'''
         number = start
         while True:
             batch = self._read(number)
             if not batch:
                 return
             for slot, offset, length in batch:
-                # A node this job has not got: not an entry of this job's.
                 if slot < self.width:
                     yield number, slot, offset, length
                 number += 1
 
     def extend(self, nodes, path_of, states, root=None) -> bool:
-        '''Index what each node's log has gained. True if anything was.
+        '''Index what each node's log has gained; True if anything was.
 
-        Whole lines only while a node runs, as `_split` keeps them, and
-        everything once it is over, since nothing more is coming to finish the
-        last line.
+        Whole lines only while a node runs, everything once it is over.
         '''
         with _locked(self.path):
             self._catch_up()
@@ -377,14 +314,12 @@ class EventIndex:
 
 
 def _whole_lines(chunk: bytes, full: bool) -> int:
-    '''How much of ``chunk`` ends on a line, or -- where a line is longer
-    than a whole chunk -- on a character.'''
+    '''How much of ``chunk`` ends on a line, or on a character for a line longer than it.'''
     cut = chunk.rfind(b"\n") + 1
     if cut or not full:
         return cut
 
-    # A line longer than a chunk becomes several events; never split a UTF-8
-    # character across two of them.
+    # Never split a UTF-8 character across two events.
     at = len(chunk) - 1
     while at > len(chunk) - 4 and at > 0 and chunk[at] & 0xC0 == 0x80:
         at -= 1
@@ -399,8 +334,7 @@ _LOCKS_LOCK = threading.Lock()
 
 @contextlib.contextmanager
 def _locked(path: Path):
-    '''One appender at a time: per path in this process, and by `flock`
-    across processes where there is one.'''
+    '''One appender at a time: a lock per path, plus `flock` across processes.'''
     with _LOCKS_LOCK:
         lock = _LOCKS.setdefault(str(path), threading.Lock())
     with lock:
@@ -417,11 +351,7 @@ def _locked(path: Path):
 
 
 def _with_artifact(body: dict, artifact) -> dict:
-    '''`artifact_id` is present once there is one to name.
-
-    A node can be terminal a moment before its log has been indexed, and an
-    explicit null would claim there will never be one.
-    '''
+    '''Add `artifact_id` once there is one; a null would claim there never will be.'''
     if artifact:
         body["artifact_id"] = artifact
     return body
@@ -430,22 +360,17 @@ def _with_artifact(body: dict, artifact) -> dict:
 def _event(name: str, body: dict, identifier: Optional[str] = None) -> bytes:
     frame = f"event: {name}\n"
     if identifier is not None:
-        # 🔴 Only `log` events carry an id, because only they are a position a
-        # client can resume from. An id on `end` would have a reconnect ask to
-        # continue from the end of the stream.
+        # 🔴 Only `log` events carry an id: an id on `end` would resume past it.
         frame += f"id: {identifier}\n"
     frame += f"data: {json.dumps(body, separators=(',', ':'))}\n\n"
     return frame.encode()
 
 
 def _size(path: Path, root=None) -> int:
-    '''How much of the file there is: 0 where it is not written yet -- a node
-    can be dispatched before it opens its log, and waiting is the right answer
-    rather than ending the stream.
+    '''The file's size, 0 where it is not written yet.
 
-    🔴 Given the job's ``root``, only a regular file reached through no link
-    counts: a node's code can replace its own log with a link to anything, and
-    a tail that followed it would stream the host's files to the caller.
+    🔴 Given ``root``, only a regular file reached through no link counts: a
+    node can replace its log with a link to the host's files.
     '''
     if root is not None:
         return confine.size_inside(root, path)
@@ -468,12 +393,7 @@ def _read(path: Path, offset: int, limit: int, root=None):
 
 
 def _split(buffer: bytes, complete: bool):
-    '''Whole lines out of the buffer, and what is left over.
-
-    An event never carries half a line while more is coming: a reader that
-    prints what it is given would otherwise show a line in two pieces, and a
-    line is the unit a person reads a log in.
-    '''
+    '''Whole lines out of the buffer, and what is left over.'''
     if complete:
         return _decode(buffer), b""
 
@@ -484,8 +404,6 @@ def _split(buffer: bytes, complete: bool):
 
 
 def _decode(raw: bytes) -> str:
-    # A tool's output is whatever the tool wrote, which is not always UTF-8 and
-    # is never worth failing a stream over.
     return raw.decode("utf-8", errors="replace")
 
 
@@ -496,12 +414,9 @@ def _now() -> str:
 
 
 def resume_from(header: Optional[str], fallback) -> int:
-    '''Where to start, given what the client handed back.
+    '''Where to start, from `Last-Event-ID` or the query-parameter fallback.
 
-    `Last-Event-ID` is the SSE mechanism and a query parameter is the fallback,
-    because a browser's EventSource sends the header and a plain fetch cannot
-    always set one. Anything unreadable starts from the beginning: a stream that
-    replays is a nuisance, and one that silently skips is a lost log.
+    Anything unreadable starts from the beginning: replaying beats skipping.
     '''
     for candidate in (header, fallback):
         if not candidate:
@@ -514,19 +429,10 @@ def resume_from(header: Optional[str], fallback) -> int:
 
 
 class StreamLimiter:
-    '''How many logs one caller may hold open at once.
+    '''Enforces `concurrent_log_streams`, the published per-caller limit.
 
-    🔴 `concurrent_log_streams` is published in `GET /v1`'s limits, and a
-    published number that nothing enforces is a promise rather than a limit.
-    This is what makes it real.
-
-    The cost it bounds is a worker thread and an open file for as long as the
-    stream lives, which is no longer than the token that obtained it. Under a threaded
-    WSGI server there is no fixed pool to exhaust, so what runs out is memory
-    and file descriptors rather than capacity -- which is why the number is
-    generous for a person (nobody reads eight logs at once) and deliberately not
-    generous enough for a client that would open one per node of a wide flow.
-    Poll the job for that; tail the nodes you are actually watching.
+    It bounds a thread and an open file per stream: generous for a person, not
+    for a client opening one per node of a wide flow.
     '''
 
     def __init__(self, ceiling: int):
@@ -548,8 +454,6 @@ class StreamLimiter:
             if held > 0:
                 self._open[user_id] = held
             else:
-                # Removed rather than left at zero, so the map is bounded by
-                # who is streaming now rather than by who ever has.
                 self._open.pop(user_id, None)
 
     def held(self, user_id: str) -> int:

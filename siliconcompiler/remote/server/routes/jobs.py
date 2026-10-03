@@ -1,13 +1,8 @@
 '''
-Endpoints 13 to 19: submission and control.
+Endpoints 13 to 19: submission and control, plus the signed upload ``PUT``.
 
-The handlers here are thin on purpose. Every ordering rule, every refusal and
-every state transition is in :mod:`siliconcompiler.remote.server.jobs`, because
-those are the parts a second implementation has to agree with; what is left in
-this file is which verb goes where and which scope guards it.
-
-One route is not an endpoint: the signed ``PUT`` the upload grant points at
-(see `upload`).
+Thin on purpose: every ordering rule, refusal and transition is in
+:mod:`siliconcompiler.remote.server.jobs`; here is only verb, path and scope.
 '''
 
 import time
@@ -41,11 +36,8 @@ def _private(body, status: int = 200, headers=None):
 
 
 def _body(required: bool = True):
-    '''The request's JSON, or a refusal that names which problem it is.
-
-    A body that is absent and a body that is malformed are different mistakes,
-    and `get_json()`'s own error is a Flask HTML page rather than problem+json.
-    '''
+    '''The request's JSON, or a problem+json refusal saying which mistake it
+    is, never `get_json()`'s HTML page.'''
     if flask.request.mimetype not in ("application/json", ""):
         raise ProblemError(
             "unsupported-media-type",
@@ -74,17 +66,11 @@ def _idempotency_key():
 @blueprint.route("/v1/jobs", methods=["POST"])
 @require("jobs:write")
 def create(session):
-    '''Endpoint 13.
-
-    A small body and no payload: two authoritative members, an optional
-    descriptor and nothing that moves. The bytes are endpoint 14's business,
-    which is what lets a job be refused before they move at all.
-    '''
+    '''Endpoint 13: no payload, so a job can be refused before bytes move.'''
     body, status = _jobs().create(session, _body(), _idempotency_key())
 
-    # 🔴 The job object itself, in `created`, so the create-time
-    # `upload_sources` and the later one are the same member in the same
-    # place, and absent means nothing to send either way.
+    # 🔴 The job object itself, so `upload_sources` is one member wherever the
+    # server asks.
     response = _private(body, status)
     if status == 201:
         response.headers["Location"] = f"/v1/jobs/{body['id']}"
@@ -94,12 +80,8 @@ def create(session):
 @blueprint.route("/v1/jobs/<job_id>/upload-grant", methods=["POST"])
 @require("jobs:write")
 def upload_grant(session, job_id):
-    '''Endpoint 14: issue or re-issue the grant.
-
-    200 rather than 201, because re-issue is the point of the endpoint: the row
-    already exists, and a 201 on the second call claims a creation that did not
-    happen. Without it a grant that expires leaves the job with no way back.
-    '''
+    '''Endpoint 14: issue or re-issue the grant; 200, since a re-issue
+    creates nothing.'''
     return _private(_jobs().grant(session, job_id, public_url(""),
                                   _body(required=False)))
 
@@ -107,12 +89,7 @@ def upload_grant(session, job_id):
 @blueprint.route("/v1/jobs/<job_id>/submit", methods=["POST"])
 @require("jobs:write")
 def submit(session, job_id):
-    '''Endpoint 15: the job is ready to run.
-
-    The digest is checked against what storage reports before anything is
-    extracted. That sequencing is the one detail in the contract that is a
-    security property, and it is enforced in the job service rather than here.
-    '''
+    '''Endpoint 15: the job is ready to run (the order is the job service's).'''
     # `{}`: an empty body and a JSON `{}` alike (surface D306).
     return _private(_jobs().submit(session, job_id, _body(required=False),
                                    _idempotency_key()), 202)
@@ -121,11 +98,7 @@ def submit(session, job_id):
 @blueprint.route("/v1/jobs", methods=["GET"])
 @require("jobs:read")
 def listing(session):
-    '''Endpoint 16.
-
-    `items` may be `[]`, and the `Link` header is absent on the last page rather
-    than present and empty.
-    '''
+    '''Endpoint 16; no `Link` on the last page.'''
     from siliconcompiler.remote.server.errors import only_query
 
     only_query(flask.request.args, ("state", "flow", "design", "jobname", "project",
@@ -141,11 +114,7 @@ def listing(session):
 @blueprint.route("/v1/jobs/<job_id>", methods=["GET"])
 @require("jobs:read")
 def get(session, job_id):
-    '''Endpoint 17.
-
-    `Retry-After` while the job is still going, so a client never guesses an
-    interval.
-    '''
+    '''Endpoint 17, with `Retry-After` while the job is still going.'''
     job = _jobs().get(session, job_id)
 
     headers = {}
@@ -153,8 +122,7 @@ def get(session, job_id):
         headers["Retry-After"] = str(
             flask.current_app.config["SC_CONFIG"]["poll_interval_seconds"])
 
-    # A failed or refused job carries its reason as an RFC 9457 object in the
-    # body, and its page is here, like a refusal's.
+    # A failed job's error type gets its page, as a refusal's does.
     link = help_link((job.get("error") or {}).get("type"))
     if link:
         headers["Link"] = link
@@ -165,12 +133,7 @@ def get(session, job_id):
 @blueprint.route("/v1/jobs/<job_id>/cancel", methods=["POST"])
 @require("jobs:write")
 def cancel(session, job_id):
-    '''Endpoint 18.
-
-    The body is optional in both directions: a client may omit it, and this must
-    accept the call without one. Requiring a reason would make a Ctrl-C
-    impossible to express.
-    '''
+    '''Endpoint 18. The body is optional, so a Ctrl-C can be expressed.'''
     reason = _body(required=False).get("reason")
     return _private(_jobs().cancel(session, job_id, reason), 202)
 
@@ -192,16 +155,11 @@ def delete(session, job_id):
 
 @blueprint.route("/storage/upload/<job_id>", methods=["PUT"])
 def upload(job_id):
-    '''Where the bytes actually go.
+    '''Where the bytes actually go: this deployment's stand-in for a presigned
+    PUT, outside ``/v1``.
 
-    Deliberately outside ``/v1``: it is this deployment's storage, standing in
-    for the presigned PUT another deployment would hand out, and the contract's
-    surface is its endpoints under ``/v1`` rather than wherever a grant points.
-
-    No scope guards it and no session is looked up. The signature names one job,
-    expires, and carries the byte ceiling the grant was issued for -- and the
-    digest at submit is what finally decides whether these are the bytes the
-    caller meant to send.
+    No session: the signature names one job, expires and carries the byte
+    ceiling, and the digest at submit decides what runs.
     '''
     storage = flask.current_app.config["SC_STORAGE"]
     store = flask.current_app.config["SC_STORE"]
@@ -227,8 +185,7 @@ def upload(job_id):
     except ValueError as e:
         raise ProblemError("upload-too-large", detail=str(e)) from None
 
-    # The digest is returned as a courtesy, not as a credential: submit runs
-    # only bytes matching the digest the grant bound.
+    # A courtesy, not a credential.
     response = flask.jsonify({"size_bytes": size, "digest": digest})
     response.headers["Cache-Control"] = "no-store"
     return response

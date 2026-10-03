@@ -1,37 +1,20 @@
 '''
 Reading what a job left behind without following it out.
 
-🔴 **A job's build directory is written by the job.** A node's own code -- an
-`execute` task, a user's script -- can leave a symlink anywhere in it, and an
-upstream output can be one. A server that opens a path there follows the link:
-into another job's data, the private roots the operator configured, or `/etc`.
-Every read this server makes of a job's tree goes through here: the logs and
-manifests it indexes, the archives it builds, the live tail and the progress
-file.
+🔴 A job writes its own build directory, so any path in it can be a symlink into
+another job's data, the operator's private roots, or `/etc`. Every read this
+server makes of a job's tree goes through here.
 
-**Race-free where the platform allows it.** Each component is opened relative
-to the one before it and refused when it is a link, so a link swapped in after
-a check is refused rather than followed. A FIFO is refused too: opening one
-blocks the reader forever. Where there is no ``dir_fd`` (Windows), the path is
-resolved and checked to stay under the root instead, which narrows the window
-without closing it.
+Race-free where the platform allows: each component is opened relative to the
+one before and refused when it is a link, so a link swapped in after a check is
+refused. A FIFO is refused too, since opening one blocks forever. Without
+``dir_fd`` (Windows) the resolved path is checked instead, which narrows the
+window without closing it. Only the root may be reached through a link: it is
+the server's own directory.
 
-Only the ROOT may be reached through a link: it is the server's own directory,
-and a datadir mounted through one is ordinary.
-
-🔴 **An archive keeps a link inside the job as a link, pointed at the file's
-real home, and follows none out of it** (contract.md, *A produced archive keeps
-a link inside the job as a link*; database D142). Nothing is copied in place of
-a link: some tools keep links in their own databases, and copying their
-targets could store terabytes. A chain is read hop by hop (`links.resolve`);
-one that ends at a regular file or a directory inside the job's build
-directory becomes one relative link to where it ends, so SiliconCompiler's
-``outputs/x`` -> ``inputs/x`` -> upstream ``outputs/x`` is one link to the
-upstream node's ``outputs/x``. A hard-linked file is found its home by inode
-(`links.Homes`): stored as a link to it where that is another node, as a tar
-hard link where its other name is already in the archive. A chain that leaves
-the job, dangles or loops, and a file with a name outside the job, are dropped
-and logged, never stored.
+🔴 An archive keeps a link inside the job as a link and follows none out of it
+(database D142); nothing is copied in place of a link, since some tools keep
+links to terabytes. See `add_tree`.
 '''
 
 import logging
@@ -68,8 +51,7 @@ def inside(root, path) -> bool:
 
 
 def open_inside(root, path, mode: str = "rb", **kwargs):
-    '''``path`` opened for reading, where it is a regular file under ``root``
-    reached through no link. Raises OSError otherwise.'''
+    '''Open a regular file under ``root``, reached through no link; OSError otherwise.'''
     if "r" not in mode or any(flag in mode for flag in "wax+"):
         raise ValueError("only reading is confined")
     fd = _open_file(root, path)
@@ -81,8 +63,7 @@ def open_inside(root, path, mode: str = "rb", **kwargs):
 
 
 def size_inside(root, path) -> int:
-    '''The size of a regular file under ``root``, or 0 where there is none --
-    not yet written, a link, or anything else.'''
+    '''The size of a regular file under ``root``, or 0 where there is none.'''
     try:
         fd = _open_file(root, path)
     except OSError:
@@ -94,8 +75,7 @@ def size_inside(root, path) -> int:
 
 
 def add_file(tar: tarfile.TarFile, root, path, arcname: str) -> bool:
-    '''One regular file into ``tar``, read through no link. False where it is
-    not one.'''
+    '''Add one regular file to ``tar``, read through no link; False where it is not one.'''
     try:
         fd = _open_file(root, path)
     except OSError:
@@ -107,16 +87,13 @@ def add_file(tar: tarfile.TarFile, root, path, arcname: str) -> bool:
 
 def add_tree(tar: tarfile.TarFile, root, top, base, skip: Iterable[str] = (),
              job_tree=None, homes: Optional["links.Homes"] = None) -> None:
-    '''``top`` and everything under it into ``tar``, named relative to
-    ``base``, never reading through a link out of ``root``.
+    '''Add ``top`` and everything under it to ``tar``, named relative to ``base``.
 
-    A link is stored as a link, never read through: where its chain ends at a
-    regular file or directory inside ``job_tree`` -- the job's build directory
-    -- as one relative link to where it ends, and dropped otherwise. With
-    ``homes``, a hard-linked file becomes a link to its home where that is
-    outside ``top``, a tar hard link where its first name is already in this
-    archive, and is dropped where it has a name outside the job. A name in
-    ``skip`` is left out wherever it appears.
+    A link is never read through: a chain ending at a file or directory
+    inside ``job_tree`` becomes one relative link to its end, and is dropped
+    otherwise. With ``homes``, a hard-linked file becomes a link to its home
+    outside ``top``, a tar hard link to its first name here, or is dropped
+    when it has a name outside the job.
     '''
     skip = frozenset(skip)
     top, base = Path(top), Path(base)
@@ -141,8 +118,7 @@ class _Packing:
         self.job_tree = Path(job_tree)
         self.real_top = os.path.realpath(str(top))
         self.homes = homes
-        # Each hard-linked file already stored, by inode, and the name it is
-        # stored under.
+        # Hard-linked files already stored: inode -> name.
         self.first: Dict[Tuple[int, int], str] = {}
 
     def holds(self, path: str) -> bool:
@@ -151,8 +127,7 @@ class _Packing:
 
 def _add_symlink(tar, packing: "_Packing", dir_path: Path, name: str, arcname: str,
                  mtime=None) -> None:
-    '''A link, as one relative link to where its chain ends inside the job
-    -- a hard-linked end at its home -- or nothing.'''
+    '''Store a link as one relative link to where its chain ends in the job, or drop it.'''
     end = links.resolve(packing.job_tree, dir_path / name)
     if end is not None and packing.homes is not None and os.path.isfile(end):
         info = os.lstat(end)
@@ -177,8 +152,7 @@ def _write_link(tar, arcname: str, target: str, mtime=None) -> None:
 
 
 def _add_regular(tar, packing: "_Packing", handle, info, dir_path: Path, arcname: str) -> None:
-    '''A regular file: its bytes, or -- hard-linked -- a link to its home or
-    to its first name in this archive.'''
+    '''Store a regular file's bytes, or a hard-linked one as a link to its home or first name.'''
     if info.st_nlink > 1 and packing.homes is not None:
         if packing.homes.leaves(info):
             # 🔴 A name outside the job: this could be PDK data hard-linked in.
@@ -205,8 +179,7 @@ def _add_regular(tar, packing: "_Packing", handle, info, dir_path: Path, arcname
 ######################################################################
 
 def _parts(root, path):
-    '''``path`` as components under ``root``, lexically. Raises
-    PermissionError for one that is not under it at all.'''
+    '''``path`` as components under ``root``, lexically; PermissionError if not under it.'''
     root = os.path.abspath(str(root))
     rel = os.path.relpath(os.path.abspath(str(path)), root)
     parts = rel.split(os.sep)
@@ -304,8 +277,7 @@ def _open_file_by_path(root, path) -> int:
     if not inside(root, path):
         raise PermissionError(f"{path} is not under {root}")
     real = os.path.realpath(str(path))
-    # Checked BEFORE opening as well as after: opening a FIFO blocks, and with
-    # no O_NONBLOCK there is nothing else to stop it.
+    # Checked before opening too: with no O_NONBLOCK, opening a FIFO blocks.
     if not stat.S_ISREG(os.stat(real).st_mode):
         raise PermissionError(f"{path} is not a regular file")
     return _regular(os.open(real, os.O_RDONLY | _NONBLOCK | getattr(os, "O_BINARY", 0)),

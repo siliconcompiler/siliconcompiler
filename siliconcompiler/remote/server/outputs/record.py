@@ -1,23 +1,15 @@
 '''
-The server's own record of a job, kept apart from the run's (surface D295).
+The server's own record of a job, kept apart from the run's `logs` (surface D295).
 
-Two records, for two readers, and neither is ever inside the run's `logs`:
+``staging``      for the submitter: what this server did from create to
+                 dispatch, a section per staging pass, every line scrubbed like
+                 `detail`
+``diagnostics``  for the operators, not scrubbed: named files in one tar, never
+                 handed over the API. A new sort of record is a new file name,
+                 never a new kind
 
-``staging``      for the person who submitted the job: what this server did
-                 from create to dispatch -- what it fetched and could not, what
-                 the manifest's read found, each Python package it installed or
-                 substituted and each it sent the job back for, with why, and
-                 each image it pulled. A section each time the job stages, and
-                 every line scrubbed like `detail`, since everyone who can read
-                 the job reads it.
-``diagnostics``  for the deployment's operators, and not scrubbed: named files
-                 in one tar -- the builder's own output (``builder.log``), the
-                 runner's (``run.log``), and the scheduler's view of the job
-                 and of each node (``slurm.txt``). A new sort of record is a new
-                 file name here, never a new kind. Never handed over the API.
-
-Both live in the job root, beside the progress file and above the tree an
-upload expands into, so nothing a job uploads or runs can write them.
+Both live in the job root, above the tree an upload expands into, so nothing a
+job uploads or runs can write them.
 '''
 
 import logging
@@ -35,16 +27,14 @@ __all__ = ["STAGING_LOG", "DIAGNOSTICS_DIR", "begin_pass", "note", "keep",
 logger = logging.getLogger("sc-server")
 
 
-# The job's `staging` record, as it is written.
 STAGING_LOG = "sc-server-staging.log"
 
-# The files `diagnostics` packs: job-level at its top, a node's under
-# ``<step>/<index>/``.
+# Job-level files at its top, a node's under ``<step>/<index>/``.
 DIAGNOSTICS_DIR = "sc-server-diagnostics"
 
 
 def begin_pass(job_root) -> None:
-    '''A new section of the `staging` record: this pass of staging starts.'''
+    '''Start a new section of the `staging` record for this staging pass.'''
     root = Path(job_root)
     passes = 0
     try:
@@ -56,15 +46,13 @@ def begin_pass(job_root) -> None:
 
 
 def note(job_root, lines: Iterable[str]) -> None:
-    '''Lines of the `staging` record, each scrubbed and bounded like
-    `detail`.'''
+    '''Append lines to the `staging` record, each scrubbed and bounded like `detail`.'''
     _append(Path(job_root), [bound(str(line)) for line in lines])
 
 
 def keep(job_root, name: str, text: str, step: Optional[str] = None,
          index: Optional[str] = None) -> None:
-    '''One named file of `diagnostics`: the job's, or a node's. Appended to,
-    since a job may stage more than once, and kept as it was written.'''
+    '''Append to one named `diagnostics` file, the job's or a node's.'''
     where = Path(job_root) / DIAGNOSTICS_DIR
     if step is not None:
         where = where / step / index
@@ -78,8 +66,7 @@ def keep(job_root, name: str, text: str, step: Optional[str] = None,
 
 def diagnostics_files(job_root, step: Optional[str] = None,
                       index: Optional[str] = None):
-    '''What `diagnostics` holds for the job, or for one node: ``(name, path)``
-    pairs, the runner's own log among the job's.'''
+    '''``(name, path)`` pairs `diagnostics` holds for the job or one node.'''
     from siliconcompiler.remote.server.running.dispatch import RUN_LOG
 
     root = Path(job_root)

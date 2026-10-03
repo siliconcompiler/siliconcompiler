@@ -1,12 +1,9 @@
 '''
 The Flask application.
 
-Flask rather than an async framework because the criterion is testability:
-every one of this profile's endpoints is request-in, response-out, and against
-``app.test_client()`` those tests have no port, no event loop and no teardown.
-The one route that is not is the log stream `/logs` redirects to, and the
-contract already lets the stream host be a separate origin -- so if SSE under
-WSGI proves awkward it moves out without a client change.
+Flask, not an async framework, for testability: every endpoint is request-in,
+response-out under ``app.test_client()``. The one exception, the log stream,
+may move to a separate origin without a client change.
 '''
 
 import logging
@@ -56,22 +53,13 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
                public_origins: Optional[List[str]] = None):
     '''Build the application for one deployment.
 
-    Everything a handler needs hangs off the app: the store, the config, the
-    token issuer, and which scheduler a job is dispatched through.
-
-    ``bind_keys`` is the first-contact key binding, and it is on by default.
-    Turning it off declares the deployment a single trust domain, which a
-    container fleet has to do (see `TokenIssuer`).
-
-    ``test_mode`` is one of ``config.TEST_MODES``, applied under config.json.
-
-    ``public_origins`` is where this deployment is reached when config.json
-    names none; the entry point passes this host's names on its port, and a
-    test client's is ``http://localhost``.
+    ``bind_keys`` off declares the deployment a single trust domain, which a
+    container fleet has to do (see `TokenIssuer`). ``test_mode`` is one of
+    ``config.TEST_MODES``; ``public_origins`` applies where config.json names
+    none.
     '''
-    # Fail with the install command rather than a traceback. The entry point
-    # is importable whether or not the ``server`` extra is, so ``--help`` works
-    # without it; only starting a server needs the extra.
+    # The install command, not a traceback: the entry point imports without
+    # the ``server`` extra, so ``--help`` works.
     if missing_server_dependency:                               # pragma: no cover
         raise ModuleNotFoundError(
             f"{missing_server_dependency} is required to run the server: "
@@ -81,16 +69,14 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     datadir = Path(datadir).resolve()
     datadir.mkdir(parents=True, exist_ok=True)
 
-    # 🔴 Nothing under the data directory is importable here: every job's
-    # extracted archive is under it. This process reads no manifest at all
-    # (contract §1): that is `manifestread`, a process of its own.
+    # 🔴 Nothing under the data directory is importable: every job's extracted
+    # archive is there. No manifest is read in this process (contract §1).
     _keep_off_path(datadir)
 
     config = Config.load(datadir, test_mode=test_mode)
     if cluster == "slurm" and not config["containers"] and "python.env" in config["features"]:
-        # 🔴 Bare Slurm with no builder advertises no `python.env`: the install
-        # runs while staging, on this host, and a node elsewhere would run
-        # what this host's Python and platform chose.
+        # 🔴 Without a builder the install runs while staging, on this host, and
+        # a Slurm node elsewhere would run what this host's platform chose.
         raise ValueError("features lists python.env, and nodes run on Slurm hosts "
                          "with no container to build an environment into; turn on "
                          "containers and env_builder, or leave python.env out")
@@ -100,9 +86,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     issuer = TokenIssuer(datadir, store, bind_keys=bind_keys)
 
-    # Derived from the same secret the tokens are signed with, so an operator
-    # has one file to protect. What keeps that safe is that neither signature
-    # can be presented as the other: see Storage's key derivation.
+    # Derived from the token secret, so an operator protects one file; neither
+    # signature can pass as the other (see Storage's key derivation).
     storage = Storage(datadir, config["storage_uri_base"], issuer.secret)
 
     app = flask.Flask(__name__)
@@ -120,10 +105,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _check_page_scheme(config["web_url_base"], app.config["SC_PUBLIC_ORIGINS"])
     _register_error_handlers(app)
-    # 🔴 The portal is served wherever the API is (implementation-notes §O).
-    # Where that is plain http beyond this machine, its session cookie is a
-    # bearer secret on the wire, beside the signed storage route and the
-    # stream URL that contract rule 3 permits there -- so say so, once.
+    # 🔴 The portal is served wherever the API is (implementation-notes §O), so
+    # over plain http its session cookie is a bearer secret on the wire.
     beyond = plaintext_origins(app.config["SC_PUBLIC_ORIGINS"])
     if beyond:
         logging.getLogger("sc-server").warning(
@@ -134,9 +117,9 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     @app.teardown_request
     def _release_connection(_error=None):
-        # 🔴 Every request runs on a thread of its own, so the connection it
-        # opened is released as it ends (see `Store.release`). A log stream's
-        # generator runs after this, on the same thread, and releases its own.
+        # 🔴 Each request runs on its own thread, so its connection is released
+        # as it ends (`Store.release`); a log stream's generator runs after
+        # this and releases its own.
         store.release()
 
     from siliconcompiler.remote.server import portal
@@ -150,19 +133,15 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     app.register_blueprint(artifacts.blueprint)
     app.register_blueprint(portal.blueprint)
 
-    # Browser sessions live here and nowhere else -- see portal.Sessions for
-    # why they are not a table.
+    # Browser sessions live here and nowhere else (see portal.Sessions).
     app.config["SC_PORTAL"] = portal.Sessions()
 
-    # 🔴 **One SiliconCompiler, the one this server runs** (profile §5): the
-    # manifest's read is this server's own, so a job may resolve to no other.
-    # Where jobs run in containers, a live image must hold it or nothing could
-    # be dispatched -- found here rather than at somebody's first submit.
+    # 🔴 One SiliconCompiler, the one this server runs (profile §5): checked here
+    # rather than at somebody's first submit.
     _check_an_image_holds_this_version(store, config)
     _report_read_containment()
 
-    # Before anything can refuse, so every `detail` this server publishes is
-    # held to the deployment's `limits.max_detail_chars`.
+    # Before anything can refuse, so every `detail` is held to the bound.
     errors.set_detail_max(config.limits["max_detail_chars"])
     # What a published `detail` must never say about this deployment (D122).
     import socket
@@ -171,10 +150,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
         + private_paths(config["private_dataroots"] or {}),
         names=[socket.gethostname(), socket.getfqdn()])
 
-    # 🔴 Last, and after the checks, because it is the one step whose failure
-    # must not be the reason this server does not start. A full disk says what
-    # it is; a server that refused to come up because it could not delete
-    # something does not.
+    # 🔴 Last: a failed sweep must never be why this server does not start.
     reaper.sweep(store, storage, config, datadir)
 
     return app
@@ -202,12 +178,9 @@ def plaintext_origins(origins) -> List[str]:
 
 
 def _check_page_scheme(web_url_base, origins) -> None:
-    '''🔴 Contract rule 5, as the owner states it (D70): an answer to an
-    `https` request sends the client only to `https` URLs. Every other URL is
-    built on the origin a request arrived at; `POST /v1/auth/browser`'s link is
-    built on `web_url_base`, so an `http` one beside any `https` origin would
-    send an `https` caller to plain `http`. An `https` one beside `http`
-    origins is allowed: an `http` answer may send the client to either.'''
+    '''🔴 Contract rule 5 (D70): an answer to an `https` request sends only to
+    `https` URLs. `POST /v1/auth/browser`'s link is built on `web_url_base`, so
+    that may not be `http` beside an `https` origin.'''
     from urllib.parse import urlsplit
 
     if not web_url_base or urlsplit(str(web_url_base)).scheme != "http":
@@ -237,9 +210,8 @@ def _origins(values) -> List[str]:
 
 
 def _report_read_containment() -> None:
-    '''Say at startup what the manifest's read cannot contain itself with
-    on this host (profile §5): no network namespace where unprivileged user
-    namespaces are off, no resource limits where the platform has none.'''
+    '''Warn at startup of what the manifest's read cannot contain itself with
+    on this host (profile §5).'''
     from siliconcompiler.remote.server.staging import sandbox
 
     logger = logging.getLogger("sc-server")
@@ -270,12 +242,8 @@ def _check_an_image_holds_this_version(store, config) -> None:
 
 
 def _register_error_handlers(app) -> None:
-    '''Render every refusal this server produces as RFC 9457.
-
-    The promise is scoped to what a handler produced: a proxy in front of this
-    server, and Flask's own routing below it, answer in their own shapes. What
-    is in reach here is made to conform, and the client tolerates the rest.
-    '''
+    '''Render every refusal this server produces as RFC 9457. A proxy in front
+    answers in its own shape, which the client tolerates.'''
 
     from siliconcompiler.remote.server.routes.errorpages import help_link
 
@@ -288,9 +256,8 @@ def _register_error_handlers(app) -> None:
         return response
 
     def _occurrence(body, status):
-        '''🔴 Which request this was (surface D152): `instance` and a
-        correlation id, so a support ticket names one request instead of a
-        five-minute window -- and the server's log carries the same id.'''
+        '''🔴 Which request this was (surface D152): `instance`, and a
+        correlation id the server's log carries too.'''
         body.setdefault("instance", flask.request.path)
         body.setdefault("trace_id", errors.trace_id(flask.request.headers))
         if status >= 500:
@@ -320,10 +287,8 @@ def _register_error_handlers(app) -> None:
             response.headers[name] = value
         return response
 
-    # Routing answers before any handler runs, so these four would otherwise
-    # leave Flask's HTML. They carry nothing a client branches on beyond the
-    # status, but returning the registry's URI costs nothing and means a
-    # developer who looks one up finds a page.
+    # Routing answers before any handler runs, so these would otherwise be
+    # Flask's HTML.
     _routing = {
         404: "not-found",
         405: "method-not-allowed",
@@ -340,8 +305,7 @@ def _register_error_handlers(app) -> None:
             if slug == "method-not-allowed":
                 allowed = getattr(exc, "valid_methods", None)
                 if allowed:
-                    # RFC 9110 requires the header; a bare 405 is
-                    # non-conforming.
+                    # RFC 9110 requires the header on a 405.
                     response.headers["Allow"] = ", ".join(allowed)
             return response
         return handler

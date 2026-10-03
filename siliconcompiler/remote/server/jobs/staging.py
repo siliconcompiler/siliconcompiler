@@ -1,8 +1,6 @@
 '''
 Staging: the manifest's read, the sources fetched, the job sent back for what
 cannot be had, and every refusal before a node runs.
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import json
@@ -38,25 +36,19 @@ class StagingMixin:
                          name=f"prepare-{job_id[:8]}").start()
 
     def _prepare(self, job_id: str) -> None:
-        '''Everything between submit and `queued`: unpack and check the
-        upload, fetch what the run needs and the server does not hold, copy
-        earlier results, build environments, then dispatch -- or send the job
-        back asking for what could not be had.
+        '''Everything between submit and `queued`, in order: unpack and check
+        the upload, fetch sources, copy earlier results, install or build the
+        job's Python packages, dispatch -- or send the job back for what could
+        not be had.
 
-        In parallel, a timeout per source and one deadline for the fetch. A
-        transient failure is retried until that deadline; a permanent one --
-        and whatever is still missing at the deadline -- goes back to the
-        client, which has the credentials the server does not.
+        Fetches run in parallel, transient failures retried to one deadline;
+        what still fails goes back to the client, which holds the credentials.
 
-        🔴 **Bounded as a whole by the caller's `max_staging_seconds`**, set
-        as this pass starts: the fetch, the manifest's read and the install
-        each run against what is left of it, and past it the job ends
-        `failed`, `staging-timed-out` (surface D294). A job sent back and
-        submitted again is a new pass, with a fresh deadline.
+        🔴 The whole pass is bounded by `max_staging_seconds` (surface D294);
+        a resubmit gets a fresh deadline.
 
         🔴 A refusal found in the upload ends the job `rejected`; this server's
         own failure ends it `failed`, `staging-failed`, never `rejected`.
-        Whichever way the pass ends, what it did is the job's `staging` record.
         '''
         import time
         from concurrent.futures import ThreadPoolExecutor, wait as futures_wait
@@ -88,14 +80,13 @@ class StagingMixin:
 
             timeout = self._config["fetch_timeout_seconds"]
             deadline = time.monotonic() + self._config["fetch_deadline_seconds"]
-            # What only the client can send goes back with whatever fails to
-            # fetch: one trip to `awaiting_input`, asking for all of it.
+            # What only the client can send goes back with fetch failures, in
+            # one trip to `awaiting_input`.
             failed = [(entry, "this server does not hold it and cannot fetch it")
                       for entry in entries if entry.status == owners.ASK]
             pause = 2
             while wanted:
-                # 🔴 Watched rather than waited on: a cancel stops the fetch,
-                # and so does the end of the staging limit.
+                # 🔴 Watched, not waited on: a cancel or the staging limit stops it.
                 pool = ThreadPoolExecutor(max_workers=4)
                 each = max(1, int(min(timeout, self._staging_left(job_id))))
                 tried = {key: pool.submit(self._fetch, key[0], key[1], each)
@@ -138,9 +129,8 @@ class StagingMixin:
             if job["state"] != "staging":
                 raise _NoLongerStaging(job_id)
 
-            # 🔴 A private dataroot whose fetch failed is never asked for
-            # (surface D299): nothing the client can send may stand in for it,
-            # so the job is rejected with the refusal create would have given.
+            # 🔴 A private dataroot is never asked for (surface D299): its failed
+            # fetch rejects the job, as create would have.
             private = [(entry, why) for entry, why in failed
                        if entry.origin == owners.PRIVATE]
             if private:
@@ -154,24 +144,19 @@ class StagingMixin:
                 self._send_back(job, failed)
                 return
 
-            # Everything in hand: a missing file in a fetched copy is refused
-            # here, from `staging` -- and then it queues, and only moves on.
+            # Everything in hand: a file missing from a fetched copy is refused.
             entries = self._account(job, summary, unpacked)
 
-            # The results of each node this run reads and does not run, from
-            # the earlier job that ran it (surface D175).
+            # Each node the run reads and does not run (surface D175).
             copies = self._account_upstream(job, summary, unpacked)
             if copies:
                 self._phase(job_id, "copying earlier results")
             self._copy_results(job, unpacked, copies)
             self._check_staging_time(job_id, "copying earlier results")
 
-            # The job's Python packages: installed here where nodes run on this
-            # host, so one that will not install rejects the job before any
-            # node runs; built into an image on each one a node running the
-            # user's Python resolved to where they run in containers -- which
-            # needs the images resolved first. A package no configured index
-            # has sends the job back for its wheel.
+            # The job's Python packages: installed on this host, or built over
+            # the resolved images with containers. A package no index has sends
+            # the job back for its wheel.
             absent = self._install_on_host(job, summary)
             plan = None
             if not absent:
@@ -192,8 +177,7 @@ class StagingMixin:
             # Already recorded on the job by `_refuse`.
             pass
         except _NoLongerStaging:
-            # Cancelled while it staged: nothing holds it, so this is where its
-            # `cancelled` is written.
+            # Cancelled while it staged: its `cancelled` is written here.
             job = self._row(job_id)
             if not job["scheduler_job_id"]:
                 self._settle_cancelled(job)
@@ -224,8 +208,7 @@ class StagingMixin:
             self._store, self._config, job["user_id"])["max_staging_seconds"])
 
     def _staging_left(self, job_id: str) -> float:
-        '''Seconds left of this pass of staging, or infinity where no pass is
-        in hand -- a phase run outside one is bounded by its own limit alone.'''
+        '''Seconds left of this pass of staging, or infinity outside a pass.'''
         import time
 
         deadline = self._staging_deadlines.get(job_id)
@@ -238,8 +221,7 @@ class StagingMixin:
 
     def _time_out_staging(self, job_id: str, doing: str) -> None:
         '''The pass ran past `max_staging_seconds`: `failed`,
-        `staging-timed-out`, naming the limit and what it was doing -- the
-        job's own limit, not this server's failure.'''
+        `staging-timed-out`, naming what it was doing.'''
         job = self._row(job_id)
         if job["state"] == "cancelling" and not job["scheduler_job_id"]:
             self._settle_cancelled(job)
@@ -261,8 +243,7 @@ class StagingMixin:
         logger.warning(f"{job_id}: {detail}")
 
     def _fail_staging(self, job_id: str, detail: str) -> None:
-        '''This server's own failure while staging: `failed`, `staging-failed`,
-        with `detail` naming what failed -- and in the job's `staging` record.'''
+        '''This server's own failure while staging: `failed`, `staging-failed`.'''
         job = self._row(job_id)
         if job["state"] == "cancelling" and not job["scheduler_job_id"]:
             # Cancelled while it failed: what the owner did stands.
@@ -285,8 +266,8 @@ class StagingMixin:
         record.note(self.job_root(job["user_id"], job["id"]), lines)
 
     def _keep_staging_record(self, job_id: str) -> None:
-        '''The `staging` record as this pass leaves it, indexed -- and, for a
-        job that has ended, the operators' record beside it.'''
+        '''Index the `staging` record as this pass leaves it, and the operators'
+        record for a job that has ended.'''
         job = self._row(job_id)
         root = self.job_root(job["user_id"], job_id)
         try:
@@ -300,8 +281,8 @@ class StagingMixin:
             logger.warning(f"{job_id}: could not keep the staging record: {e}")
 
     def _fetch(self, source: str, ref: str, timeout: int) -> str:
-        '''One source into this server's copy -- or, where `fetch_fails` is
-        set, a permanent failure, so the job goes back to its client.'''
+        '''One source into this server's copy, or a permanent failure under
+        `fetch_fails`.'''
         from siliconcompiler.remote.server.staging.sources import Permanent
 
         if self._config["fetch_fails"]:
@@ -310,21 +291,14 @@ class StagingMixin:
         return self._sources.fetch(source, ref, timeout)
 
     def _send_back(self, job, failed, python=()) -> None:
-        '''`staging` back to `awaiting_input` -- the one backwards edge
-        (surface D130) -- naming what failed, and nothing else.
+        '''`staging` back to `awaiting_input`, the one backwards edge (surface
+        D130), asking for what failed and saying why for each.
 
-        ``failed`` is ``(entry, why)`` pairs for dataroots, and ``python`` is
-        ``(name, why)`` for each Python package the install could not have from
-        an index -- a version none lists, or one offered only as a source --
-        which the client answers with its wheel (surface *How it is built,
-        while the job is staging*). The transition says why for each: a job
-        going backwards is the one move a person watching it will not expect,
-        and "a source could not be fetched" tells them nothing about which or
-        what to do.
+        ``failed`` is ``(entry, why)`` for dataroots; ``python`` is
+        ``(name, why)`` for packages the client answers with a wheel.
 
-        ⚠️ The job counts against `pending_uploads` again and frees its
-        `concurrent_jobs` slot, both because those count by state; and
-        `abandon_after_seconds` runs again from this transition.
+        ⚠️ The job counts against `pending_uploads` again, frees its
+        `concurrent_jobs` slot, and its abandonment clock restarts.
         '''
         asked, reasons = [], []
         for entry, why in failed:
@@ -339,8 +313,7 @@ class StagingMixin:
         reason = (f"{len(asked)} source(s) this server cannot supply, so the client "
                   "is asked to send them -- " + "; ".join(reasons))
         self._note(job, [f"sent back for {one}" for one in reasons])
-        # 🔴 Remembered: the wheel answering one replaces its listed entry, and
-        # is the one wheel allowed to overlap the lists.
+        # 🔴 The wheel answering one replaces its entry, and alone may overlap.
         answered = sorted(set(json.loads(job["python_answered"] or "[]"))
                           | {name for name, _ in python})
         with self._store.transaction():
@@ -355,9 +328,7 @@ class StagingMixin:
     def _refuse_staging(self, job, problem: ProblemError) -> ProblemError:
         '''`_refuse`, for a job that may have moved on while it waited.
 
-        🔴 A build can take minutes, and a job cancelled meanwhile is
-        `cancelled`: refusing it afterwards would rewrite what its owner did as
-        something the server decided.
+        🔴 A job cancelled meanwhile stays `cancelled`, as its owner decided.
         '''
         current = self._row(job["id"])
         if current["state"] != "staging":
@@ -371,22 +342,12 @@ class StagingMixin:
     def _check_denied(self, job, summary) -> None:
         '''Refuse a run that uses a PDK, library or tool nobody may use.
 
-        🔴 **After the manifest's read and before image resolution**: what the
-        manifest names is only known once it is open, and *you may not use it*
-        is asked before *can this server provide it* -- a denied tool this
-        deployment has no image for is still a denial, and the caller should
-        hear the answer that does not change when an image is added.
+        🔴 After the manifest's read and before image resolution: a denial is
+        the answer that does not change when an image is added.
 
-        ⚠️ The first one found is the one named, in the order PDK, library,
-        FPGA device, tool, because the slug carries one `resource`. The detail
-        says how many more there are, so fixing one is not followed by a
-        surprise.
-
-        ⚠️ **A summary that lies can evade this**, since the names are the
-        read's (contract §1, *The summary cannot widen access*). That widens
-        nothing here: `denied_resources` is a test stand-in for grants, and
-        this profile has no controlled resources, no content index and no
-        gate a summary feeds -- anyone may upload the same files anyway.
+        ⚠️ The first found is named (one `resource`), the detail counting the
+        rest. A lying summary can evade it, which widens nothing on this
+        profile (contract §1, *The summary cannot widen access*).
         '''
         wanted = _resources(summary) + [("tool", name) for name in summary["tools"]]
 
@@ -407,17 +368,12 @@ class StagingMixin:
     ######################################################################
 
     def _read(self, job, root: Path) -> Dict[str, Any]:
-        '''Read the uploaded manifest -- in a process of its own, never this
-        one -- and act on what the read says.
+        '''Read the uploaded manifest in a process of its own and act on what
+        it says; returns :meth:`_summary`'s shape.
 
-        🔴 **Contract §1, *No server process holding credentials parses a
-        manifest*.** The read is `manifestread`, started contained by
-        `sandbox`; what comes back is data, validated here, stored in the job
-        root, and every check after it works from it. The descriptor said what
-        the client believed; this is what it sent, and only this side is
+        🔴 Contract §1: `manifestread`, contained by `sandbox`, returns data
+        that is validated here and stored. This, not the descriptor, is
         authoritative, which is why the checks run twice.
-
-        Returns the summary, as :meth:`_summary` shapes it for the checks.
         '''
         unpacked = root / job["design"] / job["jobname"]
         if not (unpacked / f"{job['design']}.pkg.json").is_file():
@@ -435,8 +391,7 @@ class StagingMixin:
         except sandbox.Cancelled:
             raise _NoLongerStaging(job["id"]) from None
         except sandbox.ReadFailed as e:
-            # 🔴 Out of the staging limit rather than the read's own: the job's
-            # limit, `staging-timed-out`, not a manifest that could not be read.
+            # 🔴 Out of the staging limit, not the read's own: `staging-timed-out`.
             if e.timed_out and self._staging_left(job["id"]) <= 1:
                 raise _StagingTimedOut("reading the manifest") from None
             raise self._refuse_staging(job, ProblemError(
@@ -467,25 +422,19 @@ class StagingMixin:
             + (f"; it found {raw['outcome'].get('type', 'a refusal')}"
                if isinstance(raw.get("outcome"), dict) else "")])
 
-        # 🔴 In the job root, above the tree the upload expanded into, so no
-        # upload can write it: a resumed staging and a follow-up's allowed set
-        # read it back.
+        # 🔴 Above the upload's tree, so no upload can write it.
         runspec.write_json(root / runspec.SUMMARY_FILENAME, raw)
         try:
             return self._act_on(job, raw)
         except BaseException:
             if raw.get("credentials"):
-                # 🔴 The extracted tree is a second copy of a credential, and
-                # a job refused goes no further. The upload itself went with
-                # the refusal (`_refuse`), and only the record of why is kept.
+                # 🔴 The extracted tree is a second copy of a credential.
                 shutil.rmtree(root, ignore_errors=True)
             raise
 
     def _run_read(self, job, root: Path, asked) -> Any:
-        '''The read: in the job's own image where this deployment runs jobs in
-        containers, and on this host otherwise, as a subprocess of this
-        server's own SiliconCompiler -- the one version it advertises, so the
-        one every job resolves to (profile §5, D63).'''
+        '''The read: in the job's own image with containers, else on this host
+        under this server's own SiliconCompiler (profile §5, D63).'''
         limits = dict(
             # Its own limit, or what is left of this pass of staging.
             timeout=max(1, min(self._config["manifest_read_timeout_seconds"],
@@ -505,8 +454,7 @@ class StagingMixin:
             try:
                 return sandbox.run_read_in_image(asked, workdir, ref, **limits)
             except OSError as e:
-                # 🔴 The job's image that cannot be had while staging is this
-                # server's failure, not the job's (database D145).
+                # 🔴 This server's failure, not the job's (database D145).
                 raise _ServerFailure(str(e)) from None
 
         # A bundle of the job's own image, with nothing but its tree mounted.
@@ -526,9 +474,8 @@ class StagingMixin:
                                  f"{e}") from None
 
     def _stored_summary(self, job, root: Path) -> Dict[str, Any]:
-        '''The summary the job's last read stored, validated again; the read
-        run once more where there is none that validates -- a restart while the
-        read was running, after the upload was unpacked.'''
+        '''The summary the job's last read stored, validated again, or a fresh
+        read where none validates.'''
         path = root / runspec.SUMMARY_FILENAME
         try:
             with open(path, "rb") as f:
@@ -561,12 +508,8 @@ class StagingMixin:
                 detail=f"the manifest is {raw['design']}/{raw['jobname']} and the job "
                        f"is {job['design']}/{job['jobname']}"))
 
-        # 🔴 The first check against what the read reports (surface D302): a
-        # dataroot's path carrying userinfo, in any manifest the archive
-        # carries, named by keypath and never by value -- the first as
-        # `keypath`, and all of them in `detail`. Before anything is fetched or
-        # accounted for, and never stripped here: the upload is not kept
-        # (surface D307).
+        # 🔴 Userinfo in a dataroot path (surface D302), named by keypath, never
+        # value; before anything is fetched, and the upload is not kept (D307).
         found = raw.get("credentials") or []
         if found:
             named = ", ".join(owners.shown(keypath) for keypath in found)
@@ -581,12 +524,8 @@ class StagingMixin:
 
     @staticmethod
     def _summary(raw) -> Dict[str, Any]:
-        '''A validated summary, as the checks read it.
-
-        🔴 **The tools are this server's reading of the nodes**, never the
-        summary's own list: a check that widened nothing still has no reason to
-        believe a second copy of the same answer.
-        '''
+        '''A validated summary, as the checks read it; the tools are derived
+        from the nodes, never the summary's own list.'''
         nodes = [(entry["step"], entry["index"]) for entry in raw["nodes"]]
         node_tools = {(entry["step"], entry["index"]): entry["tool"] for entry in raw["nodes"]}
         edges = [tuple(edge) for edge in raw["edges"]]
@@ -604,16 +543,14 @@ class StagingMixin:
             "inherits": {(entry["step"], entry["index"]):
                          before.get((entry["step"], entry["index"]))
                          for entry in raw["nodes"] if entry["inherits"]},
-            # Each node whose task runs the user's Python: where the job's
-            # Python packages are installed.
+            # Where the job's Python packages are installed.
             "python": [(entry["step"], entry["index"])
                        for entry in raw["nodes"] if entry["python"]],
             "tools": sorted({tool for tool in node_tools.values() if tool}),
             "pdk": raw["pdk"],
             "libraries": list(raw["libraries"]),
             "fpga": raw["fpga"],
-            # What the flow reads (D129), from the `require` the client worked
-            # out and carried here; None where it could not.
+            # What the flow reads (D129); None where the client could not say.
             "required": ({tuple(key) for key in raw["required"]}
                          if raw["required"] is not None else None),
             "upstream": [tuple(node) for node in raw["upstream"]],

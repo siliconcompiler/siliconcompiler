@@ -1,8 +1,6 @@
 '''
 Reconciliation: what the run says it is doing, written into the store, and a
 job whose run is lost or silent ended.
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import json
@@ -15,8 +13,7 @@ from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.state.store import (
     PENDING_STATES, TERMINAL_NODE_STATES, TERMINAL_STATES, now)
 
-# A node the run has not finished with, as a condition on `job_nodes` and the
-# parameters it binds.
+# A node the run has not finished with, as a `job_nodes` condition and its params.
 _UNFINISHED = f"state NOT IN ({', '.join('?' * len(TERMINAL_NODE_STATES))})"
 _TERMINAL_NODES = tuple(sorted(TERMINAL_NODE_STATES))
 
@@ -24,23 +21,14 @@ _TERMINAL_NODES = tuple(sorted(TERMINAL_NODE_STATES))
 class ReconcileMixin:
     '''Reconciliation.'''
 
-    ######################################################################
-    # Reconciliation: what the run says it is doing
-    ######################################################################
-
     def reconcile(self, job) -> None:
-        '''Read the run's progress file and move the store to match.
-
-        The run writes a file beside its manifest; nothing calls back. That is
-        what lets the process running the flow and the process serving this API
-        be on different machines with nothing between them but a filesystem.
-        '''
+        '''Read the run's progress file and move the store to match. Nothing
+        calls back, so the run and this API share only a filesystem.'''
         if self.abandon_if_expired(job):
             return
 
         if job["state"] == "cancelling" and not job["scheduler_job_id"]:
-            # Cancelled while staging, and no staging thread is left to write
-            # its `cancelled` -- a restart in between.
+            # Cancelled while staging, with no staging thread left after a restart.
             with self._preparing_lock:
                 busy = job["id"] in self._preparing
             if not busy:
@@ -56,9 +44,7 @@ class ReconcileMixin:
             if job["scheduler_job_id"] and not self._alive(job):
                 self._lost(job)
             elif job["state"] == "staging":
-                # Its sources are being fetched -- or were, by a process that
-                # has since restarted. Picked up again; a fetch that finished is
-                # held and costs nothing.
+                # Picked up again after a restart; a finished fetch is held.
                 self._start_preparing(job["id"])
             return
 
@@ -78,31 +64,22 @@ class ReconcileMixin:
         if reported in ("completed", "failed"):
             self._finish(job, self._final(job, reported), progress)
         elif reported == "running" and self._silent(progress):
-            # 🔴 The run has stopped saying anything, and that is evidence the
-            # scheduler cannot give. See `_silent`.
+            # 🔴 Evidence the scheduler cannot give; see `_silent`.
             logger.warning(f"{job['id']} has not reported since "
                            f"{progress.get('heartbeat')}")
             self._lost(job)
         elif reported == "running" and job["scheduler_job_id"] and not self._alive(job):
-            # 🔴 Look again before declaring it lost. "The run says it is
-            # going" and "the scheduler has never heard of it" are read at two
-            # different moments, and a run that finished in between satisfies
-            # both -- the progress file in hand is stale and the scheduler's
-            # answer is fresh. Everything between the two readings widens that
-            # window, and indexing a node's results is not cheap.
-            #
-            # A job that really is gone reads the same file twice and is still
-            # `running`, which costs one stat to be sure of.
+            # 🔴 Look again before declaring it lost: a run that finished
+            # between reading the progress file and asking the scheduler looks
+            # lost by both.
             job_root = self.job_root(job["user_id"], job["id"])
             settled = runspec.read_progress(
                 job_root / runspec.PROGRESS_FILENAME,
                 job_root)
 
             if settled and settled.get("state") in ("completed", "failed"):
-                # 🔴 Its nodes as the settled file has them, before the job
-                # ends: the ones recorded above are from the stale file, and a
-                # node that finished between the two readings would otherwise
-                # end `cancelled` with the job, as if it had never run.
+                # 🔴 Nodes from the settled file before the job ends, or one
+                # that finished in between would end `cancelled`.
                 self._record_nodes(job, settled)
                 self._finish(job, self._final(job, settled["state"]), settled)
             else:
@@ -115,26 +92,12 @@ class ReconcileMixin:
             step, _, index = key.partition("/")
             state = node.get("state", "pending")
             if state in TERMINAL_NODE_STATES:
-                # 🔴 Every terminal state only once the node's artifacts are
-                # listed, `failed` and `cancelled` as well as `completed`
-                # (surface D310): a client that sees it fetches them. As the
-                # node finishes rather than as the job does, so a node that is
-                # done answers /logs with its archive while the rest of the
-                # flow is still running -- which is precisely the moment
-                # somebody tailing it asks.
+                # 🔴 Any terminal state only once the node's artifacts are listed
+                # (surface D310), indexed as the node finishes, not the job.
                 self._index_node(job, step, index)
 
-            # 🔴 A published field with no writer is a published field that
-            # lies: without this a node's error is null on every node, the
-            # failed ones included, so a client cannot tell *this node is why*
-            # from *this node is fine* without re-deriving it from the state it
-            # already has. `run-failed` is registered
-            # precisely for this: it is one of the slugs that are never an
-            # HTTP response and only ever a `type` on an error object.
-            # A node whose image would not pull was interrupted, not failed
-            # (implementation-notes §10): the runner says so from the
-            # runtime's own pull error, and `detail` names the image, or the
-            # limit a node ran into.
+            # 🔴 Written on every node, or a failed node's published `error`
+            # would be null (implementation-notes §10).
             error_type, error_members = _node_error(state, node)
 
             self._store.execute(
@@ -149,54 +112,34 @@ class ReconcileMixin:
     def _final(job, reported: str) -> str:
         '''The state a job ends in, for a run that reported ``reported``.'''
         if job["state"] == "cancelling":
-            # The cancel won the race to the scheduler; what the run managed
-            # to finish before it died does not change what was asked for.
+            # The cancel won the race; what the run finished does not change it.
             return "cancelled"
         return reported
 
     def _silent(self, progress) -> bool:
         '''Whether a run that claims to be going has stopped saying so.
 
-        🔴 **The backstop for a scheduler that is wrong.** A dynamic node
-        killed without deleting itself leaves Slurm reporting its jobs RUNNING
-        for ever on a machine that is gone. Every other check here asks the
-        scheduler, so every other check believes it.
+        🔴 The backstop for a wrong scheduler: a killed dynamic node can leave
+        Slurm reporting RUNNING for ever. The runner's heartbeat is on a timer,
+        since one node can run half an hour without a transition.
 
-        The runner writes a heartbeat on a timer rather than on node
-        transitions, because a single OpenROAD node runs for half an hour
-        without a transition: *nothing written lately* and *dead* have to be
-        told apart, and only a clock can do it.
-
-        ⚠️ **No heartbeat is silence**: the runner stamps one on every write,
-        so only a progress file it did not write lacks one.
+        ⚠️ No heartbeat is silence: the runner stamps one on every write.
         '''
         return (progress.get("heartbeat") or "") < _ago(self._config["run_heartbeat_seconds"])
 
     def abandon_if_expired(self, job) -> bool:
-        '''A job whose upload never arrived reaches a terminal state.
+        '''A job whose upload never arrived reaches a terminal state; returns
+        whether it moved.
 
-        🔴 **This is the only thing that writes `abandoned`.** Without it a job
-        created and never uploaded to would sit in `created` for ever: it would
-        hold a `pending_uploads` slot, appear on every listing, and -- because
-        the portal refreshes until a job is terminal -- its page would reload
-        itself indefinitely for a run that was never going to happen.
-
-        ⚠️ **Two ways to expire, because there are two ways to stall.** A job
-        that asked for a grant has one that lapses, which is the contract's
-        case. A job that was created and never asked has no expiry at all, so
-        the clock runs from its creation instead -- otherwise the only jobs
-        that could ever be abandoned are the ones that got furthest.
-
-        Returns whether it moved, so a caller can stop looking at it.
+        🔴 The only writer of `abandoned`: otherwise the job holds a
+        `pending_uploads` slot for ever.
         '''
         if job["state"] not in PENDING_STATES:
             return False
 
-        # The later of the two: old enough by the operator's clock, AND not
-        # holding a grant that is still good. A job whose upload is legitimately
-        # in flight has a live grant and is never taken.
-        # ⚠️ From the latest transition, not from creation: a job sent back
-        # to `awaiting_input` (D124) gets the clock again.
+        # The later of the operator's clock and a live grant, so an upload in
+        # flight is never taken; a job never granted one still expires.
+        # ⚠️ From the latest transition, so a job sent back (D124) starts again.
         deadline = max(
             _after(job["state_changed_at"] or job["created_at"],
                    self._config.limits["abandon_after_seconds"]),
@@ -219,14 +162,9 @@ class ReconcileMixin:
     def _reap_orphans(self, job) -> None:
         '''Stop the work a run left behind when it went away.
 
-        🔴 Marking a node `cancelled` in the store does not cancel anything. A
-        node is a scheduler job of its own, so a run that died abruptly leaves
-        its nodes running with nobody watching -- and the record then says
-        `cancelled` about work that is still burning a compute slot.
-
-        ⚠️ Only the jobs the scheduler still HAS. scancel answers an error for
-        one that has finished, and a warning per finished node is how an
-        operator learns to ignore warnings.
+        🔴 Each node is a scheduler job of its own, so marking it `cancelled`
+        stops nothing. ⚠️ Only jobs the scheduler still HAS, so finished ones
+        raise no warnings.
         '''
         nodes = [(row["step"], row["index"]) for row in self._store.all(
             'SELECT step, "index" FROM job_nodes WHERE job_id = ?', (job["id"],))]
@@ -245,17 +183,10 @@ class ReconcileMixin:
         self._dispatcher.cancel(None, node_job_ids=orphans)
 
     def node_placements(self, session, job_id: str):
-        '''Per node: the image it ran in, and the scheduler job it became.
+        '''Per node: the image it ran in, and the scheduler job it became --
+        deployment detail for the portal, never on the wire.
 
-        Neither is published on the wire -- a registry path and a scheduler id
-        are deployment detail -- so this is what the portal reads instead, and
-        it goes through the same ownership predicate every other read does.
-
-        ⚠️ It BACKFILLS. Accounting can lag the scheduler by seconds, so a node
-        that finished just before its job did can be missing from every poll
-        that ran and present by the time somebody looks. Asking at read time is
-        what turns that from a permanent gap into a late answer, and it costs
-        nothing once every node has an id.
+        ⚠️ It BACKFILLS, since accounting can lag the scheduler by seconds.
         '''
         job = self.owned(session, job_id)
         self._record_node_jobs(job)
@@ -270,22 +201,12 @@ class ReconcileMixin:
                     "FROM job_nodes WHERE job_id = ?", (job["id"],))}
 
     def _record_node_jobs(self, job, force: bool = False) -> None:
-        '''Write down which scheduler job each node became.
+        '''Write down which scheduler job each node became, so a cancel reaches
+        the work and support can answer *which Slurm job was that*.
 
-        🔴 Two things need it and neither can be done without it. A cancel has
-        to stop the work and not only the process coordinating it, since a
-        node is a job of its own; and *which Slurm job was that* is the question
-        a person brings to a support thread, which nothing else can answer.
-
-        🔴 **Throttled** (`SCHEDULER_QUERY_FLOOR`): every call is a `squeue`.
-        `force` is for the two callers that cannot accept a stale answer: a
-        cancel, which needs the ids to reach the work, and the last look before
-        a job goes terminal.
-
-        ⚠️ Asked for once and then never again. Only the nodes still missing an
-        id are looked up, so a job whose nodes are all recorded costs nothing --
-        which is what keeps this inside the once-per-run poll rather than
-        turning it into per-node polling.
+        🔴 Throttled (`SCHEDULER_QUERY_FLOOR`): each call is a `squeue`. `force`
+        is for a cancel and the last look before a job goes terminal. Only
+        nodes still missing an id are asked about.
         '''
         missing = [(row["step"], row["index"]) for row in self._store.all(
             'SELECT step, "index" FROM job_nodes '
@@ -299,17 +220,14 @@ class ReconcileMixin:
         try:
             found = self._dispatcher.node_jobs(job["id"], missing)
         except Exception as e:                                   # noqa: BLE001
-            # A gap in the record, and nothing more: this runs inside a poll
-            # that is answering somebody's request about the job itself.
+            # A gap in the record, never a failed request.
             logger.debug(f"could not read node jobs for {job['id']}: {e}")
             return
 
         if not found:
             return
 
-        # Each node claimed once: two reads backfilling at the same moment
-        # both find it missing, and only the one whose write lands keeps its
-        # record.
+        # Each node claimed once, by whichever concurrent backfill writes first.
         claimed = []
         with self._store.transaction():
             for (step, index), scheduler_id in found.items():
@@ -323,15 +241,8 @@ class ReconcileMixin:
         self._keep_late_records(job, claimed)
 
     def _keep_late_records(self, job, nodes) -> None:
-        '''The scheduler's record of each node whose id arrived after its job
-        was indexed, kept in its `diagnostics` as every other node's was.
-
-        ⚠️ Most often the last node to finish: it ends a moment before its job
-        does, accounting lags the scheduler by seconds, and the look `_finish`
-        takes before indexing can come back without it -- so the id arrives on
-        a read afterwards (`node_placements`), and the record the job's end
-        takes for every node with an id had nothing to ask for. A job still
-        going is left alone: its end takes them all.'''
+        '''Keep the scheduler's record of each node whose id arrived after its
+        job was indexed, usually the last node, in its `diagnostics`.'''
         if not nodes:
             return
         row = self._row(job["id"])
@@ -352,11 +263,8 @@ class ReconcileMixin:
                              f"{step}/{index}: {e}")
 
     def _node_job_ids(self, job):
-        '''Every node job this run has, as far as the store knows.
-
-        Refreshed first, because a node dispatched since the last poll has no
-        id recorded and is exactly the one a cancel most needs to reach.
-        '''
+        '''Every node job this run has, refreshed first: a node dispatched since
+        the last poll is the one a cancel most needs to reach.'''
         self._record_node_jobs(job, force=True)
 
         return [row["scheduler_job_id"] for row in self._store.all(
@@ -366,11 +274,8 @@ class ReconcileMixin:
     def _may_ask_scheduler(self, job_id: str) -> bool:
         """Whether enough time has passed to ask the scheduler again.
 
-        ⚠️ In memory and per process, which is the right shape rather than a
-        shortcut: it is a rate limit on THIS process's outbound calls, and two
-        API processes each asking at their own floor is exactly what a floor
-        per process means. Nothing depends on it being exact, and nothing is
-        lost when it resets -- the worst case is one extra `squeue`.
+        ⚠️ In memory and per process, deliberately: a rate limit on THIS
+        process's calls, whose reset costs one extra `squeue`.
         """
         import time as _time
 
@@ -387,18 +292,14 @@ class ReconcileMixin:
             return self._dispatcher.is_alive(job["scheduler_job_id"])
         except Exception as e:                                   # noqa: BLE001
             logger.error(f"could not ask the scheduler about {job['id']}: {e}")
-            # Cannot tell is not the same as gone, and declaring a live job lost
-            # is the more expensive mistake.
+            # Cannot tell is not gone: declaring a live job lost costs more.
             return True
 
     def _lost(self, job) -> None:
         '''The scheduler no longer has it and it never said how it ended.
 
-        🔴 Unless somebody was cancelling it, in which case this IS how it
-        ended. A cancel kills the run, so the very next poll finds a scheduler
-        with no job and a progress file still saying `running` -- which is
-        exactly the shape of a lost job and is not one. Telling a person their
-        cluster ate the run they just stopped is worse than saying nothing.
+        🔴 Unless it was being cancelled, which looks exactly like a lost job
+        and is how a cancel ends.
         '''
         self._reap_orphans(job)
 
@@ -408,21 +309,16 @@ class ReconcileMixin:
             return
 
         logger.warning(f"{job['id']} is gone from the scheduler with no result")
-        # 🔴 What it did leave, the operators' record above all -- a run the
-        # scheduler lost is the one somebody has to explain -- listed before
-        # its nodes and the job turn terminal (surface D310).
+        # 🔴 What it left, the operators' record above all, listed before the
+        # job turns terminal (surface D310).
         self._index(job)
         with self._store.transaction():
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, finished_at = ? WHERE id = ?",
                 (f"{TYPE_BASE}/run-interrupted", now(), job["id"]))
 
-            # 🔴 A node that had STARTED did not get cancelled, it died. The
-            # contract glosses `cancelled` as *the job ended before this node
-            # started*, so using it for a node that was running says something
-            # false about the one node somebody will look at first -- it is
-            # where the work stopped. `failed` is what *started and did not
-            # finish* means, and the environment ended it: `run-interrupted`.
+            # 🔴 A node that had STARTED died, not cancelled: `cancelled` means
+            # *the job ended before this node started*.
             self._store.execute(
                 "UPDATE job_nodes SET state = 'failed', error_type = ?, error_members = ? "
                 "WHERE job_id = ? AND state = 'running'",
@@ -430,8 +326,7 @@ class ReconcileMixin:
                  _members_json({"detail": "the run ended while this node was running, "
                                           "and never recorded how"}), job["id"]))
 
-            # Everything the run never reached. These really did end before
-            # they started.
+            # Everything the run never reached.
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL "
                 f"WHERE job_id = ? AND {_UNFINISHED}", (job["id"], *_TERMINAL_NODES))
@@ -441,12 +336,9 @@ class ReconcileMixin:
                        "recorded how it ended")
 
     def _settle_cancelled(self, job) -> None:
-        '''A cancel that has taken effect: `cancelling` to `cancelled`, and
-        every node it stopped `cancelled`, with no exit code and the cancel's
-        reason. No error: nothing went wrong.
-
-        A run the cancel stopped is indexed first, so its nodes and the job
-        turn `cancelled` only once what it left is listed (surface D310).'''
+        '''A cancel that has taken effect: the job and every unfinished node
+        `cancelled`, with the cancel's reason and no error. A stopped run is
+        indexed first (surface D310).'''
         if job["scheduler_job_id"] and job["state"] == "cancelling":
             self._index(job)
         with self._store.transaction():
@@ -464,24 +356,18 @@ class ReconcileMixin:
                              state_reason=said)
 
     def _finish(self, job, state: str, progress) -> None:
-        # Belt and braces, and cheap: a run that ended by crashing rather than
-        # by finishing can leave the same orphans a lost one does, and on a
-        # deployment where a node is not a scheduler job this asks nothing.
+        # A crashed run can leave the same orphans a lost one does.
         if state == "failed":
             self._reap_orphans(job)
 
-        # 🔴 One more look before nothing looks again. The LAST node to finish
-        # is dispatched after the second-to-last poll and finishes before the
-        # job does, so the poll that records the others has nothing to find for
-        # it -- and once the job is terminal no poll runs at all.
+        # 🔴 One more look: the LAST node can start and finish between polls,
+        # and once the job is terminal no poll runs.
         self._record_node_jobs(job, force=True)
 
         if job["state"] == state:
             return
 
-        # Indexed before the transition, so a job is never readable as terminal
-        # with an empty listing: the first thing a client does on seeing
-        # `terminal` is ask what the run produced.
+        # Indexed before the transition: a client seeing `terminal` lists at once.
         self._index(job)
         self._record_metrics(job)
 
@@ -494,8 +380,6 @@ class ReconcileMixin:
                        for key, node in nodes
                        if isinstance(node, dict) and isinstance(node.get("interrupted"), dict)]
         if state == "failed" and (interrupted or limited):
-            # A limit is `run-failed` with `detail` naming it; an image that
-            # would not pull is `run-interrupted`, naming the image.
             reason = "; ".join(interrupted + limited + ([reason] if reason else []))
         slug = "run-interrupted" if interrupted else "run-failed"
 
@@ -507,27 +391,24 @@ class ReconcileMixin:
             self._store.execute(
                 "UPDATE jobs SET finished_at = ? WHERE id = ?",
                 (progress.get("finished_at") or now(), job["id"]))
-            # 🔴 A terminal job has only terminal nodes: whatever the run never
-            # finished ended with it.
+            # 🔴 A terminal job has only terminal nodes.
             said = (job["state_reason"] or "cancelled") if state == "cancelled" else None
             self._store.execute(
                 "UPDATE job_nodes SET state = 'cancelled', exit_code = NULL, "
                 f"  state_reason = ? WHERE job_id = ? AND {_UNFINISHED}",
                 (said, job["id"], *_TERMINAL_NODES))
-            # 🔴 A cancelled job's transition carries the cancel's reason, and
-            # nothing of the server's: that is what `_transitions` serves whole.
+            # 🔴 A cancel's transition carries only the cancel's reason, which
+            # `_transitions` serves whole.
             self._transition(job["id"], job["state"], state,
                              reason=said if state == "cancelled" else reason,
                              state_reason=said)
 
     def _record_metrics(self, job) -> None:
-        '''Each node's metrics and records, into `job_nodes`, once, as the job
-        ends: what the portal's metrics panel reads (implementation-notes §E,
-        *The portal's metrics come from a table*).
+        '''Each node's metrics and records into `job_nodes`, once, as the job
+        ends, for the portal's panel (implementation-notes §E).
 
-        🔴 **Plain JSON, never SiliconCompiler** (contract §1, its second
-        paragraph): the run's final manifest is read with `json`, under a size
-        limit, and nothing read this way decides a refusal or a grant.
+        🔴 Plain JSON, never SiliconCompiler (contract §1), and nothing read
+        this way decides a refusal or a grant.
         '''
         root = self.job_root(job["user_id"], job["id"])
         found = _node_metrics(root / job["design"] / job["jobname"]
@@ -543,7 +424,7 @@ class ReconcileMixin:
 
     def node_metrics(self, session, job_id: str, step: str, index: str):
         '''One node's metrics and records as the job's end recorded them, or
-        None -- through the same ownership check as every read of a job.'''
+        None.'''
         self.owned(session, job_id)
         row = self._store.one(
             'SELECT metrics, records FROM job_nodes WHERE job_id = ? AND step = ? '
@@ -554,12 +435,8 @@ class ReconcileMixin:
                 "records": json.loads(row["records"]) if row["records"] else None}
 
     def _index(self, job) -> None:
-        '''Turn what the run left on disk into rows.
-
-        Never fatal: a job that ran is a job that ran, and failing to index its
-        output must not make it read as failed. The listing is empty, which is
-        a legal answer, and the log says why.
-        '''
+        '''Turn what the run left on disk into rows. Never fatal: a failed index
+        must not make a run read as failed.'''
         try:
             self._keep_scheduler_record(job)
             artifacts.collect(self._store, self._storage, self._config, job,
@@ -568,9 +445,8 @@ class ReconcileMixin:
             logger.error(f"could not index the results of {job['id']}: {e}")
 
     def _keep_scheduler_record(self, job) -> None:
-        '''What the scheduler says of the job's run, and of each node it ran,
-        into the operators' `diagnostics` as `slurm.txt` (surface D295) --
-        taken as the job ends, while the scheduler still remembers it.'''
+        '''What the scheduler says of the job and each node, into the operators'
+        `diagnostics` (surface D295), while the scheduler still remembers.'''
         root = self.job_root(job["user_id"], job["id"])
         if job["scheduler_job_id"]:
             said = self._dispatcher.describe(job["scheduler_job_id"])

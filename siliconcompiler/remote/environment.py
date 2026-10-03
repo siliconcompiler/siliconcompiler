@@ -1,28 +1,14 @@
 '''
-A job's Python packages: the create body's `python_packages`, and the wheels
-the job uploads (surface *A node's own Python packages, built while staging*).
+A job's Python packages: the create body's `python_packages` (``requirements``
+and ``constraints``) and the wheels it uploads (surface *A node's own Python
+packages, built while staging*).
 
-A testbench imports whatever its author had installed -- cocotb's plugins, a UVM
-library, `numpy` -- and the submitting machine is the one place that environment
-is known to exist. So the client lists it, once per job, in two lists of
-``name==version``: ``requirements``, the distributions the run's Python code
-imports, and ``constraints``, the version of every other distribution installed
-there. A distribution no index can supply -- installed editable, from a local
-path or file, or from git -- travels instead as a wheel the client built, under
-``sc_collected_files/python/``. The user's own modules are neither: they are
-collected files, in their test's collected folder.
+🔴 One grammar at both ends: each entry exactly ``name==version``, canonical,
+each name once, within :data:`MAX_ENTRIES` and :data:`MAX_BYTES`. No entry
+names an index, and the lists never reach pip: the server writes its own files
+from what :func:`parse` accepted (:func:`render`).
 
-🔴 **The lists are held to one grammar at both ends.** Every entry is exactly
-``name==version``: a PEP 508 name and a PEP 440 version in its canonical form,
-with no extras, marker, range, URL, path or option. Each name once across both
-lists; together at most :data:`MAX_ENTRIES` entries and :data:`MAX_BYTES`. **No
-entry names an index**: every package comes from the deployment's own. **The
-lists are never handed to pip**: the server writes its own requirements and
-constraints files from what :func:`parse` accepted, with :func:`render`.
-
-🔴 **A wheel is pure or it is refused** (:func:`check_wheel`): tagged
-``none-any``, holding no compiled file, and saying inside what its name says
-outside. Installing a wheel copies files and runs none of its code.
+🔴 A wheel is pure or refused (:func:`check_wheel`).
 '''
 
 import email.parser
@@ -48,36 +34,30 @@ __all__ = ["MAX_BYTES", "MAX_ENTRIES", "WHEELS", "COMPILED", "ROOT", "SITE", "IM
 MAX_BYTES = 64 * 1024
 MAX_ENTRIES = 1000
 
-# Where the uploaded wheels sit, under the collection directory. No hash
-# suffix, and every other collected folder has one, so it collides with none.
+# The wheels' folder under the collection directory: unhashed, so it collides
+# with no other collected folder.
 WHEELS = "python"
 
-# A compiled extension: built for the submitting machine, so it will not import
-# on the node.
+# Compiled extensions, built for the submitting machine.
 COMPILED = (".so", ".pyd", ".dylib")
 
-# Where host mode puts what it installed for the job, relative to the job's
-# directory: a link into the user's cache that the server writes after the
-# upload is extracted, and an upload may not carry.
+# Host mode's install for the job, relative to the job directory: a link the
+# server writes after extraction, which an upload may not carry.
 ROOT = "sc_python"
 SITE = "site"
 
-# Where a derived image puts what was installed for the job -- the container
-# mode's `site`. Absolute, inside the image; its own layer, never the image's
-# own site-packages, so it reaches the tool's PYTHONPATH and nothing else.
+# A derived image's install, its own layer, reaching only the tool's PYTHONPATH.
 IMAGE_SITE = "/opt/sc/python-env/site"
 
-# A PEP 508 name, which is what normalises under PEP 503.
 _NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
 _ENTRY = re.compile(rf"^(?P<name>{_NAME})==(?P<version>\S+)$")
 
-# What of a wheel is read to check it: its two metadata files, each bounded.
+# The bound on each metadata file read from a wheel.
 _METADATA_LIMIT = 1024 * 1024
 
 
 class PackagesError(ValueError):
-    '''`python_packages` outside its grammar or its bounds. ``entry`` is the
-    entry named, where there is one.'''
+    '''`python_packages` outside its grammar or bounds; ``entry`` names the entry.'''
 
     def __init__(self, why: str, entry: Optional[str] = None):
         super().__init__(f"{entry!r}: {why}" if entry is not None else why)
@@ -85,8 +65,7 @@ class PackagesError(ValueError):
 
 
 class WheelError(ValueError):
-    '''A file that is not a pure, well-formed wheel. ``compiled`` is the
-    compiled file that makes it impure, where that is why.'''
+    '''Not a pure, well-formed wheel; ``compiled`` names a compiled file that is why.'''
 
     def __init__(self, message: str, compiled: Optional[str] = None):
         super().__init__(message)
@@ -110,8 +89,7 @@ class Packages(NamedTuple):
         return {canonical(pin.name) for pin in self.requirements + self.constraints}
 
     def without(self, names: Iterable[str]) -> "Packages":
-        '''The lists less ``names``: what a wheel of the same distribution
-        replaces.'''
+        '''The lists less ``names``, which wheels replace.'''
         drop = {canonical(name) for name in names}
         return Packages(tuple(pin for pin in self.requirements if canonical(pin.name) not in drop),
                         tuple(pin for pin in self.constraints if canonical(pin.name) not in drop))
@@ -138,7 +116,6 @@ def parse_entry(text: Any) -> Pin:
         raise PackagesError(
             "not exactly name==version: extras, a marker, a range, a URL, a path, "
             "an option and whitespace are all refused", text)
-    # A PEP 440 version in its canonical form: what `packaging` prints it as.
     try:
         canonical_form = str(Version(found["version"])) == found["version"]
     except InvalidVersion:
@@ -150,8 +127,7 @@ def parse_entry(text: Any) -> Pin:
 
 
 def parse(member: Any) -> Packages:
-    '''`python_packages`, held to its grammar and bounds. Raises
-    PackagesError.'''
+    '''`python_packages`, held to its grammar and bounds. Raises PackagesError.'''
     if not isinstance(member, dict):
         raise PackagesError("python_packages is an object of requirements and "
                             "constraints")
@@ -193,8 +169,7 @@ def parse(member: Any) -> Packages:
 
 
 def render(pins: Sequence[Pin], header: str = "") -> str:
-    '''A requirements or constraints file of the builder's own, written from
-    what :func:`parse` accepted -- never the job's text handed on.'''
+    '''A requirements or constraints file written from parsed pins, never the job's text.'''
     lines = [f"# {line}" if line else "#" for line in header.splitlines()]
     lines.extend(f"{canonical(pin.name)}=={pin.version}" for pin in pins)
     return "\n".join(lines) + "\n"
@@ -211,8 +186,7 @@ def site_path() -> str:
 
 
 def wheel_name(filename: str) -> Optional[str]:
-    '''The canonical distribution a wheel's file name says it is (PEP 427), or
-    None for a name that is not a wheel's.'''
+    '''The canonical distribution a wheel's file name names (PEP 427), or None.'''
     try:
         return parse_wheel_filename(os.path.basename(filename))[0]
     except (InvalidWheelFilename, InvalidVersion):
@@ -220,21 +194,13 @@ def wheel_name(filename: str) -> Optional[str]:
 
 
 def check_wheel(path) -> Wheel:
-    '''The wheel at ``path``, held to what an upload may carry: named as a
-    wheel is, tagged ``none-any``, a zip whose members stay inside it and are
-    no link, no device and no compiled file, with one ``.dist-info`` that says
-    the same name and version as the file name. Raises WheelError.
+    '''The wheel at ``path``, held to what an upload may carry: ``none-any``,
+    members confined, no link, device or compiled file, one matching
+    ``.dist-info``. Reads only; runs nothing.
 
-    🔴 **Nothing that runs by itself, and no dependency by URL** (surface
-    D292): installing a wheel runs none of its code only while the files that
-    would run on their own are refused -- a ``.pth``, a top-level
-    ``sitecustomize.py`` or ``usercustomize.py``, which run in any Python that
-    merely starts with the wheel on its path -- and a ``<name>.data/``
-    directory, which installs outside the package. A ``Requires-Dist`` that is
-    a direct reference, ``name @ url``, would have the install fetch from, or
-    build, wherever it points.
-
-    Reads the zip's directory and its two metadata files, and runs nothing.
+    🔴 Nothing that runs by itself and no dependency by URL (surface D292): a
+    ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory
+    or a ``name @ url`` requirement would let installing run or fetch code.
     '''
     filename = os.path.basename(str(path))
     try:
@@ -343,9 +309,7 @@ _RUNS_AT_START = ("sitecustomize.py", "usercustomize.py")
 
 
 def _direct_reference(requirement: str) -> bool:
-    '''Whether a `Requires-Dist` entry names a URL -- `name @ url`, a `file:`
-    one among them -- rather than a distribution. One that cannot be parsed
-    counts as one: the install could not be told what it depends on.'''
+    '''Whether a `Requires-Dist` entry is ``name @ url``; an unparsable one counts.'''
     from packaging.requirements import InvalidRequirement, Requirement
 
     try:

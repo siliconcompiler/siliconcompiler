@@ -1,14 +1,7 @@
 '''
-Saying what went wrong, in three lines, without opening a URL.
-
-The ``type`` URIs are static documentation and are identical on every
-deployment, so the server cannot say anything specific through them -- which
-makes the client the only place the specific failure can be rendered. It holds
-the whole problem+json body, and most users never open the link.
-
-The shape is: what failed, the extension members that say which, and the
-support reference -- the job id for anything about a job, else the trace id --
-beside the page.
+Say what went wrong in three lines, without opening a URL: what failed, the
+extension members that say which, and the support reference beside the page.
+The ``type`` URIs are static, so only the client can render the specific failure.
 '''
 
 import re
@@ -33,7 +26,6 @@ class ServerProblem(RemoteError):
         self.problem = problem
         self.status = status
         self.help_url = help_url
-        # Seconds, never below 1, where the refusal said when to ask again.
         self.retry_after = retry_after
         super().__init__(describe(problem, status, next_step=next_step, help_url=help_url,
                                   job_id=job_id, titles=titles))
@@ -48,29 +40,20 @@ class ServerProblem(RemoteError):
 
 
 class SessionEnded(ServerProblem):
-    '''The session is over: log in again, and do not refresh.
-
-    Its own class because it is the one refusal whose answer is neither retry
-    nor give up -- three stored reasons collapse to one client branch, which is
-    why the contract gives them one slug and a `reason` member.
-    '''
+    '''The session is over: log in again, and do not refresh.'''
 
     @property
     def reason(self) -> str:
         return self.problem.get("reason") or "revoked"
 
 
-# The extension members that say *which*, in the order they are worth reading.
-# A slug names a kind of failure; one of these names the instance. `blocked_by`
-# has lines of its own.
+# The extension members that name the instance, in reading order.
 _DISCRIMINATORS = (
     "resource", "keypath", "limit", "reason", "feature", "artifact_kind", "job_ids",
     "resource_kind", "detected", "member", "step", "index", "job_id",
 )
 
-# What a person should do about it, from the registry's client column. Keyed on
-# the slug, because the slug is the API and `detail` is prose that may be
-# reworded. An unknown slug, or an unknown `reason`, falls to the status.
+# The registry's client action, keyed on the slug: `detail` may be reworded.
 _NEXT_STEP = {
     "limit-exceeded": "Wait and retry; this allowance refills.",
     "node-limit-exceeded": "Send a smaller flow.",
@@ -110,24 +93,21 @@ _NEXT_STEP = {
     "invalid-cursor": "Start the listing again.",
     "prior-results-unavailable": "Run from an earlier step, or name a job of your "
                                  "own whose results can be used.",
-    # Never HTTP responses: `type` values on a job's or a node's error object,
-    # which is where a user meets them.
+    # Never HTTP responses: `type` values on a job's or a node's error object.
     "run-failed": "It will fail the same way unchanged. Read the failing node's "
                   "log in the build directory this fetched, and change something "
                   "before you resubmit.",
     "run-interrupted": "The environment ended the run, not the job: resubmitting "
                        "unchanged may work.",
     "staging-failed": "The server could not get the job ready; submit again later.",
-    # Retried once in the transport with the nonce the server gave; seen here
-    # only when that retry was refused too.
+    # Seen only when the transport's retry with the nonce was refused too.
     "dpop-nonce-required": "The server wanted a fresh proof and refused the retry; "
                            "try again.",
 }
 
 
 def _by_status(status: Optional[int]) -> Optional[str]:
-    '''🔴 An unknown `type` is acted on by its status, as an untyped failure
-    is.'''
+    '''🔴 An unknown `type` is acted on by its status, as an untyped failure is.'''
     if not isinstance(status, int):
         return None
     if status >= 500:
@@ -162,25 +142,19 @@ _NEXT_STEP_BY_REASON = {
 # A time or memory limit named in a run's `detail`.
 _LIMIT_IN_DETAIL = re.compile(r"\b(time|memory|wall[- ]?clock|oom)\b", re.IGNORECASE)
 
-# 🔴 What to say instead when the run failed and no NODE did. Pointing at *the
-# failing node's log* when there is no failing node sends a person looking for
-# a file that does not exist -- and it is not the rare case: a flow that dies
-# before its first node, or during setup, fails with every node `cancelled`
-# and none of them `failed`. The run's own log is the answer, and it arrives
-# with the results like everything else.
+# 🔴 For a run that failed with no failed NODE (common: dying in setup leaves every
+# node `cancelled`), where *the failing node's log* does not exist.
 NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")
 
 
-# Which requirement failed, by an `unresolved` entry's `kind` (surface D311):
-# a `requested_versions` key, a task class, or a package that would not install.
+# An `unresolved` entry's `kind`, as a person reads it (surface D311).
 _UNRESOLVED_KIND = {"python": "python", "tools": "tool", "interpreter": "interpreter",
                     "class": "task class", "package": "package"}
 
 
 def _member(value) -> str:
-    '''One extension member as a person reads it. A list -- `available` is
-    one -- is its items, and an empty one says so rather than printing `[]`.'''
+    '''One extension member as a person reads it; an empty list is "none".'''
     if isinstance(value, (list, tuple)):
         return " ".join(str(item) for item in value) if value else "none"
     return str(value)
@@ -199,23 +173,10 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
              titles: Optional[Dict[str, str]] = None) -> str:
     '''Three lines: what failed, which one, and where to look.
 
-    Tolerant by construction, because the bodies this has to render include the
-    ones no handler produced -- a proxy's HTML 502 reaches here as a title and a
-    status and nothing else.
-
-    ``next_step`` overrides the table. A slug names a kind of failure, so the
-    advice keyed on it is right for the kind and can be wrong for the instance;
-    a caller that knows more about this occurrence than the slug does says so
-    here.
-
-    ``help_url`` is the page the SERVER named for this error (`Link`
-    `rel="help"`), and it is printed in place of the `type` URI: it is the copy
-    that answers from here, where the public page may not. The `type` is still
-    what every branch is taken on.
-
-    ``job_id`` is the support reference for anything about a job; without one
-    it is the refusal's `trace_id`. ``titles`` maps a terms id to its title in
-    `GET /v1/me`'s `terms`, which names each `blocked_by` document.
+    Tolerant: a proxy's 502 arrives as only a title and status. ``next_step``
+    overrides the slug's advice for this instance; ``help_url``, the server's
+    `rel="help"` page, replaces the `type` URI; ``job_id`` replaces the
+    `trace_id`; ``titles`` names `blocked_by` documents.
     '''
     lines = []
 
@@ -226,15 +187,13 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     first = f"{title}" if status is None else f"{title} ({status})"
     lines.append(first if not detail else f"{first}: {detail}")
 
-    # A keypath as SiliconCompiler prints one, `tool,x,task,y,dataroot,z`.
     named = [f"{name}: "
              + clean(_keypath(problem[name]) if name == "keypath" else _member(problem[name]))
              for name in _DISCRIMINATORS if problem.get(name) is not None]
     if named:
         lines.append("  " + ", ".join(named))
 
-    # `software-unavailable` names every requirement that failed, each with
-    # its alternatives and what the server has instead -- one line apiece.
+    # `software-unavailable`: one line per failed requirement.
     for entry in problem.get("unresolved") or []:
         if isinstance(entry, dict):
             wanted = " or ".join(str(one) for one in entry.get("requirement") or []) \
@@ -267,9 +226,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     return "\n".join(lines)
 
 
-# A capability refused (surface *Who may use it: three capabilities*): each is
-# a step up in whose code the deployment runs, and each has a way round short
-# of the grant.
+# A capability refused (surface *Who may use it: three capabilities*).
 _CAPABILITY_STEP = {
     "python-packages": "Ask the deployment for the python-packages grant. A job whose "
                        "only Python is its own modules needs none.",
@@ -280,10 +237,8 @@ _CAPABILITY_STEP = {
 
 def _advice(slug: Optional[str], problem: Dict[str, Any],
             status: Optional[int] = None) -> Optional[str]:
-    '''The registry's client action for this type, refined by `reason`.
-
-    An unknown `reason` acts on the type alone, and an unknown type -- or none,
-    for a body no handler produced -- acts on the status.'''
+    '''The registry's client action for this type, refined by `reason`; an
+    unknown type, or none, falls to the status.'''
     if slug not in _NEXT_STEP:
         return _by_status(status)
     if slug == "archive-rejected":
@@ -296,8 +251,7 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
     if slug == "software-unavailable" and any(
             isinstance(entry, dict) and entry.get("kind") == "interpreter"
             for entry in problem.get("unresolved") or []):
-        # The interpreter: nothing the user chooses in the job changes it
-        # (surface D293).
+        # Nothing in the job changes the interpreter (surface D293).
         return ("No image here runs the Python this machine does. The server's "
                 "operator would have to add one; until then, run the job from a "
                 "Python it has.")
@@ -311,9 +265,7 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
 
 
 def blocked_lines(blocked_by, titles: Optional[Dict[str, str]] = None) -> list:
-    '''One line per document in a `blocked_by` list of `terms` ids: its title
-    from `GET /v1/me`'s `terms`, or its id where there is none. Nothing is
-    opened here.'''
+    '''One line per `terms` id in `blocked_by`, by its title where known, else its id.'''
     if not isinstance(blocked_by, list):
         return []
     return [f"sign {clean(str((titles or {}).get(terms_id) or terms_id))}"
@@ -330,8 +282,7 @@ def clean(text: Optional[str]) -> str:
     if text is None:
         return ""
     text = str(text)
-    # An escape that is not colour loses its introducer, and the rest of a
-    # colour sequence is left alone.
+    # A non-colour escape loses its introducer; colour sequences are left alone.
     return _CONTROL.sub("", text)
 
 

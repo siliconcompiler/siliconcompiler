@@ -1,31 +1,17 @@
 '''
 One source fetched in a process of its own, held in from outside.
 
-Started by :class:`~siliconcompiler.remote.server.staging.sources.SourceStore`::
+``python -m siliconcompiler.remote.server.staging.fetch <spec.json>`` runs
+SiliconCompiler's own resolver unchanged and always writes the spec's
+``result``: the resolved directory, or how the fetch failed.
 
-    python -m siliconcompiler.remote.server.staging.fetch <spec.json>
-
-it runs SiliconCompiler's own resolver for the source, unchanged, and writes
-the spec's ``result`` -- the directory the source resolved to, or how the
-fetch failed -- whatever happens.
-
-🔴 **No resolver knows it runs here, so every one can.** What holds the fetch
-in is the process around it, never a check inside a resolver:
-
-- **nothing to send**: the server starts it with an environment of its own --
-  an empty ``HOME``, no token, no git system configuration, no prompt -- so no
-  resolver finds a token, a ``.netrc``, a credential helper or an SSH key;
-- **one way out**: a network namespace of its own, where the kernel lets an
-  unprivileged process have one, holding only a loopback, whose one route off
-  the machine is the server's proxy on a unix socket. The proxy admits the
-  allowlist's hosts, never a non-public address, and only so many bytes.
-  Where there is no namespace, requests, git and git-lfs are pointed at the
-  proxy by the environment instead.
-
-⚠️ The proxy sees a host and a port for HTTPS, not a path: the allowlist's
-paths bind the source a job names (`SourceStore.allowlisted`), and everything
-the fetch reaches after it -- a redirect, a submodule, an LFS store -- is held
-to the allowlist's hosts.
+🔴 No resolver knows it runs here; the process around it holds it in. Its
+environment carries nothing to send (an empty ``HOME``, no token, no git
+config, no prompt). Its one way out is the server's proxy on a unix socket,
+from a network namespace holding only a loopback where the kernel allows one,
+else by proxy environment variables. The proxy admits the allowlist's hosts,
+never a non-public address, and only so many bytes. ⚠️ It sees a host, not a
+path, so paths bind only the named source (`SourceStore.allowlisted`).
 '''
 
 import json
@@ -40,9 +26,7 @@ from typing import Any, Dict, Optional
 __all__ = ["classify", "main"]
 
 
-# What a source's answer means for the job: one of these goes back to the
-# client, which has the credentials this server does not -- GitHub answers 404
-# for a private repository it will not show. A 429 or a 5xx is retried.
+# Sent back to the client, which has credentials (GitHub 404s a private repo).
 _PERMANENT = (401, 403, 404, 410)
 
 # How `HTTPResolver` reports a download the source refused.
@@ -54,15 +38,13 @@ _GIT_REFUSALS = ("not found", "authentication", "could not read username",
 
 
 def isolate() -> bool:
-    '''Give this process a network namespace of its own, holding a loopback
-    that is up. Returns whether it has one.'''
+    '''Give this process its own network namespace with only a loopback; returns whether.'''
     unshare = getattr(os, "unshare", None)
     if unshare is None or not sys.platform.startswith("linux"):
         return False
     uid, gid = os.getuid(), os.getgid()
     try:
-        # A user namespace is what lets an unprivileged process have the
-        # network one.
+        # The user namespace lets an unprivileged process have the network one.
         unshare(os.CLONE_NEWUSER | os.CLONE_NEWNET)
     except OSError:
         return False
@@ -98,8 +80,7 @@ def _through(proxy_socket: str) -> None:
 
 
 def resolve(source: str, ref: Optional[str], cachedir: str) -> str:
-    '''SiliconCompiler's resolver for ``source``, as any project runs it.
-    Returns the directory it resolved to.'''
+    '''Run SiliconCompiler's resolver for ``source``; returns the directory it resolved to.'''
     from siliconcompiler import Project
     from siliconcompiler.package import Resolver
 
@@ -110,9 +91,7 @@ def resolve(source: str, ref: Optional[str], cachedir: str) -> str:
 
 
 def classify(error: BaseException) -> Dict[str, Any]:
-    '''A resolver's failure, as what the job does about it:
-    ``{"permanent", "message"}``. A permanent one goes back to the client; a
-    transient one is retried until the job's deadline.'''
+    '''A resolver's failure as ``{"permanent", "message"}``: back to the client, or retried.'''
     import requests
 
     from siliconcompiler.package import Resolver
@@ -137,9 +116,10 @@ def classify(error: BaseException) -> Dict[str, Any]:
 
 
 def main(argv=None) -> int:
-    '''Isolate, fetch, write the result. The spec is argv's one argument: a
-    JSON file naming ``source``, ``ref``, ``cachedir``, ``proxy`` (the
-    proxy's unix socket) and ``result``.'''
+    '''Isolate, fetch, write the result.
+
+    The spec names ``source``, ``ref``, ``cachedir``, ``proxy`` (a unix socket)
+    and ``result``.'''
     argv = sys.argv[1:] if argv is None else argv
     spec = json.loads(Path(argv[0]).read_text())
 

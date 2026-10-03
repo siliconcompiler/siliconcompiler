@@ -1,21 +1,13 @@
 '''
 ``python3 -m siliconcompiler.remote.server.software.registry``
 
-The operator's side of the image registry: which distributions this deployment
-curates, at which versions, and which containers hold them.
+The operator's command for the image registry: which distributions this
+deployment curates, at which versions, and which containers hold them.
 
-🔴 **Registering an image is the most dangerous write this server has**
-(`images.register_image`). So every write here names the person who made it,
-taken from the account running the command on the server host, and the tag is
-resolved to a digest once, here, rather than re-resolved at every dispatch.
-
-⚠️ **A separate entry point rather than more flags on the server**, which has
-three, and a fourth for testing, and should keep them. This one runs against a
-datadir, not against a running server, and needs nothing from the ``server``
-extra: a deployment can be curated before it is first started, and from a shell
-on the host rather than over the API. The portal's images screen calls the same
-functions in :mod:`~siliconcompiler.remote.server.software.images`, so there is
-one implementation of each of these writes and not two.
+🔴 Every write names the person on the host running it, and a tag is resolved to
+a digest once, here (`images.register_image`). ⚠️ A separate entry point that
+works on a datadir, not a running server, so a deployment can be curated before
+it first starts; the portal calls the same `images` functions.
 '''
 
 import argparse
@@ -38,11 +30,8 @@ __all__ = ["main"]
 
 logger = logging.getLogger("sc-server")
 
-# A registry write is administrative, and identity.md's rule is that an
-# administrative action is authenticated as a person and never as a service
-# account. On this deployment the person is whoever has a shell on the host, so
-# that is what is recorded -- under its own issuer, so it can never collide with
-# a client that logged in over the API or with an identity provider added later.
+# An administrative action is a person's (identity.md): here, whoever has a shell
+# on the host, under an issuer of its own so it never collides with an API login.
 OPERATOR_ISSUER = "operator"
 
 
@@ -57,9 +46,7 @@ def _operator(store) -> str:
 def _wants(values: Optional[List[str]]):
     '''``-requires openroad>=26.3`` into pairs, with any PEP 440 operator.
 
-    🔴 Not `images._contains`: a STORED version is exact, while a REQUIREMENT
-    is a range by nature, and the storage parser would refuse `>=26.3` as
-    "not name==version" -- the one shape this command exists to try.
+    🔴 Not `images._contains`, which accepts only exact stored versions.
     '''
     pairs = []
     for value in values or []:
@@ -72,11 +59,7 @@ def _wants(values: Optional[List[str]]):
 
 
 def _resolve_digest(registry_ref: str) -> str:
-    '''Pin a tag to the bytes it names right now.
-
-    🔴 Once, here, and never again: what a job runs changes only by a
-    re-registration (`images.pinned_ref`).
-    '''
+    '''Pin a tag to the bytes it names right now, once (`images.pinned_ref`).'''
     try:
         import docker
     except ModuleNotFoundError:                                  # pragma: no cover
@@ -92,10 +75,7 @@ def _resolve_digest(registry_ref: str) -> str:
     for digest in image.attrs.get("RepoDigests") or []:
         return digest.split("@", 1)[1]
 
-    # A locally built image has no repository digest because it was never
-    # pushed. Its own id is a sha256 of the config rather than of the manifest,
-    # which is not the same thing -- so it is refused rather than recorded as
-    # something it is not.
+    # Never pushed: its id hashes the config, not the manifest, so it is refused.
     raise SystemExit(
         f"{registry_ref} has no repository digest: push it to a registry, or "
         "pass -digest sha256:... if you know the one it will have")
@@ -124,8 +104,6 @@ def _cmd_list(store, args) -> int:
         for version in versions.get(row["name"], []):
             mark = " (retired)" if version["retired_at"] else ""
             if version["version_source"] != "reported":
-                # It is in the catalogue and it can never satisfy a range, and
-                # the number alone does not say so.
                 mark += "  (no version reported)"
             print(f"    {version['version']}  preference {version['preference']}{mark}")
     if not catalogue["software"]:
@@ -144,7 +122,6 @@ def _cmd_list(store, args) -> int:
         print("  (none)")
 
     if catalogue["derived"]:
-        # The server's own: a node's Python on one of the images above.
         print("built environments")
         for row in catalogue["derived"]:
             retired = " (retired)" if row["retired_at"] else ""
@@ -159,15 +136,12 @@ def _cmd_list(store, args) -> int:
 def _cmd_add_software(store, args) -> int:
     kind = args.kind or ("tool" if args.driver else None)
     if not kind:
-        # 🔴 Refused rather than defaulted. The kind decides which bucket the
-        # name is published in, and therefore whether ONE image has to hold it
-        # or each node's image does -- a default would make that a silent
-        # guess about what a client's job needs.
+        # 🔴 Refused, not defaulted: the kind decides whether one image or each
+        # node's must hold it.
         raise SystemExit(
             f"{args.name}: say -kind python, -kind tool or -kind interpreter. A "
             "tool with a driver can say -driver instead, which implies it")
 
-    # The deployment's own out-of-tree drivers, from its config.
     try:
         allowed = list(Config.load(Path(args.datadir).resolve())["software_drivers"] or [])
     except Exception:                                            # noqa: BLE001
@@ -182,8 +156,6 @@ def _cmd_add_software(store, args) -> int:
 
     print(f"registered {args.name} as {kind}")
     if args.driver:
-        # Said, because it is what a probe is handed and what decides whether
-        # this tool can ever report a version.
         print(f"  driven by {args.driver}")
     if args.version_package:
         print(f"  version read from the {args.version_package} distribution")
@@ -204,9 +176,6 @@ def _cmd_add_version(store, args) -> int:
 
     print(f"registered {args.name}=={stored}")
     if stored != args.version:
-        # Normalised, and said so. Silently storing a different string than
-        # the operator typed is how a later `add-image -contains` fails to
-        # match a version that is right there in the catalogue.
         print(f"  normalised from {args.version}")
     if args.unversioned:
         print("  marked published_date: it can never satisfy a version "
@@ -229,8 +198,7 @@ def _cmd_add_image(store, args) -> int:
     print(f"  {image_id}")
     print(f"  {digest}")
 
-    # 🔴 One SiliconCompiler, the one this server runs (profile §5): an image
-    # holding another is registered and then neither advertised nor used.
+    # 🔴 One SiliconCompiler, this server's (profile §5).
     held = [version for name, version in contents if name == images.PRIMARY]
     if not any(images.normalize(version) == images.normalize(images.own_version())
                for version in held):
@@ -246,21 +214,11 @@ def _cmd_add_image(store, args) -> int:
 
 
 def _stage(args, ref: str, digest: str):
-    '''Unpack one image where a Slurm job can run it.
-
-    🔴 Only needed on a deployment whose cluster runs the containers, and doing
-    it here is what keeps it off the request path: ``sbatch --container`` names
-    a bundle that has to exist before the job starts, so a framework image
-    nobody staged is unpacked by the first submit that needs it -- correct, and
-    minutes of somebody's HTTP request.
-    '''
+    '''Unpack one image where a Slurm job can run it, keeping that off the first submit.'''
     datadir = Path(args.datadir).resolve()
 
-    # 🔴 The deployment's own mount list, read from the same config the server
-    # reads. Staging with a different one produces a bundle that looks right
-    # and is missing whatever the cluster needed -- and the failure lands far
-    # away, as a node that cannot contact the controller. Never the data
-    # directory: what one job sees goes in that job's own bundle.
+    # 🔴 The server's own mount list, or the bundle quietly lacks what the
+    # cluster needs. Never the data directory: per-job mounts are the job's.
     mounts = [str(path) for path in (Config.load(datadir)["container_mounts"] or [])]
 
     try:
@@ -304,8 +262,7 @@ def _cmd_retire(store, args) -> int:
 
 
 def _cmd_drop_built(store, args) -> int:
-    '''Every built Python environment holding a distribution, dropped, so the
-    next job asking for it builds it again.'''
+    '''Drop every built Python environment holding a distribution.'''
     from siliconcompiler.remote.server.jobs.pythonenv import ENVIRONMENTS
 
     name, _, version = args.distribution.partition("==")
@@ -319,17 +276,8 @@ def _cmd_drop_built(store, args) -> int:
 
 
 def _cmd_resolve(store, args) -> int:
-    '''Ask what a job would be placed in, without submitting one.
-
-    The one command here that writes nothing. An operator curating a registry
-    needs to see the answer the submit path will give before a user does, and
-    the alternative -- submitting a job to find out -- is a slow way to learn
-    that a tool has no image.
-    '''
-    # 🔴 The python and tools buckets, because they resolve differently
-    # (`images.live_software`). `-versions` names python requirements and
-    # `-requires` names tool ones, the same split the descriptor carries. No
-    # interpreter is asked for.
+    '''Ask what a job would be placed in, without submitting one; writes nothing.'''
+    # 🔴 Two buckets, resolved differently (`images.live_software`); no interpreter.
     requires = {"python": dict(_wants(args.versions)),
                 "tools": dict(_wants(args.requires))}
     tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}
@@ -352,12 +300,7 @@ _SCALE = {"": 1, "k": 1024, "ki": 1024, "m": 1024 ** 2, "mi": 1024 ** 2,
 
 
 def _bytes(text: str) -> Optional[int]:
-    """`unlimited`, `inherit`, or a number with an optional binary suffix.
-
-    ⚠️ Three answers rather than two, because the table's encoding has three:
-    `inherit` clears the override back to the deployment's value, and
-    `unlimited` is a decision to have no ceiling. A bare number is the number.
-    """
+    """`unlimited` (-1), `inherit` (None, the deployment's value), or a size."""
     value = text.strip().lower()
     if value in ("inherit", "default", "none"):
         return None
@@ -374,9 +317,7 @@ def _bytes(text: str) -> Optional[int]:
 def _cmd_limits(store, args) -> int:
     """Show or set what one account is allowed.
 
-    🔴 The operator sets a ceiling and the portal shows it. A ceiling is
-    policy, and this deployment has no admin mode -- so there is no endpoint
-    and no form, and this is the whole of the write path.
+    🔴 The whole write path: with no admin mode there is no endpoint or form.
     """
     from siliconcompiler.remote.server.identity import accounts
 
@@ -423,12 +364,9 @@ def _cmd_limits(store, args) -> int:
 
 
 def _cmd_release(store, args) -> int:
-    """Release a subject's key binding.
+    """Release a subject's key binding, so its next login enrols a new key.
 
-    🔴 The recovery path is the control, not a convenience around it: a lost
-    key re-registering by itself would let anybody claim somebody else's key
-    was lost. So a person does it here, and the next `client_credentials`
-    call for the subject enrols whatever key it presents, as a new device.
+    🔴 A person does it, or anybody could claim somebody else's key was lost.
     """
     from siliconcompiler.remote.server.identity.auth import TokenIssuer
 
@@ -582,9 +520,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not datadir.exists():
         raise SystemExit(f"{datadir} does not exist")
 
-    # 🔴 The refusal already says what to do; a traceback on top of it buries
-    # that in twenty lines of frames and makes an operational message read like
-    # a crash. This is the one error here that a person is meant to act on.
+    # 🔴 No traceback: the refusal already says what to do.
     try:
         store = Store(datadir / "server.db")
     except StoreVersionError as e:

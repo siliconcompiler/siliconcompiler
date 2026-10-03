@@ -2,11 +2,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}sc-server{% endblock %}</title>
-{#
-  One stylesheet, inline, and no build. SiliconCompiler ships as a pip wheel,
-  and a node toolchain in the release pipeline would be paid by every release
-  for a handful of screens nobody styles twice.
-#}
+{# One inline stylesheet and no build: a node toolchain would burden every release. #}
 <style>
   :root {
     --ink: #16181d; --dim: #5b6270; --line: #d9dde5; --bg: #fff;
@@ -99,24 +95,12 @@
   {% endif %}
 </header>
 {#
-  🔴 Only while there is something to watch. A page that reloads itself for ever
-  is a page that reloads while you are reading a finished run, and it keeps a
-  request in flight against a server nobody is looking at. `refresh` is set by
-  the page, and only when the job -- or something on the list -- is still
-  going.
-
-  ⚠️ `<meta http-equiv="refresh">` rather than a timer, deliberately: it is the
-  browser's own mechanism, it stops when the tab is closed, and it survives
-  scripting being off. The cost is that it discards scroll position, which is
-  why the interval is not aggressive and why the manual control exists beside
-  it.
+  🔴 Only while something is still going. ⚠️ A meta refresh, not a timer: it
+  survives scripting being off, at the cost of scroll position.
 #}
 {% if refresh %}<meta http-equiv="refresh" content="{{ refresh }}">{% endif %}
 <main>{% block body %}{% endblock %}</main>
-{#
-  Every UTC <time datetime> (the `when` filter), rewritten to the reader's own
-  clock.
-#}
+{# Every UTC <time datetime> (the `when` filter), rewritten to the reader's clock. #}
 <script>
   for (const el of document.querySelectorAll("time.ts")) {
     const at = new Date(el.getAttribute("datetime"));

@@ -1,14 +1,9 @@
 '''
 Who a caller is, what they are allowed, and which machines act as them.
 
-🔴 **Extracted so that the API and the portal cannot drift.** The rule the
-portal exists under is that every authorization decision goes through the same
-code the handlers call -- and a decision written inside a route handler is a
-decision the portal has to re-implement to reuse. A missing ``WHERE user_id =``
-is the failure this guards against: there is one place to forget it, not two.
-
-Nothing here builds a response. A route renders JSON and the portal renders a
-page, and what they share is the question underneath.
+🔴 Shared by the API and the portal so their authorization cannot drift: there
+is one place to forget a ``WHERE user_id =``, not two. Nothing here builds a
+response.
 '''
 
 from typing import Any, Dict, List, Optional
@@ -27,19 +22,16 @@ def user(store, user_id: str):
     return row
 
 
-# Which limits a `user_limits` row may override. One today, and the list is
-# here rather than derived from the table so that adding a column is a
-# deliberate act in two places rather than an accident in one.
+# Which limits a `user_limits` row may override; listed, not derived from the
+# table, so adding one is deliberate.
 OVERRIDABLE = ("max_download_bytes",)
 
 
 def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
     '''The deployment's ceilings with this account's overrides applied.
 
-    🔴 **Sparse, three-valued, and `-1` never reaches a client.** A missing row
-    or a NULL column inherits the deployment's number; `-1` means unlimited and
-    the resolver turns it into the wire's `null`, because the wire spends
-    `null` on *unlimited* and the table needs it for *inherit*.
+    🔴 NULL inherits, and `-1` becomes the wire's `null` (unlimited), never
+    reaching a client (see schema.sql's `user_limits`).
     '''
     limits = dict(config.limits)
 
@@ -59,19 +51,9 @@ def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
 def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     '''The account's allowance, as `GET /v1/me` publishes it.
 
-    🔴 **Eight members, every one REQUIRED, and the caller's effective
-    values**: the server combines the two blocks and publishes the result here,
-    so a client reads the account's limits from `GET /v1/me` alone
-    (entitlements *Combining the two `limits` blocks*). Six keys appear in
-    both blocks -- `max_job_nodes`, `pending_uploads`, `concurrent_jobs`,
-    `max_staging_seconds`, `artifact_retention_seconds` and
-    `max_download_bytes` -- and they differ only where a `user_limits` row
-    overrides one for this account.
-
-    `max_download_bytes` is the one that can differ per account today.
-    `GET /v1` carries no credential and cannot vary by caller, so a per-user
-    ceiling has nowhere else to be published. The deployment's default stays on
-    `GET /v1`, and the two disagreeing is exactly what an override looks like.
+    🔴 Every member REQUIRED, with the caller's effective values (entitlements
+    *Combining the two `limits` blocks*): `GET /v1` cannot vary by caller, so a
+    per-user override is published only here.
     '''
     ceiling = dict(config.limits)
     ceiling.update(overrides or {})
@@ -84,19 +66,14 @@ def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[s
         "devices": None,                    # null = unlimited, not zero
         "max_staging_seconds": ceiling["max_staging_seconds"],
         "artifact_retention_seconds": ceiling["artifact_retention_seconds"],
-        # null here means UNLIMITED, which is the wire's meaning everywhere.
         "max_download_bytes": ceiling["max_download_bytes"],
     }
 
 
 def set_limit(store, user_id: str, name: str, value: Optional[int],
               actor: str, note: Optional[str] = None) -> None:
-    '''Record one operator decision about one account.
-
-    ⚠️ The only writer, and it is not the portal. A ceiling is policy, and this
-    deployment has no admin mode -- so the account screen renders this and
-    never sets it.
-    '''
+    '''Record one operator decision about one account; the only writer, and
+    never the portal.'''
     if name not in OVERRIDABLE:
         raise ValueError(
             f"{name} is not a per-user limit; try {', '.join(OVERRIDABLE)}")
@@ -113,12 +90,8 @@ def set_limit(store, user_id: str, name: str, value: Optional[int],
 
 
 def usage(store, user_id: str) -> Dict[str, Any]:
-    '''Derived, not metered.
-
-    All four numbers come from `jobs` and `artifacts` directly. A metering
-    table would buy a billing history nobody on this deployment bills against.
-    Every `limit` is null, because nothing here enforces one -- except
-    `concurrent_jobs`, the live count create and submit refuse over.
+    '''`GET /v1/me`'s `usage`, derived from `jobs` and `artifacts`, not
+    metered: nobody bills here. Every `limit` is null, as nothing enforces one.
     '''
     active = store.one(
         "SELECT count(*) AS n FROM jobs WHERE user_id = ? "
@@ -130,8 +103,7 @@ def usage(store, user_id: str) -> Dict[str, Any]:
         "JOIN jobs j ON j.id = a.job_id "
         "WHERE j.user_id = ? AND a.deleted_at IS NULL", (user_id,))["n"]
 
-    # The calendar month to date. Windows are calendar; rolling windows are not
-    # in v1, so resets_at is always a real instant.
+    # Windows are calendar months in v1, so resets_at is a real instant.
     month_start = now()[:8] + "01T00:00:00.000Z"
 
     def compute_since(start):
@@ -142,8 +114,7 @@ def usage(store, user_id: str) -> Dict[str, Any]:
             "  AND finished_at >= ?", (user_id, start))["n"])
 
     return {
-        # `used` this calendar month and `total` everything the store records:
-        # every job row is kept, a deleted one included (entitlements §3).
+        # `total` is every job row, deleted ones included (entitlements §3).
         "compute_seconds": {
             "used": compute_since(month_start),
             "total": compute_since(""),
@@ -151,11 +122,9 @@ def usage(store, user_id: str) -> Dict[str, Any]:
             "window": "calendar_month",
             "resets_at": _next_month(month_start),
         },
-        # An empty map rather than null: no license is metered here, and there
-        # is no per-tool row to report.
+        # No license is metered, so no per-tool row.
         "license_seconds": {},
-        # A stock: `used` is already the whole, so `total` is null, and it
-        # neither has a window nor resets.
+        # A stock: no `total`, window or reset.
         "storage_bytes": {"used": int(stored), "total": None, "limit": None,
                           "window": None, "resets_at": None},
         "concurrent_jobs": active,
@@ -163,9 +132,8 @@ def usage(store, user_id: str) -> Dict[str, Any]:
 
 
 def session_view(store, session) -> Dict[str, Any]:
-    '''`GET /v1/me`'s `session`: the one this request was made in, from the
-    calling token's family and device. Reading it rotates nothing, so a
-    client can show a person their session without refreshing it.'''
+    '''`GET /v1/me`'s `session`: the calling token's own, read without
+    rotating anything.'''
     from datetime import datetime, timezone
 
     from siliconcompiler.remote.server.identity.auth import SCOPES
@@ -191,18 +159,10 @@ def session_view(store, session) -> Dict[str, Any]:
 
 
 def lifetime(store, user_id: str) -> Dict[str, Any]:
-    '''Everything this account has ever run, for the screen.
+    '''Everything this account has ever run, for the portal screen.
 
-    🔴 Deliberately NOT part of `usage`, which is what `GET /v1/me` publishes.
-    That object answers *what am I consuming against my allowance*, and every
-    window in it is a calendar month for that reason -- an all-time total has
-    no allowance and no reset, so putting it there would mean a published
-    member a client has to be told to ignore. A screen can show a running
-    total without the API promising one.
-
-    ⚠️ Derived from `jobs`, like `usage`, and with the same limitation: a job
-    that is still running contributes nothing until it finishes, because what
-    is being summed is `finished_at - started_at`.
+    🔴 Deliberately NOT in `usage`, which measures against an allowance; an
+    all-time total has none. ⚠️ A running job counts only once it finishes.
     '''
     compute = store.one(
         "SELECT coalesce(sum(julianday(finished_at) - julianday(started_at)), 0) "
@@ -232,12 +192,8 @@ def _next_month(month_start: str) -> str:
 
 
 def devices_for(store, session) -> List[Any]:
-    '''The machines that may act as this caller.
-
-    Non-empty in this profile, which is not incidental: the key binding on
-    first contact is the only real control the mode has, and this list plus the
-    revoke button is its visible half.
-    '''
+    '''The machines that may act as this caller: the visible half of the key
+    binding, this profile's one real control.'''
     return store.all(
         "SELECT * FROM devices WHERE user_id = ? AND revoked_at IS NULL "
         "ORDER BY enrolled_at DESC", (session.user_id,))
@@ -246,10 +202,8 @@ def devices_for(store, session) -> List[Any]:
 def owned_device(store, session, device_id):
     '''A device, or a 404 that does not say whether it exists.
 
-    🔴 The one place the ownership predicate for a device is written. The
-    404-not-403 rule: a 403 would confirm the id belongs to somebody. What it
-    conceals here is bounded by an identity nothing verifies, which is worth
-    knowing but is not a reason to leak it.
+    🔴 The one place a device's ownership predicate is written; a 403 would
+    confirm the id belongs to somebody.
     '''
     row = store.one(
         "SELECT * FROM devices WHERE id = ? AND user_id = ?",

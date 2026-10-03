@@ -12,11 +12,7 @@
 <div class="panel">
   <div class="grid">
     <div><b>Health</b><br>
-      {#
-        The same three values the probe has -- pass, warn, fail -- and no
-        reason for any of them. `warn` exists for a server that is degraded and
-        should stay in rotation; nothing produces it yet.
-      #}
+      {# The probe's three values, with no reasons; nothing produces `warn` yet. #}
       <span class="tag {{ 'good' if health.status == 'pass'
                           else 'bad' if health.status == 'fail' }}"
         >{{ health.status }}</span>
@@ -34,10 +30,7 @@
 </div>
 
 {% if published.notices %}
-{#
-  Scheduled downtime lives here rather than on the liveness probe: an
-  announcement is read once by a person, and this is where they are.
-#}
+{# Downtime is announced here, to a person, not on the liveness probe. #}
 {% for notice in published.notices %}
 <div class="panel warn"><p>{{ notice }}</p></div>
 {% endfor %}
@@ -47,11 +40,7 @@
 <div class="main">
 <h3>Software it can run</h3>
 <p class="muted">
-  {#
-    🔴 Python and tools apart because they are satisfied differently
-    (`images.live_software`). The third bucket, `interpreter`, is not tabled
-    here; it is in the raw block below.
-  #}
+  {# 🔴 Python and tools apart: satisfied differently (`images.live_software`). #}
   Python distributions share the run's interpreter, so one image holds all of
   them. A tool is resolved per node.
 </p>
@@ -84,11 +73,7 @@
   {% for name, value in published.limits.items() %}
   <tr>
     <td class="mono">{{ name }}</td>
-    {#
-      The deployment's own numbers. A limit that can differ per account is
-      shown against yours on the account screen; this is what everybody gets
-      by default.
-    #}
+    {# The defaults; per-account limits are on the account screen. #}
     <td class="mono">
       {%- if value is none %}unlimited
       {%- elif name.endswith('_bytes') %}{{ value | size }}

@@ -1,15 +1,12 @@
 '''
 Endpoints 20, 21 and 22: getting the results out.
 
-🔴 **None of these three carries bytes.** Two answer `303` and one answers a
-listing, which is the rule that keeps an orchestrator's capacity off the size of
-what it stores. The bytes come from a signed route below, standing in for the
-presigned URL another deployment would hand out.
+🔴 None of these carries bytes: they answer `303` or a listing, and the bytes
+come from a signed route below, standing in for a presigned URL.
 
-🔴 **The scope gate differs by route and that is deliberate.** The listing and
-the log redirect are `jobs:read`; the artifact bytes are `artifacts:read`. So a
-CI caller that watches runs and never pulls deliverables still reaches its own
-log -- watching a run is what such a caller exists to do.
+🔴 The listing and the log redirect are `jobs:read`, the bytes
+`artifacts:read`, deliberately: a CI caller that only watches runs still
+reaches its log.
 '''
 
 import secrets
@@ -36,11 +33,7 @@ def _jobs():
 
 
 def _redirect(row):
-    '''A 303 to where the bytes actually are.
-
-    🔴 The target's shape is deliberately not announced here: a client
-    branches on the `Content-Type` it is served after following (see `tail`).
-    '''
+    '''A 303 to where the bytes actually are.'''
     storage = flask.current_app.config["SC_STORAGE"]
 
     expires = int(time.time()) + DOWNLOAD_SECONDS
@@ -58,13 +51,8 @@ def _redirect(row):
 @blueprint.route("/v1/jobs/<job_id>/artifacts", methods=["GET"])
 @require("jobs:read")
 def listing(session, job_id):
-    '''Endpoint 21.
-
-    🔴 `items` may be `[]` and no kind is guaranteed, the manifest included. A
-    client that requires one to be present has the same bug one kind further
-    along -- three deployments reach an empty listing by different routes, and
-    none of them is an error.
-    '''
+    '''Endpoint 21. 🔴 `items` may be `[]`, and no kind, not even the
+    manifest, is guaranteed.'''
     from siliconcompiler.remote.server.errors import only_query
 
     only_query(flask.request.args, ("kind", "step", "index", "limit", "cursor"),
@@ -89,14 +77,8 @@ def fetch(session, job_id, artifact_id):
 @blueprint.route("/v1/jobs/<job_id>/logs", methods=["GET"])
 @require("jobs:read")
 def logs(session, job_id):
-    '''Endpoint 20: one node's log, or the whole job's while it runs. It
-    never carries bytes.
-
-    Both query parameters or neither. Both is one node, and they are two
-    fields rather than one string: `step=place, index=10` and `step=place1,
-    index=0` both render `place10` and are two different nodes. Neither is the
-    whole job, as one live stream.
-    '''
+    '''Endpoint 20: one node's log with both `step` and `index`, or the whole
+    job's live stream with neither.'''
     step = flask.request.args.get("step")
     index = flask.request.args.get("index")
 
@@ -121,15 +103,9 @@ def _until(session) -> int:
 
 
 def _stream_redirect(job_id, step, index, expires, ended=False):
-    '''A capability URL on this host, with its own lifetime.
+    '''A capability URL on this host, standing in for a separate stream host.
 
-    The contract sends a live tail to a stream host on its own origin and this
-    deployment has one origin, so the answer is the one `file://` storage
-    already gives for artifacts: a signed route here, reached through the same
-    `303`. 🔴 Nothing on the wire changes -- authorization was still evaluated
-    at `/logs`, and the URL still carries a TTL of its own rather than the
-    access token's, which is what lets a six-hour log outlive a 900-second
-    token.
+    🔴 Authorization was evaluated at `/logs`; the URL carries its own TTL.
     '''
     storage = flask.current_app.config["SC_STORAGE"]
 
@@ -168,12 +144,8 @@ def _job_stream_redirect(job_id, expires):
 
 @blueprint.route("/stream/logs/<job_id>", methods=["GET"])
 def tail_job(job_id):
-    '''Every node's live log, merged, where a coordinate-less `303` points.
-
-    🔴 **One connection, so one slot of `concurrent_log_streams`** -- which is
-    the point of it: a flow wider than the ceiling could not be watched in full
-    one node at a time.
-    '''
+    '''Every node's live log, merged, where a coordinate-less `303` points:
+    one slot of `concurrent_log_streams` for a flow of any width.'''
     config = flask.current_app.config["SC_CONFIG"]
     storage = flask.current_app.config["SC_STORAGE"]
     store = flask.current_app.config["SC_STORE"]
@@ -251,8 +223,7 @@ def _first_connection(signature, expires) -> None:
 def _event_stream(frames):
     response = flask.Response(frames, mimetype="text/event-stream")
     response.headers["Cache-Control"] = "no-store"
-    # For whatever fronts this: an SSE response that is buffered is not a
-    # stream, and the exemption is owed by the proxy rather than by the client.
+    # A buffering proxy in front would break the stream.
     response.headers["X-Accel-Buffering"] = "no"
     response.headers["Connection"] = "keep-alive"
     return response
@@ -262,11 +233,8 @@ def _event_stream(frames):
 def tail(job_id, step, index):
     '''The live tail, where a `303` from ``/logs`` points.
 
-    Served as ``text/event-stream``, which is the ONLY thing that tells a client
-    this is a stream rather than a file -- and deliberately so: a node can
-    finish between the redirect and the fetch, so anything decided at ``/logs``
-    can be stale by the time it is used, and the type of what was actually
-    served cannot be.
+    ``text/event-stream`` is the ONLY signal that this is a stream, since a
+    node can finish between the redirect and the fetch.
     '''
     config = flask.current_app.config["SC_CONFIG"]
     storage = flask.current_app.config["SC_STORAGE"]
@@ -308,11 +276,8 @@ def tail(job_id, step, index):
                 keepalive=config["stream_keepalive_seconds"],
                 ended=args.get("ended") == "1")
         finally:
-            # In a finally, because the commonest way a tail ends is the reader
-            # hanging up -- which reaches this generator as GeneratorExit and
-            # would otherwise leak the slot for the life of the process. The
-            # same for the connection it read states through: it runs after the
-            # request's teardown, on the request's thread.
+            # A reader hanging up arrives as GeneratorExit, and would otherwise
+            # leak the slot and the connection.
             limiter.release(owner)
             store.release()
 
@@ -321,14 +286,8 @@ def tail(job_id, step, index):
 
 @blueprint.route("/storage/artifact/<job_id>/<artifact_id>", methods=["GET"])
 def download(job_id, artifact_id):
-    '''The bytes, on this host, standing in for a presigned URL.
-
-    Outside `/v1` for the same reason the upload route is: the contract's
-    surface is its endpoints under `/v1`, not wherever a deployment's storage
-    happens to live. The signature is the credential and it names one artifact
-    -- authorization was decided at the endpoint that issued it, which is where
-    the token and the proof were presented.
-    '''
+    '''The bytes, on this host, standing in for a presigned URL; outside
+    `/v1`, and the signature its only credential.'''
     storage = flask.current_app.config["SC_STORAGE"]
     store = flask.current_app.config["SC_STORE"]
 
@@ -350,15 +309,12 @@ def download(job_id, artifact_id):
         raise ProblemError("not-found", detail=str(e)) from None
 
     if not path.is_file():
-        # Indexed and then lost: the row says the bytes should be here and they
-        # are not, which is this deployment's fault and not the caller's.
+        # Indexed and then lost: this deployment's fault.
         raise ProblemError(
             "not-found", detail="the bytes for this artifact are missing")
 
-    # 🔴 Named after what it IS. Without this every download lands in somebody's
-    # downloads folder as a bare uuid, and a person who fetched the logs of six
-    # nodes has six files they cannot tell apart. And always an attachment,
-    # never sniffed and never active: these are a job's bytes, on this host.
+    # 🔴 Always an attachment, never sniffed or active: a job's bytes, on this
+    # host.
     response = flask.send_file(
         path, mimetype=row["media_type"], conditional=True,
         as_attachment=True, download_name=_download_name(store, row))
@@ -368,25 +324,19 @@ def download(job_id, artifact_id):
     return response
 
 
-# What a browser should call each kind once it is on disk: every artifact is
-# gzipped, and a manifest or a job-level log is one file rather than a tar.
+# Every artifact is gzipped; a manifest or job-level log is one file, not a tar.
 _SUFFIX = {"manifest": ".pkg.json.gz", "job-logs": ".log.gz"}
 
 
 def _download_name(store, row) -> str:
-    '''``<design>-<jobname>-<step>-<index>-<kind>`` and the right suffix.
-
-    The node is in it because the node is the thing a person is looking for.
-    Job-level artifacts have no node and say so by leaving it out rather than
-    by carrying an empty segment.
-    '''
+    '''``<design>-<jobname>-<step>-<index>-<kind>`` and the right suffix; a
+    job-level artifact leaves the node out.'''
     job = store.one("SELECT design, jobname FROM jobs WHERE id = ?",
                     (row["job_id"],))
 
     parts = [job["design"], job["jobname"]]
     if row["step"]:
-        # Hyphenated, because `elaborate0` cannot be read back: it is step
-        # `elaborate` index `0` and also a step called `elaborate0`.
+        # Hyphenated: `elaborate0` could be either node.
         parts.append(f"{row['step']}-{row['index']}")
     parts.append(row["kind"])
 

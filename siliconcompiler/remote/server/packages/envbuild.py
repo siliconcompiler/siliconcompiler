@@ -1,36 +1,17 @@
 '''
-Building a job's Python packages into an image (surface *How it is built,
-while the job is staging*; implementation-notes §L).
+Building a job's Python packages into a derived image (implementation-notes §L).
 
-The container mode of a job's Python: the image a node resolved to with the
-job's `python_packages` and uploaded wheels installed in one layer of its own,
-pushed to the registry beside it and staged as a bundle, so every node of the
-job that runs the user's Python on that image runs from one image with no
-network at all. Run as a job of its own on a compute node -- the builder queue
--- by the API while the job is ``staging``::
+``python -m siliconcompiler.remote.server.packages.envbuild <workspace>/spec.json``
+runs as its own job on the builder queue while the job stages, and always
+writes ``<workspace>/result.json``, all the API reads.
 
-    python -m siliconcompiler.remote.server.packages.envbuild <workspace>/spec.json
-
-and it writes ``<workspace>/result.json`` whatever happens, which is all the
-API reads. The workspace holds the requirements and constraints files the API
-wrote from what parsed, and the job's wheels under ``wheels/``.
-
-🔴 **Isolated, and each part of that is load-bearing** (contract item 3):
-
-- **pip runs inside the base image**, under the Python the node will run, so
-  markers and wheels are chosen for it rather than for this host;
-- **in a container of its own** -- read-only root, a private /tmp, and none of
-  the base's bind mounts, so no PDK, no build tree, no cluster socket;
-- **with a network namespace holding only a loopback**. Its one way out is a
-  unix socket bound in from here, to a proxy that admits the hosts of
-  `index_allowlist` and nothing else, and never a non-public address;
-- **from the deployment's `package_indexes`** -- a job names none -- and a
-  source distribution may be built here, and only here: its code runs with no
-  PDK data, no credential but an index's own, and no network but the
-  configured indexes.
-
-⚠️ The proxy sees a host and a port for HTTPS, not a path: an https entry of
-`index_allowlist` admits its whole host here.
+🔴 Isolated, every part load-bearing (contract item 3): pip runs inside the base
+image, under the node's Python; in its own container with a read-only root, a
+private /tmp and none of the base's bind mounts (no PDK, build tree or cluster
+socket); with only a loopback and a unix socket to a proxy admitting the
+`index_allowlist` hosts, never a non-public address; from the deployment's
+`package_indexes` only. So a source build's code runs with nothing to reach.
+⚠️ The proxy sees an HTTPS host, not a path: an https entry admits its host.
 '''
 
 import copy
@@ -78,8 +59,7 @@ def main(argv=None) -> int:
         result = build(spec, workspace)
     except Exception as e:                                      # noqa: BLE001
         result = {"ok": False, "reason": "error", "detail": f"{type(e).__name__}: {e}"}
-    # Written whole and renamed into place: the API polls for it, and must
-    # never read half of one.
+    # Atomically: the API polls for it.
     from siliconcompiler.remote.server.running.runspec import write_json
 
     write_json(workspace / RESULT, result)
@@ -88,10 +68,9 @@ def main(argv=None) -> int:
 
 
 def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
-    '''One environment into a derived image. Returns the result record.
+    '''Build one environment into a derived image; returns the result record.
 
-    ``run`` starts the build container and waits for it; the default is
-    `_run_container`. Tests hand in their own.
+    ``run`` starts the build container and waits (default `_run_container`).
     '''
     from siliconcompiler.remote.environment import IMAGE_SITE
     from siliconcompiler.remote.server.packages import pipbuild
@@ -116,8 +95,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
             shutil.copy(wheel, req / WHEELS / wheel.name)
     shutil.copy(pipbuild.__file__, req / "pipbuild.py")
 
-    # A unix socket's path is bounded (108 bytes), and a workspace under a data
-    # directory is not; so the socket gets a short directory of its own.
+    # A unix socket's path is bounded (108 bytes), so a short directory.
     sockets = Path(tempfile.mkdtemp(prefix="sc-envb-"))
     try:
         with open(base / "config.json") as f:
@@ -132,9 +110,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                    "--proxy-socket", f"{_PROXY}/proxy.sock"]
         for wheel in wheels:
             command += ["--wheel", f"{_REQ}/{WHEELS}/{wheel.name}"]
-        # The deployment's indexes; and a source distribution may be built
-        # only where the operator turned source builds on -- this container is
-        # the one place isolated enough to run its code (surface D291).
+        # Source builds only if the operator allows, and only here (surface D291).
         for index in spec.get("indexes") or []:
             command += ["--index-url", index]
         if spec.get("source_builds"):
@@ -165,16 +141,13 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
              "platform": pip.get("platform"), "ignored": pip.get("ignored") or {},
              "yanked": pip.get("yanked") or []}
     if pip.get("absent") or pip.get("source_only"):
-        # A version no configured index lists, or one it offers only as a
-        # source distribution: the job is sent back for the client's wheel.
+        # Not listed, or source only: the job is sent back for the client's wheel.
         return {"ok": False, "reason": "absent", **facts,
                 "absent": pip.get("absent") or [],
                 "source_only": pip.get("source_only") or [],
                 "tail": pip.get("tail", "")}
     if pip.get("returncode") != 0:
-        # 🔴 A refused host is policy, and says so; a network that did not
-        # answer says nothing about the pins, so it is the server's failure
-        # rather than the job's.
+        # 🔴 A refused host is policy; an unanswering network is the server's failure.
         if pip.get("network") and not proxy.refused:
             return {"ok": False, "reason": "error", **facts,
                     "detail": "the build could not reach an index:\n" + pip.get("tail", "")}
@@ -197,14 +170,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
 
 def build_config(base: Dict[str, Any], bundle: Path, req: Path, out: Path,
                  sockets: Path, command: List[str]) -> Dict[str, Any]:
-    '''The build container's OCI configuration, from its base image's,
-    staged as ``bundle``.
-
-    The base's process, namespaces and devices, with what makes it a builder:
-    its root read-only, none of its bind mounts, a private /tmp, the three
-    directories the build uses bound under it, and a network namespace of its
-    own. Absolute ``root.path``, so it needs no copy of the base's filesystem.
-    '''
+    '''The build container's OCI configuration, from its base image's staged ``bundle``.'''
     from siliconcompiler.remote.server.software.images import (
         _borrowed_root, _is_bind, drop_capabilities)
 
@@ -250,11 +216,7 @@ def _image_path(base: Dict[str, Any]) -> str:
 
 
 def _run_container(bundle: Path, command: List[str], path: str, timeout: int) -> str:
-    '''Start the build container and wait for it. Returns what it printed.
-
-    ``srun --container`` inside this build's own allocation, as a node runs --
-    the cluster's runtime and its configuration. Off a cluster, crun directly.
-    '''
+    '''Start the build container, by ``srun --container`` or else crun; returns its output.'''
     env = {key: value for key, value in os.environ.items() if key.startswith("SLURM_")}
     env.update({"PATH": path, "HOME": "/tmp", "LANG": "C.UTF-8"})
 
@@ -292,26 +254,13 @@ def _tail(text: str, lines: int = 20) -> str:
 ######################################################################
 
 class Proxy:
-    '''An HTTP proxy that admits an allowlist, and nothing else.
+    '''An HTTP proxy on a unix socket that admits an allowlist, and nothing else.
 
-    On a unix socket at ``address``, for the build container and for a
-    source fetch (`staging.fetch`). ``CONNECT host:port`` for HTTPS, admitted
-    when an https entry names that host and port; a plain ``GET``/``HEAD`` for
-    an ``http://`` URL, admitted when the whole URL is under an entry. Served
-    by the standard library's `http.server`; what is admitted, and where it
-    may connect, is this class's.
-
-    🔴 **Never to a private, loopback or link-local address**, whatever
-    resolves to one -- `allowlist.public_host`'s rule, for every fetch this
-    server makes -- with one exception, for the builder only
-    (``private_exact_hosts``, surface D172): an index entry naming one exact
-    host is the operator's choice of a machine, a mirror on their own network,
-    and may resolve to a private address. A wildcard entry never may, and no
-    source-allowlist entry does.
-
-    ``refused`` lists every host it said no to, for the result to name.
-    ``max_bytes``, where given, is the most it relays back across every
-    connection; past it the connection is cut and ``oversize`` set.
+    ``CONNECT`` is checked by host and port, a plain http ``GET``/``HEAD`` by
+    whole URL. 🔴 Never to a non-public address, but for the builder's
+    ``private_exact_hosts`` (surface D172): an exact-host index entry may be the
+    operator's own mirror; a wildcard never. Past ``max_bytes`` relayed back,
+    the connection is cut and ``oversize`` set.
     '''
 
     def __init__(self, address, entries, private_exact_hosts: bool = False,
@@ -375,8 +324,7 @@ class Proxy:
             return not self.oversize
 
     def _public_only(self, rules, url: str) -> bool:
-        '''Whether the address rule binds this connection: always, but for
-        an exact-host entry where the exception is on.'''
+        '''Whether the address rule binds this connection.'''
         rule = self._matching(rules, url)
         return not (self._private_exact and rule is not None
                     and not rule.host.startswith("*."))
@@ -386,9 +334,7 @@ class _ProxyHandler(http.server.BaseHTTPRequestHandler):
     '''One connection to the proxy: a tunnel, or one plain GET or HEAD.'''
 
     protocol_version = "HTTP/1.1"
-    # 🔴 Unbuffered, so what a client sends after a CONNECT's head -- the TLS
-    # hello, pipelined -- is still on the socket for the tunnel, never held in
-    # a buffer this handler then drops.
+    # 🔴 Unbuffered, so a pipelined TLS hello stays on the socket for the tunnel.
     rbufsize = 0
 
     def do_CONNECT(self) -> None:
@@ -445,8 +391,7 @@ class _ProxyHandler(http.server.BaseHTTPRequestHandler):
         self._answer(403, f"{host} {why}")
 
     def _answer(self, status: int, why: str) -> None:
-        # In one write, head and body together: a client reading up to the end
-        # of the head still has the reason, never a body still in flight.
+        # One write, so the reason is never a body still in flight.
         body = f"{why}\n".encode()
         self.close_connection = True
         self.wfile.write(f"{self.protocol_version} {status} {http.HTTPStatus(status).phrase}\r\n"
@@ -454,14 +399,12 @@ class _ProxyHandler(http.server.BaseHTTPRequestHandler):
                          .encode("latin-1") + body)
 
     def log_message(self, format, *args) -> None:
-        # Refusals are said by `_refuse`; nothing else is worth a line.
         return
 
 
 def _open_public(host: str, port: int, public_only: bool = True):
-    '''A connection to ``host`` -- where every address it resolves to is
-    public, unless ``public_only`` is off -- and to one of the addresses
-    checked, never a second lookup.'''
+    '''Connect to ``host`` if all its addresses are public: to one of those checked,
+    never a second lookup.'''
     from siliconcompiler.remote.server.staging.allowlist import _all_public
 
     try:
@@ -483,9 +426,7 @@ def _open_public(host: str, port: int, public_only: bool = True):
 
 
 def _splice(one, other, relayed=None) -> None:
-    '''Relay both ways until both ends close; ``relayed``, where given, is
-    told the size of each block from ``other`` and stops the relay by
-    answering False.'''
+    '''Relay both ways until both ends close; ``relayed`` returning False stops it.'''
     def pipe(source, sink, count=None):
         try:
             while True:
@@ -509,14 +450,10 @@ def _splice(one, other, relayed=None) -> None:
 
 def wait_for(workspace: Path, timeout: float, alive=None, pause: float = 2.0,
              ask_every: float = 30.0, grace: float = 15.0):
-    '''The result of a build, once it is written; None past ``timeout``, or
-    ``grace`` seconds after ``alive()`` first says the build job is gone
-    without one.
+    '''A build's result once written; None past ``timeout`` or ``grace`` after the job is gone.
 
-    The file is looked for every ``pause``; the scheduler is asked at most
-    every ``ask_every``, since each ask is a call into it. The grace is for a
-    shared filesystem, where a file written on the compute node can appear here
-    after the job that wrote it has ended.
+    The grace is for a shared filesystem, where the file can appear after its
+    writer ended; the scheduler is asked at most every ``ask_every``.
     '''
     deadline = time.monotonic() + timeout
     path = Path(workspace) / RESULT

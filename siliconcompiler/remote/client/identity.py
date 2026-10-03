@@ -1,14 +1,8 @@
 '''
 Which principal this machine is, to a server that does not verify the answer.
 
-The identity is `(machine, uid)`, derived rather than configured. The objection
-it answers is multi-user-on-one-machine, which is the common case here: a
-machine-only key would collapse every user on a login node into one identity,
-and B could cancel A's jobs.
-
-Derive from the uid and display the username. The uid survives a rename and is
-stable across a cluster; deriving from the username would make a rename a new
-identity.
+The identity is derived from `(machine, uid)`: machine alone would merge every
+user on a login node. The uid, not the username, so a rename keeps the identity.
 '''
 
 import hashlib
@@ -22,19 +16,12 @@ from typing import Optional, Tuple
 __all__ = ["machine_fingerprint", "local_subject", "display_name"]
 
 
-# Changing this changes every derived subject at once -- a silent, uncoordinated
-# identity migration for every unauthenticated deployment. It is a constant so
-# that a change to it is a visible edit rather than a side effect.
+# Changing this silently migrates every derived identity at once.
 _SALT = b"siliconcompiler.remote.v1"
 
 
 def machine_fingerprint() -> Tuple[Optional[str], str]:
-    '''This machine's id, and which source produced it.
-
-    Returns `(value, source)` where source is one of the four the schema
-    accepts. There is no persisted fallback: a machine that cannot answer says
-    so with `none` rather than inventing an id that would move on its own.
-    '''
+    '''``(machine id, source)``; ``(None, "none")`` rather than an invented id.'''
     system = platform.system()
 
     if system == "Linux":
@@ -94,11 +81,7 @@ def _windows_machine_guid() -> Optional[str]:
 
 
 def _uid() -> str:
-    '''The numeric uid, or the username where there is no uid.
-
-    Windows has no uid; the login name is the closest stable thing, and a
-    deployment mixing the two is already two identities per person.
-    '''
+    '''The numeric uid, or on Windows, which has none, the username.'''
     getuid = getattr(os, "getuid", None)
     if getuid is not None:
         return str(getuid())
@@ -106,15 +89,10 @@ def _uid() -> str:
 
 
 def local_subject() -> Tuple[str, Optional[str], str]:
-    '''The `client_id=local:<derivation>` value, and the fingerprint beside it.
+    '''``(subject, machine_id_hash, machine_id_source)`` for `client_id=local:<subject>`.
 
-    Returns `(subject, machine_id_hash, machine_id_source)`. The uid goes into
-    the derivation rather than being concatenated after it, which is the same
-    operation a per-application machine id already is with one more input.
-
-    The hash is a separate value from the subject on purpose: the subject is the
-    identity key and is unique, while `devices.machine_id_hash` is a label and
-    is deliberately not.
+    The subject is the unique identity key; the hash is only a device label, and
+    deliberately not unique.
     '''
     machine, source = machine_fingerprint()
     uid = _uid()
@@ -136,11 +114,7 @@ def local_subject() -> Tuple[str, Optional[str], str]:
 
 
 def display_name() -> str:
-    '''What a person recognises, which is never a number.
-
-    Goes in `users.display_name` and in the device's name; nothing is keyed on
-    it, so a rename costs nothing.
-    '''
+    '''``user@host``, for display only: nothing is keyed on it.'''
     import getpass
 
     try:

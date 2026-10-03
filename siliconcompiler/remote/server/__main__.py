@@ -1,14 +1,9 @@
 '''
 ``python -m siliconcompiler.remote.server``
 
-A module entry point rather than a console script: it can be imported and driven
-in-process, where a console script has to be installed and spawned.
-
-Three flags, and a fourth for testing. Everything else a deployment might want
-to say -- its limits, what it advertises, how long a client waits -- has a
-working default and can be
-overridden in ``<datadir>/config.json``, so the first run of a new server needs
-no file and no arguments beyond where to keep its state.
+A module entry point, not a console script, so it can be driven in-process.
+Everything beyond the flags has a default in ``config.py``, overridable in
+``<datadir>/config.json``.
 '''
 
 import argparse
@@ -26,10 +21,8 @@ from siliconcompiler.remote.server.config import TEST_MODES
 __all__ = ["main"]
 
 
-# How a job is handed over, and the list is short because the job is the unit
-# of submission: one batch job per run, not one dispatch per node. There is no
-# `docker`: under batch submission the container is the cluster's business
-# rather than this server's, so it is not a choice this flag makes.
+# One batch job per run, not one dispatch per node. No `docker`: under batch
+# submission the container is the cluster's business.
 CLUSTERS = ("local", "slurm")
 
 
@@ -67,10 +60,9 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    # 🔴 `python -m` puts the working directory first on sys.path, and the
-    # server is usually started in its data directory -- where every job's
-    # extracted archive is. Nothing there may be importable in this process
-    # (contract §1), so the working directory comes off before anything else.
+    # 🔴 `python -m` puts the working directory on sys.path, and the server is
+    # usually started in its data directory, among every job's extracted
+    # archive (contract §1): it comes off before anything else.
     import os
 
     here = os.path.realpath(os.getcwd())
@@ -84,8 +76,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         format="| %(levelname)-8s | %(message)s")
     logger = logging.getLogger("sc-server")
 
-    # Imported here rather than at module scope so that --help works with the
-    # "server" extra missing, which is also what the docs build renders from.
+    # Imported here so --help works without the "server" extra, as the docs
+    # build needs.
     from siliconcompiler.remote.server.app import (
         create_app, missing_server_dependency)
 
@@ -97,8 +89,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     datadir = Path(args.datadir).resolve()
 
-    # Where this server is reached when config.json names no public_origins:
-    # this host's own names on this port. Behind a proxy, config names it.
+    # This host's own names on this port, where config.json names none.
     import socket
     here_names = dict.fromkeys(
         name for name in ("localhost", "127.0.0.1", socket.gethostname(),
@@ -109,8 +100,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         app = create_app(datadir, cluster=args.cluster, test_mode=args.test_mode,
                          public_origins=origins)
     except Exception as e:                                       # noqa: BLE001
-        # A bad config file or an unreadable store is a setup problem, and a
-        # traceback buries the one line that says which.
+        # A setup problem: a traceback would bury the one line that says which.
         logger.error(str(e))
         return 1
 
@@ -127,18 +117,15 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "-- a client addressing it any other way is refused; set "
                 "public_origins in config.json behind a proxy")
     if args.test_mode is not None:
-        # Loud, because it changes what every client is told and a deployment
-        # left in it serves less than its operator thinks.
+        # Loud: a deployment left in it serves less than its operator thinks.
         config = app.config["SC_CONFIG"]
         logger.warning(f"TEST MODE {args.test_mode}: features "
                        f"{config['features'] or 'none'}, API hands over "
                        f"{config['api_fetchable_kinds'] or 'every kind'}, "
                        f"denied {config['denied_resources'] or 'nothing'}"
                        + (", every fetch fails" if config["fetch_fails"] else ""))
-    # The honesty half, pairing with what GET /v1 publishes. Nothing here
-    # verifies who a caller is; the key bound on first contact is the only real
-    # control this mode has, and an operator should know that at startup rather
-    # than from a document.
+    # Nothing here verifies who a caller is, and an operator should hear so at
+    # startup.
     logger.info(f"identity assurance: {app.config['SC_CONFIG']['identity_assurance']} "
                 "-- this server does not verify who a caller is")
 

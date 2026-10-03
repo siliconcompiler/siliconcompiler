@@ -1,24 +1,13 @@
 '''
-Links in a job's build directory, and where each one's file really lives.
+Links in a job's build directory, and where each one's file really lives: the
+one reading both ends use to keep a link inside the job as a link and follow
+none out of it (contract.md, *An upload keeps links, and stores a linked file once*).
 
-Both ends pack a job's tree -- the client an upload, the server the archives a
-run produces -- and both keep a link inside the job as a link, pointed at the
-file's real home, and follow none out of it (contract.md, *An upload keeps
-links, and stores a linked file once*; *A produced archive keeps a link inside
-the job as a link, and follows none out of it*). This is the one reading of a
-link both use.
+🔴 Link targets are read; a file is never opened through a link. :func:`resolve`
+walks one component at a time, so a chain leaving the tree is caught first.
 
-🔴 **Link targets are read; a file is never opened through a link.**
-:func:`resolve` walks a path one component at a time, reading each link it
-meets and splicing its target in, so a link planted anywhere on the way is
-read rather than followed, and a chain that leaves the tree is found before
-anything outside it is touched.
-
-SiliconCompiler's pass-through chain is two hops: a node's ``outputs/x`` links
-to its ``inputs/x``, which links to the upstream node's ``outputs/x``. Its
-``link_symlink_copy`` tries a hard link first, so the chain is usually one inode
-under three names instead: :class:`Homes` finds a hard-linked file's home by
-inode, as the name in the ``outputs/`` of the node that produced it.
+A pass-through is often one inode under three names (hard links):
+:class:`Homes` finds its home in the producing node's ``outputs/``.
 '''
 
 import os
@@ -30,7 +19,7 @@ __all__ = ["resolve", "follow", "Homes", "relative", "HOP_LIMIT",
            "OUTSIDE", "DANGLING", "LOOP", "OTHER"]
 
 
-# How many links a chain may pass through before it is given up on as a loop.
+# Links a chain may pass before it counts as a loop.
 HOP_LIMIT = 40
 
 
@@ -42,21 +31,13 @@ OTHER = "other"          # it ends at something neither a file nor a directory
 
 
 def resolve(tree, path) -> Optional[str]:
-    '''Where ``path`` ends, every link on the way read: a regular file or a
-    directory inside ``tree``, as a path under ``tree``'s real path -- or None
-    for a chain that leaves ``tree``, dangles, loops, passes :data:`HOP_LIMIT`
-    or ends at anything else.
-
-    ``path`` is under ``tree``, lexically. ``tree`` itself may be reached
-    through a link: it is where the job is kept, not something the job wrote.
-    '''
+    '''Where ``path`` (under ``tree``) ends with every link read: a file or
+    directory under ``tree``'s real path, else None. ``tree`` itself may be a link.'''
     return follow(tree, path)[0]
 
 
 def follow(tree, path) -> Tuple[Optional[str], Optional[str]]:
-    '''As :func:`resolve`, and why not: ``(end, None)``, or ``(None, why)``
-    with ``why`` one of :data:`OUTSIDE`, :data:`DANGLING`, :data:`LOOP` and
-    :data:`OTHER`.'''
+    '''As :func:`resolve`, as ``(end, None)`` or ``(None, why)``.'''
     base = os.path.abspath(str(tree))
     real_base = os.path.realpath(base)
     start = os.path.abspath(str(path))
@@ -124,18 +105,12 @@ def relative(target: str, link_dir: str) -> str:
 
 
 class Homes:
-    '''Every hard-linked regular file in ``tree``, by inode, and each one's
-    home: the name in the ``outputs/`` of the node that produced it -- the node
-    whose ``outputs/`` holds the inode while its ``inputs/`` does not.
-
-    Walked once, never through a link. Names are under ``tree``'s real path,
-    as :func:`resolve` returns them.
-    '''
+    '''Every hard-linked file in ``tree`` by inode, and its home: the name in the
+    ``outputs/`` of the node whose ``inputs/`` lacks it. Never walked through a link.'''
 
     def __init__(self, tree):
         self.tree = os.path.realpath(str(tree))
         self._names: Dict[Tuple[int, int], List[str]] = {}
-        # Each file the tree was walked again for, so none costs more than one.
         self._rewalked: Set[Tuple[int, int]] = set()
         self._walk()
 
@@ -158,18 +133,11 @@ class Homes:
         return list(self._names.get((info.st_dev, info.st_ino), ()))
 
     def leaves(self, info) -> bool:
-        '''Whether the file has a name outside the tree -- more links than the
-        tree holds names for it -- which could be data hard-linked in from
-        anywhere, a PDK's included.
+        '''Whether the file has more links than names in the tree: hard-linked
+        in from outside, a PDK's perhaps.
 
-        🔴 **The tree is walked again before this says yes.** It is a running
-        job's, and a name can appear in it after the walk: the scheduler
-        hard-links a node's outputs into the next node's inputs as that node
-        starts, which is the moment the node that finished is archived.
-        Counted against the first walk alone, a file whose every name is in the
-        job has one more link than names, and is left out of its node's
-        results as if it had one outside. Once per file, since one that still
-        has more links than names after a second walk does have a name outside.
+        🔴 Walked again, once per file, before saying yes: in a running job the
+        next node's inputs gain hard links just as the finished node is archived.
         '''
         if info.st_nlink <= max(1, len(self.names(info))):
             return False
@@ -180,8 +148,7 @@ class Homes:
         return info.st_nlink > max(1, len(self.names(info)))
 
     def home(self, info) -> Optional[str]:
-        '''The name in the producing node's ``outputs/``, or None where no
-        node's ``outputs/`` holds the file.'''
+        '''The name in the producing node's ``outputs/``, or None.'''
         names = self.names(info)
         placed: Dict[Tuple[str, str], Dict[str, List[str]]] = {}
         for name in names:

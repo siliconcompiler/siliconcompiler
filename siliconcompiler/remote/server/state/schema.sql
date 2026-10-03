@@ -1,13 +1,11 @@
 -- The v1 store: 20 tables of the contract's 42.
 --
--- The shape of every table here is the contract's. What differs is the engine
--- and the subset: sc-server is the unauthenticated profile plus the image
--- registry, so entitlements, terms, projects, the artifact gate, the admin
--- tables and metering are absent. A dropped table takes its foreign keys with
--- it, and every such removal is commented where it happens.
+-- Every table's shape is the contract's; the engine and the subset differ.
+-- sc-server is the unauthenticated profile plus the image registry, so
+-- entitlements, terms, projects, the artifact gate, the admin tables and
+-- metering are absent, and each foreign key they take with them is noted.
 --
--- Translating Postgres to SQLite, once, here:
---
+-- Postgres to SQLite:
 --   uuid          -> text, the canonical hyphenated form of a UUIDv4
 --   timestamptz   -> text, RFC 3339 in UTC ('2026-09-22T11:22:33.456Z')
 --   jsonb         -> text holding JSON; the JSON1 functions read it in place
@@ -16,9 +14,8 @@
 --   inet, char(32)-> text
 --   now()         -> strftime, so a default and a Python write agree on format
 --
--- `index` is a SQLite keyword, so the node column of that name is quoted
--- everywhere it appears. Foreign keys are declared but only enforced when the
--- connection sets `PRAGMA foreign_keys = ON`, which store.py does.
+-- `index` is a SQLite keyword, so that node column is always quoted. Foreign
+-- keys are enforced only under `PRAGMA foreign_keys = ON`, which store.py sets.
 
 PRAGMA foreign_keys = ON;
 
@@ -40,9 +37,8 @@ CREATE TABLE users (
     posix_account   text UNIQUE,                    -- the Slurm mapping; NULL until provisioned
     role            text NOT NULL DEFAULT 'user'
                         CHECK (role IN ('user', 'admin')),
-                                                    -- everyone is an admin on this deployment, so
-                                                    -- nothing reads this. It stays for one shape
-                                                    -- with crucible
+                                                    -- nothing reads it (everyone is an admin
+                                                    -- here); kept for one shape with crucible
     created_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     last_seen_at    text,
     deactivated_at  text,                           -- active is deactivated_at IS NULL
@@ -58,12 +54,9 @@ CREATE UNIQUE INDEX users_email_key ON users (lower(email)) WHERE email IS NOT N
 CREATE TABLE devices (
     id                 text PRIMARY KEY,
     user_id            text NOT NULL REFERENCES users(id),
-    name               text NOT NULL,               -- renamed in the portal; there is no
-                                                    -- API endpoint for it
-    dpop_jkt           text NOT NULL,               -- JWK thumbprint: THIS is the pin. Nothing
-                                                    -- verifies the identity in this profile, so
-                                                    -- the key binding a session to a machine is
-                                                    -- the only real control the mode has
+    name               text NOT NULL,               -- renamed in the portal; no API endpoint
+    dpop_jkt           text NOT NULL,               -- JWK thumbprint: THIS is the pin, the only
+                                                    -- real control where identity is unverified
     machine_id_hash    text,                        -- a label, deliberately NOT unique.
                                                     -- NULL when nothing could be derived
     machine_id_source  text NOT NULL CHECK (machine_id_source IN
@@ -97,19 +90,13 @@ CREATE TABLE token_families (
     user_id             text NOT NULL REFERENCES users(id),
     device_id           text REFERENCES devices(id),
     kind                text NOT NULL CHECK (kind IN ('interactive', 'ci')),
-                                                    -- the vocabulary is the contract's and stays
-                                                    -- closed. Only 'interactive' is ever written
-                                                    -- here: minting a CI credential is crucible's
-                                                    -- path, and ci_credentials is not in this
-                                                    -- profile -- which is also why the
-                                                    -- ci_credential_id column and its foreign key
-                                                    -- are absent rather than left dangling
-    dpop_jkt            text NOT NULL,              -- the key this family is bound to, checked on
-                                                    -- every refresh. NOT NULL admits no exception
+                                                    -- the contract's closed vocabulary; only
+                                                    -- 'interactive' is written here. CI is
+                                                    -- crucible's, so ci_credential_id is absent
+    dpop_jkt            text NOT NULL,              -- the bound key, checked on every refresh
     scope               text NOT NULL,              -- the CEILING, space-delimited and ALREADY
-                                                    -- EXPANDED: jobs:write is stored as
-                                                    -- 'jobs:read jobs:write'. A rotation may
-                                                    -- narrow inside it, never widen
+                                                    -- EXPANDED ('jobs:read jobs:write'). A
+                                                    -- rotation may narrow inside it, never widen
     created_at          text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     expires_at          text NOT NULL,              -- the session's end: set at creation, NEVER
                                                     -- extended by a refresh or by activity
@@ -126,8 +113,7 @@ CREATE TABLE refresh_tokens (
     jti          text PRIMARY KEY,
     family_id    text NOT NULL REFERENCES token_families(id),
     issued_at    text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-    expires_at   text NOT NULL,                     -- CLAMPED to the family's
-                                                    -- expires_at; never past it
+    expires_at   text NOT NULL,                     -- CLAMPED to the family's expires_at
     revoked_at   text,
     replaced_by  text REFERENCES refresh_tokens(jti),
     replaced_at  text
@@ -160,8 +146,8 @@ CREATE TABLE node_states (                          -- a NODE's closed set. Not 
 INSERT INTO node_states VALUES
     ('pending', 0),             -- admitted, not yet dispatched
     ('queued', 0),              -- with the scheduler
-    ('preparing', 0),           -- dispatched, fetching its image: a tool image is minutes, and
-                                -- without this the wait is indistinguishable from a hang
+    ('preparing', 0),           -- dispatched, fetching its image: minutes, which
+                                -- would otherwise look like a hang
     ('running', 0),
     ('completed', 1), ('failed', 1),
     ('skipped', 1),             -- deliberately not run: a condition, a cached hit
@@ -170,14 +156,13 @@ INSERT INTO node_states VALUES
 CREATE TABLE jobs (
     id                text PRIMARY KEY,             -- one opaque id, not the content hash
     user_id           text NOT NULL REFERENCES users(id),
-                                                    -- project_id is absent: 'projects' is not in
-                                                    -- this deployment's features
+                                                    -- project_id absent: no 'projects' feature
     device_id         text REFERENCES devices(id),  -- which machine submitted it
 
     state             text NOT NULL REFERENCES job_states(state),
     state_changed_at  text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-                                                    -- PUBLISHED on the job object under this same
-                                                    -- name, written on every transition
+                                                    -- PUBLISHED under this same name, written
+                                                    -- on every transition
 
     design            text NOT NULL,
     jobname           text NOT NULL,
@@ -188,10 +173,9 @@ CREATE TABLE jobs (
     manifest_tools    text,                         -- JSON, re-derived at submit
     manifest_pdk      text,                         -- re-derived at submit: a PDK name, or the
                                                     -- literal 'none' = this flow requires no PDK
-    manifest_resources text,                        -- JSON [[kind, name], ...]: the PDKs and
-                                                    -- libraries the run derives from, re-derived at
-                                                    -- submit. What a job continuing from this one
-                                                    -- takes on with its results (surface D175)
+    manifest_resources text,                        -- JSON [[kind, name], ...], re-derived at
+                                                    -- submit: the PDKs and libraries the run
+                                                    -- uses, which a continuing job takes on (D175)
 
     upload_storage_key      text,                   -- the object key the grant was issued for
     upload_location_id      text REFERENCES storage_locations(id),
@@ -211,14 +195,11 @@ CREATE TABLE jobs (
     upload_sources          text,                   -- JSON: what the server is ASKING for, in
                                                     -- created or awaiting_input. NULL otherwise
     python_packages         text,                   -- JSON: the create body's python_packages
-                                                    -- as the grammar accepted it -- the
-                                                    -- builder's input, outside anything the
-                                                    -- job writes (database D147). NULL where
-                                                    -- the job lists none
+                                                    -- as accepted, the builder's input (database
+                                                    -- D147). NULL where the job lists none
     python_answered         text,                   -- JSON: each distribution this job was sent
-                                                    -- back for, by canonical name. Its wheel
-                                                    -- replaces the listed entry, and is the one
-                                                    -- wheel that may overlap the lists
+                                                    -- back for, by canonical name; its wheel
+                                                    -- replaces the entry and alone may overlap
 
     create_idempotency_key text,                   -- written with the row, so a refused create,
                                                     -- which writes none, binds no key
@@ -228,34 +209,24 @@ CREATE TABLE jobs (
     submit_key_at     text,                         -- when submit_idempotency_key was bound
     unpack_pending    integer NOT NULL DEFAULT 0,   -- 1 from submit until staging unpacks
                                                     -- the newest upload
-    run_hash          text,                         -- the client's opaque hash of the work, for
-                                                    -- job reuse. The server never recomputes or
-                                                    -- normalises it, and the lookup is
-                                                    -- owner-scoped, which is what makes trusting
-                                                    -- a client-supplied value safe: a wrong hash
-                                                    -- hands a user their own stale job
+    run_hash          text,                         -- the client's opaque hash of the work, never
+                                                    -- recomputed. Safe to trust because reuse is
+                                                    -- owner-scoped: a wrong hash hands a user
+                                                    -- their own stale job
     job_identity      text,                         -- H(run_hash || the digests this job's
-                                                    -- declared versions resolved to). What reuse
-                                                    -- is actually keyed on: the client keeps
-                                                    -- computing its own hash and tracks nothing
-                                                    -- extra, and the server folds in what IT
-                                                    -- chose -- so re-registering an image
-                                                    -- invalidates reuse exactly when it should,
-                                                    -- because a new digest is precisely
-                                                    -- "the code changed"
+                                                    -- declared versions resolved to): what reuse
+                                                    -- is keyed on, so re-registering an image
+                                                    -- invalidates reuse exactly when it should
     image_id          text REFERENCES images(id),   -- the container this job's own process runs
-                                                    -- in, picked at create from
-                                                    -- requested_versions.python
-                                                    -- alone (D145). NULL on a deployment that
-                                                    -- runs no containers
+                                                    -- in, from requested_versions.python alone
+                                                    -- (D145). NULL where no containers run
     scheduler_job_id  text,                         -- set only where the JOB is the unit of
                                                     -- submission; per-node dispatch puts it on
                                                     -- job_nodes instead. At most one level
     submit_trace_id   text CHECK (submit_trace_id IS NULL OR length(submit_trace_id) = 32),
     error_type        text,                         -- the RFC 9457 `type` URI
-    error_members     text,                         -- JSON: the type's own members of the
-                                                    -- job's `error`, as the refusal carried
-                                                    -- them; its `detail` is the transition's
+    error_members     text,                         -- JSON: the type's own members of the job's
+                                                    -- `error`; its `detail` is the transition's
                                                     -- reason. NULL when error_type is NULL
     state_reason      text,                         -- display only: the staging phase, or a
                                                     -- cancel's reason. Bounded and scrubbed
@@ -268,10 +239,9 @@ CREATE TABLE jobs (
     archived_at       text,                         -- VIEW ONLY: the job leaves the default list
                                                     -- and is unchanged in every other respect
     archived_by       text REFERENCES users(id),
-    deleted_at        text,                         -- the job stays readable after DELETE;
+    deleted_at        text,                         -- the job stays readable after DELETE, its
                                                     -- subresources 404. Not a `deleted` state,
-                                                    -- which would erase whether the job had
-                                                    -- completed, failed or been rejected
+                                                    -- which would erase how the job ended
     deleted_by        text REFERENCES users(id),
     deleted_reason    text,                         -- prose naming who acted, never the device
 
@@ -293,15 +263,13 @@ CREATE UNIQUE INDEX jobs_create_idempotency_idx ON jobs (user_id, create_idempot
     WHERE create_idempotency_key IS NOT NULL;
 CREATE UNIQUE INDEX jobs_submit_idempotency_idx ON jobs (user_id, submit_idempotency_key)
     WHERE submit_idempotency_key IS NOT NULL;
--- This index IS the published collection ordering. GET /v1/jobs is ordered
--- created_at DESC with the opaque id as a bytewise tiebreaker, and ?cursor= is a
--- keyset over exactly that pair. The partial predicate is why a deleted job
--- leaves the list.
+-- This index IS the published ordering of GET /v1/jobs: created_at DESC, the
+-- opaque id a bytewise tiebreaker, ?cursor= a keyset over that pair. The partial
+-- predicate is why a deleted job leaves the list.
 CREATE INDEX jobs_list_idx ON jobs (user_id, created_at DESC)
     WHERE deleted_at IS NULL AND archived_at IS NULL;
--- ?archived=true is the SAME ordering over the complement, so a client pages
--- both views identically. Two partial indexes rather than one wider one: the
--- default list is the hot path and must not carry the archive's rows.
+-- ?archived=true: the SAME ordering over the complement. Two partial indexes, so
+-- the default list, the hot path, carries none of the archive's rows.
 CREATE INDEX jobs_archived_idx ON jobs (user_id, created_at DESC)
     WHERE deleted_at IS NULL AND archived_at IS NOT NULL;
 CREATE INDEX jobs_design_idx ON jobs (user_id, design, created_at DESC)
@@ -312,9 +280,8 @@ CREATE INDEX jobs_concurrent_idx ON jobs (user_id)
     WHERE state IN ('staging', 'queued', 'running', 'cancelling');   -- staging too:
                                                     -- fetches are work
 CREATE INDEX jobs_pending_idx ON jobs (user_id) WHERE state IN ('created', 'awaiting_input');
--- Owner-scoped, per the reuse rule, and partial because almost no row has one.
--- On job_identity and not run_hash: two runs asking for the same work but
--- resolved to different images are correctly different jobs.
+-- Owner-scoped, per the reuse rule, and partial. On job_identity, not run_hash:
+-- the same work resolved to different images is a different job.
 CREATE INDEX jobs_run_hash_idx ON jobs (user_id, job_identity)
     WHERE job_identity IS NOT NULL AND deleted_at IS NULL;
 
@@ -323,11 +290,9 @@ CREATE TABLE job_state_transitions (                -- append-only
     job_id        text NOT NULL REFERENCES jobs(id),
     from_state    text REFERENCES job_states(state),
     to_state      text NOT NULL REFERENCES job_states(state),
-    actor_id      text REFERENCES users(id),        -- the person who caused it, where a person
-                                                    -- did. NULL = the scheduler, the worker or
-                                                    -- the reaper
-                                                    -- elevation_id is absent: there is no
-                                                    -- administrative mode here to record
+    actor_id      text REFERENCES users(id),        -- the person who caused it. NULL = the
+                                                    -- scheduler, the worker or the reaper
+                                                    -- elevation_id absent: no admin mode here
     occurred_at   text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     reason        text,
     trace_id      text CHECK (trace_id IS NULL OR length(trace_id) = 32)
@@ -354,9 +319,9 @@ CREATE TABLE job_nodes (
                                                     -- `detail` and the type's own members.
                                                     -- NULL when error_type is NULL
     state_reason text,                              -- display only: a cancel's reason
-    metrics     text,                               -- what the node's portal panel shows, as JSON:
-    records     text,                               -- the run's final manifest read ONCE as plain
-                                                    -- JSON when the job ends, never loaded through
+    metrics     text,                               -- JSON: what the node's portal panel shows,
+    records     text,                               -- from the run's final manifest read ONCE as
+                                                    -- plain JSON when the job ends, never through
                                                     -- SiliconCompiler (contract §1). NULL before
     PRIMARY KEY (job_id, step, "index")
 );
@@ -374,13 +339,11 @@ CREATE TABLE job_node_edges (                       -- the flow's shape, as rows
     FOREIGN KEY (job_id, to_step,   to_index)   REFERENCES job_nodes (job_id, step, "index")
 );
 
-CREATE TABLE job_continuations (                    -- a run that starts part-way through its
-    job_id      text NOT NULL REFERENCES jobs(id),  -- flow (surface D175): for each node it reads
-    step        text NOT NULL,                      -- and does not run, the job whose results
-    "index"     text NOT NULL,                      -- were copied in. Written at create, from
-    from_job_id text NOT NULL,                      -- `continues_from`. The job that RAN the node:
-                                                    -- the key refuses one that never had it or
-                                                    -- only copied it. Completed is the handler's
+CREATE TABLE job_continuations (                    -- a run starting part-way (surface D175):
+    job_id      text NOT NULL REFERENCES jobs(id),  -- per node it reads and does not run, the job
+    step        text NOT NULL,                      -- whose results were copied in, written at
+    "index"     text NOT NULL,                      -- create. The key demands the job that RAN
+    from_job_id text NOT NULL,                      -- the node; the handler checks it completed
     PRIMARY KEY (job_id, step, "index"),
     FOREIGN KEY (from_job_id, step, "index") REFERENCES job_nodes (job_id, step, "index"),
     CHECK (from_job_id <> job_id)
@@ -397,8 +360,7 @@ CREATE TABLE artifact_kinds (                       -- the vocabulary, and how l
                         CHECK (retention_seconds IS NULL OR retention_seconds > 0)
 );
 INSERT INTO artifact_kinds (kind, retention_seconds) VALUES
-    ('manifest', 157680000), -- five years. What the run WAS: small, and the thing you want
-                             -- later
+    ('manifest', 157680000), -- five years. What the run WAS: small, and wanted later
     ('logs',     157680000),
     ('reports',  157680000),
     ('issue',    157680000), -- a failure is what you come back to
@@ -406,9 +368,8 @@ INSERT INTO artifact_kinds (kind, retention_seconds) VALUES
     ('outputs',  NULL),      -- large, regenerable, and the most sensitive: the floor, no more
     ('input',    NULL),      -- what went IN: each uploaded archive, job-level, and
                              -- a node's inputs/ bound to the node
-    ('node',     NULL),      -- one node's whole working directory, and it may never outlive
-                             -- its contents. ALWAYS bound to a step and an index: there is no
-                             -- job-level tarball, because the kind is named for what it is
+    ('node',     NULL),      -- one node's whole working directory, never outliving its
+                             -- contents. ALWAYS bound to a node: no job-level tarball
     ('staging',  157680000), -- the server's record of the job, for its submitter, from create
                              -- to dispatch: a section each time it stages. Kept as logs are
     ('diagnostics', 7776000); -- 90 days. The operators' record, unscrubbed: read when
@@ -418,9 +379,8 @@ INSERT INTO artifact_kinds (kind, retention_seconds) VALUES
 
 CREATE TABLE storage_locations (                    -- WHERE 'where' is
     id       text PRIMARY KEY,                      -- 'primary', 'archive-2026'
-    uri_base text NOT NULL,                         -- 'file:///srv/artifacts/' -- read to build a
-                                                    -- URL. A URI, so file:// is a first-class
-                                                    -- deployment and needs no second shape
+    uri_base text NOT NULL,                         -- 'file:///srv/artifacts/', read to build a
+                                                    -- URL. A URI, so file:// is first-class
     writable integer NOT NULL DEFAULT 1 CHECK (writable IN (0, 1))
                                                     -- false after a migration: still read, never
                                                     -- written to again. SEVERAL may be writable
@@ -431,9 +391,8 @@ CREATE TABLE artifacts (
     job_id        text NOT NULL REFERENCES jobs(id),
     step          text,                             -- 'place'; NULL for job-level artifacts
     "index"       text,                             -- '0'; NULL for job-level artifacts
-    digest        text NOT NULL,                    -- WHAT the bytes are: 'sha256:<hex>'.
-                                                    -- Integrity, and the dedup identity.
-                                                    -- Published as `digest`
+    digest        text NOT NULL,                    -- WHAT the bytes are: 'sha256:<hex>'. The
+                                                    -- integrity and dedup identity, published
     location_id   text NOT NULL REFERENCES storage_locations(id),
     storage_key   text NOT NULL,                    -- WHERE in it. Never on the wire, and MAY be
                                                     -- shared between rows
@@ -458,8 +417,7 @@ CREATE TABLE artifacts (
     withheld_reason text,
     deleted_at    text,                             -- THE BYTES ARE GONE. The row stays.
     deleted_by    text REFERENCES users(id),        -- NULL deleted_by = the reaper; set = a
-    deleted_reason text,                            -- person deleted it on purpose, and owes a
-                                                    -- reason
+    deleted_reason text,                            -- person, who owes a reason
     CHECK (("index" IS NULL) = (step IS NULL)),     -- both, or neither. Deliberately NOT a
                                                     -- foreign key into job_nodes
     CHECK ((upload_seq IS NOT NULL) = (kind = 'input' AND step IS NULL)),
@@ -480,19 +438,12 @@ CREATE INDEX artifacts_digest_idx ON artifacts (digest);
 CREATE INDEX artifacts_live_object_idx ON artifacts (location_id, storage_key)
     WHERE deleted_at IS NULL;
 
--- 🔴 One row per kind per node, and it has to be the DATABASE that says so.
--- Indexing is driven from reconcile, which runs on whichever request thread
--- got there first -- and a client polling its job while tailing two logs has
--- three of them. Every writer checks before inserting, and two that check
--- together both pass, which would leave a node owning two rows of one kind.
---
--- coalesce because the job-level rows carry NULL for both, and SQLite counts
--- NULLs as distinct in a unique index -- which would leave exactly the rows
--- with no node unprotected.
---
--- `upload_seq` is in the key, so a job-level `input` -- one per upload -- is
--- one per UPLOAD rather than exempt (database D101): an exemption holds only
--- while the code writes each row once, and an ordinal in the key holds anyway.
+-- 🔴 One row per kind per node, and it has to be the DATABASE that says so:
+-- indexing runs from reconcile on whichever request thread gets there first,
+-- and two writers that check before inserting can both pass.
+-- coalesce because SQLite counts NULLs as distinct in a unique index, which
+-- would leave the job-level rows unprotected. `upload_seq` makes a job-level
+-- `input` one per UPLOAD rather than exempt (database D101).
 CREATE UNIQUE INDEX artifacts_one_per_node_idx
     ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''),
                   coalesce(upload_seq, 0));
@@ -509,7 +460,7 @@ CREATE TABLE software (                             -- what this deployment know
     kind          text NOT NULL                     -- which bucket it is published in, and which
                     CHECK (kind IN                  -- question the resolution asks about it
                       ('python',                    -- a distribution in the interpreter. The whole
-                                                    -- python set has to be satisfied by ONE image,
+                                                    -- python set is satisfied by ONE image,
                                                     -- because they share a process
                        'tool',                      -- an executable. Satisfied PER NODE, by an
                                                     -- image holding the python set and this tool
@@ -518,67 +469,48 @@ CREATE TABLE software (                             -- what this deployment know
                                                     -- node running the user's Python resolves to
                                                     -- 🔴 Derived and never typed: the mechanism
                                                     -- that reads the version IS the
-                                                    -- classification. importlib.metadata answers
-                                                    -- for a python distribution and exe+vswitch
-                                                    -- for a tool, so there is no third question
-                                                    -- and no field to get wrong. See probe.py
+                                                    -- classification (see probe.py)
     driver        text,                             -- the module carrying this tool's Task driver:
                                                     -- 'siliconcompiler.tools.openroad'. NULL for a
                                                     -- python distribution, and for a tool nobody
                                                     -- here drives.
-                                                    -- 🔴 RECORDED and not re-derived. A driver can
-                                                    -- live in any package -- a site library ships
-                                                    -- its own and a proprietary tool's never will
-                                                    -- be in this tree -- and the in-tree path is
-                                                    -- not even reliable in-tree: 'kepler-formal'
-                                                    -- is driven from ...tools.keplerformal. It is
-                                                    -- filled in by scanning at registration, so
-                                                    -- nothing has to be typed for a driver this
-                                                    -- process can already see
+                                                    -- 🔴 RECORDED, not derived: a driver may live
+                                                    -- in any package, and even in-tree
+                                                    -- 'kepler-formal' is ...tools.keplerformal.
+                                                    -- Filled in by a scan at registration
     version_package text,                           -- read this tool's version from a PYTHON
                                                     -- distribution of this name instead of by
                                                     -- running it: 'pyslang' for the tool 'slang'.
-                                                    -- 🔴 A tool can have no executable at all --
-                                                    -- slang's driver runs pyslang in the
-                                                    -- framework's own process -- and still has to
-                                                    -- be placed in an image holding it. The
-                                                    -- distribution is NOT called what the tool is
-                                                    -- called, which is why this is recorded and
-                                                    -- not derived from the name
+                                                    -- 🔴 A tool may have no executable and still
+                                                    -- need an image holding it; recorded, since
+                                                    -- the names differ
     added_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     added_by      text NOT NULL REFERENCES users(id),
     retired_at    text,
     retired_by    text REFERENCES users(id),
     CHECK (length(name) <= 100),
-    -- A python distribution has no task driver, because a task driver is what
-    -- makes something a tool. The reverse is allowed: a tool this deployment
-    -- lists and nobody here drives has no version to report, which is what
-    -- `published_date` is for.
+    -- A task driver is what makes something a tool. The reverse is allowed: a
+    -- tool nobody here drives reports no version, which `published_date` is for.
     CHECK (driver IS NULL OR kind = 'tool'),
-    -- Same class of fact as `driver`: how do I get this name's version. A
-    -- python distribution needs none -- its own name IS the answer -- so
-    -- setting it there would be a second source for something already known.
+    -- A python distribution's own name IS where its version comes from, so this
+    -- would be a second source there.
     CHECK (version_package IS NULL OR kind = 'tool'),
     CHECK ((retired_at IS NULL) = (retired_by IS NULL))
 );
 
 CREATE TABLE software_versions (                    -- which versions of it, and in what order
     software_name text NOT NULL REFERENCES software(name),
-    version       text NOT NULL,                    -- exact, and normalised to PEP 440 when the
-                                                    -- image is registered. STORAGE has no ranges:
-                                                    -- the wire carries specifiers and this is
-                                                    -- what they are matched against
+    version       text NOT NULL,                    -- exact, normalised to PEP 440 at
+                                                    -- registration. STORAGE has no ranges: the
+                                                    -- wire's specifiers are matched against it
     version_source text NOT NULL DEFAULT 'reported' -- where the number came from
                      CHECK (version_source IN
                        ('reported',                 -- the tool said so. The ONLY kind that can
                                                     -- satisfy a version requirement
-                        'published_date')),         -- it said nothing, so this is when the image
-                                                    -- was published. A complete tool list beats a
-                                                    -- partial one, but 20260924 beats 2.0.1 under
-                                                    -- every comparison there is -- so it is
-                                                    -- marked, it never satisfies a requirement,
-                                                    -- and it always sorts BELOW a reported one
-                                                    -- whatever the numbers say
+                        'published_date')),         -- it said nothing, so the image's publish
+                                                    -- date. Marked, since 20260924 beats 2.0.1
+                                                    -- under every comparison: it never satisfies
+                                                    -- a requirement and sorts BELOW a reported one
     preference    integer NOT NULL DEFAULT 0,       -- orders GET /v1's array; higher first
     added_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     added_by      text NOT NULL REFERENCES users(id),
@@ -597,32 +529,26 @@ CREATE TABLE images (                               -- a container this deployme
     resolved_at   text NOT NULL,                    -- when the tag was pinned to this digest
     built_at      text,                             -- when the IMAGE was built, from its own
                                                     -- manifest. NULL = the manifest said nothing.
-                                                    -- 🔴 Ranks before resolved_at: that records
-                                                    -- when the operator pinned the tag, so
-                                                    -- registering a two-year-old image today would
-                                                    -- make it the newest -- and pinning an old
-                                                    -- image on purpose is a reproducibility case,
-                                                    -- not a mistake. Breaks the tie between two
-                                                    -- images carrying IDENTICAL versions, which
-                                                    -- preference cannot; where it is equal or NULL
+                                                    -- 🔴 Ranks before resolved_at, the pin time,
+                                                    -- or an old image registered today would be
+                                                    -- newest. Breaks the tie between images of
+                                                    -- IDENTICAL versions; where equal or NULL
                                                     -- (ko, Nix and Bazel stamp 1970 by design),
                                                     -- the later resolved_at does
     registered_by text REFERENCES users(id),        -- a person, in the portal...
-    registered_via text,                            -- ...or 'derived': the server built it. The
-                                                    -- CI registration path is crucible's, so
-                                                    -- here it is only ever 'derived'
+    registered_via text,                            -- ...or 'derived': the server built it. CI
+                                                    -- registration is crucible's
     derived_from  text REFERENCES images(id),       -- the image a node's Python layer was built
                                                     -- on. NULL for a registered image
     derivation    text,                             -- the cache key: a hash of the base digest,
                                                     -- the requirements and constraints the
                                                     -- server wrote, the wheels' digests and the
                                                     -- requested_versions.python names
-    installed     text,                             -- what the layer holds, as JSON
-                                                    -- [[name, version]]: what `resolved_versions`
-                                                    -- adds for a node that ran in it. A derived
-                                                    -- image has no image_contents of its own --
-                                                    -- it is its base's, plus this -- so it can
-                                                    -- never satisfy a requirement nor be advertised
+    installed     text,                             -- JSON [[name, version]] the layer holds:
+                                                    -- what `resolved_versions` adds for a node
+                                                    -- in it. No image_contents of its own, so it
+                                                    -- never satisfies a requirement nor is
+                                                    -- advertised
     note          text,
     retired_at    text,
     retired_by    text REFERENCES users(id),
@@ -652,24 +578,17 @@ CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version
 --------------------------------------------------------------------------
 -- 🔴 SPARSE: a row exists only where somebody overrode something, and a NULL
 -- column inherits the deployment's value from config.json. The contract pairs
--- this table with `plans`, which this profile does not have -- there are no
--- named tiers here, so the thing inherited from is the operator's config
--- rather than a plan row. That is the one difference, and it is why
--- `plan_id` is absent.
+-- this table with `plans`, which this profile does not have: hence no `plan_id`.
 --
 -- 🔴 The encoding is three-valued and it is the contract's:
 --   NULL  inherit
 --   -1    UNLIMITED
 --   >= 0  that value
--- `-1` never reaches a client -- the resolver turns it into the wire's `null`,
--- because the wire spends `null` on *unlimited* and this table needs it for
--- *inherit*. A CHECK on every column, because a sentinel with no constraint is
--- a typo away from a negative limit that reads as unlimited to one path and
--- refuse-everything to another.
+-- `-1` never reaches a client, where `null` means *unlimited*. A CHECK on every
+-- column, so a typo cannot make a negative limit two paths read differently.
 --
--- ⚠️ Written by the OPERATOR and never by the portal. A ceiling is policy, and
--- this deployment has no admin mode: the only writer is the operator CLI, the
--- same way an image is registered. The account screen renders it read-only.
+-- ⚠️ Written by the OPERATOR CLI, never the portal: a ceiling is policy and
+-- this deployment has no admin mode. The account screen renders it read-only.
 CREATE TABLE user_limits (                          -- sparse: only the overrides
     user_id             text PRIMARY KEY REFERENCES users(id),
     max_download_bytes  integer                     -- NULL inherits, -1 is unlimited

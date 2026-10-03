@@ -1,34 +1,13 @@
 '''
-What a job's own Python needs, read off the machine it is submitted from.
+What a job's own Python needs, read from the static imports of each node's test
+modules on the submitting machine (surface *A node's own Python packages, built
+while staging*): indexable distributions are listed at their installed versions,
+others built as wheels (`wheels`), and the user's helper modules sent as files.
 
-A testbench imports whatever its author had installed, and the submitting
-machine is the one place that environment is known to exist. So it is read
-here, from the static imports of each node's test modules and, through them, of
-the user's own helper modules (surface *A node's own Python packages, built
-while staging*):
+🔴 What `requested_versions.python` names is never listed: the image holds it,
+and a second copy would land on the tool's path.
 
-- **a distribution an index can supply** -- listed in the create body's
-  `python_packages` at the version installed here: in ``requirements`` where
-  the run's code imports it or a task loads it by name, and in
-  ``constraints`` for each distribution those and the wheels depend on,
-  followed through ``Requires-Dist``;
-- **a distribution no index can supply** -- installed editable, from a local
-  path or file, or from git, which pip records in a ``direct_url.json`` (PEP
-  610) -- built into a wheel (`siliconcompiler.remote.client.wheels`), and in
-  neither list;
-- **the user's own modules** -- each helper module a test imports that sits
-  beside it -- sent as collected files in the test's collected folder, keeping
-  their names. Never installed, so none of it runs at build time.
-
-🔴 **What the job's `requested_versions.python` names is left out of both lists.**
-SiliconCompiler and what its own process needs for the node, cocotb for a
-cocotb task, come with the image the job resolves to, and listing any of them
-would put a second copy on the tool's path.
-
-⚠️ **An import made dynamically -- through `importlib`, or a plugin entry
-point -- is not followed.** The fix is a plain import in a test module. Nor is
-one under a platform check, ``if sys.platform == "win32":``, which is for a
-platform the server's may not be.
+⚠️ Dynamic imports and imports under a platform check are not followed.
 '''
 
 import ast
@@ -46,8 +25,7 @@ __all__ = ["Reach", "Lists", "CannotForward", "reach", "lists", "place", "direct
 
 
 class CannotForward(ValueError):
-    '''What the client cannot send, or cannot read. ``compiled`` is the
-    compiled file that stops it, where that is why.'''
+    '''What the client cannot send or read; ``compiled`` names a compiled file that stops it.'''
 
     def __init__(self, message: str, compiled: Optional[str] = None):
         super().__init__(message)
@@ -55,36 +33,29 @@ class CannotForward(ValueError):
 
 
 class Reach(NamedTuple):
-    '''What one node's Python reaches: the distributions it imports or loads
-    by name, as ``{canonical name: extras}``; the helper modules beside each
-    test, as ``{test: {path under the test's folder: the file here}}``; and
-    what was not followed.'''
+    '''What one node's Python reaches: ``{distribution: extras}``, ``{test:
+    {path under its folder: helper file}}``, and what was not followed.'''
     distributions: Dict[str, Set[str]]
     helpers: Dict[str, Dict[str, str]]
     warnings: List[str]
 
 
 class Lists(NamedTuple):
-    '''The job's `python_packages`, as ``(name, version)`` pairs, and each
-    distribution to build a wheel of.'''
+    '''The job's `python_packages` as ``(name, version)`` pairs, and the wheels to build.'''
     requirements: List[Tuple[str, str]]
     constraints: List[Tuple[str, str]]
     wheels: List[metadata.Distribution]
     warnings: List[str]
 
 
-# What names the platform in a test: `sys.platform`, `os.name`, `os.uname()`
-# and the `platform` module's answers.
 _PLATFORM = {("sys", "platform"), ("os", "name"), ("os", "uname"),
              ("platform", "system"), ("platform", "machine"), ("platform", "platform"),
              ("platform", "uname")}
 
 
 def _imports(path: str) -> Tuple[Set[str], Set[str]]:
-    '''The top-level names one source imports absolutely, and those it
-    imports only under a platform check -- in either branch, since which one
-    the server's platform takes is not known here. Raises CannotForward
-    where it cannot be read or parsed.'''
+    '''``(top-level absolute imports, those only under a platform check)``,
+    either branch, since the server's platform is unknown here.'''
     try:
         with open(path, encoding="utf-8") as f:
             tree = ast.parse(f.read(), filename=str(path))
@@ -95,7 +66,6 @@ def _imports(path: str) -> Tuple[Set[str], Set[str]]:
     todo = [(tree, False)]
     while todo:
         node, under = todo.pop()
-        # An `if` whose test asks which platform this is.
         if isinstance(node, ast.If) and any(
                 isinstance(test, ast.Attribute) and isinstance(test.value, ast.Name)
                 and (test.value.id, test.attr) in _PLATFORM for test in ast.walk(node.test)):
@@ -111,15 +81,11 @@ def _imports(path: str) -> Tuple[Set[str], Set[str]]:
 
 
 def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
-    '''What the static imports of ``sources`` reach, followed through the
-    user's own helper modules, and the distributions ``requirements`` load by
-    name.
+    '''What the static imports of ``sources`` reach through the user's helper
+    modules, plus the distributions ``requirements`` load by name.
 
-    A helper is a module or package in a test's own folder -- which the tool
-    puts on its path, as a test runner does -- and is found there before any
-    installed distribution of the same name, as Python finds it. Its own
-    imports are looked up in the same folder. Raises CannotForward for a
-    source that cannot be read or parsed.
+    A helper is a module or package in a test's folder, found before any
+    installed distribution of that name, as Python finds it on the node.
     '''
     from packaging.requirements import InvalidRequirement, Requirement
 
@@ -170,8 +136,7 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
                                 "installed distribution provides and is not beside "
                                 f"{os.path.basename(test)}; it is not sent")
         for name, path in sorted(platform_only.items()):
-            # Said only of what would otherwise have gone: an import for a
-            # platform this machine is not names nothing installed here.
+            # Only for what would otherwise have gone.
             if name not in named and (name in owned or _helper(name, folder)):
                 warnings.append(f"{os.path.basename(path)} imports {name} only under a "
                                 "platform check, so it is not sent; import it outside "
@@ -183,8 +148,7 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
 
 
 def _helper(name: str, directory: str) -> Optional[str]:
-    '''A module or package ``name`` in ``directory``, as a test's own
-    directory would supply it on the node.'''
+    '''A module or package ``name`` in ``directory``, or None.'''
     module = os.path.join(directory, f"{name}.py")
     if os.path.isfile(module) and not os.path.islink(module):
         return module
@@ -196,8 +160,7 @@ def _helper(name: str, directory: str) -> Optional[str]:
 
 
 def _helper_files(name: str, location: str, warnings: List[str]):
-    '''``(path under the test's folder, the file here)`` for a helper module
-    or package, file by file: no bytecode, and no link.'''
+    '''``(path under the test's folder, file)`` per helper file: no bytecode, no link.'''
     if os.path.isfile(location):
         yield f"{name}{os.path.splitext(location)[1]}", location
         return
@@ -236,28 +199,13 @@ def _python_files(path: str):
 
 
 def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
-    '''The job's `python_packages` and the distributions to build wheels of,
-    from what the run's Python reaches (``roots``, as :func:`reach` gives
-    them) and this machine's installed distributions.
+    '''The job's `python_packages` and wheels from ``roots`` (:func:`reach`),
+    less ``provided``, the `requested_versions.python` names the image holds.
 
-    - **requirements**: each of ``roots`` installed here that an index can
-      supply and ``provided`` does not name;
-    - **wheels**: each distribution with a ``direct_url.json`` among
-      ``roots`` and what they depend on, ``provided`` left out and not
-      followed;
-    - **constraints**: each other distribution those depend on, followed
-      through ``Requires-Dist``, at the version installed here.
-
-    🔴 **Only what the install needs, always** -- never everything installed
-    here: a constraint on a distribution the job never installs changes
-    nothing, and one this machine happens to hold can only stop an install
-    for a reason the job has nothing to do with.
-
-    ``provided`` is the job's `requested_versions.python` names -- SiliconCompiler among
-    them -- which the image holds. Every version is in its canonical form, so
-    each entry is one the server's grammar takes; a constraint whose version
-    is not PEP 440 is left out, and a requirement whose version is not stops
-    the run. A listed distribution that installs a ``.pth`` file is warned of.
+    Requirements are the indexable roots; wheels, any reached distribution with
+    a ``direct_url.json``; constraints, every other reached dependency.
+    🔴 Only what the install needs, never everything installed: a stray
+    constraint can only stop an install for no reason of the job's.
     '''
     from packaging.version import InvalidVersion, Version
 
@@ -292,8 +240,6 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
                 "version, so the server cannot be told which to install")
         requirements.append((key, version))
 
-    # The closure of the requirements already runs through each wheel and
-    # what it depends on: the wheels are among what the roots reach.
     listed = {name for name, _ in requirements}
     constraints = []
     for key in sorted(reached):
@@ -313,8 +259,6 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
             f"this run's Python reaches {len(entries)} installed distributions, and a "
             f"job lists at most {environment.MAX_ENTRIES}")
 
-    # The `.pth` files a distribution installs beside its packages, where any
-    # Python that starts with them on its path runs them.
     for name, _ in requirements + constraints:
         for file in sorted(str(entry) for entry in installed[name].files or ()
                            if len(entry.parts) == 1 and entry.suffix == ".pth"):
@@ -326,11 +270,10 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
 
 
 def place(files: Dict[str, str], path: str, source: str, what: str) -> None:
-    '''One of the user's files into the tree, refusing what would not import
-    on the node or would overwrite another source's file.'''
+    '''Add one of the user's files at ``path``, refusing one that would not
+    import on the node or would overwrite another source's.'''
     if source.lower().endswith(environment.COMPILED):
-        # 🔴 Refused, not warned about: one built for this machine will not
-        # import on the node.
+        # 🔴 Refused, not warned about.
         raise CannotForward(
             f"{what} is your own code and holds a compiled extension, {source}, "
             "built for this machine; it will not import on the server. Publish it "
@@ -349,8 +292,7 @@ def _module_distributions() -> Dict[str, List[str]]:
 
 
 def _installed() -> Dict[str, metadata.Distribution]:
-    '''Every distribution installed here, by canonical name: the first of a
-    name on ``sys.path`` wins, as it does for an import.'''
+    '''Every installed distribution by canonical name; the first on ``sys.path`` wins.'''
     found: Dict[str, metadata.Distribution] = {}
     for dist in metadata.distributions():
         name = dist.metadata["Name"]
@@ -361,9 +303,8 @@ def _installed() -> Dict[str, metadata.Distribution]:
 
 def _closure(roots: Dict[str, Set[str]], stop: Set[str] = frozenset()) \
         -> Dict[str, metadata.Distribution]:
-    '''Every installed distribution ``roots`` pull in, by canonical name,
-    never following one in ``stop``. Extras named in ``roots`` are followed,
-    extras of dependencies are not, and what is not installed is left out.'''
+    '''Every installed distribution ``roots`` pull in, never following ``stop``;
+    only the roots' own extras are followed.'''
     from packaging.requirements import InvalidRequirement, Requirement
 
     found: Dict[str, metadata.Distribution] = {}

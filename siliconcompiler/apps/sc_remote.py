@@ -195,30 +195,20 @@ def _dispatch(remote):
         try:
             client.configure_server(server=remote.get("cmdarg", 'server'))
         except RemoteError as e:
-            # Any configure failure: an unreachable server, a refused login, or
-            # an answer that is needed and was not given -- most often the
-            # server address, which has no default to fall back on.
             remote.logger.error(str(e))
             return 3
         return 0
 
     if remote.get("cmdarg", 'portal'):
-        # 🔴 Nothing about a job, so it takes no -cfg: the browser gets a
-        # session for this machine's identity, and finds its jobs itself.
+        # 🔴 No -cfg: the browser gets this machine's identity and finds its jobs.
         client.portal()
         return 0
 
     if project_cfg:
         return _act_on_job(remote, client, project_cfg)
 
-    # No job named: report what this machine is configured for, what the
-    # server says it is, and who the server says you are.
-    #
-    # 🔴 The deployment block comes before the identity one and is printed even
-    # when the identity call fails, because it is the half that explains the
-    # failure: `GET /v1` and `GET /v1/healthz` carry no credential, so they
-    # answer for a machine that has not enrolled and for a server that is down
-    # -- which are the two states somebody runs a bare `sc-remote` in.
+    # 🔴 The unauthenticated deployment block first: it explains an identity
+    # failure, on an unenrolled machine or a down server.
     client.print_configuration()
     client.print_deployment()
 
@@ -228,12 +218,7 @@ def _dispatch(remote):
 
 
 def _act_on_job(remote, client, project_cfg):
-    '''Everything that names a job names it with a manifest, not an id.
-
-    The two commands a user is given after a Ctrl-C both take the path of the
-    manifest the run wrote, so a person who interrupted a long job needs the
-    path they already have rather than an id they would have to find.
-    '''
+    '''Act on the job a manifest names: after a Ctrl-C a user has the path, not the id.'''
     if not os.path.isfile(project_cfg):
         remote.logger.error(f"Unable to find manifest: {project_cfg}")
         return 1
@@ -257,9 +242,7 @@ def _act_on_job(remote, client, project_cfg):
             "or it was submitted by a different run")
         return 1
 
-    # The server is named before anything is sent to it, so whatever follows
-    # -- a refusal, an unreachable host -- reads against the address it came
-    # from. Nothing here contacts it.
+    # Named first, so any refusal that follows reads against its address.
     remote.logger.info(f"Server: {client.base_url}")
 
     if remote.get("cmdarg", 'reason') and not remote.get("cmdarg", 'cancel'):
@@ -282,9 +265,7 @@ def _act_on_job(remote, client, project_cfg):
         if not step:
             remote.logger.error("-tail takes <step>/<index>, for example place/0")
             return 1
-        # Two fields rather than one string, which is why the separator is
-        # required rather than parsed out of a run-together name: step=place
-        # index=10 and step=place1 index=0 both render "place10".
+        # The separator is required: "place10" could be place/10 or place1/0.
         client.tail_log(job_id, step, index or "0",
                         write=lambda text: (sys.stdout.write(text),
                                             sys.stdout.flush()))
@@ -298,10 +279,7 @@ def _act_on_job(remote, client, project_cfg):
         try:
             project.summary()
         except ValueError:
-            # A summary reads the run's history, and the history is rebuilt from
-            # the manifests the results carry -- which are not fetched yet. The
-            # job's own status was already printed by the wait, so this is a
-            # missing extra rather than a failed command.
+            # No history until the results' manifests are fetched: not a failure.
             _print_status(remote.logger, client.job(job_id)[0])
         return 0
 

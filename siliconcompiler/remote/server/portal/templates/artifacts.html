@@ -10,11 +10,7 @@
     {% endif -%}
     <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
   {% elif item.deleted_at %}
-    {#
-      The reason, not just the date. Retention lapsing ends in a
-      deleted_at like everything else, so without it this line cannot
-      tell "the server did what it said" from "somebody removed this".
-    #}
+    {# The reason too: `deleted_at` alone cannot tell expiry from removal. #}
     <span class="muted">gone {{ item.deleted_at | when }}{%
       if item.deleted_reason %} — {{ item.deleted_reason }}{% endif %}</span>
   {% else %}
@@ -31,25 +27,17 @@
 <div class="panel">
   <p>This server kept nothing from this run.</p>
   <p class="muted">
-    {# A listing with nothing in it is a legal answer and not a degraded one. #}
     Retention is per kind, so an older job may list its manifest and nothing
     else. That is a successful run: the manifest carries the record.
   </p>
 </div>
 {% else %}
-{#
-  🔴 Grouped by node, because the node is the unit of deletion
-  (`portal._by_node`).
-#}
+{# 🔴 Grouped by node, the unit of deletion (`portal._by_node`). #}
 {% if uploads %}
 <div class="panel">
   <h3 style="margin-top:0">What was uploaded</h3>
   <p class="muted">
-    {#
-      Each archive separately, and in order: a job sent back for a source the
-      server could not fetch carries a second one, holding only what it was
-      asked for -- and telling the two apart is the reason to look.
-    #}
+    {# Each upload separately, in order: a follow-up holds only what was asked for. #}
     Every archive this job accepted, as it arrived: the first, then any the
     server asked for when it could not fetch a source itself. The hash is the
     digest the client declared and the server checked.
@@ -64,11 +52,7 @@
       <td class="mono muted">{{ item.size_bytes | size }}</td>
       <td>{{ item.digest | digest }}</td>
       <td>{% if item.unopened %}
-        {#
-          🔴 No look-inside: this archive was refused before it passed its
-          safety checks, and listing it would unpack whatever it was refused
-          for. The bytes are kept.
-        #}
+        {# 🔴 No look-inside for an upload refused before its safety checks (`UNOPENED`). #}
         <span class="muted">refused ({{ item.unopened }}), never opened &middot;</span>
         <a href="{{ url_for('portal.fetch', job_id=job.id, artifact_id=item.id) }}">download</a>
       {% else %}{{ actions(item) }}{% endif %}</td>
@@ -118,10 +102,7 @@
 {% endfor %}
 {% endif %}
 
-{#
-  🔴 At the bottom of the page that lists what it would destroy, and not on the
-  job page beside "Artifacts", which does the opposite.
-#}
+{# 🔴 Here, below what it would destroy, and not on the job page. #}
 {% if job.terminal and not job.deleted_at %}
 <div class="panel warn" style="margin-top:32px">
   <p><b>Discard everything this run produced</b></p>
@@ -139,10 +120,7 @@
       <input type="text" name="confirm" autocomplete="off"
              placeholder="{{ job.design }}/{{ job.jobname }}" style="max-width:320px">
     </label>
-    {#
-      🔴 Said where it is typed: the reason is on every artifact row this
-      empties, and anyone who can list the job reads those rows.
-    #}
+    {# 🔴 Said where it is typed: anyone who can list the job reads this reason. #}
     <label>
       Reason, optional &mdash; <b>visible to everyone who can list this job</b>:
       <input type="text" name="reason" autocomplete="off"
@@ -152,10 +130,7 @@
   </form>
 
   <p class="muted" style="margin-bottom:0">
-    {#
-      Offered here and nowhere else, and second, because it is the heavier of
-      the two and the one people rarely want.
-    #}
+    {# Here only, and second: the heavier and rarer of the two. #}
     Removing the <b>job</b> as well takes it out of every listing and leaves it
     reachable only by id.
   </p>

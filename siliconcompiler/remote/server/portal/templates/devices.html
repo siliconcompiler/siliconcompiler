@@ -4,11 +4,7 @@
 {% block body %}
 <h2>Devices</h2>
 <p class="lede">
-  The machines that may act as you. {#
-    Not incidental on this deployment: the key bound on first contact is the
-    only real control the unauthenticated profile has, and this list plus the
-    revoke button is its visible half.
-  #}
+  The machines that may act as you. {# The first-contact key binding is this profile's only real control; this is its visible half. #}
 </p>
 
 <table>
@@ -16,7 +12,7 @@
   {% for device in devices %}
   <tr>
     <td>{{ device.name }}</td>
-    {# The pin itself, so a person can compare it with what their client prints. #}
+    {# The pin itself, to compare with what the client prints. #}
     <td class="mono muted">{{ device.dpop_jkt }}</td>
     <td class="muted">{{ device.machine_id_source or '—' }}</td>
     <td class="mono muted">{{ device.enrolled_at | when }}</td>

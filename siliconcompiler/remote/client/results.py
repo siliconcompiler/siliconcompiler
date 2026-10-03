@@ -1,29 +1,11 @@
 '''
-Bringing a finished run home.
+Bring a finished run's results home: the listing is the answer even when the bytes are not.
 
-🔴 **Results are a listing, and the listing is the answer even when the bytes
-are not there.**
+🔴 A listing holding only a manifest is a SUCCESSFUL run, and no kind is
+guaranteed, the manifest included: an empty listing is legal.
 
-Two rules follow from that and they are the whole of this file:
-
-🔴 **A listing holding only a manifest is a SUCCESSFUL run.** The manifest
-carries the record -- node states, metrics, tool versions -- so *what happened*
-is answerable with nothing else on disk. And no kind is guaranteed, the manifest
-included: an empty listing is a legal answer, and a client that requires one
-kind to be present has the same bug one kind further along.
-
-🔴 **Five states stay five sentences.** Absent, blocked by an agreement,
-ungranted, deleted and expired are five different things to tell a person, and
-collapsing them answers *where did my results go* with the one sentence that
-fits none of the cases.
-
-⚠️ **``deleted_at`` alone does not say which of the last two it is.** A server's
-reaper sets it when retention lapses -- it has to, because ``fetchable`` asks
-first whether the bytes are there -- so the column covers *the system did what
-it said it would* as well as *somebody removed this*. ``deleted_cause`` is what
-tells them apart -- a closed enum, ``expired`` or ``removed`` -- and
-``deleted_reason`` is the prose a person wrote, which this client repeats rather
-than interprets.
+🔴 Five states stay five sentences: absent, blocked by an agreement, ungranted,
+deleted and expired.
 '''
 
 import json
@@ -47,9 +29,8 @@ __all__ = ["Results", "REMOTE_JOB_LOG", "REMOTE_STAGING_LOG", "JOB_FILE", "recor
 logger = logging.getLogger(__name__)
 
 
-# Which job a directory's results came from, written by this client when it
-# created the job or fetched them -- and never read out of a manifest, which
-# the server wrote and an upload can name anything in.
+# Which job a directory's results came from, written by this client: never read
+# from a manifest, which the server wrote.
 JOB_FILE = "sc_remote_job.json"
 
 
@@ -73,35 +54,20 @@ def recorded_job(directory: str) -> Optional[str]:
     return job_id if isinstance(job_id, str) and job_id else None
 
 
-# Kinds that arrive as a gzipped tar and expand in place. A kind this client
-# does not recognise is listed and left alone rather than refused: the set is
-# closed and published, so an unknown one means this client is older than the
-# server.
+# Kinds that arrive as a gzipped tar and expand in place. An unknown kind is
+# left alone, not refused: this client is older than the server.
 _ARCHIVES = ("node", "outputs", "reports", "final", "logs")
 
-# Kinds this client never takes, and never reports as left behind. `input` is
-# what went IN -- each upload, and a node's inputs -- and this machine has the
-# one and takes the other as its upstream's outputs. It is there to be looked
-# at, in the portal. `diagnostics` is the deployment's operators' record, never
-# handed over the API (surface D295), so it is no one's to fetch from here.
+# Never taken, never reported as left behind: `input` is what went in, and
+# `diagnostics` is the operators' record (surface D295).
 _NOT_TAKEN = ("input", "diagnostics")
 
 
-# Where the run's own log lands. It belongs to no node, so it goes beside them
-# in the job directory.
-#
-# 🔴 **Not `job.log`, which is the local run's own file and is OPEN.** A remote
-# run is still a `Scheduler` run -- that is what makes a flow that does not
-# resolve fail here rather than on somebody else's machine -- so `job.log` is
-# being written by a live handler for the whole of it, and downloading onto it
-# truncates a file this process is still appending to.
-#
-# ⚠️ And not `job.<something>.log` either: that is the pattern SiliconCompiler
-# rotates its own backups under, and it prunes all but the most recent few.
+# 🔴 Not `job.log`, which this process still has OPEN: downloading onto it
+# truncates it. ⚠️ Nor `job.<x>.log`, a pattern SiliconCompiler rotates and prunes.
 REMOTE_JOB_LOG = "remote-job.log"
 
-# Where the server's record of the job lands (surface D295): what it did
-# between create and dispatch, never inside the run's own log.
+# The server's record of create to dispatch (surface D295).
 REMOTE_STAGING_LOG = "remote-staging.log"
 
 
@@ -113,24 +79,17 @@ class Results:
         self.client = client
         self.logger = project.logger.getChild("remote")
 
-        # What has already landed, so the sweep at the end of the run does not
-        # fetch it a second time.
         self._fetched: set = set()
         self._taken_nodes: set = set()
         self._landed = 0
 
-        # The job-level manifest, once it has come from the server. Until then
-        # the file at that path is the one this client wrote to upload, and
-        # folding THAT back in would put the pre-run record over what the
-        # nodes have since said.
+        # Set only once the server's copy lands: until then the file at that
+        # path is the pre-run upload, which must not be folded back in.
         self._job_manifest = None
 
-        # The server's download ceiling, read once and remembered. `False`
-        # means not looked up yet; `None` means this server publishes none.
+        # `False`: not looked up yet; `None`: this server publishes none.
         self._ceiling: Any = False
 
-        # Each terms document's title by id, which names a `blocked_by`
-        # entry; None until something needs one.
         self._titles = None
 
     ######################################################################
@@ -138,9 +97,8 @@ class Results:
     ######################################################################
 
     def _ours(self, items) -> List[Dict[str, Any]]:
-        '''🔴 The rows this job's flow has. A node-bound row naming a node the
-        flow does not -- `..` included -- is ignored, so nothing a listing says
-        writes outside the job's local directory.'''
+        '''🔴 The rows for this job's flow: a row naming any other node, `..`
+        included, is ignored, so nothing writes outside the job directory.'''
         from siliconcompiler.flowgraph import Flowgraph
 
         try:
@@ -167,28 +125,10 @@ class Results:
 
     @property
     def ceiling(self):
-        '''The largest single object this server will hand over.
+        '''The largest single object this server will hand this account, or None.
 
-        🔴 **The server enforces it; reading it here is only so the refusal
-        does not have to happen.** An over-ceiling fetch is answered
-        `download-too-large` naming `max_download_bytes`, so a client that ignores
-        this number does not get more -- it gets the same results plus a
-        failed request per oversized object. Knowing the number in advance is
-        what turns forty refusals into one sentence.
-
-        🔴 The server's number and not the client's. A deployment knows what
-        its link and its disks are for; a client picking its own threshold
-        means every client picks a different one and the operator can set no
-        policy at all.
-
-        🔴 **Read from `GET /v1/me` and not from `GET /v1`, because it can
-        differ per account.** `GET /v1` carries no credential, so it cannot
-        vary by caller -- it publishes the deployment's default and nothing
-        more. The ceiling that applies to THIS caller is in the identity block,
-        which is the only place a per-user override can be seen.
-
-        A server that publishes neither leaves this `None`, and nothing is held
-        back for its size.
+        🔴 The server enforces it; knowing it turns forty refusals into one
+        sentence. Read from `GET /v1/me`, not `GET /v1`: it can differ per account.
         '''
         if self._ceiling is False:
             self._ceiling = None
@@ -196,9 +136,7 @@ class Results:
                 limits = (self.client.me() or {}).get("limits") or {}
                 self._ceiling = limits.get("max_download_bytes")
             except Exception as e:                               # noqa: BLE001
-                # Not knowing it is not the same as there not being one: the
-                # server still refuses. What is lost is the single tidy
-                # sentence, and each oversized object is reported on its own.
+                # The server still refuses; each oversized object is reported alone.
                 logger.debug(f"no download ceiling: {e}")
         return self._ceiling
 
@@ -209,12 +147,7 @@ class Results:
         return (item.get("size_bytes") or 0) > ceiling
 
     def _report_oversized(self, items: List[Dict[str, Any]]) -> None:
-        '''One line, naming what was left and how to get it.
-
-        ⚠️ Not a warning per object. A wide flow can leave forty of them, and
-        forty lines saying the same thing is how somebody stops reading the
-        ones that matter.
-        '''
+        '''One line, naming what was left and how to get it: ⚠️ not one per object.'''
         if not items:
             return
 
@@ -237,24 +170,11 @@ class Results:
     ######################################################################
 
     def take(self, job_id: str, job: Dict[str, Any]) -> int:
-        '''Fetch what each node left, as that node finishes.
+        '''Fetch what each node left as it finishes, one listing per poll.
 
-        🔴 Not at the end of the run. A node's archive carries its manifest,
-        so taking it as it appears is what keeps the local record -- metrics,
-        tool versions, node states -- current while the rest of the flow is
-        still going. It is also what lets the dashboard show a finished node's
-        real runtime rather than a timer that never stops.
-
-        One listing per poll in which something finished rather than one
-        request per node: a wide flow finishes many nodes between two polls.
-
-        🔴 **Everything of that node's that may be had, by the same rule as
-        the sweep at the end.** The node archive where it is fetchable, which
-        holds the node's log, reports and manifest, so none of them is fetched
-        twice; and where it is not, each of those on its own -- a deployment
-        that withholds archives can still hand over the log a person wants to
-        read and the manifest that keeps the record current, and waiting for the
-        end of the run to fetch them is waiting for no reason.
+        🔴 Not at the end: each node's manifest keeps the local record and the
+        dashboard current. By the same rule as the final sweep: the node archive
+        where fetchable, else its log, reports and manifest each on its own.
         '''
         done = {(node.get("step"), node.get("index"))
                 for node in job.get("nodes") or []
@@ -266,22 +186,16 @@ class Results:
             return 0
 
         try:
-            # Every kind, because what a node can be taken by is only known
-            # from the listing -- at the endpoint's largest page, since a wide
-            # flow lists four objects per node.
+            # The endpoint's largest page: a wide flow lists four objects per node.
             listed = self._ours(self.client.artifacts(job_id, limit=200))
         except Exception as e:                                   # noqa: BLE001
-            # Nothing is lost by failing here: the sweep at the end asks again.
+            # The final sweep asks again.
             logger.debug(f"could not list node results yet: {e}")
             return 0
 
-        # 🔴 Oversized dropped BEFORE `_worth_fetching`, as the sweep does: an
-        # archive that will not be fetched must not displace the objects inside
-        # it that could be. Said once, by the sweep at the end -- here it would
-        # be said again on every poll that found the node finished.
-        #
-        # ⚠️ Node-bound only: the job's own manifest and log are the run's, and
-        # are not final until it is.
+        # 🔴 Oversized dropped BEFORE `_worth_fetching` (see `fetch`); reported
+        # only by the final sweep. ⚠️ Node-bound only: the job's objects are not
+        # final until the run is.
         listed = [item for item in listed if not self._oversized(item)]
         items = [item for item in _worth_fetching(listed)
                  if item.get("step") is not None]
@@ -298,24 +212,13 @@ class Results:
                 got = self._retrieve(job_id, item)
                 landed += got
                 self._fetched.add(item["id"])
-                # Counted where something landed: a kind with no home here
-                # writes nothing, and is not "retrieved".
                 self._landed += 1 if got else 0
             except Exception as e:                               # noqa: BLE001
-                # It will be tried again by the sweep at the end of the run.
+                # The final sweep tries again.
                 logger.debug(f"{self._name(item)} not taken yet: {e}")
 
-        # 🔴 Every node that had just finished has now been LOOKED FOR, and
-        # that is what is recorded -- not which ones were found.
-        #
-        # Recording only the ones found would leave a terminal node with no
-        # archive outstanding for ever, and a node the run skipped never has
-        # one: it produces no working directory, so there is nothing to
-        # archive. Each would repeat this listing on every poll for the length
-        # of the run.
-        #
-        # Anything that appears late is picked up by the sweep at the end,
-        # which is what that sweep is for.
+        # 🔴 Recorded as LOOKED FOR, not found: a skipped node never has an
+        # archive and would relist every poll. The final sweep catches late ones.
         self._taken_nodes |= fresh
 
         if landed:
@@ -324,25 +227,17 @@ class Results:
         return landed
 
     def fetch(self, job_id: str) -> int:
-        '''Retrieve everything fetchable and say what was not. Returns the
-        number of objects that landed.'''
+        '''Retrieve everything fetchable and say what was not; returns how many landed.'''
         items = self._ours(self.client.artifacts(job_id))
 
         if not items:
-            # A legal answer, and three deployments reach it by different
-            # routes -- one that indexes the manifest and stores no bulk
-            # output, one whose pipeline does not run here at all, and one
-            # where retention has taken everything.
             self.logger.warning(
                 "This server kept nothing from this run. The job's own record "
                 "is all there is, and it is not an error.")
             return 0
 
-        # 🔴 Taken out BEFORE `_worth_fetching`, and the order is the point: a
-        # node archive displaces the objects inside it only because fetching it
-        # gets you them. One that is not being fetched displaces nothing, so
-        # the node's log and reports still come back -- which is the case this
-        # ceiling exists to produce.
+        # 🔴 BEFORE `_worth_fetching`: an archive not being fetched must not
+        # displace the node's log and reports inside it.
         oversized = [item for item in items if self._oversized(item)]
         items = _worth_fetching([item for item in items if not self._oversized(item)])
 
@@ -350,7 +245,6 @@ class Results:
         withheld = []
         for item in items:
             if item.get("id") in self._fetched:
-                # Already taken while the run was going.
                 continue
             if not item.get("fetchable"):
                 withheld.append(item)
@@ -361,16 +255,13 @@ class Results:
                 self._fetched.add(item["id"])
                 self._landed += 1 if got else 0
             except Exception as e:                               # noqa: BLE001
-                # One object failing does not abort the others: a node whose
-                # bytes went missing must not cost the caller the rest of the
-                # run.
+                # One object failing does not abort the others.
                 self.logger.error(f"{self._name(item)}: {e}")
 
         self._report_withheld(withheld)
         self._report_oversized(oversized)
-        # 🔴 A kind not in the listing was never indexed here: not an error and
-        # not a retry, but this deployment saying it does not keep those. Only
-        # worth a line for the manifest, the one a user most likely looks for.
+        # 🔴 An unlisted kind is not kept here: no error, no retry. Said only
+        # for the manifest, the one a user looks for.
         if not any(item.get("kind") == "manifest" for item in items):
             self.logger.info(
                 "No manifest was kept for this run, so the metrics and the "
@@ -378,8 +269,7 @@ class Results:
                 "those; it is not an error and there is nothing to retry.")
         self._replay()
 
-        # Counted across the whole run, not just this sweep: most of it
-        # arrived as the nodes finished, and "2 of 26" reads like 24 failures.
+        # The whole run's count: "2 of 26" would read like 24 failures.
         self.logger.info(f"Retrieved {self._landed} objects")
         return landed
 
@@ -388,13 +278,7 @@ class Results:
     ######################################################################
 
     def _report_withheld(self, items: List[Dict[str, Any]]) -> None:
-        '''One line per reason, not one per object.
-
-        ⚠️ The five sentences stay five, and a run where every node's archive
-        is withheld for the same reason says it once. A deployment that hands
-        over only the manifest withholds three objects per node, and seventy
-        lines of the same sentence is how the one that differs goes unread.
-        '''
+        '''One line per reason, ⚠️ not one per object, so the one that differs is read.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for item in items:
             grouped.setdefault(self._why(item, many=True), []).append(item)
@@ -414,8 +298,7 @@ class Results:
         self._offer_requests(items)
 
     def _offer_requests(self, items: List[Dict[str, Any]]) -> None:
-        '''*Ask*, where a person is at a terminal: each approval request's page,
-        from `POST /v1/auth/browser` with the artifact's id, opened on a yes.'''
+        '''*Ask*, at a terminal: open each approval request's page on a yes.'''
         from siliconcompiler.remote.client import _ask
 
         ask = [item for item in items if item.get("can_request_access") is True
@@ -433,30 +316,22 @@ class Results:
         '''The reason alone, for one object or for several with the same one.'''
         this = "these" if many else "this"
 
-        # 🔴 Checked before the expiry, and the order is the point: an object
-        # whose bytes are gone is also, usually, past its retention, and the
-        # useful sentence is the one that says why they went.
         if item.get("deleted_at"):
             day = _day(item["deleted_at"])
 
-            # 🔴 `deleted_cause` is what a client branches on, and it is the
-            # only member that can say the reaper took these: retention
-            # lapsing ends in `deleted_at` too. Anything but `expired` -- a
-            # cause this client does not know included -- is somebody
-            # deciding, which is the sentence that does not under-report it.
+            # 🔴 `deleted_at` covers retention too; only `deleted_cause` tells
+            # them apart, and anything but `expired`, unknown included, is somebody's.
             if item.get("deleted_cause") == "expired":
                 return (f"aged out on {day}. Retention on this server "
                         "passed for that kind and the bytes were reclaimed.")
 
-            # Repeated, never interpreted. `deleted_reason` is prose a person
-            # wrote and this client has no vocabulary to match it against.
+            # Prose a person wrote: repeated, never interpreted.
             reason = item.get("deleted_reason")
             if reason:
                 return f"deleted on {day} -- {reason}."
             return f"deleted on {day}."
 
-        # 🔴 *Sign*: every grant is held and agreements stand in the way. Each
-        # document is named by its title in GET /v1/me's `terms`, or by its id.
+        # 🔴 *Sign*: granted, but agreements stand in the way.
         blocked = item.get("blocked_by")
         if isinstance(blocked, list) and blocked:
             from siliconcompiler.remote.client.errors import blocked_lines
@@ -514,8 +389,7 @@ class Results:
         os.makedirs(into, exist_ok=True)
 
         if kind == "manifest":
-            # A node's own manifest goes where the node wrote it, which is
-            # where the replay looks and where a node archive would have put it.
+            # Where the node wrote it, and the replay looks.
             outputs = os.path.join(into, "outputs")
             os.makedirs(outputs, exist_ok=True)
             self._gunzip(job_id, item, os.path.join(outputs, f"{self.project.name}.pkg.json"))
@@ -545,8 +419,7 @@ class Results:
         return path
 
     def _gunzip(self, job_id: str, item: Dict[str, Any], dest: str) -> None:
-        '''A single-file artifact -- a manifest, the run's log -- gzipped, as
-        every artifact is.'''
+        '''Download and gunzip a single-file artifact to ``dest``.'''
         import gzip
         import shutil
 
@@ -561,12 +434,9 @@ class Results:
     def _unpack(self, job_id: str, item: Dict[str, Any], into: str) -> None:
         '''Expand one archive into the node's working directory.
 
-        Paths in a node-bound tar are relative to the node, and its links may
-        point into a sibling node's ``outputs/`` -- a passed-through file is a
-        link to the node that produced it -- so the archive is extracted
-        against the job's local directory, each member's name and each hard
-        link's target under ``<step>/<index>/``: the data filter then bounds
-        links by the job, not the node, and nothing lands outside the job.'''
+        Links may point into a sibling node, so members are rebased under
+        ``<step>/<index>/`` and extracted against the job directory: the data
+        filter bounds links by the job, and nothing lands outside it.'''
         root = jobdir(self.project)
         prefix = os.path.relpath(into, root).replace(os.sep, "/")
         with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
@@ -587,14 +457,10 @@ class Results:
                 utils.extract_safely(tar, root, members=members)
 
     def _replay(self) -> None:
-        '''Fold the retrieved manifests back into this project.
+        '''Fold the retrieved manifests' record and metrics into this project, for `summary()`.
 
-        What makes `summary()` work after a remote run: the record and the
-        metrics are in the manifests, not in anything the poll loop saw.
-
-        🔴 **Nothing a job returns is imported or executed** (surface §6): a
-        node's journal is replayed only through the record-and-metric filter
-        the job manifest goes through, and only for the nodes the job ran.
+        🔴 Nothing a job returns is imported or executed (surface §6): only
+        `_folded` values, for nodes the job ran.
         '''
         from siliconcompiler.remote.runflow import runtime_nodes
 
@@ -635,12 +501,8 @@ class Results:
     def _fold_in_final(self, path: str, ran) -> None:
         '''Copy the run's per-node record and metrics out of the job manifest.
 
-        🔴 **Not a journal replay, because the job manifest has no journal.**
-        It is the run's final state, written whole when the flow ended. Only
-        values bound to a node the job ran, and only in `record` and `metric`:
-        a global value in it is this server's setting for the run, and a run
-        that starts part-way through marks every node it did not load pending.
-        Loaded with the classes already here, importing nothing it names.
+        🔴 It has no journal, only final state: node-bound `record` and `metric`
+        values only, since a global value is the server's setting. Imports nothing.
         '''
         from siliconcompiler.remote import manifests
 
@@ -654,9 +516,7 @@ class Results:
                     self.project.set(group, key, value, step=step, index=index)
 
     def fetch_node(self, job_id: str, step: str, index: str) -> int:
-        '''What is fetchable now of one node of another job -- the job a run
-        continued from, which ran it. Returns the number of objects that
-        landed.'''
+        '''Fetch one node of the job a run continued from; returns how many landed.'''
         items = [item for item in self._ours(self.client.artifacts(job_id))
                  if item.get("step") == step and item.get("index") == index]
         landed = 0
@@ -689,24 +549,11 @@ class Results:
 
 
 def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    '''Drop what a node archive already contains.
+    '''Drop what a fetchable node archive already contains.
 
-    🔴 A `node` artifact IS that node's results, so fetching it and then
-    fetching the objects inside it downloads everything twice. It covers only
-    its own node -- it is always bound to a step and an index, and there is no
-    job-level one -- so a node whose archive is missing or refused keeps every
-    object it has.
-
-    The JOB's manifest is always kept: it is small, it is what the record is
-    replayed from, and a client that relied on finding one inside the node
-    archive would break on the deployment that indexes a manifest and no bulk
-    output at all. A NODE's manifest is inside that node's archive, so it goes
-    with the rest.
-
-    Only a FETCHABLE node archive displaces anything. One that is present and
-    refused -- withheld, or over this account's download ceiling -- leaves
-    every other object exactly as it was, and the caller is told why it could
-    not have it.
+    🔴 A `node` artifact IS its node's results, so the objects inside it would
+    download twice. Job-level objects are always kept, and a refused archive
+    displaces nothing.
     '''
     covered = {(item.get("step"), item.get("index")) for item in items
                if item.get("kind") == "node" and item.get("fetchable")}
@@ -721,15 +568,13 @@ def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def _folded(key, step, index, ran) -> bool:
-    '''Whether one value from a returned manifest is folded in: a record or a
-    metric, bound to a node the job ran -- and never the job id, which comes
-    from the fetch.'''
+    '''Whether a returned value is folded in: a node-bound record or metric of a
+    node the job ran, never the job id.'''
     return (len(key) >= 2 and key[0] in ("record", "metric")
             and key != ("record", "remoteid")
             and step is not None and index is not None and (step, index) in ran)
 
 
 def _day(timestamp: str) -> str:
-    '''The date out of an RFC 3339 instant. A person reads a day, not a
-    millisecond.'''
+    '''The date out of an RFC 3339 instant.'''
     return (timestamp or "")[:10] or "an unknown date"

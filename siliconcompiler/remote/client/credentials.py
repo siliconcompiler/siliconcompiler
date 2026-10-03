@@ -1,45 +1,17 @@
 '''
-What this machine holds, and how tightly.
+What this machine holds, and how tightly: ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves it).
 
-One directory, ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves it), and in it two files:
+``remote.json``    the store: the server, the upload whitelist, and per server
+                   its user id, refresh token or CI credential, and operator headers.
+``dpop-key.pem``   this machine's private key, **the machine pin itself**, in a
+                   file of its own so no rewrite of the store can take it.
 
-``remote.json``    the store: which server, the upload whitelist, and for each
-                   server the id it last knew this machine by, its refresh
-                   token or its CI credential, and any operator header secret.
-``dpop-key.pem``   this machine's private key -- **the machine pin itself** --
-                   a file of its own, so that no rewrite of the store can take
-                   it.
+🔴 The modes are normative (identity §4): directory ``0700``, files ``0600``,
+each created with its mode set. A wider store stops the client rather than
+being repaired: the key may already be copied.
 
-``remote.json`` is a :class:`~siliconcompiler.utils.settings.SettingsManager`
-file in two categories::
-
-    {"store":   {"version": 1,
-                 "server": "https://sc.example.com/v1",
-                 "directory_whitelist": []},
-     "servers": {"https://sc.example.com/v1": {"user_id": "...",
-                                                "refresh_token": "...",
-                                                "headers": {"CF-Access-Client-Id": "..."}}}}
-
-A server's entry holds ``refresh_token``, for an interactive session, or
-``ci_credential``, for a CI one, which trades it for each access token -- never
-both. No access token is kept, so a command spends the refresh token once.
-``version`` is the store's own: a later client migrates an older file, and this
-one refuses a newer one by name rather than misreading it.
-
-🔴 **The store's modes are normative** (identity §4): the directory is ``0700``
-and every file in it ``0600``, each created with its mode set, never ``open()``
-then ``chmod()``. A store found wider than that stops the client rather than
-being repaired: a key that was readable by others may already be copied, so the
-user is told to fix the modes and rotate the key.
-
-🔴 **Every change is a transaction** that re-reads the file under its lock
-first. A refresh token is rotated by one process at a time: a second process
-writing back the copy it read earlier would put back a spent token, which the
-server reads as reuse, and ends the session.
-
-The store is a directory of its own, private to the user, so anything that
-hands out part of ``~/.sc`` leaves it out as one path. ``scheduler/docker.py``
-gives a task container ``email.json`` alone.
+🔴 Every change is a transaction that re-reads the file under its lock: writing
+back a stale refresh token reads as reuse and ends the session.
 '''
 
 import contextlib
@@ -59,37 +31,28 @@ __all__ = ["Credentials", "StoreError", "AUTH_DIRNAME", "STORE_FILENAME", "KEY_F
            "CI_SECRET_VARIABLE", "parse_ci_secret"]
 
 
-# The store's directory, beside SiliconCompiler's own configuration unless
-# SC_AUTH_DIR moves it -- which is how a CI job keeps what it writes in a
-# job-scoped directory.
 AUTH_DIRNAME = "auth"
 AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
 
 STORE_FILENAME = "remote.json"
 KEY_FILENAME = "dpop-key.pem"
 
-# Where a CI job's one-line credential secret is read from.
 CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
 
-# The store's own version. A change to its shape is a new number, with a
-# migration from the last.
+# A newer store is refused by name rather than misread.
 STORE_VERSION = 1
 
-# The two categories.
 _STORE = "store"        # version, server, directory_whitelist
 _SERVERS = "servers"    # each server's entry, by its URL
 
-# How long a change waits for another process's. A refresh holds the store
-# across its request, which the transport gives 30 seconds.
+# A refresh holds the store across its request, which may take 30 seconds.
 LOCK_SECONDS = 60
 
-# What an older client left, moved into the store once and removed: a
-# configuration file beside the store's directory.
+# An older client's configuration file, moved into the store once and removed.
 _LEGACY_CONFIG = "credentials"
-# The keys an old configuration file held.
 _LEGACY_FIELDS = ("address", "port", "directory_whitelist")
 
-# Where the remote client's preferences live: the user's settings.json.
+# The remote client's category in the user's settings.json.
 SETTINGS_CATEGORY = "remote"
 
 _PRIVATE_DIR = 0o700
@@ -107,12 +70,8 @@ class Credentials:
 
     @classmethod
     def for_project(cls, project) -> "Credentials":
-        '''Where one project's run looks for its key and its session.
-
-        The path is taken as given rather than resolved through `find_files`,
-        which requires the file to exist -- and creating it is exactly what
-        `sc-remote -configure` is for.
-        '''
+        '''Where one project's run looks for its key and session. Not through
+        `find_files`, which needs the file to exist: `-configure` creates it.'''
         from siliconcompiler import utils
 
         configured = project.option.get_credentials()
@@ -121,8 +80,8 @@ class Credentials:
         return cls(Path(utils.default_credentials_file()))
 
     def __init__(self, path: Path):
-        '''``path`` is the store file, `option,credentials`. An older client's
-        configuration file named there is moved into the ``auth/`` beside it.'''
+        '''``path`` is the store file, `option,credentials`; an older client's
+        configuration file there is moved into ``auth/`` beside it.'''
         store, legacy = _resolve(Path(path))
         if os.environ.get(AUTH_DIR_VARIABLE):
             store = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
@@ -142,9 +101,7 @@ class Credentials:
         self._check_version()
 
     def relocate(self, auth_dir: Path) -> None:
-        '''Use the store in ``auth_dir`` instead, as a CI job does in its own
-        temporary directory. Nothing is copied: a store moved is a new one, and
-        its key is generated there.'''
+        '''Use the store in ``auth_dir`` instead; nothing is copied, so its key is new.'''
         self._open(Path(auth_dir) / STORE_FILENAME)
 
     ######################################################################
@@ -153,7 +110,7 @@ class Credentials:
 
     @property
     def server(self) -> Optional[str]:
-        '''The base URL of the configured server: what each entry is keyed by.'''
+        '''The configured server's base URL, which keys its entry.'''
         return self._store.get(_STORE, "server")
 
     @property
@@ -168,15 +125,8 @@ class Credentials:
 
     @property
     def user_id(self) -> Optional[str]:
-        '''The `id` GET /v1/me last reported for this server.
-
-        **Not a credential, and it authenticates nothing.** Persisted because it
-        is the one thing here that CANNOT be fetched when it is needed: *who did
-        this server say I was last time*. A reimage, a rebuilt container, a CI
-        image, a changed uid and a client release that moves the derivation salt
-        all replace the principal, and all look like "every job I ever ran has
-        been deleted" without it.
-        '''
+        '''The `id` GET /v1/me last reported for this server. Not a credential:
+        kept so a changed principal can be told apart from deleted jobs.'''
         return self._entry().get("user_id")
 
     @property
@@ -188,8 +138,7 @@ class Credentials:
         return dict(self._entry().get("headers") or {})
 
     def ci_secret(self) -> Optional[str]:
-        '''The one-line CI secret: the environment first, then this server's
-        entry.'''
+        '''The one-line CI secret: the environment first, then this server's entry.'''
         value = os.environ.get(CI_SECRET_VARIABLE)
         if value:
             return value.strip()
@@ -201,16 +150,8 @@ class Credentials:
 
     @contextlib.contextmanager
     def transaction(self):
-        '''Hold the store for one change: the file is re-read under its lock
-        first, so what this sees is what another process last wrote, and saved
-        on a clean exit.
-
-        Nests: a change made inside another joins it.
-
-        Raises:
-            StoreError: where the store is held past `LOCK_SECONDS`, does not
-                read, or was written by a newer client.
-        '''
+        '''Hold the store for one change: re-read under its lock, saved on a
+        clean exit. Nests. Raises `StoreError` if locked too long, unreadable or newer.'''
         self._ensure_dir()
         entered = False
         try:
@@ -226,9 +167,7 @@ class Credentials:
             raise StoreError(f"the session store {self.path} cannot be used: {e}") from None
 
     def set_server(self, server: str) -> None:
-        '''Point this machine at a server, by its address or base URL, kept as
-        the base URL. Each server keeps its own entry, so switching back finds
-        the session left there.'''
+        '''Point this machine at a server; switching back finds its entry intact.'''
         from siliconcompiler.remote.client.transport import normalize_server
 
         with self.transaction():
@@ -257,17 +196,15 @@ class Credentials:
             self._update_entry(user_id=user_id)
 
     def save_tokens(self, body: Dict[str, Any]) -> None:
-        '''Persist the half of a session that outlives this command: the
-        refresh token. The access token is never written down.'''
+        '''Persist the refresh token; the access token is never written down.'''
         self._update_entry(refresh_token=body.get("refresh_token"))
 
     def forget_tokens(self) -> None:
         self._update_entry(refresh_token=None)
 
     def set_header(self, name: str, value: Optional[str]) -> None:
-        '''An operator-configured header for this server, or None to remove
-        it. A header name is an RFC 9110 token, and neither half may carry a
-        line break: a value is sent verbatim on every request to the server.'''
+        '''Set an operator header for this server, or remove it with None. No
+        line breaks: the value is sent verbatim on every request.'''
         import re
 
         if not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name or ""):
@@ -287,8 +224,7 @@ class Credentials:
         self._update_entry(headers=headers or None)
 
     def save_ci_secret(self, secret: str) -> None:
-        '''This server's CI credential, in place of a refresh token: a CI
-        session trades the credential for each access token.'''
+        '''Store this server's CI credential in place of a refresh token.'''
         parse_ci_secret(secret)
         self._update_entry(ci_credential=secret.strip(), refresh_token=None)
 
@@ -301,10 +237,9 @@ class Credentials:
         return self.auth_dir / KEY_FILENAME
 
     def key(self):
-        '''This machine's private key, generated on first use.
+        '''This machine's private key, generated locally on first use.
 
-        Generated locally and never sent anywhere. 🔴 **No error ever replaces
-        it**: it is the device pin, and only `rotate_key` does.
+        🔴 No error ever replaces it: it is the device pin; only `rotate_key` does.
         '''
         if self._key is not None:
             return self._key
@@ -323,12 +258,8 @@ class Credentials:
         return dpop.jwk_thumbprint(dpop.public_jwk(self.key()))
 
     def rotate_key(self) -> None:
-        '''Replace the key, and with it every session it was bound to.
-
-        The deliberate act the contract reserves the key for: the machine
-        enrols again as a new device. Each server's refresh token goes with
-        it; its id, its headers and a CI credential, which no key binds, stay.
-        '''
+        '''Replace the key, dropping every refresh token bound to it; ids, headers
+        and CI credentials stay.'''
         with self.transaction():
             self._key = dpop.generate_key()
             self._write(self.key_path, dpop.serialize_key(self._key))
@@ -343,10 +274,8 @@ class Credentials:
     ######################################################################
 
     def check_store(self) -> None:
-        '''🔴 Refuse a store others can read, rather than repair it: its
-        directory, which holds the key, and each of the store's own files in
-        it. A file of anything else's in a private directory is not the
-        store's to judge.'''
+        '''🔴 Refuse a store others can read, rather than repair it: the directory
+        and the store's own files in it.'''
         if sys.platform == "win32" or not self.auth_dir.exists():
             return
         wrong = []
@@ -365,8 +294,7 @@ class Credentials:
                 "because a key others could read may already be copied")
 
     def _owns(self, name: str) -> bool:
-        '''Whether a file in the store's directory is the store's: the store,
-        its lock, the key, or a temporary file either is written through.'''
+        '''Whether a file is the store's: the store, its lock, the key, or their temporaries.'''
         store = self.path.name
         if name in (store, f"{store}.lock", f"{store}.sc_lock", KEY_FILENAME):
             return True
@@ -401,8 +329,7 @@ class Credentials:
     ######################################################################
 
     def _migrate(self, config: Optional[Path]) -> None:
-        '''Move an older client's configuration file into the store, once,
-        and remove it: the server and the whitelist.'''
+        '''Move an older client's server and whitelist into the store, once.'''
         from siliconcompiler.remote.client.transport import normalize_server
 
         if config is None:
@@ -429,15 +356,9 @@ def preference(name: str, default: Any = None) -> Any:
 
 
 def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
-    '''``(the store file, an older client's configuration file to move into
-    it, or None)`` for the path `option,credentials` names.
-
-    - **A store file**, or nothing yet: it is the store.
-    - **An older client's configuration file**, `~/.sc/credentials` or one of
-      its shape: the store is ``auth/remote.json`` beside it, and the file is
-      moved in.
-    - **A path that is gone, with a store beside it**: the configuration file
-      that was moved, still named by a script. That store is used.
+    '''``(store file, legacy configuration to move in or None)`` for the path
+    `option,credentials` names. A legacy file's store is ``auth/remote.json``
+    beside it, which is also used once the file is gone.
     '''
     if given.exists():
         if _is_legacy_config(given):
@@ -449,8 +370,7 @@ def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
         logger.warning(f"{given} was moved into {beside}: point -credentials there")
         return beside, None
 
-    # A store named directly: an older client's configuration file left in
-    # the directory above its own may still need moving in.
+    # A store named directly may still have a legacy file above it to move in.
     if given.parent.name == AUTH_DIRNAME:
         old = given.parent.parent / _LEGACY_CONFIG
         if old.exists() and _is_legacy_config(old):
@@ -459,8 +379,7 @@ def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
 
 
 def _is_legacy_config(path: Path) -> bool:
-    '''Whether ``path`` is an older client's configuration file: a JSON object
-    of its fields, with no store category.'''
+    '''Whether ``path`` is an older client's configuration file.'''
     values = _read_json(path)
     return bool(values) and _STORE not in values and \
         any(name in values for name in _LEGACY_FIELDS)
@@ -476,11 +395,7 @@ def _read_json(path: Path) -> Dict[str, Any]:
 
 def parse_ci_secret(secret: str):
     '''``<prefix>_<credential id>_<key>`` into ``(credential id, private key)``.
-
-    The key is the credential's EC P-256 private key as PKCS#8 DER, base64url
-    without padding -- which may itself contain `_`, so only the first two
-    separate.
-    '''
+    The base64url key may contain `_`, so only the first two separate.'''
     from cryptography.hazmat.primitives.serialization import load_der_private_key
     from jwt.utils import base64url_decode
 
@@ -497,10 +412,8 @@ def parse_ci_secret(secret: str):
 
 
 def _write_atomic(path, payload: bytes, mode: int = _PRIVATE_FILE) -> None:
-    '''Write through a temporary file in the same directory, created with
-    ``mode`` set, and rename it over the target. The live file is never
-    truncated, and a private one's contents are never readable by anyone
-    else, not even briefly.'''
+    '''Write through a temporary file created with ``mode``, renamed over the
+    target: never truncated, and a private file never briefly readable.'''
     from siliconcompiler.utils.settings import _create_temp, _replace
 
     fd, temporary = _create_temp(str(path), mode)
@@ -517,8 +430,7 @@ def _write_atomic(path, payload: bytes, mode: int = _PRIVATE_FILE) -> None:
 
 
 def _restrict_windows(path: Path) -> None:                      # pragma: no cover
-    '''The Windows equivalent of 0700: an access-control list granting the
-    user alone, inherited by every file created in the directory.'''
+    '''The Windows equivalent of 0700: an inherited ACL granting the user alone.'''
     import getpass
     import subprocess
 

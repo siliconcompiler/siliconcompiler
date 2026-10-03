@@ -1,15 +1,11 @@
 '''
 Sessions: minting them, presenting them, and ending them.
 
-Nothing here verifies who a caller is -- this is the unauthenticated profile,
-and the identity is self-asserted namespacing rather than a boundary. What it
-does buy is ownership: a job has an owner, and a stranger holding its id is not
-that owner.
-
-The one real control is the key. On the first `client_credentials` issuance for
-a subject the server records the presented thumbprint, and thereafter that
-subject presenting a different key is refused. That closes the steady state:
-once B has used the server, A cannot become B.
+Nothing here verifies who a caller is: identity is self-asserted namespacing,
+which buys ownership, not a boundary. The one real control is the key: the
+first `client_credentials` issuance for a subject records its thumbprint, and a
+different key is refused thereafter, so once B has used the server, A cannot
+become B.
 '''
 
 import logging
@@ -35,9 +31,7 @@ __all__ = [
 logger = logging.getLogger("sc-server")
 
 
-# The registered scopes (identity.md, *Scopes*). Only these are granted, `v1`
-# may register more, and none is ever administrative. Every value is
-# <resource>:<action>, so a reader can tell what one costs without a table.
+# The registered scopes (identity.md, *Scopes*); none is ever administrative.
 SCOPES = (
     "jobs:read",
     "jobs:write",
@@ -48,9 +42,7 @@ SCOPES = (
     "profile:read",
 )
 
-# Write carries read, and so does `jobs:delete`; the expansion happens at mint
-# rather than at check, so what is stored and what is published are the same
-# string, and a client is never told it has less than it has.
+# Expanded at mint, not at check, so the stored and published scope agree.
 _IMPLIES = {
     "jobs:write": "jobs:read",
     "jobs:delete": "jobs:read",
@@ -61,17 +53,13 @@ ACCESS_TOKEN_SECONDS = 900          # 15 minutes
 REFRESH_TOKEN_SECONDS = 604800      # 7 days, sliding
 SESSION_SECONDS = 1036800           # 12 days, the family cap. NEVER extended
 
-# A few minutes after a refresh token is replaced, a repeat of it with a valid
-# proof from the family's key gets the replacement already issued. Minutes and
-# not seconds: a lost response is noticed only when the read times out, so its
-# retry arrives at least one client timeout after the rotation.
+# A replaced refresh token repeated within this, with the family's key, gets
+# the replacement already issued. Minutes, since a lost response's retry comes
+# at least one client timeout later.
 REFRESH_GRACE_SECONDS = 300
 
-# Two vocabularies, deliberately different sizes, and this is the only place
-# they meet. The column records WHY a family ended, in six values an operator
-# reading the store wants; the wire carries WHAT THE CLIENT MUST DO, in four
-# that are one branch each -- `reused` also telling the person their
-# credentials were used elsewhere.
+# The column records WHY a family ended, for an operator; the wire says WHAT
+# THE CLIENT MUST DO, one branch per value.
 _WIRE_REASON = {
     "user_logout": "revoked",
     "reuse_detected": "reused",
@@ -85,12 +73,8 @@ _SIGNING_KEY_FILE = "token-signing-key"
 
 
 def expand_scope(requested: Optional[str]) -> str:
-    '''The scope a token is minted with.
-
-    Omitting `scope` asks for every registered scope: the caller is one
-    self-asserted identity on a machine it already owns. An unrecognised value
-    is dropped and the rest granted; only a request with nothing recognised
-    left is refused, `invalid_scope`.
+    '''The scope a token is minted with: every registered scope where none is
+    asked for; unrecognised values dropped, `invalid_scope` if nothing is left.
     '''
     if requested is None or not requested.strip():
         granted = set(SCOPES)
@@ -104,8 +88,7 @@ def expand_scope(requested: Optional[str]) -> str:
         if write in granted:
             granted.add(read)
 
-    # Published in the vocabulary's own order rather than sorted, so two tokens
-    # with the same scope have the same string.
+    # In the vocabulary's order, so equal scopes are equal strings.
     return " ".join(scope for scope in SCOPES if scope in granted)
 
 
@@ -127,16 +110,12 @@ class Session:
         self.family_id = family_id
         self.device_id = device_id
         self.jkt = jkt
-        # When the credential this request presented stops being good: a
-        # stream it obtains ends no later.
+        # When this request's credential expires; a stream it opens ends by then.
         self.expires_at = expires_at
 
     def require(self, scope: str) -> None:
-        '''Refuse unless the token covers this endpoint.
-
-        The client fails rather than refreshing: a refresh re-mints the same
-        ceiling, so retrying is a loop.
-        '''
+        '''Refuse unless the token covers this endpoint; a refresh re-mints the
+        same ceiling, so the client fails rather than retrying.'''
         if scope not in self.scope:
             raise ProblemError(
                 "insufficient-scope",
@@ -146,27 +125,19 @@ class Session:
 
 
 class TokenIssuer:
-    '''Mints and checks this deployment's tokens.
-
-    Symmetric signing: one process both issues and verifies, and the token never
-    leaves this deployment, so there is no second party needing a public half.
-    '''
+    '''Mints and checks this deployment's tokens, symmetrically signed: one
+    process both issues and verifies.'''
 
     def __init__(self, datadir: Path, store: Store, bind_keys: bool = True):
         self._store = store
         self._secret = _load_or_create_secret(Path(datadir) / _SIGNING_KEY_FILE)
 
-        # Binding is ON by default, and turning it off declares the deployment a
-        # single trust domain. A container fleet needs it off, because
-        # /etc/machine-id is per image and every container derives the same
-        # subject -- with binding on the first one binds and the rest are
-        # refused. Off-by-default would fail silently, which is the wrong
-        # direction: one user reads another's designs and nothing says so.
+        # ON by default; off declares a single trust domain, which a container
+        # fleet needs (every container derives the same subject). Off by default
+        # would fail silently: one user reading another's designs.
         self._bind_keys = bind_keys
 
-        # Seen proof ids, so one cannot be replayed inside its window. Bounded
-        # by the window rather than by a count: a proof older than that fails on
-        # `iat` regardless.
+        # Seen proof ids, held for the proof window; older fails on `iat`.
         self._seen: Dict[str, float] = {}
         # 🔴 Requests run on threads of their own, so the check that a `jti`
         # is new and the write that makes it seen are one step.
@@ -174,12 +145,8 @@ class TokenIssuer:
 
     @property
     def secret(self) -> bytes:
-        '''The deployment's signing secret.
-
-        One key for an operator to protect rather than several. Everything that
-        signs with it derives a key of its own from it first, so a signature
-        made for one purpose cannot be presented for another.
-        '''
+        '''The deployment's one signing secret. Every other signer derives its
+        own key from it, so no signature passes for another purpose.'''
         return self._secret
 
     ######################################################################
@@ -191,12 +158,8 @@ class TokenIssuer:
                            machine_id_hash: Optional[str] = None,
                            machine_id_source: str = "none",
                            display_name: Optional[str] = None) -> dict:
-        '''Log in with no browser, no issuer and no human.
-
-        The grant's shape is borrowed, not its guarantees: RFC 6749 assumes a
-        confidential client with a real secret, and here the secret is nominal.
-        Saying so is the honest version of what this profile is.
-        '''
+        '''Log in with no browser, no issuer and no human: RFC 6749's shape, but
+        the client secret is nominal.'''
         try:
             with self._store.transaction():
                 user = self._store.upsert_user(
@@ -213,11 +176,8 @@ class TokenIssuer:
                 return self._issue(user["id"], device["id"], jkt,
                                    expand_scope(requested_scope))
         except _KeyMismatch as mismatch:
-            # Recorded AFTER the transaction has rolled back, and deliberately.
-            # device_events is append-only and is the half of this story with a
-            # reader: somebody presenting the wrong key for a known subject is
-            # the one event in this profile worth keeping, and writing it inside
-            # the transaction the refusal aborts would throw it away.
+            # Recorded AFTER the rollback, deliberately: inside the aborted
+            # transaction the one event worth keeping would be lost.
             self._store.execute(
                 "INSERT INTO device_events (device_id, kind) "
                 "VALUES (?, 'reauth_failed')", (mismatch.device_id,))
@@ -235,10 +195,7 @@ class TokenIssuer:
                      machine_id_source: str,
                      display_name: Optional[str]):
         '''First contact records the key; later contact must present it.
-
-        Without this, A on a shared machine presents B's derivation with A's own
-        key and gets a session as B -- and the derivation is public knowledge,
-        so the claim costs nothing to forge.
+        Otherwise anyone could present B's public derivation with their own key.
         '''
         existing = self._store.one(
             "SELECT * FROM devices WHERE user_id = ? AND revoked_at IS NULL",
@@ -262,13 +219,10 @@ class TokenIssuer:
 
         if existing["dpop_jkt"] != jkt:
             if self._bind_keys:
-                # Raised rather than answered here, so that the caller can
-                # record the attempt once this transaction has rolled back.
+                # Raised, so the caller records it after the rollback.
                 raise _KeyMismatch(existing["id"])
 
-            # Binding off: the deployment has declared itself one trust domain,
-            # so the newest key wins and the change is recorded rather than
-            # refused.
+            # Binding off: one trust domain, so the newest key wins.
             self._store.execute(
                 "UPDATE devices SET dpop_jkt = ?, last_seen_at = ? WHERE id = ?",
                 (jkt, now(), existing["id"]))
@@ -279,20 +233,17 @@ class TokenIssuer:
             "UPDATE devices SET last_seen_at = ? WHERE id = ?",
             (now(), existing["id"]))
 
-        # Re-read: `existing` was fetched before the write, so returning it
-        # hands the caller a row that is already wrong about the one column
-        # this just set.
+        # Re-read: `existing` predates the write.
         return self._store.one(
             "SELECT * FROM devices WHERE id = ?", (existing["id"],))
 
     def refresh(self, refresh_token: str, jkt: str,
                 machine_id_hash: Optional[str] = None,
                 machine_id_source: Optional[str] = None) -> dict:
-        '''Rotate a session. It always returns the family's full scope.
+        '''Rotate a session, always to the family's full scope.
 
-        The proof was verified before this is called, and its key is compared
-        with the family's here, BEFORE reuse detection: a refresh token held
-        without the key is refused `invalid_dpop_proof` and ends nothing.
+        The proof's key is compared with the family's BEFORE reuse detection,
+        so a refresh token held without the key ends nothing.
         '''
         import jwt
 
@@ -313,9 +264,7 @@ class TokenIssuer:
         if row is None:
             raise OAuthError("invalid_grant", "unknown refresh token")
 
-        # The key the family is bound to, checked on every refresh and before
-        # anything else about the token: this is where a stolen refresh token
-        # stops being useful -- or harmful -- to anything without the key.
+        # Before anything else: a stolen refresh token is useless without the key.
         if row["dpop_jkt"] != jkt:
             raise OAuthError("invalid_dpop_proof",
                              "this session is bound to a different key")
@@ -327,12 +276,10 @@ class TokenIssuer:
         if row["replaced_at"] is not None:
             replaced = _seconds_since(row["replaced_at"], timestamp)
             if replaced > REFRESH_GRACE_SECONDS:
-                # Reuse past the grace window, with the family's own key, is the
-                # signal the whole family has leaked: the session ends.
+                # Reuse past the grace window with the family's key: leaked.
                 self._revoke_family(row["family_id"], "reuse_detected")
                 raise self._grant_ended("reused")
-            # Inside the window: a retry of a lost response, not an attack. It
-            # gets the replacement already issued, never a second live one.
+            # A retry of a lost response: the replacement, never a second one.
             replacement = self._store.one(
                 "SELECT * FROM refresh_tokens WHERE jti = ?", (row["replaced_by"],))
             return self._tokens(row["user_id"], row["device_id"], row["dpop_jkt"],
@@ -341,14 +288,12 @@ class TokenIssuer:
                                 replacement["expires_at"], row["family_expires_at"])
 
         if timestamp >= row["family_expires_at"]:
-            # Not revoked: nothing decided this, the session cap simply passed.
-            # The column stays NULL and the client is told to log in again.
+            # Not revoked: the session cap passed, so the column stays NULL.
             raise self._grant_ended("expired")
 
         user = self._store.one("SELECT * FROM users WHERE id = ?", (row["user_id"],))
         if user["deactivated_at"] is not None:
-            # Re-read on every refresh, so deactivating an account ends its
-            # sessions within one access-token lifetime.
+            # Ends a deactivated account's sessions within one access lifetime.
             self._revoke_family(row["family_id"], "account_inactive")
             raise self._grant_ended("deactivated")
 
@@ -392,16 +337,9 @@ class TokenIssuer:
                 "UPDATE refresh_tokens SET replaced_by = ?, replaced_at = ? "
                 "WHERE jti = ?", (new_jti, timestamp, row["jti"]))
 
-            # 🔴 A rotation is the device being used, and it is the ONLY signal
-            # most of them give. The client refreshes rather than logging in
-            # again -- deliberately, so a session lasts its twelve days instead
-            # of a new family per command -- so written only at
-            # `client_credentials`, `last_seen_at` would stay NULL for a machine
-            # that has been running jobs all day.
-            #
-            # Once per rotation rather than per request: a write on every
-            # authenticated call would cost a transaction each time to sharpen
-            # a column nobody reads to the second.
+            # 🔴 A rotation is the only use signal most devices give, since the
+            # client refreshes rather than logs in again. Per rotation, not per
+            # request, to spare a write on every call.
             if row["device_id"]:
                 self._store.execute(
                     "UPDATE devices SET last_seen_at = ? WHERE id = ?",
@@ -442,13 +380,11 @@ class TokenIssuer:
             {"iss": "sc-server", "sub": user_id, "iat": issued,
              "exp": issued + ACCESS_TOKEN_SECONDS, "jti": str(uuid.uuid4()),
              "scope": scope, "family": family_id, "device": device_id,
-             # The confirmation claim: this token is only usable by something
-             # that can prove it holds the key.
+             # Usable only by whoever proves it holds the key.
              "cnf": {"jkt": jkt}},
             self._secret, algorithm="HS256")
 
-        # Built from its row alone, so a retry inside the grace window is
-        # handed the very same refresh token, not a second one.
+        # From its row alone, so a grace-window retry gets the same token.
         refresh = jwt.encode(
             {"iss": "sc-server", "jti": refresh_jti, "family": family_id,
              "iat": int(parse(refresh_issued).timestamp()),
@@ -457,16 +393,12 @@ class TokenIssuer:
 
         return {
             "access_token": access,
-            # Never "Bearer": a bearer token is exactly the shape this exists to
-            # avoid.
             "token_type": "DPoP",
             "expires_in": ACCESS_TOKEN_SECONDS,
             "refresh_token": refresh,
             "refresh_token_expires_in": max(0, _seconds_between(refresh_expires)),
             "session_expires_in": max(0, _seconds_between(session_expires)),
-            # REQUIRED on every grant, and not merely when it differs from what
-            # was asked: absent would mean "you got what you asked for" on one
-            # server and "we do not publish this" on another.
+            # REQUIRED on every grant, so absence never has two meanings.
             "scope": scope,
         }
 
@@ -516,9 +448,7 @@ class TokenIssuer:
         family = self._store.one(
             "SELECT * FROM token_families WHERE id = ?", (claims["family"],))
         if family is None or family["revoked_at"] is not None:
-            # The client must re-authenticate and must NOT refresh. Every
-            # reason is one client branch, which is why they are one slug with
-            # a `reason` member rather than four slugs.
+            # The client must re-authenticate, NOT refresh.
             reason = _wire_reason(family["revoked_reason"] if family else None)
             raise ProblemError("session-ended", reason=reason, detail=_ENDED.get(reason),
                                headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
@@ -534,11 +464,7 @@ class TokenIssuer:
                        claims.get("device"), jkt, expires_at=claims.get("exp"))
 
     def _check_replay(self, proof: str, oauth: bool = False) -> None:
-        '''One proof, one request.
-
-        The window is the proof's own lifetime: anything older fails on `iat`
-        before it reaches here, so nothing has to be remembered past that.
-        '''
+        '''One proof, one request, remembered for the proof's lifetime.'''
         import jwt
 
         jti = jwt.decode(proof, options={"verify_signature": False}).get("jti")
@@ -574,20 +500,10 @@ class TokenIssuer:
     def _retire_elsewhere(self, user_id: str, jkt: str) -> None:
         '''This key was last seen as somebody else. End that enrolment.
 
-        🔴 The case is a machine whose *derivation* changed while its key did
-        not: a reimaged host, a rebuilt container, a changed uid, or a client
-        release that moves the salt. The subject is new, so the store mints a
-        new user -- and the device row for the old one still holds this
-        thumbprint, which is UNIQUE across live devices. Left alone it is an
-        IntegrityError out of the insert below, surfacing as a 500 with an HTML
-        body on the one endpoint a client cannot get past.
-
-        Retiring rather than refusing, because a refusal is a machine that can
-        never log in again without deleting its own key, and because it hands
-        the caller nothing: whoever holds this key could already act as the
-        previous user. What it does do is make the change visible -- the event
-        is recorded here, and `GET /v1/me` tells the user their jobs belong to
-        an identity they no longer are.
+        🔴 A machine whose *derivation* changed and key did not (a reimage, a
+        new uid): the old device row holds this UNIQUE thumbprint, and the
+        insert would fail. Retired, not refused: the key's holder could already
+        act as the previous user, and the event is recorded.
         '''
         stale = self._store.one(
             "SELECT * FROM devices WHERE dpop_jkt = ? AND revoked_at IS NULL "
@@ -651,28 +567,20 @@ _ENDED = {"revoked": "this session was revoked",
 
 
 def _wire_reason(stored: Optional[str]) -> str:
-    """Translate a stored revocation reason into the one the client branches on.
-
-    An unrecognised value maps to `revoked` rather than passing through: the
-    wire vocabulary is closed, and a client that meets a value outside it has
-    no branch for it.
-    """
+    """A stored revocation reason as the client's closed vocabulary; anything
+    unrecognised is `revoked`."""
     return _WIRE_REASON.get(stored or "", "revoked")
 
 
 def _load_or_create_secret(path: Path) -> bytes:
-    '''The token signing secret, created on first start.
-
-    0600 and no wider: anything that can read it can mint a session for any
-    user on this deployment.
-    '''
+    '''The token signing secret, created on first start, 0600: whoever reads
+    it can mint a session for any user.'''
     if path.exists():
         return path.read_bytes()
 
     secret = secrets.token_bytes(32)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Opened with the mode rather than chmod'ed afterwards, so the file is never
-    # briefly readable by anyone else.
+    # Created with the mode, never briefly readable by anyone else.
     fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         os.write(fd, secret)

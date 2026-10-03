@@ -2,8 +2,6 @@
 A job's Python packages, installed while it stages: on the host, or built into
 an image a node resolved to (surface *A node's own Python packages*;
 implementation-notes §L).
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import json
@@ -28,17 +26,10 @@ ENVIRONMENTS = "python-envs"
 class PythonEnvMixin:
     '''A job's Python packages, installed while it stages.'''
 
-    ######################################################################
-    # The job's Python packages (surface *A node's own Python packages,
-    # built while staging*; implementation-notes §L)
-    ######################################################################
-
     def _python_install(self, job, summary):
-        '''What the job's Python install is: ``(packages, wheels)`` -- the
-        lists less each distribution a wheel carries, which its wheel replaces,
-        and the wheels' paths -- or None where there is nothing to install: no
-        node runs the user's Python, or the job lists no requirement and
-        uploads no wheel. Constraints alone install nothing.'''
+        '''``(packages, wheels)`` to install, the lists less what each wheel
+        replaces; None where no node runs the user's Python or there is no
+        requirement and no wheel.'''
         if not summary["python"]:
             return None
         unpacked = self.job_root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
@@ -52,16 +43,12 @@ class PythonEnvMixin:
         return packages, wheels
 
     def _install_on_host(self, job, summary) -> List[str]:
-        '''Host mode: the job's Python packages installed while it stages,
-        into the environment of its key, and linked where each node that runs
-        the user's Python finds them (`Task.get_runtime_environmental_variables`). Returns
-        each package no configured index has, for which the job is sent back
-        -- empty once installed.
+        '''Host mode: install the job's Python packages into the environment of
+        their key and link it into the job's tree. Returns each package no index
+        has, for which the job is sent back.
 
-        🔴 **A package that will not install rejects the job** --
-        `software-unavailable`, `reason: "uninstallable"`, naming each package
-        and the target Python and platform -- before any node runs. An index
-        that does not answer is this server's failure: `staging-failed`.
+        🔴 A package that will not install rejects the job before any node runs;
+        an index that does not answer is `staging-failed`.
         '''
         from siliconcompiler.remote.server.packages import envinstall
 
@@ -102,25 +89,19 @@ class PythonEnvMixin:
             link.unlink()
         link.symlink_to(target, target_is_directory=True)
 
-        # 🔴 Where nodes run on the host there is no image, so no
-        # `resolved_versions`: the job's `staging` record is the record of what
-        # the install added (profile §5; surface D295), fresh or cached alike.
+        # 🔴 No image on the host, so the `staging` record is the record of what
+        # the install added (profile §5; surface D295).
         self._note(job, _install_lines(installed, "this host"))
         if self._row(job["id"])["state"] != "staging":
             raise _NoLongerStaging(job["id"])
         return []
 
     def _build_environments(self, job, summary, plan):
-        '''``(plan, absent)``: ``plan`` with every node that runs the user's
-        Python moved onto the image built for the job's packages on the image
-        it resolved to -- reused where one exists for that base and key, built
-        otherwise, and one build per base, shared by every such node of the job
-        -- or, with ``plan`` as it was, each package no configured index has,
-        for which the job is sent back.
+        '''``(plan, absent)``: ``plan`` with each node running the user's Python
+        moved onto an image of the job's packages over its base, one per base
+        and reused; or ``plan`` unchanged and each package no index has.
 
-        🔴 **A package that will not install rejects the job** from
-        `staging`: `software-unavailable`, `reason: "uninstallable"`, naming
-        each package and the target Python and platform.
+        🔴 A package that will not install rejects the job from `staging`.
         '''
         from siliconcompiler.remote.server.packages import envinstall
 
@@ -191,8 +172,7 @@ class PythonEnvMixin:
 
     def _run_build(self, job, node, base_ref, key, inputs) -> Dict[str, Any]:
         '''One build, as a job of its own in the builder queue; its result, or
-        the job refused with why. Raises _Absent for a package no configured
-        index has.'''
+        the job refused. Raises _Absent for a package no index has.'''
         import uuid
 
         from siliconcompiler.remote.server.packages import envbuild
@@ -206,8 +186,7 @@ class PythonEnvMixin:
                 (workspace / envbuild.WHEELS).mkdir()
                 for wheel in inputs["wheels"]:
                     shutil.copy(wheel, workspace / envbuild.WHEELS / os.path.basename(wheel))
-            # 🔴 What is left of this pass of staging: the build is one of its
-            # phases, and is cancelled when that runs out (surface D294).
+            # 🔴 What is left of this staging pass (surface D294).
             timeout = max(1, int(self._staging_left(job["id"])))
             (workspace / envbuild.SPEC).write_text(json.dumps({
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
@@ -230,8 +209,7 @@ class PythonEnvMixin:
             logger.info(f"{job['id']}: building its Python packages for "
                         f"{node[0]}/{node[1]}'s image as {build_id}")
 
-            # 🔴 A cancel stops the build: the job leaving `staging` is a build
-            # nobody is waiting for.
+            # 🔴 A cancel stops the build.
             result = envbuild.wait_for(
                 workspace, timeout,
                 alive=lambda: self._dispatcher.is_alive(build_id)
@@ -245,8 +223,7 @@ class PythonEnvMixin:
                 if self._staging_left(job["id"]) <= 1:
                     raise _StagingTimedOut(
                         f"building the job's Python packages on {base_ref}")
-                # Time to spare, and the build job gone without a result:
-                # lost, which is this server's failure (surface D294).
+                # Gone with time to spare: lost, this server's failure (D294).
                 log = workspace / envbuild.LOG
                 tail = "\n".join(log.read_text(errors="replace").strip().splitlines()[-10:]) \
                     if log.is_file() else ""

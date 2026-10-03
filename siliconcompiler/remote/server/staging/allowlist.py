@@ -1,37 +1,24 @@
 '''
 Where this server will fetch a job's sources from.
 
-🔴 **The list decides who fetches, never whether the data arrives** (D128). A
-source that is not on it is not refused: the client is asked for it, uploads
-it with its own credentials, and the job runs. What the list bounds is the
-server making requests on a job's behalf -- the SSRF a job naming any URL would
-otherwise be.
+🔴 The list decides who fetches, never whether the data arrives (D128): a source
+not on it is uploaded by the client with its own credentials. What it bounds
+is the server making requests on a job's behalf, the SSRF.
 
-An entry may be a glob (D128, profile D30), and every part of a URL is matched
-on its own, after the URL is normalised:
+An entry may be a glob (D128, profile D30), each URL part matched on its own:
 
 ==========  ==============================================================
-Part        Rule
-==========  ==============================================================
-scheme      exact, never a glob -- ``http`` for ``https`` is a downgrade
-host        exact, or a wildcard as the WHOLE leftmost label
-            (``*.zeroasic.com``), compared lowercased. ``*zeroasic.com``
-            would admit ``evilzeroasic.com`` and is refused
-path        ``*`` matches within one segment, never across ``/``, and the
-            entry matches as a prefix at a segment boundary
+scheme      exact, never a glob: ``http`` for ``https`` is a downgrade
+host        exact, or a wildcard as the whole leftmost label
+            (``*.zeroasic.com``); ``*zeroasic.com`` is refused
+path        ``*`` within one segment; the entry is a segment-boundary prefix
 ==========  ==============================================================
 
-🔴 **Before matching**, dot-segments are resolved, an encoded ``/`` is
-refused and the default port is dropped: ``github.com/zeroasiccorp/../evil/``
-prefix-matches until the ``..`` is resolved.
-
-🔴 **No glob widens the address rule**: a name that resolves to a private,
-loopback, link-local or otherwise non-public address is never connected to,
-whatever the list says.
-
-⚠️ The source a job names is matched whole. What its fetch reaches after it --
-a redirect, a submodule, an LFS store -- goes through a proxy that sees only a
-host, so it is held to the list's hosts and not their paths (`staging.fetch`).
+🔴 Before matching, dot-segments are resolved, an encoded ``/`` is refused and
+the default port dropped, or ``github.com/zeroasiccorp/../evil/`` would match.
+No glob widens the address rule: a non-public address is never connected to.
+⚠️ What a fetch reaches after the named source (redirects, submodules, LFS) is
+held to the list's hosts only, not paths (`staging.fetch`).
 '''
 
 import ipaddress
@@ -51,19 +38,14 @@ __all__ = ["DEFAULT", "Rule", "parse", "check_entries", "normalise",
 logger = logging.getLogger("sc-server")
 
 
-# SiliconCompiler's GitHub organisation, which is what lambdapdk needs: it
-# registers `https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/`
-# with its version as the ref, and GitHub redirects archives to codeload,
-# keeping the owner and repository in the path. ⚠️ A redirect is held to the
-# host alone, so the codeload entry admits whatever GitHub redirects to there;
-# its path still binds a source a job names at codeload directly.
+# SiliconCompiler's GitHub organisation, for lambdapdk; GitHub redirects archives
+# to codeload. ⚠️ A redirect is held to the host alone.
 DEFAULT = ["https://github.com/siliconcompiler/",
            "https://codeload.github.com/siliconcompiler/"]
 
 _DEFAULT_PORTS = {"https": 443, "http": 80}
 
-# Hosting suffixes anyone can publish under. A wildcard over one of these admits
-# strangers, so it is allowed and warned about.
+# Hosting suffixes anyone can publish under: a wildcard over one is warned about.
 _SHARED = ("github.io", "gitlab.io", "pages.dev", "netlify.app", "vercel.app",
            "web.app", "firebaseapp.com", "herokuapp.com", "appspot.com",
            "blogspot.com", "azurewebsites.net", "cloudfront.net",
@@ -82,12 +64,7 @@ class Rule(NamedTuple):
 
 
 def parse(entry: str) -> Rule:
-    '''One entry, refused where no rule can make it safe.
-
-    🔴 Refused when the configuration LOADS, rather than trusting the matcher
-    to be careful about an entry it was told to accept: a bare ``*`` host, a
-    wildcard anywhere but the whole leftmost label, and a globbed scheme.
-    '''
+    '''Parse one entry, refusing at load one no rule can make safe.'''
     text = str(entry).strip()
     if "://" not in text:
         raise ValueError(f"allowlist entry {entry!r} names no scheme")
@@ -143,8 +120,7 @@ def check_entries(entries: Sequence[str]) -> List[str]:
 def _segments(path: str) -> Optional[Tuple[str, ...]]:
     '''A URL path as its normalised segments, or None where it is refused.'''
     if re.search(r"%2f|%5c", path, re.IGNORECASE):
-        # An encoded separator decodes into a segment boundary a prefix check
-        # would not have seen.
+        # It would decode into a boundary the prefix check never saw.
         return None
     decoded = unquote(path)
     if "\\" in decoded or "\x00" in decoded:
@@ -154,8 +130,7 @@ def _segments(path: str) -> Optional[Tuple[str, ...]]:
 
 
 def normalise(url: str) -> Optional[Tuple[str, str, Optional[int], Tuple[str, ...]]]:
-    '''``(scheme, host, port, segments)`` for a URL, or None where it cannot be
-    matched safely.'''
+    '''``(scheme, host, port, segments)`` for a URL, or None where unsafe to match.'''
     try:
         parts = urlsplit(url)
         port = parts.port
@@ -189,8 +164,7 @@ def allows(rules: Sequence[Rule], url: str) -> bool:
         if rule.scheme != scheme or rule.port != port:
             continue
         if rule.host.startswith("*."):
-            # The whole leftmost label and nothing more: `a.zeroasic.com`,
-            # never `zeroasic.com` itself and never `evilzeroasic.com`.
+            # One whole label: never `zeroasic.com` itself or `evilzeroasic.com`.
             if not host.endswith(rule.host[1:]) or host.count(".") != rule.host.count("."):
                 continue
         elif host != rule.host:
@@ -205,10 +179,8 @@ def allows(rules: Sequence[Rule], url: str) -> bool:
 def public_host(host: str, port: Optional[int] = None) -> bool:
     '''Whether every address ``host`` resolves to is a public one.
 
-    🔴 Never a private, loopback, link-local, multicast, reserved or
-    unspecified address -- whatever the allowlist says -- because a name is
-    whatever its owner's DNS answers, including 127.0.0.1 and the metadata
-    service at 169.254.169.254.
+    🔴 Whatever the allowlist says: a name's DNS can answer 127.0.0.1 or the
+    metadata service at 169.254.169.254.
     '''
     try:
         infos = socket.getaddrinfo(host, port or 443, proto=socket.IPPROTO_TCP)
@@ -218,9 +190,7 @@ def public_host(host: str, port: Optional[int] = None) -> bool:
 
 
 def _all_public(infos) -> bool:
-    '''Whether every address in ``infos``, `socket.getaddrinfo`'s answer, is
-    a public one: :func:`public_host`'s rule, and the envbuild proxy's for the
-    connection it then makes to one of those addresses.'''
+    '''Whether every `socket.getaddrinfo` address is public; the envbuild proxy's rule too.'''
     for info in infos:
         try:
             address = ipaddress.ip_address(info[4][0])

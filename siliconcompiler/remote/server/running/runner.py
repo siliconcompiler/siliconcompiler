@@ -1,24 +1,12 @@
 '''
-The process the batch job starts.
+The process the batch job starts, and all that runs on a compute node.
 
 ``python3 -m siliconcompiler.remote.server.running.runner <manifest>``
 
-This is the whole of what runs on a compute node. It holds no database
-connection and makes no HTTP request: it loads the manifest the job uploaded,
-applies the server's overrides to it itself (`runspec.apply_run`), runs it, and
-writes what it is doing into the job's own directory. The API process reads
-that file.
-
-🔴 **The overrides are applied here, in the job's own SiliconCompiler**, never
-by rewriting the manifest in the API process (contract §1): the server writes
-what the run needs as data, beside the manifest and outside the tree the upload
-expanded into.
-
-🔴 **That indirection is the point.** A run that reported over HTTP would need a
-credential on every compute node, and one that wrote to the store would make the
-store a thing every node mounts. A file on the filesystem the run already writes
-its outputs to costs neither -- and it is why nothing in the job model assumes
-the API process is a Slurm submit host.
+🔴 It holds no database connection and makes no HTTP request, so no compute node
+needs a credential or the store: it applies the server's overrides in the job's
+own SiliconCompiler (`runspec.apply_run`, contract §1), runs the job, and writes
+its progress into the job's directory for the API process to read.
 '''
 
 import argparse
@@ -42,30 +30,24 @@ from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 __all__ = ["main"]
 
 
-# Module state rather than a closure, because the callbacks are handed to the
-# scheduler through a settings object shared with forked children. A plain
-# function with no captured frame is the one shape that survives that trip
-# unchanged.
+# Module state, not a closure: the callbacks reach forked children through a
+# shared settings object, and only a plain function survives that trip.
 _progress_path = None
 _progress = None
 
-# Bundle directory to the reference it unpacks from, and what to mount into
-# it, as the server wrote them beside the manifest.
+# Bundle directory -> reference it unpacks from, and what to mount into it.
 _image_sources = {}
 _image_mounts = []
 # Each job bundle's shared bundle, and what the job's own bundles mount over it.
 _image_shared = {}
 _job_mounts = []
 
-# Each placement whose pull failed before the flow started, and what the
-# runtime said; and each node the docker daemon reported killed for memory.
+# Placement -> the runtime's pull error; nodes the docker daemon OOM-killed.
 _pull_errors = {}
 _oom_killed = set()
 
-# Often enough that a stall is noticed in minutes, rarely enough that it is one
-# small write a minute on a filesystem every compute node shares. The server's
-# patience is its `run_heartbeat_seconds` and is many times this, because a
-# missed beat must never be read as a dead run.
+# The server's `run_heartbeat_seconds` is many times this, so a missed beat is
+# never read as a dead run.
 HEARTBEAT_SECONDS = 60
 
 
@@ -78,28 +60,16 @@ def _publish() -> None:
 def _beat() -> None:
     '''Say *still here* on a timer, for as long as this process lives.
 
-    🔴 **The only other evidence a run exists is the scheduler, and the
-    scheduler can be wrong.** A node killed without deleting itself leaves
-    Slurm reporting its jobs RUNNING for ever on a machine that is gone -- and
-    the API believes the scheduler, so those jobs never leave `running`
-    either.
-
-    ⚠️ It cannot be the node transitions `_publish` also writes on. A single
-    OpenROAD node runs for half an hour without one, so *nothing written
-    lately* and *dead* would be indistinguishable. A timer separates them: the
-    file moves every minute whatever the flow is doing, and stops the moment
-    this process does.
-
-    A daemon thread, so it never keeps the process alive a moment past the run.
+    🔴 The scheduler can be wrong: a vanished machine leaves Slurm reporting
+    its jobs RUNNING forever. ⚠️ Node transitions cannot stand in for this: one
+    OpenROAD node can run half an hour without one.
     '''
     while True:
         time.sleep(HEARTBEAT_SECONDS)
         try:
             _publish()
         except Exception:                                        # noqa: BLE001
-            # A heartbeat that fails is not a reason to end a run. The server
-            # reads staleness, and a run whose filesystem has gone is a run
-            # that is about to fail on its own.
+            # Never a reason to end a run: the server reads staleness.
             pass
 
 
@@ -123,7 +93,6 @@ def _node_finished(project, step, index) -> None:
     node["finished_at"] = now()
     node["exit_code"] = published_exit_code(exit_code)
     if status == "timeout":
-        # A limit, named, so the job's error can say which.
         node["limit"] = "time"
     if node["state"] == "failed":
         _explain_failure(project, step, index, node)
@@ -131,14 +100,11 @@ def _node_finished(project, step, index) -> None:
 
 
 def _explain_failure(project, step, index, node) -> None:
-    '''Say why a failed node failed where the runtime told us, never by its
-    exit status -- 137 is any SIGKILL (implementation-notes §10).
+    '''Say why a failed node failed where the runtime told us, never by exit status.
 
-    🔴 **An image that would not pull is an interruption, not the node's
-    failure**: the placement the node needed is still not here, and the pull
-    of it failed with the runtime's own error, before the flow started. A
-    node the docker daemon killed for its memory limit is `run-failed` with
-    that limit named.
+    137 is any SIGKILL (implementation-notes §10). 🔴 An image that would not
+    pull is an interruption, not the node's failure; an OOM kill names the
+    memory limit.
     '''
     placement = node_image(project, step, index)
     if placement and placement in _pull_errors and not _placement_present(placement):
@@ -158,15 +124,12 @@ def run(manifest: Path) -> int:
     _leave_the_allocation()
 
     project = Project.from_manifest(filepath=str(manifest))
-    # The server's answer to how this run executes: its build and cache
-    # directories, its placement, where each dataroot is supplied.
     run_data = read_run(state_dir(manifest) / RUN_FILENAME)
     if run_data is not None:
         apply_run(project, run_data)
     _silence_console(project)
 
-    # In the job root, above the tree the upload expanded into, where the
-    # server looks without being told a second path.
+    # In the job root, above the tree the upload expanded into.
     _progress_path = state_dir(manifest) / PROGRESS_FILENAME
     global _image_sources, _image_mounts, _image_shared, _job_mounts
     _image_sources, _image_mounts = read_images(state_dir(manifest) / IMAGES_FILENAME)
@@ -188,36 +151,19 @@ def run(manifest: Path) -> int:
 
     TaskScheduler.register_callback("pre_node", _node_started)
     TaskScheduler.register_callback("post_node", _node_finished)
-    # 🔴 Settled HERE rather than after project.run() returns, because
-    # Project.run() resets every non-global parameter on its way out --
-    # `record,status` included. Read afterwards it is empty, and every node no
-    # callback fired for looks like one the run never reached.
-    # 🔴 Registered on BOTH ends of the run. SiliconCompiler decides which
-    # nodes it will not execute during setup, before the first one starts, so
-    # settling only at the end would leave a node the run has already written
-    # off reading `pending` until the job finishes.
+    # 🔴 Settled in hooks, not after project.run(), which resets `record,status`
+    # on its way out; and on both ends, since skipped nodes are decided in setup.
     TaskScheduler.register_callback("pre_run", _before_the_flow)
     TaskScheduler.register_callback("post_run", _settle)
 
     try:
         _check_task_classes(project)
-        # A node's own Python environment was installed while the job staged
-        # -- on the host, into an environment of its key, or into a derived
-        # image -- so nothing is installed here, where a line that will not
-        # install could only fail the run.
+        # Python packages were installed while staging, never here.
         project.run()
     except Exception as e:
-        # The run failing is an outcome this reports, not an error in reporting.
-        # What must not happen is the process ending with the progress file
-        # still saying `running`, which is indistinguishable from a node that
-        # went away -- so the terminal write happens on every path.
         _progress["state"] = "failed"
-        # 🔴 This string is the ONLY account of the failure a person on the CLI
-        # ever sees: the server publishes it as the job's `error.detail`, and
-        # `error.title` is frozen prose that is true of every failed run there
-        # has ever been. The class only when there is no message -- a bare
-        # `RuntimeError` beats a blank line, and in front of a message that
-        # already says what happened it is noise.
+        # 🔴 The job's `error.detail`, the only account of the failure a CLI
+        # user sees; the class name only when there is no message.
         _progress["error"] = str(e) or type(e).__name__
         traceback.print_exc()
         return 1
@@ -226,19 +172,15 @@ def run(manifest: Path) -> int:
         return 0
     finally:
         _progress["finished_at"] = now()
-        # A run that died before post_run fired leaves its pending nodes here,
-        # and `cancelled` is the right answer for those: the run stopped before
-        # reaching them.
+        # On every path, so the file never ends saying `running`.
         _sweep()
         _publish()
 
 
 def _check_task_classes(project) -> None:
-    '''🔴 Fail a node whose task class is not installed where it runs, naming
-    it (surface D163), rather than let the flow run it as its base class: a
-    task's own setup and pre- and post-processing would silently not happen.
-    The server refuses such a job at submit; this is the node's own answer,
-    for an image that differs from the server.'''
+    '''🔴 Fail a node whose task class is not installed here, naming it (surface D163).
+
+    Run as its base class, its own setup and processing would silently not happen.'''
     flow = project.get_flow()
     missing = {}
     for key in _progress["nodes"]:
@@ -263,20 +205,9 @@ def _check_task_classes(project) -> None:
 def _leave_the_allocation() -> None:
     '''Stop this process's own batch job from swallowing every node.
 
-    🔴 Slurm decides between a STEP and a JOB by whether ``SLURM_JOB_ID`` is
-    set. Inside the orchestrator's allocation every ``srun`` becomes a step in
-    it, sharing its resources -- and ``--partition`` on a step is accepted and
-    then silently ignored, so a node asking for the compute partition would
-    quietly run on the one core the orchestrator was given. Measured on the
-    rig rather than assumed::
-
-        srun --partition=sc ...        ->  job=5 step=1    (same allocation)
-        SLURM_JOB_ID unset, same call  ->  job=6 step=0    (its own job)
-
-    ⚠️ Cleared for the whole process rather than per call, because nodes run in
-    forked children and the environment is what they inherit. Nothing here
-    needs the allocation: this process coordinates, and every piece of work it
-    submits is scheduled on its own terms.
+    🔴 With ``SLURM_JOB_ID`` set, every ``srun`` becomes a step in this
+    allocation and its ``--partition`` is silently ignored, so nodes would share
+    the orchestrator's one core. ⚠️ Cleared process-wide: forked nodes inherit it.
     '''
     for name in ("SLURM_JOB_ID", "SLURM_JOBID", "SLURM_STEP_ID", "SLURM_STEPID"):
         os.environ.pop(name, None)
@@ -285,11 +216,8 @@ def _leave_the_allocation() -> None:
 def _sweep() -> None:
     '''Decide what became of every node still open when the run ended.
 
-    🔴 Two answers, not one. A node that was RUNNING started and did not
-    finish, which is `failed`; a node that never started is `cancelled`, whose
-    published meaning is *the job ended before this node started*. Calling the
-    first one cancelled says something false about the single node somebody
-    looks at first -- it is where the work stopped.
+    🔴 A running node is `failed`, where the work stopped; one that never
+    started is `cancelled`.
     '''
     for node in _progress["nodes"].values():
         if node["state"] == "running":
@@ -300,23 +228,17 @@ def _sweep() -> None:
 
 
 def _before_the_flow(project) -> None:
-    '''The one `pre_run` hook, because there is only one slot for it.
-
-    `TaskScheduler.register_callback` sets a hook rather than appending to it,
-    so a second registration replaces the first. Two things have to happen
-    before the flow starts and they are sequenced here rather than fighting
-    over the slot.
-    '''
+    '''The one `pre_run` hook: `register_callback` replaces rather than appends.'''
     _hold_the_window(project)
     _settle(project)
     _fetch_images(project)
 
 
 def _hold_the_window(project) -> None:
-    '''🔴 Fail the run where it has grown past the nodes the server admitted
-    (surface D225). SiliconCompiler widens ``[option,from]`` to rebuild an
-    upstream node whose results cannot supply what depends on it; here that
-    would run a node the job never declared, with no image planned for it.'''
+    '''🔴 Fail the run where it has grown past the nodes the server admitted (surface D225).
+
+    SiliconCompiler may widen ``[option,from]`` to rebuild an upstream node,
+    which would run a node with no image planned for it.'''
     added = sorted(set(runtime_nodes(project)) - {
         tuple(key.split("/", 1)) for key in _progress["nodes"]})
     if added:
@@ -327,30 +249,15 @@ def _hold_the_window(project) -> None:
 
 
 def _fetch_images(project) -> None:
-    '''Make every container this run needs present, before the flow starts.
+    '''Make every container this run needs present, showing `preparing` meanwhile.
 
-    🔴 **This is what `preparing` is for.** A tool image is gigabytes and takes
-    minutes on a cold host, and without a state for it the wait is
-    indistinguishable from a hang -- a node sitting at `pending` while nothing
-    appears to happen is the report a user opens a ticket about.
-
-    Front-loaded rather than fetched at each node's turn, and the reason is the
-    scheduler's own shape: `pre_node` fires inside the loop that also reaps
-    finished nodes, so a multi-minute fetch there would stall the whole flow and
-    not just the node waiting for it. Here they are serial -- which is what two
-    nodes wanting the same twelve-gigabyte image should do anyway -- and the
-    flow starts with everything it needs.
-
-    ⚠️ **A fetch that fails is not fatal here.** The node's own launch tries
-    again and fails with the message that knows about registry credentials, and
-    a node that fails is already something this reports. Ending the run from
-    here would replace that with a worse error.
+    Front-loaded: in `pre_node` a multi-minute fetch would stall the loop that
+    reaps every node. ⚠️ A failed fetch is not fatal here: the node's own
+    launch retries and fails with a better message.
     '''
     wanted = {}
     for key, node in _progress["nodes"].items():
-        # `_settle` has already run, so a node the flow decided to skip is
-        # terminal here. Nothing waits for an image it will never use, and
-        # walking it back to `preparing` would be a state going backwards.
+        # After `_settle`: a skipped node is terminal and must not go backwards.
         if node["state"] not in ("pending", "queued"):
             continue
 
@@ -360,7 +267,6 @@ def _fetch_images(project) -> None:
             wanted.setdefault(placement, []).append(key)
 
     if not wanted:
-        # Every deployment that runs no containers, which is the default one.
         return
 
     if any(mechanism == "image" for mechanism, _ in wanted):
@@ -382,23 +288,17 @@ def _fetch_images(project) -> None:
             print(f"could not fetch {placement[1]}: {e}", file=sys.stderr)
 
         for key in keys:
-            # `queued` and not `running`: they are with the scheduler and have
-            # not started. Only forwards -- a node that has already begun while
-            # a later image was still coming down must not be walked back.
+            # Only forwards: a node may have begun while a later image came down.
             if _progress["nodes"][key]["state"] == "preparing":
                 _progress["nodes"][key]["state"] = "queued"
         _publish()
 
 
 def _watch_for_oom() -> None:
-    '''Listen to the docker daemon for this run's containers being killed
-    for memory, as they happen.
+    '''Listen to the docker daemon for this run's containers being OOM-killed.
 
-    ⚠️ SiliconCompiler's docker scheduler starts each node's container with
-    ``auto_remove``, so once it exits its state -- ``OOMKilled`` with it -- is
-    gone. The daemon's ``oom`` event names the container's labels, and each
-    node's carries ``sc_node:<name>:<step>:<index>``: that needs no change to
-    the scheduler.
+    ⚠️ Containers are ``auto_remove``, so ``OOMKilled`` is gone once one exits;
+    the ``oom`` event carries the node's ``sc_node:`` label instead.
     '''
     def listen():
         try:
@@ -412,7 +312,6 @@ def _watch_for_oom() -> None:
                     if label.startswith("sc_node:") and len(parts) == 3:
                         _oom_killed.add((parts[1], parts[2]))
         except Exception:                                        # noqa: BLE001
-            # No daemon, no docker package: nothing to be told.
             return
 
     threading.Thread(target=listen, daemon=True).start()
@@ -430,8 +329,7 @@ def _placement_present(placement) -> bool:
         docker.from_env().images.get(where)
         return True
     except Exception:                                            # noqa: BLE001
-        # No daemon, no image, or no docker package. All three mean *not here*,
-        # and the only cost of being wrong is one redundant pull.
+        # Being wrong costs one redundant pull.
         return False
 
 
@@ -448,19 +346,12 @@ def _make_placement(placement) -> None:
 
 
 def _unpack_bundle(bundle: str) -> None:
-    '''Turn a registry reference into an OCI bundle Slurm can run.
-
-    The unpack itself is in `images.stage_bundle`, shared with the two callers
-    on the server side. What is here is the one thing only this process knows:
-    a bundle path names a digest and nothing in it says which registry to pull
-    from, so the server wrote that down beside the manifest.
-    '''
+    '''Unpack the reference the server recorded for ``bundle`` into an OCI bundle.'''
     source = _image_sources.get(bundle)
     if not source:
         raise RuntimeError(f"nothing recorded to unpack into {bundle}")
 
-    # The shared bundle for the digest, and this job's own over it, which is
-    # what the node is started with: its mounts are this job's alone.
+    # The shared bundle for the digest, and this job's own over it with its mounts.
     common = Path(_image_shared.get(bundle) or bundle)
     images.stage_bundle(common.parent, source, common.name, mounts=_image_mounts)
     if common != Path(bundle):
@@ -468,23 +359,11 @@ def _unpack_bundle(bundle: str) -> None:
 
 
 def _silence_console(project) -> None:
-    '''Stop this run writing to stdout.
+    '''Stop this run writing to stdout, which would copy every node's log into the run log.
 
-    🔴 Not by setting `quiet`, which is the submitter's: it mutes the console
-    sink and nothing else -- file sinks ignore it -- so setting it would
-    rewrite a caller's setting to do no more than this does.
-
-    ⚠️ **Suppressed with a filter rather than detached, and that distinction is
-    load-bearing.** `TaskScheduler` captures this handler OBJECT at
-    construction and hands it to the `QueueListener` that re-emits every child
-    node's records, so removing it from the logger silences the parent's own
-    lines and not one line of any node's. It is the same reason the CLI
-    dashboard suppresses rather than detaches.
-
-    Every node still writes its own log and the job still writes `job.log`,
-    because those are file handlers; what stops is the batch job's stdout,
-    which is redirected into the server's run log and would otherwise hold a
-    second copy of every line every node produced.
+    🔴 Not by setting `quiet`, which is the submitter's. ⚠️ A filter, not a
+    detach: `TaskScheduler` hands this handler object to the `QueueListener`
+    that re-emits node records, so detaching silences only the parent.
     '''
     console = getattr(project, "_logger_console", None)
     if console is None:
@@ -501,25 +380,12 @@ def _silence_console(project) -> None:
 
 
 def _settle(project) -> None:
-    '''Decide what became of every node no callback fired for.
+    '''Take `record,status` for every node no callback fired for.
 
-    Runs as the `post_run` hook, while the record still exists.
-
-    🔴 Ask the run what it recorded before assuming the worst. A node the
-    scheduler decided not to execute -- metal fill on a PDK that disables it,
-    post-route timing repair that is switched off -- is never launched, so
-    neither `pre_node` nor `post_node` ever fires for it and it is still
-    `pending` here. It was not cancelled: the run considered it and skipped it,
-    and `record,status` says so.
-
-    ⚠️ Reporting those as `cancelled` would read as *the job ended before this
-    node started*, which a client maps to an error -- so a successful run
-    would show failures for work nobody intended to do.
-
-    Nothing is written off here: a node the record says nothing about is left
-    as it is, because this runs before the flow starts as well as after it
-    ends. `_sweep` is what decides that a node the run never reached is
-    `cancelled`, and it only runs once the run is over.
+    🔴 A node the scheduler skipped (metal fill a PDK disables) never fires a
+    callback; ⚠️ calling it `cancelled` would show a client an error for work
+    nobody intended. Runs before the flow too, so nothing is written off
+    here: that is `_sweep`'s.
     '''
     changed = False
 
@@ -542,8 +408,6 @@ def _settle(project) -> None:
             changed = True
 
     if changed:
-        # Published straight away: settling at the start of a run is only
-        # useful if somebody can see it before the run ends.
         _publish()
 
 

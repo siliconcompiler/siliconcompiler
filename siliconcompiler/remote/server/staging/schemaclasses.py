@@ -1,24 +1,12 @@
 '''
-What a job's manifest may name, and nothing imported for it -- used inside the
-manifest's read (`manifestread`), never in the API process.
+The classes a job's manifest may name, loaded inside the manifest's read
+(`manifestread`), never in the API process.
 
-🔴 **Contract §1, *No server process holding credentials parses a manifest*.**
-The read runs in a process of its own while the job stages, and this is how it
-resolves names there: SiliconCompiler reads a manifest by importing the module
-each `__meta__` entry -- and each flowgraph node's `taskmodule` -- names, and
-checks what it got afterwards, so the import has already run by then.
-
-So the allowlist is the classes the reading process's installation provides,
-loaded once as it starts: SiliconCompiler whole, its tool drivers, and every
-installed distribution that depends on it -- the PDKs and libraries, a site's
-own drivers. A manifest's name is looked up among them
-(`remote.manifests`). A class that is not there resolves to its base type,
-as it always has; a node's TASK class that is not there is refused
-(`software-unavailable`, `unknown_class`), because a task's own methods run on
-the node.
-
-⚠️ The extracted tree is never on the reading process's `sys.path`: its working
-directory is an empty one of its own, and nothing on `PYTHONPATH` is the job's.
+🔴 SiliconCompiler resolves a manifest's `__meta__` and `taskmodule` names by
+importing them (contract §1). So the allowlist is what this installation
+provides, loaded once: SiliconCompiler, and every installed distribution that
+depends on it. A missing class resolves to its base type; a missing task class
+is refused (`unknown_class`), since a task's own methods run on the node.
 '''
 
 import importlib
@@ -57,8 +45,7 @@ def load() -> None:
 
 
 def _dependents():
-    '''The top-level packages of every installed distribution that requires
-    SiliconCompiler: where a PDK, a library or a tool driver comes from.'''
+    '''The top-level packages of every installed distribution requiring SiliconCompiler.'''
     from packaging.requirements import InvalidRequirement, Requirement
 
     def requires_us(line) -> bool:
@@ -96,7 +83,6 @@ def _walk(top: str) -> int:
             importlib.import_module(info.name)
             count += 1
         except Exception as e:                                  # noqa: BLE001
-            # An optional dependency this server does not have: that module's
-            # classes are not on offer here, which is the truthful answer.
+            # A missing optional dependency: those classes are not on offer.
             logger.debug(f"could not import {info.name}: {e}")
     return count

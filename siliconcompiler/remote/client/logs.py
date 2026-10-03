@@ -1,16 +1,12 @@
 '''
-Reading a node's log while it is still being written.
+Read a node's log while it is still being written.
 
-🔴 **On reconnect the client re-requests ``/logs``; it never reuses the
-target.** The capability URL carries a lifetime of its own, independent of the
-900-second access token, so a six-hour place-and-route log is a sequence of
-capability-length streams stitched together by ``Last-Event-ID`` rather than one
-connection outliving the credential that opened it. Re-requesting is also what
-re-evaluates authorization, at the endpoint that takes a token and a proof.
+🔴 On reconnect the client re-requests ``/logs``, never reusing the target: the
+capability URL has its own lifetime, so a long log is streams stitched by
+``Last-Event-ID``, each re-authorized.
 
-⚠️ **A capability expiring is the ordinary way a long tail ends**, not a
-failure, and neither is the connection being dropped by something in the middle.
-Both are the same recovery: ask again, hand back the last id, carry on.
+⚠️ An expired capability or a dropped connection is ordinary, not a failure:
+ask again with the last id.
 '''
 
 import json
@@ -27,19 +23,14 @@ __all__ = ["LogTail"]
 logger = logging.getLogger(__name__)
 
 
-# How long to wait before re-requesting after a stream ends without finishing.
-# The server states its own preference in the SSE `retry` field and that wins;
-# this is the floor for when it says nothing.
+# Used where the server's SSE `retry` field says nothing.
 RECONNECT_SECONDS = 2
 
 
 class LogTail:
-    '''One node's log, or with no step and index the whole job's, followed to
-    its end.
+    '''One node's log, or with no step and index the whole job's, followed to its end.
 
-    ⚠️ **On a job stream the id is the job's, and is only ever handed back.**
-    It names a position in the whole job, so this client keeps the last one and
-    never reads meaning into it.
+    ⚠️ A job stream's event id is only ever handed back, never interpreted.
     '''
 
     def __init__(self, client, job_id: str, step: Optional[str] = None,
@@ -50,19 +41,14 @@ class LogTail:
         self.index = index
         self.last_event_id: Optional[str] = None
         self.artifact_id: Optional[str] = None
-        # What the server asked us to wait before reconnecting, from the SSE
-        # `retry` field. Per tail, not per class: two tails against different
-        # servers must not set each other's pace.
+        # Per tail, not per class: tails must not set each other's pace.
         self.retry: Optional[float] = None
 
     def follow(self, write=None) -> str:
-        '''Read until the node -- or the job -- is done. Returns everything it
-        emitted.
+        '''Read until the node, or the job, is done; returns everything emitted.
 
-        🔴 Reconnects on `expired` and on any `end` it does not know, for as
-        long as it takes: a quiet node is not a broken one. A node already
-        over answers with a stream that ends at once naming its archived log,
-        which is then fetched as an artifact.
+        🔴 Reconnects on any `end` but `terminal`, however long: a quiet node is
+        not broken. A finished node's stream names its archived log, then fetched.
         '''
         collected = []
 
@@ -78,9 +64,7 @@ class LogTail:
                 last_event_id=self.last_event_id)
 
             if not _is_stream(response):
-                # 🔴 After the `303` only an event stream is the log: anything
-                # else is a refusal, such as the stream host's
-                # `concurrent_log_streams`, and is never printed as log text.
+                # 🔴 Anything but an event stream is a refusal, never log text.
                 from siliconcompiler.remote.client.transport import _problem_body
 
                 with response:
@@ -108,8 +92,7 @@ class LogTail:
         try:
             for event, identifier, data in _frames(response, self):
                 if identifier:
-                    # Kept even for events this client ignores, so a reconnect
-                    # never asks to start further back than it reached.
+                    # Even for ignored events, so a reconnect never starts further back.
                     self.last_event_id = identifier
 
                 if event == "log":
@@ -119,8 +102,7 @@ class LogTail:
                         produced = True
 
                 elif event == "node_state":
-                    # This node's archive only: a job stream names every
-                    # node's.
+                    # This node's archive only: a job stream names every node's.
                     node = (data.get("step"), data.get("index"))
                     if data.get("artifact_id") and None not in node and \
                             node == (self.step, self.index):
@@ -128,39 +110,25 @@ class LogTail:
 
                 elif event == "end":
                     self.artifact_id = data.get("artifact_id") or self.artifact_id
-                    # `terminal` is the node -- or the job -- being over, and
-                    # ⚠️ it can be the first thing a stream says: a job that
-                    # was already finished answers with a stream that ends at
-                    # once. Anything else -- an expired capability, a restart
-                    # -- is this connection being over, which is a reconnect
-                    # rather than an end.
+                    # Only `terminal` is over, ⚠️ possibly as the first event;
+                    # any other reason is a reconnect.
                     return produced, data.get("reason") == "terminal"
 
         except (OSError, ValueError) as e:
-            # The connection went away mid-stream. Ordinary for a long tail,
-            # and the id already recorded is what makes it recoverable.
+            # Ordinary for a long tail; the recorded id recovers it.
             logger.debug(f"log stream interrupted: {e}")
 
         return produced, False
 
 
 def _is_stream(response) -> bool:
-    '''🔴 The ONLY thing that says a live tail from a finished file.
-
-    Deliberately not a flag on the 303: a node can finish between the redirect
-    and the fetch, so anything the server computed at `/logs` can be stale by
-    the time it is used. What was actually served cannot be.
-    '''
+    '''🔴 The ONLY test of a live tail: what was served, never a flag on the 303,
+    which a node finishing in between makes stale.'''
     return response.headers.get("Content-Type", "").startswith("text/event-stream")
 
 
 def _frames(response, tail):
-    '''Parse ``text/event-stream`` into (event, id, data) triples.
-
-    Written here rather than taken from a dependency because it is twenty lines
-    and the alternative is a runtime dependency on the client side of every
-    SiliconCompiler install for one endpoint.
-    '''
+    '''Parse ``text/event-stream`` into (event, id, data); here, not a new dependency.'''
     event, identifier, payload = "message", None, []
 
     for raw in response.iter_lines(decode_unicode=True):
@@ -173,8 +141,7 @@ def _frames(response, tail):
             continue
 
         if line.startswith(":"):
-            # A comment, which is how the server keeps a quiet connection
-            # visibly alive.
+            # A keep-alive comment.
             continue
 
         name, _, value = line.partition(":")
@@ -200,7 +167,6 @@ def _data(raw: str) -> dict:
     try:
         body = json.loads(raw)
     except ValueError:
-        # A frame this client cannot read is one frame, and dropping it is
-        # better than ending a tail that is otherwise working.
+        # Drop one unreadable frame rather than end the tail.
         return {}
     return body if isinstance(body, dict) else {}

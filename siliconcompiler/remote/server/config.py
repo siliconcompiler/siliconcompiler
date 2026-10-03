@@ -1,15 +1,10 @@
 '''
-What this deployment promises, and where those numbers come from.
+What this deployment promises: every limit, feature and setting, with defaults.
 
-Every value has a working default, so a bare ``-datadir`` that has never been
-used starts a server which serves a complete ``GET /v1``. An optional
-``<datadir>/config.json`` overrides any subset of them; anything it does not
-mention keeps its default.
-
-Limits come from here rather than from a table because there are no plans in
-this profile -- a ceiling is the operator's policy, not an account's data. The
-one exception is `max_download_bytes`, which an operator may override per
-account in `user_limits` (`identity.accounts`).
+Every value has a working default; an optional ``<datadir>/config.json``
+overrides any subset. Limits are the operator's policy rather than an account's
+data, since this profile has no plans; the one per-account override is
+`max_download_bytes` in `user_limits` (`identity.accounts`).
 '''
 
 import json
@@ -25,117 +20,68 @@ __all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME", "TEST_MODES"]
 
 CONFIG_FILENAME = "config.json"
 
-# Every value is a base unit and its own name says which: bytes are never MB,
-# and a count is never a duration. The refusal that names a key back spells it
-# identically, which is what makes the error registry double as the enforcement
-# trace.
+# Every value is in a base unit its name gives: bytes are never MB. A refusal
+# names the key with the same spelling.
 DEFAULT_LIMITS: Dict[str, int] = {
     "max_job_nodes": 1000,                  # nodes in one flow
     "max_upload_bytes": 1073741824,         # bytes
     "artifact_retention_seconds": 2592000,  # seconds: the least any artifact is kept
     "pending_uploads": 8,                   # jobs held in created or awaiting_input
     "concurrent_jobs": 4,                   # jobs staging, queued, running or cancelling
-    # Open /logs streams per caller, and the number is chosen rather than
-    # inherited. What one costs: a worker thread and an open file for as long
-    # as it lives, which is up to the token that opened it, plus a stat twice a
-    # second while the log is quiet.
-    # Under a threaded WSGI server there is no fixed pool to exhaust, so what
-    # runs out is memory and descriptors rather than capacity.
-    #
-    # 8 is generous for a person -- nobody reads eight logs at once -- and
-    # deliberately not generous enough for a client that would open one per node
-    # of a wide flow. That client should poll the job, which is one request for
-    # the whole run, and tail only the nodes somebody is actually watching.
+    # Open /logs streams per caller; each holds a thread and an open file until
+    # its token expires. Generous for a person, deliberately too few for a
+    # client opening one per node of a wide flow, which should poll the job.
     "concurrent_log_streams": 8,
     "max_archive_members": 100000,          # members in the upload archive
     "max_archive_expanded_bytes": 10737418240,   # bytes, after expansion
 
-    # The largest single object this server will hand over an API fetch.
-    #
-    # 🔴 **A real ceiling that refuses, not advice a client applies to
-    # itself.** Advice would be policy that any client could ignore by not
-    # reading it. An over-ceiling fetch is `download-too-large` naming this
-    # key, and `null` means unlimited exactly as it does everywhere else on the
-    # wire.
-    #
-    # 🔴 **There is no API override -- not a query parameter, not a header.**
-    # The portal is the only way past it (see `ResultsMixin.artifact`).
-    #
-    # 🔴 It is deliberately not `fetchable: false`. `fetchable` answers *may
-    # this caller have these bytes*, and a client renders a false one as
-    # deleted, withheld, aged out or not entitled -- so using it for size would
-    # tell somebody they lack permission to read their own output.
-    #
-    # ⚠️ It bounds one object, not the run. Forty nodes each just under it
-    # still fetch forty times it, because the alternative -- a budget for the
-    # whole listing -- makes what arrives depend on what order it arrives in.
-    #
-    # ⚠️ Per account, so `GET /v1/me` carries the number that binds THIS
-    # caller and `GET /v1` carries the deployment's default.
+    # The largest single object handed over an API fetch.
+    # 🔴 A ceiling that refuses (`download-too-large`), not advice, and no query
+    # parameter or header overrides it: the portal is the only way past it
+    # (`ResultsMixin.artifact`).
+    # 🔴 Deliberately not `fetchable: false`, which a client renders as not
+    # entitled to read one's own output.
+    # ⚠️ It bounds one object, not the run: a budget for the whole listing would
+    # make what arrives depend on order. Per account, so `GET /v1/me` carries
+    # the caller's number and `GET /v1` the default.
     "max_download_bytes": 104857600,        # bytes, per artifact (100 MiB)
 
-    # The most of a refusal's `detail` a caller is given.
-    #
-    # 🔴 **CHARACTERS and not bytes** -- see `errors.DETAIL_MAX`.
-    #
-    # 🔴 Enforced and not published (`_NOT_PUBLISHED`): it bounds this
-    # server's own output and no client acts on it, so it stays off `GET /v1`.
-    # `detail` is a single line.
+    # 🔴 CHARACTERS, not bytes (`errors.DETAIL_MAX`). Enforced and not published
+    # (`_NOT_PUBLISHED`): it bounds this server's own output.
     "max_detail_chars": 300,
 
     # 🆕 How long a job may sit with no upload before it is `abandoned`.
-    #
-    # 🔴 A ceiling rather than a constant, because it is a judgement about
-    # people and not about the protocol: a slow link uploading a gigabyte and a
-    # script that died between create and PUT look identical from here, and
-    # only an operator knows which their deployment has more of.
-    #
-    # ⚠️ It is the floor and not the whole answer -- a job holding a grant that
-    # has not yet lapsed is never abandoned, however old it is
+    # 🔴 A ceiling, not a constant: a slow link and a script that died look
+    # identical from here, and only an operator knows which is likelier.
+    # ⚠️ A floor: a job holding an unlapsed grant is never abandoned
     # (`ReconcileMixin.abandon_if_expired`).
     "abandon_after_seconds": 900,           # seconds
 
-    # How long a job may spend staging, each time it stages: fetching its
-    # sources, reading its manifest and installing its Python packages,
-    # together (surface D294). Past it the job ends `failed`,
-    # `staging-timed-out` -- its own limit, not this server's failure -- so one
-    # user's oversized package set cannot hold the build queue for everyone.
-    # A job sent back and submitted again gets it afresh.
+    # One pass of staging: sources, manifest read and Python packages together
+    # (surface D294). Past it the job ends `failed`, `staging-timed-out`, so one
+    # user's package set cannot hold the queue. Each resubmit gets it afresh.
     "max_staging_seconds": 3600,            # seconds
 }
 
 DEFAULTS: Dict[str, Any] = {
-    # What a caller may ask for. The device grant is not served here, so it is
-    # not advertised: this list is what the client branches on, never
-    # identity_assurance.
+    # What a client branches on. The device grant is not served, so not listed.
     "grant_types_supported": ["client_credentials", "refresh_token"],
 
-    # A registry, not free text: absent and unrecognised mean the same thing to
-    # a client, so a value is only listed once it is served. `logs.stream` is
-    # one node's live tail and `logs.stream.job` every node's, merged. A
-    # finished node's log is an artifact.
-    #
-    # ✅ `logs.stream.job` is advertised because the stream host IS this host,
-    # so the merge is N tails in one process -- and one connection per job is
-    # what lets a flow wider than `concurrent_log_streams` be watched in full.
+    # A registry: a value is listed only once it is served. `logs.stream` is one
+    # node's live tail and `logs.stream.job` every node's merged, which is cheap
+    # because the stream host is this host.
     "features": ["logs.stream", "logs.stream.job"],
 
-    # How often a quiet log stream says it is alive: below every intermediary's
-    # idle timeout, Cloudflare's 100 seconds included.
+    # Below every intermediary's idle timeout, Cloudflare's 100 seconds included.
     "stream_keepalive_seconds": 15,
 
-    # The honesty half, pairing with the startup log. "verified" is the only
-    # value that asserts anything; every other value, known or unknown, means
-    # do not rely on this identity.
+    # Only "verified" asserts anything; any other value means do not rely on it.
     "identity_assurance": "self_asserted",
 
-    # REQUIRED, and [] is the answer here. An operator with something to say
-    # puts it in config.json, each as `{"level", "message", "starts_at",
-    # "ends_at"}`: `level` is `info` or `warning`, `message` 1 to 500
-    # characters, and the two times describe the event the notice announces,
-    # each null or RFC 3339 in UTC. A notice is published from when the server
-    # starts until its `ends_at` passes. `GET /v1` takes no credential, so a
-    # message names no customer, no incident detail and no internal host.
+    # REQUIRED, [] by default. Each is `{"level", "message", "starts_at",
+    # "ends_at"}` (`_notice`), published from server start until `ends_at`.
+    # `GET /v1` takes no credential, so a message names no customer, incident
+    # detail or internal host.
     "notices": [],
 
     # OPTIONAL: absent unless the operator sets one. Absent is not empty.
@@ -147,291 +93,168 @@ DEFAULTS: Dict[str, Any] = {
     "storage_location_id": "primary",
     "storage_uri_base": None,               # defaults to file://<datadir>/artifacts/
 
-    # How long a running job may go without its runner saying anything before
-    # this server stops believing it is running.
-    #
-    # 🔴 **Deployment config and NOT a published limit, because no client can
-    # see it or act on it.** The heartbeat is written by this server's own
-    # runner on the compute node; a caller neither sends one nor is told when
-    # the last one arrived, so a number on `GET /v1` would be a promise about
-    # machinery on the other side of the API. It is the state reconciler's
-    # tuning parameter, which is what deployment config is for.
-    #
-    # 🔴 The backstop for a scheduler that is wrong: see
-    # `ReconcileMixin._silent`.
-    #
-    # ⚠️ Generously larger than the runner's own 60s beat. A missed beat is a
-    # busy filesystem; fifteen minutes of silence from a process whose only job
-    # is to write one line a minute is a dead process.
+    # How long a running job's runner may stay silent before this server stops
+    # believing it is running (`ReconcileMixin._silent`).
+    # 🔴 Deployment config, not a published limit: no client sends or sees the
+    # heartbeat.
+    # ⚠️ Generously above the runner's 60s beat: a missed beat is a busy
+    # filesystem, fifteen silent minutes a dead process.
     "run_heartbeat_seconds": 900,
 
-    # How long a client is told to wait before polling a job again, served as
-    # `Retry-After`.
-    #
-    # 🔴 One second, and it is affordable only because a poll does not cost a
-    # scheduler query. Reading a job is a SQLite read plus a stat of the run's
-    # progress file -- cheap, local, and the thing that actually changes second
-    # to second. Asking Slurm which job each node became is the expensive half,
-    # and it is throttled independently (`SCHEDULER_QUERY_FLOOR`), so shortening
-    # this makes the CLI feel live without multiplying RPCs into slurmctld.
-    #
-    # ⚠️ A deployment with many concurrent watchers should raise it. This
-    # profile is a demo and a test rig, where the watcher is a person waiting.
+    # The `Retry-After` on a job poll.
+    # 🔴 One second is affordable because a poll is a SQLite read and a stat;
+    # scheduler queries are throttled apart (`SCHEDULER_QUERY_FLOOR`).
+    # ⚠️ A deployment with many concurrent watchers should raise it.
     "poll_interval_seconds": 1,
 
-    # The portal's origin, absolute: what `POST /v1/auth/browser`'s sign-in
-    # link is built on, the portal's own paths appended. None builds it on the
-    # configured public origin the request arrived at.
-    #
-    # 🔴 **Config, and never `Host` or `X-Forwarded-Host`.** Both are attacker
-    # controlled unless a trusted proxy is rewriting them, and the output here
-    # is a link opened in somebody's browser -- the same trap as trusting a
-    # forwarded client address, with a worse payoff for whoever poisons it.
+    # The portal's absolute origin, which `POST /v1/auth/browser`'s sign-in link
+    # is built on; None uses the public origin the request arrived at.
+    # 🔴 Config, never `Host` or `X-Forwarded-Host`: both are attacker controlled
+    # without a trusted proxy, and this link is opened in somebody's browser.
     "web_url_base": None,
 
-    # The origins this deployment is reached at, one or several, as
-    # scheme://host[:port]: what a DPoP proof's `htu` is checked against, and
-    # what every URL this server hands out is built on -- the upload PUT, the
-    # artifact 303 and the stream URL, and the portal handover where
-    # `web_url_base` is None.
-    #
-    # 🔴 **Config, and never `Host` or `X-Forwarded-Host`**, for the reason
-    # `web_url_base` is. None takes the ones the server was started with: this
-    # host's names on its own port.
+    # The origins this deployment is reached at, as scheme://host[:port]: what a
+    # DPoP proof's `htu` is checked against and every URL handed out is built
+    # on. None takes this host's names on its own port.
+    # 🔴 Config, never `Host` or `X-Forwarded-Host`, as for `web_url_base`.
     "public_origins": None,
 
-    # Whether the compute nodes run each job's work inside a container this
-    # deployment registered.
-    #
-    # Off, and it has to default off: whether a compute node has a container
-    # runtime at all is not something the API process can find out by looking,
-    # and a bare Slurm cluster that runs jobs on the host is conforming rather
-    # than degraded -- it leaves both image_id columns NULL for the life of
-    # every job.
-    #
-    # What turning it on changes, all of it:
-    #   - `GET /v1`'s `software` is filtered to the versions a live image
-    #     actually holds, because a version with no image is a promise this
-    #     server cannot keep
-    #   - submit resolves one image per node and RECORDS it, which is only
-    #     honest if the node really ran there
-    #   - a node whose tool this deployment tracks and has no image for is
-    #     refused, for the whole job, before anything runs
+    # Whether compute nodes run each job inside a container this deployment
+    # registered. Off by default: the API process cannot see whether nodes have
+    # a runtime, and running on the host is conforming (image_id stays NULL).
+    # On, `GET /v1`'s `software` lists only versions a live image holds, submit
+    # records one image per node, and a job using a tracked tool that has no
+    # image is refused before anything runs.
     "containers": False,
 
-    # Which Slurm partition the job's own orchestrating process runs in.
-    #
-    # 🔴 It is not where the work happens. That process loads the manifest,
-    # runs SiliconCompiler's scheduler and writes the progress file; every node
-    # is submitted from it as a job of its own, with its own resources, in
-    # whatever partition the cluster makes default. So this wants a small
-    # partition with a long time limit -- it holds one core for the length of
-    # the flow and uses almost none of it, and on a compute partition that is a
-    # node slot doing nothing.
-    #
-    # None leaves it to the cluster's default, which is correct for a
-    # deployment that has not made a partition for it.
+    # The Slurm partition for the job's orchestrating process; None is the
+    # cluster's default.
+    # 🔴 Not where the work runs: each node is a job of its own. This process
+    # holds one mostly idle core for the whole flow, so it wants a small
+    # partition with a long time limit.
     "batch_queue": None,
 
-    # Whether every job's nodes record where they ran: SiliconCompiler's
-    # `option,track`, which puts each node's machine name, IP and MAC
-    # address, OS, kernel, user and region into its `record` -- in the manifest
-    # the submitter downloads.
-    #
-    # ⚠️ Off by default because that is this deployment's layout, published:
-    # the host names and addresses `detail` is scrubbed of. A test rig wants
-    # it, to see which compute node ran what. Off leaves a job's own setting
-    # as it was sent.
+    # SiliconCompiler's `option,track` on every job: each node's host name, IP
+    # and MAC, OS, user and region in the manifest the submitter downloads.
+    # ⚠️ Off by default, since that publishes the layout `detail` is scrubbed
+    # of. Off leaves a job's own setting as sent.
     "track_provenance": False,
 
-    # Host paths every container must be able to see, whoever's job it is.
-    # Never the data directory, which holds the signing key and the store: what
-    # one job sees -- its own tree and cache, and the supplied roots read-only
-    # -- goes in a bundle of that job's own (`JobService.job_mounts`).
-    #
-    # 🔴 Deployment config rather than something derived, because what a
-    # container needs is a fact about the cluster. A framework image submits
-    # every node of the flow it drives, so on Slurm it needs the munge socket
-    # and wherever slurm.conf lives; a deployment whose licence server is
-    # reached through a file, or whose tools read a shared scratch, names those
-    # here too.
-    #
-    # ⚠️ Changing this does not restage bundles that already exist: the mounts
-    # are written into each bundle's config.json when it is unpacked. Remove
+    # Host paths every container sees, whoever's job it is: the munge socket and
+    # slurm.conf, say, or a licence file. Never the data directory; what one job
+    # sees is `JobService.job_mounts`.
+    # ⚠️ Written into each bundle when it is unpacked: after a change, remove
     # <datadir>/images and re-stage.
     "container_mounts": [],
 
-    # Which artifact kinds the API hands over, or None for all of them. A test
-    # knob, off by default: the profile has no kind that needs an approval.
-    #
-    # 🔴 **The API's answer and not the portal's.** A kind left out stays in
-    # the listing with `fetchable: false` and `can_request_access: false` -- it
-    # exists, and there is no path to yes from here -- and fetching it is the
-    # ladder's own answer for a kind that needs an approval, row 7:
-    # `403 artifact-not-approved`. The portal still lists and serves it,
-    # which is the surface split `max_download_bytes` already makes: a person
-    # clicking one object is not an automated sweep.
-    #
-    # ⚠️ Omitting a kind from the LISTING would be legal too -- no kind is
-    # guaranteed -- but it says something different: *this server does not keep
-    # those*, which is untrue while the portal is showing them.
+    # Which artifact kinds the API hands over, or None for all. A test knob.
+    # 🔴 The API's answer, not the portal's: a kind left out stays listed with
+    # `fetchable: false` and `can_request_access: false`, and fetching it is
+    # `403 artifact-not-approved` (ladder row 7). Leaving it out of the listing
+    # would claim this server does not keep it while the portal shows it.
     "api_fetchable_kinds": None,
 
     # PDKs, libraries and tools no caller may use, as globs per resource kind:
     # `{"pdk": ["GF180*"], "library": [...], "tool": [...]}`.
-    #
-    # 🔴 A stand-in for grants, which this profile does not serve, so that the
-    # refusal a grant-backed deployment gives can be seen from a client. It is
-    # a deny list where a grant is an allow list, and it binds everybody alike.
-    # What it produces is exactly the grant's refusal -- `entitlement-denied`
-    # at submit, naming `resource_kind` and `resource`, and the job `rejected`.
-    #
-    # ⚠️ `GET /v1/me` still omits `authorized`: that member lists what a caller
-    # MAY use, and a deny list cannot be written as one. So a client learns of a
-    # denial the way it would where `authorized` is too coarse to say -- at
-    # submit, after the upload.
+    # 🔴 A deny-list stand-in for grants, which this profile does not serve, so a
+    # client can see a grant's refusal: `entitlement-denied` at submit naming
+    # `resource_kind` and `resource`, and the job `rejected`.
+    # ⚠️ `GET /v1/me` still omits `authorized`, an allow list a deny list cannot
+    # be written as, so a client learns of a denial at submit.
     "denied_resources": {},
 
-    # Where this server fetches a job's remote sources from (D113, D128). An
-    # entry may be a glob: scheme exact, a host wildcard only as the whole
-    # leftmost label, `*` within one path segment. See `allowlist`.
-    #
-    # 🔴 The list decides who fetches, never whether the data arrives: a source
-    # not on it is asked of the client, which sends it with its own
-    # credentials. The default is SiliconCompiler's GitHub organisation, which
-    # is what lambdapdk needs -- and codeload only under it, where GitHub's
-    # archive redirects land; the whole codeload host would admit every public
-    # repository's archive.
+    # Where this server fetches a job's remote sources from (D113, D128), as
+    # globs (see `allowlist`).
+    # 🔴 Decides who fetches, not whether the data arrives: a source not on it
+    # is asked of the client. The default is SiliconCompiler's GitHub org, which
+    # lambdapdk needs, and codeload only under it; all of codeload would admit
+    # every public repository's archive.
     "fetch_allowlist": list(allowlist.DEFAULT),
 
-    # Where a job's Python packages are installed from: the primary index, then
-    # any extra ones, PyPI by default. Configuration and never the job's -- a
-    # job names no index -- so an index's credential is only ever the
-    # deployment's.
+    # The primary index, then extras. A job names no index, so an index's
+    # credential is only ever the deployment's.
     "package_indexes": ["https://pypi.org/simple/"],
 
-    # What the install of a job's packages may reach, by the same rules as
-    # `fetch_allowlist`: each of `package_indexes`, and the hosts they serve
-    # files from. A separate list, because letting an install reach an index is
-    # not letting the server fetch a source.
+    # What a package install may reach, by `fetch_allowlist`'s rules: the indexes
+    # and the hosts they serve files from. Separate, because reaching an index
+    # is not fetching a source.
     "index_allowlist": ["https://pypi.org/simple/",
                         "https://files.pythonhosted.org/"],
 
-    # Whether this server builds an image for a job's Python packages
-    # (implementation-notes §L, container mode): the image a node running the
-    # user's Python resolved to, with the job's `python_packages` and uploaded
-    # wheels installed in a layer of its own, built once per base and set and
-    # shared by every job asking for the same.
-    #
-    # 🔴 Needs `containers`, and turning it on is what advertises `python.env`
-    # there -- false is the kill switch. The build runs as a job of its own on
-    # a compute node (`build_queue`), in a container whose only way out is a
-    # proxy that admits `index_allowlist` and nothing else. Installing a wheel
-    # runs none of its code; a source distribution is built only there.
+    # Whether this server builds an image of a job's Python packages over the
+    # node's base image (implementation-notes §L), shared by every job asking
+    # for the same set.
+    # 🔴 Needs `containers`; on advertises `python.env`, and false is the kill
+    # switch. A build runs on a compute node (`build_queue`) whose only way out
+    # is a proxy admitting `index_allowlist`.
     "env_builder": False,
 
-    # 🔴 Whether a job's Python packages may be built from source, where an
-    # index has no wheel for the target (surface D291). Off: installing from
-    # source runs the package's own build code, and this server grants no
-    # capabilities, so this is the deployment's policy in place of
-    # `python-sdist`. Built only in the isolated builder, so it needs
-    # `env_builder`; where it is off, a pure package offered only as a source
-    # is sent back for the client's wheel.
+    # 🔴 Whether packages may be built from source where no wheel fits (surface
+    # D291): the deployment's policy in place of `python-sdist`, off because a
+    # build runs the package's own code. Only in the builder: needs `env_builder`.
     "python_source_builds": False,
 
-    # Which Slurm partition an environment build runs in, or None for the
-    # cluster's default. A queue of its own keeps a burst of builds -- the
-    # first jobs after a new tool image, each asking for its own set -- from
-    # holding the node slots flows are waiting on.
+    # The Slurm partition for environment builds, None for the default; its own
+    # keeps a burst of builds off the slots flows are waiting on.
     "build_queue": None,
 
-    # Private dataroots this server supplies, by where SiliconCompiler keeps
-    # each (surface D298), a library's and a tool's apart:
-    #
+    # Private dataroots this server supplies (surface D298):
     #   {"library": {"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}},
     #    "tool":    {"acme_sim": {"scripts": "/opt/acme/scripts"}},
     #    "task":    {"acme_sim": {"run": {"scripts": "/opt/acme/run-scripts"}}}}
-    #
-    # `library` is `library,<name>,dataroot,<root>`. `tool` covers
-    # `tool,<tool>,task,<task>,dataroot,<root>` on every task of the tool -- a
-    # tool's private root is normally the same for all of them -- and `task`,
-    # for one (tool, task), overrides it.
-    #
-    # 🔴 A dataroot marked private never leaves the submitter's machine, so its
-    # files reach a run from this server alone: from here first, then a copy of
-    # its source this server holds, then a fetch of it from `fetch_allowlist`
-    # (surface D299). This is the one of the three that needs no source -- the
-    # way for a `file+private` root, and for anything the allowlist does not
-    # admit -- and a path under a root is confined to it. Mounted read-only
-    # into every job; a change needs the bundles re-staged, as
-    # `container_mounts` does.
+    # `library` is `library,<name>,dataroot,<root>`; `tool` covers every task of
+    # the tool, and `task` overrides it for one (tool, task).
+    # 🔴 Such a root never leaves the submitter, so its files come from here
+    # first, then a held copy of its source, then a fetch (surface D299); this is
+    # the one needing no source. A path is confined to its root. Mounted
+    # read-only; a change needs the bundles re-staged.
     "private_dataroots": {},
 
-    # How long one source may take to fetch, and how long a job may wait for
-    # all of its sources, after submit. Past the deadline, what is still
-    # missing is asked of the client.
+    # Per source, and for all of a job's sources after submit; what is missing
+    # at the deadline is asked of the client.
     "fetch_timeout_seconds": 300,
     "fetch_deadline_seconds": 1800,
 
-    # The manifest's read, while the job stages (`manifestread`): how long it
-    # may take, wall clock, and the CPU time and memory it holds itself to. A
-    # read past any of them has not read the manifest, and the job is
-    # rejected `invalid_manifest`.
+    # Bounds on the manifest read while a job stages (`manifestread`); past any,
+    # the job is rejected `invalid_manifest`.
     "manifest_read_timeout_seconds": 300,
     "manifest_read_cpu_seconds": 300,
     "manifest_read_memory_bytes": 4 * 1024 ** 3,
 
-    # Every fetch fails for good, and no copy this server already holds is
-    # used -- what a server with an empty cache and no route out looks like.
-    # An allowlisted source is still not asked for at create, so every job
-    # that needs one is sent back after submit and its client uploads it as a
-    # follow-up. For testing that path (test mode 4); nothing else wants it.
+    # Every fetch fails and no held copy is used, so every job needing a source
+    # takes the follow-up path after submit. For test mode 4.
     "fetch_fails": False,
 
-    # Task-driver modules outside `siliconcompiler.tools` that software may name
-    # (D95). The probe imports a driver on the server, so this is the list of
-    # what an operator allows it to import; SiliconCompiler has no entry-point
-    # group for tools, so an out-of-tree driver is named here or not at all.
+    # Out-of-tree task-driver modules software may name (D95). The probe imports
+    # them on the server, so this is what an operator allows it to import.
     "software_drivers": [],
 }
 
-# A notice's shape (surface §1). `starts_at` and `ends_at` are REQUIRED on the
-# wire and nullable, so where config leaves one out it is null.
+# A notice (surface §1). The times are REQUIRED and nullable on the wire.
 NOTICE_LEVELS = ("info", "warning")
 NOTICE_MEMBERS = ("level", "message", "starts_at", "ends_at")
 MAX_NOTICE_CHARS = 500
 
-# The resource kinds `denied_resources` is keyed by -- the contract's closed
-# `resource_kinds` set.
+# `denied_resources` keys: the contract's closed `resource_kinds` set.
 RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
 
 # Limits this server enforces and does not publish.
 _NOT_PUBLISHED = ("max_detail_chars",)
 
 
-# Presets for testing a client against deployments that serve less, from what
-# this server does by default to the most it can withhold -- and one, mode 4,
-# that can fetch nothing, so every job takes the follow-up path.
-#
-# 🔴 **Every one is a legal v1 deployment, and `GET /v1` says which.** Nothing
-# here is a flag a client is told about; a client that behaves correctly under
-# these does so because it read what the server published. That is what makes
-# them worth testing against.
-#
-# ⚠️ Applied over the defaults and UNDER `config.json`, so any one value can
-# still be moved on top of a mode without writing out the rest.
-#
-# ⚠️ Mode 3's denials are chosen so that each one is tripped by a different
-# demo target and the skywater130 demo still runs: `gf180_demo` for the PDK
-# (a glob, because a grant's name is one), `freepdk45_demo` for its library,
-# and any flow that runs verilator for the tool.
+# Presets for testing a client against deployments that serve less; mode 4
+# fetches nothing, so every job takes the follow-up path.
+# 🔴 Each is a legal v1 deployment that `GET /v1` describes, so a client passes
+# by reading what was published.
+# ⚠️ Applied over the defaults and under `config.json`.
+# ⚠️ Mode 3's denials are each tripped by a different demo target while the
+# skywater130 demo still runs: `gf180_demo`, `freepdk45_demo`, verilator.
 TEST_MODES: Dict[int, Dict[str, Any]] = {
     # What this server does by default.
     1: {},
 
-    # Each node's live log but not the job's merged one, so a client falls
-    # back to one stream per running node; the manifest, logs and reports come
-    # over the API and the node archives only through the portal.
+    # Per-node live logs only; manifest, logs and reports over the API, node
+    # archives only through the portal.
     2: {
         "features": ["logs.stream"],
         "api_fetchable_kinds": ["manifest", "logs", "staging", "reports"],
@@ -442,9 +265,8 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
         },
     },
 
-    # Manifests and nothing else over the API -- the job's, and each node's,
-    # which carry the record and the metrics; no logs, live or archived;
-    # one job at a time; and a PDK, a library and a tool nobody may use.
+    # Manifests only over the API, no logs, one job at a time, and a PDK, a
+    # library and a tool nobody may use.
     3: {
         "features": [],
         "api_fetchable_kinds": ["manifest"],
@@ -462,10 +284,8 @@ TEST_MODES: Dict[int, Dict[str, Any]] = {
         },
     },
 
-    # What mode 1 serves, from a server that can fetch nothing: every job on a
-    # remote PDK goes `staging -> awaiting_input` asking for it, and its client
-    # sends a second archive -- so a job carries two uploads, each its own
-    # `input`, to look at side by side.
+    # Mode 1 with nothing fetchable: a remote PDK sends the job to
+    # `awaiting_input`, so it carries two uploads.
     4: {
         "fetch_fails": True,
     },
@@ -481,18 +301,13 @@ UNLIMITED_ALLOWED = ("pending_uploads", "concurrent_jobs", "max_download_bytes")
 
 
 def _check_policy(values: Dict[str, Any]) -> None:
-    '''Refuse a policy value that would silently mean nothing.
-
-    The same rule as an unknown key: a kind or a resource kind spelled wrong is
-    a restriction the operator believes they set.
-    '''
+    '''Refuse a policy value that would silently mean nothing, such as a
+    misspelled kind the operator believes restricts something.'''
     from siliconcompiler.remote.server.outputs.artifacts import KINDS
 
-    # 🔴 A limit is a count or a size, or null for none; nothing negative is
-    # ever published (surface D177). `-1` is the store's spelling of unlimited
-    # in `user_limits`, never the wire's or this file's. Null only where this
-    # server treats it as unlimited: every other limit is a number it compares
-    # against, and a null there would fail the first request it applies to.
+    # 🔴 A limit is a non-negative number, or null where this server treats it
+    # as unlimited (surface D177). `-1` is only the store's spelling, in
+    # `user_limits`.
     for name, value in (values["limits"] or {}).items():
         if value is None and name not in UNLIMITED_ALLOWED:
             raise ValueError(f"limits.{name} may not be null: only "
@@ -517,9 +332,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 f"{', '.join(sorted(unknown))}")
 
     features = values["features"]
-    # 🔴 `features` is a registry, not free text (surface *features is a
-    # registry*): a string it does not hold would be advertised in `GET /v1`,
-    # and a client that knows it would rely on what nothing here serves.
+    # 🔴 A registry (surface *features is a registry*): an unknown string would
+    # be advertised for something nothing here serves.
     unregistered = sorted(set(features) - set(FEATURES))
     if unregistered:
         raise ValueError(f"features lists {', '.join(unregistered)}, which is not a "
@@ -535,8 +349,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
         raise ValueError("stream_keepalive_seconds is whole seconds, 1 to 99: below "
                          "an intermediary's idle timeout")
 
-    # Refused at LOAD, never trusted to a careful matcher: a bare `*` host, a
-    # wildcard anywhere but the leftmost label, a globbed scheme.
+    # Refused at load, never trusted to a careful matcher: a bare `*` host, a
+    # wildcard off the leftmost label, a globbed scheme.
     for entries in (values["fetch_allowlist"], values["index_allowlist"]):
         for warning in allowlist.check_entries(entries or []):
             import logging
@@ -553,9 +367,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
             raise ValueError(f"package_indexes names {url}, which index_allowlist does "
                              "not admit: an install could not reach it")
 
-    # 🔴 Advertised only where this server can serve it: nodes that install on
-    # the host -- an operator's choice, since a node then reaches an index --
-    # or, where nodes run in containers, the builder.
+    # 🔴 `python.env` is served by nodes installing on the host (an operator's
+    # choice) or, where nodes run in containers, by the builder.
     if values["python_source_builds"] and not values["env_builder"]:
         raise ValueError("python_source_builds is on and there is no env_builder: a "
                          "source distribution is built only in the isolated builder, "
@@ -568,9 +381,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
         raise ValueError("features lists python.env, and nodes here run in "
                          "containers with no env_builder to build them an image")
 
-    # 🔴 A reuse hit compares the host's tools among the inputs it was built
-    # from (surface §13), and a job run on the host records none: until this
-    # server records them, reuse waits for containers (profile §5).
+    # 🔴 A reuse hit compares the host's tools among its inputs (surface §13),
+    # and a host run records none: reuse waits for containers (profile §5).
     if "jobs.reuse" in features and not values["containers"]:
         raise ValueError("features lists jobs.reuse, and nodes here run on the host, "
                          "whose tools this server does not record, so a reused job's "
@@ -600,9 +412,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
 
 
 def private_paths(private) -> List[str]:
-    '''Every root `private_dataroots` maps to, once each, in the order the
-    configuration gives them: what jobs are given read-only, and what a
-    published `detail` must never say.'''
+    '''Every root `private_dataroots` maps to, once each, in config order: what
+    jobs get read-only, and what a published `detail` must never say.'''
     found: List[str] = []
     for section in ("library", "tool"):
         for roots in (private.get(section) or {}).values():
@@ -614,8 +425,7 @@ def private_paths(private) -> List[str]:
 
 
 def _check_private_dataroots(private) -> None:
-    '''`private_dataroots` held to its shape: `library`, `tool` and `task`,
-    each down to `{dataroot name: absolute path}`.'''
+    '''Hold `private_dataroots` to its shape, down to absolute paths.'''
     shape = ('private_dataroots is {"library": {name: {root: path}}, '
              '"tool": {tool: {root: path}}, "task": {tool: {task: {root: path}}}}, '
              'each path absolute')
@@ -684,11 +494,9 @@ def _instant(value) -> Optional[float]:
 
 
 class Config:
-    '''One deployment's policy.
+    '''One deployment's policy, read once at startup.
 
-    Read once at startup. Nothing reloads it: a value that changed under a
-    running server would make two requests in the same second answer
-    differently, and the restart is cheap.
+    Nothing reloads it, so two requests in one second never answer differently.
     '''
 
     def __init__(self, values: Dict[str, Any]):
@@ -719,8 +527,8 @@ class Config:
 
             unknown = set(overlay) - set(DEFAULTS)
             if unknown:
-                # Refused rather than ignored: a misspelled key that silently
-                # does nothing is a ceiling the operator believes they set.
+                # Refused, not ignored: a misspelled key is a ceiling the
+                # operator believes they set.
                 raise ValueError(
                     f"{path} sets unknown keys: {', '.join(sorted(unknown))}")
 
@@ -741,7 +549,7 @@ class Config:
             values["features"] = list(values["features"]) + ["python.env"]
 
         # S3 takes one PUT of at most 5 GiB, and the upload is one PUT
-        # (surface §14): a larger limit is a promise that store cannot keep.
+        # (surface §14).
         base = values["storage_uri_base"] or ""
         if base.startswith("s3://") and values["limits"]["max_upload_bytes"] > S3_ONE_PUT_BYTES:
             raise ValueError(
@@ -774,8 +582,7 @@ class Config:
         return any(fnmatchcase(name, pattern) for pattern in patterns)
 
     def notices(self, at: Optional[float] = None) -> list:
-        '''The notices published now: each from when it was posted -- here,
-        when the server started -- until its `ends_at` passes.'''
+        '''The notices published now: from server start until `ends_at` passes.'''
         import time
 
         at = time.time() if at is None else at
@@ -783,18 +590,13 @@ class Config:
                 if notice["ends_at"] is None or _instant(notice["ends_at"]) > at]
 
     def capabilities(self, software: Dict[str, list]) -> Dict[str, Any]:
-        '''The ``GET /v1`` body.
-
-        ``software`` is passed in rather than read here because it is the one
-        member that comes from the store: a version is advertised only where a
-        live image contains it.
-        '''
+        '''The ``GET /v1`` body. ``software`` comes from the store: a version is
+        advertised only where a live image holds it.'''
         block = {
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
-            # Every one REQUIRED (surface §1), less what `_NOT_PUBLISHED`
-            # keeps off the wire.
+            # Every one REQUIRED (surface §1), less `_NOT_PUBLISHED`.
             "limits": {name: value for name, value in self._values["limits"].items()
                        if name not in _NOT_PUBLISHED},
             "features": list(self._values["features"]),
@@ -802,8 +604,7 @@ class Config:
             "notices": self.notices(),
         }
 
-        # OPTIONAL, and absent means the operator set none. Emitting null would
-        # say something different.
+        # OPTIONAL: absent means the operator set none, which null would not.
         if self._values["terms_url"]:
             block["terms_url"] = self._values["terms_url"]
 

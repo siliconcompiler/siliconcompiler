@@ -1,8 +1,6 @@
 '''
 Creating a job: the create body checked, a reused job found, and what the
 server cannot supply asked for (surface §13).
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import hashlib
@@ -23,19 +21,12 @@ from siliconcompiler.remote.server.state.store import ACTIVE_STATES, PENDING_STA
 class CreateMixin:
     '''Creating a job.'''
 
-    ######################################################################
-    # 13. create
-    ######################################################################
-
     def create(self, session, body: Dict[str, Any],
                idempotency_key: Optional[str]) -> Tuple[Dict[str, Any], int]:
-        '''Returns the job object and the status it should be served with.
+        '''Returns the job object and the status to serve it with.
 
-        The top-level members are authoritative; everything under `descriptor`
-        is advisory, checked again against the manifest's read while staging, and
-        stored as `jobs.descriptor`.
-        🔴 Strict, like every request body: an unknown member is refused, never
-        ignored.
+        Top-level members are authoritative; `descriptor` is advisory, checked
+        again against the manifest's read while staging.
         '''
         with self._keyed(session.user_id, "create", idempotency_key):
             return self._create(session, body, idempotency_key)
@@ -44,10 +35,8 @@ class CreateMixin:
         _only(body, CREATE_MEMBERS, "the create body")
 
         if body.get("project") is not None:
-            # Refused rather than ignored: silently dropping it creates a job
-            # the caller believes is shared and nobody else can see, which is a
-            # failure invisible from both ends. Permanent, so a client stops
-            # offering the picker.
+            # Refused, not ignored: dropping it makes a job the caller believes
+            # is shared and nobody else can see.
             raise ProblemError(
                 "feature-unsupported", feature="projects",
                 detail="this deployment has no projects; every job is personal")
@@ -61,30 +50,24 @@ class CreateMixin:
         if not isinstance(descriptor, dict):
             raise ProblemError("invalid-request", detail="descriptor must be an object")
         _only(descriptor, DESCRIPTOR_MEMBERS, "descriptor")
-        # 🔴 Top level, beside `design` and `jobname` (surface D160, job-reuse
-        # D15): `descriptor` holds what submit re-derives, and nothing
-        # recomputes this. Validated always; USED only where this deployment
-        # advertises `jobs.reuse` -- elsewhere it is recorded and ignored, and
-        # create is always a 201.
+        # 🔴 Top level (surface D160, job-reuse D15), never recomputed. Always
+        # validated; used only where `jobs.reuse` is advertised.
         run_hash = _run_hash(body.get("run_hash"))
         reuses = "jobs.reuse" in (self._config["features"] or ())
-        # Authoritative, like run_hash: the server never reads a job id out of
-        # the upload (surface D175).
+        # Authoritative: no job id is read out of the upload (surface D175).
         continuations = _continuations(body.get("continues_from"))
-        # Authoritative too, and never re-derived: nothing in the manifest
-        # records it (surface *What the create body lists*).
+        # Authoritative: nothing in the manifest records it.
         packages = _python_packages(body.get("python_packages"))
 
         # 🔴 Credentials out of every source URL before anything is compared,
-        # stored or logged -- the descriptor is kept whole in `jobs.descriptor`.
+        # stored or logged.
         declared = _declared_sources(descriptor)
         if declared is not None:
             descriptor = dict(descriptor, sources=declared)
         requires = requirements(descriptor)
         self._check_needs(descriptor)
         if packages is not None and "python.env" not in (self._config["features"] or ()):
-            # 🔴 Relied on whether `needs` said so or not: a stale `GET /v1`,
-            # or a client that forgot the string.
+            # 🔴 Whether or not `needs` said so.
             raise ProblemError(
                 "feature-unsupported", feature="python.env",
                 detail="this job lists Python packages to install, and this deployment "
@@ -102,9 +85,8 @@ class CreateMixin:
                                         "WHERE id = ?", (existing["id"],))
                 existing = None
             if existing is not None:
-                # The same key with a different body is the caller having reused
-                # a key they should have rotated. Returning the first job would
-                # answer a question they did not ask.
+                # The same key with a different body: returning the first job
+                # would answer a question not asked.
                 if (existing["design"], existing["jobname"], existing["run_hash"],
                         json.loads(existing["descriptor"]),
                         self._continuations_of(existing["id"]),
@@ -118,9 +100,8 @@ class CreateMixin:
                 return (json.loads(existing["create_reply"]) if existing["create_reply"]
                         else self.wire(existing)), 201
 
-        # 🔴 Before the reuse lookup, because the answer is part of what the
-        # lookup is keyed on -- and before the upload, which is the whole point
-        # of resolving here at all.
+        # 🔴 Before the reuse lookup, which is keyed on it, and before the
+        # upload it exists to save.
         image = images.job_image_for(self._store, requires) \
             if reuses and run_hash and self._config["containers"] else None
         identity = self._identity(run_hash, requires, stored_packages, image) \
@@ -129,27 +110,21 @@ class CreateMixin:
         if identity:
             hit = self._reuse(session.user_id, identity)
             if hit is not None:
-                # 200 rather than 201: a 201 carrying an old job's id is
-                # indistinguishable from a new one. The body is the job object
-                # either way, so a client that ignores the status is still
-                # correct.
+                # 200, not 201: a 201 with an old job's id looks like a new one.
                 logger.info(f"run_hash hit for {session.user_id}: {hit['id']}")
                 return self.wire(hit), 200
 
         self._check_concurrent_jobs(session.user_id)
         self._check_pending_uploads(session.user_id)
         self._check_descriptor(descriptor, requires)
-        # Before anything is uploaded: every earlier result this run would
-        # take, and what those results were built from.
+        # Before anything is uploaded.
         self._check_continuations(session.user_id, continuations)
 
         asked = self._look_up(declared) if declared is not None else None
 
-        # 🔴 The job's own image, from `requested_versions.python` alone, before anything
-        # is uploaded (surface §13; database D145): whether ONE image holds the
-        # python set together is only the join's to say. Node images wait for
-        # the manifest's read, which is what says which tools the nodes run.
-        # Resolved once: above, where the reuse lookup needed it.
+        # 🔴 The job's own image, from `requested_versions.python` alone, before
+        # the upload (surface §13; database D145). Node images wait for the
+        # manifest's read, which says which tools the nodes run.
         if image is None and self._config["containers"]:
             image = images.job_image_for(self._store, requires)
         image_id = image["id"] if image else None
@@ -157,17 +132,14 @@ class CreateMixin:
         job_id = str(uuid.uuid4())
         device_id = session.device_id
 
-        # 🔴 The wheel that answers a `python` ask replaces its listed entry,
-        # asked at create as after submit (surface D306). This server's create
-        # asks only for dataroots, so none is recorded today; one that asks
-        # for a package would have its wheel accepted in the first archive.
+        # 🔴 The wheel answering a `python` ask replaces its listed entry
+        # (surface D306). Create asks only for dataroots today, so none is.
         answered = sorted({environment.canonical(item["name"]) for item in asked or []
                            if item.get("kind") == "python" and item.get("name")})
 
         def admit():
-            # 🔴 Counted again, inside the transaction that inserts: the
-            # checks above answer early, and these are what hold the ceiling
-            # when several creates arrive at once (`Store.admission`).
+            # 🔴 Counted again inside the inserting transaction, which holds the
+            # ceiling against concurrent creates (`Store.admission`).
             self._check_concurrent_jobs(session.user_id)
             self._check_pending_uploads(session.user_id)
             self._store.execute(
@@ -188,8 +160,6 @@ class CreateMixin:
 
         self._store.admission(admit)
 
-        # The job object, in `created`: `upload_sources` is on it where the
-        # server is asking, and absent where there is nothing to send.
         reply = self.wire(self._row(job_id))
         if idempotency_key is not None:
             with self._store.transaction():
@@ -198,10 +168,8 @@ class CreateMixin:
         return reply, 201
 
     def _check_needs(self, descriptor) -> None:
-        '''🔴 `needs`: every feature the job relies on must be one this server
-        advertises -- refused at create, naming the first it lacks, rather than
-        at submit after the upload. A string it does not know is refused the
-        same way.'''
+        '''🔴 `needs`: every feature the job relies on must be advertised;
+        refused at create, not after the upload.'''
         needs = descriptor.get("needs")
         if needs is None:
             return
@@ -216,40 +184,21 @@ class CreateMixin:
                            "not offer")
 
     def _look_up(self, declared) -> List[Dict[str, Any]]:
-        '''What of the declared sources this server cannot supply: a LOOKUP,
-        never a fetch (D124).
+        '''What of the declared sources this server cannot supply, to list in
+        `upload_sources`: a LOOKUP, never a fetch (D124). Held, allowlisted and
+        installed-package sources are supplied; a private one none of those
+        covers is `resource-unavailable`.
 
-        =================================  =================================
-        A source that is                   Answer
-        =================================  =================================
-        private, in the map                supplied -- not listed
-        private, its source held or        supplied, or fetched while staging --
-          allowlisted                        not listed
-        private, and none of those         `resource-unavailable`, by keypath --
-                                             a local one, with no source, among
-                                             them
-        held                               supplied -- not listed
-        an installed package held here     supplied -- not listed
-        on the allowlist, not held         assumed fetchable -- not listed
-        anything else                      listed in `upload_sources`
-        =================================  =================================
-
-        🔴 No network: probing hundreds of dataroots against a slow git host
-        puts latency inside a request behind gateway timeouts, and turns one
-        `POST` into hundreds of outbound requests.
+        🔴 No network: probing hundreds of dataroots inside a request would
+        meet gateway timeouts and multiply one `POST` into hundreds.
         '''
         asked = []
         for item in declared:
             keypath = item["keypath"]
             source, ref = item.get("source"), item.get("ref")
             if item["private"]:
-                # 🔴 Never asked for (surface D299): the operator's copy by
-                # keypath, a held copy by source and ref, or a fetch from the
-                # allowlist while staging -- all three decided here (surface
-                # D308). A local one has no source, so only the operator's copy
-                # can supply it. One none of them can is refused before a byte
-                # moves, the owner's name as `resource` and the keypath saying
-                # which of its dataroots (D285, D298).
+                # 🔴 Never asked for (surface D299, D308); one nothing here can
+                # supply is refused before a byte moves (D285, D298).
                 if self._supply.private_root(keypath) or \
                         self._supply.held(source, ref) or \
                         self._supply.allowlisted(source, ref):
@@ -272,26 +221,14 @@ class CreateMixin:
                   packages: Optional[str] = None, image=None) -> Optional[str]:
         '''``H(client hash, the digests it resolved to, python_packages, the
         interpreter it asked for, the index configuration)``, or None.
-        ``image`` is the job's image (`images.job_image_for`), where this
-        deployment runs containers.
 
-        🔴 **The client's hash alone is not the job's identity, and treating it
-        as one hands back a result produced by different code.** The client
-        hashes the work; this server chooses what runs it. Folding in the
-        digests means two runs asking for the same thing but resolved to
-        different images are correctly different jobs -- and re-registering an
-        image invalidates reuse exactly when it should, because a new digest is
-        precisely *the code changed*.
+        🔴 The client hashes the work; this server chooses what runs it, so the
+        digests are folded in and re-registering an image invalidates reuse.
 
-        🔴 **Computed from the descriptor and the registry only.** No uploaded
-        bytes are involved, which is what lets this happen at create and save
-        the upload. It is therefore the same value at create and at submit for
-        the same declared versions, and it is written once.
+        🔴 From the descriptor and registry only, so it is computed at create,
+        before the upload, and written once.
 
-        ⚠️ None where the client sent no hash, which is every SiliconCompiler
-        client today: what SC should hash is a decision that lives elsewhere,
-        and this half is proven by the conformance fixtures rather than left as
-        dead code.
+        ⚠️ None where the client sent no hash, as SiliconCompiler does today.
         '''
         if not run_hash:
             return None
@@ -299,11 +236,7 @@ class CreateMixin:
         digests = [image["digest"]] if image else []
 
         # 🔴 What else decides what the install gives the run, which the
-        # client's hash may not cover (job-reuse D23): the job's Python
-        # packages, the Python its own modules were written for -- held apart
-        # from the digests, which one image with that Python can match either
-        # way -- and where this deployment installs the packages from, which
-        # matters only to a job that lists some.
+        # client's hash may not cover (job-reuse D23).
         indexes = {"indexes": list(self._config["package_indexes"] or []),
                    "source_builds": bool(self._config["python_source_builds"])} \
             if packages else None
@@ -317,17 +250,9 @@ class CreateMixin:
         '''The caller's own newest job with this identity, if it may be handed
         back.
 
-        🔴 Owner-scoped, and that is the whole safety argument. Half of the
-        identity is the client's own hash, which this server never recomputes
-        or normalises, so a wrong one hands a user their own stale job --
-        confusing, and not a disclosure. An archived job is excluded, which is
-        how a person says *stop handing me that result* without an endpoint for
-        it.
-
-        🔴 And a candidate is checked against the registry as it is NOW --
-        see `_still_current`. Matching is not enough: an image the job ran in
-        may have been superseded since, and handing back a result produced by
-        code that is gone is the thing reuse must not do.
+        🔴 Owner-scoped, the whole safety argument: a wrong client hash hands a
+        user their own stale job, not a disclosure. Archiving a job is how a
+        person stops it being handed back.
         '''
         placeholders = ", ".join("?" * len(REUSABLE_STATES))
         candidate = self._store.one(
@@ -347,21 +272,9 @@ class CreateMixin:
     def _still_current(self, job) -> bool:
         '''Whether the images this job actually ran in are still live.
 
-        🔴 **What closes the gap the identity cannot.** The identity folds in
-        the digests the DECLARED versions resolve to, because that is all there
-        is at create -- the per-node tool images need the flow, which needs the
-        manifest, which needs the upload the check exists to avoid. So
-        re-registering an image that only ever served a TOOL leaves the
-        identity unchanged, and the candidate would be handed back although the
-        code that produced it is gone.
-
-        ✅ A finished job records what its nodes RAN IN, so the question can be
-        asked the other way round: are those images still live? It is
-        computable at create, deterministic, and it invalidates only the jobs
-        whose images actually changed.
-
-        ⚠️ A job that ran in no image -- a deployment that runs on the host --
-        has nothing to check and stays reusable.
+        🔴 The identity can only fold in the DECLARED versions' digests, since
+        node images need the manifest; this catches a re-registered tool image.
+        ⚠️ A job that ran in no image stays reusable.
         '''
         rows = self._store.all(
             "SELECT DISTINCT image_id FROM job_nodes "
@@ -378,8 +291,7 @@ class CreateMixin:
         return ran_in <= live
 
     def _check_pending_uploads(self, user_id: str) -> None:
-        '''`pending_uploads`, where numeric: a hard ceiling on the caller's
-        jobs in `created` or `awaiting_input`. `null` is unenforced.'''
+        '''`pending_uploads`, a hard ceiling where not `null`.'''
         ceiling = self._config.limits["pending_uploads"]
         if ceiling is None:
             return
@@ -395,13 +307,8 @@ class CreateMixin:
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
 
     def _check_descriptor(self, descriptor: Dict[str, Any], requires) -> None:
-        '''The early reject, on whatever is present.
-
-        Client-asserted, so this is a hint and not a boundary -- every value is
-        checked again against the manifest's read. It exists to save an upload,
-        and it never refuses a descriptor for being sparse: a missing field
-        skips the check it would have answered.
-        '''
+        '''The early reject, on whatever is present: a hint to save an upload,
+        not a boundary, so a missing field skips its check.'''
         limits = self._config.limits
 
         flow = descriptor.get("flow")
@@ -419,12 +326,9 @@ class CreateMixin:
                     detail=f"{count} nodes, and this server runs at most "
                            f"{limits['max_job_nodes']}")
 
-        # The early entitlement check: the tools `requested_versions` names and the
-        # owners `sources` names, against what nobody here may use.
-        # Re-derived at submit, where the manifest is the answer. A source's
-        # owner is its keypath's second part (surface D298): a task's dataroot
-        # needs its tool, and a library's is one of the resource kinds, which
-        # the name finds (entitlements D75).
+        # The early entitlement check, re-derived at submit. A task's dataroot
+        # needs its tool; a library's owner may be any resource kind (surface
+        # D298, entitlements D75).
         wanted = []
         for item in descriptor.get("sources") or []:
             keypath, name = item["keypath"], owners.keypath_owner(item["keypath"])
@@ -440,32 +344,18 @@ class CreateMixin:
         self._check_versions(requires)
 
     def _check_versions(self, requires: Dict[str, Dict[str, Any]]) -> None:
-        '''Refuse a client this deployment cannot run.
+        '''Refuse a client this deployment cannot run: the cheap check, before
+        the upload.
 
-        The cheap check, before the upload -- but only the cheap one: a client
-        that declares nothing reaches the binding check at submit instead,
-        after the whole archive has moved.
+        🔴 A requirement is a PEP 440 specifier and the SERVER resolves it: a
+        client sees a flat list per name, not which combinations one image
+        holds. ⚠️ A bare version means `==`.
 
-        🔴 **A requirement is a PEP 440 specifier and the SERVER resolves it.**
-        A client cannot: `GET /v1`'s `software` is flat per name within a
-        bucket while the image join is over combinations, so a client resolving
-        each requirement on its own can name a set no single image holds --
-        every version published, every one satisfiable, and nothing to run them
-        in. ⚠️ A bare version means `==`, which is what a person writes.
+        ⚠️ The per-name check, giving a name-specific answer; whether ONE image
+        holds them all is `images.job_image_for`.
 
-        ⚠️ **This is the per-name check and not the resolution.** It answers
-        *does this server have anything matching* for each name on its own;
-        *does ONE image hold all of them* is `images.job_image_for`, which
-        runs beside it at create. Both are needed: this one gives a name-specific
-        `software-unavailable` where the join could only say the combination
-        failed.
-
-        🔴 **A name that is present and reports no version gets its own
-        answer.** A tool recorded from its image's publish date is in
-        `software`, which has nowhere to carry the mark, so a client's
-        preflight says yes and this says no. Telling them *no image matches*
-        would send them looking for a version that is already installed; the
-        true answer is that nothing here can be matched against a range.
+        🔴 A name present with no reported version gets its own answer, not *no
+        image matches*, which would send the user looking for what is installed.
         '''
         from siliconcompiler.remote.server.routes.meta import (
             advertised_reported, advertised_software)
@@ -479,13 +369,10 @@ class CreateMixin:
 
             for name, asked in wanted.items():
                 if name not in here:
-                    # 🔴 A listed name is never ignored: a python name nothing
-                    # here tracks is checked against what jobs would run in.
+                    # 🔴 A listed name is never ignored.
                     if bucket == images.BUCKETS["python"]:
                         self._check_untracked_python(name, asked)
                     elif bucket == images.BUCKETS["interpreter"]:
-                        # No image records its Python, so none can be shown to
-                        # have the one the user's modules were written for.
                         raise ProblemError(
                             "software-unavailable", reason="unavailable",
                             detail=f"the job's own Python needs {', '.join(asked)}, and "
@@ -501,12 +388,10 @@ class CreateMixin:
                        for version in said.get(name, ())):
                     continue
 
-                # Software no image holds, SiliconCompiler's own version
-                # included (surface §7), whose answer names what is available.
+                # Software no image holds, SiliconCompiler included (surface §7).
                 if bucket == images.BUCKETS["interpreter"]:
-                    # 🔴 The friction is the point (surface D293): it tells the
-                    # user, before anything uploads, that the operator has to
-                    # add an image, rather than failing a test later.
+                    # 🔴 The friction is the point (surface D293): said before
+                    # the upload rather than failing a test later.
                     detail = (f"the job's own Python needs {', '.join(asked)}, and this "
                               f"server's images run Python {', '.join(here[name])}: the "
                               "operator would have to add an image with that Python")
@@ -524,9 +409,8 @@ class CreateMixin:
                                  "available": sorted(said.get(name, ()))}])
 
     def _check_untracked_python(self, name: str, asked) -> None:
-        '''A `requested_versions.python` name the registry does not track: refused where
-        nodes run in containers, since no live image holds it, and answered
-        from this server's own Python where they run on the host.'''
+        '''A `requested_versions.python` name the registry does not track:
+        refused with containers, else answered from this server's own Python.'''
         from importlib import metadata
 
         spec = images.specifiers(asked)
@@ -551,9 +435,7 @@ class CreateMixin:
                          "available": available}])
 
     def _check_concurrent_jobs(self, user_id: str) -> None:
-        '''`concurrent_jobs`, where numeric: a hard ceiling on the caller's
-        jobs in `staging`, `queued`, `running` or `cancelling`. `null` is
-        unenforced.'''
+        '''`concurrent_jobs`, a hard ceiling where not `null`.'''
         ceiling = self._config.limits["concurrent_jobs"]
         if ceiling is None:
             return

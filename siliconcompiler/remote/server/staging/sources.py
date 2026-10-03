@@ -1,30 +1,14 @@
 '''
-The server's own copies of remote sources: held, and fetched only from the
-allowlist.
+The server's own copies of remote sources, held under ``<datadir>/sources/`` by
+(source, ref) and fetched only from the allowlist.
 
-A job's remote dataroot -- lambdapdk's PDKs are the common case -- is supplied
-by (source, ref), never by a path the job names. This module holds those
-copies under ``<datadir>/sources/`` and fetches the ones it does not hold.
+🔴 The run never fetches: it points a supplied dataroot at the held copy
+(`runspec.point_dataroots`). The fetch is SiliconCompiler's own resolver,
+submodules and LFS included (surface D164), isolated in `staging.fetch`.
 
-🔴 **The run never fetches.** The run points a supplied dataroot at the held
-copy, from what the server wrote beside its manifest
-(`runspec.point_dataroots`), so nothing in the run reaches the network on a
-job's behalf. What does is here, and it is SiliconCompiler's own resolver -- so
-the server's copy is the user's, submodules and LFS objects included (surface
-D164) -- run unchanged in a process of its own (`staging.fetch`), which has no
-credential to send and one way out: a proxy admitting the allowlist's hosts,
-never a non-public address, and at most `MAX_SOURCE_BYTES`. The source a job
-names is checked against the allowlist, path and all, before it starts.
-
-A submodule or LFS store off the allowlist fails the fetch for good, which
-sends the source to the ask loop like any other the server cannot fetch.
-
-⚠️ **Failures are two kinds, and the difference decides what the job does.** A
-transient one -- ``429``, a ``5xx``, a timeout -- is retried until the job's
-deadline, or a GitHub blip becomes a multi-gigabyte upload. A permanent one --
-``401``, ``403``, ``404`` -- sends the job back to ask the client, which has
-the credentials the server does not: GitHub answers ``404`` for a private
-repository it will not show.
+⚠️ A transient failure (``429``, ``5xx``, timeout) is retried until the job's
+deadline, or a GitHub blip becomes a huge upload; a permanent one (``401``,
+``403``, ``404``) asks the client, which has the credentials.
 '''
 
 import hashlib
@@ -46,12 +30,10 @@ __all__ = ["SourceStore", "Transient", "Permanent", "download_url"]
 
 logger = logging.getLogger("sc-server")
 
-# The most one source may weigh, downloaded. A PDK is gigabytes; this is a
-# ceiling on a mistake, not a budget.
+# A ceiling on a mistake, not a budget: a PDK is gigabytes.
 MAX_SOURCE_BYTES = 16 * 1024 ** 3
 
-# How long a copy of a moving ref -- a branch -- stands for that ref: one
-# job's staging, never the next job's.
+# A moving ref's copy stands for one job's staging, never the next job's.
 MOVING_HOLD_SECONDS = 3600
 
 _COMPLETE = ".complete"
@@ -67,8 +49,7 @@ class Permanent(Exception):
 
 
 def download_url(source: str, ref: Optional[str]) -> str:
-    '''The URL SiliconCompiler's https resolver would fetch for this source --
-    ``<source><ref>.tar.gz`` for a source ending in ``/``.'''
+    '''The URL SiliconCompiler's https resolver would fetch for this source.'''
     if source.endswith("/") and ref:
         return f"{source}{ref}.tar.gz"
     return source
@@ -86,8 +67,7 @@ class SourceStore:
         return self.root / digest[:32]
 
     def held(self, source: Optional[str], ref: Optional[str]) -> Optional[str]:
-        '''The held copy's root, or None where this server has not got it --
-        or holds it for a moving ref, fetched longer ago than one job stages.'''
+        '''The held copy's root, or None where there is none still current.'''
         if not source:
             return None
         where = self._key(source, ref)
@@ -107,22 +87,18 @@ class SourceStore:
     def allowlisted(self, source: Optional[str], ref: Optional[str]) -> bool:
         '''Whether this server would fetch the source itself.
 
-        🔴 Never one whose URL has a query (surface D308): its values are
-        masked, so it is asked for -- or, where it is private, supplied by the
-        operator's copy or a held one.'''
+        🔴 Never one whose URL has a query (surface D308): its values are masked.'''
         if not source or urlsplit(source).query:
             return False
         scheme = urlsplit(source).scheme.lower()
         if scheme not in ("https", "http", "git+https"):
-            # ssh and git:// want a key this server has not got, and no
-            # resolver clones over plain http.
+            # ssh and git:// want a key this server has not got.
             return False
         return allowlist.allows(self.rules, download_url(source, ref)
                                 if not scheme.startswith("git+") else source)
 
     def fetch(self, source: str, ref: Optional[str], timeout: float) -> str:
-        '''Fetch and hold one source; return its root. Raises `Transient` or
-        `Permanent`.'''
+        '''Fetch and hold one source; returns its root.'''
         found = self.held(source, ref)
         if found:
             return found
@@ -137,15 +113,12 @@ class SourceStore:
             data.mkdir()
             pinned = self._resolve(source, ref, data, timeout)
             commit, moving = pinned if isinstance(pinned, tuple) else (None, False)
-            # 🔴 The commit, recorded before `.git` went: what a job ran is
-            # answerable after the fact. A moving ref -- a branch, or no ref --
-            # is held for one job's staging and fetched again after it.
+            # 🔴 The commit, recorded before `.git` goes, so what a job ran stays answerable.
             (staging / _COMPLETE).write_text(json.dumps({
                 "source": source, "ref": ref, "commit": commit, "moving": moving,
                 "fetched_at": time.time()}))
 
-            # A copy per fetch, never replaced under a job reading it; which
-            # one is current moves atomically.
+            # A copy per fetch, never replaced under a reader; `current` moves atomically.
             copy = where / (commit if commit and not moving else staging.name[1:])
             try:
                 os.rename(staging, copy)
@@ -162,16 +135,12 @@ class SourceStore:
     ######################################################################
 
     def _resolve(self, source: str, ref: Optional[str], into: Path, timeout: float):
-        '''SiliconCompiler's resolver for ``source``, run in a process of its
-        own (`staging.fetch`), its result moved into ``into``. Returns
-        ``(commit, moving)``: the commit a git source resolved to, and whether
-        its ref moves. Raises `Transient` or `Permanent`.'''
+        '''Resolve ``source`` in `staging.fetch` into ``into``; returns ``(commit, moving)``.'''
         from siliconcompiler.package import RemoteResolver
         from siliconcompiler.remote.server.packages.envbuild import Proxy
 
         work = into.parent
-        # A unix socket's path is bounded (108 bytes), and a data directory's
-        # is not; so the socket gets a short directory of its own.
+        # A unix socket's path is bounded (108 bytes), so a short directory.
         sockets = Path(tempfile.mkdtemp(prefix="sc-fetch-"))
         proxy = Proxy(str(sockets / "proxy.sock"), [rule.text for rule in self.rules],
                       max_bytes=MAX_SOURCE_BYTES)
@@ -186,8 +155,7 @@ class SourceStore:
             proxy.close()
             shutil.rmtree(sockets, ignore_errors=True)
 
-        # What the proxy refused explains the failure better than how the
-        # resolver reported it.
+        # The proxy's refusal explains the failure better than the resolver.
         if proxy.refused:
             raise Permanent(f"it reaches {', '.join(proxy.refused)}, which this server "
                             "will not connect to: off its allowlist, or not a public "
@@ -214,8 +182,7 @@ class SourceStore:
 
 def _run_fetch(source: str, ref: Optional[str], work: Path, timeout: float,
                proxy_socket: str) -> dict:
-    '''Run `staging.fetch` for one source in ``work``, and return what it
-    wrote. Raises `Transient` where it ran past ``timeout`` or wrote nothing.'''
+    '''Run `staging.fetch` for one source in ``work``; returns what it wrote.'''
     import subprocess
 
     from siliconcompiler.remote.server.staging import sandbox
@@ -226,8 +193,7 @@ def _run_fetch(source: str, ref: Optional[str], work: Path, timeout: float,
     spec = work / "fetch.json"
     spec.write_text(json.dumps({"source": source, "ref": ref, "cachedir": str(work / "cache"),
                                 "proxy": proxy_socket, "result": str(result)}))
-    # 🔴 Nothing of the server's: no token, no git configuration but the
-    # repository's own, no prompt. PATH is where git is, and is no secret.
+    # 🔴 Nothing of the server's: no token, no git config but the repo's, no prompt.
     env = {**sandbox._environment(home), "PATH": os.environ.get("PATH", os.defpath),
            "XDG_CONFIG_HOME": str(home), "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_TERMINAL_PROMPT": "0"}
@@ -257,8 +223,7 @@ def _run_fetch(source: str, ref: Optional[str], work: Path, timeout: float,
 
 
 def _pin(resolved: Path, ref: Optional[str]):
-    '''``(commit, moving)`` for a git checkout; ``(None, False)`` for an
-    archive, whose URL names its version.'''
+    '''``(commit, moving)`` for a git checkout; ``(None, False)`` for an archive.'''
     import re
     import subprocess
 
@@ -282,7 +247,7 @@ def _pin(resolved: Path, ref: Optional[str]):
 
 
 def _remove(path: Path) -> None:
-    '''A tree the resolver may have made read-only.'''
+    '''Remove a tree the resolver may have made read-only.'''
     from siliconcompiler.package import RemoteResolver
 
     if not path.exists():

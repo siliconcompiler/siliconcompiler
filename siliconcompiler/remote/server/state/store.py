@@ -1,11 +1,9 @@
 '''
 The v1 job store.
 
-sc-server owns the schema that crucible implements, so the table shapes in
-``schema.sql`` are the deliverable rather than a step toward one. The engine is
-free to differ -- two implementations of one contract are supposed to -- and
-SQLite is this one's: it is a file, it needs no service, and it is what makes
-the compose rig sufficient on its own.
+sc-server owns the schema crucible implements, so ``schema.sql``'s table shapes
+are the deliverable. The engine may differ; SQLite is this one's because it is a
+file and needs no service.
 '''
 
 import sqlite3
@@ -21,25 +19,18 @@ __all__ = ["Store", "STORE_VERSION", "now", "stamp", "parse", "TERMINAL_STATES",
            "TERMINAL_NODE_STATES", "PENDING_STATES", "ACTIVE_STATES"]
 
 
-# Bumped whenever schema.sql changes shape, or the JSON a column holds does. A
-# store written by a newer server is refused rather than opened: an
-# unrecognised column is a silent wrong answer, where a refusal is a message.
-#
-# Deliberately not `schemaversion`, which is SiliconCompiler's build schema and
-# moves for unrelated reasons. This is the third independent version in the
-# tree, alongside the package version, and it is the one a store file records.
+# Bumped whenever schema.sql changes shape, or the JSON a column holds does; a
+# store at another version is refused. Not `schemaversion`, which is
+# SiliconCompiler's build schema.
 STORE_VERSION = 21
 
-# How many times an admission's whole transaction is tried before its lock
-# contention is this server's failure. Each try already waits the connection's
-# busy timeout for the lock.
+# Tries at an admission's lock, each waiting the busy timeout, before
+# contention is this server's failure.
 ADMISSION_ATTEMPTS = 5
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
-# The closed sets of states schema.sql's `job_states` and `node_states` hold,
-# named once for every module that reads one.
-#
+# The closed sets schema.sql's `job_states` and `node_states` hold.
 # A job's terminal five, published as `terminal` on the job object.
 TERMINAL_STATES = frozenset(
     ("completed", "failed", "cancelled", "rejected", "abandoned"))
@@ -51,12 +42,9 @@ ACTIVE_STATES = ("staging", "queued", "running", "cancelling")
 
 
 def stamp(moment: datetime) -> str:
-    '''A UTC ``moment`` in the one format this store writes: RFC 3339 to
-    milliseconds -- the same spelling schema.sql's DEFAULTs produce, so a row
-    written by Python and one written by the database sort and compare against
-    each other, as strings.'''
-    # %f is microseconds and the column holds milliseconds; the slice is what
-    # keeps a Python write byte-comparable with a DEFAULT.
+    '''A UTC ``moment`` in this store's one format, RFC 3339 to milliseconds:
+    what schema.sql's DEFAULTs write, so all rows compare as strings.'''
+    # %f is microseconds; the slice keeps a Python write comparable to a DEFAULT.
     return moment.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
@@ -76,13 +64,8 @@ class StoreVersionError(RuntimeError):
 
 
 class Store:
-    '''A connection to one deployment's store.
-
-    Opening creates the file and the schema if they are not there, so a bare
-    ``-datadir`` that has never been used starts a working server. Rows are
-    returned as :class:`sqlite3.Row`, which reads like a mapping and keeps
-    call sites from depending on column order.
-    '''
+    '''A connection to one deployment's store, creating the file and schema
+    if they are not there. Rows are :class:`sqlite3.Row`.'''
 
     def __init__(self, path: Union[str, Path]):
         self.path = Path(path)
@@ -90,19 +73,12 @@ class Store:
 
         fresh = not self.path.exists()
 
-        # A sqlite3 connection belongs to the thread that opened it, and the
-        # server answers each request on a worker thread, so one shared
-        # connection would fail on every request that is not the first. Each
-        # thread gets its own, opened on demand against the same file; WAL is
-        # what lets those readers and the one writer proceed at the same time.
-        #
-        # 🔴 **And each is closed when its thread is done with it.** The
-        # threaded server starts a thread per request, so a connection per
-        # thread is a connection per request -- three file descriptors each
-        # under WAL, the database, `-wal` and `-shm`. Kept for the life of the
-        # process, a client polling once a second runs it out of descriptors in
-        # minutes, and it answers `Too many open files` to everything. See
-        # `release` and `_reap`.
+        # A sqlite3 connection belongs to its thread, so each thread opens its
+        # own; WAL lets those readers and the one writer proceed together.
+        # 🔴 And each is closed when its thread is done: the server starts a
+        # thread per request, and connections kept for the process's life
+        # (three descriptors each under WAL) exhaust descriptors in minutes.
+        # See `release` and `_reap`.
         self._local = threading.local()
         self._connections: List[Tuple[threading.Thread, sqlite3.Connection]] = []
         self._lock = threading.Lock()
@@ -112,22 +88,17 @@ class Store:
         self._check_version()
 
     def _connect(self) -> sqlite3.Connection:
-        # `check_same_thread=False` so that `_reap` and `close` can close a
-        # connection from another thread, which the default refuses. Each
-        # connection is still only USED by the thread that opened it.
+        # So `_reap` and `close` can close it from another thread; it is still
+        # only USED by the thread that opened it.
         con = sqlite3.connect(str(self.path), isolation_level=None,
                               check_same_thread=False)
         con.row_factory = sqlite3.Row
 
-        # Both of these are per connection rather than per database, so they
-        # have to be set on every one. Foreign keys especially: missing it here
-        # would leave the schema's references unenforced on worker threads and
-        # enforced on the thread that happened to open the store, which is a
-        # difference nothing would notice until a bad row was already written.
+        # Per connection, so set on every one: without it the schema's foreign
+        # keys would go unenforced on worker threads.
         con.execute("PRAGMA foreign_keys = ON")
         con.execute("PRAGMA busy_timeout = 5000")
-        # Set once on the file rather than per connection, but harmless to
-        # repeat and cheaper than tracking whether it has been done.
+        # Per file, but harmless to repeat.
         con.execute("PRAGMA journal_mode = WAL")
 
         with self._lock:
@@ -136,13 +107,9 @@ class Store:
         return con
 
     def _reap(self) -> None:
-        '''Close the connections of threads that have ended. Holds the lock.
-
-        The backstop for `release`: whatever a thread did not give back -- a
-        path that forgot, a stream a client dropped mid-read -- is closed the
-        next time any thread opens one, so the number held is bounded by the
-        threads alive rather than by the requests ever served.
-        '''
+        '''Close the connections of threads that have ended; the caller holds
+        the lock. The backstop for `release`, so connections held are bounded
+        by threads alive, not requests served.'''
         alive = []
         for thread, con in self._connections:
             if thread.is_alive():
@@ -152,13 +119,8 @@ class Store:
         self._connections = alive
 
     def release(self) -> None:
-        '''Close THIS thread's connection, if it has one.
-
-        Called when a request ends and when a log stream does -- the stream's
-        generator runs on the request's thread after the request itself has
-        been torn down, so it needs its own. The next use on this thread opens
-        a fresh one.
-        '''
+        '''Close THIS thread's connection, if it has one. Called as a request
+        ends, and by a log stream, whose generator outlives its request.'''
         con = getattr(self._local, "con", None)
         if con is None:
             return
@@ -176,11 +138,8 @@ class Store:
     def _check_version(self) -> None:
         '''Refuse a store this server does not speak, and say what to do.
 
-        🔴 There is no migration, deliberately: this deployment is a demo, a
-        test rig and a reference implementation, and a migration engine is one
-        of the bells it does without. What it may not do is stop with a version
-        number and no next step -- a server that will not start is the worst
-        moment to make somebody read the source.
+        🔴 No migration, deliberately: this is a demo, test rig and reference
+        implementation. The refusal names a next step instead.
         '''
         found = self.connection.execute("PRAGMA user_version").fetchone()[0]
         if found == STORE_VERSION:
@@ -209,12 +168,8 @@ class Store:
         return con
 
     def close(self) -> None:
-        '''Close every connection this store handed out.
-
-        Called from one thread while others may hold connections, which is safe
-        here because closing happens at shutdown and on a store nobody is
-        serving from.
-        '''
+        '''Close every connection this store handed out: only at shutdown, or on
+        a store nobody is serving from.'''
         with self._lock:
             connections, self._connections = self._connections, []
         for _, con in connections:
@@ -232,13 +187,8 @@ class Store:
     ######################################################################
 
     def execute(self, sql: str, params=()) -> sqlite3.Cursor:
-        '''Run one parameterised statement.
-
-        Every query in this server goes through here or its siblings with
-        placeholders. Nothing interpolates a value into SQL: the job store holds
-        user-supplied design names, job names and hashes, and an identity this
-        deployment does not verify.
-        '''
+        '''Run one parameterised statement. Nothing interpolates a value into
+        SQL: names, hashes and identities here are user-supplied.'''
         return self.connection.execute(sql, params)
 
     def one(self, sql: str, params=()) -> Optional[sqlite3.Row]:
@@ -250,32 +200,22 @@ class Store:
         return self.connection.execute(sql, params).fetchall()
 
     def transaction(self):
-        '''A transaction context manager.
-
-        ``isolation_level=None`` means the driver opens none of its own, so
-        this is the only place a multi-statement write becomes atomic.
-        '''
+        '''A transaction context manager: with ``isolation_level=None`` this is
+        the only place a multi-statement write becomes atomic.'''
         return _Transaction(self.connection)
 
     def admission(self, work: Callable[[], Any], attempts: int = ADMISSION_ATTEMPTS) -> Any:
         '''Run ``work`` -- a count and the write it decides -- as one
-        transaction that no other admission can interleave with, and return
-        what it returns.
+        transaction no other admission can interleave with; return its result.
 
-        🔴 **A numeric `pending_uploads` or `concurrent_jobs` is a hard
-        ceiling** (entitlements §2), so the count that admits a job and the
-        write that makes it count must be one step. SQLite serialises writers
-        per database, and ``BEGIN IMMEDIATE`` takes that write lock BEFORE the
-        count, so two admissions cannot both read the same count and both
-        insert -- which a deferred ``BEGIN`` allows, since it reads first and
-        upgrades later (implementation-notes §3, *(c)*).
+        🔴 A numeric `pending_uploads` or `concurrent_jobs` is a hard ceiling
+        (entitlements §2). ``BEGIN IMMEDIATE`` takes SQLite's write lock BEFORE
+        the count, so two admissions cannot both read one count and both insert,
+        as a deferred ``BEGIN`` allows (implementation-notes §3, *(c)*).
 
-        ⚠️ **Where the lock is not had within the busy timeout, the whole
-        transaction is tried again**, count included, never one statement: a
-        retried insert alone is the overshoot this exists to prevent. Only the
-        ``BEGIN IMMEDIATE`` can be refused so, since the lock is held from it
-        to the commit, and ``work`` runs once -- it may move a file. A
-        `ProblemError` from ``work`` -- the refusal -- rolls back and is raised.
+        ⚠️ Only the ``BEGIN IMMEDIATE`` waits on the lock, which it holds to the
+        commit, so only it is retried, never one statement alone; ``work`` runs
+        once, since it may move a file. A `ProblemError` from it rolls back.
         '''
         import time
 
@@ -302,11 +242,8 @@ class Store:
     ######################################################################
 
     def upsert_user(self, issuer: str, subject: str, **fields) -> sqlite3.Row:
-        '''Find the user for an (issuer, subject), creating it if new.
-
-        Identity here is self-asserted namespacing rather than a boundary
-        (see `identity.auth`).
-        '''
+        '''Find or create the user for an (issuer, subject): self-asserted
+        namespacing, not a boundary (see `identity.auth`).'''
         found = self.one(
             "SELECT * FROM users WHERE issuer = ? AND subject = ?", (issuer, subject))
         if found is not None:
@@ -336,45 +273,26 @@ class Store:
         '''``GET /v1``'s ``software``: every runnable version, best first, by
         bucket.
 
-        🔴 **`python`, `tools` and `interpreter`, a CLOSED set, and every one
-        is always present** (`images.BUCKETS`). A client branches on them, and
-        a bucket may be `{}` -- a deployment running no containers publishes
-        no tools. Inside a bucket: distribution name to a non-empty array of
-        versions.
+        🔴 `python`, `tools` and `interpreter` are a CLOSED set, every one always
+        present and possibly `{}` (`images.BUCKETS`); they are separate because
+        they are satisfied differently (`jobs.common.requirements`).
 
-        🔴 **They are separate buckets because they are satisfied differently**
-        (see `jobs.common.requirements`).
+        🔴 With containers, a version is advertised only where a live image holds
+        it, or one never put in an image is advertised and refused at submit.
+        Without containers there are no images, so it lists what it tracks.
 
-        🔴 **On a deployment that runs containers a version is advertised only
-        where a live image holds it**, so this is a join and not a listing.
-        Without that filter the trap is the familiar one: a version registered
-        and never put in an image is advertised as supported and refused at
-        submit, and the client did exactly what it was told.
-
-        ⚠️ **Where nothing runs in a container the join would be a lie in the
-        other direction.** Such a deployment has no images by definition, so
-        joining to them would advertise nothing at all while the versions it
-        genuinely runs sit in the table. It lists what it tracks.
-
-        ⚠️ **`version_source` has nowhere to go here**, because the member is a
-        flat array of strings and its shape is frozen. So a version recorded
-        from an image's publish date is advertised beside one a tool reported,
-        a client's preflight cannot tell them apart, and it can say yes to a
-        requirement the server will refuse. That is accepted -- the preflight
-        is advisory and the server binding -- on the condition that the refusal
-        says *present but reports no version*. `reported_only` is what the
-        checks that must tell them apart read instead.
+        ⚠️ The frozen flat shape has no room for `version_source`, so a dated
+        version is advertised beside a reported one. Accepted because the
+        preflight is advisory and the refusal says *present but reports no
+        version*; checks that must tell them apart read `reported_versions`.
         '''
         return self._software(containers)
 
     def reported_versions(self, containers: bool = True) -> dict:
-        '''The same map, less every version no tool actually reported.
+        '''The same map, less every version no tool reported.
 
-        🔴 **The set a version REQUIREMENT may be matched against**, and the
-        reason it is a separate query rather than a filter at the call site:
-        `20260924` is a perfectly good PEP 440 version and beats `2.0.1` under
-        every comparison there is, so anything that compares numbers has to be
-        handed a list the dates are already out of.
+        🔴 The set a version REQUIREMENT is matched against: a date such as
+        `20260924` beats `2.0.1` under every PEP 440 comparison.
         '''
         return self._software(containers, reported_only=True)
 
@@ -398,8 +316,8 @@ class Store:
             "  AND sv.retired_at IS NULL "
             f"{reported}"
             "ORDER BY sv.software_name, "
-            # 🔴 Reported first whatever the numbers say. Without this an
-            # unversioned build from years ago heads the list for ever.
+            # 🔴 Reported first whatever the numbers say, or an old unversioned
+            # build heads the list for ever.
             "         CASE sv.version_source WHEN 'reported' THEN 0 ELSE 1 END, "
             "         sv.preference DESC, sv.version DESC")
 
@@ -415,12 +333,9 @@ class Store:
 class _Transaction:
     '''One transaction, holding the write lock from its first statement.
 
-    🔴 **`BEGIN IMMEDIATE`, never a deferred `BEGIN`.** In WAL mode a
-    deferred transaction that has read and then writes, after another
-    connection committed, is refused at once -- `SQLITE_BUSY_SNAPSHOT`, which
-    the busy timeout never waits out -- so a cancel racing a staging thread's
-    write fails with *database is locked* under load. Taking the lock at
-    `BEGIN` is the one place the busy timeout applies.
+    🔴 `BEGIN IMMEDIATE`, never a deferred `BEGIN`: under WAL, a deferred read
+    then write after another commit fails at once (`SQLITE_BUSY_SNAPSHOT`),
+    which the busy timeout never waits out.
     '''
 
     def __init__(self, con: sqlite3.Connection):

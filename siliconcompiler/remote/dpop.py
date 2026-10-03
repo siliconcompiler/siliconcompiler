@@ -1,14 +1,8 @@
 '''
-DPoP -- RFC 9449 -- shared by both halves of the remote path.
+DPoP (RFC 9449), shared by client (signing) and server (verifying).
 
-Nothing verifies who a caller is in this deployment, so the key a session is
-bound to is the only real control the mode has: it is what stops user A on a
-shared machine presenting user B's derivation and getting a session as B. That
-makes the thumbprint the one value client and server must compute identically,
-which is why the computation lives in one module rather than twice.
-
-The client signs a proof per request; the server verifies it. Both directions
-are here, and only the direction a process needs is ever called.
+Where nothing verifies identity, the session's bound key is the only control,
+so the thumbprint must be computed identically at both ends: hence one module.
 '''
 
 import hashlib
@@ -25,33 +19,19 @@ __all__ = [
 ]
 
 
-# ES256 and nothing else. The algorithm is pinned at both ends rather than read
-# from the proof's header: `alg` is attacker-controlled input, and accepting
-# whatever it names is the classic JWS defect.
+# Pinned at both ends, never read from the attacker-controlled `alg` header.
 ALGORITHM = "ES256"
 
-# How far out of step a proof's `iat` may be. RFC 9449 leaves the window to the
-# server; this is wide enough for ordinary clock drift and far short of making a
-# captured proof useful.
+# How far out of step a proof's `iat` may be: ordinary drift, not replay.
 PROOF_LIFETIME_SECONDS = 60
 
 
 class DPoPError(Exception):
-    '''A proof that does not hold up.
-
-    Every instance of this is `invalid-dpop-proof` on the wire, and the client's
-    answer to it is to fail rather than to refresh: a bad proof is not a stale
-    token.
-    '''
+    '''A proof that does not hold up: `invalid-dpop-proof`, failed, never refreshed.'''
 
 
 def generate_key():
-    '''A new P-256 private key.
-
-    Generated locally and never sent anywhere. An operator handing a user a key
-    pair is refused outright: the private half staying private is the single
-    property DPoP has.
-    '''
+    '''A new P-256 private key, generated locally and never sent anywhere.'''
     from cryptography.hazmat.primitives.asymmetric import ec
 
     return ec.generate_private_key(ec.SECP256R1())
@@ -75,11 +55,9 @@ def load_key(pem: bytes):
 
 
 def public_jwk(key) -> Dict[str, str]:
-    '''The public half, as a JWK: exactly ``kty``, ``crv``, ``x`` and ``y``,
-    the four RFC 7638 hashes for a thumbprint.
+    '''The public half as a JWK: ``kty``, ``crv``, ``x`` and ``y``.
 
-    🔴 From the PUBLIC key, always: PyJWT's exporter adds ``d`` for a private
-    one, and a proof carrying it is refused.
+    🔴 From the PUBLIC key, always: PyJWT adds ``d`` for a private one.
     '''
     from jwt.algorithms import ECAlgorithm
 
@@ -88,12 +66,8 @@ def public_jwk(key) -> Dict[str, str]:
 
 
 def jwk_thumbprint(jwk: Dict[str, Any]) -> str:
-    '''The RFC 7638 thumbprint of a JWK: this is the `jkt`.
-
-    The required members only, lexicographically ordered, no whitespace. Any
-    other spelling produces a different thumbprint, which would bind a session
-    to a key the other half cannot recognise.
-    '''
+    '''The RFC 7638 thumbprint of a JWK, the `jkt`: required members only,
+    sorted, no whitespace, or the two ends disagree.'''
     from jwt.utils import base64url_encode
 
     try:
@@ -107,11 +81,7 @@ def jwk_thumbprint(jwk: Dict[str, Any]) -> str:
 
 
 def access_token_hash(access_token: str) -> str:
-    '''`ath`: the hash of the access token this proof is presented with.
-
-    It is what stops a proof captured on one request being replayed against a
-    different token.
-    '''
+    '''`ath`: the access token's hash, binding a proof to that token.'''
     from jwt.utils import base64url_encode
 
     return base64url_encode(hashlib.sha256(access_token.encode("ascii")).digest()).decode()
@@ -121,13 +91,8 @@ def sign_proof(key, method: str, url: str,
                access_token: Optional[str] = None,
                nonce: Optional[str] = None,
                iat: Optional[int] = None) -> str:
-    '''One proof, for one request. Client side.
-
-    `htu` is the request URI with any query and fragment removed, per RFC 9449;
-    `htm` is the method. A proof is good for one request and is not reused.
-    `iat` is the proof's time, where the caller corrects its clock by the
-    server's.
-    '''
+    '''One proof for one request, client side. ``iat`` overrides the time, for
+    a caller correcting its clock by the server's.'''
     import jwt
 
     claims: Dict[str, Any] = {
@@ -139,8 +104,6 @@ def sign_proof(key, method: str, url: str,
     if access_token is not None:
         claims["ath"] = access_token_hash(access_token)
     if nonce is not None:
-        # The server asked for one with `use_dpop_nonce`; the client retries the
-        # same request carrying it.
         claims["nonce"] = nonce
 
     return jwt.encode(
@@ -153,11 +116,8 @@ _DEFAULT_PORTS = {"http": "80", "https": "443"}
 
 
 def _htu(url: str) -> str:
-    '''The `htu` value in its canonical form (identity *The proof rules*):
-    scheme and host lowercased, a default port omitted, the path as sent, and
-    no query or fragment. The client signs it, and the server compares it on
-    both sides, so a proof signed for `https://HOST:443/v1/me` is the one for
-    `https://host/v1/me`.'''
+    '''Canonical `htu` (identity *The proof rules*): scheme and host lowercased,
+    default port and query dropped, the path as sent.'''
     from urllib.parse import urlsplit
 
     parts = urlsplit(url)
@@ -174,13 +134,9 @@ def _htu(url: str) -> str:
 def verify_proof(proof: str, method: str, url: str,
                  access_token: Optional[str] = None,
                  now: Optional[int] = None) -> str:
-    '''Check a proof and return the thumbprint it was signed with. Server side.
+    '''Check a proof, server side, and return its thumbprint.
 
-    Raises :class:`DPoPError` for every way a proof can fail to hold up, which
-    the handler renders as `invalid-dpop-proof`. Replay is the caller's problem:
-    this remembers nothing, and the caller checks the proof's `jti` itself.
-    So is the key: the token endpoint and `TokenIssuer.authenticate` each
-    compare the returned thumbprint with the bound key themselves.
+    The caller checks `jti` replay and compares the thumbprint with the bound key.
     '''
     import jwt
 
@@ -192,9 +148,7 @@ def verify_proof(proof: str, method: str, url: str,
     if header.get("typ") != "dpop+jwt":
         raise DPoPError("proof is missing typ=dpop+jwt")
 
-    # The algorithm is pinned rather than read from the header, so a proof
-    # naming `none` or a symmetric algorithm is refused before any key is built
-    # from attacker-supplied material.
+    # Before any key is built: `none` or a symmetric `alg` is refused.
     if header.get("alg") != ALGORITHM:
         raise DPoPError(f"proof must be signed with {ALGORITHM}")
 
@@ -202,9 +156,6 @@ def verify_proof(proof: str, method: str, url: str,
     if not isinstance(jwk, dict):
         raise DPoPError("proof is missing its jwk header")
     if "d" in jwk:
-        # A private key in a header is either a serious client defect or an
-        # attempt to have the server sign something; either way it is not a
-        # proof.
         raise DPoPError("proof carries a private key")
 
     thumbprint = jwk_thumbprint(jwk)
@@ -212,9 +163,8 @@ def verify_proof(proof: str, method: str, url: str,
     try:
         key = jwt.PyJWK.from_dict({**jwk, "alg": ALGORITHM}).key
         claims = jwt.decode(proof, key, algorithms=[ALGORITHM],
-                            # 🔴 The window below is the only `iat` check:
-                            # PyJWT's own refuses any `iat` ahead of this
-                            # clock, so a client a second fast would fail.
+                            # 🔴 The window below is the only `iat` check: PyJWT's
+                            # refuses a client a second fast.
                             options={"verify_exp": False, "verify_iat": False,
                                      "require": ["jti", "htm", "htu", "iat"]})
     except jwt.PyJWTError as e:
@@ -222,8 +172,7 @@ def verify_proof(proof: str, method: str, url: str,
 
     if not isinstance(claims["htm"], str) or claims["htm"].upper() != method.upper():
         raise DPoPError("proof htm does not match the request method")
-    # Both sides canonical: a client that signed `:443`, or a mixed-case host,
-    # still names this request.
+    # Both sides canonical, so `:443` or a mixed-case host still matches.
     if not isinstance(claims["htu"], str) or _htu(claims["htu"]) != _htu(url):
         raise DPoPError("proof htu does not match the request URI")
 

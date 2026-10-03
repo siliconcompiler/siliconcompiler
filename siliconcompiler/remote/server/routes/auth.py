@@ -2,12 +2,8 @@
 Endpoints 3, 4, 5 and 6: getting a session, ending one, and a page for a
 person's browser.
 
-🔴 **Two shapes, keyed on the endpoint.** What OAuth processing refuses at
-`/v1/auth/token` and `/v1/auth/device` is answered in the OAuth shape --
-`{"error", "error_description"}`, with `reason` where one applies -- and the
-transport-level refusals raised before it (405, 415, 426, 429; this server
-raises only the first two there) stay problem+json, as everywhere.
-`/v1/auth/revoke` is an ordinary endpoint and answers problem+json.
+🔴 `/v1/auth/token` and `/v1/auth/device` refuse in the OAuth shape once OAuth
+processing starts (`errors.OAuthError`); everything else is problem+json.
 '''
 
 from urllib.parse import urlsplit
@@ -27,8 +23,8 @@ GRANT_CLIENT_CREDENTIALS = "client_credentials"
 GRANT_REFRESH_TOKEN = "refresh_token"
 GRANT_DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
 
-# Refused rather than ignored: silently dropping one would mint a token its
-# caller misunderstands. Every other unknown parameter is ignored (RFC 6749 §3.2).
+# Refused, since dropping one mints a token its caller misunderstands; other
+# unknown parameters are ignored (RFC 6749 §3.2).
 _REFUSED_PARAMETERS = ("actor_token", "audience", "resource")
 
 
@@ -39,13 +35,10 @@ def _issuer():
 def public_origin() -> str:
     '''The origin this deployment is reached at, from configuration.
 
-    🔴 **Never `Host`, `X-Forwarded-Host`, `base_url` or `url_root`**: a URL
-    this server hands out gets pasted and clicked, and a proof checked against
-    a caller-chosen host is not checked. They only pick AMONG the configured
-    origins, where there are several: the one the request's DPoP proof signed
-    for, where it has one, and otherwise the one whose host is `Host` (contract
-    D70). Never the socket's scheme, which behind a TLS-terminating proxy is
-    `http`. One that matches neither way gets the first.
+    🔴 Never `Host`, `X-Forwarded-Host` or the socket's scheme: a handed-out URL
+    gets clicked, and a proof checked against a caller-chosen host is not
+    checked. The request only picks AMONG configured origins: the proof's,
+    then `Host`'s, else the first (contract D70).
     '''
     origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
     signed = _signed_origin()
@@ -61,9 +54,8 @@ def public_origin() -> str:
 
 
 def _signed_origin():
-    '''The canonical origin of this request's DPoP proof's `htu`, or None.
-    Read unverified: it only chooses among the configured origins, and the
-    proof is then verified against the one it chose.'''
+    '''The canonical origin of this request's DPoP proof's `htu`, or None;
+    unverified, since it only chooses among configured origins.'''
     proof = flask.request.headers.get("DPoP")
     if not proof:
         return None
@@ -90,12 +82,8 @@ def request_url() -> str:
 
 
 def current_session():
-    '''The verified caller, or a refusal.
-
-    Cached on the request so that two checks in one handler do not verify the
-    proof twice -- and, more importantly, do not trip the replay guard on the
-    second look.
-    '''
+    '''The verified caller, or a refusal; cached on the request so a second
+    check does not trip the replay guard.'''
     session = getattr(flask.g, "sc_session", None)
     if session is None:
         session = _issuer().authenticate(
@@ -127,12 +115,8 @@ MACHINE_ID_SOURCES = ("linux_machine_id", "macos_platform_uuid", "windows_machin
 
 @blueprint.route("/v1/auth/token", methods=["POST"])
 def token():
-    '''Endpoint 4: the only token endpoint.
-
-    Form-encoded rather than JSON, because that is what RFC 6749 specifies and
-    this borrows the grant's shape. A DPoP proof is REQUIRED on every grant --
-    there is no unbound session to be had here.
-    '''
+    '''Endpoint 4: the only token endpoint, form-encoded per RFC 6749. A
+    DPoP proof is REQUIRED on every grant.'''
     form = _oauth_form()
 
     proof = flask.request.headers.get("DPoP")
@@ -174,8 +158,7 @@ def token():
         raise OAuthError("invalid_request", "grant_type is required")
 
     else:
-        # The device grant and token exchange included: neither is offered
-        # here, and this is the answer on which a client switches login mode.
+        # The device grant included: a client switches login mode on this.
         raise OAuthError("unsupported_grant_type",
                          f"this deployment does not offer {grant_type}")
 
@@ -187,11 +170,8 @@ def token():
 
 
 def _oauth_form():
-    '''The form, once the transport-level checks pass.
-
-    415 is raised before any OAuth processing, so it stays problem+json; a
-    refused parameter is OAuth processing's own `invalid_request`.
-    '''
+    '''The form, once the transport-level checks pass: 415 comes before OAuth
+    processing, so it stays problem+json.'''
     if flask.request.mimetype != "application/x-www-form-urlencoded":
         raise ProblemError(
             "unsupported-media-type",
@@ -206,8 +186,7 @@ def _oauth_form():
 
 
 def _machine_id_source(form) -> str:
-    # 🔴 One of four, and nothing else (identity D59): the weak-path flag a
-    # device carries for ever. Absent reads as none.
+    # 🔴 One of four (identity D59): the weak-path flag a device keeps for ever.
     source = form.get("machine_id_source") or "none"
     if source not in MACHINE_ID_SOURCES:
         raise OAuthError("invalid_request",
@@ -217,12 +196,8 @@ def _machine_id_source(form) -> str:
 
 @blueprint.route("/v1/auth/device", methods=["POST"])
 def device_authorization():
-    '''Endpoint 3: routed, and it refuses in the OAuth shape.
-
-    `unsupported_grant_type`, which is what the device endpoint answers where
-    the deployment does not offer the device grant: the client's cue to switch
-    to `client_credentials`, never a reason to retry.
-    '''
+    '''Endpoint 3: `unsupported_grant_type`, the client's cue to switch to
+    `client_credentials`.'''
     _oauth_form()
     raise OAuthError("unsupported_grant_type",
                      "this deployment issues sessions with client_credentials")
@@ -230,11 +205,8 @@ def device_authorization():
 
 @blueprint.route("/v1/auth/revoke", methods=["POST"])
 def revoke():
-    '''Endpoint 5: end this session.
-
-    No scope gates it. A credential may always end itself, and a logout that
-    can be scoped away is a session nobody can close.
-    '''
+    '''Endpoint 5: end this session. No scope gates it: a credential may
+    always end itself.'''
     _issuer().revoke(current_session())
 
     response = flask.make_response("", 204)
@@ -254,13 +226,8 @@ _PAGES = ("job_id", "terms_id", "artifact_id")
 def browser():
     '''Endpoint 6: a single-use sign-in that lands on one portal page.
 
-    🔴 **The landing is built from the id the request names**, and no path a
-    caller sends is followed: a redirect that follows caller input is an open
-    redirect. The link is on `web_url_base`, never on `Host` or
-    `X-Forwarded-Host`, and lives seconds; this portal has no sign-in of its
-    own, so `expires_at` is always set here.
-
-    Any session but a CI one may ask, and no scope gates it (surface D310).
+    🔴 The landing is built from the named id, never a caller's path, which
+    would be an open redirect. Any session but a CI one may ask (surface D310).
     '''
     from siliconcompiler.remote.server.jobs.common import _from_epoch
 
@@ -274,23 +241,19 @@ def browser():
     named = _page_named()
     jobs = flask.current_app.config["SC_JOBS"]
     if named is None:
-        # The portal's home, or the page a browser was turned away from cold:
-        # the portal's own breadcrumb, checked when the sign-in is spent.
+        # The portal's home, or its own breadcrumb, checked when spent.
         landing = None
     elif named[0] == "job_id":
         landing = flask.url_for("portal.job", job_id=jobs.owned(session, named[1])["id"])
     elif named[0] == "terms_id":
-        # 🔴 This profile serves no terms documents, so none is one the caller
-        # can see.
+        # 🔴 This profile serves no terms documents.
         raise ProblemError("not-found", detail="no such terms document")
     else:
         row = store.one("SELECT job_id FROM artifacts WHERE id = ?", (named[1],))
         if row is None:
             raise ProblemError("not-found", detail="no such artifact")
-        # By its job, as every read of an artifact is: the job's predicate.
         jobs.owned(session, row["job_id"])
-        # 🔴 This profile takes no access requests, so every artifact reads
-        # `can_request_access: false`, and there is nothing to ask for.
+        # 🔴 This profile takes no access requests.
         raise ProblemError("not-permitted",
                            detail="this artifact has nothing to ask for: this server takes "
                                   "no access requests")
@@ -304,9 +267,7 @@ def browser():
 
 def _page_named():
     '''``(member, id)`` the request's body names, or None for the portal's
-    home. An empty body is `{}` (surface D306); more than one member, one this
-    endpoint does not define, or an id that is not a string, is
-    `invalid-request`.'''
+    home; an empty body is `{}` (surface D306).'''
     if flask.request.mimetype not in ("application/json", ""):
         raise ProblemError("unsupported-media-type",
                            detail=f"this endpoint takes application/json, not "
@@ -334,8 +295,8 @@ def _page_named():
 
 
 def _portal_url(path: str, **query) -> str:
-    '''A portal URL on `web_url_base`, or on the configured origin this
-    request arrived at where there is none -- never on a request header.'''
+    '''A portal URL on `web_url_base`, else the configured origin, never on a
+    request header.'''
     from urllib.parse import urlencode
 
     base = flask.current_app.config["SC_CONFIG"]["web_url_base"]

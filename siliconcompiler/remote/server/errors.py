@@ -1,16 +1,11 @@
 '''
-Every way this API says no.
+Every way this API says no: the ``type`` registry, frozen at v1.
 
-The ``type`` registry is frozen at v1 and the namespace belongs to
-SiliconCompiler rather than to any one deployment: both implementations must
-return the same URI or a client cannot branch across them. A slug names a *kind*
-of failure and never one instance of it, which is why the discriminator lives in
-an extension member -- ``limit``, ``feature``, ``reason`` -- rather than in
-the slug. A member's value can be added after the freeze; a slug cannot.
-
-Rows are registered here even where nothing raises them yet. An unraised row
-costs a line; a missing row costs a major version, and two implementations that
-each mint a slug for the same condition cost a client a second table.
+The namespace is SiliconCompiler's, not a deployment's, so every implementation
+returns the same URI. A slug names a kind of failure; the discriminator is an
+extension member (``limit``, ``reason``), since a member's value can be added
+after the freeze and a slug cannot. Rows are registered even where nothing
+raises them: a missing row costs a major version.
 '''
 
 import re
@@ -26,11 +21,8 @@ TYPE_BASE = "https://siliconcompiler.com/server-errors"
 
 
 class _Error(NamedTuple):
-    '''One row of the registry.
-
-    ``status`` is None for the slugs that are never HTTP responses: they are
-    ``type`` values on a job's or a node's ``error`` object.
-    '''
+    '''One row of the registry. ``status`` is None for a slug that is only a
+    ``type`` on a job's or a node's ``error`` object, never an HTTP response.'''
     slug: str
     status: Optional[int]
     title: str
@@ -41,9 +33,7 @@ class _Error(NamedTuple):
         return f"{TYPE_BASE}/{self.slug}"
 
 
-# Every slug, grouped by kind. `title` is the part of the body that must be
-# identical on every occurrence, so it is fixed here rather than written per
-# raise site.
+# `title` is fixed here so every occurrence of a slug is identical.
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # -- ceilings ------------------------------------------------------------
     _Error("limit-exceeded", 429, "Limit exceeded", ("limit",)),
@@ -60,26 +50,18 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
            ("resource_kind", "resource")),
     _Error("resource-unresolved", 422, "Could not resolve what this flow needs",
            ("resource_kind",)),
-    # 🆕 D91, reshaped by D110: no live image satisfies the job's software
-    # requirements. `unresolved` lists each failed one with its alternatives
-    # and what is available; `reason` is "unavailable" or "combination".
+    # 🆕 D91, D110: no live image satisfies the job's software requirements;
+    # `reason` is "unavailable" or "combination".
     _Error("software-unavailable", 422, "No image provides that software",
            ("reason", "unresolved")),
-    # 🆕 D105, widened by D116: the job needs a resource -- any kind, a tool
-    # included -- this deployment does not hold and cannot supply. Not
-    # `resource-unresolved`, which is not knowing WHICH. `resource_kind` only
-    # where the deployment can name the kind (surface D285), so it is not
-    # required; nor is `keypath`, which says which of an owner's dataroots it
-    # is, where it is one (surface D298).
+    # 🆕 D105, D116: a resource of any kind this deployment neither holds nor can
+    # supply; `resource-unresolved` is not knowing WHICH. `resource_kind` (surface
+    # D285) and `keypath` (surface D298) are optional, so not listed.
     _Error("resource-unavailable", 422, "This server does not hold that resource",
            ("resource",)),
-    # 🆕 D105, D115: crucible's, raised while staging for restricted material
-    # the caller may not upload. `detected` is "content", found during
-    # extraction, or "attribution", once the manifest's read reports what each
-    # member belongs to; `member` the archive entry; `resource` only for a
-    # holder, so it is not REQUIRED. Registered because the registry is the
-    # contract's; this profile allows every upload (profile D26) and never
-    # raises it.
+    # 🆕 D105, D115: crucible's, for restricted material found while staging.
+    # Registered because the registry is the contract's; this profile allows
+    # every upload (profile D26) and never raises it.
     _Error("upload-forbidden", 422, "Upload of that resource is not allowed",
            ("resource_kind", "detected", "member")),
     _Error("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
@@ -114,23 +96,18 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("insecure-transport", 426, "Upgrade required"),
 
     # -- job outcomes, and two refusals registered beside them ---------------
-    # A row with no status is never an HTTP response: it is a `type` value on
-    # a job's or a node's `error` object.
-    # The environment ended the run: the scheduler lost it, preemption, a
-    # failed compute node, an image that could not be pulled.
+    # The environment ended the run: lost by the scheduler, preempted, a failed
+    # compute node, an image that could not be pulled.
     _Error("run-interrupted", None, "The run was interrupted"),
     # A `continues_from` entry whose results cannot be used (surface D175).
     _Error("prior-results-unavailable", 422, "Those earlier results cannot be used",
            ("step", "index", "job_id", "reason")),
-    # Registered for a caller with no POSIX account (identity D58). This
-    # profile provisions on first contact and never raises it.
+    # Identity D58; this profile provisions on first contact and never raises it.
     _Error("account-not-provisioned", 403, "Your account is not set up on this deployment"),
-    # 🔴 A job-level type like run-interrupted (surface D169): a staging the
-    # server could not complete for its own reasons, after retrying -- an
-    # image the manifest is read in that could not be pulled among them.
+    # 🔴 A job-level type (surface D169): staging the server could not complete
+    # for its own reasons, after retrying.
     _Error("staging-failed", None, "The server could not get this job ready"),
-    # The job's own limit, not the server's failure (surface D294): staging ran
-    # past the caller's `max_staging_seconds`, counted each time it stages.
+    # The job's own limit, not the server's failure (surface D294).
     _Error("staging-timed-out", None, "The job took too long to get ready", ("limit",)),
     _Error("run-failed", None, "The run failed"),
 )}
@@ -145,40 +122,28 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       "link_member", "device_member", "traversal",
                       # No manifest at the root, or one that cannot be read.
                       "missing_manifest", "invalid_manifest",
-                      # A dataroot's path in the manifest carrying userinfo,
-                      # which no client sends (surface D302).
+                      # A dataroot path carrying userinfo (surface D302).
                       "credential",
-                      # A follow-up archive carrying anything but what was
-                      # asked for (D124): it may not replace what the first
-                      # archive carried after the server checked it.
+                      # A follow-up archive carrying what was not asked for
+                      # (D124).
                       "unrequested_member",
-                      # A value the flow reads that the client should have
-                      # sent -- the design, anything local or editable, or
-                      # what was asked for -- and did not (D129).
+                      # A value the flow reads that the client should have sent
+                      # (D129).
                       "missing_member",
-                      # An uploaded wheel that is not pure, is malformed, or
-                      # overlaps a listed distribution or another wheel, or any
-                      # wheel where the deployment has no `python.env` (D283).
+                      # An impure, malformed or overlapping wheel, or any wheel
+                      # without `python.env` (D283).
                       "python_package",
-                      # A member whose extension a deployment's allowlist does
-                      # not admit (contract D40). This profile has no such
-                      # allowlist and never raises it; listed so the set is
-                      # the contract's.
+                      # Contract D40; this profile never raises it.
                       "extension",
                       # A job that would wait for a person nobody is at
-                      # (surface D165): a node with a breakpoint, and one whose
-                      # task opens a window.
+                      # (surface D165).
                       "breakpoint", "interactive_task")
 
 
 class OAuthError(Exception):
-    '''A refusal OAuth processing makes at `/v1/auth/token` or
-    `/v1/auth/device`, rendered in the OAuth shape (RFC 6749 §5.2):
-    `{"error", "error_description"}`, with `reason` where one applies.
-
-    Only what OAuth processing refuses: the transport-level refusals raised
-    before it -- 405, 415, 426, 429 -- stay `ProblemError`, and problem+json.
-    '''
+    '''A refusal from OAuth processing at `/v1/auth/token` or `/v1/auth/device`,
+    in RFC 6749 §5.2's shape. Transport refusals raised before it (405, 415,
+    426, 429) stay `ProblemError`.'''
 
     # The codes a client branches on, and nothing else is ever sent.
     CODES = ("invalid_request", "invalid_client", "invalid_grant",
@@ -233,28 +198,14 @@ class ProblemError(Exception):
                        status=self.status, **self.members)
 
 
-# How much of a `detail` reaches a caller, and it is bounded rather than
-# trusted.
-#
-# 🔴 **Some details are built out of text this server did not write.** A tool's
-# exception, a tarfile member's name, a manifest's parse error: every one of
-# them can carry a path the CLIENT chose, and `detail` is published to anybody
-# who can read the job. The contract's rule is that it does not echo
-# unvalidated input; this is where that is enforced, once, for every refusal,
-# because a rule applied at each call site is a rule somebody forgets at the
-# next one.
-#
-# ⚠️ What is bounded is what is PUBLISHED. The full text still reaches the
-# server's log, which has an entitled reader.
-#
-# ⚠️ **Characters and not bytes**, which is the one place this contract's usual
-# `_bytes` is wrong: truncating UTF-8 by byte count splits a codepoint, and
-# what comes out is not text.
-#
-# The default, and the deployment's `limits.max_detail_chars` replaces it at
-# startup. A module-level number rather than a parameter because `problem()` is
-# the funnel every refusal passes through, and threading config into it would
-# put a way around the bound at every call site.
+# How much of a `detail` reaches a caller.
+# 🔴 Some details carry text this server did not write -- a tool's exception, a
+# member's name -- with a path the CLIENT chose, and `detail` is published to
+# anyone who can read the job. Bounded once, in `problem()`, for every refusal;
+# the full text still reaches the log.
+# ⚠️ Characters, not bytes: cutting UTF-8 by bytes splits a codepoint.
+# A module-level default that `limits.max_detail_chars` replaces at startup, so
+# no call site has a way around it.
 DETAIL_MAX = 300
 
 
@@ -264,9 +215,8 @@ def set_detail_max(characters: int) -> None:
     DETAIL_MAX = int(characters)
 
 
-# This server's own internals, which a `detail` must never carry (D122): the
-# paths it keeps its data and mounts under, and its host names. Set once, at
-# startup.
+# This server's internals, which a `detail` must never carry (D122): its data
+# and mount paths, and its host names.
 _INTERNAL_PATHS: list = []
 _INTERNAL_NAMES: list = []
 
@@ -300,10 +250,8 @@ _CREDENTIALS = (
 def scrub(detail: str) -> str:
     '''Take this server's internals out of a `detail` (D122).
 
-    🔴 **A tool's exception text carries mount paths, hostnames and environment
-    dumps**, and `detail` is published to whoever can read the job. The
-    client's own input was already bounded; the server's is the half that
-    leaks how the deployment is laid out.
+    🔴 A tool's exception text carries mount paths, hostnames and environment
+    dumps, which leak how the deployment is laid out.
     '''
     text = detail
     for path in _INTERNAL_PATHS:
@@ -315,22 +263,15 @@ def scrub(detail: str) -> str:
     return text
 
 
-# Everything that is not text: NUL, the rest of C0, DEL, and C1 -- whose
-# U+009B is a terminal's escape in one character. Tab, newline and carriage
-# return are handled by the whitespace collapse instead, because they are
-# ordinary in an exception.
+# NUL, the rest of C0, DEL and C1, whose U+009B is a one-character terminal
+# escape. Tab and newlines go in the whitespace collapse instead.
 _UNPRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 def bound(detail: Optional[str]) -> Optional[str]:
-    '''One line of somebody else's text, short enough to publish.
-
-    Three things, and each is a different reader being protected: control
-    characters go because a `detail` is printed to a terminal; newlines go
-    because a refusal is one line and a multi-line one breaks every log that
-    reads it; and the length goes because a stack trace pasted into a JSON
-    body is not prose, it is a copy of the log in the wrong place.
-    '''
+    '''One line of somebody else's text, short enough to publish: no control
+    characters (it reaches a terminal), no newlines (it breaks logs), and at
+    most `DETAIL_MAX` characters.'''
     if not detail:
         return detail
 
@@ -368,9 +309,8 @@ def trace_id(headers) -> str:
 
 
 def only_query(args, allowed, where: str) -> None:
-    '''🔴 A query parameter a collection does not define is refused, never
-    ignored (surface D177): a misspelled filter would otherwise return
-    everything, and read as an answer to the question asked.'''
+    '''🔴 Refuse a query parameter the collection does not define (surface
+    D177): a misspelled filter would otherwise return everything.'''
     unknown = sorted(set(args) - set(allowed))
     if unknown:
         raise ProblemError(
@@ -381,11 +321,8 @@ def only_query(args, allowed, where: str) -> None:
 
 def problem(slug: str, detail: Optional[str] = None,
             status: Optional[int] = None, **members) -> Dict[str, Any]:
-    '''An RFC 9457 body.
-
-    ``type`` and ``title`` come from the registry so that every occurrence of a
-    condition is identical; ``detail`` is prose and may be reworded, which is
-    why a client branches on ``type`` and never on it.
+    '''An RFC 9457 body. ``type`` and ``title`` come from the registry; a
+    client branches on ``type``, never on the rewordable ``detail``.
 
     🔴 `detail` is bounded here and nowhere else -- see `DETAIL_MAX`.
     '''

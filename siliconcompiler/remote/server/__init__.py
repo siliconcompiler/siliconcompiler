@@ -1,19 +1,12 @@
 '''
-The v1 remote job server.
-
-Run it with ``python -m siliconcompiler.remote.server``. At the top, what every
-part leans on; below it, one folder per part of a job's life:
+The v1 remote job server, run with ``python -m siliconcompiler.remote.server``.
 
 ``app.py``        the Flask application, and the checks it starts with
-``config.py``     what this deployment promises: defaults, then an optional
-                  ``<datadir>/config.json``
-``errors.py``     the frozen error registry and its RFC 9457 bodies;
-                  ``errorpages/`` holds a page for each type
-``jobs/``         the job, from create to delete: the one service every route
-                  and the portal go through, one module per step
+``config.py``     what this deployment promises, and its defaults
+``errors.py``     the frozen error registry; ``errorpages/`` a page per type
+``jobs/``         the job, create to delete: the one service routes and portal use
 ``routes/``       the v1 endpoints, one module per group
-``portal/``       the web UI, through the same service as the API
-
+``portal/``       the web UI
 ``state/``        the store's rows and the storage's bytes
 ``identity/``     sessions, accounts and devices
 ``staging/``      opening the upload, reading the manifest, fetching sources
@@ -22,9 +15,8 @@ part leans on; below it, one folder per part of a job's life:
 ``running/``      handing a run to a scheduler, and the process that runs it
 ``outputs/``      what a run leaves behind, served and taken back
 
-🔴 **Importing a part does not import Flask.** The run's own process and the
-manifest's read load modules from here, and neither needs a web server; so the
-names below are loaded when first asked for.
+🔴 Importing a part does not import Flask: the run's process and the manifest's
+read load modules from here, so the names below load when first asked for.
 '''
 
 __all__ = ["create_app", "Config", "ProblemError", "problem", "Store"]

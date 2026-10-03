@@ -1,8 +1,6 @@
 '''
 A job's rows and the objects they become: ownership, state moves, and the job
 object as §17 publishes it.
-
-A part of :class:`~siliconcompiler.remote.server.jobs.service.JobService`, which composes them.
 '''
 
 import json
@@ -21,17 +19,9 @@ from siliconcompiler.remote.server.state.store import (
 class RowsMixin:
     '''A job's rows and the objects they become.'''
 
-    ######################################################################
-    # Rows, and the objects they become
-    ######################################################################
-
     def owned(self, session, job_id: str):
-        '''A job, or a 404 that does not say whether it exists.
-
-        The predicate is the whole point of the identity work: a stranger
-        holding an id is not the owner. A 403 would confirm the id belongs to
-        somebody.
-        '''
+        '''A job, or a 404 that does not say whether it exists: a 403 would
+        confirm the id belongs to somebody.'''
         row = self._store.one(
             "SELECT * FROM jobs WHERE id = ? AND user_id = ?", (job_id, session.user_id))
         if row is None:
@@ -42,12 +32,8 @@ class RowsMixin:
         return self._store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
 
     def resolved_versions(self, job) -> Dict[str, List[str]]:
-        """Every distribution version this job's images declare.
-
-        The job image and each node's, taken together: a forty-node flow over
-        six tools resolves six images, and *what did this run* is the union of
-        what they hold.
-        """
+        """Every distribution version this job's images declare: the union of
+        the job image and each node's."""
         rows = self._store.all(
             'SELECT step, "index", image_id FROM job_nodes WHERE job_id = ? '
             "  AND image_id IS NOT NULL", (job["id"],))
@@ -58,8 +44,8 @@ class RowsMixin:
             [row["image_id"] for row in rows if (row["step"], row["index"]) in runs_python])
 
     def _runs_user_python(self, job):
-        '''Each node whose task runs the user's Python, as the manifest's read
-        found it -- the summary stored in the job root, which it validated.'''
+        '''Each node whose task runs the user's Python, from the read's stored
+        summary.'''
         from siliconcompiler.remote.server.running import runspec
 
         path = self.job_root(job["user_id"], job["id"]) / runspec.SUMMARY_FILENAME
@@ -73,15 +59,8 @@ class RowsMixin:
     def _why(self, job) -> Optional[str]:
         '''What actually went wrong, in the run's own words.
 
-        🔴 Read back off `job_state_transitions` rather than stored a second
-        time on the job. The transition into the state the job is in IS the
-        record of why it got there -- `jobs` has an `error_type` and no
-        `error_detail`, and adding one would mean two writers for one fact.
-
-        The runner writes it into the progress file as the exception that
-        ended the run, and the reaper and the refusal path write theirs the
-        same way, so every terminal state has one and it is the same string
-        the portal renders in the history table.
+        🔴 Read off the transition into the current state, never stored twice:
+        an `error_detail` column would be a second writer for one fact.
         '''
         if not job["error_type"]:
             return None
@@ -109,11 +88,8 @@ class RowsMixin:
 
     def _list_records(self, job_id: str) -> None:
         '''🔴 A job turns terminal only once every artifact it will list is
-        listed (surface D308), so the server's own records are listed as it
-        ends -- the `staging` record and the operators' `diagnostics`, which a
-        job that never ran leaves and nothing else indexes. In the caller's
-        transaction; a run's own output is indexed before it, by
-        `_index`.'''
+        listed (surface D308): the server's own records, here, in the caller's
+        transaction; a run's output is `_index`'s, before it.'''
         job = self._row(job_id)
         root = self.job_root(job["user_id"], job_id)
         try:
@@ -136,19 +112,16 @@ class RowsMixin:
         body = {
             "id": job["id"],
             "state": job["state"],
-            # Published rather than derivable on purpose. The rule is read
-            # `terminal`, do not switch on the name -- which is what makes a
-            # new state additive instead of breaking.
+            # Published so clients never switch on the name, keeping new
+            # states additive.
             "terminal": job["state"] in TERMINAL_STATES,
-            # 🔴 Every state the job has entered, oldest first (surface §17;
-            # D278): how long it spent in each, and why it moved where the
-            # server knows. Never empty.
+            # 🔴 Every state entered, oldest first, never empty (surface §17;
+            # D278).
             "transitions": self._transitions(job),
             "design": job["design"],
             "jobname": job["jobname"],
             "flow": job["manifest_flow"],
-            # The user id is what GET /v1/me returns, so a client compares it;
-            # the name is display only. Nothing here verifies who anybody is.
+            # A client compares the id with GET /v1/me; the name is display only.
             "owner": {"id": job["user_id"], "name": owner["display_name"] or job["user_id"]},
             "project": None,
             "created_at": job["created_at"],
@@ -157,28 +130,20 @@ class RowsMixin:
             "finished_at": job["finished_at"],
             "archived_at": job["archived_at"],
             "deleted_at": job["deleted_at"],
-            # Set exactly when deleted_at is: every job deletion is a person's,
-            # so a job carries no deleted_cause (D279).
+            # Every job deletion is a person's, so no deleted_cause (D279).
             "deleted_reason": job["deleted_reason"] if job["deleted_at"] else None,
             "error": _error(job["error_type"], self._why(job), job["error_members"])
             if job["state"] in ("failed", "rejected") else None,
         }
-        # Only the live staging phase: a transition's reason, a cancel's
-        # included, is on its entry of `transitions`.
+        # Only the live staging phase; other reasons are on `transitions`.
         if job["state"] == "staging" and job["state_reason"] and body["error"] is None:
             body["state_reason"] = bound(job["state_reason"])
 
-        # No portal URL: a job's page is asked for by its id, at
-        # `POST /v1/auth/browser`, when a client is about to open it (surface
-        # D309).
+        # No portal URL: a client asks `POST /v1/auth/browser` (surface D309).
 
-        # 🔴 What it actually ran in. Since a request can carry a range, nothing
-        # else answers *what did this job run* -- the descriptor says what was
-        # asked for and this says what the server chose.
-        #
-        # ⚠️ Absent rather than empty where nothing was resolved: on a
-        # deployment that runs jobs on the host there is no image and no
-        # answer, and `{}` would claim this job ran nothing at all.
+        # 🔴 What the server chose, where the descriptor says what was asked.
+        # ⚠️ Absent rather than `{}` on the host, which would claim it ran
+        # nothing.
         resolved = self.resolved_versions(job)
         if resolved:
             body["resolved_versions"] = resolved
@@ -189,9 +154,7 @@ class RowsMixin:
             body["continues_from"] = [{"step": step, "index": index, "job_id": from_job}
                                       for step, index, from_job in continued]
 
-        # 🔴 Present only while the server is asking -- in `created` or
-        # `awaiting_input` -- and never `[]` (D127): what to send, and nothing
-        # else.
+        # 🔴 Present only while the server is asking, and never `[]` (D127).
         if job["state"] in PENDING_STATES and job["upload_sources"]:
             asking = json.loads(job["upload_sources"])
             if asking:
@@ -214,13 +177,11 @@ class RowsMixin:
                     "started_at": row["started_at"],
                     "finished_at": row["finished_at"],
                     "exit_code": row["exit_code"],
-                    # The job's error's shape: null unless the node failed
-                    # (surface §17, *A node's `error`*).
+                    # Null unless the node failed (surface §17).
                     "error": _error(row["error_type"], members=row["error_members"]),
                 }
                 if row["state_reason"] and not row["error_type"]:
-                    # Only a cancel writes a node's `state_reason`: the
-                    # caller's words, served whole (surface D288).
+                    # Only a cancel writes it: the caller's words (surface D288).
                     node["state_reason"] = row["state_reason"]
                 body["nodes"].append(node)
 
@@ -237,15 +198,11 @@ class RowsMixin:
         return body
 
     def _transitions(self, job) -> List[Dict[str, Any]]:
-        '''`transitions`, from `job_state_transitions`: each state entered,
-        with when, and a reason where one was recorded.
+        '''`transitions`: each state entered, when, and any recorded reason.
 
-        🔴 **Two kinds of reason, kept apart by the state entered.** Every
-        reason on a move into `cancelling` or `cancelled` is the cancel's -- the
-        caller's words, checked at the boundary to at most `MAX_REASON` with no
-        control character, or the default *cancelled* -- and is served whole
-        (surface D288), whatever `max_detail_chars` is set to. Every other
-        reason is this server's own, bounded and scrubbed like `detail`.
+        🔴 A reason entering `cancelling` or `cancelled` is the caller's, checked
+        at the boundary and served whole (surface D288); every other is this
+        server's, bounded and scrubbed like `detail`.
         '''
         rows = self._store.all(
             "SELECT to_state, occurred_at, reason FROM job_state_transitions "
@@ -262,20 +219,9 @@ class RowsMixin:
     def _refuse(self, job, problem: ProblemError) -> ProblemError:
         '''Record a refusal, and hand back the problem for the caller to raise.
 
-        A refused job is `rejected` and never `failed`: a refused job never ran,
-        and keeping it out of `failed` is what stops a run of entitlement
-        denials reading as a run of broken designs.
-
-        🔴 **What is stored is the problem the caller was handed, whole.**
-        Written separately, the two drift, and the person and the page they
-        are looking at disagree about a job neither of them can re-read.
-        Taking the `ProblemError` itself is what makes that impossible rather
-        than unlikely.
-
-        🔴 **And the stored reason is the problem's `detail`, not its slug.**
-        The slug is already `jobs.error_type` and is published as `error.type`;
-        writing it a second time as prose tells a person nothing they cannot
-        already see, where `detail` says *which* limit, *which* mismatch.
+        `rejected`, never `failed`: a refused job never ran. 🔴 What is stored
+        is the problem the caller was handed, whole, so the two cannot drift;
+        its reason is the `detail`, since the slug is already `error.type`.
         '''
         kept = _kept(problem)
         if not kept:
@@ -285,7 +231,7 @@ class RowsMixin:
         with self._store.transaction():
             current = self._row(job["id"])
             if current["state"] != job["state"]:
-                # Cancelled while staging checked it: what the owner did stands.
+                # Cancelled meanwhile: what the owner did stands.
                 raise _NoLongerStaging(job["id"])
             self._store.execute(
                 "UPDATE jobs SET error_type = ?, error_members = ?, finished_at = ? "
@@ -298,9 +244,8 @@ class RowsMixin:
 
 
 def _kept(problem: ProblemError) -> bool:
-    '''Whether a refused job's upload is kept: not where it was refused for
-    what it must not carry -- a `credential`, or a private dataroot's value,
-    the `unrequested_member` that names its `keypath` (surface D307, D308).'''
+    '''Whether a refused job's upload is kept: not where it carried what it
+    must not, a `credential` or a private dataroot (surface D307, D308).'''
     if problem.error.slug != "archive-rejected":
         return True
     reason = problem.members.get("reason")
