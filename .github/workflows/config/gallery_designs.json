@@ -1,0 +1,1058 @@
+[
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "aes",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "aes",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "cache": false,
+        "design": "black_parrot",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "black_parrot",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "cache": false,
+        "design": "black_parrot",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "cache": false,
+        "design": "black_parrot",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "black_parrot",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "black_parrot",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "blinky",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "caliptra_datavault",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "caliptra_datavault",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "caliptra_datavault",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "caliptra_datavault",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_datavault",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "caliptra_datavault",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_datavault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_datavault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "icsprout55_ics55"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_keyvault",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "caliptra_sha512",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "caliptra_sha512",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "caliptra_sha512",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "caliptra_sha512",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_sha512",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "caliptra_sha512",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "caliptra_sha512",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "caliptra_sha512",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "cache": false,
+        "design": "cva6",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "cache": false,
+        "design": "cva6",
+        "remote": false,
+        "skip": "floorplan.pin_pla.../0: [ERROR PPL-0024] Number of IO pins (5257) exceeds maximum number of available positions (4616). Increase the die peri...",
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "cache": false,
+        "design": "cva6",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "cache": false,
+        "design": "cva6",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "cva6",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "cva6",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "darksocv",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "darksocv",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "cache": false,
+        "design": "darksocv",
+        "remote": false,
+        "skip": "route.detailed_an.../0: [ERROR DRT-0206] checkConnectivity error.",
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "darksocv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "darksocv",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "darksocv",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "dynamic_node",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "ethmac",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "ethmac",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "ethmac",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "ethmac",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "ethmac",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "ethmac",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "fazyrv",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "fazyrv",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "fazyrv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "fazyrv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "fazyrv",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "fazyrv",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "gcd",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "heartbeat",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "ibex",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "ibex",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "jpeg",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "jpeg",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "openmsp430",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "picorv32",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "qerv",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "riscv32i",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "riscv32i",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "serv",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "spi",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "swerv",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "icsprout55_ics55"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "swerv",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "tiny_rocket",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "tiny_rocket",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "tiny_rocket",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "tiny_rocket",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "tiny_rocket",
+        "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "tiny_rocket",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "gt2n_6t_w31"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "icsprout55_ics55"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "design": "uart",
+        "remote": false,
+        "target": "skywater130_sky130hd"
+    },
+    {
+        "cache": false,
+        "design": "wally",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "asap7_asap7sc7p5t_rvt"
+    },
+    {
+        "cache": false,
+        "design": "wally",
+        "remote": false,
+        "skip": "floorplan.macro_p.../0: [ERROR MPL-0008] Annealing engine failed to find a valid solution. Please, report this internal error.",
+        "target": "freepdk45_nangate45"
+    },
+    {
+        "cache": false,
+        "design": "wally",
+        "remote": false,
+        "skip": "floorplan.macro_p.../0: [ERROR MPL-0008] Annealing engine failed to find a valid solution. Please, report this internal error.",
+        "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
+    },
+    {
+        "cache": false,
+        "design": "wally",
+        "remote": false,
+        "skip": "floorplan.macro_p.../0: [ERROR MPL-0008] Annealing engine failed to find a valid solution. Please, report this internal error.",
+        "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
+    },
+    {
+        "cache": false,
+        "design": "wally",
+        "remote": false,
+        "skip": "Timed out on CI runner",
+        "skip_class": "resource",
+        "target": "ihp130_sg13g2_stdcell"
+    },
+    {
+        "cache": false,
+        "design": "wally",
+        "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
+        "target": "skywater130_sky130hd"
+    }
+]
