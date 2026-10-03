@@ -43,7 +43,7 @@ def submitted(server_client, key, token, archive):
 
 def test_a_task_class_this_server_does_not_have_is_refused_and_never_imported(
         server_client, key, token, job_archive, nop_project, dispatcher, unloaded):
-    '''🔴 Never run as its base class instead (surface D163), and looked up,
+    '''Never run as its base class instead (surface D163), and looked up,
     not imported.'''
     nop_project.get_flow().get_graph_node("stepone", "0").set(
         "taskmodule", "sc_uploaded_names/NamedTask")
@@ -150,7 +150,7 @@ def test_a_task_that_opens_a_window_is_refused_and_a_screenshot_is_not(
 
 
 def test_the_runner_fails_a_node_whose_task_class_is_not_installed(nop_project):
-    '''🔴 Never run as its base class: the node fails, named, and nothing starts.'''
+    '''Never run as its base class: the node fails, named, and nothing starts.'''
     from siliconcompiler.remote.server.running import runner
 
     nop_project.get_flow().get_graph_node("steptwo", "0").set(

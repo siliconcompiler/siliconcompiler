@@ -25,7 +25,7 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 # skipped by inventing one: lambdapdk requires siliconcompiler>=0.38.5, so a
 # placeholder makes pip's resolver refuse.
 #
-# 🔴 **A stage of its own, and that is what keeps an unchanged tree cached.**
+# **A stage of its own, and that is what keeps an unchanged tree cached.**
 # This is the one step that reads `.git`, and `.git` changes on every git
 # command -- a commit, a fetch, a `git status` refreshing the index. Read in the
 # wheel stage, it invalidated the source copy and every layer after it, so a
@@ -33,7 +33,7 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 # and rebuilt all three images. Here it only reruns this step, whose output is
 # one line; when that line is unchanged, everything downstream is a cache hit.
 #
-# 🔴 **The version is pinned to the last TAG, on every path, and that is not a
+# **The version is pinned to the last TAG, on every path, and that is not a
 # shortcut.** `siliconcompiler.__version__` is setuptools_scm's
 # `__base_version__`, which stays at the tag for every commit after it -- so a
 # checkout 42 commits past v0.38.9 reports 0.38.9 and an image built from it
@@ -42,7 +42,7 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 # every submit from that machine was refused with `version-skew` and told to
 # install a version that does not exist.
 #
-# ⚠️ A git WORKTREE has no .git directory -- it has a 64-byte file pointing at
+# A git WORKTREE has no .git directory -- it has a 64-byte file pointing at
 # one in the main checkout, which is outside the build context and therefore
 # unreachable from in here. That is why `_version.py` is the second source: an
 # editable install has already written the answer into the tree, and reading it
@@ -155,7 +155,7 @@ RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server,cocot
 #   skopeo   copies an image out of a registry into an OCI layout
 #   umoci    unpacks that layout into the bundle crun runs
 #
-# 🔴 Deliberately NOT docker or podman. Handing a compute node the ability to
+# Deliberately NOT docker or podman. Handing a compute node the ability to
 # start containers on the host is a much larger grant than running a flow, and
 # Slurm's own container support exists precisely so that grant is unnecessary.
 #
@@ -183,7 +183,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #
 # SiliconCompiler with no EDA tools, for the nodes that do not run one.
 #
-# 🔴 This is the image the whole per-node resolution exists for. A 42-node flow
+# This is the image the whole per-node resolution exists for. A 42-node flow
 # over six tools has a lot of nodes that run thirty seconds of Python -- import,
 # the builtin joins and minimums, export -- and one image per job makes every
 # one of them pull the twelve-gigabyte container that OpenROAD lives in. Here
@@ -192,7 +192,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # contents wins, and an image whose contents are framework distributions and no
 # tool already is the python-only one.
 #
-# ⚠️ It is not python-ONLY in the literal sense, and cannot be. A framework
+# It is not python-ONLY in the literal sense, and cannot be. A framework
 # image drives the flow it was given -- it submits every node to Slurm -- so it
 # needs the Slurm client. That is ~10 MB of plugins beside libslurm, taken from
 # the same build the cluster runs so the versions cannot drift, against ~6 GB of
@@ -205,7 +205,7 @@ FROM ubuntu:24.04 AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# 🔴 git is not optional, and its absence is the least obvious failure here.
+# git is not optional, and its absence is the least obvious failure here.
 # SiliconCompiler depends on GitPython, which refuses to IMPORT without a git
 # executable -- so a runtime image without it dies before the run starts, with
 # a page of GitPython advice about $GIT_PYTHON_REFRESH and nothing that mentions
@@ -214,7 +214,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # libmunge2 because slurm authenticates with munge, which its auth plugin
 # dlopens rather than links; without it srun fails with "authentication plugin".
 #
-# 🔴 graphviz because the PYTHON distribution of that name is a wrapper: it
+# graphviz because the PYTHON distribution of that name is a wrapper: it
 # shells out to `dot`. It arrives with siliconcompiler, so this image declares
 # it and nodes that need it are placed here rather than in the twelve-gigabyte
 # tool image -- and without the binary that placement is a container that
@@ -260,7 +260,7 @@ WORKDIR /sc_server
 # it unpacks bundles, and the ~6 GB of tools in the cluster image are dead
 # weight in every container that is not a compute node.
 #
-# 🔴 **What this saves and what it does not, said plainly.** It does not remove
+# **What this saves and what it does not, said plainly.** It does not remove
 # a build: `sc-tools` still has to be built and pushed, because that is what a
 # node's task runs inside. It does not free disk while `scrunner` runs the
 # cluster image, since docker shares the layers either way. What it buys is a
@@ -274,7 +274,7 @@ FROM runtime AS server
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# 🔴 The library list is not guesswork and not a superset: it is `ldd` over
+# The library list is not guesswork and not a superset: it is `ldd` over
 # /sc_tools/sbin/* and every plugin in /sc_tools/lib/slurm, minus what
 # ubuntu:24.04 already has. Slurm dlopens its plugins, so a missing one of
 # these is not a link error at build time -- it is a daemon that starts and
@@ -295,7 +295,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libjson-c5 libb64-0d libgcrypt20 libdbus-1-3 libcap2 liblz4-1 libzstd1 \
     && rm -rf /var/lib/apt/lists/*
 
-# 🔴 The munge account is moved onto the cluster image's ids, and this is not
+# The munge account is moved onto the cluster image's ids, and this is not
 # tidiness. Every daemon in the stack shares ONE munge key, on a volume, and
 # munged refuses a key it does not own -- while entrypoint.sh chowns that key
 # to the local munge user on every start. Two containers disagreeing about the

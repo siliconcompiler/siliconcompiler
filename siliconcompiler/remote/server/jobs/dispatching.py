@@ -50,11 +50,11 @@ class DispatchMixin:
     def _resolve_images(self, job, summary):
         '''Which container every node of this job runs in.
 
-        🔴 After the manifest's read gives the real node list and before
+        After the manifest's read gives the real node list and before
         dispatch: a tracked tool with no image fails the WHOLE job here, not on
         node thirty-one with the cluster already paid for.
 
-        ⚠️ Without containers every node is NULL, never a default image:
+        Without containers every node is NULL, never a default image:
         `job_nodes.image_id` records what the node actually ran in.
         '''
         if not self._config["containers"]:
@@ -82,7 +82,7 @@ class DispatchMixin:
     def _framework_bundle(self, job, plan) -> Optional[str]:
         '''The container the job's own orchestrating process runs in.
 
-        🔴 Node images decide what each TOOL runs in; this decides which
+        Node images decide what each TOOL runs in; this decides which
         SiliconCompiler drives the flow, or the cluster's own would.
 
         Staged here, since `sbatch --container` needs the bundle before the job
@@ -142,7 +142,7 @@ class DispatchMixin:
         '''Write what the run needs from this server beside the manifest, and
         return the uploaded manifest the run loads.
 
-        🔴 Nothing here rewrites the manifest: the runner applies these
+        Nothing here rewrites the manifest: the runner applies these
         overrides in the job's own SiliconCompiler (`runspec.apply_run`).
         '''
         cache = self.cache_dir(job["user_id"])
@@ -158,7 +158,7 @@ class DispatchMixin:
             refs = placements
             placements = {}
             for node, ref in refs.items():
-                # 🔴 The job's own bundle over the shared one: what a node sees
+                # The job's own bundle over the shared one: what a node sees
                 # is its job's, never the data directory.
                 common = images.bundle_path(self.bundles_root(), ref.split("@", 1)[1])
                 bundle = str(self.job_bundles(job["id"]) / common.name)
@@ -166,7 +166,7 @@ class DispatchMixin:
                 sources[bundle] = ref
                 shared[bundle] = str(common)
 
-        # 🔴 Every dataroot points at the copy the run reads, the upload or a
+        # Every dataroot points at the copy the run reads, the upload or a
         # supplied copy, never the submitter's path (D111, D112).
         unpacked = root / job["design"] / job["jobname"]
         runspec.write_run(

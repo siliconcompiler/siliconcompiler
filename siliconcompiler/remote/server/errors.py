@@ -40,7 +40,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # `limit` only over max_upload_bytes; a body over its endpoint's cap has none.
     _Error("upload-too-large", 413, "Upload too large"),
     _Error("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
-    # 🆕 D117: `max_download_bytes`, which never refills -- so not
+    # D117: `max_download_bytes`, which never refills -- so not
     # `limit-exceeded`, whose `Retry-After` a client would obey for ever.
     _Error("download-too-large", 403, "Download too large", ("limit",)),
     _Error("rate-limited", 429, "Too many requests"),
@@ -50,16 +50,16 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
            ("resource_kind", "resource")),
     _Error("resource-unresolved", 422, "Could not resolve what this flow needs",
            ("resource_kind",)),
-    # 🆕 D91, D110: no live image satisfies the job's software requirements;
+    # D91, D110: no live image satisfies the job's software requirements;
     # `reason` is "unavailable" or "combination".
     _Error("software-unavailable", 422, "No image provides that software",
            ("reason", "unresolved")),
-    # 🆕 D105, D116: a resource of any kind this deployment neither holds nor can
+    # D105, D116: a resource of any kind this deployment neither holds nor can
     # supply; `resource-unresolved` is not knowing WHICH. `resource_kind` (surface
     # D285) and `keypath` (surface D298) are optional, so not listed.
     _Error("resource-unavailable", 422, "This server does not hold that resource",
            ("resource",)),
-    # 🆕 D105, D115: crucible's, for restricted material found while staging.
+    # D105, D115: crucible's, for restricted material found while staging.
     # Registered because the registry is the contract's; this profile allows
     # every upload (profile D26) and never raises it.
     _Error("upload-forbidden", 422, "Upload of that resource is not allowed",
@@ -104,7 +104,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
            ("step", "index", "job_id", "reason")),
     # Identity D58; this profile provisions on first contact and never raises it.
     _Error("account-not-provisioned", 403, "Your account is not set up on this deployment"),
-    # 🔴 A job-level type (surface D169): staging the server could not complete
+    # A job-level type (surface D169): staging the server could not complete
     # for its own reasons, after retrying.
     _Error("staging-failed", None, "The server could not get this job ready"),
     # The job's own limit, not the server's failure (surface D294).
@@ -199,11 +199,11 @@ class ProblemError(Exception):
 
 
 # How much of a `detail` reaches a caller.
-# 🔴 Some details carry text this server did not write -- a tool's exception, a
+# Some details carry text this server did not write -- a tool's exception, a
 # member's name -- with a path the CLIENT chose, and `detail` is published to
 # anyone who can read the job. Bounded once, in `problem()`, for every refusal;
 # the full text still reaches the log.
-# ⚠️ Characters, not bytes: cutting UTF-8 by bytes splits a codepoint.
+# Characters, not bytes: cutting UTF-8 by bytes splits a codepoint.
 # A module-level default that `limits.max_detail_chars` replaces at startup, so
 # no call site has a way around it.
 DETAIL_MAX = 300
@@ -250,7 +250,7 @@ _CREDENTIALS = (
 def scrub(detail: str) -> str:
     '''Take this server's internals out of a `detail` (D122).
 
-    🔴 A tool's exception text carries mount paths, hostnames and environment
+    A tool's exception text carries mount paths, hostnames and environment
     dumps, which leak how the deployment is laid out.
     '''
     text = detail
@@ -309,7 +309,7 @@ def trace_id(headers) -> str:
 
 
 def only_query(args, allowed, where: str) -> None:
-    '''🔴 Refuse a query parameter the collection does not define (surface
+    '''Refuse a query parameter the collection does not define (surface
     D177): a misspelled filter would otherwise return everything.'''
     unknown = sorted(set(args) - set(allowed))
     if unknown:
@@ -324,7 +324,7 @@ def problem(slug: str, detail: Optional[str] = None,
     '''An RFC 9457 body. ``type`` and ``title`` come from the registry; a
     client branches on ``type``, never on the rewordable ``detail``.
 
-    🔴 `detail` is bounded here and nowhere else -- see `DETAIL_MAX`.
+    `detail` is bounded here and nowhere else -- see `DETAIL_MAX`.
     '''
     err = ERRORS[slug]
 

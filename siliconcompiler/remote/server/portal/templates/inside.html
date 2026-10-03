@@ -16,7 +16,7 @@
 <p class="mono muted" style="word-break:break-all">{{ item.digest }}</p>
 
 {% if refused is defined %}
-  {# 🔴 Never opened (`UNOPENED`): listing a gzipped tar decompresses all of it. #}
+  {# Never opened (`UNOPENED`): listing a gzipped tar decompresses all of it. #}
   <div class="panel warn">
     <p><b>This upload was refused before it was opened, and is not opened here.</b></p>
     <p class="muted">{{ refused.title or 'Refused' }}{% if refused.detail %} &mdash;
@@ -26,7 +26,7 @@
          >Download it</a> to look at it somewhere it cannot hurt.</p>
   </div>
 {% elif entries is not none %}
-  {# 🔴 The whole archive first: picking files one at a time is no substitute. #}
+  {# The whole archive first: picking files one at a time is no substitute. #}
   <p class="panel">
     <b>{{ entries | length }} file{{ '' if entries | length == 1 else 's' }}</b>
     <span class="muted">&middot; {{ item.size_bytes | size }} compressed</span>

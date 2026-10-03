@@ -69,7 +69,7 @@ def no_wait(monkeypatch):
 @pytest.mark.parametrize("reason", ["expired", "a-reason-from-a-later-server"])
 def test_an_ended_stream_reconnects_with_the_last_event_id(logged_in, fake_v1, no_wait,
                                                            reason):
-    '''🔴 An `end` other than `terminal` ends this connection: ask `/logs`
+    '''An `end` other than `terminal` ends this connection: ask `/logs`
     again and hand the last id to the new stream, never to `/logs` (D306).'''
     stream(fake_v1, 1, sse(log("7", "one\n"), end(reason)))
     stream(fake_v1, 2, sse(log("8", "two\n"), end("terminal")))
@@ -103,7 +103,7 @@ def test_empty_reconnects_never_give_up(logged_in, fake_v1, no_wait):
 ], ids=["refusal", "not-a-stream"])
 def test_only_an_event_stream_after_the_redirect_is_the_log(
         logged_in, fake_v1, no_wait, body, status, content_type, refusal):
-    '''🔴 The stream host's refusal, or a `200` from something in the middle,
+    '''The stream host's refusal, or a `200` from something in the middle,
     is raised and never printed as log text.'''
     stream(fake_v1, 1, body, status=status, content_type=content_type)
     written = []

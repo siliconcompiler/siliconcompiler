@@ -40,7 +40,7 @@ def framed(name, *lines, here=True):
     ("openroad", "not.a.module.here", None),
 ])
 def test_a_tool_is_asked_through_its_driver_or_not_at_all(name, driver, expected):
-    '''⚠️ Built without the tool on this machine's PATH (`Task.get_exe` would
+    '''Built without the tool on this machine's PATH (`Task.get_exe` would
     raise): the tool is in the image, and its absence here says nothing.'''
     assert probe.command_for(name, "tool", driver) == expected
 
@@ -60,7 +60,7 @@ def test_a_kind_outside_the_closed_set_is_refused():
 
 
 @pytest.mark.parametrize("name,kind,said,driver,expected", [
-    # 🔴 The driver's own parser and normaliser: `26Q3-...` is not PEP 440.
+    # The driver's own parser and normaliser: `26Q3-...` is not PEP 440.
     ("openroad", "tool", "1 26Q3-2418-g3ab04b4dd1\n", OPENROAD,
      ("26.3.2418", "26Q3-2418-g3ab04b4dd1")),
     ("openroad", "tool", "", OPENROAD, None),
@@ -73,7 +73,7 @@ def test_an_answer_is_read_by_the_drivers_parser(name, kind, said, driver, expec
 
 
 def test_the_script_frames_every_name_and_guards_it_on_the_executable():
-    '''🔴 Unguarded, a missing tool leaves the shell's `not found` in the frame
+    '''Unguarded, a missing tool leaves the shell's `not found` in the frame
     and OpenROAD's parser registered it at version `0`. The presence marker is
     inside the guard; a tool with nothing to run still gets an empty frame; and
     each answer is cut to its share in the image.'''
@@ -87,7 +87,7 @@ def test_the_script_frames_every_name_and_guards_it_on_the_executable():
 
 
 def test_the_frame_survives_a_tool_that_colours_its_output():
-    '''🔴 klayout's ANSI escape before the closing marker left the frame open,
+    '''klayout's ANSI escape before the closing marker left the frame open,
     so a tool that answered read as absent.'''
     output = ("--sc-probe-begin:klayout\r\n"
               "\x1b[32mKLayout 0.30.12\r\n"
@@ -98,7 +98,7 @@ def test_the_frame_survives_a_tool_that_colours_its_output():
 
 
 @pytest.mark.parametrize("output,expected", [
-    # 🔴 The trailing newline is kept: bambu's parser takes `split()[-3]`.
+    # The trailing newline is kept: bambu's parser takes `split()[-3]`.
     ("--sc-probe-begin:x\nfirst\nsecond\n--sc-probe-end:x\n", {"x": "first\nsecond\n"}),
     # Output outside any frame belongs to nobody.
     ("noise\n--sc-probe-begin:x\nmine\n--sc-probe-end:x\nmore noise\n", {"x": "mine\n"}),
@@ -110,7 +110,7 @@ def test_a_frame_is_split_out_exactly(output, expected):
 
 
 def test_probing_this_machine_answers_for_what_is_here(quiet_restored):
-    '''⚠️ magic's `present` is None, not False: nobody drives it, so presence
+    '''magic's `present` is None, not False: nobody drives it, so presence
     was not tested, and only a test that ran and said no refuses a row.'''
     found = probe.probe([("siliconcompiler", "python", None), ("magic", "tool", None),
                          ("openroad", "tool", OPENROAD)])
@@ -125,7 +125,7 @@ def test_probing_this_machine_answers_for_what_is_here(quiet_restored):
 
 
 def test_the_answer_is_one_line_behind_a_marker(capsys, quiet_restored):
-    '''🔴 A container's output is shared with any banner a tool prints.'''
+    '''A container's output is shared with any banner a tool prints.'''
     assert probe.main(["-python", "siliconcompiler", "-tool", "magic"]) == 0
 
     answers = [line for line in capsys.readouterr().out.splitlines()
@@ -145,7 +145,7 @@ def test_the_script_can_be_printed_for_somebody_else_to_run(capsys, quiet_restor
 
 
 def test_probing_nothing_is_a_usage_error(quiet_restored):
-    '''🔴 Refused BEFORE the logs are quieted, or its message goes with them.'''
+    '''Refused BEFORE the logs are quieted, or its message goes with them.'''
     with pytest.raises(SystemExit):
         probe.main([])
 
@@ -153,7 +153,7 @@ def test_probing_nothing_is_a_usage_error(quiet_restored):
 
 
 def test_present_and_silent_is_told_apart_from_not_there():
-    '''🔴 Decides whether a registration is refused, and by the presence
+    '''Decides whether a registration is refused, and by the presence
     marker, NEVER by a parse failing (an unguarded `not found` parses as `0`).'''
     wanted = [("openroad", "tool", OPENROAD)]
 
@@ -165,7 +165,7 @@ def test_present_and_silent_is_told_apart_from_not_there():
 
 
 def test_a_tool_read_through_a_distribution_is_asked_the_python_way():
-    '''🔴 `slang` has no executable (its driver runs pyslang); the marker
+    '''`slang` has no executable (its driver runs pyslang); the marker
     carries the TOOL's name, which is what the registry calls it.'''
     command = probe.command_for("slang", "tool", None, "pyslang")
 
@@ -181,7 +181,7 @@ def test_a_tool_read_through_a_distribution_is_asked_the_python_way():
 
 
 @pytest.mark.parametrize("said,version,unparsed", [
-    # 🔴 Not a version: dropped, kept for the operator, never coerced.
+    # Not a version: dropped, kept for the operator, never coerced.
     ("initialize", None, "initialize"),
     ("1.2.3", "1.2.3", None),
     # Cut again here, for an image whose `tail` is missing or is not `tail`.

@@ -15,7 +15,7 @@ The v1 remote job server, run with ``python -m siliconcompiler.remote.server``.
 ``running/``      handing a run to a scheduler, and the process that runs it
 ``outputs/``      what a run leaves behind, served and taken back
 
-🔴 Importing a part does not import Flask: the run's process and the manifest's
+Importing a part does not import Flask: the run's process and the manifest's
 read load modules from here, so the names below load when first asked for.
 '''
 

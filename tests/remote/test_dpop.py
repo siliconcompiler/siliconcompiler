@@ -126,7 +126,7 @@ def test_a_proof_outside_the_window_is_refused(key, sign):
 @pytest.mark.parametrize("ahead,accepted", [(2, True), (dpop.PROOF_LIFETIME_SECONDS - 5, True),
                                             (dpop.PROOF_LIFETIME_SECONDS + 5, False)])
 def test_a_proof_signed_by_a_clock_ahead_is_held_to_the_same_window(key, ahead, accepted):
-    '''🔴 A client a few seconds fast is inside the window; the JWT library's
+    '''A client a few seconds fast is inside the window; the JWT library's
     own `iat` check once refused it first.'''
     proof = dpop.sign_proof(key, "GET", URL, iat=int(time.time()) + ahead)
 

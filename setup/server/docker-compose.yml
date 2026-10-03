@@ -3,7 +3,7 @@
 #   docker compose up              # http://localhost:8080, rebuilding only
 #                                  # what a source change touched
 #
-# 🔴 **That is the whole procedure.** There is no second command to remember
+# **That is the whole procedure.** There is no second command to remember
 # and no order to get right: a one-shot `bootstrap` service pushes the images
 # compose just built into this stack's registry, registers them, stages their
 # bundles and writes the config, and `scserver` does not start until it has
@@ -45,13 +45,13 @@ x-build: &build
     # up`. Set it to override both.
     SC_VERSION: ${SC_VERSION:-}
 
-# 🔴 Two roles, two images, and the split is what a controller is. slurmctld,
+# Two roles, two images, and the split is what a controller is. slurmctld,
 # slurmdbd and the API process schedule, answer HTTP and unpack bundles; they
 # do not run EDA tools, so they get an image that does not carry any. Only the
 # compute node runs the full one -- and that image still has to be built,
 # because it is what a node's task runs INSIDE.
 #
-# 🔴 No `image:` on anything built here, and that is what keeps compose from
+# No `image:` on anything built here, and that is what keeps compose from
 # trying to fetch it. A named image is a registry reference -- `sc-server:local`
 # means `docker.io/library/sc-server:local` -- so compose asks Docker Hub for it
 # first and reports
@@ -61,12 +61,12 @@ x-build: &build
 # before falling back to building. Unnamed, each service's image is
 # `<project>-<service>`. `bootstrap` finds the two it pushes under those names.
 #
-# 🔴 `pull_policy: build` on each of them, so `docker compose up` alone picks up
+# `pull_policy: build` on each of them, so `docker compose up` alone picks up
 # a source change. Without it compose builds an image only when it is MISSING,
 # and after the first `up` it never is -- so an edit ran against the old image
 # until somebody remembered `--build`.
 #
-# ⚠️ It consults the build graph on every `up`, and that is cheap only because
+# It consults the build graph on every `up`, and that is cheap only because
 # the context is stable: Dockerfile.dockerignore is an allow-list, and the one
 # step that reads `.git` is a stage of its own. An unchanged tree is then a
 # cache hit at every layer -- seconds, not a rebuild -- and an edit to the
@@ -165,7 +165,7 @@ services:
   # A registry on the internal network, so the whole image path can be
   # exercised without pushing anything off this machine.
   #
-  # 🔴 It is here because the alternative is not testing it. "srun --container"
+  # It is here because the alternative is not testing it. "srun --container"
   # takes an unpacked bundle, sc-server unpacks it from a registry reference,
   # and the digest pinned at registration is the thing that makes two runs a
   # month apart the same code. None of that is exercised by an image that only
@@ -224,7 +224,7 @@ services:
       SC_RUNTIME_IMAGE: ${COMPOSE_PROJECT_NAME}-scruntime
     volumes:
       - sc-server-data:/sc_server
-      # 🔴 The two images have to get from the daemon that just built them into
+      # The two images have to get from the daemon that just built them into
       # the registry, and the daemon is the only thing that knows their layers.
       # Used for exactly two calls, tag and push, by a container that exits
       # when it is done. Nothing else in this file can see it -- the compute
@@ -262,7 +262,7 @@ services:
     volumes:
       - munge-key:/etc/munge
       - sc-server-data:/sc_server
-      # 🔴 StateSaveLocation, on a volume rather than in the image. Without
+      # StateSaveLocation, on a volume rather than in the image. Without
       # this every recreation starts the controller with an empty state
       # directory, so it logs
       #
@@ -277,7 +277,7 @@ services:
     depends_on:
       slurmdbd:
         condition: service_started
-      # 🔴 The dependency that replaces a procedure. The server refuses to start
+      # The dependency that replaces a procedure. The server refuses to start
       # when it is set to run jobs in containers and no live image holds a
       # siliconcompiler -- so it must not be started until something has put one
       # there. Waiting for a successful exit is that something.
@@ -331,7 +331,7 @@ volumes:
   # The controller's own memory: what was queued, what was running, the
   # reservations, and the JWT signing key the ctld role generates.
   #
-  # ⚠️ Only the CONTROLLER's. `SlurmdSpoolDir` stays inside each runner, and
+  # Only the CONTROLLER's. `SlurmdSpoolDir` stays inside each runner, and
   # deliberately: a scaled service shares one named volume between every
   # replica, and two slurmds sharing a spool directory is worse than either of
   # them forgetting. A runner restart already ends whatever it was running.

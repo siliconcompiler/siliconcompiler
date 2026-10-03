@@ -12,7 +12,7 @@ from siliconcompiler.utils.paths import jobdir
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 
-# 🔴 The parity milestone, both halves for real: a server on a real port, a real
+# The parity milestone, both halves for real: a server on a real port, a real
 # store, archive, socket and dispatch, and `project.run()` driving it. The gate
 # is that a remote run's build directory matches a local run's.
 
@@ -104,12 +104,12 @@ def test_a_design_runs_to_completion_and_the_tree_matches(gcd_design, ran):
     assert all(node["terminal"] for node in detail["nodes"])
     assert detail["submitted_at"] and detail["started_at"] and detail["finished_at"]
 
-    # 🔴 The gate: every file a local run produced, the server's run produced.
+    # The gate: every file a local run produced, the server's run produced.
     root = os.path.join("datadir", "users", client.me()["id"], "builds", job["id"],
                         "gcd", "job0")
     assert local_tree <= tree(root), sorted(local_tree - tree(root))
 
-    # 🔴 And on THIS machine, less `inputs/` (copies of upstream outputs).
+    # And on THIS machine, less `inputs/` (copies of upstream outputs).
     here = tree(jobdir(remote))
     missing = {name for name in local_tree - here
                if os.sep + "inputs" + os.sep not in os.sep + name}
@@ -160,7 +160,7 @@ def test_the_run_happens_inside_the_users_own_tree(ran):
 
 
 def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, monkeypatch):
-    '''🔴 E4: a three-call submit has more to waste. Fails if collection runs.'''
+    '''E4: a three-call submit has more to waste. Fails if collection runs.'''
     from siliconcompiler.remote.client import run as run_module
 
     def explode(self, *args, **kwargs):
@@ -184,7 +184,7 @@ def submitted(ran):
 
 
 def test_status_reconnect_and_tail_through_the_cli(monkeypatch, capsys, caplog, submitted):
-    '''🔴 The manifest naming the job is written before the upload. `-tail`
+    '''The manifest naming the job is written before the upload. `-tail`
     reaches a finished node's archive; the index defaults to 0, a step is needed.'''
     assert Project.from_manifest(filepath=submitted).get('record', 'remoteid')
 
@@ -222,7 +222,7 @@ def test_cancel_through_the_cli_is_an_answer_and_its_reason_is_held_to_300(
 
 
 def test_a_rotated_key_logs_in_again_as_a_new_device(live_server, tmp_path):
-    '''🔴 `sc-server` binds a subject to its first key: the old key revokes its
+    '''`sc-server` binds a subject to its first key: the old key revokes its
     own device, so the new one enrols rather than being refused.'''
     path = tmp_path / "sc-home" / "auth" / "remote.json"
     credentials = Credentials(path)

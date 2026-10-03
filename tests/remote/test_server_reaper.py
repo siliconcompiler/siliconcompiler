@@ -1,6 +1,6 @@
 '''Taking back the disk.
 
-🔴 Nothing here was reclaiming anything, and a rig filled 28 GB in one
+Nothing here was reclaiming anything, and a rig filled 28 GB in one
 afternoon of rebuilds. These tests are mostly about what the reaper must NOT
 take.
 '''
@@ -58,7 +58,7 @@ def stored(server, job_id):
 
 def test_an_artifact_past_its_retention_loses_its_bytes_and_keeps_its_row(
         server, server_client, key, token, finished):
-    '''🔴 The row stays, so *where did my results go* stays answerable. 🔴
+    '''The row stays, so *where did my results go* stays answerable.
     `deleted_at` IS set: `fetchable`'s ladder first asks whether the bytes are
     there, and retention lapsing ends HERE, so a NULL would report reaped
     bytes fetchable. NULL `deleted_by` is the reaper -- a client reads the
@@ -100,7 +100,7 @@ def _second_row_for(store, row, location=None):
 
 @pytest.mark.parametrize("elsewhere,kept", [(False, True), (True, False)])
 def test_bytes_go_only_when_no_live_row_names_the_object(server, finished, elsewhere, kept):
-    '''🔴 An object is its location AND its key: another live row naming the
+    '''An object is its location AND its key: another live row naming the
     pair keeps the bytes; the same key in another location keeps nothing.'''
     store, storage = server.config["SC_STORE"], server.config["SC_STORAGE"]
     upload = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
@@ -132,7 +132,7 @@ def test_an_artifact_on_legal_hold_is_never_reaped(server, finished):
 
 
 def test_a_build_tree_goes_only_after_everything_it_produced(server, finished):
-    '''🔴 Never before: the tree is what the artifacts were indexed FROM, and
+    '''Never before: the tree is what the artifacts were indexed FROM, and
     the portal reads a node's log out of it. In retention, nothing goes.'''
     root = job_root(server, finished["id"])
     assert root.is_dir()
@@ -149,7 +149,7 @@ def test_a_build_tree_goes_only_after_everything_it_produced(server, finished):
 
 def test_a_job_that_produced_nothing_keeps_its_tree(
         server, server_client, key, token, job_archive, dispatcher):
-    '''⚠️ The one mistake that cannot be undone: no artifacts means indexing
+    '''The one mistake that cannot be undone: no artifacts means indexing
     failed or has not happened, and the tree is the only copy.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -167,7 +167,7 @@ def test_a_job_that_produced_nothing_keeps_its_tree(
 
 def test_bytes_that_arrived_are_kept_past_the_grants_expiry(
         server, server_client, key, token, job_archive):
-    '''🔴 The grant bounds when an upload may start; the bytes go with the
+    '''The grant bounds when an upload may start; the bytes go with the
     abandoned job.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)

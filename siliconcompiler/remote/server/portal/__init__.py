@@ -1,12 +1,12 @@
 '''
 The portal: ten screens over the same decisions the API makes.
 
-🔴 Every authorization decision goes through the code the API handlers call
+Every authorization decision goes through the code the API handlers call
 (``JobService.owned``, ``accounts.owned_device``...): a portal query that
 forgets ``WHERE user_id =`` answers ``200`` and looks correct.
 
-⚠️ It does not call its own API over HTTP: a browser holds no device key, so it
-reads the shared layer, and every bytes link is a signed storage URL. 🔴 A
+It does not call its own API over HTTP: a browser holds no device key, so it
+reads the shared layer, and every bytes link is a signed storage URL. A
 portal session is a cookie and never becomes an API credential: that would be
 the shortest way around the key pinning.
 '''
@@ -58,7 +58,7 @@ SESSION_SECONDS = 43200
 class Sessions:
     '''Browser sessions, in memory and nowhere else.
 
-    🔴 Deliberately not a table: losing one on restart costs ``sc-remote -portal``.
+    Deliberately not a table: losing one on restart costs ``sc-remote -portal``.
     '''
 
     def __init__(self):
@@ -81,7 +81,7 @@ class Sessions:
     def redeem(self, token: str):
         '''Spend a handover token; returns ``(cookie, csrf, landing)`` or None.
 
-        🔴 Removed before it is checked, so two requests together cannot both redeem it.
+        Removed before it is checked, so two requests together cannot both redeem it.
         '''
         with self._lock:
             self._expire()
@@ -149,7 +149,7 @@ def _held():
 def caller():
     '''The signed-in user, as the same Session object the API builds.
 
-    🔴 So there is no second notion of who is asking. ⚠️ The full scope set is
+    So there is no second notion of who is asking. The full scope set is
     what the API offers this person; it is not a credential for ``/v1``.
     '''
     held = _held()
@@ -169,7 +169,7 @@ def screen(handler):
     def guarded(*args, **kwargs):
         session = caller()
         if session is None:
-            # 🔴 Remember where they were going, in a cookie: the CLI that mints
+            # Remember where they were going, in a cookie: the CLI that mints
             # the handover never sees this request.
             page = flask.make_response(flask.render_template("signin.html"), 401)
             if flask.request.method == "GET":
@@ -246,9 +246,9 @@ def _duration(seconds) -> str:
 def _when(timestamp) -> markupsafe.Markup:
     '''One instant, as the reader's own clock shows it.
 
-    🔴 The server cannot know the browser's timezone, and a zoneless time looks
+    The server cannot know the browser's timezone, and a zoneless time looks
     right while being wrong. So it goes out as UTC in a `<time datetime>`, and
-    a small inline script rewrites it to local. ⚠️ The page stays correct
+    a small inline script rewrites it to local. The page stays correct
     with scripting off, and there is still no JavaScript build.
     '''
     if not timestamp:
@@ -290,8 +290,8 @@ def enter():
 
     cookie, _csrf, landing = redeemed
 
-    # 🔴 The handover's own destination first, then the breadcrumb.
-    # 🔴 The breadcrumb only as a local `/portal/` path, never `//`: anything
+    # The handover's own destination first, then the breadcrumb.
+    # The breadcrumb only as a local `/portal/` path, never `//`: anything
     # can set a cookie here, and following one blindly is an open redirect.
     wanted = flask.request.cookies.get(NEXT_COOKIE)
     if not (isinstance(wanted, str) and wanted.startswith("/portal/")):
@@ -321,7 +321,7 @@ def jobs(session):
     args.setdefault("limit", "50")
     items, _cursor = _jobs().listing(session, args)
 
-    # 🔴 `archived` deliberately has no value meaning both: a mixed list is what
+    # `archived` deliberately has no value meaning both: a mixed list is what
     # archiving exists to end.
     return flask.render_template(
         "jobs.html", jobs=items,
@@ -339,14 +339,14 @@ def job(session, job_id):
         "SELECT * FROM job_state_transitions WHERE job_id = ? "
         "ORDER BY occurred_at", (job_id,))
 
-    # 🔴 Every page followed: the raw (items, cursor) tuple renders silently empty.
+    # Every page followed: the raw (items, cursor) tuple renders silently empty.
     items = _all_artifacts(session, job_id)
 
     per_node = {}
     for item in items:
         per_node.setdefault((item["step"], item["index"]), []).append(item)
 
-    # 🔴 The run's order, as the picture beside it, not the API's alphabetical one.
+    # The run's order, as the picture beside it, not the API's alphabetical one.
     detail["nodes"] = running_order(detail, edges)
 
     return flask.render_template(
@@ -363,14 +363,14 @@ def job(session, job_id):
         graph=_graph(detail, edges))
 
 
-# ⚠️ Laid out downwards: a flow is deep and narrow, so across would be a scrollbar.
+# Laid out downwards: a flow is deep and narrow, so across would be a scrollbar.
 _BOX_W, _BOX_H, _GAP_X, _GAP_Y, _PAD = 132, 28, 14, 22, 12
 
 
 def _depths(nodes, edges):
     """Each node's level in `Flowgraph.get_execution_order`.
 
-    🔴 One number lays out the picture and sorts the table, so the two agree.
+    One number lays out the picture and sorts the table, so the two agree.
     Built from the job's rows as no-op nodes: the portal never reads the manifest.
     """
     from siliconcompiler import Flowgraph
@@ -398,7 +398,7 @@ def _depths(nodes, edges):
 def running_order(job, edges):
     """The job's nodes in the order the run reaches them, ties broken by name.
 
-    ⚠️ The API's by-name order puts `elaborate` between `cts` and `floorplan`.
+    The API's by-name order puts `elaborate` between `cts` and `floorplan`.
     """
     nodes = [(node["step"], node["index"]) for node in job.get("nodes") or []]
     depth = _depths(nodes, edges)
@@ -409,7 +409,7 @@ def running_order(job, edges):
 
 
 def _graph(job, edges):
-    '''The flowgraph as inline SVG, drawn here: 🔴 the portal has no JavaScript build.
+    '''The flowgraph as inline SVG, drawn here: the portal has no JavaScript build.
 
     A node's row is its depth (:func:`_depths`); within a row, listing order.
     '''
@@ -475,7 +475,7 @@ def _plain(value: str) -> str:
 def _all_artifacts(session, job_id, args=None):
     '''Every artifact, following the cursor, boundedly.
 
-    ⚠️ A screen showing only the first page would misstate what the run produced.
+    A screen showing only the first page would misstate what the run produced.
     '''
     query = dict(args or {})
     query["limit"] = "200"
@@ -504,7 +504,7 @@ def cancel(session, job_id):
 @blueprint.route("/portal/jobs/<job_id>/archive", methods=["POST"])
 @screen
 def archive(session, job_id):
-    """Put a job away, or take it back out: ⚠️ a view preference with no API endpoint."""
+    """Put a job away, or take it back out: a view preference with no API endpoint."""
     _jobs().archive(session, job_id,
                     archived=flask.request.form.get("archived") == "1")
     return flask.redirect(flask.url_for("portal.job", job_id=job_id))
@@ -515,7 +515,7 @@ def archive(session, job_id):
 def discard(session, job_id):
     """Throw away what a run produced, and keep the run and its artifact rows.
 
-    🔴 Distinct from `delete`, which takes the job out of the collection.
+    Distinct from `delete`, which takes the job out of the collection.
     """
     job = _jobs().get(session, job_id)
     expected = f"{job['design']}/{job['jobname']}"
@@ -538,8 +538,8 @@ def discard(session, job_id):
 def discard_node(session, job_id):
     """Throw away one node's output.
 
-    🔴 The node, not one artifact: its rows share bytes, so one row alone frees
-    nothing. ⚠️ No typed confirmation per row, or confirmations stop being read.
+    The node, not one artifact: its rows share bytes, so one row alone frees
+    nothing. No typed confirmation per row, or confirmations stop being read.
     """
     step = (flask.request.form.get("step") or "").strip()
     index = (flask.request.form.get("index") or "").strip()
@@ -556,8 +556,8 @@ def discard_node(session, job_id):
 def delete(session, job_id):
     '''Remove the job itself, reachable only by id afterwards.
 
-    ⚠️ The confirmation is a speed bump, not a security control (CSRF is).
-    🔴 The heavier of the two; `discard` is what most people mean.
+    The confirmation is a speed bump, not a security control (CSRF is).
+    The heavier of the two; `discard` is what most people mean.
     '''
     job = _jobs().get(session, job_id)
     expected = f"{job['design']}/{job['jobname']}"
@@ -601,7 +601,7 @@ def _uploads(items, job):
 def _by_node(items):
     """The listing grouped by node, job-level objects first.
 
-    🔴 The node is the unit of deletion (`discard_node`), so its button sits
+    The node is the unit of deletion (`discard_node`), so its button sits
     against all its rows.
     """
     groups, seen = [], {}
@@ -621,8 +621,8 @@ def _by_node(items):
 def fetch(session, job_id, artifact_id):
     '''Hand the browser a signed URL for the bytes, after the API's own refusals.
 
-    🔴 The signature is the credential; a cookie never authorises a download.
-    ⚠️ The one difference, explicit as `surface="portal"`: `max_download_bytes`
+    The signature is the credential; a cookie never authorises a download.
+    The one difference, explicit as `surface="portal"`: `max_download_bytes`
     and `api_fetchable_kinds` are lifted for a person clicking one object.
     '''
     row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
@@ -636,7 +636,7 @@ def fetch(session, job_id, artifact_id):
         expires=expires, sig=signature))
 
 
-# 🔴 What a browser may render: a short allow-list, the omissions the point. A
+# What a browser may render: a short allow-list, the omissions the point. A
 # job's HTML or SVG served from this origin would be stored XSS; everything else
 # is plain text or a download, never text/html.
 _RENDERABLE = {
@@ -650,7 +650,7 @@ _RENDERABLE = {
 # Read into memory to show, and no further.
 MAX_INLINE_BYTES = 2 * 1024 * 1024
 
-# 🔴 The largest archive opened at all: a gzipped tar has no index, so listing
+# The largest archive opened at all: a gzipped tar has no index, so listing
 # one decompresses it whole on a request thread. Above this, download it.
 MAX_BROWSE_BYTES = 1024 * 1024 * 1024
 
@@ -667,8 +667,8 @@ def _stored_at(row):
 def _member(archive, wanted: str):
     """One entry, matched against the archive's own list.
 
-    🔴 Matched, never joined into a path: the name comes from a query string.
-    🔴 A regular member only (surface D159): `extractfile` follows links, and
+    Matched, never joined into a path: the name comes from a query string.
+    A regular member only (surface D159): `extractfile` follows links, and
     `isfile()` is false for both kinds.
     """
     with tarfile.open(archive, "r:*") as tar:
@@ -685,14 +685,14 @@ def _member(archive, wanted: str):
 def inside(session, job_id, artifact_id):
     """What one archive holds, and one file out of it.
 
-    ⚠️ From the archive, deliberately not the build directory: the artifact is
+    From the archive, deliberately not the build directory: the artifact is
     what is retained.
     """
     detail = _jobs().get(session, job_id)
     # As the download, and only one bounded member leaves the server.
     row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
 
-    # 🔴 Never opened (`UNOPENED`): the refusal is shown instead.
+    # Never opened (`UNOPENED`): the refusal is shown instead.
     job = _jobs().owned(session, job_id)
     if unopened(_store(), row, job["error_type"]):
         return flask.render_template("inside.html", job=detail, item=row,
@@ -786,7 +786,7 @@ def _show(detail, row, archive, wanted: str):
 @blueprint.route("/portal/jobs/<job_id>/metrics/<step>/<index>", methods=["GET"])
 @screen
 def metrics(session, job_id, step, index):
-    '''One node's metrics and records, 🔴 from the table, never a manifest parse (contract §1).'''
+    '''One node's metrics and records, from the table, never a manifest parse (contract §1).'''
     detail = _jobs().get(session, job_id)
     found = _jobs().node_metrics(session, job_id, step, index)
     if found is None:
@@ -887,7 +887,7 @@ def account(session):
 def deployment(session):
     """`GET /v1` and `GET /v1/healthz`, as a page, with the raw JSON folded away.
 
-    🔴 Built by calling the endpoints' own code, so it can never disagree with
+    Built by calling the endpoints' own code, so it can never disagree with
     the API about what this server promises.
     """
     from siliconcompiler.remote.server.routes import meta
@@ -926,7 +926,7 @@ def add_software(session):
     if not name:
         raise ProblemError("invalid-request", detail="a distribution name is required")
 
-    # 🔴 Stated, not derived (`images.register_software`).
+    # Stated, not derived (`images.register_software`).
     kind = flask.request.form.get("kind")
     driver = (flask.request.form.get("driver") or "").strip() or None
     if kind not in ("python", "tool"):
@@ -961,7 +961,7 @@ def add_software(session):
 @blueprint.route("/portal/images/register", methods=["POST"])
 @screen
 def register_image(session):
-    '''🔴 The most dangerous write (`images.register_image`): it records the person.'''
+    '''The most dangerous write (`images.register_image`): it records the person.'''
     ref = (flask.request.form.get("ref") or "").strip()
     digest = (flask.request.form.get("digest") or "").strip()
     contains = [line.strip() for line
@@ -1002,7 +1002,7 @@ def retire_image(session, image_id):
 def retire_software(session, name):
     '''Withdraw the claim that this deployment curates a distribution.
 
-    🔴 Not the same as retiring its last version (`images.live_software`).
+    Not the same as retiring its last version (`images.live_software`).
     '''
     version = flask.request.form.get("version")
     if version:

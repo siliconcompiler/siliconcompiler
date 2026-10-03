@@ -4,10 +4,10 @@ modules on the submitting machine (surface *A node's own Python packages, built
 while staging*): indexable distributions are listed at their installed versions,
 others built as wheels (`wheels`), and the user's helper modules sent as files.
 
-🔴 What `requested_versions.python` names is never listed: the image holds it,
+What `requested_versions.python` names is never listed: the image holds it,
 and a second copy would land on the tool's path.
 
-⚠️ Dynamic imports and imports under a platform check are not followed.
+Dynamic imports and imports under a platform check are not followed.
 '''
 
 import ast
@@ -204,7 +204,7 @@ def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
 
     Requirements are the indexable roots; wheels, any reached distribution with
     a ``direct_url.json``; constraints, every other reached dependency.
-    🔴 Only what the install needs, never everything installed: a stray
+    Only what the install needs, never everything installed: a stray
     constraint can only stop an install for no reason of the job's.
     '''
     from packaging.version import InvalidVersion, Version
@@ -273,7 +273,7 @@ def place(files: Dict[str, str], path: str, source: str, what: str) -> None:
     '''Add one of the user's files at ``path``, refusing one that would not
     import on the node or would overwrite another source's.'''
     if source.lower().endswith(environment.COMPILED):
-        # 🔴 Refused, not warned about.
+        # Refused, not warned about.
         raise CannotForward(
             f"{what} is your own code and holds a compiled extension, {source}, "
             "built for this machine; it will not import on the server. Publish it "

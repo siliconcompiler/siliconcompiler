@@ -105,7 +105,7 @@ def test_an_unknown_violation_cannot_be_raised():
     ([regular("stepone/../manifest.json", b"{}")], "traversal", {}),
     ([regular("manifest.json", b"{}"), regular("manifest.json", b"owned")], "traversal",
      {"manifest.json": b"{}"}),
-    # 🔴 A symlink planted first would let a later member overwrite the manifest.
+    # A symlink planted first would let a later member overwrite the manifest.
     ([special("stepone", tarfile.DIRTYPE), regular("stepone/manifest.json", b"{}"),
       symlink("sc_collected_files", "stepone"),
       regular("sc_collected_files/manifest.json", b"owned")],

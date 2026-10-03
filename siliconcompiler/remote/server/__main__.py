@@ -60,7 +60,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    # 🔴 `python -m` puts the working directory on sys.path, and the server is
+    # `python -m` puts the working directory on sys.path, and the server is
     # usually started in its data directory, among every job's extracted
     # archive (contract §1): it comes off before anything else.
     import os

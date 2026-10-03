@@ -146,7 +146,7 @@ class Client:
     def health(self) -> Dict[str, Any]:
         '''``GET /v1/healthz``: one word, and no credential.
 
-        🔴 A `fail` arrives as a 503, so the refusal path IS the answer, not a
+        A `fail` arrives as a 503, so the refusal path IS the answer, not a
         swallowed error.
         '''
         try:
@@ -161,7 +161,7 @@ class Client:
     def print_deployment(self) -> None:
         '''What the server says it is, for a person at a terminal.
 
-        ⚠️ Unauthenticated, so it works before enrolment and says the same to everybody.
+        Unauthenticated, so it works before enrolment and says the same to everybody.
         '''
         from siliconcompiler.utils.units import format_binary, format_duration
 
@@ -243,9 +243,9 @@ class Client:
     def login(self) -> Dict[str, Any]:
         '''Obtain a session, the way this deployment offers one (identity §3).
 
-        🔴 Only `unsupported_grant_type` switches grant: that one is dropped and
+        Only `unsupported_grant_type` switches grant: that one is dropped and
         `GET /v1` reread. A `401`, timeout or `503` means later, never switch.
-        🔴 A CI key goes straight to token exchange and never prints a
+        A CI key goes straight to token exchange and never prints a
         `user_code` (identity §2).
         '''
         if self.credentials.ci_secret():
@@ -311,7 +311,7 @@ class Client:
     def _login_client_credentials(self) -> Dict[str, Any]:
         '''``client_credentials``: no browser, no prompt; the server binds the key on first contact.
 
-        🔴 No machine id, no access: every such machine would be one principal.
+        No machine id, no access: every such machine would be one principal.
         '''
         subject, machine_hash, source = local_subject()
         if source == "none":
@@ -390,7 +390,7 @@ class Client:
     def _trade(self) -> Dict[str, Any]:
         '''Trade the CI credential for one access token; no refresh token comes back.
 
-        🔴 Never over plaintext: the request carries the credential itself.
+        Never over plaintext: the request carries the credential itself.
         '''
         import uuid
 
@@ -475,7 +475,7 @@ class Client:
     def ensure_session(self) -> None:
         '''Get an access token for this command, the cheapest way there is.
 
-        🔴 Refresh FIRST: each `client_credentials` login mints a new token
+        Refresh FIRST: each `client_credentials` login mints a new token
         family, so logging in per command leaves live sessions behind.
         '''
         if self.transport.access_token is not None:
@@ -499,7 +499,7 @@ class Client:
         '''Replace this machine's DPoP key and enrol again as a new device; no
         error ever changes the key.
 
-        🔴 The old key revokes its own device first, ending its sessions and
+        The old key revokes its own device first, ending its sessions and
         freeing the subject: else `sc-server` refuses the new key
         `invalid_client`. If that fails, the key is replaced anyway.
         '''
@@ -653,7 +653,7 @@ class Client:
     def remind_terms(self, me: Dict[str, Any], always: bool = False) -> None:
         '''Warn of each unaccepted upcoming terms version before it refuses a submit.
 
-        Once per session, or with ``always`` every time. 🔴 Never accepted here:
+        Once per session, or with ``always`` every time. Never accepted here:
         that is the person's, in a browser, which a terminal outside CI offers.
         '''
         for entry in (me.get("terms") if isinstance(me, dict) else None) or []:
@@ -675,7 +675,7 @@ class Client:
                 + ", and you have not accepted it. Once it does, a submit it covers is "
                   "refused until you have.")
 
-            # 🔴 `can_decide`: whether its page can take the decision.
+            # `can_decide`: whether its page can take the decision.
             if entry.get("can_decide") is not True or not entry.get("id"):
                 continue
             self.logger.warning("  It may be accepted early, on its page in this "
@@ -708,7 +708,7 @@ class Client:
         ``design``, ``jobname`` and ``python_packages`` are authoritative: no
         manifest records them. The rest is the advisory ``descriptor``,
         re-derived at submit, there only so the server can refuse before upload.
-        🔴 ``requested_versions`` is what the image must HOLD, each a list of PEP
+        ``requested_versions`` is what the image must HOLD, each a list of PEP
         440 specifier sets; a ``python`` name left out may be missing from the image.
         '''
         self.ensure_session()
@@ -741,7 +741,7 @@ class Client:
     def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
 
-        🔴 ``size`` and ``digest`` are the exact bytes about to go up; the first
+        ``size`` and ``digest`` are the exact bytes about to go up; the first
         grant fixes both, and the server runs only bytes matching the digest.
         '''
         self.ensure_session()
@@ -752,7 +752,7 @@ class Client:
     def upload(self, grant: Dict[str, Any], path) -> None:
         '''Send the archive to wherever the grant points.
 
-        🔴 ``content-length`` is recomputed from the file: one announcing more
+        ``content-length`` is recomputed from the file: one announcing more
         than is sent leaves the server waiting for ever.
         '''
         headers = {name: value for name, value in (grant.get("headers") or {}).items()
@@ -846,7 +846,7 @@ class Client:
     def cancel_job(self, job_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/cancel``. Idempotent.
 
-        🔴 A reason is always sent, so the job page says why it stopped; no host
+        A reason is always sent, so the job page says why it stopped; no host
         name, since every reader sees it. Too long or holding a control
         character is refused here, as the server would (surface D288, D306).
         '''
@@ -870,7 +870,7 @@ class Client:
     def artifacts(self, job_id: str, **filters) -> list:
         '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
 
-        🔴 `items` may be `[]` and no kind is guaranteed, the manifest included;
+        `items` may be `[]` and no kind is guaranteed, the manifest included;
         judging an entry is the caller's.
         '''
         self.ensure_session()
@@ -879,7 +879,7 @@ class Client:
     def _pages(self, path: str, params: Optional[Dict[str, Any]] = None) -> list:
         '''A listing's `items`, following `Link` to the end.
 
-        🔴 Each next page is the `rel="next"` target as given, never a rebuilt
+        Each next page is the `rel="next"` target as given, never a rebuilt
         cursor (surface D306), and only on the API's origin: it carries the session.
         '''
         response = self.transport.request("GET", path, params=params or None)
@@ -939,7 +939,7 @@ class Client:
         '''``GET /v1/jobs/{id}/logs`` for one node, or with neither step nor index
         the whole job (`logs.stream.job`), followed to whatever it points at.
 
-        🔴 Re-requested on every reconnect, never reused (see `logs`).
+        Re-requested on every reconnect, never reused (see `logs`).
         '''
         self.ensure_session()
 
@@ -1019,7 +1019,7 @@ class Client:
     def _report_software(self, capabilities) -> None:
         '''What siliconcompiler this server runs, and whether this machine's is one.
 
-        🔴 Advisory: the server decides. This only shows a mismatch while somebody
+        Advisory: the server decides. This only shows a mismatch while somebody
         is watching, rather than at the first submit.
         '''
         from siliconcompiler import __version__ as sc_version
@@ -1048,7 +1048,7 @@ class Client:
         '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
         ``artifact_id``, or the portal's home.
 
-        🔴 Asked for, never built: the portal's routes are not contract.
+        Asked for, never built: the portal's routes are not contract.
         '''
         if self.ci_session:
             raise RemoteError("a CI session asks for no page: nobody is at a browser")
@@ -1068,7 +1068,7 @@ class Client:
     def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True) -> bool:
         '''Open the page endpoint 6 answered, and print it where it may be.
 
-        ⚠️ A non-null `expires_at` marks a single-use sign-in, a bearer secret:
+        A non-null `expires_at` marks a single-use sign-in, a bearer secret:
         printed only where no browser opened, to the terminal, never a log.
         '''
         url = answer.get("url") if isinstance(answer, dict) else None
@@ -1094,7 +1094,7 @@ class Client:
     def portal(self) -> bool:
         '''`sc-remote -portal`: the portal's home, signed in as this machine.
 
-        🔴 A cold browser cannot present this machine's key-bound identity, so
+        A cold browser cannot present this machine's key-bound identity, so
         endpoint 6 answers a sign-in. Asked for on purpose: a refusal fails.
         '''
         return self._show(self.browser_page(), "the portal", require_tty=False)

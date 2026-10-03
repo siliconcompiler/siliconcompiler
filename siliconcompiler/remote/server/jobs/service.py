@@ -100,7 +100,7 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         '''What every container must see, whoever's job it is; baked into each
         shared bundle.
 
-        🔴 Never the data directory: it holds the signing key, the store and
+        Never the data directory: it holds the signing key, the store and
         every user's tree (profile §0). One job's own is :meth:`job_mounts`.
         '''
         return [str(path) for path in (self._config["container_mounts"] or [])]
@@ -109,8 +109,8 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         '''What one job's node containers see: its tree and its user's cache
         read-write, and the roots this server supplies read-only.
         '''
-        # 🔴 Supplied roots are READ-ONLY: the next job gets the same copy.
-        # ⚠️ Every bound source must exist or the container cannot start, so
+        # Supplied roots are READ-ONLY: the next job gets the same copy.
+        # Every bound source must exist or the container cannot start, so
         # this server's own are made here and a missing operator root is left
         # out, and said.
         own = [self.job_root(job["user_id"], job["id"]), self.cache_dir(job["user_id"]),
@@ -142,7 +142,7 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
     def bundles_root(self) -> Path:
         '''Where unpacked container images live.
 
-        🔴 Deliberately NOT per user, the one place in this layout: a bundle is
+        Deliberately NOT per user, the one place in this layout: a bundle is
         identical for everyone running that digest, and per-user copies would
         cost every tool image per user (decision 3).
         '''

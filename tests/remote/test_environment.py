@@ -74,7 +74,7 @@ def test_what_the_lists_take_and_how_the_builder_writes_them():
     # Every PEP 440 form in its canonical spelling.
     for version in ("2!1.0", "1.0rc1", "1.0.post2", "1.0.dev3", "2.1.0+cpu.1"):
         assert environment.parse_entry(f"x=={version}").version == version
-    # 🔴 Nothing the job wrote is handed to pip: the builder writes canonical names.
+    # Nothing the job wrote is handed to pip: the builder writes canonical names.
     assert environment.render(environment.parse({"requirements": ["PyUVM==3.0.0"]})
                               .requirements, header="here") == "# here\npyuvm==3.0.0\n"
 
@@ -198,7 +198,7 @@ def test_python_env_is_offered_only_where_something_installs_the_packages(
 
 def test_the_packages_go_on_the_path_of_a_node_running_the_users_python_only(
         python_project, monkeypatch, tmp_path):
-    '''🔴 The host's site, then a derived image's layer, where each exists.'''
+    '''The host's site, then a derived image's layer, where each exists.'''
     from siliconcompiler.scheduler import SchedulerNode
     from siliconcompiler.utils.paths import jobdir
 
@@ -284,7 +284,7 @@ def test_bare_slurm_with_no_builder_offers_no_python_env(tmp_path):
 ])
 def test_a_listed_python_name_is_answered_from_what_this_server_holds(
         server, server_client, key, token, containers, name, pin, available):
-    '''🔴 A server never ignores a listed name.'''
+    '''A server never ignores a listed name.'''
     server.config["SC_CONFIG"]._values["containers"] = containers
     response = call(server_client, key, "POST", "/v1/jobs", token, json={
         "design": "gcd", "jobname": "job0",
@@ -357,7 +357,7 @@ def installed(monkeypatch, tmp_path):
     ([("scfake-helper", "0.1.0", {})], {}, None),
     ([("scfake", "1.0", {"tag": "cp312-cp312-linux_x86_64"})], {}, "only a pure wheel"),
     ([("scfake", "1.0", {"files": {"scfake/_c.so": "x"}})], {}, "compiled"),
-    # 🔴 A distribution travels one way: as a wheel, or in the lists.
+    # A distribution travels one way: as a wheel, or in the lists.
     ([("scfake", "1.0", {})],
      {"python_packages": {"requirements": ["scfake==1.0"]}}, "also lists"),
     ([("scfake", "1.0", {})],
@@ -479,7 +479,7 @@ def test_nothing_is_installed_where_nothing_would_use_it(
 def test_a_package_no_index_has_is_sent_back_and_answered_by_its_own_wheel(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         installed, dispatcher, name, version, refusal):
-    '''🔴 Asked for by name; the wheel that answers replaces its entry, at its
+    '''Asked for by name; the wheel that answers replaces its entry, at its
     version, and is the one wheel that may overlap the lists.'''
     from test_server_sources_flow import send
 
@@ -514,7 +514,7 @@ def test_a_package_no_index_has_is_sent_back_and_answered_by_its_own_wheel(
 def test_a_wheel_beside_its_listed_entry_in_the_first_archive_is_taken_only_where_asked(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         installed, dispatcher, monkeypatch, asked):
-    '''🔴 D306: the wheel exception covers an ask at create too (made here:
+    '''D306: the wheel exception covers an ask at create too (made here:
     this create asks only for dataroots); unasked, it travels two ways.'''
     from siliconcompiler.remote.server.jobs import JobService
 
@@ -550,7 +550,7 @@ def test_a_wheel_beside_its_listed_entry_in_the_first_archive_is_taken_only_wher
 def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
         server, server_client, key, token, job_archive, python_project, dispatcher,
         monkeypatch, result, expected):
-    '''🔴 `rejected` `uninstallable`, naming the package and target -- not a
+    '''`rejected` `uninstallable`, naming the package and target -- not a
     failed run; an index that does not answer is this server's failure.'''
     from siliconcompiler.remote.server.packages import envinstall
 
@@ -581,7 +581,7 @@ def test_a_package_that_will_not_install_rejects_the_job_before_any_node_runs(
 def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         monkeypatch):
-    '''🔴 End to end, pip for real over an index on disk: sent back for the
+    '''End to end, pip for real over an index on disk: sent back for the
     package the index lacks, answered with its wheel, installed, and run.'''
     import time
 
@@ -625,7 +625,7 @@ def test_a_job_with_packages_and_a_wheel_runs_to_the_end(
     tree = server.config["SC_JOBS"].job_root(job["owner"]["id"], job_id) / "gcd" / "job0"
     site = tree / environment.site_path()
     assert site.is_symlink()
-    # 🔴 The environment of its key, never one in the user's cache that two
+    # The environment of its key, never one in the user's cache that two
     # of their jobs could write at once.
     assert site.resolve().parent == (Path(server.config["SC_DATADIR"])
                                      / pythonenv.ENVIRONMENTS).resolve()

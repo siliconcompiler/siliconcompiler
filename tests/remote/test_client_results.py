@@ -107,7 +107,7 @@ def landed(project, step, *path):
 
 def test_a_manifest_alone_is_a_successful_run_and_fills_in_every_node(
         fake_v1, results, nop_project, caplog):
-    '''🔴 The manifest carries the record. Having no journal, its per-node
+    '''The manifest carries the record. Having no journal, its per-node
     values are copied; a global one, the server's setting, is not.'''
     from siliconcompiler import Project
 
@@ -147,7 +147,7 @@ def test_an_empty_listing_is_legal(fake_v1, results, caplog):
 
 
 def test_a_refused_archive_and_no_manifest_still_fetch_the_rest(fake_v1, results, caplog):
-    '''🔴 A node archive is never grantable: the rest is fetched, and no
+    '''A node archive is never grantable: the rest is fetched, and no
     manifest is not a failure. (`/v1/me` here publishes no ceiling.)'''
     ceiling(fake_v1, None)
     serve(fake_v1, [artifact("node", "stepone", "0", fetchable=False),
@@ -163,7 +163,7 @@ def test_a_refused_archive_and_no_manifest_still_fetch_the_rest(fake_v1, results
 
 
 def test_the_five_states_are_different_sentences(results):
-    '''🔴 Deleted before expiry; only `deleted_cause: expired` is the reaper,
+    '''Deleted before expiry; only `deleted_cause: expired` is the reaper,
     an unknown cause is somebody deciding; a reason is repeated verbatim.'''
     def why(**case):
         return results._why(artifact(fetchable=False, **case))
@@ -233,7 +233,7 @@ def test_an_approval_is_asked_for_and_opened_only_on_a_terminal_yes(
 
 
 def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
-    '''🔴 D308: `fetchable: false` is the answer and nothing is fetched to find
+    '''D308: `fetchable: false` is the answer and nothing is fetched to find
     out; ungranted with no way to yes says asking will not help.'''
     serve(fake_v1, [
         artifact("node", "stepone", "0", fetchable=False),
@@ -288,7 +288,7 @@ def test_one_objects_failure_does_not_abort_the_others(fake_v1, results,
 
 
 def test_a_node_archive_displaces_what_it_contains(fake_v1, results):
-    '''🔴 Fetching a node archive and the objects inside it downloads twice. The
+    '''Fetching a node archive and the objects inside it downloads twice. The
     job manifest is still fetched beside it, and so is `final`.'''
     serve(fake_v1, [artifact("manifest"),
                     artifact("node", "stepone", "0"), artifact("node", "steptwo", "0"),
@@ -309,7 +309,7 @@ def test_a_node_archive_displaces_what_it_contains(fake_v1, results):
 
 def test_the_job_level_log_lands_beside_the_nodes_not_on_top_of_job_log(
         fake_v1, results, nop_project):
-    '''🔴 A remote run is a `Scheduler` run, so `job.log` is open for the whole
+    '''A remote run is a `Scheduler` run, so `job.log` is open for the whole
     run: downloading onto it truncates a file this process is writing.'''
     serve(fake_v1, [artifact("logs", media_type="text/plain")],
           {"logs-None-None": "RuntimeError: git is required\n"})
@@ -363,7 +363,7 @@ def test_a_half_written_download_is_never_left_behind(fake_v1, logged_in, tmp_pa
 
 
 def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in, tmp_path):
-    '''🔴 `/logs` is live output only: a finished node's log is its `logs` artifact.'''
+    '''`/logs` is live output only: a finished node's log is its `logs` artifact.'''
     serve(fake_v1, [artifact("logs", "stepone", "0")], {"logs-stepone-0": "ran\n"})
     logged_in.node_log("j1", "stepone", "0", tmp_path / "node.log")
     assert (tmp_path / "node.log").read_text() == "ran\n"
@@ -372,7 +372,7 @@ def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in, t
 
 def test_a_nodes_results_are_taken_when_it_finishes_and_not_again_by_the_sweep(
         fake_v1, results, nop_project):
-    '''🔴 As each node finishes, so the local record stays current; the final
+    '''As each node finishes, so the local record stays current; the final
     sweep does not fetch it again.'''
     serve(fake_v1, [artifact("node", "stepone", "0")],
           {"node-stepone-0": tarball(["outputs/gcd.pkg.json"])})
@@ -383,7 +383,7 @@ def test_a_nodes_results_are_taken_when_it_finishes_and_not_again_by_the_sweep(
 
 
 def test_a_node_with_no_archive_is_not_asked_about_again(fake_v1, results):
-    '''🔴 A skipped node never has an archive: recording only nodes whose
+    '''A skipped node never has an archive: recording only nodes whose
     archive was FOUND listed again on every poll, per client.'''
     job = {"nodes": [{"step": "stepone", "index": "0", "state": "skipped",
                       "terminal": True}]}
@@ -406,14 +406,14 @@ def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
 
 
 def ceiling(fake_v1, limit):
-    '''🔴 THIS caller's ceiling, on `GET /v1/me`: it can differ per account.'''
+    '''THIS caller's ceiling, on `GET /v1/me`: it can differ per account.'''
     limits = {} if limit is None else {"max_download_bytes": limit}
     fake_v1.route(responses.GET, "me", {"id": "01J9-user", "terms": [], "limits": limits})
 
 
 def test_over_the_servers_ceiling_is_left_and_displaces_nothing(
         fake_v1, results, nop_project, caplog):
-    '''🔴 The SERVER's number, named once. An archive left behind displaces
+    '''The SERVER's number, named once. An archive left behind displaces
     nothing; `input` is neither taken nor reported.'''
     ceiling(fake_v1, 1000)
     serve(fake_v1, [
@@ -437,7 +437,7 @@ def test_over_the_servers_ceiling_is_left_and_displaces_nothing(
 
 def test_a_nodes_manifest_log_and_reports_are_taken_where_its_archive_is_withheld(
         fake_v1, results, nop_project):
-    '''🔴 As the node finishes, not at the end; the job's own log and manifest
+    '''As the node finishes, not at the end; the job's own log and manifest
     are not final until the run is.'''
     serve(fake_v1, [
         artifact("node", "stepone", "0", fetchable=False),
@@ -460,7 +460,7 @@ def test_a_nodes_manifest_log_and_reports_are_taken_where_its_archive_is_withhel
 
 @pytest.mark.parametrize("limit,taken", [
     (None, ["node"]),
-    # 🔴 An archive too large to fetch covers nothing, or the node's record is
+    # An archive too large to fetch covers nothing, or the node's record is
     # lost to the size of its outputs.
     (10, ["manifest", "logs", "reports"])], ids=["fetched", "too-large"])
 def test_a_nodes_archive_displaces_its_manifest_log_and_reports_only_if_fetched(
@@ -493,7 +493,7 @@ def test_the_upload_manifest_is_never_folded_back_in(results, nop_project):
 
 
 def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
-    '''⚠️ One line per object buries the one that differs, which keeps its own.'''
+    '''One line per object buries the one that differs, which keeps its own.'''
     serve(fake_v1, [artifact(kind, step, "0", fetchable=False)
                     for step in ("stepone", "steptwo") for kind in ("logs", "reports", "node")]
           + [artifact("outputs", "stepone", "0", fetchable=False,
@@ -509,7 +509,7 @@ def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
 
 
 def test_a_row_for_a_node_the_flow_does_not_have_writes_nothing(fake_v1, results):
-    '''🔴 `step: ".."` included: writes stay in the job's local directory.'''
+    '''`step: ".."` included: writes stay in the job's local directory.'''
     serve(fake_v1, [artifact("outputs", "..", "0"), artifact("outputs", "elsewhere", "0")])
     assert results.fetch("j1") == 0
     assert not fetched(fake_v1)
@@ -526,7 +526,7 @@ def test_bytes_that_do_not_match_the_listing_are_discarded(fake_v1, results, nop
 
 
 def test_a_returned_manifest_folds_in_only_the_nodes_it_ran_as_data(results, nop_project):
-    '''🔴 A run from part-way returns unloaded nodes pending. Read as data: an
+    '''A run from part-way returns unloaded nodes pending. Read as data: an
     unloaded class is its base type; `record,remoteid` is never the job id.'''
     import sys
 

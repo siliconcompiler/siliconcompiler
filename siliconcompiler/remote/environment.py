@@ -3,12 +3,12 @@ A job's Python packages: the create body's `python_packages` (``requirements``
 and ``constraints``) and the wheels it uploads (surface *A node's own Python
 packages, built while staging*).
 
-🔴 One grammar at both ends: each entry exactly ``name==version``, canonical,
+One grammar at both ends: each entry exactly ``name==version``, canonical,
 each name once, within :data:`MAX_ENTRIES` and :data:`MAX_BYTES`. No entry
 names an index, and the lists never reach pip: the server writes its own files
 from what :func:`parse` accepted (:func:`render`).
 
-🔴 A wheel is pure or refused (:func:`check_wheel`).
+A wheel is pure or refused (:func:`check_wheel`).
 '''
 
 import email.parser
@@ -198,7 +198,7 @@ def check_wheel(path) -> Wheel:
     members confined, no link, device or compiled file, one matching
     ``.dist-info``. Reads only; runs nothing.
 
-    🔴 Nothing that runs by itself and no dependency by URL (surface D292): a
+    Nothing that runs by itself and no dependency by URL (surface D292): a
     ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory
     or a ``name @ url`` requirement would let installing run or fetch code.
     '''

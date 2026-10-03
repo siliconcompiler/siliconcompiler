@@ -2,11 +2,11 @@
 What a version means in containers: the registry of software, versions and
 images, and resolving a job's requirements to them.
 
-🔴 The submitter names a version and the operator names the image: a client that
+The submitter names a version and the operator names the image: a client that
 could name an image would choose what executes on the cluster. The registry is
 also the switch: one that registers nothing runs jobs on the host, which is
 conforming; ``containers`` in the config turns images on.
-⚠️ ``image_contents`` is declared and unverified here: a wrong row fails a job at
+``image_contents`` is declared and unverified here: a wrong row fails a job at
 run time, not at submit.
 '''
 
@@ -43,8 +43,8 @@ PRIMARY = "siliconcompiler"
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-# 🔴 Kind -> bucket, a closed set with all three keys always on the wire, a
-# bucket possibly `{}`. ⚠️ Written out, not derived by adding an "s".
+# Kind -> bucket, a closed set with all three keys always on the wire, a
+# bucket possibly `{}`. Written out, not derived by adding an "s".
 BUCKETS = {"python": "python", "tool": "tools", "interpreter": "interpreter"}
 
 # A requirement's `kind` on a `software-unavailable` `unresolved` entry
@@ -56,8 +56,8 @@ class Requirement(NamedTuple):
     '''One thing an image has to hold.
 
     ``wanted`` is PEP 440 specifier sets, any one of which will do, as in
-    `Task.get('version')`; empty is any live version. ⚠️ Alternatives are OR,
-    a set's commas AND. 🔴 A range on the wire, never in storage: only the
+    `Task.get('version')`; empty is any live version. Alternatives are OR,
+    a set's commas AND. A range on the wire, never in storage: only the
     server can answer *which image holds all of these*, so only it resolves.
     '''
     name: str
@@ -76,7 +76,7 @@ _HAS_OPERATOR = re.compile(r"^\s*(===|==|!=|~=|<=|>=|<|>)")
 def specifiers(declared) -> Tuple[str, ...]:
     '''What the client asked for, as PEP 440 specifier sets; empty is *any*.
 
-    ⚠️ A bare ``0.38.9`` means ``==0.38.9``, as in `Task.check_exe_version`.
+    A bare ``0.38.9`` means ``==0.38.9``, as in `Task.check_exe_version`.
     '''
     if declared is None:
         return ()
@@ -115,7 +115,7 @@ def _is_pep440(version: str) -> bool:
 def matches(version: str, source: str, wanted: Sequence[str]) -> bool:
     '''Whether one registered version answers one requirement: any alternative will do.
 
-    🔴 A `published_date` version never answers a specifier: `20260924` beats
+    A `published_date` version never answers a specifier: `20260924` beats
     `2.0.1` under every comparison, so an old unversioned build would win forever.
     '''
     if not wanted:
@@ -169,7 +169,7 @@ class Plan(NamedTuple):
 def own_version() -> str:
     '''The SiliconCompiler this server runs: the one version every job resolves to (profile §5).
 
-    🔴 One, because the manifest's read is this server's own SiliconCompiler.
+    One, because the manifest's read is this server's own SiliconCompiler.
     '''
     from siliconcompiler import __version__
 
@@ -189,7 +189,7 @@ def live_images(store) -> List[Dict[str, Any]]:
     The match is in Python, not a dynamic SQL ``HAVING``: being able to read
     the rule over the most dangerous data matters more than the query plan.
     '''
-    # 🔴 Never a derived image, or one user's packages would place another's node.
+    # Never a derived image, or one user's packages would place another's node.
     rows = store.all(
         "SELECT id, registry_ref, digest, note, built_at, resolved_at FROM images "
         "WHERE retired_at IS NULL AND derived_from IS NULL ORDER BY registry_ref")
@@ -253,11 +253,11 @@ def catalogue(store, include_retired: bool = False) -> Dict[str, Any]:
 def live_software(store) -> Dict[str, Dict[str, List[str]]]:
     '''Which distributions this deployment tracks, at which versions, in the three buckets.
 
-    🔴 The split is structural: the python set is satisfied by one image per job,
+    The split is structural: the python set is satisfied by one image per job,
     a tool per node (surface D293 for `interpreter`). Only a registered name
-    raises a requirement at all. ⚠️ Keyed on the software, so a name whose
+    raises a requirement at all. Keyed on the software, so a name whose
     every version is retired is still tracked, with none: retiring the last
-    version must not hand jobs back to the host. 🔴 `reported` versions sort first.
+    version must not hand jobs back to the host. `reported` versions sort first.
     '''
     tracked: Dict[str, Dict[str, List[str]]] = {bucket: {} for bucket in BUCKETS.values()}
 
@@ -299,16 +299,16 @@ def _satisfies(image, requirements: Sequence[Requirement]) -> bool:
 def _rank(image, requirements: Sequence[Requirement] = ()):
     '''Lower sorts first: preference, specificity, build time, pin time, then the name.
 
-    🔴 The operator's `preference`, never newest-wins: a rebuilt image is newer,
-    not preferred. 🔴 Then the fewest declared contents (bar the interpreter),
+    The operator's `preference`, never newest-wins: a rebuilt image is newer,
+    not preferred. Then the fewest declared contents (bar the interpreter),
     so a framework node lands in the python-only image rather than the huge
-    tool image holding the same SC. 🆕 Then `built_at`, ⚠️ before
+    tool image holding the same SC. Then `built_at`, before
     `resolved_at`, which is when the tag was pinned; `resolved_at` still
     breaks ties between reproducible builds stamped 1970.
     '''
     preference = max((entry.preference for entry in image["contents"]
                       if entry.name == PRIMARY), default=None)
-    # 🔴 Every other name asked for by preference too, never build time (surface D177).
+    # Every other name asked for by preference too, never build time (surface D177).
     chosen = []
     for want in requirements:
         if want.name == PRIMARY:
@@ -340,9 +340,9 @@ def plan_for_job(store, requires: Dict[str, Any],
                  python_nodes=()) -> Plan:
     '''Which image every node of this job runs in.
 
-    🔴 A node no image can place fails the whole submit, before anything runs.
-    ⚠️ Only called where containers run, so an empty registry refuses rather
-    than falling back to the host. 🔴 ``python_nodes`` are also matched on
+    A node no image can place fails the whole submit, before anything runs.
+    Only called where containers run, so an empty registry refuses rather
+    than falling back to the host. ``python_nodes`` are also matched on
     `requested_versions.interpreter` (surface D293).
     '''
     images = live_images(store)
@@ -350,7 +350,7 @@ def plan_for_job(store, requires: Dict[str, Any],
     python_nodes = set(python_nodes)
     interpreter = interpreter_requirement(requires)
 
-    # 🔴 The python set alone decides the job image, picked at create and kept while live.
+    # The python set alone decides the job image, picked at create and kept while live.
     pinned = declared_requirements(software, requires)
     job_image = next((image for image in images if image["id"] == job_image_id), None) \
         or resolve_declared(images, pinned)
@@ -365,8 +365,8 @@ def plan_for_job(store, requires: Dict[str, Any],
     nodes: Dict[Tuple[str, str], Optional[str]] = {}
     for node, tool in node_tools.items():
         if not tool:
-            # 🆕 A node declaring nothing that follows its input runs where that
-            # input ran. ⚠️ Flowgraph order places the input first; one outside
+            # A node declaring nothing that follows its input runs where that
+            # input ran. Flowgraph order places the input first; one outside
             # this run falls back to the job's image.
             after = inherits.get(node)
             nodes[node] = (nodes.get(after) if node in inherits else None) \
@@ -382,8 +382,8 @@ def plan_for_job(store, requires: Dict[str, Any],
             continue
 
         if tool not in held:
-            # 🔴 Fatal: with containers the registry is the world, and placed
-            # anywhere the node would die in the python-only image. ⚠️ The task
+            # Fatal: with containers the registry is the world, and placed
+            # anywhere the node would die in the python-only image. The task
             # declares its tool (`runflow.node_tools`). Distinct from a tool
             # registered but in no image: different people fix the two.
             step, index = node
@@ -395,15 +395,15 @@ def plan_for_job(store, requires: Dict[str, Any],
                        "registered, and an operator adds one with "
                        "'registry add-software' and 'registry add-image'")
 
-        # 🔴 The python set plus this node's tool, `job_nodes.image_id`, per
-        # node: tools need not share an image. ⚠️ Pinning narrows candidates
+        # The python set plus this node's tool, `job_nodes.image_id`, per
+        # node: tools need not share an image. Pinning narrows candidates
         # before any tie is broken.
         asked = ((requires or {}).get("tools") or {}).get(tool)
         wants = list(pinned) + ([interpreter] if interpreter and node in python_nodes
                                 else []) + [Requirement(tool, specifiers(asked), "tool")]
         found = resolve(images, wants)
         if found is None:
-            # 🔴 Kept, not raised: a job missing two tools reports both.
+            # Kept, not raised: a job missing two tools reports both.
             failed.setdefault(wants[-1], wants)
             continue
         nodes[node] = found["id"]
@@ -425,9 +425,9 @@ def interpreter_requirement(requires: Dict[str, Any]) -> Optional[Requirement]:
 def declared_requirements(software, requires: Dict[str, Any]) -> List[Requirement]:
     '''What the run's own Python process needs: the `python` bucket.
 
-    🔴 One image must satisfy all of it, since these names share an interpreter.
-    🔴 The framework is always this server's own version (:func:`own_version`).
-    🔴 Computable without the upload, so create can resolve the image too.
+    One image must satisfy all of it, since these names share an interpreter.
+    The framework is always this server's own version (:func:`own_version`).
+    Computable without the upload, so create can resolve the image too.
     '''
     tracked = software["python"]
     asked = (requires or {}).get("python") or {}
@@ -464,7 +464,7 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
     '''Every version the given images declare, by distribution: what a job actually ran.
 
     The `interpreter` bucket holds only ``interpreter_ids``' Python (surface
-    D293). ⚠️ A list per name: a wide flow's images may differ.
+    D293). A list per name: a wide flow's images may differ.
     '''
     wanted = {image_id for image_id in image_ids if image_id}
     interpreted = {image_id for image_id in interpreter_ids if image_id}
@@ -512,7 +512,7 @@ def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
 
     ``unavailable`` lists every requirement no image satisfies alone;
     ``combination`` lists all of them when each exists but never together.
-    ⚠️ Not `entitlement-denied`, nor `resource-unavailable` (never heard of).
+    Not `entitlement-denied`, nor `resource-unavailable` (never heard of).
     '''
     alone = [want for want in requirements if resolve(images, [want]) is None]
     if alone:
@@ -551,7 +551,7 @@ def _software_unavailable(reason: str, unresolved: Sequence[Requirement],
 
     unversioned = _present_but_unversioned(unresolved, images)
     if reason == "unavailable" and unversioned:
-        # 🔴 Otherwise a mystery: `GET /v1` lists the name, so a preflight passed.
+        # Otherwise a mystery: `GET /v1` lists the name, so a preflight passed.
         detail = (f"this server has {unversioned.name}, and every image holding "
                   "it reports no version for it -- so nothing here can be matched "
                   "against a version requirement. Ask for it without a version, "
@@ -583,7 +583,7 @@ def _present_but_unversioned(requirements: Sequence[Requirement], images):
 def pinned_ref(registry_ref: str, digest: str) -> str:
     '''What actually gets pulled: the repository at a digest, never a tag.
 
-    🔴 Rebuilding a tag must not change what runs; only a re-registration may.
+    Rebuilding a tag must not change what runs; only a re-registration may.
     '''
     from docker.utils import parse_repository_tag
 
@@ -629,7 +629,7 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
     try:
         subprocess.run(["skopeo", "copy", f"docker://{ref}", f"oci:{layout}:sc"],
                        check=True)
-        # 🔴 `--rootless` only when unprivileged, not as a safety flag: its user
+        # `--rootless` only when unprivileged, not as a safety flag: its user
         # namespace without a uid map cannot mount /proc.
         unpack = ["umoci", "unpack", "--image", f"{layout}:sc", str(staging)]
         if os.geteuid() != 0:
@@ -652,7 +652,7 @@ def stage_bundle(root, ref: str, digest: str, mounts=()):
 def sweep_bundles(root, store) -> int:
     '''Reclaim the unpacked bundles nothing can run any more; returns bytes.
 
-    ⚠️ Superseded is not unused: a retired image an unfinished job names is
+    Superseded is not unused: a retired image an unfinished job names is
     kept, since `--container` points straight at it. A crashed unpack's
     `.part` and `.oci` directories go too.
     '''
@@ -729,7 +729,7 @@ def _prepare_spec(config, mounts) -> None:
     '''Make the unpacked bundle runnable for a job on this cluster.
 
     Mounts at the same path inside as out, since the manifest names absolute
-    server paths. 🔴 The network namespace is removed: the framework image must
+    server paths. The network namespace is removed: the framework image must
     reach `slurmctld` to submit nodes, and tasks may need a licence server.
     '''
     with open(config) as f:
@@ -737,7 +737,7 @@ def _prepare_spec(config, mounts) -> None:
 
     drop_capabilities(spec)
 
-    # ⚠️ Slurm gives no terminal, and crun dies on "tcgetattr" if one is asked for.
+    # Slurm gives no terminal, and crun dies on "tcgetattr" if one is asked for.
     spec.setdefault("process", {})["terminal"] = False
 
     namespaces = spec.get("linux", {}).get("namespaces")
@@ -780,8 +780,8 @@ def _borrowed_root(spec, bundle, readonly: Optional[bool] = None) -> Dict[str, A
 def job_bundle(shared, target, mounts):
     '''One job's bundle: the shared root filesystem with this job's own mounts.
 
-    🔴 What keeps the signing key and the store out of a job's view: a mount in
-    a shared bundle would be every job's. ⚠️ ``target`` must be unwritable by
+    What keeps the signing key and the store out of a job's view: a mount in
+    a shared bundle would be every job's. ``target`` must be unwritable by
     any job, or a node could rewrite what the next one starts with.
     '''
     target = Path(target)
@@ -798,7 +798,7 @@ def job_bundle(shared, target, mounts):
 def read_bundle(shared, target, tree):
     '''A bundle for reading one job's manifest in its own image.
 
-    🔴 The staging sandbox (implementation-notes §E; profile D63): every bind
+    The staging sandbox (implementation-notes §E; profile D63): every bind
     mount removed but ``tree``, read-only, and its own network namespace, so no
     credential, munge socket, PDK data, private root or network.
     '''
@@ -888,7 +888,7 @@ def register_derived(store, base_id: str, registry_ref: str, digest: str, key: s
                      installed: Sequence[Tuple[str, str]], note: str) -> str:
     '''Record an image the server built; returns its id.
 
-    🔴 No `image_contents`, so no requirement resolves to it and `GET /v1` never lists it.
+    No `image_contents`, so no requirement resolves to it and `GET /v1` never lists it.
     '''
     if not _DIGEST.match(digest or ""):
         raise ValueError(f"{digest!r} is not a sha256 digest")
@@ -913,7 +913,7 @@ def register_derived(store, base_id: str, registry_ref: str, digest: str, key: s
 def stage_derived_bundle(root, base_digest: str, digest: str, layer):
     '''The bundle a derived image runs as: its staged base's, with the layer at `IMAGE_SITE`.
 
-    🔴 Not a second unpack of the base, so no tool-image copy per environment.
+    Not a second unpack of the base, so no tool-image copy per environment.
     '''
     import shutil
 
@@ -956,7 +956,7 @@ def is_staged(bundle) -> bool:
 def driver_allowed(driver: str, allowed: Sequence[str] = ()) -> bool:
     '''Whether ``driver`` is a module this server will import (D95).
 
-    🔴 The probe imports it on the server, so it is under ``siliconcompiler.tools``
+    The probe imports it on the server, so it is under ``siliconcompiler.tools``
     or named by configuration, never a free form field anyone could fill.
     '''
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*", driver or ""):
@@ -972,8 +972,8 @@ def register_software(store, name: str, display_name: str, actor: str,
                       allowed_drivers: Sequence[str] = ()) -> str:
     '''Declare that this deployment curates images for a distribution; returns the kind.
 
-    ⚠️ A claim with teeth: a job needing this tool with no image holding it is
-    refused at submit. 🔴 `kind`, `driver` (the tool's Task module, handed to a
+    A claim with teeth: a job needing this tool with no image holding it is
+    refused at submit. `kind`, `driver` (the tool's Task module, handed to a
     probe) and `version_package` (where a driverless or exe-less tool's version
     comes from) are stated, never derived: this process is not the image.
     '''
@@ -1016,9 +1016,9 @@ def register_version(store, name: str, version: str, actor: str,
                      preference: int = 0, source: str = "reported") -> str:
     '''Register one exact version; returns the spelling stored.
 
-    🔴 Exact in storage; the wire's specifiers are matched against these rows.
-    🔴 Normalised here, not at request time, so client and server never disagree
-    silently. ⚠️ ``published_date`` lets a tool reporting no version in,
+    Exact in storage; the wire's specifiers are matched against these rows.
+    Normalised here, not at request time, so client and server never disagree
+    silently. ``published_date`` lets a tool reporting no version in,
     at the cost of never satisfying a version requirement.
     '''
     if store.one("SELECT name FROM software WHERE name = ?", (name,)) is None:
@@ -1026,7 +1026,7 @@ def register_version(store, name: str, version: str, actor: str,
     if source not in ("reported", "published_date"):
         raise ValueError(f"{source} is not a version source")
 
-    # 🔴 Refused, never coerced (`version_norm NOT NULL`): a parser fed odd
+    # Refused, never coerced (`version_norm NOT NULL`): a parser fed odd
     # output returns anything (`initialize` from gtkwave), and a rewrite hides it.
     if source == "reported" and not _is_pep440(version):
         raise ValueError(
@@ -1068,8 +1068,8 @@ def register_image(store, registry_ref: str, digest: str,
                    built_at: Optional[str] = None) -> str:
     '''Register a container this deployment may run.
 
-    🔴 The most dangerous write in this schema: it chooses what code executes on
-    the cluster, so it takes a person every time. ⚠️ ``built_at`` is from the
+    The most dangerous write in this schema: it chooses what code executes on
+    the cluster, so it takes a person every time. ``built_at`` is from the
     image's manifest; NULL means unknown, not old.
     '''
     if not _DIGEST.match(digest or ""):
@@ -1077,7 +1077,7 @@ def register_image(store, registry_ref: str, digest: str,
     if not contents:
         raise ValueError("an image with no declared contents can satisfy nothing")
 
-    # 🔴 Normalised as stored: `verilator 5.052` is stored as `5.52`.
+    # Normalised as stored: `verilator 5.052` is stored as `5.52`.
     contents = [(name, normalize(version)) for name, version in contents]
 
     for name, version in contents:
@@ -1089,7 +1089,7 @@ def register_image(store, registry_ref: str, digest: str,
     existing = store.one("SELECT id FROM images WHERE digest = ?", (digest,))
     image_id = existing["id"] if existing else str(uuid.uuid4())
 
-    # 🔴 One live image per reference: a rebuilt tag supersedes (⚠️ retires, never
+    # One live image per reference: a rebuilt tag supersedes (retires, never
     # deletes) the build before it, or the resolution would pick arbitrarily.
     superseded = [row["id"] for row in store.all(
         "SELECT id FROM images WHERE registry_ref = ? AND digest <> ? "
@@ -1130,7 +1130,7 @@ def register_image(store, registry_ref: str, digest: str,
 
 
 def retire_image(store, image_id: str, actor: str) -> None:
-    '''Stop dispatching into it; ⚠️ the row stays, so *what did this run in* stays answerable.'''
+    '''Stop dispatching into it; the row stays, so *what did this run in* stays answerable.'''
     _retire(store, "images", "id = ?", (image_id,), actor)
 
 

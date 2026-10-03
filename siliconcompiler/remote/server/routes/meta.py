@@ -23,8 +23,8 @@ def advertised_software(store, config=None):
     '''What this deployment can actually run, by bucket: the registry, best
     first, with containers only what a live image holds.
 
-    🔴 Without containers, an empty registry falls back to what this process
-    runs, so the REQUIRED ``siliconcompiler`` key is never missing. ⚠️ With
+    Without containers, an empty registry falls back to what this process
+    runs, so the REQUIRED ``siliconcompiler`` key is never missing. With
     containers there is no fallback: this process says nothing about images.
     '''
     return _advertised(store, config, store.advertised_software)
@@ -46,7 +46,7 @@ def _advertised(store, config, read):
     if not (containers or software["python"] or software["tools"]):
         software = {bucket: {} for bucket in BUCKETS.values()}
 
-    # 🔴 One SiliconCompiler, the one this server runs, which reads every
+    # One SiliconCompiler, the one this server runs, which reads every
     # manifest (profile §5).
     software["python"][PRIMARY] = [own_version()]
     if not containers:

@@ -1,11 +1,11 @@
 '''
 Read a node's log while it is still being written.
 
-🔴 On reconnect the client re-requests ``/logs``, never reusing the target: the
+On reconnect the client re-requests ``/logs``, never reusing the target: the
 capability URL has its own lifetime, so a long log is streams stitched by
 ``Last-Event-ID``, each re-authorized.
 
-⚠️ An expired capability or a dropped connection is ordinary, not a failure:
+An expired capability or a dropped connection is ordinary, not a failure:
 ask again with the last id.
 '''
 
@@ -30,7 +30,7 @@ RECONNECT_SECONDS = 2
 class LogTail:
     '''One node's log, or with no step and index the whole job's, followed to its end.
 
-    ⚠️ A job stream's event id is only ever handed back, never interpreted.
+    A job stream's event id is only ever handed back, never interpreted.
     '''
 
     def __init__(self, client, job_id: str, step: Optional[str] = None,
@@ -47,7 +47,7 @@ class LogTail:
     def follow(self, write=None) -> str:
         '''Read until the node, or the job, is done; returns everything emitted.
 
-        🔴 Reconnects on any `end` but `terminal`, however long: a quiet node is
+        Reconnects on any `end` but `terminal`, however long: a quiet node is
         not broken. A finished node's stream names its archived log, then fetched.
         '''
         collected = []
@@ -64,7 +64,7 @@ class LogTail:
                 last_event_id=self.last_event_id)
 
             if not _is_stream(response):
-                # 🔴 Anything but an event stream is a refusal, never log text.
+                # Anything but an event stream is a refusal, never log text.
                 from siliconcompiler.remote.client.transport import _problem_body
 
                 with response:
@@ -108,7 +108,7 @@ class LogTail:
 
                 elif event == "end":
                     self.artifact_id = data.get("artifact_id") or self.artifact_id
-                    # Only `terminal` is over, ⚠️ possibly as the first event;
+                    # Only `terminal` is over, possibly as the first event;
                     # any other reason is a reconnect.
                     return produced, data.get("reason") == "terminal"
 
@@ -120,7 +120,7 @@ class LogTail:
 
 
 def _is_stream(response) -> bool:
-    '''🔴 The ONLY test of a live tail: what was served, never a flag on the 303,
+    '''The ONLY test of a live tail: what was served, never a flag on the 303,
     which a node finishing in between makes stale.'''
     return response.headers.get("Content-Type", "").startswith("text/event-stream")
 

@@ -186,7 +186,7 @@ def test_a_browser_with_no_session_is_told_how_to_get_one(server_client, path):
 
 def test_a_handover_works_once_before_it_expires_and_only_if_minted(
         monkeypatch, server_client, key, token):
-    '''🔴 The URL reaches browser history and access logs; spending it on
+    '''The URL reaches browser history and access logs; spending it on
     arrival makes both worthless.'''
     from siliconcompiler.remote.server import portal
 
@@ -222,7 +222,7 @@ def test_the_portal_session_route_is_gone(server_client, key, token):
 
 def test_the_landing_is_the_jobs_list_or_the_named_job(server_client, key, token,
                                                        finished):
-    '''No body at all reads as `{}`. 🔴 A job's landing is built from its id;
+    '''No body at all reads as `{}`. A job's landing is built from its id;
     no path a caller sends is followed.'''
     empty = call(server_client, key, "POST", "/v1/auth/browser", token)
     assert empty.status_code == 200
@@ -273,7 +273,7 @@ def test_an_invisible_job_or_artifact_is_not_found(server_client, key, token, fi
 
 @pytest.mark.parametrize("request_body,status,problem", [
     ({"json": {"job_id": "J1", "terms_id": "tos"}}, 400, "invalid-request"),
-    # 🔴 `next` too: a redirect following a caller's input is an open redirect.
+    # `next` too: a redirect following a caller's input is an open redirect.
     ({"json": {"next": "/portal/jobs/J1"}}, 400, "invalid-request"),
     ({"json": {"job_id": 7}}, 400, "invalid-request"),
     ({"json": ["job_id"]}, 400, "invalid-request"),
@@ -314,7 +314,7 @@ def test_only_an_interactive_session_gets_a_page(server, server_client, key, tok
 ])
 def test_the_link_is_never_built_on_a_request_header(server, server_client, key, token,
                                                      base, expected, headers):
-    '''🔴 Or anyone who can set one mints a link pasted into a ticket.'''
+    '''Or anyone who can set one mints a link pasted into a ticket.'''
     server.config["SC_CONFIG"]._values["web_url_base"] = base
 
     url = browser(server_client, key, token, headers=headers).get_json()["url"]
@@ -324,7 +324,7 @@ def test_the_link_is_never_built_on_a_request_header(server, server_client, key,
 
 
 def test_a_portal_session_is_not_an_api_credential(signed_in):
-    '''🔴 No access token, no DPoP binding: a cookie-to-credential path would
+    '''No access token, no DPoP binding: a cookie-to-credential path would
     be the shortest way around key pinning. Nor does the cookie mint a
     handover, which is the CLI proving its key.'''
     assert signed_in.post("/v1/auth/browser", json={}).status_code == 401
@@ -345,7 +345,7 @@ def test_signing_out_ends_it(signed_in):
     # since a template naming a member the object lacks renders nothing.
     ("/portal/account", ["does not verify who you are", "self_asserted",
                          "<b>Jobs running now</b><br>0</div>"]),
-    # 🔴 The most dangerous write this server has, and the screen says so.
+    # The most dangerous write this server has, and the screen says so.
     ("/portal/images", ["chooses what code executes on the cluster",
                         "declared and unverified"]),
 ])
@@ -359,8 +359,8 @@ def test_every_screen_renders(signed_in, path, says):
 
 
 def test_the_server_screen_answers_what_v1_answers(signed_in, server_client):
-    '''🔴 Built from the endpoints' own code: a second opinion of `GET /v1`
-    could disagree with the API. ⚠️ A reference implementation, so the raw
+    '''Built from the endpoints' own code: a second opinion of `GET /v1`
+    could disagree with the API. A reference implementation, so the raw
     block is there too, with liveness.'''
     published = json.loads(server_client.get("/v1").get_data())
     text = page(signed_in, "/portal/server")
@@ -376,7 +376,7 @@ def test_the_server_screen_answers_what_v1_answers(signed_in, server_client):
 
 def test_a_stranger_cannot_read_another_persons_job(
         server_client, key, token, job_archive, dispatcher, signed_in):
-    '''🔴 Through JobService.owned, the API's own predicate.'''
+    '''Through JobService.owned, the API's own predicate.'''
     job = submitted(server_client, key, token, job_archive)
 
     other_key, other = stranger(server_client)
@@ -406,7 +406,7 @@ def test_cancelling_from_the_browser_moves_the_job_and_needs_its_own_form(
 
 def test_a_nodes_metrics_come_from_the_table_the_jobs_end_filled(
         server, server_client, key, token, job_archive, dispatcher, me, signed_in):
-    '''🔴 The final manifest is read once, as plain JSON, when the job ends;
+    '''The final manifest is read once, as plain JSON, when the job ends;
     the panel reads the table, never the manifest (contract §1).'''
     job = submitted(server_client, key, token, job_archive)
     manifest = node_root(server, me, job).parents[1] / "gcd.pkg.json"
@@ -447,7 +447,7 @@ def test_the_uploads_are_shown_apart_with_their_hashes(server, signed_in, finish
 def test_an_upload_refused_as_unsafe_is_kept_and_never_opened(
         server, server_client, key, token, job_archive, dispatcher, signed_in,
         monkeypatch):
-    '''🔴 Look-inside decompresses the whole archive -- the bomb it was refused
+    '''Look-inside decompresses the whole archive -- the bomb it was refused
     for, on every click. The bytes are kept and the refusal shown instead.'''
     archive, digest, size = job_archive(extra={"../escape.txt": b"x"})
     job = stage(server_client, key, token, archive, size)
@@ -473,7 +473,7 @@ def test_an_upload_refused_as_unsafe_is_kept_and_never_opened(
 
 
 def test_the_artifacts_screen_lists_them_grouped_by_node(server, signed_in, finished, me):
-    '''🔴 The listing is (items, cursor), and a template handed the tuple
+    '''The listing is (items, cursor), and a template handed the tuple
     rendered an empty page once. Grouped by node, because the node is what a
     discard removes, with a node's inputs as their own row; deleting the job
     is here and not on the job page; a typed discard reason is labelled as
@@ -497,8 +497,8 @@ def test_the_artifacts_screen_lists_them_grouped_by_node(server, signed_in, fini
 def test_a_finished_jobs_page_draws_the_flow_and_opens_its_archives(
         server, signed_in, finished):
     '''Drawn on the server, not by a JavaScript graph library every release
-    would pay for. 🔴 `reports` there SHOWS the reports rather than download a
-    tarball. 🔴 It no longer refreshes: nothing is left to watch.'''
+    would pay for. `reports` there SHOWS the reports rather than download a
+    tarball. It no longer refreshes: nothing is left to watch.'''
     text = page(signed_in, f"/portal/jobs/{finished['id']}")
 
     assert "<svg" in text
@@ -510,7 +510,7 @@ def test_a_finished_jobs_page_draws_the_flow_and_opens_its_archives(
 
 
 def test_a_node_offers_every_log_it_wrote(signed_in, finished):
-    '''🔴 SiliconCompiler's record and the TOOL's output answer different
+    '''SiliconCompiler's record and the TOOL's output answer different
     questions; a synthesis error is only in the second. SC's comes first.'''
     text = page(signed_in, f"/portal/jobs/{finished['id']}/logs/stepone/0")
 
@@ -528,7 +528,7 @@ def operator(server):
 
 
 def test_software_can_be_retired_from_the_screen(signed_in, server):
-    '''🔴 A version (*not this one*) and the software (*not any more*) are both
+    '''A version (*not this one*) and the software (*not any more*) are both
     retirable, or an operator cannot correct a mistake. A retired name offers
     no per-version button: retiring one would change nothing.'''
     from siliconcompiler.remote.server.software import images
@@ -560,7 +560,7 @@ def test_software_can_be_retired_from_the_screen(signed_in, server):
 
 
 def test_a_version_nothing_reported_is_marked_on_the_screen(signed_in, server):
-    '''🔴 A publish date (20260924) beats 2.0.1 under every comparison; the
+    '''A publish date (20260924) beats 2.0.1 under every comparison; the
     operator must see it can never satisfy a requirement, listed after the
     reported ones.'''
     from siliconcompiler.remote.server.software import images
@@ -589,7 +589,7 @@ def test_the_operator_can_record_a_tool_that_reports_nothing(signed_in, server):
 def test_a_failed_jobs_page_says_why_and_offers_the_servers_records(
         server, server_client, key, token, job_archive, dispatcher, me, signed_in):
     '''A run that died before any node, every node `cancelled`. The frozen
-    title, then the detail about this run; 🔴 that no node failed, which is
+    title, then the detail about this run; that no node failed, which is
     what an unreached node looks like; and the records it left -- the run log,
     the staging record and the diagnostics, with no `job.log` yet.'''
     from siliconcompiler.remote.server.running.dispatch import RUN_LOG
@@ -634,8 +634,8 @@ def test_a_cancelled_job_is_not_told_nobody_cancelled_it(
 
 def test_a_node_archive_is_browsed_one_member_at_a_time_by_name(signed_in, finished,
                                                                 server):
-    '''🔴 Report viewing needs a node's archive opened, with the whole thing
-    still downloadable. 🔴 A member is matched against the archive's own list,
+    '''Report viewing needs a node's archive opened, with the whole thing
+    still downloadable. A member is matched against the archive's own list,
     never joined into a path: the name is a query string.'''
     archive = artifact_id(server, finished)
     inside = f"/portal/jobs/{finished['id']}/artifacts/{archive}/inside"
@@ -695,7 +695,7 @@ def test_a_node_whose_scheduler_id_arrives_late_still_gets_its_diagnostics(
 
 
 def test_a_link_in_an_archive_is_never_followed(signed_in, finished, server, me):
-    '''🔴 Only a regular member is served: a kept link would be a second name
+    '''Only a regular member is served: a kept link would be a second name
     for anything in the archive, and nothing is served by alias.'''
     node = node_root(server, me, finished)
     (node / "outputs").mkdir(exist_ok=True)
@@ -715,7 +715,7 @@ def test_a_link_in_an_archive_is_never_followed(signed_in, finished, server, me)
 
 
 def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
-    '''🔴 An artifact is bytes a JOB made; as text/html from this origin a
+    '''An artifact is bytes a JOB made; as text/html from this origin a
     design's own script would run on the portal.'''
     (node_root(server, me, finished) / "trouble.html").write_text("<script>alert(1)</script>")
     collect(server, me, finished)
@@ -729,7 +729,7 @@ def test_the_raw_route_never_serves_html(signed_in, finished, server, me):
 
 
 def test_delete_needs_the_job_named(signed_in, finished):
-    '''⚠️ A speed bump, not a security control (CSRF is that): the button sat
+    '''A speed bump, not a security control (CSRF is that): the button sat
     one position from the link people click constantly.'''
     token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
 
@@ -745,7 +745,7 @@ def test_delete_needs_the_job_named(signed_in, finished):
 def test_the_portal_is_the_way_past_the_download_ceiling(signed_in, finished,
                                                          server, server_client,
                                                          key, token):
-    '''🔴 `max_download_bytes` has no API override, so without the portal an
+    '''`max_download_bytes` has no API override, so without the portal an
     object over it is unreachable by its owner. A browser download is a person
     choosing one object; the ceiling stops an automated sweep.'''
     row = artifact_id(server, finished)
@@ -763,7 +763,7 @@ def test_the_portal_is_the_way_past_the_download_ceiling(signed_in, finished,
 
 
 def test_the_account_page_shows_each_ceiling_beside_its_default(signed_in, server, me):
-    '''🔴 Two columns: one value says neither *is this mine* nor *what would
+    '''Two columns: one value says neither *is this mine* nor *what would
     it be otherwise*. Read-only, as this deployment has no admin mode.
     `max_staging_seconds` (surface D294) is the deployment's alone.'''
     import re
@@ -786,7 +786,7 @@ def test_the_account_page_shows_each_ceiling_beside_its_default(signed_in, serve
 
 
 def test_the_nodes_table_is_in_the_order_the_run_reaches_them():
-    '''⚠️ The API lists nodes by name, which puts `elaborate` mid-asicflow.
+    '''The API lists nodes by name, which puts `elaborate` mid-asicflow.
     Ties break on the name, so a reload never reshuffles the rows.'''
     from siliconcompiler.remote.server.portal import running_order
 
@@ -808,7 +808,7 @@ def test_the_nodes_table_is_in_the_order_the_run_reaches_them():
 
 def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
                                                      finished):
-    '''🔴 Otherwise "here is your job" answered "here is a list, find it".'''
+    '''Otherwise "here is your job" answered "here is a list, find it".'''
     job_page = f"/portal/jobs/{finished['id']}"
 
     turned_away = server_client.get(job_page)
@@ -821,7 +821,7 @@ def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
 
 
 def test_the_return_path_is_never_an_open_redirect(server_client, key, token):
-    '''🔴 Anything can set a cookie on this origin, and a redirect following
+    '''Anything can set a cookie on this origin, and a redirect following
     one is the classic phishing primitive -- on the trusted way in.'''
     response = browser(server_client, key, token)
 
@@ -838,8 +838,8 @@ def test_the_return_path_is_never_an_open_redirect(server_client, key, token):
 
 def test_only_a_job_still_going_refreshes_and_it_cannot_be_archived(
         server_client, key, token, job_archive, dispatcher, signed_in, finished):
-    '''⚠️ `<meta http-equiv="refresh">`: stops with the tab, works without
-    scripting. 🔴 A queued job holds a slot and a created one an upload grant,
+    '''`<meta http-equiv="refresh">`: stops with the tab, works without
+    scripting. A queued job holds a slot and a created one an upload grant,
     so hiding one still going makes "why can I not submit" unanswerable.'''
     assert 'http-equiv="refresh"' not in page(signed_in, "/portal/")
 
@@ -860,7 +860,7 @@ def test_only_a_job_still_going_refreshes_and_it_cannot_be_archived(
 
 
 def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
-    '''🔴 Deleting the JOB takes it out of the collection -- far more than
+    '''Deleting the JOB takes it out of the collection -- far more than
     reclaiming a finished run's space. The rows stay, saying the bytes went.'''
     token = csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
 
@@ -881,7 +881,7 @@ def test_discarding_the_output_keeps_the_job(signed_in, finished, server):
 
 
 def test_a_typed_discard_reason_is_kept_on_one_line(signed_in, finished, server):
-    '''🔴 `deleted_reason` is read by everyone who can list the job.'''
+    '''`deleted_reason` is read by everyone who can list the job.'''
     signed_in.post(f"/portal/jobs/{finished['id']}/discard",
                    data={"csrf": csrf(signed_in, f"/portal/jobs/{finished['id']}/artifacts"),
                          "confirm": "gcd/job0",
@@ -894,7 +894,7 @@ def test_a_typed_discard_reason_is_kept_on_one_line(signed_in, finished, server)
 
 
 def test_the_node_is_the_unit_of_deletion(signed_in, finished, server, me):
-    '''🔴 A node's logs, reports and archive are rows over ONE set of bytes,
+    '''A node's logs, reports and archive are rows over ONE set of bytes,
     so they go together, with the tree they were indexed from. The operators'
     diagnostics stay, as do the other node, the job and its own objects; a
     node the job does not have is a 404.'''
@@ -930,8 +930,8 @@ def test_the_node_is_the_unit_of_deletion(signed_in, finished, server, me):
 
 def test_archiving_hides_a_job_from_the_default_list_and_nothing_else(
         signed_in, finished):
-    '''⚠️ A view preference: a direct read and every subresource still work,
-    and 🔴 there is a way back.'''
+    '''A view preference: a direct read and every subresource still work,
+    and there is a way back.'''
     token = csrf(signed_in, f"/portal/jobs/{finished['id']}")
 
     signed_in.post(f"/portal/jobs/{finished['id']}/archive",

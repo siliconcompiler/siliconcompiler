@@ -36,24 +36,24 @@ DEFAULT_LIMITS: Dict[str, int] = {
     "max_archive_expanded_bytes": 10737418240,   # bytes, after expansion
 
     # The largest single object handed over an API fetch.
-    # 🔴 A ceiling that refuses (`download-too-large`), not advice, and no query
+    # A ceiling that refuses (`download-too-large`), not advice, and no query
     # parameter or header overrides it: the portal is the only way past it
     # (`ResultsMixin.artifact`).
-    # 🔴 Deliberately not `fetchable: false`, which a client renders as not
+    # Deliberately not `fetchable: false`, which a client renders as not
     # entitled to read one's own output.
-    # ⚠️ It bounds one object, not the run: a budget for the whole listing would
+    # It bounds one object, not the run: a budget for the whole listing would
     # make what arrives depend on order. Per account, so `GET /v1/me` carries
     # the caller's number and `GET /v1` the default.
     "max_download_bytes": 104857600,        # bytes, per artifact (100 MiB)
 
-    # 🔴 CHARACTERS, not bytes (`errors.DETAIL_MAX`). Enforced and not published
+    # CHARACTERS, not bytes (`errors.DETAIL_MAX`). Enforced and not published
     # (`_NOT_PUBLISHED`): it bounds this server's own output.
     "max_detail_chars": 300,
 
-    # 🆕 How long a job may sit with no upload before it is `abandoned`.
-    # 🔴 A ceiling, not a constant: a slow link and a script that died look
+    # How long a job may sit with no upload before it is `abandoned`.
+    # A ceiling, not a constant: a slow link and a script that died look
     # identical from here, and only an operator knows which is likelier.
-    # ⚠️ A floor: a job holding an unlapsed grant is never abandoned
+    # A floor: a job holding an unlapsed grant is never abandoned
     # (`ReconcileMixin.abandon_if_expired`).
     "abandon_after_seconds": 900,           # seconds
 
@@ -95,28 +95,28 @@ DEFAULTS: Dict[str, Any] = {
 
     # How long a running job's runner may stay silent before this server stops
     # believing it is running (`ReconcileMixin._silent`).
-    # 🔴 Deployment config, not a published limit: no client sends or sees the
+    # Deployment config, not a published limit: no client sends or sees the
     # heartbeat.
-    # ⚠️ Generously above the runner's 60s beat: a missed beat is a busy
+    # Generously above the runner's 60s beat: a missed beat is a busy
     # filesystem, fifteen silent minutes a dead process.
     "run_heartbeat_seconds": 900,
 
     # The `Retry-After` on a job poll.
-    # 🔴 One second is affordable because a poll is a SQLite read and a stat;
+    # One second is affordable because a poll is a SQLite read and a stat;
     # scheduler queries are throttled apart (`SCHEDULER_QUERY_FLOOR`).
-    # ⚠️ A deployment with many concurrent watchers should raise it.
+    # A deployment with many concurrent watchers should raise it.
     "poll_interval_seconds": 1,
 
     # The portal's absolute origin, which `POST /v1/auth/browser`'s sign-in link
     # is built on; None uses the public origin the request arrived at.
-    # 🔴 Config, never `Host` or `X-Forwarded-Host`: both are attacker controlled
+    # Config, never `Host` or `X-Forwarded-Host`: both are attacker controlled
     # without a trusted proxy, and this link is opened in somebody's browser.
     "web_url_base": None,
 
     # The origins this deployment is reached at, as scheme://host[:port]: what a
     # DPoP proof's `htu` is checked against and every URL handed out is built
     # on. None takes this host's names on its own port.
-    # 🔴 Config, never `Host` or `X-Forwarded-Host`, as for `web_url_base`.
+    # Config, never `Host` or `X-Forwarded-Host`, as for `web_url_base`.
     "public_origins": None,
 
     # Whether compute nodes run each job inside a container this deployment
@@ -129,26 +129,26 @@ DEFAULTS: Dict[str, Any] = {
 
     # The Slurm partition for the job's orchestrating process; None is the
     # cluster's default.
-    # 🔴 Not where the work runs: each node is a job of its own. This process
+    # Not where the work runs: each node is a job of its own. This process
     # holds one mostly idle core for the whole flow, so it wants a small
     # partition with a long time limit.
     "batch_queue": None,
 
     # SiliconCompiler's `option,track` on every job: each node's host name, IP
     # and MAC, OS, user and region in the manifest the submitter downloads.
-    # ⚠️ Off by default, since that publishes the layout `detail` is scrubbed
+    # Off by default, since that publishes the layout `detail` is scrubbed
     # of. Off leaves a job's own setting as sent.
     "track_provenance": False,
 
     # Host paths every container sees, whoever's job it is: the munge socket and
     # slurm.conf, say, or a licence file. Never the data directory; what one job
     # sees is `JobService.job_mounts`.
-    # ⚠️ Written into each bundle when it is unpacked: after a change, remove
+    # Written into each bundle when it is unpacked: after a change, remove
     # <datadir>/images and re-stage.
     "container_mounts": [],
 
     # Which artifact kinds the API hands over, or None for all. A test knob.
-    # 🔴 The API's answer, not the portal's: a kind left out stays listed with
+    # The API's answer, not the portal's: a kind left out stays listed with
     # `fetchable: false` and `can_request_access: false`, and fetching it is
     # `403 artifact-not-approved` (ladder row 7). Leaving it out of the listing
     # would claim this server does not keep it while the portal shows it.
@@ -156,16 +156,16 @@ DEFAULTS: Dict[str, Any] = {
 
     # PDKs, libraries and tools no caller may use, as globs per resource kind:
     # `{"pdk": ["GF180*"], "library": [...], "tool": [...]}`.
-    # 🔴 A deny-list stand-in for grants, which this profile does not serve, so a
+    # A deny-list stand-in for grants, which this profile does not serve, so a
     # client can see a grant's refusal: `entitlement-denied` at submit naming
     # `resource_kind` and `resource`, and the job `rejected`.
-    # ⚠️ `GET /v1/me` still omits `authorized`, an allow list a deny list cannot
+    # `GET /v1/me` still omits `authorized`, an allow list a deny list cannot
     # be written as, so a client learns of a denial at submit.
     "denied_resources": {},
 
     # Where this server fetches a job's remote sources from (D113, D128), as
     # globs (see `allowlist`).
-    # 🔴 Decides who fetches, not whether the data arrives: a source not on it
+    # Decides who fetches, not whether the data arrives: a source not on it
     # is asked of the client. The default is SiliconCompiler's GitHub org, which
     # lambdapdk needs, and codeload only under it; all of codeload would admit
     # every public repository's archive.
@@ -184,12 +184,12 @@ DEFAULTS: Dict[str, Any] = {
     # Whether this server builds an image of a job's Python packages over the
     # node's base image (implementation-notes §L), shared by every job asking
     # for the same set.
-    # 🔴 Needs `containers`; on advertises `python.env`, and false is the kill
+    # Needs `containers`; on advertises `python.env`, and false is the kill
     # switch. A build runs on a compute node (`build_queue`) whose only way out
     # is a proxy admitting `index_allowlist`.
     "env_builder": False,
 
-    # 🔴 Whether packages may be built from source where no wheel fits (surface
+    # Whether packages may be built from source where no wheel fits (surface
     # D291): the deployment's policy in place of `python-sdist`, off because a
     # build runs the package's own code. Only in the builder: needs `env_builder`.
     "python_source_builds": False,
@@ -204,7 +204,7 @@ DEFAULTS: Dict[str, Any] = {
     #    "task":    {"acme_sim": {"run": {"scripts": "/opt/acme/run-scripts"}}}}
     # `library` is `library,<name>,dataroot,<root>`; `tool` covers every task of
     # the tool, and `task` overrides it for one (tool, task).
-    # 🔴 Such a root never leaves the submitter, so its files come from here
+    # Such a root never leaves the submitter, so its files come from here
     # first, then a held copy of its source, then a fetch (surface D299); this is
     # the one needing no source. A path is confined to its root. Mounted
     # read-only; a change needs the bundles re-staged.
@@ -244,10 +244,10 @@ _NOT_PUBLISHED = ("max_detail_chars",)
 
 # Presets for testing a client against deployments that serve less; mode 4
 # fetches nothing, so every job takes the follow-up path.
-# 🔴 Each is a legal v1 deployment that `GET /v1` describes, so a client passes
+# Each is a legal v1 deployment that `GET /v1` describes, so a client passes
 # by reading what was published.
-# ⚠️ Applied over the defaults and under `config.json`.
-# ⚠️ Mode 3's denials are each tripped by a different demo target while the
+# Applied over the defaults and under `config.json`.
+# Mode 3's denials are each tripped by a different demo target while the
 # skywater130 demo still runs: `gf180_demo`, `freepdk45_demo`, verilator.
 TEST_MODES: Dict[int, Dict[str, Any]] = {
     # What this server does by default.
@@ -305,7 +305,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
     misspelled kind the operator believes restricts something.'''
     from siliconcompiler.remote.server.outputs.artifacts import KINDS
 
-    # 🔴 A limit is a non-negative number, or null where this server treats it
+    # A limit is a non-negative number, or null where this server treats it
     # as unlimited (surface D177). `-1` is only the store's spelling, in
     # `user_limits`.
     for name, value in (values["limits"] or {}).items():
@@ -332,7 +332,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 f"{', '.join(sorted(unknown))}")
 
     features = values["features"]
-    # 🔴 A registry (surface *features is a registry*): an unknown string would
+    # A registry (surface *features is a registry*): an unknown string would
     # be advertised for something nothing here serves.
     unregistered = sorted(set(features) - set(FEATURES))
     if unregistered:
@@ -367,7 +367,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
             raise ValueError(f"package_indexes names {url}, which index_allowlist does "
                              "not admit: an install could not reach it")
 
-    # 🔴 `python.env` is served by nodes installing on the host (an operator's
+    # `python.env` is served by nodes installing on the host (an operator's
     # choice) or, where nodes run in containers, by the builder.
     if values["python_source_builds"] and not values["env_builder"]:
         raise ValueError("python_source_builds is on and there is no env_builder: a "
@@ -381,7 +381,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
         raise ValueError("features lists python.env, and nodes here run in "
                          "containers with no env_builder to build them an image")
 
-    # 🔴 A reuse hit compares the host's tools among its inputs (surface §13),
+    # A reuse hit compares the host's tools among its inputs (surface §13),
     # and a host run records none: reuse waits for containers (profile §5).
     if "jobs.reuse" in features and not values["containers"]:
         raise ValueError("features lists jobs.reuse, and nodes here run on the host, "

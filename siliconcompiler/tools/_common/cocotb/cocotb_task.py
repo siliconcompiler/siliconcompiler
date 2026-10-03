@@ -128,7 +128,7 @@ class CocotbTask(Task):
         """
         Get cocotb test module names from Python files in filesets.
 
-        🔴 The names are the declared files' stems, and nothing is resolved:
+        The names are the declared files' stems, and nothing is resolved:
         this runs in ``setup()``, which must not resolve a path, and
         ``COCOTB_TEST_MODULES`` needs only the module names. A collected file
         keeps its basename -- only its bucket directory carries a hash -- so

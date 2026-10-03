@@ -5,12 +5,12 @@ One source fetched in a process of its own, held in from outside.
 SiliconCompiler's own resolver unchanged and always writes the spec's
 ``result``: the resolved directory, or how the fetch failed.
 
-🔴 No resolver knows it runs here; the process around it holds it in. Its
+No resolver knows it runs here; the process around it holds it in. Its
 environment carries nothing to send (an empty ``HOME``, no token, no git
 config, no prompt). Its one way out is the server's proxy on a unix socket,
 from a network namespace holding only a loopback where the kernel allows one,
 else by proxy environment variables. The proxy admits the allowlist's hosts,
-never a non-public address, and only so many bytes. ⚠️ It sees a host, not a
+never a non-public address, and only so many bytes. It sees a host, not a
 path, so paths bind only the named source (`SourceStore.allowlisted`).
 '''
 

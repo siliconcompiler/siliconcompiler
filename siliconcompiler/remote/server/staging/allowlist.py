@@ -1,7 +1,7 @@
 '''
 Where this server will fetch a job's sources from.
 
-🔴 The list decides who fetches, never whether the data arrives (D128): a source
+The list decides who fetches, never whether the data arrives (D128): a source
 not on it is uploaded by the client with its own credentials. What it bounds
 is the server making requests on a job's behalf, the SSRF.
 
@@ -14,10 +14,10 @@ host        exact, or a wildcard as the whole leftmost label
 path        ``*`` within one segment; the entry is a segment-boundary prefix
 ==========  ==============================================================
 
-🔴 Before matching, dot-segments are resolved, an encoded ``/`` is refused and
+Before matching, dot-segments are resolved, an encoded ``/`` is refused and
 the default port dropped, or ``github.com/zeroasiccorp/../evil/`` would match.
 No glob widens the address rule: a non-public address is never connected to.
-⚠️ What a fetch reaches after the named source (redirects, submodules, LFS) is
+What a fetch reaches after the named source (redirects, submodules, LFS) is
 held to the list's hosts only, not paths (`staging.fetch`).
 '''
 
@@ -39,7 +39,7 @@ logger = logging.getLogger("sc-server")
 
 
 # SiliconCompiler's GitHub organisation, for lambdapdk; GitHub redirects archives
-# to codeload. ⚠️ A redirect is held to the host alone.
+# to codeload. A redirect is held to the host alone.
 DEFAULT = ["https://github.com/siliconcompiler/",
            "https://codeload.github.com/siliconcompiler/"]
 
@@ -179,7 +179,7 @@ def allows(rules: Sequence[Rule], url: str) -> bool:
 def public_host(host: str, port: Optional[int] = None) -> bool:
     '''Whether every address ``host`` resolves to is a public one.
 
-    🔴 Whatever the allowlist says: a name's DNS can answer 127.0.0.1 or the
+    Whatever the allowlist says: a name's DNS can answer 127.0.0.1 or the
     metadata service at 169.254.169.254.
     '''
     try:

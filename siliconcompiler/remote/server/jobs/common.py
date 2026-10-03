@@ -24,7 +24,7 @@ logger = logging.getLogger("sc-server")
 # `sha256` is the only algorithm v1 accepts, and the prefix is always written.
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-# 🔴 How often ONE process will ask the scheduler about ONE job, at most.
+# How often ONE process will ask the scheduler about ONE job, at most.
 # Decoupled from `poll_interval_seconds`: a job read is local, `squeue` is RPCs
 # into slurmctld, and a shorter poll must not multiply them.
 SCHEDULER_QUERY_FLOOR = 5
@@ -78,7 +78,7 @@ class _Supply:
         '''Whether this installation has ``module``, without importing anything
         a job named (contract §1).
 
-        ⚠️ `find_spec` on a dotted name imports its parent, so a submodule is
+        `find_spec` on a dotted name imports its parent, so a submodule is
         answered only once its parent is already loaded.
         '''
         import importlib.util
@@ -112,7 +112,7 @@ class _Supply:
         return self._sources.held(source, ref)
 
     def allowlisted(self, source, ref) -> bool:
-        # 🔴 A masked source (`?token=***`) cannot be fetched from, so the
+        # A masked source (`?token=***`) cannot be fetched from, so the
         # client is asked for it instead.
         if owners.is_masked(source):
             return False
@@ -123,14 +123,14 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """What a job needs from its image, by bucket:
     `descriptor.requested_versions`.
 
-    🔴 It names every Python distribution the job imports; a name left out is
+    It names every Python distribution the job imports; a name left out is
     not required.
 
-    🔴 Each value is a LIST of PEP 440 specifier sets, any one satisfying, as
+    Each value is a LIST of PEP 440 specifier sets, any one satisfying, as
     `Task.get('version')` is; a bare string is refused, and `[]` is *any
     version*, not the same as leaving the name out.
 
-    🔴 By bucket, and a flat map is refused: the `python` set must share ONE
+    By bucket, and a flat map is refused: the `python` set must share ONE
     image, a tool is satisfied per node, and a flat map would mean guessing.
     """
     from siliconcompiler.remote.server.software.images import BUCKETS, INTERPRETER
@@ -175,7 +175,7 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return found
 
 
-# 🔴 Strict on requests (contract.md): what each body may carry. `run_hash` is
+# Strict on requests (contract.md): what each body may carry. `run_hash` is
 # job reuse's, and top level: the descriptor is what submit re-derives.
 CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from",
                   "python_packages")
@@ -323,7 +323,7 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
                                       "optional source, ref and private")
         _only(item, SOURCE_MEMBERS, "a source")
         keypath = item.get("keypath")
-        # 🔴 One of SiliconCompiler's two dataroot keypaths, and nothing else:
+        # One of SiliconCompiler's two dataroot keypaths, and nothing else:
         # no guessing what owns one (surface D298).
         if not owners.is_dataroot_keypath(keypath) or \
                 any(len(part) > MAX_NAME for part in keypath):
@@ -342,7 +342,7 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         private = item.get("private", False)
         entry = {"keypath": list(keypath), "private": private}
         if isinstance(item.get("source"), str):
-            # 🔴 Refused, never stripped (surface D310), naming the keypath and
+            # Refused, never stripped (surface D310), naming the keypath and
             # never the value, which is neither stored nor logged.
             if owners.has_userinfo(item["source"]):
                 raise ProblemError(
@@ -480,7 +480,7 @@ def _node_metrics(manifest: Path) -> Dict[Tuple[str, str], Tuple[Dict[str, Any],
 def _problem_from(outcome: Dict[str, Any]) -> ProblemError:
     '''The refusal a read reported, with only the members its type carries.
 
-    🔴 The manifest controls what a read reports, so each member is taken by
+    The manifest controls what a read reports, so each member is taken by
     name and shape, never passed through: a `status` would land in the body.
     '''
     members: Dict[str, Any] = {}
@@ -537,7 +537,7 @@ def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> Problem
         detail=_bounded(
             f"the job's Python packages will not install{where} for {target}: "
             f"{', '.join(named) or 'the uploaded wheels'}"
-            # 🔴 Said, because the user can act on it (surface D291).
+            # Said, because the user can act on it (surface D291).
             + (f"; {', '.join(only_source)} has only a source distribution for it, "
                "and this deployment builds none: publish a wheel for this platform "
                "to its index" if only_source else "")
@@ -554,7 +554,7 @@ def _bounded(text: str, limit: int = 1000) -> str:
 def _after(when: str, seconds: int) -> str:
     """`seconds` after a stored timestamp, in the format the store writes.
 
-    🔴 Exactly `store.now()`'s three-digit milliseconds: compared as STRINGS, a
+    Exactly `store.now()`'s three-digit milliseconds: compared as STRINGS, a
     shorter fraction sorts wrong (`.12Z` after `.123Z`).
     """
     from datetime import timedelta
@@ -586,7 +586,7 @@ def _error(error_type: Optional[str],
     '''A job's error, as an RFC 9457 object; a node's has the same shape, its
     `detail` arriving in ``members`` (surface §17).
 
-    ⚠️ Bounded here, since it bypasses `problem()`: a run's reason can be a
+    Bounded here, since it bypasses `problem()`: a run's reason can be a
     tool's exception text carrying paths the client's design named.
     '''
     if not error_type:
@@ -614,7 +614,7 @@ def _node_error(state: str, node: Dict[str, Any]) -> Tuple[Optional[str], Option
     '''A node's error, as its `type` URI and members, from what the runner
     reported: ``(None, None)`` unless it failed.
 
-    🔴 `run-interrupted` where the environment ended it (an image would not
+    `run-interrupted` where the environment ended it (an image would not
     pull), so resubmitting unchanged may work; `run-failed` otherwise, a time
     or memory limit included (surface §17).
     '''

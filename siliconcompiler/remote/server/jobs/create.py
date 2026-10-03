@@ -50,7 +50,7 @@ class CreateMixin:
         if not isinstance(descriptor, dict):
             raise ProblemError("invalid-request", detail="descriptor must be an object")
         _only(descriptor, DESCRIPTOR_MEMBERS, "descriptor")
-        # 🔴 Top level (surface D160, job-reuse D15), never recomputed. Always
+        # Top level (surface D160, job-reuse D15), never recomputed. Always
         # validated; used only where `jobs.reuse` is advertised.
         run_hash = _run_hash(body.get("run_hash"))
         reuses = "jobs.reuse" in (self._config["features"] or ())
@@ -59,7 +59,7 @@ class CreateMixin:
         # Authoritative: nothing in the manifest records it.
         packages = _python_packages(body.get("python_packages"))
 
-        # 🔴 Credentials out of every source URL before anything is compared,
+        # Credentials out of every source URL before anything is compared,
         # stored or logged.
         declared = _declared_sources(descriptor)
         if declared is not None:
@@ -67,7 +67,7 @@ class CreateMixin:
         requires = requirements(descriptor)
         self._check_needs(descriptor)
         if packages is not None and "python.env" not in (self._config["features"] or ()):
-            # 🔴 Whether or not `needs` said so.
+            # Whether or not `needs` said so.
             raise ProblemError(
                 "feature-unsupported", feature="python.env",
                 detail="this job lists Python packages to install, and this deployment "
@@ -100,7 +100,7 @@ class CreateMixin:
                 return (json.loads(existing["create_reply"]) if existing["create_reply"]
                         else self.wire(existing)), 201
 
-        # 🔴 Before the reuse lookup, which is keyed on it, and before the
+        # Before the reuse lookup, which is keyed on it, and before the
         # upload it exists to save.
         image = images.job_image_for(self._store, requires) \
             if reuses and run_hash and self._config["containers"] else None
@@ -122,7 +122,7 @@ class CreateMixin:
 
         asked = self._look_up(declared) if declared is not None else None
 
-        # 🔴 The job's own image, from `requested_versions.python` alone, before
+        # The job's own image, from `requested_versions.python` alone, before
         # the upload (surface §13; database D145). Node images wait for the
         # manifest's read, which says which tools the nodes run.
         if image is None and self._config["containers"]:
@@ -132,13 +132,13 @@ class CreateMixin:
         job_id = str(uuid.uuid4())
         device_id = session.device_id
 
-        # 🔴 The wheel answering a `python` ask replaces its listed entry
+        # The wheel answering a `python` ask replaces its listed entry
         # (surface D306). Create asks only for dataroots today, so none is.
         answered = sorted({environment.canonical(item["name"]) for item in asked or []
                            if item.get("kind") == "python" and item.get("name")})
 
         def admit():
-            # 🔴 Counted again inside the inserting transaction, which holds the
+            # Counted again inside the inserting transaction, which holds the
             # ceiling against concurrent creates (`Store.admission`).
             self._check_concurrent_jobs(session.user_id)
             self._check_pending_uploads(session.user_id)
@@ -168,7 +168,7 @@ class CreateMixin:
         return reply, 201
 
     def _check_needs(self, descriptor) -> None:
-        '''🔴 `needs`: every feature the job relies on must be advertised;
+        '''`needs`: every feature the job relies on must be advertised;
         refused at create, not after the upload.'''
         needs = descriptor.get("needs")
         if needs is None:
@@ -189,7 +189,7 @@ class CreateMixin:
         installed-package sources are supplied; a private one none of those
         covers is `resource-unavailable`.
 
-        🔴 No network: probing hundreds of dataroots inside a request would
+        No network: probing hundreds of dataroots inside a request would
         meet gateway timeouts and multiply one `POST` into hundreds.
         '''
         asked = []
@@ -197,7 +197,7 @@ class CreateMixin:
             keypath = item["keypath"]
             source, ref = item.get("source"), item.get("ref")
             if item["private"]:
-                # 🔴 Never asked for (surface D299, D308); one nothing here can
+                # Never asked for (surface D299, D308); one nothing here can
                 # supply is refused before a byte moves (D285, D298).
                 if self._supply.private_root(keypath) or \
                         self._supply.held(source, ref) or \
@@ -222,20 +222,20 @@ class CreateMixin:
         '''``H(client hash, the digests it resolved to, python_packages, the
         interpreter it asked for, the index configuration)``, or None.
 
-        🔴 The client hashes the work; this server chooses what runs it, so the
+        The client hashes the work; this server chooses what runs it, so the
         digests are folded in and re-registering an image invalidates reuse.
 
-        🔴 From the descriptor and registry only, so it is computed at create,
+        From the descriptor and registry only, so it is computed at create,
         before the upload, and written once.
 
-        ⚠️ None where the client sent no hash, as SiliconCompiler does today.
+        None where the client sent no hash, as SiliconCompiler does today.
         '''
         if not run_hash:
             return None
 
         digests = [image["digest"]] if image else []
 
-        # 🔴 What else decides what the install gives the run, which the
+        # What else decides what the install gives the run, which the
         # client's hash may not cover (job-reuse D23).
         indexes = {"indexes": list(self._config["package_indexes"] or []),
                    "source_builds": bool(self._config["python_source_builds"])} \
@@ -250,7 +250,7 @@ class CreateMixin:
         '''The caller's own newest job with this identity, if it may be handed
         back.
 
-        🔴 Owner-scoped, the whole safety argument: a wrong client hash hands a
+        Owner-scoped, the whole safety argument: a wrong client hash hands a
         user their own stale job, not a disclosure. Archiving a job is how a
         person stops it being handed back.
         '''
@@ -272,9 +272,9 @@ class CreateMixin:
     def _still_current(self, job) -> bool:
         '''Whether the images this job actually ran in are still live.
 
-        🔴 The identity can only fold in the DECLARED versions' digests, since
+        The identity can only fold in the DECLARED versions' digests, since
         node images need the manifest; this catches a re-registered tool image.
-        ⚠️ A job that ran in no image stays reusable.
+        A job that ran in no image stays reusable.
         '''
         rows = self._store.all(
             "SELECT DISTINCT image_id FROM job_nodes "
@@ -347,14 +347,14 @@ class CreateMixin:
         '''Refuse a client this deployment cannot run: the cheap check, before
         the upload.
 
-        🔴 A requirement is a PEP 440 specifier and the SERVER resolves it: a
+        A requirement is a PEP 440 specifier and the SERVER resolves it: a
         client sees a flat list per name, not which combinations one image
-        holds. ⚠️ A bare version means `==`.
+        holds. A bare version means `==`.
 
-        ⚠️ The per-name check, giving a name-specific answer; whether ONE image
+        The per-name check, giving a name-specific answer; whether ONE image
         holds them all is `images.job_image_for`.
 
-        🔴 A name present with no reported version gets its own answer, not *no
+        A name present with no reported version gets its own answer, not *no
         image matches*, which would send the user looking for what is installed.
         '''
         from siliconcompiler.remote.server.routes.meta import (
@@ -369,7 +369,7 @@ class CreateMixin:
 
             for name, asked in wanted.items():
                 if name not in here:
-                    # 🔴 A listed name is never ignored.
+                    # A listed name is never ignored.
                     if bucket == images.BUCKETS["python"]:
                         self._check_untracked_python(name, asked)
                     elif bucket == images.BUCKETS["interpreter"]:
@@ -390,7 +390,7 @@ class CreateMixin:
 
                 # Software no image holds, SiliconCompiler included (surface §7).
                 if bucket == images.BUCKETS["interpreter"]:
-                    # 🔴 The friction is the point (surface D293): said before
+                    # The friction is the point (surface D293): said before
                     # the upload rather than failing a test later.
                     detail = (f"the job's own Python needs {', '.join(asked)}, and this "
                               f"server's images run Python {', '.join(here[name])}: the "

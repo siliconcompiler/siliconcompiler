@@ -4,7 +4,7 @@ What owns each file a job names, where it came from, and how it reaches a run.
 The client asks this what to archive and what the server should supply; the
 server asks it whether each file the manifest names arrived or can be supplied.
 
-🔴 Every file is uploaded or supplied by identity (D112): the server never reads
+Every file is uploaded or supplied by identity (D112): the server never reads
 a path a job names, or a manifest could root a library at `/etc` and have the
 server supply the host's files.
 
@@ -21,19 +21,19 @@ marked private                  supplied, never  the operator's copy, by its
                                 asked for        fetch, of its remote source
 ==============================  ===============  =================================
 
-🔴 `+private` governs the bytes leaving the submitter, not where the server gets
+`+private` governs the bytes leaving the submitter, not where the server gets
 them (surface D299, D308).
 
-🔴 A dataroot is named by its keypath (surface D298, :func:`dataroot_keypath`):
+A dataroot is named by its keypath (surface D298, :func:`dataroot_keypath`):
 its own name is unique only within its owner.
 
-⚠️ The design always uploads; a PDK's, library's, device's or tool's files only
+The design always uploads; a PDK's, library's, device's or tool's files only
 when local or editable. Private wins over both.
 
-🔴 "Local" is the dataroot's registered SOURCE, never where the file is now: a
+"Local" is the dataroot's registered SOURCE, never where the file is now: a
 fetched PDK is on local disk too, and would upload with every job.
 
-🔴 The table says whether a value MAY go up; the flow says whether it is NEEDED
+The table says whether a value MAY go up; the flow says whether it is NEEDED
 (D129, :func:`required`). Each value goes up on its own (:func:`collection`).
 '''
 
@@ -74,7 +74,7 @@ PRIVATE = "private"        # never leaves the machine
 def is_private(resolver) -> bool:
     '''Whether a dataroot is marked ``+private`` (``file+private://`` and the rest).
 
-    🔴 The one place the marker is tested.
+    The one place the marker is tested.
     '''
     return bool(getattr(resolver, "is_private", False))
 
@@ -146,7 +146,7 @@ def dataroot_keypath(project, key, dataroot: Optional[str]) -> Optional[Tuple[st
 def owner(project, key) -> Tuple[str, Optional[str]]:
     '''``(kind, name)`` of the object a parameter belongs to; ``kind`` is never on the wire.
 
-    ⚠️ Resource classes are tested BEFORE `Design`, which `PDK` and
+    Resource classes are tested BEFORE `Design`, which `PDK` and
     `StdCellLibrary` subclass: else every PDK would always upload.
     '''
     if key[0] == "library" and len(key) > 1:
@@ -170,7 +170,7 @@ def owner(project, key) -> Tuple[str, Optional[str]]:
 def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
     '''Where files under ``dataroot`` come from, judged by how it was REGISTERED.
 
-    🔴 A ``$``-rooted path is LOCAL: the client expands and uploads it; the
+    A ``$``-rooted path is LOCAL: the client expands and uploads it; the
     server never expands a variable. Anything untraceable is LOCAL too: sending
     the file cannot leave a job short.
     '''
@@ -267,7 +267,7 @@ def without_credentials(project):
     '''``project`` as its manifest may leave this machine, every dataroot path
     :func:`masked` (surface D302): a copy if anything changes, else ``project``.
 
-    🔴 Nothing resolves a masked path: the server supplies by keypath, and
+    Nothing resolves a masked path: the server supplies by keypath, and
     `collection_id` hashes the source masked the same way.'''
     import copy
 
@@ -343,7 +343,7 @@ def collection(project, pick: Callable[[_Value], bool]) -> Collection:
     '''Every value ``pick`` takes and no other: per value, never per parameter
     (surface *A parameter may go up in part*); the rest is never resolved.
 
-    🔴 A private value is never picked, whatever ``pick`` says. ``select``
+    A private value is never picked, whatever ``pick`` says. ``select``
     knows values by object: call it on the project this was built from.
     '''
     from siliconcompiler.utils.curation import filter_collection_keys
@@ -404,7 +404,7 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
     '''The descriptor's `sources`: each dataroot the flow reads that the server
     should supply, by ``keypath`` (surface D298). Raises :class:`Unnamed`.
 
-    🔴 Every URL is `safe_source`: enough to say what it is, not to fetch it. A
+    Every URL is `safe_source`: enough to say what it is, not to fetch it. A
     private one carries its remote source and ref (surface D308); a local
     private path is never sent.
     '''
@@ -510,7 +510,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
     accounting, :func:`account_records` the server's. ``collected_path`` is
     computed here, since the layout is the reading SiliconCompiler's.
 
-    🔴 The server checks each ``collected`` path itself: whatever wrote the
+    The server checks each ``collected`` path itself: whatever wrote the
     manifest decides what this says.
     '''
     records = []
@@ -530,7 +530,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
         if one.origin == INSTALLED and resolver is not None:
             record["package"] = resolver.urlpath
         elif one.origin in (REMOTE, PRIVATE) and _remote(resolver):
-            # 🔴 A private source too: a held copy or a fetch supplies it (surface D299).
+            # A private source too: a held copy or a fetch supplies it (surface D299).
             record["source"] = safe_source(resolver)
             record["ref"] = getattr(resolver, "reference", None)
         records.append(record)
@@ -564,10 +564,10 @@ def account_records(records, collection_dir, supply, required=None) -> List[Entr
     of the accounting, from :func:`value_records`. ``supply`` answers for this
     server; ``required`` None accounts for every file.
 
-    🔴 No path the job names is read: a file is uploaded, or supplied by
+    No path the job names is read: a file is uploaded, or supplied by
     identity and confined to that root; else `ASK` or `UNAVAILABLE`.
-    🔴 Given ``required``, a supplied file must be THERE, else `UNAVAILABLE`.
-    🔴 An upload counts only where it really is inside ``collection_dir``.
+    Given ``required``, a supplied file must be THERE, else `UNAVAILABLE`.
+    An upload counts only where it really is inside ``collection_dir``.
     '''
     groups: Dict[Tuple[Optional[str], ...], Entry] = {}
 
@@ -596,7 +596,7 @@ def _one(record, collection_dir, supply, present: bool = False) -> Entry:
                 origin=record["origin"], key=tuple(record["key"]), path=path,
                 keypath=keypath)
 
-    # 🔴 Private wins over everything, the archive included, and is NEVER asked for.
+    # Private wins over everything, the archive included, and is NEVER asked for.
     if record["origin"] == PRIVATE:
         root = supply.private_root(keypath) if keypath else None
         if root:
@@ -687,7 +687,7 @@ def _relative_and_inside(path) -> bool:
 def confined(root, path) -> Optional[str]:
     '''``root/path`` if it stays under ``root`` once symlinks resolve, else None.
 
-    🔴 Never trusted: ``../../etc/passwd`` or a symlink out must not escape.
+    Never trusted: ``../../etc/passwd`` or a symlink out must not escape.
     '''
     if not _relative_and_inside(path):
         return None
@@ -749,8 +749,8 @@ _TASK_READS = ("prescript", "postscript", "refdir", "script")
 def required(project) -> Optional[Set[Tuple[str, ...]]]:
     '''The keys the flow reads: every running node's `require` and its task's scripts.
 
-    🔴 The one definition, read by both ends from the same manifest.
-    ⚠️ None means not worked out, so nothing is filtered; never the empty set.
+    The one definition, read by both ends from the same manifest.
+    None means not worked out, so nothing is filtered; never the empty set.
     '''
     from siliconcompiler.remote.runflow import runtime_flow
 
@@ -785,9 +785,9 @@ class WorkedOut(NamedTuple):
 def work_out(project) -> WorkedOut:
     '''Every node's `require` and Python environment, by running setup on a copy.
 
-    🔴 `require` is empty until setup runs, which remotely is in the image, so
+    `require` is empty until setup runs, which remotely is in the image, so
     it runs here first, in a run's order: ``_init_run()`` (it fills
-    `asic,asiclib`), then nodes in execution order. 🔴 Each node on its own: a
+    `asic,asiclib`), then nodes in execution order. Each node on its own: a
     failing setup goes in ``failed`` and drops nothing else.
     '''
     import copy
@@ -837,7 +837,7 @@ def work_out(project) -> WorkedOut:
 def with_required(project, declared: Dict[Tuple[str, str], List[str]]):
     '''A copy carrying ``declared`` as each node's `require`: the manifest uploaded.
 
-    ⚠️ Only `require`: a second setup over setup's other effects doubles options.
+    Only `require`: a second setup over setup's other effects doubles options.
     '''
     import copy
 

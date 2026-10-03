@@ -2,7 +2,7 @@
 The classes a job's manifest may name, loaded inside the manifest's read
 (`manifestread`), never in the API process.
 
-🔴 SiliconCompiler resolves a manifest's `__meta__` and `taskmodule` names by
+SiliconCompiler resolves a manifest's `__meta__` and `taskmodule` names by
 importing them (contract §1). So the allowlist is what this installation
 provides, loaded once: SiliconCompiler, and every installed distribution that
 depends on it. A missing class resolves to its base type; a missing task class

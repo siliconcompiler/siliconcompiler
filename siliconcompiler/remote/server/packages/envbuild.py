@@ -5,13 +5,13 @@ Building a job's Python packages into a derived image (implementation-notes §L)
 runs as its own job on the builder queue while the job stages, and always
 writes ``<workspace>/result.json``, all the API reads.
 
-🔴 Isolated, every part load-bearing (contract item 3): pip runs inside the base
+Isolated, every part load-bearing (contract item 3): pip runs inside the base
 image, under the node's Python; in its own container with a read-only root, a
 private /tmp and none of the base's bind mounts (no PDK, build tree or cluster
 socket); with only a loopback and a unix socket to a proxy admitting the
 `index_allowlist` hosts, never a non-public address; from the deployment's
 `package_indexes` only. So a source build's code runs with nothing to reach.
-⚠️ The proxy sees an HTTPS host, not a path: an https entry admits its host.
+The proxy sees an HTTPS host, not a path: an https entry admits its host.
 '''
 
 import copy
@@ -147,7 +147,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                 "source_only": pip.get("source_only") or [],
                 "tail": pip.get("tail", "")}
     if pip.get("returncode") != 0:
-        # 🔴 A refused host is policy; an unanswering network is the server's failure.
+        # A refused host is policy; an unanswering network is the server's failure.
         if pip.get("network") and not proxy.refused:
             return {"ok": False, "reason": "error", **facts,
                     "detail": "the build could not reach an index:\n" + pip.get("tail", "")}
@@ -253,7 +253,7 @@ class Proxy:
     '''An HTTP proxy on a unix socket that admits an allowlist, and nothing else.
 
     ``CONNECT`` is checked by host and port, a plain http ``GET``/``HEAD`` by
-    whole URL. 🔴 Never to a non-public address, but for the builder's
+    whole URL. Never to a non-public address, but for the builder's
     ``private_exact_hosts`` (surface D172): an exact-host index entry may be the
     operator's own mirror; a wildcard never. Past ``max_bytes`` relayed back,
     the connection is cut and ``oversize`` set.
@@ -330,7 +330,7 @@ class _ProxyHandler(http.server.BaseHTTPRequestHandler):
     '''One connection to the proxy: a tunnel, or one plain GET or HEAD.'''
 
     protocol_version = "HTTP/1.1"
-    # 🔴 Unbuffered, so a pipelined TLS hello stays on the socket for the tunnel.
+    # Unbuffered, so a pipelined TLS hello stays on the socket for the tunnel.
     rbufsize = 0
 
     def do_CONNECT(self) -> None:

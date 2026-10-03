@@ -1,7 +1,7 @@
 '''
 Who a caller is, what they are allowed, and which machines act as them.
 
-🔴 Shared by the API and the portal so their authorization cannot drift: there
+Shared by the API and the portal so their authorization cannot drift: there
 is one place to forget a ``WHERE user_id =``, not two. Nothing here builds a
 response.
 '''
@@ -30,7 +30,7 @@ OVERRIDABLE = ("max_download_bytes",)
 def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
     '''The deployment's ceilings with this account's overrides applied.
 
-    🔴 NULL inherits, and `-1` becomes the wire's `null` (unlimited), never
+    NULL inherits, and `-1` becomes the wire's `null` (unlimited), never
     reaching a client (see schema.sql's `user_limits`).
     '''
     limits = dict(config.limits)
@@ -51,7 +51,7 @@ def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
 def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     '''The account's allowance, as `GET /v1/me` publishes it.
 
-    🔴 Every member REQUIRED, with the caller's effective values (entitlements
+    Every member REQUIRED, with the caller's effective values (entitlements
     *Combining the two `limits` blocks*): `GET /v1` cannot vary by caller, so a
     per-user override is published only here.
     '''
@@ -161,8 +161,8 @@ def session_view(store, session) -> Dict[str, Any]:
 def lifetime(store, user_id: str) -> Dict[str, Any]:
     '''Everything this account has ever run, for the portal screen.
 
-    🔴 Deliberately NOT in `usage`, which measures against an allowance; an
-    all-time total has none. ⚠️ A running job counts only once it finishes.
+    Deliberately NOT in `usage`, which measures against an allowance; an
+    all-time total has none. A running job counts only once it finishes.
     '''
     compute = store.one(
         "SELECT coalesce(sum(julianday(finished_at) - julianday(started_at)), 0) "
@@ -202,7 +202,7 @@ def devices_for(store, session) -> List[Any]:
 def owned_device(store, session, device_id):
     '''A device, or a 404 that does not say whether it exists.
 
-    🔴 The one place a device's ownership predicate is written; a 403 would
+    The one place a device's ownership predicate is written; a 403 would
     confirm the id belongs to somebody.
     '''
     row = store.one(

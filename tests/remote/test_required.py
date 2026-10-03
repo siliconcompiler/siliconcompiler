@@ -76,7 +76,7 @@ def reading_mylib(gcd_design, tmp_path, pdk=None):
 
 def test_the_set_is_worked_out_by_setup_on_a_copy_and_carried_in_the_manifest(
         gcd_design, tmp_path):
-    '''🔴 `require` is empty until setup runs, in the image; the run's own setup
+    '''`require` is empty until setup runs, in the image; the run's own setup
     then declares the same keys, which `add_required_key` lists once.'''
     from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
@@ -97,7 +97,7 @@ def test_the_set_is_worked_out_by_setup_on_a_copy_and_carried_in_the_manifest(
 
 def test_the_run_is_prepared_first_so_the_main_librarys_views_are_required(
         asic_heartbeat):
-    '''⚠️ `asic,asiclib` is filled from the main library by `_init_run()`;
+    '''`asic,asiclib` is filled from the main library by `_init_run()`;
     set up without it, no library's LEF is required at all.'''
     lib = asic_heartbeat.get_library(asic_heartbeat.get("asic", "mainlib"))
 
@@ -140,7 +140,7 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
 @pytest.mark.parametrize("setup_runs", [True, False])
 def test_only_what_the_flow_reads_goes_up_unless_its_setup_cannot_run_here(
         gcd_design, tmp_path, logged_in, monkeypatch, setup_runs):
-    '''A library's views for ten tools used to all go up. ⚠️ A setup needing
+    '''A library's views for ten tools used to all go up. A setup needing
     its image (cocotb's) leaves the set unknown: by owner alone, not failed.'''
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
@@ -166,7 +166,7 @@ def test_only_what_the_flow_reads_goes_up_unless_its_setup_cannot_run_here(
 
 def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
         gcd_design, tmp_path, logged_in):
-    '''🔴 Per value: the local file of the parameter the flow reads goes up,
+    '''Per value: the local file of the parameter the flow reads goes up,
     and the private one beside it stays here -- the run is not stopped for it.'''
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
@@ -195,7 +195,7 @@ def dispatcher(server):
 def test_only_a_required_file_left_out_is_refused_before_dispatch(
         server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path,
         left_out, refused):
-    '''🔴 One the flow reads is `missing_member` before anything runs, not a
+    '''One the flow reads is `missing_member` before anything runs, not a
     node failing on it; one it does not read may be left out.'''
     project = carried(reading_mylib(gcd_design, tmp_path, pdk=PDK("lambda")))
 
@@ -231,7 +231,7 @@ def test_a_source_nothing_in_the_flow_reads_is_never_fetched(
 
 def test_a_required_file_missing_from_the_servers_copy_is_resource_unavailable(
         server, server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''🔴 One the server should have supplied, and cannot.'''
+    '''One the server should have supplied, and cannot.'''
     root = tmp_path / "operator-copy"
     root.mkdir()                                     # and no datasheet in it
     server.config["SC_CONFIG"]._values["private_dataroots"] = {

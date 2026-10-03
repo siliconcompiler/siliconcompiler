@@ -57,7 +57,7 @@ def test_a_reference_splits_as_docker_reads_it(ref, parts):
 ], ids=["insecure", "single-quoted", "commented-out", "mirror-only", "other-host", "unreadable"])
 def test_a_registry_is_plain_http_only_where_registries_conf_says_so(tmp_path, conf, scheme,
                                                                      monkeypatch):
-    '''🔴 Read as TOML, as skopeo reads it: a commented-out `insecure`, or a
+    '''Read as TOML, as skopeo reads it: a commented-out `insecure`, or a
     mirror's own, never sends a push over plain http.'''
     monkeypatch.delenv("CONTAINERS_REGISTRIES_CONF", raising=False)
     (tmp_path / "registries.conf").write_text(conf)
@@ -137,7 +137,7 @@ def registry(monkeypatch, tmp_path, runs_test_version):
 
 def test_a_derived_image_is_the_base_with_one_layer_more_and_an_index_takes_none(
         registry, tmp_path):
-    '''🔴 In the base's own repository, so every layer it names is one the
+    '''In the base's own repository, so every layer it names is one the
     registry already holds there -- and only three small blobs move.'''
     (tmp_path / "site").mkdir()
     (tmp_path / "site" / "x.py").write_text("")
@@ -147,7 +147,7 @@ def test_a_derived_image_is_the_base_with_one_layer_more_and_an_index_takes_none
     ref, derived = oci.derive(base, layer, comment="a node's Python")
 
     uploaded = registry.uploaded
-    # 🔴 By digest, with no tag: nothing can be pointed at other content later.
+    # By digest, with no tag: nothing can be pointed at other content later.
     assert derived == uploaded["manifest-digest"] == uploaded["manifest-at"]
     assert ref == f"registry:5000/sc-tools@{derived}"
     manifest = uploaded["manifest"]
@@ -166,7 +166,7 @@ def test_a_derived_image_is_the_base_with_one_layer_more_and_an_index_takes_none
 
 
 def test_the_install_imports_nothing_but_the_standard_library():
-    '''🔴 It runs under the base image's Python, whose SiliconCompiler may be a
+    '''It runs under the base image's Python, whose SiliconCompiler may be a
     release without this module -- or without any of this server.'''
     tree = ast.parse(open(pipbuild.__file__).read())
     imported = {alias.name.split(".")[0] for node in ast.walk(tree)
@@ -218,7 +218,7 @@ def requirements(tmp_path, requirements="", constraints=""):
 
 def test_the_layer_is_the_environments_own_site_packages_and_pip_sees_only_the_proxy(
         pip, tmp_path, monkeypatch):
-    '''🔴 pip run from a venv that sees this Python's packages, all pinned
+    '''pip run from a venv that sees this Python's packages, all pinned
     ahead of the job's constraints -- never `--target`, which ignores them.'''
     from importlib import metadata
 
@@ -336,9 +336,9 @@ def names_cocotb(names):
 
 
 @pytest.mark.parametrize("text,needs,expected", [
-    # 🔴 A dependency on cocotb brings no second one for the simulator to load.
+    # A dependency on cocotb brings no second one for the simulator to load.
     ("cocotb-bus==0.3.0\n", None, {"installed": [["cocotb-bus", "0.3.0"]]}),
-    # 🔴 A listed version of one the image holds is ignored, and said.
+    # A listed version of one the image holds is ignored, and said.
     ("cocotb==1.9\n", None, {"installed": [], "ignored": {"cocotb": ["1.9", "2.0"]}}),
     # §L: listed, but nothing of it installs here -- the newest of its line, said.
     ("cocotb-bus==0.3.7\n", None, {"installed": [["cocotb-bus", "0.3.0"]],
@@ -362,12 +362,12 @@ def test_an_install_in_the_images_python_keeps_the_images_own(
 
 @pytest.mark.parametrize("text,needs,offline,expected", [
     ("pyuvm==3.0.0\n", None, False, {"unresolved": names_cocotb, "absent": None}),
-    # 🔴 Absent is the exact version (D292): never taken from its line.
+    # Absent is the exact version (D292): never taken from its line.
     ("cocotb-bus==0.3.5\n", None, False, {"absent": ["cocotb-bus"], "substituted": None}),
     # Pure, only a source: sent back for, the rest still worked through.
     ("scfake-pure==1.0\ncocotb-bus==0.3.0\n", None, False,
      {"source_only": ["scfake-pure"], "absent": []}),
-    # 🔴 Compiled elsewhere, only a source here: no client's wheel could run either.
+    # Compiled elsewhere, only a source here: no client's wheel could run either.
     ("scfake-fast==1.0\n", None, False,
      {"only_source": ["scfake-fast"], "absent": None, "source_only": None}),
     # No index has it: every one sent back for in one trip.
@@ -376,7 +376,7 @@ def test_an_install_in_the_images_python_keeps_the_images_own(
     # Image-only mode: what the image lacks, listed or a wheel's dependency.
     ("scfake-listed==1.0\n", ["scfake-needed>=1.0"], True,
      {"absent": ["scfake-listed", "scfake-needed"]}),
-    # 🔴 Image-only mode's `uninstallable`: a wheel against the image's pins.
+    # Image-only mode's `uninstallable`: a wheel against the image's pins.
     ("", ["cocotb<2.0"], True, {"unresolved": names_cocotb, "absent": None,
                                 "source_only": None}),
 ])
@@ -422,12 +422,12 @@ def test_the_build_container_reaches_nothing_but_its_three_directories(tmp_path)
     destinations = [mount["destination"] for mount in config["mounts"]]
     assert "/run/munge" not in destinations and "/sys/fs/cgroup" not in destinations
     assert destinations.index("/tmp") < destinations.index("/tmp/sc-out")
-    # 🔴 A network of its own: nothing in it but a loopback.
+    # A network of its own: nothing in it but a loopback.
     assert [ns["type"] for ns in config["linux"]["namespaces"]].count("network") == 1
     assert config["process"]["args"] == ["python3", "x"]
     assert "SECRET=from-the-image-config" not in config["process"]["env"]
     assert "PATH=/venv/bin:/usr/bin:/bin" in config["process"]["env"]
-    # 🔴 NET_ADMIN is crun's, on the node: no build's or node's process holds it (D39).
+    # NET_ADMIN is crun's, on the node: no build's or node's process holds it (D39).
     assert config["process"]["capabilities"] == {"bounding": ["CAP_CHOWN"], "effective": []}
     assert BASE["mounts"][2]["destination"] == "/sc_server"        # the base untouched
     (tmp_path / "config.json").write_text(json.dumps(BASE))
@@ -502,7 +502,7 @@ def container(pip_result, files=None):
 @pytest.mark.parametrize("source_builds", [False, True])
 def test_a_build_installs_from_the_deployments_indexes_and_pushes_one_layer_on_the_base(
         tmp_path, base_bundle, pushed, source_builds):
-    '''🔴 Indexes are configuration, never the job's; a source distribution's
+    '''Indexes are configuration, never the job's; a source distribution's
     code runs only here, sealed, and only where `python_source_builds` says.'''
     run = container(dict(TARGET, returncode=0, installed=[["numpy", "2.0.1"]]),
                     files={"numpy/__init__.py": "x = 1\n"})
@@ -529,7 +529,7 @@ def test_a_build_installs_from_the_deployments_indexes_and_pushes_one_layer_on_t
     assert run.seen["path"] == "/venv/bin:/usr/bin:/bin"
     assert base_bundle.staged == [(spec["base_ref"], digest("b"), ["/sc_server"])]
 
-    # 🔴 Its bundle is the base's root with the layer bound in -- no second
+    # Its bundle is the base's root with the layer bound in -- no second
     # unpack of a tool image per environment.
     bundle = images.bundle_path(base_bundle.root, digest("d"))
     config = json.loads((bundle / "config.json").read_text())
@@ -638,7 +638,7 @@ def test_what_the_proxy_admits(proxy):
 
 @pytest.mark.parametrize("request_line,status,said,refused", [
     (b"CONNECT evil.example.com:443", b"403", b"", ["evil.example.com"]),
-    # 🔴 Whatever the list says: a name is whatever its owner's DNS answers.
+    # Whatever the list says: a name is whatever its owner's DNS answers.
     (b"CONNECT localhost:443", b"403", b"non-public", ["localhost"]),
     (b"POST http://mirror.example.com/pypi/", b"405", b"", []),   # neither tunnel nor GET
 ])
@@ -723,7 +723,7 @@ def derive(store, letter, key, installed=()):
 
 
 def test_a_derived_image_is_reached_only_by_its_key(store):
-    '''🔴 Never resolved to, or one user's packages would place another user's
+    '''Never resolved to, or one user's packages would place another user's
     node; and the first registered for a key is what every later job reuses.'''
     derived = derive(store, "e", "k1", [("numpy", "2.0.1")])
 
@@ -905,7 +905,7 @@ def test_a_node_running_the_users_python_runs_in_the_image_built_once_for_it(
     (build,) = fake.builds
     assert build["queue"] == "build"
     assert build["spec"]["base_ref"] == f"ghcr.io/x/sc@{digest('a')}"
-    # 🔴 The server's own files, written from what parsed.
+    # The server's own files, written from what parsed.
     assert build["file"].splitlines()[1:] == ["numpy==2.0.1"]
     assert build["constraints"].splitlines()[1:] == ["scapy==2.5.0"]
     assert "constrain" not in build["spec"]
@@ -942,7 +942,7 @@ def test_the_jobs_wheels_alone_are_handed_to_the_build(
 
 
 @pytest.mark.parametrize("answer,state", [
-    # 🔴 Never asked for as an upload: it could carry binaries this server cannot run.
+    # Never asked for as an upload: it could carry binaries this server cannot run.
     (dict(TARGET, ok=False, reason="uninstallable", unresolved=["numpy==2.0.1"], refused=[],
           tail="ERROR: No matching distribution found for numpy==2.0.1"), "rejected"),
     (dict(TARGET, ok=False, reason="absent", absent=["scfake-private"]), "awaiting_input"),
@@ -982,7 +982,7 @@ def test_a_build_that_does_not_finish_dispatches_nothing(
 @pytest.mark.threaded_staging
 def test_a_job_cancelled_while_it_builds_stays_cancelled(
         builder_server, client, key, token, job_archive, python_project):
-    '''🔴 Refusing it afterwards would rewrite what its owner did as something
+    '''Refusing it afterwards would rewrite what its owner did as something
     the server decided -- and the build stops: nobody waits for it.'''
     from conftest import call
 

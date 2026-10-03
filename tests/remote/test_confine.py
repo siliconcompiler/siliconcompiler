@@ -60,7 +60,7 @@ def test_a_read_that_leaves_the_root_or_would_block_is_refused(tree, mode, plant
 
 
 def test_even_a_link_inside_is_refused_where_there_is_dir_fd(tree):
-    '''🔴 Race-free means no link at all: one pointing inside now can point out later.'''
+    '''Race-free means no link at all: one pointing inside now can point out later.'''
     if not confine._SAFE:
         pytest.skip("no dir_fd here")
     root, _ = tree
@@ -111,7 +111,7 @@ def test_a_link_inside_the_tree_is_stored_as_a_relative_link(tree, mode):
     ("../../other/file", "node/outputs"),
 ])
 def test_a_link_out_of_the_archived_tree_is_left_out(tree, mode, target, top):
-    '''🔴 Its target names this server's paths -- a private PDK's mount,
+    '''Its target names this server's paths -- a private PDK's mount,
     another user's tree. Never followed, never stored.'''
     root, secret = tree
     (root / "node" / "outputs" / "stolen").symlink_to(
@@ -124,7 +124,7 @@ def test_a_link_out_of_the_archived_tree_is_left_out(tree, mode, target, top):
 
 
 def test_a_chain_is_one_link_to_where_it_ends_and_nothing_is_copied(tree, mode):
-    '''🔴 `outputs/x` -> `inputs/x` -> upstream `outputs/x` becomes one link to
+    '''`outputs/x` -> `inputs/x` -> upstream `outputs/x` becomes one link to
     the upstream file (contract.md, *A produced archive keeps a link inside
     the job as a link*); a link out of the job is dropped.'''
     root, secret = tree

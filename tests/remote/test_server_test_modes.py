@@ -71,7 +71,7 @@ def test_the_presets_are_config(tmp_path):
 
 
 def test_config_json_still_applies_on_top_of_a_mode(tmp_path):
-    '''⚠️ So one value can be moved without writing out the rest of the mode.'''
+    '''So one value can be moved without writing out the rest of the mode.'''
     (tmp_path / "config.json").write_text(json.dumps({"limits": {"concurrent_jobs": 3}}))
 
     config = Config.load(tmp_path, test_mode=3)
@@ -94,7 +94,7 @@ def test_a_denial_is_a_glob_and_case_matters(tmp_path):
 
 @pytest.mark.parametrize("mode", [3])
 def test_the_mode_is_what_get_v1_publishes(server_client):
-    '''🔴 Nothing tells a client its mode: it reads features and limits.'''
+    '''Nothing tells a client its mode: it reads features and limits.'''
     published = server_client.get("/v1").get_json()
 
     assert published["features"] == []
@@ -105,7 +105,7 @@ def test_the_mode_is_what_get_v1_publishes(server_client):
 @pytest.mark.parametrize("mode", [2])
 def test_a_kind_the_api_withholds_is_listed_and_not_approved(
         server_client, key, token, finished):
-    '''🔴 Listed, since leaving it out would say *this server does not keep
+    '''Listed, since leaving it out would say *this server does not keep
     those* while the portal shows it; not fetchable, with no path to yes. Not
     `entitlement-denied`, which names a resource: this is the per-object gate.'''
     items = listing(server_client, key, token, finished["id"])
@@ -125,7 +125,7 @@ def test_a_kind_the_api_withholds_is_listed_and_not_approved(
 
 @pytest.mark.parametrize("mode", [3])
 def test_mode_three_hands_over_the_manifests_and_no_logs(server_client, key, token, finished):
-    '''🔴 The node manifests too: each node's record and metrics, so a client
+    '''The node manifests too: each node's record and metrics, so a client
     can still say how long a node took. No `logs.stream` is a permanent
     refusal, not only a word missing from a list.'''
     items = listing(server_client, key, token, finished["id"])
@@ -139,7 +139,7 @@ def test_mode_three_hands_over_the_manifests_and_no_logs(server_client, key, tok
     assert (response.status_code, slug(response)) == (501, "feature-unsupported")
     assert response.get_json()["feature"] == "logs.stream"
     assert "Retry-After" not in response.headers
-    # 🔴 The job stream names the broadest missing capability, or a client
+    # The job stream names the broadest missing capability, or a client
     # falls back to per-node requests that fail too.
     whole = call(server_client, key, "GET", f"/v1/jobs/{finished['id']}/logs", token)
     assert (whole.status_code, whole.get_json()["feature"]) == (501, "logs.stream")
@@ -207,7 +207,7 @@ def submitted(server_client, key, token, archive):
 @pytest.mark.parametrize("mode", [3])
 def test_a_denied_tool_is_refused_at_submit(server_client, key, token,
                                             job_archive, lint_project, dispatcher):
-    '''🔴 As a grant-backed deployment refuses: `entitlement-denied` naming the
+    '''As a grant-backed deployment refuses: `entitlement-denied` naming the
     kind and the name, the job `rejected`, nothing handed to the cluster.'''
     job, response = submitted(server_client, key, token, job_archive(lint_project))
 
@@ -286,7 +286,7 @@ def test_mode_four_publishes_what_mode_one_does(server_client, tmp_path):
 def test_mode_four_sends_the_source_back_and_keeps_both_uploads(
         server, server_client, key, token, job_archive, dispatcher, gcd_design,
         tmp_path):
-    '''🔴 The follow-up path on demand: the allowlisted PDK is not asked for
+    '''The follow-up path on demand: the allowlisted PDK is not asked for
     at create, every fetch fails for good, a copy already held is not used --
     so the job asks for it, and the second archive is its own `input`.'''
     from siliconcompiler import PDK

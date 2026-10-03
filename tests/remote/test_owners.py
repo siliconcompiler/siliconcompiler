@@ -72,7 +72,7 @@ def decide(project, key, n=0):
 
 
 def test_every_owner_is_told_apart(project, tmp_path):
-    '''⚠️ PDK and StdCellLibrary subclass Design, so they are tested first --
+    '''PDK and StdCellLibrary subclass Design, so they are tested first --
     the other way round every PDK is the user's design and always uploaded.'''
     project.set_pdk(resource(PDK, "mypdk", tmp_path / "pdk"))
     project.set_mainlib(resource(StdCellLibrary, "mylib", tmp_path / "lib"))
@@ -86,7 +86,7 @@ def test_every_owner_is_told_apart(project, tmp_path):
 
 
 def test_the_design_always_goes_up_and_the_credentials_file_never(project, tmp_path):
-    '''🔴 The credentials file is a path parameter, and this machine's key.'''
+    '''The credentials file is a path parameter, and this machine's key.'''
     (tmp_path / "credentials").write_text("{}")
     project.option.set_credentials(str(tmp_path / "credentials"))
 
@@ -95,11 +95,11 @@ def test_the_design_always_goes_up_and_the_credentials_file_never(project, tmp_p
 
 
 @pytest.mark.parametrize("root,editable,origin,uploads", [
-    # 🔴 The SOURCE decides, never where the file is now: a lambdapdk PDK is
+    # The SOURCE decides, never where the file is now: a lambdapdk PDK is
     # fetched into the cache on first use, so every file it names IS on disk.
     ("https://example.test/pdk.tar.gz", False, owners.REMOTE, False),
     ("{tmp}/pdk", False, owners.LOCAL, True),
-    # 🔴 D112, reversing D109: the server never expands a variable, so the
+    # D112, reversing D109: the server never expands a variable, so the
     # client does, with its own environment, and uploads what it finds.
     ("$FOUNDRY_ROOT", False, owners.LOCAL, True),
     ("dataroot://real", False, owners.REMOTE, False),       # judged by the one it names
@@ -130,7 +130,7 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
     "file+private", "git+private", "git+https+private", "git+ssh+private",
     "ssh+private", "http+private", "https+private"])
 def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path, scheme):
-    '''🔴 A `+private` suffix on any scheme (D274): never uploaded, even from
+    '''A `+private` suffix on any scheme (D274): never uploaded, even from
     this disk; a remote one sends its cleaned source and ref (D308), a local none.'''
     local = scheme == "file+private"
     (tmp_path / "secret").mkdir()
@@ -168,7 +168,7 @@ def test_the_marker_is_tested_in_one_place():
 
 def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_credential(
         project, tmp_path):
-    '''🔴 `safe_source` (#5454): no userinfo, every query value masked -- one
+    '''`safe_source` (#5454): no userinfo, every query value masked -- one
     string in the client's `sources` and the server's `value_records`.'''
     project.set_pdk(resource(
         PDK, "lambda", "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
@@ -230,7 +230,7 @@ def test_userinfo_is_read_as_the_mask_reads_it():
 
 
 def test_a_masked_source_is_never_fetched(project, tmp_path):
-    '''🔴 With the server's own supply and everything allowlisted: a public
+    '''With the server's own supply and everything allowlisted: a public
     masked source is asked for; a private one only supplied by a copy.'''
     from siliconcompiler.remote.server.jobs.common import _Supply
 
@@ -293,7 +293,7 @@ def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
     taken = collected_names(project)
     assert "gcd.v" in taken
     assert taken.count("datasheet.pdf") == 1        # the local one: none fetched
-    # 🔴 The caller's project is not rewritten to get there.
+    # The caller's project is not rewritten to get there.
     assert not project.get("library", "local", *DATASHEET, field="copy")
 
 
@@ -352,7 +352,7 @@ def two_sources(tmp_path, second, *, create=True):
 
 @pytest.mark.parametrize("second,origin", [
     ("https://example.test/pdk.tar.gz", owners.REMOTE),     # never resolved, never fetched
-    # 🔴 It must not leave this machine, and nothing is refused for it.
+    # It must not leave this machine, and nothing is refused for it.
     ("file+private://{tmp}/secret", owners.PRIVATE),
 ])
 def test_a_value_goes_up_on_its_own(project, tmp_path, second, origin):
@@ -406,7 +406,7 @@ def status(project, name, supply, collection="none"):
 
 
 @pytest.mark.parametrize("root,supply,expected", [
-    # 🔴 The live hole (D112): rooted at `/etc`, left out of the archive, and
+    # The live hole (D112): rooted at `/etc`, left out of the archive, and
     # the file IS on this machine -- asked of the client, never looked for.
     ("/etc", {}, owners.ASK),
     (GITHUB, {"allowed": ["https://github.com/siliconcompiler/"]}, owners.FETCH),
@@ -567,7 +567,7 @@ def submit_project(server_client, key, token, job_archive, project, left_out=Non
 
 def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
         server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''🔴 The file is on this machine, and the job is asked for it.'''
+    '''The file is on this machine, and the job is asked for it.'''
     from test_server_sources_flow import read, wait_for
 
     project = _nop_asic(gcd_design, tmp_path, resource(PDK, "mine", tmp_path / "pdk"))
@@ -575,7 +575,7 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
         server_client, key, token, job_archive, project,
         left_out=collected_path(project, ("library", "mine", *DATASHEET)))
 
-    # 🔴 The 202 says `staging`, never `awaiting_input` (D151): the ask goes
+    # The 202 says `staging`, never `awaiting_input` (D151): the ask goes
     # back through the one backwards edge, from `staging`.
     assert (response.status_code, response.get_json()["state"]) == (202, "staging")
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
@@ -652,7 +652,7 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
     ("tool", "openroad", "task", "place", "script"),
 ])
 def test_what_is_skipped_is_what_collect_leaves_out(key):
-    '''🔴 One rule at both ends: the client's copy had drifted, keeping a
+    '''One rule at both ends: the client's copy had drifted, keeping a
     template's `default` keypath the collection drops.'''
     from siliconcompiler.utils.curation import filter_collection_keys
 
@@ -711,7 +711,7 @@ def test_the_keypath_is_where_the_dataroot_is_defined(gcd_design):
 
 def test_two_tasks_of_one_tool_and_a_library_of_its_name_are_three_dataroots(
         gcd_design, tmp_path):
-    '''🔴 A task's dataroot was once named by its tool, so two tasks' `scripts`
+    '''A task's dataroot was once named by its tool, so two tasks' `scripts`
     were one entry: each is listed, accounted, collected and pointed apart.'''
     from pytasks import AcmeCheck, AcmeRun
     from siliconcompiler.remote.server.running import runspec
@@ -763,7 +763,7 @@ def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
                          ids=["as-run", "collected-again", "masked-query"])
 def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(
         tmp_path, monkeypatch, masked, collects):
-    '''🔴 Collected, sent masked, pointed and found at the rebuilt dataroot --
+    '''Collected, sent masked, pointed and found at the rebuilt dataroot --
     even collected again, as a Slurm run is -- never fetched (#5471).'''
     from siliconcompiler import Design, Lint
     from siliconcompiler.package.https import HTTPResolver

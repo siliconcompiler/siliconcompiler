@@ -40,7 +40,7 @@ def test_the_default_admits_what_lambdapdk_needs_and_nothing_like_it(url, allowe
 
 
 @pytest.mark.parametrize("entry,url,allowed", [
-    # ⚠️ Only `*.` is a host wildcard, covering one label and not the domain.
+    # Only `*.` is a host wildcard, covering one label and not the domain.
     ("https://*.zeroasic.com/", "https://git.zeroasic.com/x", True),
     ("https://*.zeroasic.com/", "https://GIT.ZeroAsic.com/x", True),
     ("https://*.zeroasic.com/", "https://zeroasic.com/x", False),
@@ -87,7 +87,7 @@ def test_a_wildcard_over_shared_hosting_is_warned_about():
     ("140.82.112.3", True),
 ])
 def test_a_name_is_judged_by_what_it_resolves_to(monkeypatch, address, public):
-    '''🔴 No glob widens the address rule.'''
+    '''No glob widens the address rule.'''
     family = socket.AF_INET6 if ":" in address else socket.AF_INET
     monkeypatch.setattr(socket, "getaddrinfo",
                         lambda *a, **k: [(family, socket.SOCK_STREAM, 6, "", (address, 443))])

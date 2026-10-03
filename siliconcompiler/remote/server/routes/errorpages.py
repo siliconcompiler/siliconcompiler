@@ -15,11 +15,11 @@ and for the public site alike::
 
 writes the static folder that is deployed there.
 
-🔴 **The `type` in a body does not change.** It is byte-identical on every
+**The `type` in a body does not change.** It is byte-identical on every
 deployment because a client compares it against a constant; this is a copy of
 the pages, not a second namespace.
 
-⚠️ Outside ``/v1`` on purpose: the contract claims only ``/v1/`` paths, and a
+Outside ``/v1`` on purpose: the contract claims only ``/v1/`` paths, and a
 deployment's own pages need no reservation.
 '''
 
@@ -86,7 +86,7 @@ def write_site(outdir) -> list:
     '''Render the folder to static HTML: every page as ``<slug>.html``, and
     the stylesheet. Returns the paths written.
 
-    ⚠️ Into an empty folder only, so that a retired type's page cannot outlive
+    Into an empty folder only, so that a retired type's page cannot outlive
     it in the copy that gets deployed.
     '''
     outdir = Path(outdir)
@@ -110,7 +110,7 @@ def help_link(type_uri) -> str:
     refusal so a client can show the page that actually answers here, while the
     body's `type` stays the public URI it compares against.
 
-    ⚠️ A reference relative to this host -- its mount point included -- and
+    A reference relative to this host -- its mount point included -- and
     never built from `Host` or `X-Forwarded-Host`. The client resolves it
     against the URL it called, which is the one origin it already trusts.
     '''

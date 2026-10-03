@@ -1,12 +1,12 @@
 '''
 Opening somebody else's archive, held to the limits.
 
-🔴 Nothing here runs until the digest has been checked: the contract's one
+Nothing here runs until the digest has been checked: the contract's one
 ordering that is a security property, since examining undeclared bytes is how
 an archive bomb gets opened.
 
 Every refusal is ``archive-rejected`` with a ``reason`` naming the rule: a
-member value can be added after the v1 freeze, a slug cannot. 🔴 An upload may
+member value can be added after the v1 freeze, a slug cannot. An upload may
 carry links that resolve inside it (D65); one resolving outside is
 ``link_member`` and never followed.
 '''
@@ -67,7 +67,7 @@ def extract(archive: Path, dest: Path, limits: Dict[str, int],
         return _extract(archive, dest, root, limits, allowed, prefix, select, symlinks,
                         tally)
     except ArchiveRejected:
-        # 🔴 No link this archive planted outlives its refusal.
+        # No link this archive planted outlives its refusal.
         for planted in symlinks:
             try:
                 if (dest / planted).is_symlink():
@@ -189,7 +189,7 @@ def _extract(archive: Path, dest: Path, root: Path, limits, allowed, prefix, sel
             if tally is not None and name.endswith(".whl"):
                 tally.setdefault("wheels", []).append(name)
 
-    # 🔴 Once every member is in place: a link written early can be made to
+    # Once every member is in place: a link written early can be made to
     # leave the root by one written after it, so each is resolved again.
     for name in symlinks:
         if not _stays_inside(dest / name, root):
@@ -230,14 +230,14 @@ def _normalized(name: str) -> str:
 
 
 def _check_name(name: str) -> None:
-    '''🔴 No member name holds ``..``: a link's target may climb, a name may not.'''
+    '''No member name holds ``..``: a link's target may climb, a name may not.'''
     parts = name.replace("\\", "/").split("/")
     if os.pardir in parts:
         raise ArchiveRejected("traversal", f"the archive holds a member named with ..: {name}")
 
 
 def _check_not_through_a_link(name: str, dest: Path, directory: bool, written) -> None:
-    '''🔴 Nothing is written through a link: a member whose path, or any
+    '''Nothing is written through a link: a member whose path, or any
     parent of it, is already a link, and a second non-directory member with a
     name already extracted.'''
     parts = name.split("/")

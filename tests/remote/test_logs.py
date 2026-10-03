@@ -120,7 +120,7 @@ def stream_url(server_client, key, token, job_id, step="place", index="0", heade
 
 def test_a_stream_url_is_its_own_grant_for_one_connection(server, server_client, key,
                                                           token, running):
-    '''Unsigned, or signed as a download, is refused. 🔴 It lasts no longer
+    '''Unsigned, or signed as a download, is refused. It lasts no longer
     than the access token that obtained it, and serves one connection.'''
     import jwt
 
@@ -142,7 +142,7 @@ def test_a_stream_url_is_its_own_grant_for_one_connection(server, server_client,
 
 def test_a_running_node_is_a_stream_read_to_its_end_naming_the_archive(
         server, server_client, key, token, running):
-    '''🔴 Only the content type says it is a stream (it can finish before the
+    '''Only the content type says it is a stream (it can finish before the
     fetch); ids only on `log` events; `end` names the archive just indexed.'''
     job_id, log = running
     log.write_text("one\ntwo\nthree\n")
@@ -172,7 +172,7 @@ def test_a_running_node_is_a_stream_read_to_its_end_naming_the_archive(
 
 def test_resuming_from_the_last_id_has_no_gap_and_no_repeat(
         server, server_client, key, token, running):
-    '''🔴 The id is the byte offset: no server state about the caller.'''
+    '''The id is the byte offset: no server state about the caller.'''
     job_id, log = running
     log.write_text("one\ntwo\n")
 
@@ -235,7 +235,7 @@ def test_a_node_that_finishes_mid_stream_is_followed_to_its_end(
 
 def test_the_published_stream_limit_is_enforced_per_caller_and_given_back(
         server, server_client, key, token, running):
-    '''🔴 A published number nothing enforces is a promise. A finished stream
+    '''A published number nothing enforces is a promise. A finished stream
     releases its slot in a finally: a hang-up arrives as GeneratorExit.'''
     job_id, log = running
     log.write_text("one\n")
@@ -284,7 +284,7 @@ def write_then_finish(app, job_id, log, lines, pause=0.25):
 
 
 def test_a_reader_that_hangs_up_resumes_without_a_gap(live):
-    '''🔴 Phase 5's gate: the reconnect asks /logs again and hands back the
+    '''Phase 5's gate: the reconnect asks /logs again and hands back the
     last id it saw. The client takes the server's stated reconnect pace.'''
     from siliconcompiler.remote.client.logs import LogTail, _frames
 
@@ -317,7 +317,7 @@ def test_a_reader_that_hangs_up_resumes_without_a_gap(live):
 
 
 def test_a_reader_that_hangs_up_frees_its_slot(live):
-    '''🔴 A slot outliving its connection locks its owner out for the life of the process.'''
+    '''A slot outliving its connection locks its owner out for the life of the process.'''
     client, app, job_id, log = live
     limiter = app.config["SC_STREAMS"]
     limiter._ceiling = 1
@@ -353,8 +353,8 @@ def test_a_reader_that_hangs_up_frees_its_slot(live):
 
 
 def test_a_tail_after_the_node_finished_gets_the_archive_and_no_session(live):
-    '''🔴 A finished node's stream ends at once naming its `logs` artifact.
-    🔴 No Authorization or DPoP proof reaches the stream target.'''
+    '''A finished node's stream ends at once naming its `logs` artifact.
+    No Authorization or DPoP proof reaches the stream target.'''
     client, app, job_id, log = live
     log.write_text("all done\n")
     finish(app, job_id)
@@ -372,7 +372,7 @@ def test_a_tail_after_the_node_finished_gets_the_archive_and_no_session(live):
 
 def test_a_skipped_node_is_settled_as_skipped_and_published_at_once(nop_project,
                                                                     monkeypatch):
-    '''🔴 A skipped node is never launched, so still pending: settled from the
+    '''A skipped node is never launched, so still pending: settled from the
     record (not `cancelled`, an error) and published at once; a verdict stands.'''
     from siliconcompiler.remote.server.running import runner
 
@@ -392,7 +392,7 @@ def test_a_skipped_node_is_settled_as_skipped_and_published_at_once(nop_project,
 
 
 def test_a_run_grown_past_its_window_fails_naming_the_node(nop_project):
-    '''🔴 D225: where `-from` widens to rebuild an upstream, the run fails before
+    '''D225: where `-from` widens to rebuild an upstream, the run fails before
     any node starts, naming it.'''
     from siliconcompiler.remote.server.running import runner
     nop_project.option.add_from("steptwo")
@@ -426,7 +426,7 @@ def test_settling_changes_and_writes_nothing_the_record_does_not_say(
 
 
 def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
-    '''🔴 Project.run() resets `record,status` on its way out, so settling is a
+    '''Project.run() resets `record,status` on its way out, so settling is a
     post_run callback and not something done after run() returns.'''
     from siliconcompiler.remote.server.running import runner
     from siliconcompiler.scheduler.taskscheduler import TaskScheduler
@@ -448,7 +448,7 @@ def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
 
 
 def test_quiet_is_left_as_the_caller_set_it(nop_project, tmp_path):
-    '''🔴 `quiet` mutes only the console sink; rewriting it handed back a
+    '''`quiet` mutes only the console sink; rewriting it handed back a
     manifest that did not describe the caller's run.'''
     from siliconcompiler.remote.server.running import runspec
     for quiet in (False, True):
@@ -458,7 +458,7 @@ def test_quiet_is_left_as_the_caller_set_it(nop_project, tmp_path):
 
 
 def test_the_runner_silences_the_console_with_a_filter(nop_project):
-    '''🔴 Not detached: TaskScheduler hands this handler OBJECT to the listener
+    '''Not detached: TaskScheduler hands this handler OBJECT to the listener
     that re-emits every node's records. Twice is not an error.'''
     import logging
     from siliconcompiler.remote.server.running import runner

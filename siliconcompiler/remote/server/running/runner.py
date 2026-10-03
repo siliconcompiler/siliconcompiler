@@ -3,7 +3,7 @@ The process the batch job starts, and all that runs on a compute node.
 
 ``python3 -m siliconcompiler.remote.server.running.runner <manifest>``
 
-🔴 It holds no database connection and makes no HTTP request, so no compute node
+It holds no database connection and makes no HTTP request, so no compute node
 needs a credential or the store: it applies the server's overrides in the job's
 own SiliconCompiler (`runspec.apply_run`, contract §1), runs the job, and writes
 its progress into the job's directory for the API process to read.
@@ -60,8 +60,8 @@ def _publish() -> None:
 def _beat() -> None:
     '''Say *still here* on a timer, for as long as this process lives.
 
-    🔴 The scheduler can be wrong: a vanished machine leaves Slurm reporting
-    its jobs RUNNING forever. ⚠️ Node transitions cannot stand in for this: one
+    The scheduler can be wrong: a vanished machine leaves Slurm reporting
+    its jobs RUNNING forever. Node transitions cannot stand in for this: one
     OpenROAD node can run half an hour without one.
     '''
     while True:
@@ -102,7 +102,7 @@ def _node_finished(project, step, index) -> None:
 def _explain_failure(project, step, index, node) -> None:
     '''Say why a failed node failed where the runtime told us, never by exit status.
 
-    137 is any SIGKILL (implementation-notes §10). 🔴 An image that would not
+    137 is any SIGKILL (implementation-notes §10). An image that would not
     pull is an interruption, not the node's failure; an OOM kill names the
     memory limit.
     '''
@@ -151,7 +151,7 @@ def run(manifest: Path) -> int:
 
     TaskScheduler.register_callback("pre_node", _node_started)
     TaskScheduler.register_callback("post_node", _node_finished)
-    # 🔴 Settled in hooks, not after project.run(), which resets `record,status`
+    # Settled in hooks, not after project.run(), which resets `record,status`
     # on its way out; and on both ends, since skipped nodes are decided in setup.
     TaskScheduler.register_callback("pre_run", _before_the_flow)
     TaskScheduler.register_callback("post_run", _settle)
@@ -162,7 +162,7 @@ def run(manifest: Path) -> int:
         project.run()
     except Exception as e:
         _progress["state"] = "failed"
-        # 🔴 The job's `error.detail`, the only account of the failure a CLI
+        # The job's `error.detail`, the only account of the failure a CLI
         # user sees; the class name only when there is no message.
         _progress["error"] = str(e) or type(e).__name__
         traceback.print_exc()
@@ -178,7 +178,7 @@ def run(manifest: Path) -> int:
 
 
 def _check_task_classes(project) -> None:
-    '''🔴 Fail a node whose task class is not installed here, naming it (surface D163).
+    '''Fail a node whose task class is not installed here, naming it (surface D163).
 
     Run as its base class, its own setup and processing would silently not happen.'''
     flow = project.get_flow()
@@ -205,9 +205,9 @@ def _check_task_classes(project) -> None:
 def _leave_the_allocation() -> None:
     '''Stop this process's own batch job from swallowing every node.
 
-    🔴 With ``SLURM_JOB_ID`` set, every ``srun`` becomes a step in this
+    With ``SLURM_JOB_ID`` set, every ``srun`` becomes a step in this
     allocation and its ``--partition`` is silently ignored, so nodes would share
-    the orchestrator's one core. ⚠️ Cleared process-wide: forked nodes inherit it.
+    the orchestrator's one core. Cleared process-wide: forked nodes inherit it.
     '''
     for name in ("SLURM_JOB_ID", "SLURM_JOBID", "SLURM_STEP_ID", "SLURM_STEPID"):
         os.environ.pop(name, None)
@@ -216,7 +216,7 @@ def _leave_the_allocation() -> None:
 def _sweep() -> None:
     '''Decide what became of every node still open when the run ended.
 
-    🔴 A running node is `failed`, where the work stopped; one that never
+    A running node is `failed`, where the work stopped; one that never
     started is `cancelled`.
     '''
     for node in _progress["nodes"].values():
@@ -235,7 +235,7 @@ def _before_the_flow(project) -> None:
 
 
 def _hold_the_window(project) -> None:
-    '''🔴 Fail the run where it has grown past the nodes the server admitted (surface D225).
+    '''Fail the run where it has grown past the nodes the server admitted (surface D225).
 
     SiliconCompiler may widen ``[option,from]`` to rebuild an upstream node,
     which would run a node with no image planned for it.'''
@@ -252,7 +252,7 @@ def _fetch_images(project) -> None:
     '''Make every container this run needs present, showing `preparing` meanwhile.
 
     Front-loaded: in `pre_node` a multi-minute fetch would stall the loop that
-    reaps every node. ⚠️ A failed fetch is not fatal here: the node's own
+    reaps every node. A failed fetch is not fatal here: the node's own
     launch retries and fails with a better message.
     '''
     wanted = {}
@@ -297,7 +297,7 @@ def _fetch_images(project) -> None:
 def _watch_for_oom() -> None:
     '''Listen to the docker daemon for this run's containers being OOM-killed.
 
-    ⚠️ Containers are ``auto_remove``, so ``OOMKilled`` is gone once one exits;
+    Containers are ``auto_remove``, so ``OOMKilled`` is gone once one exits;
     the ``oom`` event carries the node's ``sc_node:`` label instead.
     '''
     def listen():
@@ -361,7 +361,7 @@ def _unpack_bundle(bundle: str) -> None:
 def _silence_console(project) -> None:
     '''Stop this run writing to stdout, which would copy every node's log into the run log.
 
-    🔴 Not by setting `quiet`, which is the submitter's. ⚠️ A filter, not a
+    Not by setting `quiet`, which is the submitter's. A filter, not a
     detach: `TaskScheduler` hands this handler object to the `QueueListener`
     that re-emits node records, so detaching silences only the parent.
     '''
@@ -382,8 +382,8 @@ def _silence_console(project) -> None:
 def _settle(project) -> None:
     '''Take `record,status` for every node no callback fired for.
 
-    🔴 A node the scheduler skipped (metal fill a PDK disables) never fires a
-    callback; ⚠️ calling it `cancelled` would show a client an error for work
+    A node the scheduler skipped (metal fill a PDK disables) never fires a
+    callback; calling it `cancelled` would show a client an error for work
     nobody intended. Runs before the flow too, so nothing is written off
     here: that is `_sweep`'s.
     '''

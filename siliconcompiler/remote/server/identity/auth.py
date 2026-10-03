@@ -139,7 +139,7 @@ class TokenIssuer:
 
         # Seen proof ids, held for the proof window; older fails on `iat`.
         self._seen: Dict[str, float] = {}
-        # 🔴 Requests run on threads of their own, so the check that a `jti`
+        # Requests run on threads of their own, so the check that a `jti`
         # is new and the write that makes it seen are one step.
         self._seen_lock = threading.Lock()
 
@@ -298,7 +298,7 @@ class TokenIssuer:
         return self._rotate(row)
 
     def _check_fingerprint(self, row, machine_id_hash, machine_id_source) -> None:
-        '''🔴 Step up, never revoke (identity §6): a refresh from a machine
+        '''Step up, never revoke (identity §6): a refresh from a machine
         whose fingerprint changed is refused `invalid_grant` with no reason,
         and the session stays live. A device enrolled with `none` has no
         change detection.'''
@@ -333,7 +333,7 @@ class TokenIssuer:
                 "UPDATE refresh_tokens SET replaced_by = ?, replaced_at = ? "
                 "WHERE jti = ?", (new_jti, timestamp, row["jti"]))
 
-            # 🔴 A rotation is the only use signal most devices give, since the
+            # A rotation is the only use signal most devices give, since the
             # client refreshes rather than logs in again. Per rotation, not per
             # request, to spare a write on every call.
             if row["device_id"]:
@@ -488,7 +488,7 @@ class TokenIssuer:
     def _retire_elsewhere(self, user_id: str, jkt: str) -> None:
         '''This key was last seen as somebody else. End that enrolment.
 
-        🔴 A machine whose *derivation* changed and key did not (a reimage, a
+        A machine whose *derivation* changed and key did not (a reimage, a
         new uid): the old device row holds this UNIQUE thumbprint, and the
         insert would fail. Retired, not refused: the key's holder could already
         act as the previous user, and the event is recorded.

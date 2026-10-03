@@ -1,7 +1,7 @@
 '''
 Handing a job to whatever runs it.
 
-🔴 One batch job per run, its id in ``jobs.scheduler_job_id`` and polled, never
+One batch job per run, its id in ``jobs.scheduler_job_id`` and polled, never
 a blocking ``srun`` per node held open by the API process, which would make it
 a Slurm submit host. ``slurmrestd`` submits batch jobs only, so a REST
 transport is a swap: the id is just text, and only this module knows what it
@@ -181,7 +181,7 @@ class SlurmDispatcher(Dispatcher):
 
         command = [
             "sbatch", "--parsable",
-            # 🔴 A requeue would rerun the runner over existing output, maybe
+            # A requeue would rerun the runner over existing output, maybe
             # after the job was declared lost. One dispatch, one outcome.
             "--no-requeue",
             f"--job-name=sc-{job_id}",
@@ -194,8 +194,8 @@ class SlurmDispatcher(Dispatcher):
             command.append(f"--partition={queue}")
 
         if image:
-            # 🔴 The framework image, so the manifest is interpreted by the
-            # SiliconCompiler the job asked for. ⚠️ It submits every node, so it
+            # The framework image, so the manifest is interpreted by the
+            # SiliconCompiler the job asked for. It submits every node, so it
             # needs the Slurm client, slurm.conf and the munge socket.
             command.append(f"--container={image}")
 
@@ -214,7 +214,7 @@ class SlurmDispatcher(Dispatcher):
                      queue: Optional[str] = None) -> str:
         '''``sbatch`` one environment build onto a compute node.
 
-        🔴 On the host, no ``--container``: the build starts its own isolated
+        On the host, no ``--container``: the build starts its own isolated
         container and runs the proxy it reaches out through.
         '''
         from siliconcompiler.remote.server.packages.envbuild import LOG
@@ -247,7 +247,7 @@ class SlurmDispatcher(Dispatcher):
                     timeout: int, queue: Optional[str] = None) -> str:
         '''``sbatch`` one manifest read into the job's own image.
 
-        🔴 Nothing of this process's goes with it: ``--export=NONE``, and the
+        Nothing of this process's goes with it: ``--export=NONE``, and the
         bundle mounts only the extracted tree, read-only, with no network
         (`images.read_bundle`). The summary comes back on stdout.
         '''

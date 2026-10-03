@@ -15,7 +15,7 @@ from test_capture import _distribution, site  # noqa: F401
 pytest.importorskip("flask", reason="the server extra is not installed")
 
 
-# 🔴 A client that cannot supply what the server asks for cancels the job,
+# A client that cannot supply what the server asks for cancels the job,
 # naming each item and why (surface D287) -- at create, after submit, and for
 # a Python package alike, and never with a partial answer.
 
@@ -162,7 +162,7 @@ def cancels(fake_v1):
 
 def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
         site, fake_v1, cancels, logged_in, nop_project, monkeypatch):  # noqa: F811
-    '''🔴 Every item is tried before anything is collected: one that cannot be
+    '''Every item is tried before anything is collected: one that cannot be
     had cancels the job, naming each, and nothing is uploaded.'''
     from siliconcompiler.package.https import HTTPResolver
 
@@ -197,7 +197,7 @@ def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
 
 def test_a_long_reason_is_fitted_to_what_the_server_takes(fake_v1, cancels, logged_in,
                                                           nop_project):
-    '''🔴 The items that fit, then *and N more* (surface D288), on one line
+    '''The items that fit, then *and N more* (surface D288), on one line
     within 300; an item too long even alone is cut, so something is named.'''
     run = RemoteRun(nop_project, logged_in)
     failures = [f"lib{n} (lib{n}): it cannot be fetched here either:\n404" for n in range(20)]

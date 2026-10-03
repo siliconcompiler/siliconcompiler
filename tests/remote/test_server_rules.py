@@ -54,7 +54,7 @@ def test_a_device_says_which_is_the_callers(server_client, key, token):
 
 def test_a_job_delete_never_deletes_what_is_held(server, server_client, key, token,
                                                  job_archive, dispatcher):
-    '''🔴 Entitlements D54: the held row and its bytes stay; the rest go.'''
+    '''Entitlements D54: the held row and its bytes stay; the rest go.'''
     job = ran(server, server_client, key, token, job_archive)
     store, storage = server.config["SC_STORE"], server.config["SC_STORAGE"]
     held, other = store.all("SELECT id, storage_key FROM artifacts WHERE job_id = ? "

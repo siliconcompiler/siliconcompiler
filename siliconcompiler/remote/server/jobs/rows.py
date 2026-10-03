@@ -59,7 +59,7 @@ class RowsMixin:
     def _why(self, job) -> Optional[str]:
         '''What actually went wrong, in the run's own words.
 
-        🔴 Read off the transition into the current state, never stored twice:
+        Read off the transition into the current state, never stored twice:
         an `error_detail` column would be a second writer for one fact.
         '''
         if not job["error_type"]:
@@ -87,7 +87,7 @@ class RowsMixin:
             (job_id, from_state, to_state, actor, reason))
 
     def _list_records(self, job_id: str) -> None:
-        '''🔴 A job turns terminal only once every artifact it will list is
+        '''A job turns terminal only once every artifact it will list is
         listed (surface D308): the server's own records, here, in the caller's
         transaction; a run's output is `_index`'s, before it.'''
         job = self._row(job_id)
@@ -115,7 +115,7 @@ class RowsMixin:
             # Published so clients never switch on the name, keeping new
             # states additive.
             "terminal": job["state"] in TERMINAL_STATES,
-            # 🔴 Every state entered, oldest first, never empty (surface §17;
+            # Every state entered, oldest first, never empty (surface §17;
             # D278).
             "transitions": self._transitions(job),
             "design": job["design"],
@@ -141,8 +141,8 @@ class RowsMixin:
 
         # No portal URL: a client asks `POST /v1/auth/browser` (surface D309).
 
-        # 🔴 What the server chose, where the descriptor says what was asked.
-        # ⚠️ Absent rather than `{}` on the host, which would claim it ran
+        # What the server chose, where the descriptor says what was asked.
+        # Absent rather than `{}` on the host, which would claim it ran
         # nothing.
         resolved = self.resolved_versions(job)
         if resolved:
@@ -154,7 +154,7 @@ class RowsMixin:
             body["continues_from"] = [{"step": step, "index": index, "job_id": from_job}
                                       for step, index, from_job in continued]
 
-        # 🔴 Present only while the server is asking, and never `[]` (D127).
+        # Present only while the server is asking, and never `[]` (D127).
         if job["state"] in PENDING_STATES and job["upload_sources"]:
             asking = json.loads(job["upload_sources"])
             if asking:
@@ -200,7 +200,7 @@ class RowsMixin:
     def _transitions(self, job) -> List[Dict[str, Any]]:
         '''`transitions`: each state entered, when, and any recorded reason.
 
-        🔴 A reason entering `cancelling` or `cancelled` is the caller's, checked
+        A reason entering `cancelling` or `cancelled` is the caller's, checked
         at the boundary and served whole (surface D288); every other is this
         server's, bounded and scrubbed like `detail`.
         '''
@@ -219,13 +219,13 @@ class RowsMixin:
     def _refuse(self, job, problem: ProblemError) -> ProblemError:
         '''Record a refusal, and hand back the problem for the caller to raise.
 
-        `rejected`, never `failed`: a refused job never ran. 🔴 What is stored
+        `rejected`, never `failed`: a refused job never ran. What is stored
         is the problem the caller was handed, whole, so the two cannot drift;
         its reason is the `detail`, since the slug is already `error.type`.
         '''
         kept = _kept(problem)
         if not kept:
-            # 🔴 Before the transition, so the job is never read as terminal
+            # Before the transition, so the job is never read as terminal
             # with what it was refused for still listed.
             self._forget_upload(job, problem.error.slug)
         with self._store.transaction():

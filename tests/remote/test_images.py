@@ -17,7 +17,7 @@ def digest(letter):
 
 
 def py(name=None, wanted=None, tools=None):
-    '''A bucketed `requested_versions`. 🔴 The whole python set has to be held
+    '''A bucketed `requested_versions`. The whole python set has to be held
     by ONE image; a tool is satisfied per node.'''
     return {"python": {name: wanted} if name else {}, "tools": tools or {}}
 
@@ -110,7 +110,7 @@ def test_registering_the_same_digest_again_is_the_same_image(registry, store):
 
 
 def test_rebuilding_a_tag_supersedes_the_build_before_it(registry, store):
-    '''🔴 One live image per reference: two are indistinguishable to the
+    '''One live image per reference: two are indistinguishable to the
     resolution, and on the rig jobs kept starting in the previous build.
     Superseded, not deleted, so *what did this run in* stays answerable.'''
     before = next(image for image in images.live_images(store)
@@ -136,7 +136,7 @@ def test_rebuilding_a_tag_supersedes_the_build_before_it(registry, store):
 ], ids=["bare", "unnamed", "range", "python-list", "tool-range", "tool-list",
         "tool-empty", "untracked"])
 def test_each_node_resolves_to_the_smallest_image_that_fits(registry, store, requires):
-    '''🔴 Per node and by digest: an import node never pulls the OpenROAD
+    '''Per node and by digest: an import node never pulls the OpenROAD
     image, a node declaring nothing (a builtin join) gets the job's own, and a
     rebuilt tag cannot change what runs.
 
@@ -166,13 +166,13 @@ def test_specifiers_read_a_bare_version_as_exact_and_a_list_as_alternatives():
 @pytest.mark.parametrize("version,admitted", [
     ("0.38.10.dev7", True), ("0.38.10", True), ("0.38.10rc1", True), ("0.38.11.dev1", False)])
 def test_a_prefix_admits_pre_releases(version, admitted):
-    '''🔴 Surface D154: `packaging` before 26.0 leaves `0.38.10.dev7` out of
+    '''Surface D154: `packaging` before 26.0 leaves `0.38.10.dev7` out of
     `==0.38.10.*` by default, so the match passes `prereleases=True`.'''
     assert images.matches(version, "reported", ("==0.38.10.*",)) is admitted
 
 
 def test_a_node_that_follows_its_input_runs_where_that_input_ran(registry, store):
-    '''🆕 An execute task's command comes out of the manifest; the environment
+    '''An execute task's command comes out of the manifest; the environment
     that made its inputs is likeliest to run it. With that input not in this
     run, it falls back to the job's image.'''
     plan = images.plan_for_job(
@@ -191,7 +191,7 @@ def test_a_node_that_follows_its_input_runs_where_that_input_ran(registry, store
 @pytest.mark.parametrize("tool,retired", [("verilator", False), ("openroad", True)])
 def test_a_tool_with_no_live_software_is_refused_as_a_resource(registry, store, tool,
                                                                retired):
-    '''🔴 Reverses the old rule that only a REGISTERED name raises a
+    '''Reverses the old rule that only a REGISTERED name raises a
     requirement: with containers on, the registry IS the world, and a `bsc`
     node placed in the python-only image died on the rig. Retiring the
     software (*not any more*, beside a version's *not this one*) is the same.'''
@@ -211,7 +211,7 @@ def test_a_tool_with_no_live_software_is_refused_as_a_resource(registry, store, 
     # A range nothing satisfies, refused before anything runs.
     ([], py("siliconcompiler", ">=0.40"), {("import", "0"): None},
      ("python", "siliconcompiler", [">=0.40"], ["0.39.1"])),
-    # 🔴 D91: what IS available, so the caller can act on it.
+    # D91: what IS available, so the caller can act on it.
     ([], py(tools={"openroad": ">=3.0"}), {("place", "0"): "openroad"},
      ("tools", "openroad", [">=3.0"], ["2.0"])),
     # The alternatives exactly as asked for.
@@ -254,7 +254,7 @@ def test_a_job_missing_two_tools_reports_both(registry, store):
 
 
 def test_an_empty_registry_is_a_refusal_and_not_a_bypass(store):
-    '''⚠️ Only reached where the deployment runs containers, so an empty
+    '''Only reached where the deployment runs containers, so an empty
     registry is a misconfiguration (bare Slurm never calls this).'''
     problem = refused(store, py("siliconcompiler", "0.39.1"),
                       {("import", "0"): None, ("place", "0"): "openroad"})
@@ -266,7 +266,7 @@ def test_an_empty_registry_is_a_refusal_and_not_a_bypass(store):
 @pytest.mark.parametrize("retire", ["version", "images"])
 def test_what_is_retired_stops_satisfying_and_never_runs_on_the_host(
         registry, store, retire):
-    '''⚠️ An image is never deleted: a job from last year names one.'''
+    '''An image is never deleted: a job from last year names one.'''
     if retire == "version":
         images.retire_version(store, "openroad", "2.0", store.actor)
     else:
@@ -281,7 +281,7 @@ def test_what_is_retired_stops_satisfying_and_never_runs_on_the_host(
 
 
 def test_a_version_is_advertised_only_where_an_image_holds_it(registry, store):
-    '''⚠️ Without containers there are no images, so the join would advertise
+    '''Without containers there are no images, so the join would advertise
     nothing while the versions it genuinely runs sit in the table.'''
     images.register_version(store, "siliconcompiler", "0.40.0", store.actor)
 
@@ -308,8 +308,8 @@ def test_tracking_is_the_deployments_to_turn_on(nop_project, tmp_path):
 
 
 def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
-    """🔴 `option,scheduler,name` holds ONE value, and on a cluster Slurm
-    places the work. ⚠️ `queue` is Slurm's PARTITION, so it stays untouched; the
+    """`option,scheduler,name` holds ONE value, and on a cluster Slurm
+    places the work. `queue` is Slurm's PARTITION, so it stays untouched; the
     placement reads back as a bundle."""
     runspec.normalize(nop_project, "job-id", "build", "cache",
                       images={("stepone", "0"): "/sc_server/images/659b"},
@@ -321,7 +321,7 @@ def test_a_cluster_is_placed_by_slurm_and_never_by_docker(nop_project):
 
     options = scheduler.get_options(step="stepone", index="0")
     assert options[options.index("--container") + 1] == "/sc_server/images/659b"
-    # 🔴 A job of its own, never a step: `--partition` on a step is silently
+    # A job of its own, never a step: `--partition` on a step is silently
     # ignored, so it would run on the orchestrator's one core.
     assert "--overlap" not in options
     assert runspec.node_image(nop_project, "stepone", "0") == \
@@ -345,7 +345,7 @@ def test_a_server_with_no_cluster_uses_the_docker_scheduler(nop_project):
 
 @pytest.mark.parametrize("cluster,name", [("slurm", "slurm"), ("local", None)])
 def test_a_node_with_no_image_is_scheduled_only_on_a_cluster(nop_project, cluster, name):
-    '''🔴 On a cluster every node is its own Slurm job, image or not; one
+    '''On a cluster every node is its own Slurm job, image or not; one
     allocation could never use more than the machine it landed on. No
     `--no-requeue`, which srun refuses: a node is never requeued anyway.'''
     runspec.normalize(nop_project, "job-id", "build", "cache", cluster=cluster)
@@ -357,7 +357,7 @@ def test_a_node_with_no_image_is_scheduled_only_on_a_cluster(nop_project, cluste
 
 
 def test_the_runner_leaves_its_own_allocation(monkeypatch):
-    """🔴 Slurm makes a STEP, not a JOB, while SLURM_JOB_ID is set: measured on
+    """Slurm makes a STEP, not a JOB, while SLURM_JOB_ID is set: measured on
     the rig, `srun --partition=sc` inside one ignored the partition."""
     monkeypatch.setenv("SLURM_JOB_ID", "5")
     monkeypatch.setenv("SLURM_STEP_ID", "1")
@@ -381,7 +381,7 @@ def placed(nop_project, *steps):
 
 
 def test_a_node_waiting_for_its_image_is_preparing(monkeypatch, nop_project):
-    """🔴 A tool image takes minutes on a cold host; without a state for the
+    """A tool image takes minutes on a cold host; without a state for the
     wait it is indistinguishable from a hang."""
     placed(nop_project, "stepone", "steptwo")
     nodes = progress(monkeypatch, **{"stepone/0": "pending", "steptwo/0": "pending"})
@@ -407,7 +407,7 @@ def fails(message):
 @pytest.mark.parametrize("image,state,present,make,after", [
     # Already on the host: nothing to wait for, so saying so would be noise.
     (True, "pending", lambda p: True, lambda p: pytest.fail("fetched"), "pending"),
-    # ⚠️ A failed fetch does not end the run: the node's own launch fails with
+    # A failed fetch does not end the run: the node's own launch fails with
     # the message that knows about registry credentials.
     (True, "pending", lambda p: False, fails("no such host"), "queued"),
     # No placement, the default deployment: nothing is looked for.
@@ -430,7 +430,7 @@ def test_a_node_is_preparing_only_while_its_image_is_fetched(monkeypatch, nop_pr
 
 def test_a_node_whose_image_would_not_pull_is_interrupted_naming_it(
         monkeypatch, nop_project):
-    '''🔴 Told by the runtime's pull error, never an exit status: the node
+    '''Told by the runtime's pull error, never an exit status: the node
     failed with its image absent, its pull having failed first (§10).'''
     placed(nop_project, "stepone")
     nodes = progress(monkeypatch, **{"stepone/0": "pending"})
@@ -484,9 +484,9 @@ def test_a_bundle_with_no_recorded_source_says_so(monkeypatch):
 
 
 def test_what_a_node_needs_is_declared_and_never_inferred():
-    '''🔴 Inferring from the tool NAME says `builtin` (a nop flow was refused
+    '''Inferring from the tool NAME says `builtin` (a nop flow was refused
     for it on the rig); from `exe`, nothing for slang, which drives pyslang
-    in-process. ⚠️ Read off a BARE task class, one attribute per node; the
+    in-process. Read off a BARE task class, one attribute per node; the
     drivers declare the three cases an inference rule gets wrong.'''
     from siliconcompiler.remote.runflow import node_tools
     from siliconcompiler.tools.builtin.nop import NOPTask
@@ -508,13 +508,13 @@ def test_what_a_node_needs_is_declared_and_never_inferred():
     assert NOPTask()._remote_toolname is None
     assert NOPTask()._remote_inherits_env is False
     assert Elaborate()._remote_toolname == "slang"
-    # 🆕 The command comes out of the manifest; it follows its input.
+    # The command comes out of the manifest; it follows its input.
     assert ExecInputTask()._remote_toolname is None
     assert ExecInputTask()._remote_inherits_env is True
 
 
 def test_a_version_is_normalised_when_it_is_registered(store):
-    '''🔴 At registration, not request time, so client and server releases
+    '''At registration, not request time, so client and server releases
     cannot normalise one string differently and silently disagree. An image
     may name what the tool printed: `verilator 5.052` is stored `5.52`.'''
     sc(store)
@@ -532,7 +532,7 @@ def test_a_version_is_normalised_when_it_is_registered(store):
 
 
 def test_a_version_that_is_not_pep_440_is_refused_unless_it_is_a_published_date(store):
-    '''🔴 `version_norm` is NOT NULL, so `initialize` (gtkwave's parse of
+    '''`version_norm` is NOT NULL, so `initialize` (gtkwave's parse of
     `Could not initialize GTK!`) is refused, not coerced -- and accepted as
     `published_date`, stored exactly as given.'''
     images.register_software(store, "gtkwave", "GTKWave", store.actor, "tool")
@@ -548,7 +548,7 @@ def test_a_version_that_is_not_pep_440_is_refused_unless_it_is_a_published_date(
 
 def test_an_unversioned_tool_runs_and_cannot_satisfy_a_requirement(store):
     '''A complete tool list beats a partial one: the mark costs version
-    matching, not existence -- 🔴 `20260924` beats `2.0.1` under any
+    matching, not existence -- `20260924` beats `2.0.1` under any
     comparison. The refusal says *reports no version*, not *no image
     matches*, which sends somebody hunting for an installed tool.'''
     sc(store, "0.39.1")
@@ -584,7 +584,7 @@ def test_every_bucket_is_listed_and_reported_sorts_above_published_date(store):
 
 
 def test_a_descriptor_resolves_to_its_digests_with_no_upload(registry, store):
-    '''🔴 What lets create fold them into the job identity: resolution needs the
+    '''What lets create fold them into the job identity: resolution needs the
     declared versions and the registry, nothing else; nothing to run is refused.'''
     assert images.job_image_for(
         store, py("siliconcompiler", ">=0.39,<0.40"))["digest"] == digest("a")
@@ -594,7 +594,7 @@ def test_a_descriptor_resolves_to_its_digests_with_no_upload(registry, store):
 
 
 def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
-    '''⚠️ A list per name: a wide flow's images may hold different versions.'''
+    '''A list per name: a wide flow's images may hold different versions.'''
     plan = images.plan_for_job(store, py(), {("import", "0"): None,
                                              ("place", "0"): "openroad"})
 
@@ -606,7 +606,7 @@ def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
 
 
 def test_the_python_set_must_be_held_by_one_image(store):
-    '''🔴 They share an interpreter. D110: each resolves alone and no image
+    '''They share an interpreter. D110: each resolves alone and no image
     holds them together, so it is a combination naming every requirement with
     what is available.'''
     both = {"python": {"siliconcompiler": "0.39.1", "za-sclib": "0.1.80"}, "tools": {}}
@@ -633,7 +633,7 @@ def test_the_python_set_must_be_held_by_one_image(store):
 
 
 def test_requested_versions_is_the_one_member_and_every_value_is_a_list():
-    '''🔴 `versions` and its per-name fallback are gone (D126, superseded); a
+    '''`versions` and its per-name fallback are gone (D126, superseded); a
     bare string is refused.'''
     from siliconcompiler.remote.server.jobs.common import requirements
 
@@ -652,7 +652,7 @@ def test_requested_versions_is_the_one_member_and_every_value_is_a_list():
 
 @pytest.mark.parametrize("name,kind,driver,match", [
     ("za-sclib", "python", "za_sclib.tools", "a driver is what makes"),
-    # 🔴 D95: the probe imports the driver, and anyone can register software.
+    # D95: the probe imports the driver, and anyone can register software.
     *[("x", "tool", driver, "not a driver this server imports")
       for driver in ("os", "subprocess", "evil.module", "siliconcompiler.toolsx", "a..b")],
     ("pypy", "interpreter", None, "one name"),
@@ -668,7 +668,7 @@ def _recorded(store, name):
 
 
 def test_a_driver_is_recorded_so_a_probe_can_be_handed_it(store):
-    '''🔴 The probe runs in another interpreter, so the driver is data. An
+    '''The probe runs in another interpreter, so the driver is data. An
     out-of-tree one is the deployment's `software_drivers`, never a form's;
     none at all is a tool nothing here drives.'''
     images.register_software(store, "openroad", "OpenROAD", store.actor, "tool",
@@ -696,14 +696,14 @@ def test_the_registry_command_records_the_distribution_a_version_is_read_from(st
 @pytest.mark.parametrize("built_a,built_b,pin_a,pin_b", [
     # The build time breaks the tie preference cannot, against the pin.
     ("2026-01-01T00:00:00.000Z", "2026-09-01T00:00:00.000Z", "2026-09-01", "2026-01-01"),
-    # ⚠️ NULL is a manifest that said nothing, not *old*: it sorts last.
+    # NULL is a manifest that said nothing, not *old*: it sorts last.
     (None, "2020-01-01T00:00:00.000Z", "2026-09-01", "2026-01-01"),
     # Equal or NULL (ko, Nix and Bazel stamp 1970): the later pin decides.
     (None, None, "2026-01-01", "2026-09-01"),
     ("1970-01-01T00:00:01.000Z", "1970-01-01T00:00:01.000Z", "2026-01-01", "2026-09-01"),
 ])
 def test_the_build_time_then_the_pin_breaks_a_tie(store, built_a, built_b, pin_a, pin_b):
-    '''🔴 Same preference, contents and version: never whichever reference
+    '''Same preference, contents and version: never whichever reference
     sorts first (`b` sorts second, so only the tie-break puts it first).'''
     sc(store, "0.39.1")
     for name, built, pinned in (("a", built_a, pin_a), ("b", built_b, pin_b)):
@@ -719,7 +719,7 @@ def test_the_build_time_then_the_pin_breaks_a_tie(store, built_a, built_b, pin_a
 
 
 def test_preference_wins_over_recency_and_the_build_time(store):
-    '''🔴 Newest-wins is tempting and wrong: a rebuilt image is newer and is
+    '''Newest-wins is tempting and wrong: a rebuilt image is newer and is
     not necessarily preferred. The build time breaks ties, never the operator.'''
     sc(store)
     images.register_version(store, "siliconcompiler", "0.39.1", store.actor, preference=10)

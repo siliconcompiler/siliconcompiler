@@ -2,11 +2,11 @@
 The server's own copies of remote sources, held under ``<datadir>/sources/`` by
 (source, ref) and fetched only from the allowlist.
 
-🔴 The run never fetches: it points a supplied dataroot at the held copy
+The run never fetches: it points a supplied dataroot at the held copy
 (`runspec.point_dataroots`). The fetch is SiliconCompiler's own resolver,
 submodules and LFS included (surface D164), isolated in `staging.fetch`.
 
-⚠️ A transient failure (``429``, ``5xx``, timeout) is retried until the job's
+A transient failure (``429``, ``5xx``, timeout) is retried until the job's
 deadline, or a GitHub blip becomes a huge upload; a permanent one (``401``,
 ``403``, ``404``) asks the client, which has the credentials.
 '''
@@ -87,7 +87,7 @@ class SourceStore:
     def allowlisted(self, source: Optional[str], ref: Optional[str]) -> bool:
         '''Whether this server would fetch the source itself.
 
-        🔴 Never one whose URL has a query (surface D308): its values are masked.'''
+        Never one whose URL has a query (surface D308): its values are masked.'''
         if not source or urlsplit(source).query:
             return False
         scheme = urlsplit(source).scheme.lower()
@@ -113,7 +113,7 @@ class SourceStore:
             data.mkdir()
             pinned = self._resolve(source, ref, data, timeout)
             commit, moving = pinned if isinstance(pinned, tuple) else (None, False)
-            # 🔴 The commit, recorded before `.git` goes, so what a job ran stays answerable.
+            # The commit, recorded before `.git` goes, so what a job ran stays answerable.
             (staging / _COMPLETE).write_text(json.dumps({
                 "source": source, "ref": ref, "commit": commit, "moving": moving,
                 "fetched_at": time.time()}))
@@ -191,7 +191,7 @@ def _run_fetch(source: str, ref: Optional[str], work: Path, timeout: float,
     spec = work / "fetch.json"
     spec.write_text(json.dumps({"source": source, "ref": ref, "cachedir": str(work / "cache"),
                                 "proxy": proxy_socket, "result": str(result)}))
-    # 🔴 Nothing of the server's: no token, no git config but the repo's, no prompt.
+    # Nothing of the server's: no token, no git config but the repo's, no prompt.
     env = {**sandbox._environment(home), "PATH": os.environ.get("PATH", os.defpath),
            "XDG_CONFIG_HOME": str(home), "GIT_CONFIG_NOSYSTEM": "1",
            "GIT_TERMINAL_PROMPT": "0"}

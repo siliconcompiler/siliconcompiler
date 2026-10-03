@@ -4,8 +4,8 @@
 The operator's command for the image registry: which distributions this
 deployment curates, at which versions, and which containers hold them.
 
-🔴 Every write names the person on the host running it, and a tag is resolved to
-a digest once, here (`images.register_image`). ⚠️ A separate entry point that
+Every write names the person on the host running it, and a tag is resolved to
+a digest once, here (`images.register_image`). A separate entry point that
 works on a datadir, not a running server, so a deployment can be curated before
 it first starts; the portal calls the same `images` functions.
 '''
@@ -46,7 +46,7 @@ def _operator(store) -> str:
 def _wants(values: Optional[List[str]]):
     '''``-requires openroad>=26.3`` into pairs, with any PEP 440 operator.
 
-    🔴 Not `images._contains`, which accepts only exact stored versions.
+    Not `images._contains`, which accepts only exact stored versions.
     '''
     pairs = []
     for value in values or []:
@@ -132,7 +132,7 @@ def _cmd_list(store, args) -> int:
 def _cmd_add_software(store, args) -> int:
     kind = args.kind or ("tool" if args.driver else None)
     if not kind:
-        # 🔴 Refused, not defaulted: the kind decides whether one image or each
+        # Refused, not defaulted: the kind decides whether one image or each
         # node's must hold it.
         raise SystemExit(
             f"{args.name}: say -kind python, -kind tool or -kind interpreter. A "
@@ -194,7 +194,7 @@ def _cmd_add_image(store, args) -> int:
     print(f"  {image_id}")
     print(f"  {digest}")
 
-    # 🔴 One SiliconCompiler, this server's (profile §5).
+    # One SiliconCompiler, this server's (profile §5).
     held = [version for name, version in contents if name == images.PRIMARY]
     if not any(images.normalize(version) == images.normalize(images.own_version())
                for version in held):
@@ -213,7 +213,7 @@ def _stage(args, ref: str, digest: str):
     '''Unpack one image where a Slurm job can run it, keeping that off the first submit.'''
     datadir = Path(args.datadir).resolve()
 
-    # 🔴 The server's own mount list, or the bundle quietly lacks what the
+    # The server's own mount list, or the bundle quietly lacks what the
     # cluster needs. Never the data directory: per-job mounts are the job's.
     mounts = [str(path) for path in (Config.load(datadir)["container_mounts"] or [])]
 
@@ -273,7 +273,7 @@ def _cmd_drop_built(store, args) -> int:
 
 def _cmd_resolve(store, args) -> int:
     '''Ask what a job would be placed in, without submitting one; writes nothing.'''
-    # 🔴 Two buckets, resolved differently (`images.live_software`); no interpreter.
+    # Two buckets, resolved differently (`images.live_software`); no interpreter.
     requires = {"python": dict(_wants(args.versions)),
                 "tools": dict(_wants(args.requires))}
     tools = {(tool, "0"): tool for tool in (args.tools or [])} or {("job", "0"): None}
@@ -313,7 +313,7 @@ def _bytes(text: str) -> Optional[int]:
 def _cmd_limits(store, args) -> int:
     """Show or set what one account is allowed.
 
-    🔴 The whole write path: with no admin mode there is no endpoint or form.
+    The whole write path: with no admin mode there is no endpoint or form.
     """
     from siliconcompiler.remote.server.identity import accounts
 
@@ -362,7 +362,7 @@ def _cmd_limits(store, args) -> int:
 def _cmd_release(store, args) -> int:
     """Release a subject's key binding, so its next login enrols a new key.
 
-    🔴 A person does it, or anybody could claim somebody else's key was lost.
+    A person does it, or anybody could claim somebody else's key was lost.
     """
     from siliconcompiler.remote.server.identity.auth import TokenIssuer
 
@@ -516,7 +516,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not datadir.exists():
         raise SystemExit(f"{datadir} does not exist")
 
-    # 🔴 No traceback: the refusal already says what to do.
+    # No traceback: the refusal already says what to do.
     try:
         store = Store(datadir / "server.db")
     except StoreVersionError as e:

@@ -95,7 +95,7 @@ def test_an_image_that_will_not_unpack_is_staging_failed(  # noqa: F811
 
 
 def test_a_stream_ends_when_its_capability_does(server, server_client, running):
-    '''🔴 `end {"reason": "expired"}` at the URL's deadline, which is no later
+    '''`end {"reason": "expired"}` at the URL's deadline, which is no later
     than the access token's: the client asks `/logs` again.'''
     job_id, log = running
     log.write_text("still going\n")

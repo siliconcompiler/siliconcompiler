@@ -44,10 +44,10 @@ class StagingMixin:
         Fetches run in parallel, transient failures retried to one deadline;
         what still fails goes back to the client, which holds the credentials.
 
-        🔴 The whole pass is bounded by `max_staging_seconds` (surface D294);
+        The whole pass is bounded by `max_staging_seconds` (surface D294);
         a resubmit gets a fresh deadline.
 
-        🔴 A refusal found in the upload ends the job `rejected`; this server's
+        A refusal found in the upload ends the job `rejected`; this server's
         own failure ends it `failed`, `staging-failed`, never `rejected`.
         '''
         import time
@@ -86,7 +86,7 @@ class StagingMixin:
                       for entry in entries if entry.status == owners.ASK]
             pause = 2
             while wanted:
-                # 🔴 Watched, not waited on: a cancel or the staging limit stops it.
+                # Watched, not waited on: a cancel or the staging limit stops it.
                 pool = ThreadPoolExecutor(max_workers=4)
                 each = max(1, int(min(timeout, self._staging_left(job_id))))
                 tried = {key: pool.submit(self._fetch, key[0], key[1], each)
@@ -129,7 +129,7 @@ class StagingMixin:
             if job["state"] != "staging":
                 raise _NoLongerStaging(job_id)
 
-            # 🔴 A private dataroot is never asked for (surface D299): its failed
+            # A private dataroot is never asked for (surface D299): its failed
             # fetch rejects the job, as create would have.
             private = [(entry, why) for entry, why in failed
                        if entry.origin == owners.PRIVATE]
@@ -293,7 +293,7 @@ class StagingMixin:
         ``failed`` is ``(entry, why)`` for dataroots; ``python`` is
         ``(name, why)`` for packages the client answers with a wheel.
 
-        ⚠️ The job counts against `pending_uploads` again, frees its
+        The job counts against `pending_uploads` again, frees its
         `concurrent_jobs` slot, and its abandonment clock restarts.
         '''
         asked, reasons = [], []
@@ -309,7 +309,7 @@ class StagingMixin:
         reason = (f"{len(asked)} source(s) this server cannot supply, so the client "
                   "is asked to send them -- " + "; ".join(reasons))
         self._note(job, [f"sent back for {one}" for one in reasons])
-        # 🔴 The wheel answering one replaces its entry, and alone may overlap.
+        # The wheel answering one replaces its entry, and alone may overlap.
         answered = sorted(set(json.loads(job["python_answered"] or "[]"))
                           | {name for name, _ in python})
         with self._store.transaction():
@@ -324,7 +324,7 @@ class StagingMixin:
     def _refuse_staging(self, job, problem: ProblemError) -> ProblemError:
         '''`_refuse`, for a job that may have moved on while it waited.
 
-        🔴 A job cancelled meanwhile stays `cancelled`, as its owner decided.
+        A job cancelled meanwhile stays `cancelled`, as its owner decided.
         '''
         current = self._row(job["id"])
         if current["state"] != "staging":
@@ -338,10 +338,10 @@ class StagingMixin:
     def _check_denied(self, job, summary) -> None:
         '''Refuse a run that uses a PDK, library or tool nobody may use.
 
-        🔴 After the manifest's read and before image resolution: a denial is
+        After the manifest's read and before image resolution: a denial is
         the answer that does not change when an image is added.
 
-        ⚠️ The first found is named (one `resource`), the detail counting the
+        The first found is named (one `resource`), the detail counting the
         rest. A lying summary can evade it, which widens nothing on this
         profile (contract §1, *The summary cannot widen access*).
         '''
@@ -363,7 +363,7 @@ class StagingMixin:
         '''Read the uploaded manifest in a process of its own and act on what
         it says; returns :meth:`_summary`'s shape.
 
-        🔴 Contract §1: `manifestread`, contained by `sandbox`, returns data
+        Contract §1: `manifestread`, contained by `sandbox`, returns data
         that is validated here and stored. This, not the descriptor, is
         authoritative, which is why the checks run twice.
         '''
@@ -383,7 +383,7 @@ class StagingMixin:
         except sandbox.Cancelled:
             raise _NoLongerStaging(job["id"]) from None
         except sandbox.ReadFailed as e:
-            # 🔴 Out of the staging limit, not the read's own: `staging-timed-out`.
+            # Out of the staging limit, not the read's own: `staging-timed-out`.
             if e.timed_out and self._staging_left(job["id"]) <= 1:
                 raise _StagingTimedOut("reading the manifest") from None
             raise self._refuse_staging(job, ProblemError(
@@ -414,13 +414,13 @@ class StagingMixin:
             + (f"; it found {raw['outcome'].get('type', 'a refusal')}"
                if isinstance(raw.get("outcome"), dict) else "")])
 
-        # 🔴 Above the upload's tree, so no upload can write it.
+        # Above the upload's tree, so no upload can write it.
         runspec.write_json(root / runspec.SUMMARY_FILENAME, raw)
         try:
             return self._act_on(job, raw)
         except BaseException:
             if raw.get("credentials"):
-                # 🔴 The extracted tree is a second copy of a credential.
+                # The extracted tree is a second copy of a credential.
                 shutil.rmtree(root, ignore_errors=True)
             raise
 
@@ -446,7 +446,7 @@ class StagingMixin:
             try:
                 return sandbox.run_read_in_image(asked, workdir, ref, **limits)
             except OSError as e:
-                # 🔴 This server's failure, not the job's (database D145).
+                # This server's failure, not the job's (database D145).
                 raise _ServerFailure(str(e)) from None
 
         # A bundle of the job's own image, with nothing but its tree mounted.
@@ -500,7 +500,7 @@ class StagingMixin:
                 detail=f"the manifest is {raw['design']}/{raw['jobname']} and the job "
                        f"is {job['design']}/{job['jobname']}"))
 
-        # 🔴 Userinfo in a dataroot path (surface D302), named by keypath, never
+        # Userinfo in a dataroot path (surface D302), named by keypath, never
         # value; before anything is fetched, and the upload is not kept (D307).
         found = raw.get("credentials") or []
         if found:

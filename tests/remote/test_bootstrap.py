@@ -46,7 +46,7 @@ def software(bootstrap):
 
 
 def test_the_images_are_tagged_with_the_siliconcompiler_version(bootstrap):
-    '''🔴 A loop binding each tool's version to `version` shadowed the
+    '''A loop binding each tool's version to `version` shadowed the
     parameter, so both images were tagged with mlir's `19.1.5`.
 
     And `-built` is a timestamp, never the publish date: the date is a VERSION
@@ -80,7 +80,7 @@ def test_the_image_declares_what_the_probe_found(bootstrap):
 
 
 def test_a_silent_or_unparsed_tool_gets_the_publish_date_and_the_mark(bootstrap):
-    '''🔴 `20260924` beats `2.0.1` under every comparison, so an unmarked date
+    '''`20260924` beats `2.0.1` under every comparison, so an unmarked date
     would outrank every real release. Present and silent is registered, not
     refused; a version that did not parse lands there too and is never
     passed on (the store refuses it as `reported`).'''
@@ -97,7 +97,7 @@ def test_a_silent_or_unparsed_tool_gets_the_publish_date_and_the_mark(bootstrap)
 
 
 def test_every_tool_records_its_kind_and_the_driver_the_table_names(bootstrap):
-    '''The kind is stated, never derived. 🔴 `slang`'s version is read from
+    '''The kind is stated, never derived. `slang`'s version is read from
     `pyslang`, a distribution not called what the tool is, so it is handed
     to the probe.'''
     register(bootstrap)
@@ -112,7 +112,7 @@ def test_every_tool_records_its_kind_and_the_driver_the_table_names(bootstrap):
 
 def test_the_catalogue_is_spelled_out_and_covers_every_tool_siliconcompiler_drives(
         bootstrap):
-    '''🔴 Spelled out, not worked out: `kepler-formal` is driven from
+    '''Spelled out, not worked out: `kepler-formal` is driven from
     `siliconcompiler.tools.keplerformal`. So every entry must import, and the
     tasks (not a list here) keep out `builtin` and `execute`. A tool missing
     from it is refused by name; `NOT_PUBLISHED` tells a deliberate omission
@@ -136,7 +136,7 @@ def test_the_catalogue_is_spelled_out_and_covers_every_tool_siliconcompiler_driv
 
     declared = set()
     for task_cls in set(descendants(Task)):
-        # ⚠️ Shipped drivers only: a test's own Task subclass would make this
+        # Shipped drivers only: a test's own Task subclass would make this
         # pass or fail on test order.
         if not (task_cls.__module__ or "").startswith("siliconcompiler.tools."):
             continue
@@ -165,7 +165,7 @@ def skip_the_daemon(bootstrap, monkeypatch, registered):
 
 def test_main_tags_and_registers_with_the_siliconcompiler_version(bootstrap,
                                                                   monkeypatch):
-    '''🔴 The same shadowing happened in `main`'s own logging loop, which is
+    '''The same shadowing happened in `main`'s own logging loop, which is
     where the version is read and handed to `push`.'''
     import siliconcompiler
 
@@ -215,8 +215,8 @@ def test_what_it_holds_is_logged_with_both_numbers_where_they_differ(
 
 
 def test_each_image_declares_only_what_the_probe_found_in_it(bootstrap):
-    '''⚠️ Every tool is asked of every image; declaring one not there gets a
-    node dispatched into a container without it. 🔴 `slang` is a tool whose
+    '''Every tool is asked of every image; declaring one not there gets a
+    node dispatched into a container without it. `slang` is a tool whose
     version is a distribution, and arrives with siliconcompiler -- why the
     small image declares anything. cocotb is a python name a cocotb node asks
     for, declared where found.'''
@@ -243,7 +243,7 @@ def test_each_image_declares_only_what_the_probe_found_in_it(bootstrap):
 
 
 def test_an_image_missing_a_tool_it_would_claim_is_refused(bootstrap):
-    '''🔴 The WHOLE image: a row claiming a tool that is not there gets a node
+    '''The WHOLE image: a row claiming a tool that is not there gets a node
     placed, dispatched and killed (the `bsc` failure, caught earlier).'''
     held = {tool: {"kind": "tool", "version": "1.0", "present": True}
             for tool in bootstrap.TOOLS}
@@ -256,7 +256,7 @@ def test_an_image_missing_a_tool_it_would_claim_is_refused(bootstrap):
 
 
 def test_a_tool_nobody_drives_cannot_be_tested_and_is_not_refused(bootstrap):
-    '''⚠️ Untestable is not absent: not refused, and declared by nothing.'''
+    '''Untestable is not absent: not refused, and declared by nothing.'''
     register(bootstrap, {tool: {"kind": "tool", "version": None, "present": None}
                          for tool in bootstrap.TOOLS})
 
@@ -340,7 +340,7 @@ def registered(bootstrap, monkeypatch, version, runtime, tools, staged=True):
     (pushed, "0.39.0", digest("a"), digest("b"), True, False),
     # Registered and never unpacked.
     (pushed, "0.38.9", digest("a"), digest("b"), False, False),
-    # 🔴 A cache-hit rebuild has a new ID and pushed digest; its own manifest
+    # A cache-hit rebuild has a new ID and pushed digest; its own manifest
     # did not move, so it is still registered.
     (on_containerd, "0.38.9", digest("a"), digest("b"), True, True),
     (on_containerd, "0.38.9", digest("a"), digest("c"), True, False),
@@ -354,7 +354,7 @@ def test_an_image_already_registered_and_staged_is_left_alone(
 
 
 def test_no_store_is_not_registered_and_is_not_created(bootstrap, monkeypatch):
-    '''⚠️ Asking must not write: the first registry command creates the store.'''
+    '''Asking must not write: the first registry command creates the store.'''
     monkeypatch.setattr(bootstrap, "DATADIR", Path("sc_server").resolve())
     pushed(bootstrap, monkeypatch, runtime=digest("a"), tools=digest("b"))
 
@@ -364,7 +364,7 @@ def test_no_store_is_not_registered_and_is_not_created(bootstrap, monkeypatch):
 
 def test_main_neither_probes_nor_pushes_what_is_already_registered(
         bootstrap, monkeypatch):
-    '''🔴 Every `docker compose up` used to probe, push and re-register both.'''
+    '''Every `docker compose up` used to probe, push and re-register both.'''
     def refuse(*args, **kwargs):
         raise AssertionError("bootstrap did work there was no need for")
 

@@ -1,7 +1,7 @@
 '''
 What a finished run left behind, as artifact rows.
 
-🔴 The results tarball is an artifact, not an endpoint: every object is a row
+The results tarball is an artifact, not an endpoint: every object is a row
 with a kind and a retention, so the listing answers *where did my results go*
 even when the bytes are gone. Every kind is stored and served gzipped (surface
 §21):
@@ -13,17 +13,17 @@ even when the bytes are gone. Every kind is stored and served gzipped (surface
 ``staging``     this server's scrubbed record for the submitter, one per job
 ``diagnostics`` the operators' unscrubbed record, job-level and per node;
                 never handed over the API
-``node``        🔴 one node's whole working directory, indexed as the node
+``node``        one node's whole working directory, indexed as the node
                 finishes; always bound to a step and an index
 ``reports``     a node's ``reports/``, a deliberate second copy: above
                 ``limits.max_download_bytes`` the node archive is refused while
                 the reports are still served
-``input``       🆕 each upload, moved in and kept even when the job is refused
+``input``       each upload, moved in and kept even when the job is refused
                 (except `jobs.rows._kept`); and a node's ``inputs/``, as links
                 to upstream outputs. Neither is a node-archive member
 
-⚠️ ``outputs`` is deliberately not produced: it would copy the large half.
-🔴 An ``issue`` at a node's coordinates is not a node-archive member either: it
+``outputs`` is deliberately not produced: it would copy the large half.
+An ``issue`` at a node's coordinates is not a node-archive member either: it
 is never fetchable, so counting it would gate the archive on a file not in it.
 '''
 
@@ -58,7 +58,7 @@ KINDS = ("manifest", "logs", "staging", "reports", "node")
 def collect_node(store, storage, config, job, build_root, step, index) -> int:
     '''Index one node's results, the moment that node is done.
 
-    🔴 Not deferrable to the end of the job: a terminal node answers `/logs`
+    Not deferrable to the end of the job: a terminal node answers `/logs`
     with a `303` to its archived log while the rest of the flow runs on.
     '''
     workdir = Path(build_root) / job["design"] / job["jobname"] / step / index
@@ -69,7 +69,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     floor = config.limits["artifact_retention_seconds"]
     written = 0
 
-    # 🔴 Every read below is confined (see `confine`): a node can leave a link
+    # Every read below is confined (see `confine`): a node can leave a link
     # anywhere, and following one would index the host's files as results.
     root = Path(build_root)
     # Where a link may end, walked once for this node's archives (database D142).
@@ -79,14 +79,14 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     written += _log_archive(store, storage, job, location, floor, step, index,
                             workdir, root)
 
-    # 🔴 The node's own manifest, bound to the node: a deployment that hands
+    # The node's own manifest, bound to the node: a deployment that hands
     # over manifests and no bulk output can still show a node's record.
-    # ⚠️ A deliberate second copy of a file the node archive holds.
+    # A deliberate second copy of a file the node archive holds.
     manifest = workdir / "outputs" / f"{job['design']}.pkg.json"
     written += _index(store, storage, job, location, floor, "manifest",
                       step, index, manifest, root)
 
-    # 🔴 Before the node archive, so a failure partway leaves the small object
+    # Before the node archive, so a failure partway leaves the small object
     # a person reads already written.
     reports = workdir / "reports"
     if _real_dir(reports) and any(reports.iterdir()):
@@ -94,7 +94,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
                             step, index, reports, workdir, root, job_tree=job_tree,
                             homes=homes)
 
-    # 🔴 A link inside the job stays a link, pointed at the file's real home,
+    # A link inside the job stays a link, pointed at the file's real home,
     # so a node archive is not self-contained: a passed-through file resolves
     # where its home node is unpacked beside it (database D142).
     if any(child.name not in _NOT_IN_A_NODE for child in workdir.iterdir()):
@@ -145,7 +145,7 @@ UNOPENED = ("upload-digest-mismatch", "upload-too-large", "archive-rejected")
 def referenced_elsewhere(store, row, excluding=()) -> bool:
     '''Whether a live artifact other than ``row`` and ``excluding`` still points at its bytes.
 
-    🔴 An object is ``(location_id, storage_key)``, never the key alone: the
+    An object is ``(location_id, storage_key)``, never the key alone: the
     same key in two locations is two objects.
     '''
     skip = {row["id"], *excluding}
@@ -178,7 +178,7 @@ def collect(store, storage, config, job, build_root) -> int:
     floor = config.limits["artifact_retention_seconds"]
     written = 0
 
-    # 🔴 Before the build directory check: the run that leaves none is the run
+    # Before the build directory check: the run that leaves none is the run
     # whose record somebody needs.
     written += collect_staging(store, storage, config, job, build_root)
     written += collect_diagnostics(store, storage, config, job, build_root)
@@ -211,7 +211,7 @@ def collect(store, storage, config, job, build_root) -> int:
 def collect_staging(store, storage, config, job, job_root) -> int:
     '''Index the job's `staging` record as it stands.
 
-    🔴 Replaced, not added to: one row per job, repointed at the new bytes
+    Replaced, not added to: one row per job, repointed at the new bytes
     after each staging pass.'''
     source = Path(job_root) / record.STAGING_LOG
     try:
@@ -252,7 +252,7 @@ def collect_diagnostics(store, storage, config, job, job_root, step=None,
                         index=None) -> int:
     '''Index `record.diagnostics_files` for the job or one node, as one gzip tar.
 
-    🔴 Not scrubbed, so never handed over the API (ladder row 3).'''
+    Not scrubbed, so never handed over the API (ladder row 3).'''
     if _exists(store, job, "diagnostics", step, index):
         return 0
     files = record.diagnostics_files(job_root, step, index)
@@ -394,7 +394,7 @@ def _record(store, job, artifact_id, location, floor, kind, step, index,
             stored: Path, media_type: str) -> int:
     '''Write the row, or drop this copy if another thread already did.
 
-    🔴 `_exists` cannot be enough: indexing runs on whichever request thread
+    `_exists` cannot be enough: indexing runs on whichever request thread
     gets there first, and two can pass it together. The unique index decides.
     '''
     try:
@@ -468,10 +468,10 @@ def ladder(row, surface_allows: bool = True,
     5    ``provenance = 'pending'``                  ``not-ready`` -- transient
     ===  ==========================================  ======================
 
-    🔴 Rows 6-8 (grants) do not exist here: there is no approval machinery.
-    🔴 `pending` is `not-ready`, never a `403` that would make a client abandon
+    Rows 6-8 (grants) do not exist here: there is no approval machinery.
+    `pending` is `not-ready`, never a `403` that would make a client abandon
     it; the surface row sits above so a kind never handed over is not *try
-    again*. ⚠️ Retention passing is deliberately not a row: the reaper's
+    again*. Retention passing is deliberately not a row: the reaper's
     ``deleted_at`` is row 1. Per caller, so computed, never stored.
     '''
     if row["deleted_at"]:
@@ -479,7 +479,7 @@ def ladder(row, surface_allows: bool = True,
     if row["withheld_at"] or (row["kind"] in NEVER_OVER_THE_API and not admin):
         return "artifact-not-approved"
     if row["kind"] == "node" and members:
-        # 🔴 Held back only by a pending member is `not-ready` (D107).
+        # Held back only by a pending member is `not-ready` (D107).
         return members
     if not surface_allows:
         return "artifact-not-approved"
@@ -497,7 +497,7 @@ def fetchable(row, surface_allows: bool = True,
 def cause(row) -> Optional[str]:
     """Whether the bytes were ``expired`` (reaper) or ``removed`` (a person), or None.
 
-    🔴 `deleted_by` decides it and stays off the wire: it names a user.
+    `deleted_by` decides it and stays off the wire: it names a user.
     """
     if not row["deleted_at"]:
         return None
@@ -519,14 +519,14 @@ def wire(row, surface_allows: bool = True,
         # null under a legal hold: no scheduled expiry.
         "retained_until": None if row["legal_hold_at"] else row["retained_until"],
         "deleted_at": row["deleted_at"],
-        # 🔴 A closed enum for a client to branch on, and prose for a person:
+        # A closed enum for a client to branch on, and prose for a person:
         # `deleted_at` alone cannot tell expiry from removal.
         "deleted_cause": cause(row),
         "deleted_reason": row["deleted_reason"],
         "fetchable": fetchable(row, surface_allows, members, admin),
         # Required, though this profile takes no access requests (surface D177).
         "access_requested_at": None,
-        # 🔴 Always false: an unauthenticated deployment offers no way to ask
+        # Always false: an unauthenticated deployment offers no way to ask
         # (surface D309).
         "can_request_access": False,
     }

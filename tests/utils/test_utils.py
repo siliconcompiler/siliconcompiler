@@ -1286,7 +1286,7 @@ def _unfiltered(tar):
 
 
 def test_extract_safely_refuses_a_path_through_an_earlier_link(tmp_path, monkeypatch):
-    '''🔴 `b -> .`, then `a -> b/..`, then `a/escaped.txt`: each looks inside
+    '''`b -> .`, then `a -> b/..`, then `a/escaped.txt`: each looks inside
     on its own, and together they write outside. Checked against what is on
     disk as each member lands.'''
     import io

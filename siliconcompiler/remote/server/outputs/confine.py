@@ -1,7 +1,7 @@
 '''
 Reading what a job left behind without following it out.
 
-🔴 A job writes its own build directory, so any path in it can be a symlink into
+A job writes its own build directory, so any path in it can be a symlink into
 another job's data, the operator's private roots, or `/etc`. Every read this
 server makes of a job's tree goes through here.
 
@@ -12,7 +12,7 @@ refused. A FIFO is refused too, since opening one blocks forever. Without
 window without closing it. Only the root may be reached through a link: it is
 the server's own directory.
 
-🔴 An archive keeps a link inside the job as a link and follows none out of it
+An archive keeps a link inside the job as a link and follows none out of it
 (database D142); nothing is copied in place of a link, since some tools keep
 links to terabytes. See `add_tree`.
 '''
@@ -155,7 +155,7 @@ def _add_regular(tar, packing: "_Packing", handle, info, dir_path: Path, arcname
     '''Store a regular file's bytes, or a hard-linked one as a link to its home or first name.'''
     if info.st_nlink > 1 and packing.homes is not None:
         if packing.homes.leaves(info):
-            # 🔴 A name outside the job: this could be PDK data hard-linked in.
+            # A name outside the job: this could be PDK data hard-linked in.
             logger.info(f"left out of an archive: {arcname}, a file with a name "
                         "outside the job")
             return

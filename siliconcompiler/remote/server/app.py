@@ -69,13 +69,13 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     datadir = Path(datadir).resolve()
     datadir.mkdir(parents=True, exist_ok=True)
 
-    # 🔴 Nothing under the data directory is importable: every job's extracted
+    # Nothing under the data directory is importable: every job's extracted
     # archive is there. No manifest is read in this process (contract §1).
     _keep_off_path(datadir)
 
     config = Config.load(datadir, test_mode=test_mode)
     if cluster == "slurm" and not config["containers"] and "python.env" in config["features"]:
-        # 🔴 Without a builder the install runs while staging, on this host, and
+        # Without a builder the install runs while staging, on this host, and
         # a Slurm node elsewhere would run what this host's platform chose.
         raise ValueError("features lists python.env, and nodes run on Slurm hosts "
                          "with no container to build an environment into; turn on "
@@ -105,7 +105,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _check_page_scheme(config["web_url_base"], app.config["SC_PUBLIC_ORIGINS"])
     _register_error_handlers(app)
-    # 🔴 The portal is served wherever the API is (implementation-notes §O), so
+    # The portal is served wherever the API is (implementation-notes §O), so
     # over plain http its session cookie is a bearer secret on the wire.
     beyond = plaintext_origins(app.config["SC_PUBLIC_ORIGINS"])
     if beyond:
@@ -117,7 +117,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     @app.teardown_request
     def _release_connection(_error=None):
-        # 🔴 Each request runs on its own thread, so its connection is released
+        # Each request runs on its own thread, so its connection is released
         # as it ends (`Store.release`); a log stream's generator runs after
         # this and releases its own.
         store.release()
@@ -136,7 +136,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # Browser sessions live here and nowhere else (see portal.Sessions).
     app.config["SC_PORTAL"] = portal.Sessions()
 
-    # 🔴 One SiliconCompiler, the one this server runs (profile §5): checked here
+    # One SiliconCompiler, the one this server runs (profile §5): checked here
     # rather than at somebody's first submit.
     _check_an_image_holds_this_version(store, config)
     _report_read_containment()
@@ -150,7 +150,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
         + private_paths(config["private_dataroots"] or {}),
         names=[socket.gethostname(), socket.getfqdn()])
 
-    # 🔴 Last: a failed sweep must never be why this server does not start.
+    # Last: a failed sweep must never be why this server does not start.
     reaper.sweep(store, storage, config, datadir)
 
     return app
@@ -178,7 +178,7 @@ def plaintext_origins(origins) -> List[str]:
 
 
 def _check_page_scheme(web_url_base, origins) -> None:
-    '''🔴 Contract rule 5 (D70): an answer to an `https` request sends only to
+    '''Contract rule 5 (D70): an answer to an `https` request sends only to
     `https` URLs. `POST /v1/auth/browser`'s link is built on `web_url_base`, so
     that may not be `http` beside an `https` origin.'''
     from urllib.parse import urlsplit
@@ -256,7 +256,7 @@ def _register_error_handlers(app) -> None:
         return response
 
     def _occurrence(body, status):
-        '''🔴 Which request this was (surface D152): `instance`, and a
+        '''Which request this was (surface D152): `instance`, and a
         correlation id the server's log carries too.'''
         body.setdefault("instance", flask.request.path)
         body.setdefault("trace_id", errors.trace_id(flask.request.headers))

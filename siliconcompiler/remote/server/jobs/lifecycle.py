@@ -24,7 +24,7 @@ class LifecycleMixin:
         where = ["user_id = ?", "deleted_at IS NULL"]
         params: List[Any] = [session.user_id]
 
-        # 🔴 A filter repeats to OR within its key; keys AND together
+        # A filter repeats to OR within its key; keys AND together
         # (surface §16) -- so `?archived=true&archived=false` is both views.
         def values(name):
             if hasattr(args, "getlist"):
@@ -104,14 +104,14 @@ class LifecycleMixin:
     def cancel(self, session, job_id: str, reason: Optional[str]) -> Dict[str, Any]:
         '''Endpoint 18: `cancelling` where work is in flight, else `cancelled`.
 
-        🔴 The write is conditional on the state it moves from, so a job that
+        The write is conditional on the state it moves from, so a job that
         already ended stays as it is. `cancelled` follows once the work stops,
         written for a staging job by the staging thread.
         '''
         job = self.owned(session, job_id)
 
         if reason is not None:
-            # 🔴 Checked, never repaired or echoed (surface §6, D306).
+            # Checked, never repaired or echoed (surface §6, D306).
             if not isinstance(reason, str):
                 raise ProblemError("invalid-request", detail="reason is a string")
             if len(reason) > MAX_REASON:
@@ -187,7 +187,7 @@ class LifecycleMixin:
             path.unlink(missing_ok=True)
         self._storage.discard_upload(job["id"])
 
-        # 🔴 An artifact under legal hold is never deleted (entitlements D54),
+        # An artifact under legal hold is never deleted (entitlements D54),
         # so the rest go through `_unlink`, never a sweep of the directory.
         going = self._store.all(
             "SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? "
@@ -210,7 +210,7 @@ class LifecycleMixin:
                      reason: str) -> int:
         '''Throw away what ONE node produced, and keep the run.
 
-        🔴 The node, not the artifact, is the unit: its archive holds every
+        The node, not the artifact, is the unit: its archive holds every
         kind, so deleting one row would free nothing. Job-level rows are left
         to `discard_artifacts`.
         '''
@@ -241,7 +241,7 @@ class LifecycleMixin:
                 "  AND kind <> 'diagnostics'",
                 (now(), session.user_id, reason, job_id, step, index))
 
-        # 🔴 This node's working tree goes too, as in `discard_artifacts`.
+        # This node's working tree goes too, as in `discard_artifacts`.
         work = (self.job_root(job["user_id"], job["id"]) / job["design"] /
                 job["jobname"] / step / index)
         shutil.rmtree(work, ignore_errors=True)
@@ -266,11 +266,11 @@ class LifecycleMixin:
     def discard_artifacts(self, session, job_id: str, reason: str) -> int:
         '''Throw away what a run produced, and keep the run.
 
-        🔴 Not `DELETE /v1/jobs/{id}`, which takes the job out of every listing:
+        Not `DELETE /v1/jobs/{id}`, which takes the job out of every listing:
         here the bytes go and every row stays, so *where did my results go*
         stays answerable.
 
-        ⚠️ A legal hold is skipped, not refused: one held object should not stop
+        A legal hold is skipped, not refused: one held object should not stop
         clearing the other forty.
         '''
         job = self.owned(session, job_id)
@@ -292,7 +292,7 @@ class LifecycleMixin:
                 "  AND legal_hold_at IS NULL",
                 (now(), session.user_id, reason, job_id))
 
-        # 🔴 The build tree goes too: the artifacts were indexed FROM it, and
+        # The build tree goes too: the artifacts were indexed FROM it, and
         # the portal reads logs out of it.
         shutil.rmtree(self.job_root(job["user_id"], job["id"]),
                       ignore_errors=True)
@@ -303,10 +303,10 @@ class LifecycleMixin:
     def archive(self, session, job_id: str, archived: bool) -> None:
         '''Put a job away, or take it back out.
 
-        ⚠️ A view preference, not an operation on the run: only the default
+        A view preference, not an operation on the run: only the default
         collection stops including it, and the portal is its writer.
 
-        🔴 Terminal only (the schema agrees): a live job holds a slot, and hiding
+        Terminal only (the schema agrees): a live job holds a slot, and hiding
         it makes *why can I not submit* unanswerable.
         '''
         job = self.owned(session, job_id)

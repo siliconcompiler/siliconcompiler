@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set active = 'jobs' %}
-{# 🔴 Top level, not inside `block body`: a `set` there never reaches base.html. #}
+{# Top level, not inside `block body`: a `set` there never reaches base.html. #}
 {% set refresh = 10 if not job.terminal else 0 %}
 {% block title %}{{ job.design }}/{{ job.jobname }} · sc-server{% endblock %}
 {% block body %}
@@ -77,7 +77,7 @@
 <a href="{{ url_for('portal.artifacts', job_id=job.id) }}">Artifacts</a>
 {% if job.terminal %}
 &middot;
-{# 🔴 A view preference, not an operation: only the default list stops including it. #}
+{# A view preference, not an operation: only the default list stops including it. #}
 <form method="post" action="{{ url_for('portal.archive', job_id=job.id) }}"
       class="inline">
   <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -130,7 +130,7 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
       if job.terminal %} &middot; <a href="{{ url_for('portal.metrics', job_id=job.id,
                             step=node.step, index=node['index']) }}">metrics</a>{% endif %}</td>
     <td>
-      {#- 🔴 `reports` opens here when small enough; anything else downloads. -#}
+      {#- `reports` opens here when small enough; anything else downloads. -#}
       {%- for item in per_node.get((node.step, node['index']), []) -%}
         {%- if not item.fetchable -%}
         <span class="muted">{{ item.kind }}</span>

@@ -200,14 +200,14 @@ def _dispatch(remote):
         return 0
 
     if remote.get("cmdarg", 'portal'):
-        # 🔴 No -cfg: the browser gets this machine's identity and finds its jobs.
+        # No -cfg: the browser gets this machine's identity and finds its jobs.
         client.portal()
         return 0
 
     if project_cfg:
         return _act_on_job(remote, client, project_cfg)
 
-    # 🔴 The unauthenticated deployment block first: it explains an identity
+    # The unauthenticated deployment block first: it explains an identity
     # failure, on an unenrolled machine or a down server.
     client.print_configuration()
     client.print_deployment()
@@ -232,7 +232,7 @@ def _act_on_job(remote, client, project_cfg):
         remote.logger.error(f"Unable to read {project_cfg}: {e}")
         return 1
 
-    # 🔴 The job this client recorded beside the results, never the manifest's
+    # The job this client recorded beside the results, never the manifest's
     # own `record,remoteid`: the server wrote the manifest.
     where = os.path.dirname(os.path.abspath(project_cfg))
     job_id = recorded_job(where) or recorded_job(os.path.dirname(where))

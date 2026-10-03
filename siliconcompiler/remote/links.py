@@ -3,7 +3,7 @@ Links in a job's build directory, and where each one's file really lives: the
 one reading both ends use to keep a link inside the job as a link and follow
 none out of it (contract.md, *An upload keeps links, and stores a linked file once*).
 
-🔴 Link targets are read; a file is never opened through a link. :func:`resolve`
+Link targets are read; a file is never opened through a link. :func:`resolve`
 walks one component at a time, so a chain leaving the tree is caught first.
 
 A pass-through is often one inode under three names (hard links):
@@ -136,7 +136,7 @@ class Homes:
         '''Whether the file has more links than names in the tree: hard-linked
         in from outside, a PDK's perhaps.
 
-        🔴 Walked again, once per file, before saying yes: in a running job the
+        Walked again, once per file, before saying yes: in a running job the
         next node's inputs gain hard links just as the finished node is archived.
         '''
         if info.st_nlink <= max(1, len(self.names(info))):

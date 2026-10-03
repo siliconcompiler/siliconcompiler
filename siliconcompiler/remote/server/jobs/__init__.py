@@ -1,12 +1,12 @@
 '''
 The job: creating one, feeding it bytes, running it, and saying what it did.
 
-🔴 **submit checks the digest against what storage reports and answers `202`;
+**submit checks the digest against what storage reports and answers `202`;
 only then, while staging, is the archive extracted, the manifest read and every
 check re-run against what the read returned.** Getting that order wrong is how
 an archive bomb gets opened. Reorder nothing here without reading this again.
 
-🔴 **No manifest is parsed in this process** (contract §1): the read runs in a
+**No manifest is parsed in this process** (contract §1): the read runs in a
 process of its own (`manifestread`), and only its data summary is acted on.
 
 One module per step of a job's life, composed into

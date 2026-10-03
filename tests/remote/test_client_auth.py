@@ -124,7 +124,7 @@ def test_a_nonce_is_kept_per_origin(logged_in, fake_v1):
 
 def test_a_problem_at_the_token_endpoint_is_read_as_a_problem(
         fake_v1, tmp_credentials, client_credentials, no_sleep):
-    '''🔴 The Content-Type decides the shape: a problem+json 429 is waited
+    '''The Content-Type decides the shape: a problem+json 429 is waited
     out, never read for `error`.'''
     fake_v1.route(responses.POST, "auth/token", problem("rate-limited", 429),
                   status=429, content_type="application/problem+json",
@@ -197,7 +197,7 @@ def test_an_access_layer_refusal_is_the_edge_not_the_api(logged_in, fake_v1, bod
         "stream-same-origin"])
 def test_a_followed_redirect_gets_operator_headers_only_on_the_apis_origin(
         logged_in, fake_v1, tmp_path, location):
-    '''🔴 Surface D304: operator headers go to the API's origin, where an edge
+    '''Surface D304: operator headers go to the API's origin, where an edge
     wants them, and nowhere else; no token or proof goes to either, since the
     signature is the credential.'''
     logged_in.set_header("CF-Access-Client-Id", "id")
@@ -233,7 +233,7 @@ def netrc_everywhere(tmp_path, monkeypatch):
 
 def test_no_request_carries_a_credential_from_netrc(
         logged_in, fake_v1, netrc_everywhere, tmp_path):
-    '''🔴 Without the session's own `auth`, requests replaces `DPoP <token>`
+    '''Without the session's own `auth`, requests replaces `DPoP <token>`
     with the netrc login: every API request still carries DPoP, storage and
     the stream nothing, and no Basic credential goes anywhere.'''
     fake_v1.route(responses.GET, "me", {"user_id": "u"})
@@ -282,7 +282,7 @@ def test_the_environment_still_says_where_the_proxy_is(tmp_credentials, monkeypa
 
 def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywhere,
                                              monkeypatch, tmp_path):
-    '''🔴 requests' `rebuild_auth` rereads netrc for a redirect's target, so a
+    '''requests' `rebuild_auth` rereads netrc for a redirect's target, so a
     redirect is followed by hand, once, and a second is not chased.'''
     asked = []
     real = requests.Session.send
@@ -313,7 +313,7 @@ def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywher
     ids=["downgrade", "ftp", "file", "upgrade"])
 def test_a_redirect_is_followed_only_to_https_from_https(base, target, followed,
                                                          tmp_credentials):
-    '''🔴 Contract rule 5 (D70): an https answer sends the client only to
+    '''Contract rule 5 (D70): an https answer sends the client only to
     https, an http one to either, and nothing else is followed.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.client.transport import Transport
@@ -360,7 +360,7 @@ def test_a_header_value_is_read_from_a_pipe(monkeypatch):
 
 def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
                                                    client_credentials):
-    '''🔴 A process that waited for the lock uses what is in the store: a
+    '''A process that waited for the lock uses what is in the store: a
     rotated token presented after the grace window ends every session.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     first = Client(Credentials(tmp_credentials.path))
@@ -468,7 +468,7 @@ def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, m
 ])
 def test_no_refusal_replaces_the_key(fake_v1, tmp_credentials, client_credentials, path,
                                      body, status, content_type):
-    '''🔴 The key is the device pin: only `rotate_key` replaces it.'''
+    '''The key is the device pin: only `rotate_key` replaces it.'''
     before = tmp_credentials.thumbprint
     stored = tmp_credentials.key_path.read_bytes()
     method = responses.GET if path == "me" else responses.POST
@@ -602,7 +602,7 @@ def _legacy_home(tmp_path):
 
 
 def test_an_older_clients_file_is_moved_in_once(tmp_path):
-    '''🔴 Server and whitelist moved, the old file removed, and its username
+    '''Server and whitelist moved, the old file removed, and its username
     and password not kept.'''
     home = _legacy_home(tmp_path)
 
@@ -701,7 +701,7 @@ def exchange(fake_v1, capabilities, ci_secret):
                          ids=["exchange-offered", "device-only"])
 def test_a_ci_key_trades_first_and_never_prints_a_code(
         fake_v1, capabilities, tmp_credentials, exchange, capsys, offered):
-    '''🔴 Identity §2: token exchange first whatever is offered, never a
+    '''Identity §2: token exchange first whatever is offered, never a
     `user_code` in a CI log, and no refresh token kept.'''
     exchange()
     if offered:

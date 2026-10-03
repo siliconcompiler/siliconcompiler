@@ -2,7 +2,7 @@
 What a submitted run executes, read the same way at both ends so they agree on
 which nodes a run covers.
 
-🔴 Outside `server/` on purpose, importing no Flask: the client runs without the
+Outside `server/` on purpose, importing no Flask: the client runs without the
 server extra.
 '''
 
@@ -69,9 +69,9 @@ def outputs_present(node_dir, design: str) -> bool:
 def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
     '''The tool each node's image must hold, per node: submit resolves an image each.
 
-    🔴 Asked of the task (`Task._remote_toolname`), never inferred: `exe` says
+    Asked of the task (`Task._remote_toolname`), never inferred: `exe` says
     nothing for the pyslang tasks, and the tool name says *builtin*.
-    ⚠️ Read off a BARE task, no setup, so it costs an attribute read per node.
+    Read off a BARE task, no setup, so it costs an attribute read per node.
     '''
     wanted: Dict[Tuple[str, str], Optional[str]] = {}
     for step, index in nodes:
@@ -88,8 +88,8 @@ def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
                                                  Optional[Tuple[str, str]]]:
     '''Nodes that run wherever their input node ran, and where that is.
 
-    🆕 An execute task's command comes from the manifest, so the image that made
-    its inputs is likeliest to run it. ⚠️ The FIRST input: deterministic.
+    An execute task's command comes from the manifest, so the image that made
+    its inputs is likeliest to run it. The FIRST input: deterministic.
     '''
     before: Dict[Tuple[str, str], Tuple[str, str]] = {}
     for from_step, from_index, to_step, to_index in edges:

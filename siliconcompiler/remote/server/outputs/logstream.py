@@ -5,9 +5,9 @@ The bytes come off the shared filesystem, where the run already writes them:
 the compute node holds no database connection, so the API host and the compute
 node can be different machines.
 
-🔴 A node stream's event ``id`` is the byte offset reached, so ``Last-Event-ID``
+A node stream's event ``id`` is the byte offset reached, so ``Last-Event-ID``
 resumption is exact and the stream host remembers nothing about its callers.
-⚠️ What is streamed is ``sc_<step>_<index>.log``, the file the ``logs`` artifact
+What is streamed is ``sc_<step>_<index>.log``, the file the ``logs`` artifact
 archives, so the tail and the download are the same bytes.
 '''
 
@@ -60,7 +60,7 @@ def events(path: Path, step: str, index: str, node_state, start: int,
 
     yield f"retry: {RETRY_MS}\n\n".encode()
 
-    # 🔴 `/logs` is live output only: a node already over when `/logs` was
+    # `/logs` is live output only: a node already over when `/logs` was
     # asked gets a stream that ends at once, naming its archived log. One that
     # finished between the `303` and the connect is drained below.
     state = node_state()
@@ -129,12 +129,12 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
     ``nodes`` is in the store's fixed order, since an index entry names a node
     by its place in it. ``start`` is what :func:`resume_job` read.
 
-    🔴 The id is job-wide and one number (D121): how many entries of the job's
-    :class:`EventIndex` this caller has been sent. ⚠️ Not a vector of per-node
+    The id is job-wide and one number (D121): how many entries of the job's
+    :class:`EventIndex` this caller has been sent. Not a vector of per-node
     offsets, which could pass what proxies accept for one `Last-Event-ID` on a
     thousand-node flow.
 
-    ⚠️ A job already over when the stream opens gets `end` at once, nothing
+    A job already over when the stream opens gets `end` at once, nothing
     replayed, the same as one ending between the `303` and the connect.
     '''
     position = start
@@ -165,7 +165,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
         if index.extend(nodes, path_of, states, root):
             continue
 
-        # 🔴 A node is over only once everything it wrote has been sent, and
+        # A node is over only once everything it wrote has been sent, and
         # another reader may have indexed more of it since the loop above.
         if index.count() > position:
             continue
@@ -360,7 +360,7 @@ def _with_artifact(body: dict, artifact) -> dict:
 def _event(name: str, body: dict, identifier: Optional[str] = None) -> bytes:
     frame = f"event: {name}\n"
     if identifier is not None:
-        # 🔴 Only `log` events carry an id: an id on `end` would resume past it.
+        # Only `log` events carry an id: an id on `end` would resume past it.
         frame += f"id: {identifier}\n"
     frame += f"data: {json.dumps(body, separators=(',', ':'))}\n\n"
     return frame.encode()
@@ -369,7 +369,7 @@ def _event(name: str, body: dict, identifier: Optional[str] = None) -> bytes:
 def _size(path: Path, root=None) -> int:
     '''The file's size, 0 where it is not written yet.
 
-    🔴 Given ``root``, only a regular file reached through no link counts: a
+    Given ``root``, only a regular file reached through no link counts: a
     node can replace its log with a link to the host's files.
     '''
     if root is not None:

@@ -1,10 +1,10 @@
 '''
 Bring a finished run's results home: the listing is the answer even when the bytes are not.
 
-🔴 A listing holding only a manifest is a SUCCESSFUL run, and no kind is
+A listing holding only a manifest is a SUCCESSFUL run, and no kind is
 guaranteed, the manifest included: an empty listing is legal.
 
-🔴 Five states stay five sentences: absent, blocked by an agreement, ungranted,
+Five states stay five sentences: absent, blocked by an agreement, ungranted,
 deleted and expired.
 '''
 
@@ -63,8 +63,8 @@ _ARCHIVES = ("node", "outputs", "reports", "final", "logs")
 _NOT_TAKEN = ("input", "diagnostics")
 
 
-# 🔴 Not `job.log`, which this process still has OPEN: downloading onto it
-# truncates it. ⚠️ Nor `job.<x>.log`, a pattern SiliconCompiler rotates and prunes.
+# Not `job.log`, which this process still has OPEN: downloading onto it
+# truncates it. Nor `job.<x>.log`, a pattern SiliconCompiler rotates and prunes.
 REMOTE_JOB_LOG = "remote-job.log"
 
 # The server's record of create to dispatch (surface D295).
@@ -93,7 +93,7 @@ class Results:
         self._titles = None
 
     def _ours(self, items) -> List[Dict[str, Any]]:
-        '''🔴 The rows for this job's flow: a row naming any other node, `..`
+        '''The rows for this job's flow: a row naming any other node, `..`
         included, is ignored, so nothing writes outside the job directory.'''
         from siliconcompiler.flowgraph import Flowgraph
 
@@ -123,7 +123,7 @@ class Results:
     def ceiling(self):
         '''The largest single object this server will hand this account, or None.
 
-        🔴 The server enforces it; knowing it turns forty refusals into one
+        The server enforces it; knowing it turns forty refusals into one
         sentence. Read from `GET /v1/me`, not `GET /v1`: it can differ per account.
         '''
         if self._ceiling is False:
@@ -143,7 +143,7 @@ class Results:
         return (item.get("size_bytes") or 0) > ceiling
 
     def _report_oversized(self, items: List[Dict[str, Any]]) -> None:
-        '''One line, naming what was left and how to get it: ⚠️ not one per object.'''
+        '''One line, naming what was left and how to get it: not one per object.'''
         if not items:
             return
 
@@ -164,7 +164,7 @@ class Results:
     def take(self, job_id: str, job: Dict[str, Any]) -> int:
         '''Fetch what each node left as it finishes, one listing per poll.
 
-        🔴 Not at the end: each node's manifest keeps the local record and the
+        Not at the end: each node's manifest keeps the local record and the
         dashboard current. By the same rule as the final sweep: the node archive
         where fetchable, else its log, reports and manifest each on its own.
         '''
@@ -185,8 +185,8 @@ class Results:
             logger.debug(f"could not list node results yet: {e}")
             return 0
 
-        # 🔴 Oversized dropped BEFORE `_worth_fetching` (see `fetch`); reported
-        # only by the final sweep. ⚠️ Node-bound only: the job's objects are not
+        # Oversized dropped BEFORE `_worth_fetching` (see `fetch`); reported
+        # only by the final sweep. Node-bound only: the job's objects are not
         # final until the run is.
         listed = [item for item in listed if not self._oversized(item)]
         items = [item for item in _worth_fetching(listed)
@@ -209,7 +209,7 @@ class Results:
                 # The final sweep tries again.
                 logger.debug(f"{self._name(item)} not taken yet: {e}")
 
-        # 🔴 Recorded as LOOKED FOR, not found: a skipped node never has an
+        # Recorded as LOOKED FOR, not found: a skipped node never has an
         # archive and would relist every poll. The final sweep catches late ones.
         self._taken_nodes |= fresh
 
@@ -228,7 +228,7 @@ class Results:
                 "is all there is, and it is not an error.")
             return 0
 
-        # 🔴 BEFORE `_worth_fetching`: an archive not being fetched must not
+        # BEFORE `_worth_fetching`: an archive not being fetched must not
         # displace the node's log and reports inside it.
         oversized = [item for item in items if self._oversized(item)]
         items = _worth_fetching([item for item in items if not self._oversized(item)])
@@ -252,7 +252,7 @@ class Results:
 
         self._report_withheld(withheld)
         self._report_oversized(oversized)
-        # 🔴 An unlisted kind is not kept here: no error, no retry. Said only
+        # An unlisted kind is not kept here: no error, no retry. Said only
         # for the manifest, the one a user looks for.
         if not any(item.get("kind") == "manifest" for item in items):
             self.logger.info(
@@ -266,7 +266,7 @@ class Results:
         return landed
 
     def _report_withheld(self, items: List[Dict[str, Any]]) -> None:
-        '''One line per reason, ⚠️ not one per object, so the one that differs is read.'''
+        '''One line per reason, not one per object, so the one that differs is read.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for item in items:
             grouped.setdefault(self._why(item, many=True), []).append(item)
@@ -307,7 +307,7 @@ class Results:
         if item.get("deleted_at"):
             day = _day(item["deleted_at"])
 
-            # 🔴 `deleted_at` covers retention too; only `deleted_cause` tells
+            # `deleted_at` covers retention too; only `deleted_cause` tells
             # them apart, and anything but `expired`, unknown included, is somebody's.
             if item.get("deleted_cause") == "expired":
                 return (f"aged out on {day}. Retention on this server "
@@ -319,7 +319,7 @@ class Results:
                 return f"deleted on {day} -- {reason}."
             return f"deleted on {day}."
 
-        # 🔴 *Sign*: granted, but agreements stand in the way.
+        # *Sign*: granted, but agreements stand in the way.
         blocked = item.get("blocked_by")
         if isinstance(blocked, list) and blocked:
             from siliconcompiler.remote.client.errors import blocked_lines
@@ -443,7 +443,7 @@ class Results:
     def _replay(self) -> None:
         '''Fold the retrieved manifests' record and metrics into this project, for `summary()`.
 
-        🔴 Nothing a job returns is imported or executed (surface §6): only
+        Nothing a job returns is imported or executed (surface §6): only
         `_folded` values, for nodes the job ran.
         '''
         from siliconcompiler.remote.runflow import runtime_nodes
@@ -485,7 +485,7 @@ class Results:
     def _fold_in_final(self, path: str, ran) -> None:
         '''Copy the run's per-node record and metrics out of the job manifest.
 
-        🔴 It has no journal, only final state: node-bound `record` and `metric`
+        It has no journal, only final state: node-bound `record` and `metric`
         values only, since a global value is the server's setting. Imports nothing.
         '''
         from siliconcompiler.remote import manifests
@@ -535,7 +535,7 @@ class Results:
 def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     '''Drop what a fetchable node archive already contains.
 
-    🔴 A `node` artifact IS its node's results, so the objects inside it would
+    A `node` artifact IS its node's results, so the objects inside it would
     download twice. Job-level objects are always kept, and a refused archive
     displaces nothing.
     '''

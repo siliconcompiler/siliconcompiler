@@ -74,7 +74,7 @@ def test_get_v1_is_complete_on_a_bare_datadir(client):
 
 
 def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
-    '''🔴 One version, the one this server runs, whatever the registry tracks
+    '''One version, the one this server runs, whatever the registry tracks
     (profile §5): the manifest's read is this server's SiliconCompiler.'''
     store = server.config["SC_STORE"]
     user = store.upsert_user("local", "operator")
@@ -121,7 +121,7 @@ def test_a_broken_store_fails_the_probe_rather_than_raising(server, monkeypatch,
 
 
 def test_a_detail_never_carries_more_than_a_line_of_borrowed_text():
-    '''🔴 A tool's exception or a member's name can carry a path the CLIENT
+    '''A tool's exception or a member's name can carry a path the CLIENT
     chose, so the bound is in `problem()`, not at each call site.'''
     from siliconcompiler.remote.server.errors import DETAIL_MAX
 
@@ -154,7 +154,7 @@ def internals(monkeypatch):
 
 
 def test_a_detail_says_nothing_of_the_servers_own_layout(internals):
-    '''🔴 D122: a tool's exception carries mount paths and hostnames.'''
+    '''D122: a tool's exception carries mount paths and hostnames.'''
     body = internals.problem(
         "invalid-request",
         detail="cannot open /srv/sc/datadir/users/u1/builds/j/x.v on "
@@ -179,7 +179,7 @@ def test_a_detail_says_nothing_credential_shaped(internals, said, kept):
 
 
 def test_the_detail_bound_binds_and_is_not_published():
-    '''No client acts on it, so it stays off the wire. ⚠️ Characters, not
+    '''No client acts on it, so it stays off the wire. Characters, not
     bytes: truncating UTF-8 by byte count splits a codepoint.'''
     from siliconcompiler.remote.server import errors
 
@@ -217,7 +217,7 @@ def _notice(**members):
     # A key that silently does nothing is a ceiling the operator believes set.
     ({"limitz": {}}, "unknown keys: limitz"),
     ({"limits": {"concurrent_job": 1}}, "unknown limits: concurrent_job"),
-    # 🔴 `features` is a registry: a client would rely on what nothing serves.
+    # `features` is a registry: a client would rely on what nothing serves.
     ({"features": ["logs.stream", "python-env"]}, "python-env, which is not a registered"),
     # `-1` is the store's spelling of unlimited, never the wire's.
     ({"limits": {"max_upload_bytes": -1}}, "max_upload_bytes"),
@@ -356,7 +356,7 @@ def test_a_raised_problem_renders_with_its_members(server):
 
 
 def test_every_refusal_names_its_request(client):
-    '''🔴 `instance` and a correlation id on every problem body (surface
+    '''`instance` and a correlation id on every problem body (surface
     D152); the caller's own `traceparent` is the id where it sent one.'''
     routed = client.get("/v1/no/such/path").get_json()
     assert routed["instance"] == "/v1/no/such/path" and len(routed["trace_id"]) == 32
@@ -394,7 +394,7 @@ def test_running_without_the_server_extra_is_a_message_not_a_traceback(capsys, m
 
 
 def test_three_flags_and_their_defaults():
-    '''Everything else has a default in <datadir>/config.json. ⚠️ The fourth
+    '''Everything else has a default in <datadir>/config.json. The fourth
     is for testing, and off unless asked for.'''
     from siliconcompiler.remote.server import __main__ as entry
 

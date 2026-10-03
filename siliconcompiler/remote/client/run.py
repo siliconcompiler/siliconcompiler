@@ -6,7 +6,7 @@
     POST /v1/jobs/{id}/submit         no body: the grant bound the digest
     GET  /v1/jobs/{id}                until `terminal`
 
-🔴 The job is created before anything is packed, so a refusal comes before the bytes.
+The job is created before anything is packed, so a refusal comes before the bytes.
 '''
 
 import logging
@@ -118,7 +118,7 @@ class RemoteRun:
                 "a remote run cannot be narrowed with [arg,step] or [arg,index]: "
                 "the whole flow is submitted as one job")
 
-        # 🔴 Before anything is packed: there is no default server address.
+        # Before anything is packed: there is no default server address.
         self.client.transport
 
         resume = (not self.project.option.get_clean()
@@ -141,7 +141,7 @@ class RemoteRun:
 
         from siliconcompiler.remote import owners
 
-        # 🔴 Created before packing: the job names what else the archive must hold.
+        # Created before packing: the job names what else the archive must hold.
         flow, node_count = self._flow_descriptor()
         job = self.client.create_job(
             design=design, jobname=jobname,
@@ -172,7 +172,7 @@ class RemoteRun:
             with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
                 asked = job.get("upload_sources") or []
                 if asked:
-                    # 🔴 D114: sent with this machine's OWN credentials, or cancelled.
+                    # D114: sent with this machine's OWN credentials, or cancelled.
                     self.logger.info(f"The server asked for {_named(asked)}")
                     self._asked_rows = self._answer(asked, collectiondir(self.project))
 
@@ -218,7 +218,7 @@ class RemoteRun:
 
         project = self.project
 
-        # 🔴 The PDK fails closed where the class has a PDK setting.
+        # The PDK fails closed where the class has a PDK setting.
         if project.valid("asic", "pdk") and not project.get("asic", "pdk"):
             raise RemoteError(
                 "this project sets no PDK, and a remote run of an ASIC project needs "
@@ -290,7 +290,7 @@ class RemoteRun:
         what = {"python-packages": "to install its Python packages",
                 "python-wheels": f"to upload {', '.join(sorted(built))}"}
         said = [f"{name} {what[name]}" for name in missing + blocked]
-        # 🔴 `blocked_by` holds `terms` ids: name each document by its title.
+        # `blocked_by` holds `terms` ids: name each document by its title.
         from siliconcompiler.remote.client.errors import blocked_lines
 
         titles = {entry.get("id"): entry.get("title")
@@ -321,7 +321,7 @@ class RemoteRun:
             where = os.path.join(root, outputs)
             for here, dirs, files in os.walk(where):
                 have.update(files)
-                # 🔴 A dangling link is a missing file, usually into a node never fetched.
+                # A dangling link is a missing file, usually into a node never fetched.
                 for name in sorted(dirs + files):
                     full = os.path.join(here, name)
                     if os.path.islink(full) and \
@@ -378,7 +378,7 @@ class RemoteRun:
                     continue
                 if not alternatives:
                     continue
-                # 🔴 Test matches, never `filter`'s iterator, which is always truthy.
+                # Test matches, never `filter`'s iterator, which is always truthy.
                 if not any(_satisfied(versions, spec) for spec in alternatives):
                     self.logger.warning(
                         f"This server advertises {name} {', '.join(versions)}, which "
@@ -443,7 +443,7 @@ class RemoteRun:
     def _report_upload(self, size: int, report=None) -> None:
         '''Log what goes up, per dataroot, with sizes, before it goes.
 
-        🔴 Every time: a rule decides what uploads, and a PDK sent by mistake is
+        Every time: a rule decides what uploads, and a PDK sent by mistake is
         gigabytes and, if proprietary, a disclosure.'''
         report = self._uploading if report is None else report
         total = format_binary(size, "B", digits=1, show_unit=True, compact=True, default="—")
@@ -490,11 +490,11 @@ class RemoteRun:
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page where a person is plainly watching.
 
-        ⚠️ Provisional (surface D309): deleting this method and its one call removes it.
+        Provisional (surface D309): deleting this method and its one call removes it.
 
-        🔴 The page comes from `POST /v1/auth/browser`, never built, and opens only
+        The page comes from `POST /v1/auth/browser`, never built, and opens only
         outside CI, without `option,nodisplay`, and with stdout a terminal.
-        ⚠️ The `open_portal` preference overrides the last two either way.
+        The `open_portal` preference overrides the last two either way.
         '''
         if self.client.ci_session:
             return
@@ -514,9 +514,9 @@ class RemoteRun:
     def _needs(self):
         '''``(manifest project, required keys)``, worked out once per run.
 
-        🔴 The owner table says whether a value MAY go up; this says whether the
+        The owner table says whether a value MAY go up; this says whether the
         flow NEEDS it (D129), carried in the manifest for the server to read.
-        ⚠️ Where a setup cannot run here the set is None: every file goes up by owner.
+        Where a setup cannot run here the set is None: every file goes up by owner.
         '''
         from siliconcompiler.remote import owners
 
@@ -530,7 +530,7 @@ class RemoteRun:
                 self._needed = (self.project, None)
                 return self._needed
 
-            # 🔴 Per node: one setup failing here drops no other node's Python.
+            # Per node: one setup failing here drops no other node's Python.
             self._environments = worked.environments
             self._tasks = worked.tasks
             self._failed = worked.failed
@@ -637,10 +637,10 @@ class RemoteRun:
         built while staging*): ``(python_packages or None, {wheel: path here},
         {collected path: helper file here})``.
 
-        🔴 Always built by the client: imported distributions at their installed
+        Always built by the client: imported distributions at their installed
         versions, their dependencies as constraints, less what the image holds;
         what no index has goes up as a wheel. No index is named, no pip config read.
-        ⚠️ With no requirement and no wheel it sends nothing and needs no `python.env`.
+        With no requirement and no wheel it sends nothing and needs no `python.env`.
         '''
         if self._python_worked is not None:
             return self._python_worked
@@ -695,7 +695,7 @@ class RemoteRun:
         for warning in listed.warnings:
             self.logger.warning(warning)
 
-        # 🔴 Built before create, so a compiled file or failed build stops the run first.
+        # Built before create, so a compiled file or failed build stops the run first.
         built: Dict[str, str] = {}
         if listed.wheels:
             self._wheel_dir = tempfile.mkdtemp(prefix="sc-remote-wheels-")
@@ -790,16 +790,16 @@ class RemoteRun:
     def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
         '''Collect what the flow reads: by owner, plus what the server asked for.
 
-        🔴 The design always; a PDK's, library's, device's or tool's files only
+        The design always; a PDK's, library's, device's or tool's files only
         where local or editable (`owners`). No flag is consulted, `copy=True`
         included: the server holds what is left out or refuses at submit.
 
         ``asked`` (`upload_sources`) selects required values under its dataroots.
-        🔴 Per value (`owners.collection`); a private dataroot is never collected.
+        Per value (`owners.collection`); a private dataroot is never collected.
         '''
         from siliconcompiler.remote import owners
 
-        # 🔴 By keypath, never name: many owners share the default `root` (D298).
+        # By keypath, never name: many owners share the default `root` (D298).
         wanted = {tuple(item.get("keypath") or ())
                   for item in asked if item.get("kind") == "dataroot"}
         required = self._needs()[1]
@@ -822,7 +822,7 @@ class RemoteRun:
         except (FileNotFoundError, RuntimeError, ValueError) as e:
             if not asked:
                 raise
-            # 🔴 Unreachable here too: fail naming it, and upload nothing.
+            # Unreachable here too: fail naming it, and upload nothing.
             raise RemoteError(
                 f"the server asked for {_named(asked)}, and this machine cannot "
                 f"reach it either: {e}") from None
@@ -830,9 +830,9 @@ class RemoteRun:
     def _pack(self, upload: Path) -> Tuple[str, int]:
         '''Pack the manifest and what the server needs of the job directory.
 
-        🔴 Named entries only: a reused job directory holds old logs, fetched
+        Named entries only: a reused job directory holds old logs, fetched
         nodes and the `job.log` this run is appending to.
-        🔴 No manifest in it carries a credential (surface D302): anyone who can
+        No manifest in it carries a credential (surface D302): anyone who can
         read the job reads its `input`, so each manifest goes as a masked copy.
         '''
         from siliconcompiler.remote import owners
@@ -884,7 +884,7 @@ class RemoteRun:
             try:
                 held = Project.from_manifest(filepath=path)
             except Exception as e:                               # noqa: BLE001
-                # 🔴 Fails closed.
+                # Fails closed.
                 raise RemoteError(
                     f"{name}/{self.project.name}.pkg.json could not be read, so this "
                     f"client cannot tell that it carries no credential: {e}") from None
@@ -927,7 +927,7 @@ class RemoteRun:
         '''Put everything the server asked for into ``collection``, or nothing
         (surface D287); return the wheels' upload-report rows.
 
-        🔴 Never a partial answer: every item is tried first, and any failure
+        Never a partial answer: every item is tried first, and any failure
         raises _CannotSupply naming each, which cancels the job.
         '''
         from siliconcompiler.remote import environment
@@ -1026,8 +1026,8 @@ class RemoteRun:
     def _tool_requirements(self) -> Dict[str, Any]:
         """Each tool the flow uses, with its version requirements.
 
-        🔴 The server derives the same list at submit; this only moves a refusal
-        BEFORE the upload. ⚠️ Each value is a list of alternative specifier sets,
+        The server derives the same list at submit; this only moves a refusal
+        BEFORE the upload. Each value is a list of alternative specifier sets,
         as `check_exe_version` reads them; empty means any version.
         """
         wanted: Dict[str, Any] = {}
@@ -1052,10 +1052,10 @@ class RemoteRun:
     def _declared_versions(self, node) -> List[str]:
         """One node's declared version requirements for its tool.
 
-        🔴 Normalised with the task's own `normalize_version`, as
+        Normalised with the task's own `normalize_version`, as
         `check_exe_version` does: OpenROAD's `>=24Q3-2011` is not PEP 440, and
         sent raw the server would refuse a satisfying image.
-        🔴 From the worked-out copy, since a task declares its version in
+        From the worked-out copy, since a task declares its version in
         `setup()`; a node whose setup failed here says `[]`, any version.
         """
         held = self._tasks.get(tuple(node))
@@ -1073,7 +1073,7 @@ class RemoteRun:
     def reconnect(self, job_id: str) -> None:
         '''Re-enter the wait for a job that is already running.
 
-        🔴 The only way back after Ctrl-C, so the job id is recorded before the upload.
+        The only way back after Ctrl-C, so the job id is recorded before the upload.
         '''
         self._watch(job_id)
 
@@ -1084,7 +1084,7 @@ class RemoteRun:
                 self._poll(job_id)
                 return
             except KeyboardInterrupt:
-                # 🔴 Not yet `queued` (D166): the server may still ask this
+                # Not yet `queued` (D166): the server may still ask this
                 # machine for a source. Said once; a second interrupt leaves.
                 if not warned and self._last_state in _NOT_YET_SUBMITTED:
                     warned = True
@@ -1118,11 +1118,11 @@ class RemoteRun:
                 owner = job.get("owner")
                 self._owner = owner.get("id") if isinstance(owner, dict) else None
             except ServerProblem as refusal:
-                # 🔴 The `type` slug decides, never the status: a slugless 5xx
+                # The `type` slug decides, never the status: a slugless 5xx
                 # is transient, a named condition will not change.
                 if refusal.slug is not None and \
                         refusal.slug not in ("not-ready", "rate-limited"):
-                    # 🔴 AS A FAILURE: falling through would announce an empty finished job.
+                    # AS A FAILURE: falling through would announce an empty finished job.
                     self.logger.error(str(refusal))
                     raise RemoteError(
                         f"the server will not report on job {job_id}") from None
@@ -1189,7 +1189,7 @@ class RemoteRun:
     def _record(self, job: Dict[str, Any], seen) -> list:
         '''Write the server's node states into the record; return the nodes that moved.
 
-        ⚠️ In the order they moved, not the server's (by name), so a node never
+        In the order they moved, not the server's (by name), so a node never
         starts before the one it waits on finished: by finish or start time where
         given, else flow order. Tolerant: an unreadable node is skipped.
         '''
@@ -1235,7 +1235,7 @@ class RemoteRun:
     def _report(self, job: Dict[str, Any], changed=None) -> None:
         with self.output_lock:
             if self._dashboard():
-                # 🔴 The dashboard shows every state; say only what moved, and why it failed.
+                # The dashboard shows every state; say only what moved, and why it failed.
                 details = _node_details(job)
                 for step, index, state in changed or []:
                     said = details.get((step, index)) if state == "failed" else None
@@ -1275,7 +1275,7 @@ class RemoteRun:
     def _paint(self, job: Dict[str, Any]) -> None:
         '''Hand the dashboard the states and the clocks.
 
-        🔴 Without this it never rereads the record. ``starttimes`` come from
+        Without this it never rereads the record. ``starttimes`` come from
         ``started_at``, an instant, so a timer survives polls, reconnects and restarts.
         '''
         board = self._dashboard()
@@ -1315,10 +1315,10 @@ class RemoteRun:
                 key=lambda item: order.get(item[0], len(order))):
             self.logger.error(f"  {step}/{index} failed: {said}")
 
-        # 🔴 On EVERY terminal state: a failed run's log is the one most wanted.
+        # On EVERY terminal state: a failed run's log is the one most wanted.
         try:
             results.fetch(job["id"])
-            # 🔴 The local job directory is the whole job: fetch each node this
+            # The local job directory is the whole job: fetch each node this
             # run continued from, from the job that ran it.
             for entry in self._upstream()[1]:
                 results.fetch_node(entry["job_id"], entry["step"], entry["index"])
@@ -1337,7 +1337,7 @@ class RemoteRun:
 class _Tails:
     '''The live logs of whatever is running, on this terminal.
 
-    🔴 One stream for the whole job where the server offers `logs.stream.job`,
+    One stream for the whole job where the server offers `logs.stream.job`,
     else one per running node up to ``concurrent_log_streams``. Each line
     carries ``job | step | index``, so interleaved they read like a local run.
     '''
@@ -1369,7 +1369,7 @@ class _Tails:
 
         features = capabilities.get("features") or []
         if "logs.stream" not in features:
-            # 🔴 Absent means unsupported; the archived log still comes with the results.
+            # Absent means unsupported; the archived log still comes with the results.
             return False, 0, False
 
         ceiling = (capabilities.get("limits") or {}).get("concurrent_log_streams")
@@ -1422,7 +1422,7 @@ class _Tails:
         except ServerProblem as refusal:
             if refusal.slug == "feature-unsupported" and \
                     refusal.member("feature") == "logs.stream.job":
-                # 🔴 Permanent: follow each node from the next poll, never asking again.
+                # Permanent: follow each node from the next poll, never asking again.
                 logger.debug("no job stream here; following each node instead")
                 self._whole_job = False
             elif refusal.slug == "not-ready":
@@ -1456,7 +1456,7 @@ class _Tails:
     def _write(self, text: str) -> None:
         '''Print a chunk of a node's log on the shared terminal.
 
-        🔴 With a blank formatter: the lines already carry ``job | step | index``,
+        With a blank formatter: the lines already carry ``job | step | index``,
         and this run's prefix would stamp on top. The dashboard formats with the
         console handler's formatter, so one swap covers both.
         '''
@@ -1498,7 +1498,7 @@ def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
             continue
 
         if node.get("terminal"):
-            # 🔴 A finished node must stop counting: the board ticks these against now.
+            # A finished node must stop counting: the board ticks these against now.
             continue
 
         moment = _epoch(started)
@@ -1511,8 +1511,8 @@ def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
 def _durations(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
     '''How long each finished node took, as the server saw it.
 
-    🔴 Here before the node's manifest, which may never come; the board prefers
-    `metric,tasktime` once it does. ⚠️ Server wall time, startup included, so
+    Here before the node's manifest, which may never come; the board prefers
+    `metric,tasktime` once it does. Server wall time, startup included, so
     never written into the record.
     '''
     durations = {}
@@ -1576,7 +1576,7 @@ def _node_details(job: Dict[str, Any]) -> Dict[Tuple[str, str], str]:
 def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str:
     '''Three lines about the failure, without opening a URL.
 
-    🔴 A `run-failed` with no failed node gets `NO_NODE_FAILED`: only that
+    A `run-failed` with no failed node gets `NO_NODE_FAILED`: only that
     slug's advice names a node.
     '''
     error = job.get("error") or {}
@@ -1768,7 +1768,7 @@ def _framework_range(name: str) -> str:
     """SiliconCompiler's declared range for a framework distribution (cocotb's,
     in its `cocotb` extra), else the version installed here.
 
-    🔴 A range, not a pin: the simulator and SiliconCompiler load the image's one copy.
+    A range, not a pin: the simulator and SiliconCompiler load the image's one copy.
     """
     from packaging.requirements import InvalidRequirement, Requirement
 
@@ -1788,10 +1788,10 @@ def _framework_range(name: str) -> str:
 def _pin(version: str) -> str:
     """One installed version as the specifier the server resolves to an image.
 
-    🔴 `==`, deliberately not `>=`: manifests read only backwards, and a newer
+    `==`, deliberately not `>=`: manifests read only backwards, and a newer
     image writes every returned manifest in the direction this one cannot read.
-    🔴 A dev build asks by prefix: its commit-local segment matches no image.
-    ⚠️ Spelled `==0.38.10.*`; `==0.38.10.dev*` is not legal PEP 440.
+    A dev build asks by prefix: its commit-local segment matches no image.
+    Spelled `==0.38.10.*`; `==0.38.10.dev*` is not legal PEP 440.
     """
     from packaging.version import InvalidVersion, Version
 

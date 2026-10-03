@@ -4,9 +4,9 @@ one that will not install rejects the job before any node runs. A deployment
 running containers builds a derived image instead (`envbuild`), with the same
 install (`pipbuild`).
 
-🔴 Each install is an environment of its own, by key, with its own pip cache
+Each install is an environment of its own, by key, with its own pip cache
 (implementation-notes §L): the second job asking for a key waits and reuses.
-🔴 Nothing the job wrote is handed to pip: the files are this server's, wheels
+Nothing the job wrote is handed to pip: the files are this server's, wheels
 only (source builds only in the isolated builder), from `package_indexes`
 only. The result goes on the tool's `PYTHONPATH`, never SiliconCompiler's.
 '''

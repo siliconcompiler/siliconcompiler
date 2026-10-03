@@ -75,7 +75,7 @@ class Store:
 
         # A sqlite3 connection belongs to its thread, so each thread opens its
         # own; WAL lets those readers and the one writer proceed together.
-        # 🔴 And each is closed when its thread is done: the server starts a
+        # And each is closed when its thread is done: the server starts a
         # thread per request, and connections kept for the process's life
         # (three descriptors each under WAL) exhaust descriptors in minutes.
         # See `release` and `_reap`.
@@ -138,7 +138,7 @@ class Store:
     def _check_version(self) -> None:
         '''Refuse a store this server does not speak, and say what to do.
 
-        🔴 No migration, deliberately: this is a demo, test rig and reference
+        No migration, deliberately: this is a demo, test rig and reference
         implementation. The refusal names a next step instead.
         '''
         found = self.connection.execute("PRAGMA user_version").fetchone()[0]
@@ -204,12 +204,12 @@ class Store:
         '''Run ``work`` -- a count and the write it decides -- as one
         transaction no other admission can interleave with; return its result.
 
-        🔴 A numeric `pending_uploads` or `concurrent_jobs` is a hard ceiling
+        A numeric `pending_uploads` or `concurrent_jobs` is a hard ceiling
         (entitlements §2). ``BEGIN IMMEDIATE`` takes SQLite's write lock BEFORE
         the count, so two admissions cannot both read one count and both insert,
         as a deferred ``BEGIN`` allows (implementation-notes §3, *(c)*).
 
-        ⚠️ Only the ``BEGIN IMMEDIATE`` waits on the lock, which it holds to the
+        Only the ``BEGIN IMMEDIATE`` waits on the lock, which it holds to the
         commit, so only it is retried, never one statement alone; ``work`` runs
         once, since it may move a file. A `ProblemError` from it rolls back.
         '''
@@ -261,15 +261,15 @@ class Store:
         '''``GET /v1``'s ``software``: every runnable version, best first, by
         bucket.
 
-        🔴 `python`, `tools` and `interpreter` are a CLOSED set, every one always
+        `python`, `tools` and `interpreter` are a CLOSED set, every one always
         present and possibly `{}` (`images.BUCKETS`); they are separate because
         they are satisfied differently (`jobs.common.requirements`).
 
-        🔴 With containers, a version is advertised only where a live image holds
+        With containers, a version is advertised only where a live image holds
         it, or one never put in an image is advertised and refused at submit.
         Without containers there are no images, so it lists what it tracks.
 
-        ⚠️ The frozen flat shape has no room for `version_source`, so a dated
+        The frozen flat shape has no room for `version_source`, so a dated
         version is advertised beside a reported one. Accepted because the
         preflight is advisory and the refusal says *present but reports no
         version*; checks that must tell them apart read `reported_versions`.
@@ -279,7 +279,7 @@ class Store:
     def reported_versions(self, containers: bool = True) -> dict:
         '''The same map, less every version no tool reported.
 
-        🔴 The set a version REQUIREMENT is matched against: a date such as
+        The set a version REQUIREMENT is matched against: a date such as
         `20260924` beats `2.0.1` under every PEP 440 comparison.
         '''
         return self._software(containers, reported_only=True)
@@ -304,7 +304,7 @@ class Store:
             "  AND sv.retired_at IS NULL "
             f"{reported}"
             "ORDER BY sv.software_name, "
-            # 🔴 Reported first whatever the numbers say, or an old unversioned
+            # Reported first whatever the numbers say, or an old unversioned
             # build heads the list for ever.
             "         CASE sv.version_source WHEN 'reported' THEN 0 ELSE 1 END, "
             "         sv.preference DESC, sv.version DESC")
@@ -321,7 +321,7 @@ class Store:
 class _Transaction:
     '''One transaction, holding the write lock from its first statement.
 
-    🔴 `BEGIN IMMEDIATE`, never a deferred `BEGIN`: under WAL, a deferred read
+    `BEGIN IMMEDIATE`, never a deferred `BEGIN`: under WAL, a deferred read
     then write after another commit fails at once (`SQLITE_BUSY_SNAPSHOT`),
     which the busy timeout never waits out.
     '''

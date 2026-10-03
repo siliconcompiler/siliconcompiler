@@ -25,7 +25,7 @@
   <div><b>Resets</b><br><span class="muted">{{ usage.compute_seconds.resets_at | when }}</span></div>
 </div>
 
-{# 🔴 Not published by the API: its `usage` windows are calendar months, against an allowance. #}
+{# Not published by the API: its `usage` windows are calendar months, against an allowance. #}
 <h3>All time</h3>
 <div class="panel grid">
   <div><b>Compute</b><br>{{ lifetime.compute_seconds | duration }}</div>
@@ -43,7 +43,7 @@
 <table>
   <tr><th>Limit</th><th>Yours</th><th>This deployment</th></tr>
   {% for name, value in limits.items() %}
-  {# 🔴 Two columns: one alone cannot say whether anybody set it. #}
+  {# Two columns: one alone cannot say whether anybody set it. #}
   {% set default = default_limits.get(name) %}
   <tr>
     <td class="mono">{{ name }}

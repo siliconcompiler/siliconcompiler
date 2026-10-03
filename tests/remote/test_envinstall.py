@@ -62,7 +62,7 @@ def install(root, requirements=(), constraints=(), wheels=(), **kwargs):
 
 
 def test_the_lists_are_never_handed_to_pip_as_the_job_wrote_them(pip, tmp_path, monkeypatch):
-    '''🔴 Rewritten from what parsed, canonical names, the wheels beside them --
+    '''Rewritten from what parsed, canonical names, the wheels beside them --
     binaries only, from the deployment's indexes, and nobody's pip configuration.'''
     monkeypatch.setenv("PIP_INDEX_URL", "https://somewhere.example/simple/")
     wheel = tmp_path / "scfake_helper-0.1.0-py3-none-any.whl"
@@ -85,7 +85,7 @@ def test_the_lists_are_never_handed_to_pip_as_the_job_wrote_them(pip, tmp_path, 
 
 
 def test_what_this_host_holds_is_pinned_and_wins(pip, tmp_path):
-    '''🔴 A venv seeing this Python's packages, all pinned -- never `--target`,
+    '''A venv seeing this Python's packages, all pinned -- never `--target`,
     which ignores them; a listed version of one it holds is ignored, and said.'''
     from importlib import metadata
 
@@ -102,7 +102,7 @@ def test_what_this_host_holds_is_pinned_and_wins(pip, tmp_path):
 
 def test_the_same_set_is_built_once_and_shared_and_reports_what_it_added(
         pip, tmp_path, monkeypatch):
-    '''Keyed by lists, wheel digests, indexes and this Python. 🔴 A cached one
+    '''Keyed by lists, wheel digests, indexes and this Python. A cached one
     reports what the fresh one added: the job log is the only record (§5).'''
     monkeypatch.setattr(pipbuild, "installed", lambda site: [["scfake-bits", "2.0.1"]])
     wheel = tmp_path / "scfake_helper-0.1.0-py3-none-any.whl"
@@ -206,7 +206,7 @@ def test_nothing_to_add_runs_no_pip_and_is_still_an_environment(pip, tmp_path):
 
 
 def test_two_jobs_at_once_never_share_an_environment_or_a_cache(pip, tmp_path, monkeypatch):
-    '''🔴 Two staging threads, which the file lock does not separate: one set
+    '''Two staging threads, which the file lock does not separate: one set
     is built once and reused, two install at once, each with its own pip cache.'''
     import collections
     import threading

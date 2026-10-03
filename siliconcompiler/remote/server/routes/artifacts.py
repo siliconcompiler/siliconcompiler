@@ -1,10 +1,10 @@
 '''
 Endpoints 20, 21 and 22: getting the results out.
 
-🔴 None of these carries bytes: they answer `303` or a listing, and the bytes
+None of these carries bytes: they answer `303` or a listing, and the bytes
 come from a signed route below, standing in for a presigned URL.
 
-🔴 The listing and the log redirect are `jobs:read`, the bytes
+The listing and the log redirect are `jobs:read`, the bytes
 `artifacts:read`, deliberately: a CI caller that only watches runs still
 reaches its log.
 '''
@@ -51,7 +51,7 @@ def _redirect(row):
 @blueprint.route("/v1/jobs/<job_id>/artifacts", methods=["GET"])
 @require("jobs:read")
 def listing(session, job_id):
-    '''Endpoint 21. 🔴 `items` may be `[]`, and no kind, not even the
+    '''Endpoint 21. `items` may be `[]`, and no kind, not even the
     manifest, is guaranteed.'''
     from siliconcompiler.remote.server.errors import only_query
 
@@ -62,7 +62,7 @@ def listing(session, job_id):
     response = flask.jsonify({"items": items})
     response.headers["Cache-Control"] = "private, no-store"
     if cursor:
-        # 🔴 Encoded: a `step` holding a space or an `&` is still one value.
+        # Encoded: a `step` holding a space or an `&` is still one value.
         response.headers["Link"] = next_page(f"/v1/jobs/{job_id}/artifacts", cursor)
     return response
 
@@ -98,14 +98,14 @@ def logs(session, job_id):
 
 
 def _until(session) -> int:
-    '''🔴 A stream ends no later than the credential that obtained it.'''
+    '''A stream ends no later than the credential that obtained it.'''
     return int(session.expires_at or time.time())
 
 
 def _stream_redirect(job_id, step, index, expires, ended=False):
     '''A capability URL on this host, standing in for a separate stream host.
 
-    🔴 Authorization was evaluated at `/logs`; the URL carries its own TTL.
+    Authorization was evaluated at `/logs`; the URL carries its own TTL.
     '''
     storage = flask.current_app.config["SC_STORAGE"]
 
@@ -200,7 +200,7 @@ def _deadline(expires) -> float:
 
 
 def _first_connection(signature, expires) -> None:
-    '''🔴 A stream URL serves one connection. A client reconnects by asking
+    '''A stream URL serves one connection. A client reconnects by asking
     `/logs` again, where authorization is evaluated.'''
     seen = flask.current_app.config.setdefault("SC_STREAMS_SEEN", {})
     lock = flask.current_app.config.setdefault("SC_STREAMS_SEEN_LOCK", threading.Lock())
@@ -309,7 +309,7 @@ def download(job_id, artifact_id):
         raise ProblemError(
             "not-found", detail="the bytes for this artifact are missing")
 
-    # 🔴 Always an attachment, never sniffed or active: a job's bytes, on this
+    # Always an attachment, never sniffed or active: a job's bytes, on this
     # host.
     response = flask.send_file(
         path, mimetype=row["media_type"], conditional=True,

@@ -114,7 +114,7 @@ def _cancelled(fake_v1):
     ("cancelled", True, "error"),
     # Fetching its image: waiting, so a six-minute pull is not read as a hang.
     ("preparing", False, "queued"),
-    # 🔴 An unknown state reads `terminal`, never its name.
+    # An unknown state reads `terminal`, never its name.
     ("quiescing", False, "pending"), ("evaporated", True, "error"),
 ])
 def test_every_node_state_maps(state, terminal, expected):
@@ -122,7 +122,7 @@ def test_every_node_state_maps(state, terminal, expected):
 
 
 def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, caplog):
-    '''🔴 The PUT addresses storage, which may be somebody else's bucket. The
+    '''The PUT addresses storage, which may be somebody else's bucket. The
     grant carries the archive's own size and digest (D125), and each POST its
     own idempotency key.'''
     _routes_for_a_submit(fake_v1)
@@ -154,7 +154,7 @@ def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, ca
 
 
 def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
-    '''🔴 Authoritative at the top, advisory under `descriptor`; no `versions`,
+    '''Authoritative at the top, advisory under `descriptor`; no `versions`,
     no `resources` and no `run_hash`; submit has no body (D277).'''
     _routes_for_a_submit(fake_v1)
 
@@ -180,7 +180,7 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
 
 
 def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
-    '''🔴 Never every class the manifest names: lambdapdk's PDK and libraries
+    '''Never every class the manifest names: lambdapdk's PDK and libraries
     are data the job carries.'''
     from importlib.metadata import version
 
@@ -309,7 +309,7 @@ def test_node_states_are_recorded_and_unknown_nodes_ignored(fake_v1, run, nop_pr
 
 
 def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
-    '''🔴 Falling through would announce a finished job with nothing in it.'''
+    '''Falling through would announce a finished job with nothing in it.'''
     _refused(fake_v1, responses.GET, "jobs/01J9-job", "not-found", 404)
 
     with pytest.raises(RemoteError) as raised:
@@ -325,7 +325,7 @@ def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
 ], ids=["proxy-502", "not-ready"])
 def test_a_server_error_or_not_ready_is_waited_through(fake_v1, run, no_sleep, caplog,
                                                        body, status, content_type, warned):
-    '''🔴 A proxy's HTML is rendered, never thrown on.'''
+    '''A proxy's HTML is rendered, never thrown on.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", body, status=status,
                   content_type=content_type)
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
@@ -347,7 +347,7 @@ def test_a_server_that_never_comes_back_is_bounded(fake_v1, run, no_sleep):
 
 
 def test_reconnect_re_enters_the_wait(fake_v1, run):
-    '''🔴 The answer to Ctrl-C, and the only way back to a detached job.'''
+    '''The answer to Ctrl-C, and the only way back to a detached job.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
     run.reconnect("01J9-job")
@@ -374,7 +374,7 @@ def _pages(fake_v1):
 
 @pytest.mark.parametrize("which,asked", [("job", {"job_id": "01J9-job"}), ("home", {})])
 def test_a_page_is_asked_for_never_built(fake_v1, run, opened, which, asked):
-    '''🔴 After a submit, the job's page by its id; `sc-remote -portal`, the
+    '''After a submit, the job's page by its id; `sc-remote -portal`, the
     home page. The client opens what comes back.'''
     fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
 
@@ -506,7 +506,7 @@ def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
     ("é" * 300, "é" * 300),
 ], ids=["default", "own", "300-code-points"])
 def test_a_cancel_always_says_why(fake_v1, logged_in, reason, sent):
-    '''🔴 `reason` is optional on the wire, and this client always sends one:
+    '''`reason` is optional on the wire, and this client always sends one:
     the caller's own, or one naming the tool and never the hostname.'''
     import socket
 
@@ -536,7 +536,7 @@ def test_delete_is_a_204_with_no_body(fake_v1, logged_in):
 
 
 def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path):
-    '''🔴 The file's own length: announcing a gigabyte over twenty bytes
+    '''The file's own length: announcing a gigabyte over twenty bytes
     would leave the server waiting for ever.'''
     payload = tmp_path / "upload.tar.gz"
     payload.write_bytes(b"x" * 20)
@@ -549,7 +549,7 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
 
 
 #
-# 🔴 The half the integration rig cannot reach: a working server cannot be
+# The half the integration rig cannot reach: a working server cannot be
 # made to report a limit it does not have or refuse a feature it implements.
 
 @pytest.mark.parametrize("slug,status,members,expected", [
@@ -668,7 +668,7 @@ def _failed_poll(fake_v1, run, caplog, level="INFO", **body):
 
 
 def test_a_failed_run_explains_itself_briefly_and_still_fetches(fake_v1, run, caplog):
-    '''🔴 Results are fetched on every terminal state: a failed run's log is
+    '''Results are fetched on every terminal state: a failed run's log is
     the one most wanted. The next step is the client's, since the type page
     is the same everywhere.'''
     text = _failed_poll(fake_v1, run, caplog,
@@ -691,7 +691,7 @@ def test_a_failed_run_explains_itself_briefly_and_still_fetches(fake_v1, run, ca
      {"type": RUN_FAILED, "title": "The run failed",
       "detail": "stepone/0 exceeded its time limit"},
      ["stepone/0 failed: the node exceeded its time limit"], ["steptwo/0 failed"]),
-    # 🔴 A flow that dies before its first node has no log to read: the
+    # A flow that dies before its first node has no log to read: the
     # advice comes from the job, and the server's `detail` survives.
     ([_node("stepone", "cancelled"), _node("steptwo", "cancelled")],
      {"type": RUN_FAILED, "title": "The run failed",
@@ -711,7 +711,7 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, nodes, error,
 
 
 def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, capsys):
-    '''🔴 A node's log line already says which node it came from.'''
+    '''A node's log line already says which node it came from.'''
     from siliconcompiler.remote.client.run import _Tails
 
     tails = _Tails.__new__(_Tails)
@@ -742,7 +742,7 @@ def board(nop_project):
 
 def test_the_dashboard_is_given_the_running_clocks_and_the_finished_times(fake_v1, run,
                                                                           board):
-    '''🔴 `starttimes` make a running node's timer tick; a finished node's
+    '''`starttimes` make a running node's timer tick; a finished node's
     time comes from the job, before any manifest; one never run has none.'''
     run._paint(job_body("running", nodes=[
         _node("stepone", "completed", started_at="2026-09-22T10:00:00.000Z",
@@ -786,7 +786,7 @@ def floorplan(logged_in, nop_project):
 
 
 def test_what_moved_in_one_poll_is_listed_in_the_order_it_moved(floorplan):
-    '''🔴 Listed by name, a node would start before the one it waits on finished.'''
+    '''Listed by name, a node would start before the one it waits on finished.'''
     seen = {("tapcell", "0"): "running", ("power_grid", "0"): "pending",
             ("pin_placement", "0"): "pending"}
     job = job_body("running", nodes=[
@@ -851,7 +851,7 @@ def tails(run, monkeypatch):
 
 def test_with_a_job_stream_one_connection_follows_every_node(fake_v1, run, tails,
                                                              monkeypatch):
-    '''🔴 One stream however wide the flow.'''
+    '''One stream however wide the flow.'''
     _Tails, opened = tails
     monkeypatch.setattr(_Tails, "_tail_job", lambda self, job_id: opened.append(job_id))
 
@@ -875,7 +875,7 @@ def test_without_one_each_running_node_is_followed(fake_v1, run, capabilities, t
 
 
 def test_a_refused_job_stream_falls_back_for_good(fake_v1, run, tails):
-    '''🔴 `feature-unsupported` naming `logs.stream.job` is permanent.'''
+    '''`feature-unsupported` naming `logs.stream.job` is permanent.'''
     _Tails, opened = tails
     _refused(fake_v1, responses.GET, "jobs/j1/logs", "feature-unsupported", 501,
              feature="logs.stream.job")
@@ -954,7 +954,7 @@ class DeclaresAVersion(__import__("siliconcompiler").Task):
 ])
 def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_nop_project,
                                                        task, wanted):
-    '''🔴 So a deployment with no image for a tool refuses before the upload.
+    '''So a deployment with no image for a tool refuses before the upload.
     The version is what setup declared on the worked-out copy; `[]` is any
     version, where setup could not run here. SiliconCompiler's own nodes
     name no tool, or an operator registers one no image can claim.'''
@@ -976,7 +976,7 @@ def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_n
     ("whatever", None),
 ])
 def test_a_declared_requirement_is_normalised_before_it_is_sent(declared, sent):
-    '''🔴 OpenROAD's `>=24Q3-2011` is not PEP 440, and only the driver can
+    '''OpenROAD's `>=24Q3-2011` is not PEP 440, and only the driver can
     make it comparable. Each part of a set on its own; an unreadable one is
     dropped rather than refusing every OpenROAD.'''
     from packaging.specifiers import SpecifierSet
@@ -994,7 +994,7 @@ def test_a_declared_requirement_is_normalised_before_it_is_sent(declared, sent):
 
 
 def test_a_development_client_asks_by_prefix_rather_than_exactly():
-    '''🔴 A dev build's local segment names a commit no image was built from.
+    '''A dev build's local segment names a commit no image was built from.
     `.*` attaches to the release segment only: `==0.38.10.dev*` is illegal.'''
     from packaging.specifiers import InvalidSpecifier, SpecifierSet
     from packaging.version import Version
@@ -1081,7 +1081,7 @@ def _registered_with_credentials(project):
 
 
 def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_path):
-    '''🔴 Not the last run's handle, logs or fetched nodes, nor the open `job.log`.'''
+    '''Not the last run's handle, logs or fetched nodes, nor the open `job.log`.'''
     _leftovers(nop_project)
 
     names = set(_members(run, tmp_path)[0])
@@ -1094,7 +1094,7 @@ def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_pa
 
 
 def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path):
-    '''🔴 Surface D302: each dataroot's path -- a library's, a private one, a
+    '''Surface D302: each dataroot's path -- a library's, a private one, a
     task's, the history's -- goes up without userinfo and with query values
     masked; the user's own project and manifest keep what they registered.'''
     from siliconcompiler.remote import owners
@@ -1151,7 +1151,7 @@ def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
 def test_a_run_from_part_way_sends_the_outputs_it_starts_from_as_they_are(
         run, nop_project, tmp_path):
     '''`-from steptwo`: stepone's outputs, manifest unchanged, and nothing else
-    of either node. 🔴 contract.md, *An upload keeps links*: a hard link is a
+    of either node. contract.md, *An upload keeps links*: a hard link is a
     tar hard link to the first, a symlink to an archived file a link, and a
     dangling one is left out.'''
     _leftovers(nop_project)
@@ -1186,7 +1186,7 @@ def test_a_run_from_part_way_sends_the_outputs_it_starts_from_as_they_are(
 def test_an_upstream_node_without_its_outputs_is_continued_from_its_recorded_job(
         run, nop_project, tmp_path, recorded):
     '''Only its manifest is here: the job it was recorded fetched from is
-    named, and nothing of it packed. 🔴 With none recorded it is refused: a
+    named, and nothing of it packed. With none recorded it is refused: a
     manifest's own `remoteid` is server-written, never the job continued from.'''
     _leftovers(nop_project)
     _upstream_node(nop_project, "stepone", **recorded)
@@ -1274,7 +1274,7 @@ def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
 
 def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
         fake_v1, run, nop_project, monkeypatch):
-    '''🔴 Upload nothing, and cancel saying which and why (surface D287).'''
+    '''Upload nothing, and cancel saying which and why (surface D287).'''
     from siliconcompiler.package.https import HTTPResolver
 
     def unreachable(self):
@@ -1324,7 +1324,7 @@ def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
 
 @pytest.mark.parametrize("state,polls", [("staging", 2), ("queued", 1)])
 def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state, polls):
-    '''🔴 Surface D166: the server may still ask this machine for a source, so
+    '''Surface D166: the server may still ask this machine for a source, so
     leaving a job before it is queued warns, and a second interrupt leaves.'''
     import logging
 
@@ -1363,7 +1363,7 @@ def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state
      ["reason: unavailable"]),
 ], ids=["private-root", "keypath-shape", "software"])
 def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, said):
-    '''🔴 Created before anything is packed, so a refusal there costs nothing.'''
+    '''Created before anything is packed, so a refusal there costs nothing.'''
     monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: pytest.fail("packed"))
     fake_v1.route(responses.POST, "jobs", refusal, status=refusal["status"],
                   content_type="application/problem+json")
@@ -1567,7 +1567,7 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
 
 
 def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project, tmp_path):
-    '''🔴 Never the name alone: many objects use the default, `root` (D282).'''
+    '''Never the name alone: many objects use the default, `root` (D282).'''
     from siliconcompiler import StdCellLibrary
 
     for name in ("alib", "blib"):

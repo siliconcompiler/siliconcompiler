@@ -118,8 +118,8 @@ def _members(server, row):
 
 def test_a_finished_run_is_indexed(server_client, key, token, finished):
     '''Per node: its log; its `node` archive, indexed as the node finishes; its
-    reports (🔴 a deliberate second copy -- kilobytes, still fetchable when the
-    archive is over `max_download_bytes`); and its manifest (🔴 its record and
+    reports (a deliberate second copy -- kilobytes, still fetchable when the
+    archive is over `max_download_bytes`); and its manifest (its record and
     metrics). Never `outputs`, a second copy of the large half.'''
     kinds = {(item["kind"], item["step"])
              for item in listing(server_client, key, token, finished["id"])}
@@ -132,7 +132,7 @@ def test_a_finished_run_is_indexed(server_client, key, token, finished):
 
 
 def test_every_required_member_is_published(server_client, key, token, finished):
-    '''🔴 `deleted_cause` (an enum) and `deleted_reason` (prose) say whether the
+    '''`deleted_cause` (an enum) and `deleted_reason` (prose) say whether the
     system or a person took the bytes. Nothing is approval-gated (surface
     D309), so nothing can be asked for, and no artifact carries a portal URL.'''
     for item in listing(server_client, key, token, finished["id"]):
@@ -292,7 +292,7 @@ def test_every_artifact_is_a_303_to_its_gzip_on_a_signed_route(server_client, ke
 
 def test_a_server_on_http_issues_only_http_urls(server, server_client, key, token,
                                                 finished):
-    '''🔴 Contract rule 5: one scheme throughout -- the artifact `303`, the
+    '''Contract rule 5: one scheme throughout -- the artifact `303`, the
     upload grant and endpoint 6's sign-in link.'''
     server.config["SC_CONFIG"]._values["web_url_base"] = "http://localhost"
     item = listing(server_client, key, token, finished["id"])[0]
@@ -328,7 +328,7 @@ def test_the_bytes_need_a_live_download_signature(server_client, key, token, fin
 
 def test_a_deleted_artifact_is_a_404_and_its_node_is_not_approved(
         server, server_client, key, token, finished, caplog):
-    '''Nothing is left to be entitled to, and the row stays listed. 🔴 Handing
+    '''Nothing is left to be entitled to, and the row stays listed. Handing
     its node archive over would undo the deletion (entitlements D41); the
     state should not exist -- a node is reaped whole -- so an operator is told,
     once.'''
@@ -351,7 +351,7 @@ def test_a_deleted_artifact_is_a_404_and_its_node_is_not_approved(
 
 def test_past_its_retention_and_not_yet_swept_is_still_fetchable(
         server, server_client, key, token, finished):
-    '''⚠️ Retention passing is not a rung of the ladder: the reaper follows it
+    '''Retention passing is not a rung of the ladder: the reaper follows it
     by setting `deleted_at`, and until then the bytes are here.'''
     item = listing(server_client, key, token, finished["id"])[0]
     _mark(server, item, retained_until="2020-01-01T00:00:00.000Z")
@@ -363,7 +363,7 @@ def test_past_its_retention_and_not_yet_swept_is_still_fetchable(
 
 def test_an_artifact_still_being_described_is_not_ready_nor_is_its_node(
         server, server_client, key, token, finished):
-    '''🔴 The live bug: a permanent `403` told a client to abandon an artifact
+    '''The live bug: a permanent `403` told a client to abandon an artifact
     about to be fetchable. Listed once described (surface D308), so a client
     fetching at `terminal` misses nothing; its `node` archive is held back,
     refused as its worst member is (D120): transient, not a blanket
@@ -420,7 +420,7 @@ def _ceiling(server, bytes_allowed):
                          ids=["over", "at", "unlimited"])
 def test_max_download_bytes_is_a_real_inclusive_limit(server, server_client, key, token,
                                                       finished, over, status):
-    '''🔴 A refusal, not advice a client applies to itself; inclusive, and null
+    '''A refusal, not advice a client applies to itself; inclusive, and null
     is unlimited. D117: `403 download-too-large` naming its published key, not
     `429 limit-exceeded`; it never clears, so no `Retry-After`.'''
     item = listing(server_client, key, token, finished["id"])[0]
@@ -437,7 +437,7 @@ def test_max_download_bytes_is_a_real_inclusive_limit(server, server_client, key
 
 def test_no_query_parameter_or_header_lifts_the_ceiling(
         server, server_client, key, token, finished):
-    '''🔴 No API override: the way past it is the portal, not a flag.'''
+    '''No API override: the way past it is the portal, not a flag.'''
     item = listing(server_client, key, token, finished["id"])[0]
     _ceiling(server, 1)
 
@@ -451,7 +451,7 @@ def test_no_query_parameter_or_header_lifts_the_ceiling(
 
 def test_the_ceiling_that_binds_is_this_accounts_and_not_the_deployments(
         server, server_client, key, token, finished):
-    '''🔴 The one limit a `user_limits` row may override.'''
+    '''The one limit a `user_limits` row may override.'''
     from siliconcompiler.remote.server.identity import accounts
 
     item = listing(server_client, key, token, finished["id"])[0]
@@ -493,7 +493,7 @@ def _ended_stream(server_client, key, token, job_id):
 
 def test_a_terminal_nodes_stream_ends_at_once_naming_its_archive(
         server_client, key, token, finished):
-    '''🔴 `/logs` is live only; a finished node's log is its gzipped `logs`
+    '''`/logs` is live only; a finished node's log is its gzipped `logs`
     artifact, which carries nothing but the node's logs.'''
     artifact_id = _ended_stream(server_client, key, token, finished["id"])
     response = _follow(server_client, _fetch(server_client, key, token, finished["id"],
@@ -524,7 +524,7 @@ def test_a_node_that_has_not_started_is_not_ready(server_client, key, token,
 
 def test_a_finished_node_with_no_log_is_not_found(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 A node is completed only once indexed, so it never will have one.'''
+    '''A node is completed only once indexed, so it never will have one.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
     submit(server_client, key, token, job["id"], digest, size)
@@ -561,7 +561,7 @@ def _insert(store, like, **values):
                                    "step IS NULL AND kind <> 'input'"],
                          ids=["node", "job-level"])
 def test_one_row_per_kind_per_node_even_under_a_race(server, finished, where):
-    '''🔴 Indexing runs on whichever request thread gets there first, so a
+    '''Indexing runs on whichever request thread gets there first, so a
     check before the insert cannot hold (a real aes run listed 38 node
     archives for 23 nodes): the unique index decides, coalesced so a row with
     no node, NULL in SQLite's eyes, is protected too.'''
@@ -574,7 +574,7 @@ def test_one_row_per_kind_per_node_even_under_a_race(server, finished, where):
 
 
 def test_uploads_are_numbered_and_the_number_is_in_the_key(server, finished):
-    '''🔴 One per UPLOAD (database D101); a CHECK ties the ordinal to
+    '''One per UPLOAD (database D101); a CHECK ties the ordinal to
     job-level `input` exactly.'''
     store = server.config["SC_STORE"]
     first = store.one("SELECT * FROM artifacts WHERE job_id = ? AND kind = 'input' "
@@ -621,7 +621,7 @@ def _collected(server, finished, step, plant):
 
 @pytest.mark.parametrize("hard", [False, True], ids=["symlinked", "hard-linked"])
 def test_a_pass_through_nodes_archive_holds_one_link_to_its_home(server, finished, hard):
-    '''🔴 `outputs/x` -> `inputs/x` -> upstream `outputs/x`, as
+    '''`outputs/x` -> `inputs/x` -> upstream `outputs/x`, as
     `link_symlink_copy` makes it, is one relative link to the upstream file in
     both archives (database D142) -- read off a symlink, found by inode for a
     hard link. Nothing is copied.'''
@@ -658,7 +658,7 @@ def test_a_hard_linked_pair_in_one_node_is_a_tar_hard_link(server, finished):
 
 
 def test_a_file_with_a_name_outside_the_job_is_dropped(server, finished, tmp_path):
-    '''🔴 More links than names in the job's tree means a name outside it -- PDK
+    '''More links than names in the job's tree means a name outside it -- PDK
     data hard-linked in -- so it is a link leaving the job: never stored.'''
     outside = tmp_path / "pdk.lib"
     outside.write_text("the foundry's own file\n")
@@ -679,7 +679,7 @@ def test_a_file_with_a_name_outside_the_job_is_dropped(server, finished, tmp_pat
 
 def test_a_name_the_next_node_adds_while_a_node_is_archived_is_inside_the_job(
         server, finished, monkeypatch):
-    '''🔴 The race that lost a compiled testbench: the next node starts, and
+    '''The race that lost a compiled testbench: the next node starts, and
     hard-links this node's outputs into its inputs, while this one is
     archived. That name is inside the job, and the file is stored.'''
     from siliconcompiler.remote import links
@@ -709,7 +709,7 @@ def test_a_name_the_next_node_adds_while_a_node_is_archived_is_inside_the_job(
 
 
 def test_a_link_out_of_the_job_is_never_read_nor_stored(server, finished, tmp_path):
-    '''🔴 Surface D133: following it packs the host's bytes as the job's;
+    '''Surface D133: following it packs the host's bytes as the job's;
     storing it hands out the host's path (D159).'''
     secret = tmp_path / "host-secret"
     secret.write_text("the host's own file\n")
@@ -771,7 +771,7 @@ def test_an_upload_refused_for_its_digest_stays_where_the_grant_put_it(
 
 def test_an_upload_refused_for_a_private_value_is_deleted_and_the_reason_kept(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 A private dataroot's value is not kept (surface D308): the job, its
+    '''A private dataroot's value is not kept (surface D308): the job, its
     reason, and the member and hash it names remain.'''
     from siliconcompiler.remote.server.errors import ProblemError
 
@@ -813,7 +813,7 @@ def _job_logs(server, server_client, key, token, job_archive, **files):
 
 def test_the_job_level_log_is_the_runs_job_log_alone(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 It was never indexed: the glob `job.*.log` matched only re-run backups.
+    '''It was never indexed: the glob `job.*.log` matched only re-run backups.
     One job-level log, since an artifact carries no name on the wire, and
     SiliconCompiler's alone -- this server's record is `staging` and
     `diagnostics` (surface D295) -- named for the job, with no node segment.'''
@@ -833,7 +833,7 @@ def test_the_job_level_log_is_the_runs_job_log_alone(
 
 def test_the_runners_own_log_is_the_operators_and_a_backup_is_nobodys(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 A run that died before `job.log` leaves only the runner's log: the
+    '''A run that died before `job.log` leaves only the runner's log: the
     operators' `diagnostics` (surface D295), listed, never fetchable over the
     API. A stale rotated backup is a previous run's log, never this one's.'''
     job, items = _job_logs(server, server_client, key, token, job_archive,
@@ -850,8 +850,8 @@ def test_the_runners_own_log_is_the_operators_and_a_backup_is_nobodys(
 
 
 def test_a_deletion_says_who_took_the_bytes(server, server_client, key, token, finished):
-    '''🔴 `deleted_by` decides `deleted_cause` and is not on the wire (it names
-    a user): NULL is the reaper, set is a person. ✅ The reason is synthesized,
+    '''`deleted_by` decides `deleted_cause` and is not on the wire (it names
+    a user): NULL is the reaper, set is a person. The reason is synthesized,
     naming who acted and never the device or an id (surface §17, §19); a job
     carries no `deleted_cause` (D279).'''
     from siliconcompiler.remote.server.outputs import artifacts

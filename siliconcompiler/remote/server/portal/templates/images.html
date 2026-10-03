@@ -44,7 +44,7 @@
     <td>
       {%- for version in catalogue.versions if version.software_name == row.name -%}
       <span class="mono muted">{{ version.version }}</span>
-      {#- 🔴 Marked: the number is a publish date (`images.matches`). -#}
+      {#- Marked: the number is a publish date (`images.matches`). -#}
       {%- if version.version_source != 'reported' %}
       <span class="tag" title="the tool reports no version, so this is when its
             image was published; it can never satisfy a version requirement"
@@ -65,7 +65,7 @@
     </td>
     <td>
       {% if not row.retired_at %}
-      {# 🔴 Not the same as retiring its last version (`images.live_software`). #}
+      {# Not the same as retiring its last version (`images.live_software`). #}
       <form method="post" class="inline"
             action="{{ url_for('portal.retire_software', name=row.name) }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -84,7 +84,7 @@
   <div class="grid">
     <label>Distribution name
       <input type="text" name="name" placeholder="siliconcompiler" required></label>
-    {# 🔴 Stated and not derived (`images.register_software`). #}
+    {# Stated and not derived (`images.register_software`). #}
     <label>Kind
       <select name="kind" required>
         <option value="python">Python distribution — one image holds all of them</option>

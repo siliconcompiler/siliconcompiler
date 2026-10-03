@@ -6,11 +6,11 @@ What this machine holds, and how tightly: ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves
 ``dpop-key.pem``   this machine's private key, **the machine pin itself**, in a
                    file of its own so no rewrite of the store can take it.
 
-🔴 The modes are normative (identity §4): directory ``0700``, files ``0600``,
+The modes are normative (identity §4): directory ``0700``, files ``0600``,
 each created with its mode set. A wider store stops the client rather than
 being repaired: the key may already be copied.
 
-🔴 Every change is a transaction that re-reads the file under its lock: writing
+Every change is a transaction that re-reads the file under its lock: writing
 back a stale refresh token reads as reuse and ends the session.
 '''
 
@@ -227,7 +227,7 @@ class Credentials:
     def key(self):
         '''This machine's private key, generated locally on first use.
 
-        🔴 No error ever replaces it: it is the device pin; only `rotate_key` does.
+        No error ever replaces it: it is the device pin; only `rotate_key` does.
         '''
         if self._key is not None:
             return self._key
@@ -258,7 +258,7 @@ class Credentials:
                     self._store.set(_SERVERS, server, entry)
 
     def check_store(self) -> None:
-        '''🔴 Refuse a store others can read, rather than repair it: the directory
+        '''Refuse a store others can read, rather than repair it: the directory
         and the store's own files in it.'''
         if sys.platform == "win32" or not self.auth_dir.exists():
             return

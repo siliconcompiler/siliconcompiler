@@ -1,11 +1,11 @@
 '''Taking back the disk, once, at startup.
 
 Bundles, expired artifacts' bytes, build trees and stale uploads go in that
-order, each making the next cheaper to decide. 🔴 Without this a rig fills its
+order, each making the next cheaper to decide. Without this a rig fills its
 disk fast: every rebuild leaves a multi-gigabyte bundle (`images.sweep_bundles`).
 
-⚠️ At startup and nowhere else, deliberately: never a surprise inside a request,
-and a long-running deployment wants a real scheduled job. 🔴 Never fatal: a
+At startup and nowhere else, deliberately: never a surprise inside a request,
+and a long-running deployment wants a real scheduled job. Never fatal: a
 server that will not start is worse than a full disk.
 '''
 
@@ -44,7 +44,7 @@ def sweep(store, storage, config, datadir) -> Dict[str, Any]:
             logger.warning(f"could not reclaim {name}: {e}")
             taken[name] = 0
 
-    # ⚠️ `abandoned` counts jobs, not bytes.
+    # `abandoned` counts jobs, not bytes.
     freed = sum(value for name, value in taken.items() if name != "abandoned")
     if freed:
         from siliconcompiler.utils.units import format_binary
@@ -71,8 +71,8 @@ def _bundles(store, storage, config, datadir) -> int:
 def _artifacts(store, storage, config, datadir) -> int:
     '''Reclaim bytes past their retention; the row stays.
 
-    🔴 `deleted_at` is set: retention passing is not a ladder row, so without it
-    a reaped artifact reports `fetchable: true`. ✅ `deleted_by` stays NULL, which
+    `deleted_at` is set: retention passing is not a ladder row, so without it
+    a reaped artifact reports `fetchable: true`. `deleted_by` stays NULL, which
     reads as `deleted_cause: "expired"` (surface §21). A legal hold is skipped.
     '''
     from siliconcompiler.remote.server.outputs.artifacts import referenced_elsewhere
@@ -97,7 +97,7 @@ def _artifacts(store, storage, config, datadir) -> int:
             logger.debug(f"could not unlink {row['storage_key']}: {e}")
             continue
 
-        # 🔴 Recorded whether or not a file was there to unlink.
+        # Recorded whether or not a file was there to unlink.
         store.execute(
             "UPDATE artifacts SET deleted_at = ? WHERE id = ?", (now(), row["id"]))
         gone += 1
@@ -110,7 +110,7 @@ def _artifacts(store, storage, config, datadir) -> int:
 def _builds(store, storage, config, datadir) -> int:
     '''Reclaim a finished job's working tree, once nothing it produced is left.
 
-    🔴 After the artifacts, which are indexed from it. ⚠️ A job with no
+    After the artifacts, which are indexed from it. A job with no
     artifacts is left alone: its indexing failed, and this is the only copy.
     Uploads, `staging` and `diagnostics` are not read from the tree, so they
     count on neither side.
@@ -130,7 +130,7 @@ def _builds(store, storage, config, datadir) -> int:
 
     freed = 0
     for row in rows:
-        # 🔴 Impossible, and checked anyway: an empty id would `rmtree`
+        # Impossible, and checked anyway: an empty id would `rmtree`
         # `<datadir>/users//builds/`, every user's work.
         if not row["user_id"] or not row["id"]:
             logger.warning("skipping a build directory with an empty id")
@@ -151,7 +151,7 @@ def _builds(store, storage, config, datadir) -> int:
 def _uploads(store, storage, config, datadir) -> int:
     '''Reclaim an upload left behind by a job that ended without submitting it.
 
-    🔴 Never at the grant's expiry: the grant bounds when an upload may start,
+    Never at the grant's expiry: the grant bounds when an upload may start,
     and a job still waiting may yet be submitted.
     '''
     rows = store.all(
@@ -174,12 +174,12 @@ def _uploads(store, storage, config, datadir) -> int:
 def _abandoned(store, storage, config, datadir) -> int:
     '''Abandon jobs whose upload never arrived; returns a count of jobs.
 
-    🔴 `reconcile` settles a job on read, but a job stuck in `created` is the one
+    `reconcile` settles a job on read, but a job stuck in `created` is the one
     nobody opens, and it holds a `pending_uploads` slot meanwhile.
     '''
     from siliconcompiler.remote.server.jobs import JobService
 
-    # 🔴 Through the service, the one writer of state transitions and history.
+    # Through the service, the one writer of state transitions and history.
     jobs = JobService(store, config, storage, None, datadir)
 
     moved = 0

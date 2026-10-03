@@ -86,7 +86,7 @@ def text(events, step):
 
 
 def test_every_node_is_in_one_stream_in_its_own_order_naming_its_own_archive(tmp_path):
-    '''✅ Per-event coordinates. 🔴 No archive for a job: each node names its own, and `end` none.'''
+    '''Per-event coordinates. No archive for a job: each node names its own, and `end` none.'''
     job = Job(tmp_path)
     job.write("place", "".join(f"line {n}\n" for n in range(200)))
     job.write("route", "routing\n")
@@ -103,8 +103,8 @@ def test_every_node_is_in_one_stream_in_its_own_order_naming_its_own_archive(tmp
 
 
 def test_the_id_is_the_jobs_only_goes_up_and_is_the_same_for_every_reader(tmp_path):
-    '''🔴 A per-node offset resumes every other node at a position not its
-    own. ✅ An id means the same bytes whoever hands it back.'''
+    '''A per-node offset resumes every other node at a position not its
+    own. An id means the same bytes whoever hands it back.'''
     job = Job(tmp_path)
     job.write("place", "a\n")
     job.write("route", "bb\n")
@@ -122,7 +122,7 @@ def test_the_id_is_the_jobs_only_goes_up_and_is_the_same_for_every_reader(tmp_pa
 
 
 def test_the_id_does_not_grow_with_the_node_count(tmp_path):
-    '''🔴 D121: `Last-Event-ID` is a request header; a vector of per-node
+    '''D121: `Last-Event-ID` is a request header; a vector of per-node
     positions can pass what proxies accept on a thousand-node flow.'''
     job = Job(tmp_path, nodes=[(f"n{i}", "0") for i in range(1000)])
     for i in range(0, 1000, 3):
@@ -155,7 +155,7 @@ def test_resuming_from_a_job_id_has_no_gap_and_no_repeat(tmp_path):
 
 
 def test_a_job_already_over_ends_at_once_and_replays_nothing(tmp_path):
-    '''⚠️ Late or resumed, the same path: what was unread is in the archives,
+    '''Late or resumed, the same path: what was unread is in the archives,
     which the client reads from the `kind=logs` listing.'''
     job = Job(tmp_path)
     job.write("place", "p1\n")
@@ -275,7 +275,7 @@ def test_before_any_node_starts_it_is_not_ready(server, server_client, key, toke
 @pytest.mark.parametrize("state", ["completed", "failed", "cancelled"])
 def test_a_finished_job_is_a_stream_that_ends_at_once(server, server_client, key,
                                                       token, job, state):
-    '''⚠️ Not a refusal: it is the race case arriving late.'''
+    '''Not a refusal: it is the race case arriving late.'''
     end_job(server, job, state)
     events = frames(server_client.get(stream_url(server_client, key, token, job, step=None)))
     assert events == [("end", None, {"reason": "terminal"})]
@@ -295,7 +295,7 @@ def test_the_refusal_names_the_broadest_missing_capability(
 
 
 def test_the_job_stream_holds_one_slot(server, server_client, key, token, job):
-    '''🔴 A flow wider than `concurrent_log_streams` can be watched in full on one connection.'''
+    '''A flow wider than `concurrent_log_streams` can be watched in full on one connection.'''
     streams = server.config["SC_STREAMS"]
     streams._ceiling = 1
     end_job(server, job)
@@ -314,7 +314,7 @@ def test_the_job_stream_holds_one_slot(server, server_client, key, token, job):
 
 
 def test_the_job_stream_implies_the_others(tmp_path):
-    '''🔴 Never advertised alone: a client falls back to per-node streams.'''
+    '''Never advertised alone: a client falls back to per-node streams.'''
     import json
     from siliconcompiler.remote.server.config import Config
     (tmp_path / "config.json").write_text(json.dumps({"features": ["logs.stream.job"]}))

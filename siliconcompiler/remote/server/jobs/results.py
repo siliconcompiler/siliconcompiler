@@ -44,7 +44,7 @@ class ResultsMixin:
                                      admin=surface == "portal")
                     for member in members]
         if "not-found" in refusals and not row["deleted_at"]:
-            # 🔴 A member deleted on its own (entitlements D41): handing the
+            # A member deleted on its own (entitlements D41): handing the
             # archive over would undo the deletion. The state is a bug.
             if row["id"] not in _ALERTED:
                 _ALERTED.add(row["id"])
@@ -83,7 +83,7 @@ class ResultsMixin:
             # The job stays readable and its subresources do not.
             raise ProblemError("not-found", detail="this job's data was deleted")
 
-        # 🔴 Listed once described, a `node` archive once its members are
+        # Listed once described, a `node` archive once its members are
         # (surface D308).
         where = ["job_id = ?", "provenance <> 'pending'",
                  "NOT (kind = 'node' AND EXISTS (SELECT 1 FROM artifacts AS member "
@@ -132,7 +132,7 @@ class ResultsMixin:
                  surface: str = "api"):
         '''Endpoint 22's row, with the refusals it can make.
 
-        🔴 `max_download_bytes` and `api_fetchable_kinds` bind the API, not the
+        `max_download_bytes` and `api_fetchable_kinds` bind the API, not the
         portal, and nothing on the API overrides them: the portal is a person
         clicking one object, and the ceiling stops an automated sweep.
         '''
@@ -156,7 +156,7 @@ class ResultsMixin:
     def _check_download_ceiling(self, session, row) -> None:
         '''Refuse one object that is larger than this caller may pull.
 
-        🔴 The CALLER's number, which `user_limits` may override, not
+        The CALLER's number, which `user_limits` may override, not
         `config.limits`.
         '''
         from siliconcompiler.remote.server.identity import accounts
@@ -183,7 +183,7 @@ class ResultsMixin:
         '''Endpoint 20 for one node: whether its live stream may be opened;
         returns the node.
 
-        🔴 `/logs` is live output only (surface §20): a finished node's stream
+        `/logs` is live output only (surface §20): a finished node's stream
         ends at once, naming its `logs` artifact.
         '''
         job = self.owned(session, job_id)
@@ -224,10 +224,10 @@ class ResultsMixin:
         '''Endpoint 20 with no coordinates: the whole job's live stream;
         returns the job, or refuses.
 
-        🔴 A missing capability is named at its broadest, or a client would fall
+        A missing capability is named at its broadest, or a client would fall
         back to per-node streams that fail too.
 
-        ⚠️ A finished job is deliberately not refused: its stream sends `end` at
+        A finished job is deliberately not refused: its stream sends `end` at
         once, as for a job that ends between the `303` and the connect.
         '''
         job = self.owned(session, job_id)
@@ -317,7 +317,7 @@ class ResultsMixin:
     def node_log_artifact(self, job_id: str, step: str, index: str):
         '''The archived log's id, indexing it first if it is not there yet.
 
-        🔴 Called as a tail ends, so the `end` event never names an archive the
+        Called as a tail ends, so the `end` event never names an archive the
         next poll has not yet made.
         '''
         self._index_node(self._row(job_id), step, index)

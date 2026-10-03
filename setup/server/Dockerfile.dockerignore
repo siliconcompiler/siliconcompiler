@@ -1,7 +1,7 @@
 # Scoped to setup/server/Dockerfile, so the repo-root .dockerignore is left
 # alone.
 #
-# 🔴 **Everything out, and what the build reads let back in by name.** A list
+# **Everything out, and what the build reads let back in by name.** A list
 # of what to leave out was always one file short: `.pytest_cache/` is rewritten
 # by every test run, a stray file at the root is picked up the moment it
 # appears, and either one changed the context -- so the source copy missed the

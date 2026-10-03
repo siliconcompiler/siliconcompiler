@@ -422,7 +422,7 @@ CREATE INDEX artifacts_digest_idx ON artifacts (digest);
 CREATE INDEX artifacts_live_object_idx ON artifacts (location_id, storage_key)
     WHERE deleted_at IS NULL;
 
--- 🔴 One row per kind per node, and it has to be the DATABASE that says so:
+-- One row per kind per node, and it has to be the DATABASE that says so:
 -- indexing runs from reconcile on whichever request thread gets there first,
 -- and two writers that check before inserting can both pass.
 -- coalesce because SQLite counts NULLs as distinct in a unique index, which
@@ -447,21 +447,21 @@ CREATE TABLE software (                             -- what this deployment know
                        'interpreter')),             -- 'python': the image's own Python, which
                                                     -- the probe reads. Satisfied by each image a
                                                     -- node running the user's Python resolves to
-                                                    -- 🔴 Derived and never typed: the mechanism
+                                                    -- Derived and never typed: the mechanism
                                                     -- that reads the version IS the
                                                     -- classification (see probe.py)
     driver        text,                             -- the module carrying this tool's Task driver:
                                                     -- 'siliconcompiler.tools.openroad'. NULL for a
                                                     -- python distribution, and for a tool nobody
                                                     -- here drives.
-                                                    -- 🔴 RECORDED, not derived: a driver may live
+                                                    -- RECORDED, not derived: a driver may live
                                                     -- in any package, and even in-tree
                                                     -- 'kepler-formal' is ...tools.keplerformal.
                                                     -- Filled in by a scan at registration
     version_package text,                           -- read this tool's version from a PYTHON
                                                     -- distribution of this name instead of by
                                                     -- running it: 'pyslang' for the tool 'slang'.
-                                                    -- 🔴 A tool may have no executable and still
+                                                    -- A tool may have no executable and still
                                                     -- need an image holding it; recorded, since
                                                     -- the names differ
     added_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
@@ -509,7 +509,7 @@ CREATE TABLE images (                               -- a container this deployme
     resolved_at   text NOT NULL,                    -- when the tag was pinned to this digest
     built_at      text,                             -- when the IMAGE was built, from its own
                                                     -- manifest. NULL = the manifest said nothing.
-                                                    -- 🔴 Ranks before resolved_at, the pin time,
+                                                    -- Ranks before resolved_at, the pin time,
                                                     -- or an old image registered today would be
                                                     -- newest. Breaks the tie between images of
                                                     -- IDENTICAL versions; where equal or NULL
@@ -553,18 +553,18 @@ CREATE TABLE image_contents (                       -- what is INSIDE it -- decl
 CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version);
 
 
--- 🔴 SPARSE: a row exists only where somebody overrode something, and a NULL
+-- SPARSE: a row exists only where somebody overrode something, and a NULL
 -- column inherits the deployment's value from config.json. The contract pairs
 -- this table with `plans`, which this profile does not have: hence no `plan_id`.
 --
--- 🔴 The encoding is three-valued and it is the contract's:
+-- The encoding is three-valued and it is the contract's:
 --   NULL  inherit
 --   -1    UNLIMITED
 --   >= 0  that value
 -- `-1` never reaches a client, where `null` means *unlimited*. A CHECK on every
 -- column, so a typo cannot make a negative limit two paths read differently.
 --
--- ⚠️ Written by the OPERATOR CLI, never the portal: a ceiling is policy and
+-- Written by the OPERATOR CLI, never the portal: a ceiling is policy and
 -- this deployment has no admin mode. The account screen renders it read-only.
 CREATE TABLE user_limits (                          -- sparse: only the overrides
     user_id             text PRIMARY KEY REFERENCES users(id),

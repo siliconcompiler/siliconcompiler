@@ -47,7 +47,7 @@ class PythonEnvMixin:
         their key and link it into the job's tree. Returns each package no index
         has, for which the job is sent back.
 
-        🔴 A package that will not install rejects the job before any node runs;
+        A package that will not install rejects the job before any node runs;
         an index that does not answer is `staging-failed`.
         '''
         from siliconcompiler.remote.server.packages import envinstall
@@ -62,7 +62,7 @@ class PythonEnvMixin:
         self._phase(job["id"], "installing the job's Python packages")
         root = self.job_root(job["user_id"], job["id"])
         try:
-            # 🔴 An environment per key, never one per user: two jobs never
+            # An environment per key, never one per user: two jobs never
             # write one at once, and a finished one is reused as a layer is.
             target, installed = envinstall.install(
                 packages, wheels, self._datadir / ENVIRONMENTS, logger,
@@ -89,7 +89,7 @@ class PythonEnvMixin:
             link.unlink()
         link.symlink_to(target, target_is_directory=True)
 
-        # 🔴 No image on the host, so the `staging` record is the record of what
+        # No image on the host, so the `staging` record is the record of what
         # the install added (profile §5; surface D295).
         self._note(job, _install_lines(installed, "this host"))
         if self._row(job["id"])["state"] != "staging":
@@ -101,7 +101,7 @@ class PythonEnvMixin:
         moved onto an image of the job's packages over its base, one per base
         and reused; or ``plan`` unchanged and each package no index has.
 
-        🔴 A package that will not install rejects the job from `staging`.
+        A package that will not install rejects the job from `staging`.
         '''
         from siliconcompiler.remote.server.packages import envinstall
 
@@ -186,7 +186,7 @@ class PythonEnvMixin:
                 (workspace / envbuild.WHEELS).mkdir()
                 for wheel in inputs["wheels"]:
                     shutil.copy(wheel, workspace / envbuild.WHEELS / os.path.basename(wheel))
-            # 🔴 What is left of this staging pass (surface D294).
+            # What is left of this staging pass (surface D294).
             timeout = max(1, int(self._staging_left(job["id"])))
             (workspace / envbuild.SPEC).write_text(json.dumps({
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
@@ -209,7 +209,7 @@ class PythonEnvMixin:
             logger.info(f"{job['id']}: building its Python packages for "
                         f"{node[0]}/{node[1]}'s image as {build_id}")
 
-            # 🔴 A cancel stops the build.
+            # A cancel stops the build.
             result = envbuild.wait_for(
                 workspace, timeout,
                 alive=lambda: self._dispatcher.is_alive(build_id)

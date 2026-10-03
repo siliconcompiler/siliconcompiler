@@ -49,7 +49,7 @@ class ContinuationsMixin:
         '''Each node's outputs and manifest from the job that ran it, into
         ``<step>/<index>/outputs/``, where uploaded results land.
 
-        🔴 The archive is read as untrusted, under an upload's rules
+        The archive is read as untrusted, under an upload's rules
         (`archive.extract`) and only under ``outputs/``.
         '''
         for (step, index), from_job in copies:
@@ -208,7 +208,7 @@ class ContinuationsMixin:
                 raise ProblemError("prior-results-unavailable", step=step, index=index,
                                    job_id=from_job, reason=reason, detail=detail)
 
-        # 🔴 The job's resource set includes what it copies, or results built
+        # The job's resource set includes what it copies, or results built
         # on a denied PDK could be continued from.
         for step, index, from_job in continuations:
             for kind, name in self._resources_of(from_job):
@@ -225,7 +225,7 @@ class ContinuationsMixin:
                               "WHERE id = ? AND user_id = ?", (from_job, user_id))
         where = f"{step}/{index} of job {from_job}"
         if row is None:
-            # 🔴 One answer for none and for somebody else's: it confirms nothing.
+            # One answer for none and for somebody else's: it confirms nothing.
             return "not_found", f"no job of yours has that id, for {step}/{index}"
         if row["deleted_at"]:
             return "deleted", f"job {from_job} is deleted"

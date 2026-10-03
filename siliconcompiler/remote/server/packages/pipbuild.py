@@ -3,14 +3,14 @@ A job's Python packages, installed into a directory of their own: the one
 install, run by the builder inside the node's base image and by host mode on the
 host (implementation-notes §L).
 
-🔴 Standard library only, never importing SiliconCompiler: it is copied into the
+Standard library only, never importing SiliconCompiler: it is copied into the
 base image and run as a file under that image's Python.
 
-🔴 Against what the interpreter holds: pip runs in a venv from the node's Python
+Against what the interpreter holds: pip runs in a venv from the node's Python
 with its packages visible, every held distribution pinned at its version in
 the constraints. A listed one it holds stays, recorded as ignored; one needing
 another version of it is uninstallable; nothing held is changed. Never
-``--target``, which ignores what is installed. ⚠️ A venv made from a venv sees
+``--target``, which ignores what is installed. A venv made from a venv sees
 the base installation, so a ``.pth`` adds this interpreter's own sites.
 
 Wheels only unless ``--allow-source``, from the deployment's indexes only
@@ -256,7 +256,7 @@ def _file_of(filename: str, name: str, version: str):
 def listing(name, version, indexes, proxy=None):
     '''The indexes' files of ``name`` at exactly ``version``, by kind, or None if unaskable.
 
-    🔴 Exact-version matching (surface D292), so an unrelated project sharing
+    Exact-version matching (surface D292), so an unrelated project sharing
     the name is never installed in its place.'''
     found = {"wheels": [], "compiled": [], "sources": [], "yanked": []}
     for index in indexes or ():
@@ -301,7 +301,7 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
     held = provided()
     wheel_names = {wheel_name(path) for path in wheels}
 
-    # 🔴 What this interpreter holds wins; a differing listed version is recorded.
+    # What this interpreter holds wins; a differing listed version is recorded.
     ignored = {}
     lists = {"requirements": [], "constraints": []}
     for field, path in (("requirements", requirements), ("constraints", constraints)):
@@ -343,13 +343,13 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
         with open(os.path.join(packages[0], _VISIBLE), "w") as f:
             f.write(f"import site; [site.addsitedir(p) for p in {sites!r}]\n")
 
-        # 🔴 No configuration of anybody's: the indexes are passed below.
+        # No configuration of anybody's: the indexes are passed below.
         env = {key: value for key, value in os.environ.items()
                if not key.upper().startswith("PIP_") and key != "PYTHONPATH"}
         env["PIP_CONFIG_FILE"] = os.devnull
         proxy = None
         if proxy_socket:
-            # 🔴 In the builder the only way out is the proxy.
+            # In the builder the only way out is the proxy.
             env = {key: value for key, value in env.items()
                    if not key.upper().startswith(("HTTP_PROXY", "HTTPS_PROXY",
                                                   "ALL_PROXY", "NO_PROXY"))}
@@ -359,7 +359,7 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                         "https_proxy": proxy, "PYTHONNOUSERSITE": "1", "HOME": work})
         env["TMPDIR"] = work
 
-        # 🔴 `--isolated` with the indexes named here; a cache no other install writes.
+        # `--isolated` with the indexes named here; a cache no other install writes.
         command = [os.path.join(environment, "bin", "python"), "-m", "pip", "install",
                    "--isolated", "--no-input", "--disable-pip-version-check",
                    "--cache-dir", os.path.join(work, "pip-cache"),
@@ -431,7 +431,7 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                            "tail": f"an index could not be asked about {key}"})
             return result
 
-        # 🔴 Each entry looked up before pip runs (surface D292): an unlisted
+        # Each entry looked up before pip runs (surface D292): an unlisted
         # requirement is absent, never substituted; a yanked pin, which pip
         # would install, takes its release line (PEP 592).
         if indexes:
@@ -489,7 +489,7 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                     changed = True
                     break
                 if found["sources"] and not (found["wheels"] or allow_source):
-                    # 🔴 Source only here: compiled elsewhere means no client
+                    # Source only here: compiled elsewhere means no client
                     # wheel could run here; otherwise ask for the client's wheel.
                     if found["compiled"]:
                         compiled_only.append(key)
@@ -511,7 +511,7 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
         if yanked:
             result["yanked"] = sorted(yanked)
         if absent or source_only:
-            # 🔴 Sent back for its wheel, whatever else installed.
+            # Sent back for its wheel, whatever else installed.
             result.update({"returncode": 1, "absent": sorted(absent),
                            "source_only": sorted(source_only), "unresolved": [],
                            "tail": "\n".join((done.stdout if done else "").strip()

@@ -2,7 +2,7 @@
 Endpoints 3, 4, 5 and 6: getting a session, ending one, and a page for a
 person's browser.
 
-🔴 `/v1/auth/token` and `/v1/auth/device` refuse in the OAuth shape once OAuth
+`/v1/auth/token` and `/v1/auth/device` refuse in the OAuth shape once OAuth
 processing starts (`errors.OAuthError`); everything else is problem+json.
 '''
 
@@ -35,7 +35,7 @@ def _issuer():
 def public_origin() -> str:
     '''The origin this deployment is reached at, from configuration.
 
-    🔴 Never `Host`, `X-Forwarded-Host` or the socket's scheme: a handed-out URL
+    Never `Host`, `X-Forwarded-Host` or the socket's scheme: a handed-out URL
     gets clicked, and a proof checked against a caller-chosen host is not
     checked. The request only picks AMONG configured origins: the proof's,
     then `Host`'s, else the first (contract D70).
@@ -186,7 +186,7 @@ def _oauth_form():
 
 
 def _machine_id_source(form) -> str:
-    # 🔴 One of four (identity D59): the weak-path flag a device keeps for ever.
+    # One of four (identity D59): the weak-path flag a device keeps for ever.
     source = form.get("machine_id_source") or "none"
     if source not in MACHINE_ID_SOURCES:
         raise OAuthError("invalid_request",
@@ -222,7 +222,7 @@ _PAGES = ("job_id", "terms_id", "artifact_id")
 def browser():
     '''Endpoint 6: a single-use sign-in that lands on one portal page.
 
-    🔴 The landing is built from the named id, never a caller's path, which
+    The landing is built from the named id, never a caller's path, which
     would be an open redirect. Any session but a CI one may ask (surface D310).
     '''
     from siliconcompiler.remote.server.jobs.common import _from_epoch
@@ -242,14 +242,14 @@ def browser():
     elif named[0] == "job_id":
         landing = flask.url_for("portal.job", job_id=jobs.owned(session, named[1])["id"])
     elif named[0] == "terms_id":
-        # 🔴 This profile serves no terms documents.
+        # This profile serves no terms documents.
         raise ProblemError("not-found", detail="no such terms document")
     else:
         row = store.one("SELECT job_id FROM artifacts WHERE id = ?", (named[1],))
         if row is None:
             raise ProblemError("not-found", detail="no such artifact")
         jobs.owned(session, row["job_id"])
-        # 🔴 This profile takes no access requests.
+        # This profile takes no access requests.
         raise ProblemError("not-permitted",
                            detail="this artifact has nothing to ask for: this server takes "
                                   "no access requests")

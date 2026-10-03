@@ -91,7 +91,7 @@ def fetch_from(web, timeout=60):
 
 def test_a_source_is_fetched_and_held_with_nothing_of_this_process_sent(
         site, loopback, monkeypatch):
-    '''🔴 By SiliconCompiler's own resolver, with no token of this process's.'''
+    '''By SiliconCompiler's own resolver, with no token of this process's.'''
     monkeypatch.setenv("GITHUB_TOKEN", "a-token-of-this-servers")
     monkeypatch.setenv("GIT_TOKEN", "a-token-of-this-servers")
     web = site({"/ip/v1.tar.gz": (200, tarball({"lef/a.lef": b"LEF"}), {})})
@@ -107,7 +107,7 @@ def test_a_source_is_fetched_and_held_with_nothing_of_this_process_sent(
 
 
 def test_git_reaches_nothing_but_through_the_proxy(site):
-    '''🔴 A clone of a host the proxy will not connect to is refused there.'''
+    '''A clone of a host the proxy will not connect to is refused there.'''
     web = site()
     https = web.url.replace("http://", "https://")
     store = SourceStore(os.getcwd(), [allowlist.parse(f"{https}/")])
@@ -140,7 +140,7 @@ def test_a_host_resolving_to_a_private_address_is_never_connected_to(site):
     (429, Transient), (503, Transient),
 ])
 def test_a_failure_is_permanent_or_transient_by_what_it_means(site, loopback, status, kind):
-    '''⚠️ GitHub answers 404 for a private repository, so *not found* is the
+    '''GitHub answers 404 for a private repository, so *not found* is the
     client's to send; a 429 or a 5xx is retried.'''
     web = site({"/ip/v1.tar.gz": (status, b"", {})})
 

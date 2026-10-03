@@ -203,7 +203,7 @@ def test_two_subjects_are_two_identities(client):
 
 
 def test_a_changed_derivation_with_the_same_key_is_a_new_identity(server, client, key):
-    '''🔴 A reimaged host, rebuilt container, changed uid or moved salt presents
+    '''A reimaged host, rebuilt container, changed uid or moved salt presents
     the SAME key under a NEW subject; it used to 500 on the unique thumbprint.
     A new identity, seeing none of the old one's jobs; the old enrolment ends
     (`session-ended`: re-authenticate, do NOT refresh), and is recorded.'''
@@ -247,7 +247,7 @@ def test_no_credential_carries_a_challenge(client):
 
 
 def test_one_proof_sent_twice_at_once_is_taken_once(server, key):
-    '''🔴 Two requests on two threads with one proof must not both read it as
+    '''Two requests on two threads with one proof must not both read it as
     unseen; the check is widened so they always overlap.'''
     import threading
     import time
@@ -294,7 +294,7 @@ def test_insufficient_scope_names_the_scope_needed(client, key):
                                     "HTTP://Localhost:80/v1/me"])
 def test_a_proof_signed_for_a_canonical_equivalent_is_accepted(server_client, key, token,
                                                                signed):
-    '''🔴 Identity *The proof rules*: `htu` and the configured origin are
+    '''Identity *The proof rules*: `htu` and the configured origin are
     compared canonical, so `:80` or a mixed-case host is accepted.'''
     from test_dpop import proof_with_htu
 
@@ -307,7 +307,7 @@ def test_a_proof_signed_for_a_canonical_equivalent_is_accepted(server_client, ke
 
 def test_a_refresh_rotates_and_a_lost_response_gets_the_same_pair(client, key, server):
     '''A client whose response was lost retries a token already rotated:
-    🔴 the replacement already issued, never a second live refresh token.'''
+    the replacement already issued, never a second live refresh token.'''
     first = login(client, key).get_json()
 
     one = refreshing(client, first["refresh_token"], key)
@@ -388,7 +388,7 @@ def test_a_device_enrolled_with_none_has_no_change_detection(client, key):
 
 
 def test_a_refresh_is_bound_to_the_key_and_a_foreign_proof_revokes_nothing(client, key):
-    '''🔴 Identity D56: reuse is judged only after the proof verifies, or a
+    '''Identity D56: reuse is judged only after the proof verifies, or a
     leaked, long-rotated token could end the owner's session without the key.'''
     first = login(client, key).get_json()["refresh_token"]
     second = refreshing(client, first, key).get_json()["refresh_token"]
@@ -402,7 +402,7 @@ def test_a_refresh_is_bound_to_the_key_and_a_foreign_proof_revokes_nothing(clien
 
 
 def test_a_refresh_counts_as_the_device_being_seen(client, key):
-    '''🔴 A rotation is the only signal most devices give: written only at
+    '''A rotation is the only signal most devices give: written only at
     `client_credentials`, `last_seen_at` stayed NULL all day.'''
     granted = login(client, key).get_json()
 
@@ -477,7 +477,7 @@ def proxied_token(client, key, origin, host="backend:8080"):
 
 @pytest.mark.parametrize("signed", ["https://sc.example.test", "http://lab.test:8080"])
 def test_the_scheme_a_request_arrived_on_is_its_htus_origin(tmp_path, signed):
-    '''🔴 Contract rule 5 (D70): the configured origin the proof's `htu`
+    '''Contract rule 5 (D70): the configured origin the proof's `htu`
     matched -- never the socket's, which behind a TLS-terminating proxy is
     http whichever origin the client used.'''
     client = proxied(tmp_path, "http://lab.test:8080", "https://sc.example.test")
@@ -529,7 +529,7 @@ def test_htu_and_handed_out_urls_come_from_config_behind_a_proxy(tmp_path):
 
 def test_me_reports_the_callers_account(client, key):
     '''`authorized` is omitted, since {} would claim "granted nothing" where
-    there are no grants; `projects` is sent empty, deliberately. 🔴 `limits`
+    there are no grants; `projects` is sent empty, deliberately. `limits`
     are the caller's effective values: `GET /v1` takes no credential, so cannot
     vary by caller. `usage` is derived, never metered: `used` this calendar
     month, `total` everything, `null` on a stock (entitlements §3; D74).'''
@@ -560,7 +560,7 @@ def test_me_reports_the_callers_account(client, key):
 
 
 def test_me_carries_the_session_the_request_was_made_in(client, key):
-    '''🔴 From the calling token's family and device, every member REQUIRED
+    '''From the calling token's family and device, every member REQUIRED
     (surface §5; D276), and reading it rotates nothing.'''
     first = login(client, key).get_json()
     session = call(client, key, "GET", "/v1/me", first["access_token"]).get_json()["session"]
@@ -608,7 +608,7 @@ def test_authenticated_responses_are_never_cacheable(client, key):
 
 
 def test_a_per_account_download_ceiling(client, key):
-    '''🔴 An override reaches the caller on `/v1/me`, never `GET /v1`. ⚠️ The
+    '''An override reaches the caller on `/v1/me`, never `GET /v1`. The
     table stores unlimited as `-1` (the wire spent `null` on it, and the table
     needs `null` for *inherit*); only a declared limit can be overridden.'''
     from siliconcompiler.remote.server.identity import accounts

@@ -49,7 +49,7 @@ def a_manifest(nop_project, where) -> Path:
 @pytest.mark.timeout(300)
 def test_no_manifest_is_parsed_in_the_server_process(
         server, server_client, key, token, job_archive, monkeypatch):
-    '''🔴 With SiliconCompiler's loader refusing in this process, a job still
+    '''With SiliconCompiler's loader refusing in this process, a job still
     stages and its run completes, its metrics in the portal's table as JSON.'''
     from siliconcompiler import Project
 
@@ -94,7 +94,7 @@ def test_a_task_module_the_manifest_names_is_never_imported_by_the_read(
 def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere(
         server, server_client, key, token, job_archive, nop_project, dispatcher, caplog,
         tmp_path, where):
-    '''🔴 As a client that did not strip it would send it, in the root
+    '''As a client that did not strip it would send it, in the root
     manifest or an upstream node's under `<step>/<index>/outputs/` (surface
     D307): `archive-rejected`, `credential`, the first such keypath and every
     one in `detail`, never the value -- in no response, row, log line or file
@@ -244,7 +244,7 @@ def read_as(job_archive, server_client, key, token, monkeypatch, damage):
     lambda summary: dict(summary, outcome={"type": "entitlement-denied", "reason": None}),
     lambda summary: dict(summary, flow="f" * (manifestread.MAX_NAME + 1)),
     lambda summary: dict(summary, values=[{"key": ["library"], "kind": "who", "origin": "x"}]),
-    # 🔴 A step travels into a primary key, a path and a URL.
+    # A step travels into a primary key, a path and a URL.
     lambda summary: dict(summary, nodes=[dict(summary["nodes"][0], step="../../etc"),
                                          *summary["nodes"][1:]]),
 ], ids=["shape", "version", "outcome", "flow-length", "value", "node-name"])
@@ -337,7 +337,7 @@ def test_a_manifest_for_another_design_is_declared_mismatch(nop_project, tmp_pat
 
 def test_a_project_with_no_pdk_where_it_takes_one_is_resource_unresolved(
         gcd_design, tmp_path):
-    '''🔴 The PDK fails closed only where the class has a PDK setting.'''
+    '''The PDK fails closed only where the class has a PDK setting.'''
     from siliconcompiler import ASIC
 
     project = ASIC(gcd_design)
@@ -355,7 +355,7 @@ def test_a_project_with_no_pdk_where_it_takes_one_is_resource_unresolved(
 
 def test_the_run_loads_the_manifest_as_it_was_uploaded(
         server, server_client, key, token, job_archive, dispatcher):
-    '''🔴 Byte for byte the upload's; the overrides and the summary are data
+    '''Byte for byte the upload's; the overrides and the summary are data
     beside it, out of the upload's reach.'''
     path, digest, size = job_archive()
     with tarfile.open(path) as tar:

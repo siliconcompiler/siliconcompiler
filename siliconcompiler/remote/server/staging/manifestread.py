@@ -4,15 +4,15 @@ stages, whose only output is a data summary.
 
 ``python3 -m siliconcompiler.remote.server.staging.manifestread <request>``
 
-🔴 Contract §1: no server process holding credentials parses a manifest, since
+Contract §1: no server process holding credentials parses a manifest, since
 reading one resolves whatever classes the uploader named. So the read runs
 here, from ``sc-server``'s own SiliconCompiler (profile §5), given only
 :func:`request`'s data and no path to the data directory, key, store or
 private roots. Its summary is untrusted input, held to :func:`validate`.
 
-🔴 It contains itself as far as the host allows (:func:`contain`; profile §5,
+It contains itself as far as the host allows (:func:`contain`; profile §5,
 implementation-notes §E); in the job's container, the container is the
-boundary. ⚠️ Where nodes run on the host there is no filesystem boundary: this
+boundary. Where nodes run on the host there is no filesystem boundary: this
 profile makes no security claim (§0).
 '''
 
@@ -29,7 +29,7 @@ __all__ = ["SUMMARY_VERSION", "Invalid", "request", "validate", "read", "contain
 # A shape change is a new number; an unknown one is a malformed summary.
 SUMMARY_VERSION = 4
 
-# 🔴 The manifest controls what this process writes, so the summary is capped
+# The manifest controls what this process writes, so the summary is capped
 # whole and per field as it is read back.
 MAX_SUMMARY_BYTES = 16 * 1024 * 1024
 MAX_STRING = 4096
@@ -90,7 +90,7 @@ def request(tree, design: str, jobname: str, requires_siliconcompiler=None,
 def validate(summary: Any) -> Dict[str, Any]:
     '''``summary`` held to its shape and bounds, or :class:`Invalid`.
 
-    🔴 Every node name goes through the one node-name check before it reaches
+    Every node name goes through the one node-name check before it reaches
     a column, a path or a URL (implementation-notes §E).
     '''
     from siliconcompiler.flowgraph import Flowgraph
@@ -228,7 +228,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
 
     manifest = os.path.join(tree, f"{design}.pkg.json")
     schemaclasses.load()
-    # 🔴 Reading a newer manifest silently drops or replaces keys, so
+    # Reading a newer manifest silently drops or replaces keys, so
     # SiliconCompiler's warning is the refusal.
     with warnings.catch_warnings(record=True) as raised:
         warnings.simplefilter("always", SchemaVersionWarning)
@@ -256,7 +256,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                       f"the manifest is {project.name}/{project.option.get_jobname()} "
                       f"and the job is {design}/{jobname}")
 
-    # 🔴 Each dataroot path carrying userinfo, by keypath, never value (surface D302).
+    # Each dataroot path carrying userinfo, by keypath, never value (surface D302).
     summary["credentials"] = [list(keypath)
                               for keypath, path in owners.dataroot_paths(project)
                               if owners.has_userinfo(path)]
@@ -288,7 +288,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     summary["flow"] = flow.name
     tasks = {node: flow.get_graph_node(*node).get_taskmodule() for node in nodes}
 
-    # 🔴 An unprovided task class is refused (surface D163), by name, before
+    # An unprovided task class is refused (surface D163), by name, before
     # anything below asks for a task, which imports it.
     known = manifests.known_classes()
     unknown: Dict[str, List[str]] = {}
@@ -356,7 +356,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     summary["values"] = owners.value_records(
         project, os.path.join(tree, "sc_collected_files"), required)
 
-    # 🔴 Fails closed where the class has a PDK setting left unset.
+    # Fails closed where the class has a PDK setting left unset.
     if summary["pdk"] is None:
         return refuse("resource-unresolved",
                       f"this {type(project).__name__} project sets no PDK: set one "
@@ -366,7 +366,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _unattended(project, nodes):
-    '''🔴 ``(reason, detail)`` for a node that would wait for a person, or None (surface D165).
+    '''``(reason, detail)`` for a node that would wait for a person, or None (surface D165).
 
     A breakpoint, or a task that opens a window; a `ScreenshotTask` is headless.'''
     from siliconcompiler import OpenTask, ScreenshotTask
@@ -393,7 +393,7 @@ def _unattended(project, nodes):
 def _libraries(project) -> List[str]:
     '''The standard-cell libraries this run uses, main library first.
 
-    ⚠️ Both keys: `asic,asiclib` is only filled from `asic,mainlib` when a run starts.
+    Both keys: `asic,asiclib` is only filled from `asic,mainlib` when a run starts.
     '''
     found: List[str] = []
     for key in ("mainlib", "asiclib"):
@@ -416,14 +416,14 @@ FILE_BYTES = 16 * 1024 * 1024
 def contain(cpu_seconds: int = CPU_SECONDS, memory_bytes: int = MEMORY_BYTES) -> Dict[str, Any]:
     '''Contain this process before it opens anything; returns what it achieved.
 
-    🔴 In this process after ``exec``, never a ``preexec_fn``, unsafe in a threaded server.
+    In this process after ``exec``, never a ``preexec_fn``, unsafe in a threaded server.
     '''
     achieved = {"network": False, "limits": False}
 
     unshare = getattr(os, "unshare", None)
     if unshare is not None and sys.platform.startswith("linux"):
         try:
-            # 🔴 The network namespace holds only a loopback that is down.
+            # The network namespace holds only a loopback that is down.
             unshare(os.CLONE_NEWUSER | os.CLONE_NEWNET)
             achieved["network"] = True
         except OSError:

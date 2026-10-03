@@ -32,7 +32,7 @@ def test_every_type_has_a_page_that_agrees_with_the_registry(slug):
     error = ERRORS[slug]
     page = read(slug)
 
-    # 🔴 The title is quoted verbatim, never reworded: it is the same string on
+    # The title is quoted verbatim, never reworded: it is the same string on
     # every occurrence, and a paraphrase makes the page and the response
     # disagree.
     title = re.search(r'<p class="title">(.*?)</p>', page).group(1)
@@ -128,7 +128,7 @@ def test_the_render_script_writes_every_page():
                                   "/server-errors/entitlement-denied.html"])
 def test_a_page_is_served_by_its_slug_with_or_without_the_extension(server_client,
                                                                     path):
-    '''🔴 The `type` URIs carry no `.html`, and the pages link to each other
+    '''The `type` URIs carry no `.html`, and the pages link to each other
     with it. Both resolve.'''
     response = server_client.get(path)
 

@@ -3,13 +3,13 @@
 
 A one-shot compose service ``scserver`` waits on: it leaves a populated
 registry, a staged bundle per image, and a ``config.json`` saying jobs run in
-containers. 🔴 A service, not a script to remember: ``containers: true`` with an
+containers. A service, not a script to remember: ``containers: true`` with an
 empty registry refuses to start, so as two commands it deadlocked.
 
-⚠️ The one privilege this stack takes: the docker socket, in this container
+The one privilege this stack takes: the docker socket, in this container
 only, for two calls (tag and push), to get the built images into a registry.
-🔴 A registry because a locally built image has no repository digest, and the
-digest is what is approved and run. ⚠️ Two names for it: the host's daemon
+A registry because a locally built image has no repository digest, and the
+digest is what is approved and run. Two names for it: the host's daemon
 pushes to ``localhost:5000``, the cluster pulls (and registers) ``registry:5000``.
 '''
 
@@ -41,8 +41,8 @@ PYTHON = os.environ.get("SC_IMAGE_PYTHON", "python3")
 DATADIR = Path(os.environ.get("SC_DATADIR", "/sc_server"))
 DOCKER_SOCK = os.environ.get("SC_DOCKER_SOCKET", "/var/run/docker.sock")
 
-# 🔴 Every tool SiliconCompiler can drive, and its driver module, spelled out.
-# ⚠️ No convention to fall back on: `kepler-formal` is `tools.keplerformal`.
+# Every tool SiliconCompiler can drive, and its driver module, spelled out.
+# No convention to fall back on: `kepler-formal` is `tools.keplerformal`.
 DRIVERS = {
     "bambu": "siliconcompiler.tools.bambu.convert",
     "bluespec": "siliconcompiler.tools.bluespec.convert",
@@ -76,29 +76,29 @@ DRIVERS = {
     "yosys": "siliconcompiler.tools.yosys",
 }
 
-# 🔴 Driven but deliberately not published: named, so a test can tell a tool
+# Driven but deliberately not published: named, so a test can tell a tool
 # forgotten here from one left out on purpose.
 NOT_PUBLISHED = {"vivado"}
 
-# ⚠️ `builtin` and `execute` are in neither: their `_remote_toolname` is None.
+# `builtin` and `execute` are in neither: their `_remote_toolname` is None.
 TOOLS = sorted(DRIVERS)
 
-# 🔴 Tools whose version is a Python distribution (`version_package`): slang's
-# driver runs pyslang in-process. ⚠️ A wrapper still needs its program, so the
+# Tools whose version is a Python distribution (`version_package`): slang's
+# driver runs pyslang in-process. A wrapper still needs its program, so the
 # Dockerfile installs `dot` for graphviz; the probe does not check it.
 AS_DISTRIBUTION = {"slang": "pyslang", "graphviz": "graphviz"}
 
 # Distributions a node's SiliconCompiler process needs, at SiliconCompiler's range.
 FRAMEWORK = ("cocotb",)
 
-# 🔴 What the tools image must hold: a missing one refuses the registration as a
+# What the tools image must hold: a missing one refuses the registration as a
 # broken image, where any other catalogue tool is merely not offered.
 EXPECTED = (os.environ.get("SC_TOOLS")
             or "klayout openroad opensta yosys vpr icarus verilator bambu "
                "soda mlir slang").split()
 
 # What a framework image needs to submit nodes: munge's socket, slurm.conf, and
-# 🔴 resolv.conf, which Slurm does not carry over, or slurmctld will not resolve
+# resolv.conf, which Slurm does not carry over, or slurmctld will not resolve
 # ("Unable to contact slurm controller").
 MOUNTS = ["/run/munge", "/sc_tools/etc", "/etc/resolv.conf"]
 
@@ -123,7 +123,7 @@ def say(message: str) -> None:
 class _Daemon(HTTPConnection):
     '''The Engine API over its unix socket.
 
-    ⚠️ Not `skopeo docker-daemon:`, which exports gigabytes to compute a
+    Not `skopeo docker-daemon:`, which exports gigabytes to compute a
     manifest, nor the `docker` CLI, a package needed for nothing else.
     '''
 
@@ -199,14 +199,14 @@ def _get(path: str):
 def run_in(image: str, command) -> str:
     '''Run one command inside an image and return what it printed.
 
-    🔴 The only way to know what is in an image is to ask it from inside.
+    The only way to know what is in an image is to ask it from inside.
     '''
     from siliconcompiler.remote.server.software import probe
 
     created = _call("POST", "/containers/create",
-                    # 🔴 `Entrypoint: []`, or Cmd becomes arguments to the
+                    # `Entrypoint: []`, or Cmd becomes arguments to the
                     # image's ENTRYPOINT and the probe reports nothing.
-                    # 🔴 No TTY: on a terminal tools colour and wrap their output
+                    # No TTY: on a terminal tools colour and wrap their output
                     # (klayout's colour once hid a frame's closing marker).
                     {"Image": image, "Entrypoint": [], "Cmd": list(command),
                      "Tty": False, "NetworkDisabled": True})
@@ -214,7 +214,7 @@ def run_in(image: str, command) -> str:
     try:
         _call("POST", f"/containers/{container}/start")
         _call("POST", f"/containers/{container}/wait")
-        # 🔴 Bounded, on a host with the docker socket; doubled for the framing.
+        # Bounded, on a host with the docker socket; doubled for the framing.
         return _demux(_call("GET",
                             f"/containers/{container}/logs?stdout=1&stderr=1",
                             raw=True, binary=True, limit=2 * probe.MAX_OUTPUT))
@@ -241,7 +241,7 @@ def ask_image(image: str, python_names, tools) -> dict:
     '''What this image actually holds, by running the probe's script in it.
 
     ``tools`` maps each tool to its driver module, read here, where
-    SiliconCompiler is. ⚠️ Never fatal: unknown versions have a spelling in
+    SiliconCompiler is. Never fatal: unknown versions have a spelling in
     the registry, and no deployment at all is worse.
     '''
     from siliconcompiler.remote.server.software import probe
@@ -268,7 +268,7 @@ def ask_image(image: str, python_names, tools) -> dict:
 def published_on(local: str) -> str:
     '''The day an image was built, as the `published_date` version of a tool reporting none.
 
-    🔴 Never an invented number, which would read as reported. ⚠️ The image's
+    Never an invented number, which would read as reported. The image's
     creation date, not today's, so a re-run registers the same row.
     '''
     created = built_at(local)
@@ -283,7 +283,7 @@ def published_on(local: str) -> str:
 def built_at(local: str) -> str:
     '''When the image was built, to the second.
 
-    🔴 Not `published_on`'s date: this breaks ties between images, and two built
+    Not `published_on`'s date: this breaks ties between images, and two built
     on one day is ordinary.
     '''
     return _get(f"/images/{local}/json").get("Created") or ""
@@ -292,8 +292,8 @@ def built_at(local: str) -> str:
 def content_of(local: str):
     '''The image's own manifest digest and platform, or ``(None, None)``.
 
-    🔴 Stable across a no-op rebuild, unlike the ID: on the containerd store the
-    ID is an index carrying BuildKit's timestamped attestation. ⚠️ Compose did
+    Stable across a no-op rebuild, unlike the ID: on the containerd store the
+    ID is an index carrying BuildKit's timestamped attestation. Compose did
     not pass `provenance: false` through. None on the classic store, already stable.
     '''
     for manifest in _get(f"/images/{local}/json?manifests=1").get("Manifests") or []:
@@ -306,7 +306,7 @@ def content_of(local: str):
 def push(local: str, repository: str, tag: str) -> str:
     '''Put one locally built image in the registry; returns its digest.
 
-    🔴 Tagged with its SiliconCompiler version, for the reader. ⚠️ Nothing
+    Tagged with its SiliconCompiler version, for the reader. Nothing
     resolves by tag: the digest is what is registered, staged and run.
     '''
     target = f"{PUSH_TO}/{repository}"
@@ -314,7 +314,7 @@ def push(local: str, repository: str, tag: str) -> str:
     say(f"pushing {local} to {target}:{tag}")
     _post(f"/images/{local}/tag?repo={target}&tag={tag}")
 
-    # 🔴 Only this platform's manifest, so the digest survives a no-op rebuild
+    # Only this platform's manifest, so the digest survives a no-op rebuild
     # (`content_of`).
     query = f"tag={tag}"
     _, platform = content_of(local)
@@ -352,7 +352,7 @@ def digest_of(local: str, repository: str):
 def pushed_as(local: str, repository: str):
     '''The digest this exact image was pushed as, or None.
 
-    ⚠️ From `RepoDigests`, not `Id`, which on the classic store is the config's digest.
+    From `RepoDigests`, not `Id`, which on the classic store is the config's digest.
     '''
     prefix = f"{PUSH_TO}/{repository}@"
     for ref in _get(f"/images/{local}/json").get("RepoDigests") or []:
@@ -375,7 +375,7 @@ def wait_for_registry() -> None:
 def write_config() -> None:
     '''Write what this deployment is.
 
-    🔴 Before staging: a bundle bakes in the mount list it was staged with.
+    Before staging: a bundle bakes in the mount list it was staged with.
     '''
     path = DATADIR / "config.json"
     DATADIR.mkdir(parents=True, exist_ok=True)
@@ -408,7 +408,7 @@ def write_config() -> None:
 def registry(*args: str) -> None:
     '''One operator command, its own message left to speak for itself.
 
-    ⚠️ Not `check=True`, whose traceback would bury what the child printed.
+    Not `check=True`, whose traceback would bury what the child printed.
     '''
     done = subprocess.run(
         [sys.executable, "-m", "siliconcompiler.remote.server.software.registry",
@@ -421,9 +421,9 @@ def registry(*args: str) -> None:
 def _declare(tool: str, answer, published: str):
     """What one image should say it holds for one tool, as add-image arguments.
 
-    The version read, else the publish date, marked. 🔴 Only where the probe saw
+    The version read, else the publish date, marked. Only where the probe saw
     it present: an unchecked claim dispatches nodes into images without the tool.
-    ⚠️ Never a variable named `version`, which shadowed `register`'s.
+    Never a variable named `version`, which shadowed `register`'s.
     """
     answer = answer or {}
     if answer.get("present") is not True:
@@ -441,8 +441,8 @@ def _declare(tool: str, answer, published: str):
 def _refuse_what_is_missing(image: str, held: dict) -> None:
     """Refuse the whole image where an `EXPECTED` tool tested absent.
 
-    🔴 The whole image, not the row: the failure is cheapest here, before a node
-    is placed in it and dies. ⚠️ Only a tested absence; untested or mute is fine.
+    The whole image, not the row: the failure is cheapest here, before a node
+    is placed in it and dies. Only a tested absence; untested or mute is fine.
     """
     missing = [tool for tool in EXPECTED
                if (held.get(tool) or {}).get("present") is False]
@@ -459,7 +459,7 @@ def _refuse_what_is_missing(image: str, held: dict) -> None:
 def say_what_it_holds(held: dict) -> None:
     """One line per tool that is there, with both numbers where they differ.
 
-    🔴 A function, not a loop in `main`: a loop variable `version` twice
+    A function, not a loop in `main`: a loop variable `version` twice
     shadowed the SiliconCompiler version and mis-tagged both images.
     """
     for tool in TOOLS:
@@ -469,8 +469,8 @@ def say_what_it_holds(held: dict) -> None:
         if answer.get("present") is False:
             continue
         if answer.get("unparsed"):
-            # 🔴 Said loudly: presence was right and the parse was not (gtkwave's
-            # `initialize`), and nothing downstream can tell. ⚠️ Recorded as the
+            # Said loudly: presence was right and the parse was not (gtkwave's
+            # `initialize`), and nothing downstream can tell. Recorded as the
             # publish date, never rewritten.
             say(f"  {tool}: present, but {answer['unparsed']!r} is not a "
                 f"version; recorded as the publish date -- check what `{tool}` "
@@ -488,8 +488,8 @@ def register(version: str, tools_digest: str, runtime_digest: str,
              published: str, held: dict, runtime_held: dict) -> None:
     '''Put what the probe found into the registry.
 
-    🔴 A version read is registered as reported, otherwise the publish date,
-    marked (`images.matches`). ⚠️ Each image declares only what it answered for.
+    A version read is registered as reported, otherwise the publish date,
+    marked (`images.matches`). Each image declares only what it answered for.
     '''
     _refuse_what_is_missing(STACK_IMAGE, held)
 
@@ -498,7 +498,7 @@ def register(version: str, tools_digest: str, runtime_digest: str,
 
     contains, runtime_contains = [], []
 
-    # 🔴 Each image's own Python, matched by `requested_versions.interpreter`.
+    # Each image's own Python, matched by `requested_versions.interpreter`.
     from siliconcompiler.remote.server.software import probe
     registry("add-software", probe.INTERPRETER, "-kind", "interpreter")
     for answer, into in ((held, contains), (runtime_held, runtime_contains)):
@@ -506,7 +506,7 @@ def register(version: str, tools_digest: str, runtime_digest: str,
         if said.get("present") and said.get("version"):
             into += _declare(probe.INTERPRETER, said, published)
 
-    # 🔴 cocotb, named in a cocotb node's `requested_versions.python`.
+    # cocotb, named in a cocotb node's `requested_versions.python`.
     for name in FRAMEWORK:
         registry("add-software", name, "-kind", "python")
         contains += _declare(name, held.get(name), published)
@@ -518,7 +518,7 @@ def register(version: str, tools_digest: str, runtime_digest: str,
             add += ["-version-package", AS_DISTRIBUTION[tool]]
         registry(*add)
 
-        # 🔴 Each image declares exactly what the probe found in it.
+        # Each image declares exactly what the probe found in it.
         contains += _declare(tool, held.get(tool), published)
         runtime_contains += _declare(tool, runtime_held.get(tool), published)
 
@@ -535,8 +535,8 @@ def register(version: str, tools_digest: str, runtime_digest: str,
 def already_registered(version: str) -> bool:
     '''Whether both images are live in the store, at this version and digest, and staged.
 
-    🔴 Asked of the store, never a marker file that a reset store would contradict.
-    ⚠️ The manifest digest (`content_of`) is the whole test: it changes exactly
+    Asked of the store, never a marker file that a reset store would contradict.
+    The manifest digest (`content_of`) is the whole test: it changes exactly
     when the image does.
     '''
     from siliconcompiler.remote.server.software import images
@@ -569,16 +569,16 @@ def main() -> int:
     version = siliconcompiler.__version__
 
     wait_for_registry()
-    # ⚠️ Every time, before the check: settings change without the images.
+    # Every time, before the check: settings change without the images.
     write_config()
 
-    # 🔴 Or every `compose up` re-probes, re-pushes and re-registers both.
+    # Or every `compose up` re-probes, re-pushes and re-registers both.
     if already_registered(version):
         say(f"siliconcompiler {version} is already registered at these "
             "digests; nothing to do")
         return 0
 
-    # ⚠️ A rebuild at the same version supersedes the old image; at a new one
+    # A rebuild at the same version supersedes the old image; at a new one
     # both stay live. Read off the local image, before the push.
     published = published_on(STACK_IMAGE)
 
@@ -586,7 +586,7 @@ def main() -> int:
     held = ask_image(STACK_IMAGE, ["siliconcompiler", *FRAMEWORK], DRIVERS)
     say_what_it_holds(held)
 
-    # ⚠️ Asked too: it carries what arrives with siliconcompiler (`slang`).
+    # Asked too: it carries what arrives with siliconcompiler (`slang`).
     say("asking the runtime image the same")
     runtime_held = ask_image(RUNTIME_IMAGE, ["siliconcompiler", *FRAMEWORK], DRIVERS)
     for tool in TOOLS:

@@ -105,7 +105,7 @@ def test_the_rigs_capabilities_carry_every_required_member(capabilities):
     assert {"api_version", "software", "grant_types_supported", "limits", "features",
             "identity_assurance", "notices"} <= set(capabilities)
     assert capabilities["api_version"] == "v1"
-    # 🔴 A closed set of buckets, and `siliconcompiler` REQUIRED in `python`.
+    # A closed set of buckets, and `siliconcompiler` REQUIRED in `python`.
     assert set(capabilities["software"]) == {"python", "tools", "interpreter"}
     assert "siliconcompiler" in capabilities["software"]["python"]
     # This profile serves no device grant, so it must not advertise one.
@@ -127,7 +127,7 @@ def test_the_rigs_capabilities_carry_every_required_member(capabilities):
 ], ids=["pass", "fail", "proxy"])
 def test_health_is_one_word_and_a_503_is_an_answer(fake_v1, tmp_credentials, body, status,
                                                    content_type, expected):
-    '''🔴 The endpoint serves `fail` as a 503, and nothing answering 503 here
+    '''The endpoint serves `fail` as a 503, and nothing answering 503 here
     is serving, whatever it sends.'''
     fake_v1.route(responses.GET, "healthz", body, status=status, content_type=content_type)
 
@@ -137,7 +137,7 @@ def test_health_is_one_word_and_a_503_is_an_answer(fake_v1, tmp_credentials, bod
 
 def test_the_deployment_report_is_what_the_server_says_it_is(
         fake_v1, tmp_credentials, capabilities, caplog):
-    '''🔴 Unauthenticated, so it prints before enrolment and for a server
+    '''Unauthenticated, so it prints before enrolment and for a server
     that is down. Limits in readable units; null is unlimited, not zero.'''
     capabilities["limits"]["concurrent_jobs"] = None
     fake_v1.replace(responses.GET, "", capabilities)
@@ -253,7 +253,7 @@ def _asked(monkeypatch, answer=None, tty=False, ci=False):
 
 def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
         logged_in, fake_v1, caplog, monkeypatch):
-    '''🔴 Named before it takes effect; the client never accepts, and asks for
+    '''Named before it takes effect; the client never accepts, and asks for
     no page it will not open.'''
     _asked(monkeypatch)
     fake_v1.route(responses.GET, "me", me_body(terms_entry()))
@@ -327,7 +327,7 @@ def test_login_needs_no_human_and_asserts_a_derived_subject(
 
     assert body["access_token"] == "access-token-one"
     assert tmp_credentials.refresh_token == "refresh-token-one"
-    # 🔴 The access token is never written down.
+    # The access token is never written down.
     assert "access_token" not in json.loads(tmp_credentials.path.read_text())
     sent = _form(fake_v1.calls[-1].request.body)
     assert sent["grant_type"] == "client_credentials"
@@ -337,7 +337,7 @@ def test_login_needs_no_human_and_asserts_a_derived_subject(
 
 
 def test_no_fingerprint_no_access(fake_v1, tmp_credentials, client_credentials):
-    '''🔴 With no machine id every such host would derive one subject.'''
+    '''With no machine id every such host would derive one subject.'''
     from siliconcompiler.remote.client import identity
 
     fake_v1.route(responses.POST, "auth/token", client_credentials)
@@ -350,7 +350,7 @@ def test_no_fingerprint_no_access(fake_v1, tmp_credentials, client_credentials):
 
 
 def test_the_subject_derivation_is_pinned():
-    '''🔴 Changing the salt or the derivation is a silent identity migration:
+    '''Changing the salt or the derivation is a silent identity migration:
     every user becomes a stranger on every server at once. The uid is in the
     subject (one identity per user on a login node); the machine label is
     not the subject.'''
@@ -372,7 +372,7 @@ def test_the_subject_derivation_is_pinned():
 
 def test_a_first_command_enrolls_and_the_next_refreshes(
         fake_v1, tmp_credentials, client_credentials):
-    '''🔴 `client_credentials` mints a new twelve-day token family each call,
+    '''`client_credentials` mints a new twelve-day token family each call,
     so a later process must use `refresh_token` -- and send no scope.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
@@ -388,7 +388,7 @@ def test_a_first_command_enrolls_and_the_next_refreshes(
 @pytest.mark.parametrize("reason", ["revoked", None, "reused"])
 def test_a_dead_refresh_token_falls_back_to_enrolling_once(
         fake_v1, tmp_credentials, client_credentials, caplog, reason):
-    '''🔴 Exactly one refresh and one enrolment: a refused refresh once
+    '''Exactly one refresh and one enrolment: a refused refresh once
     recursed through login() for hundreds of real round trips. The new token
     replaces the dead one; `reused` also says to rotate the key.'''
     tmp_credentials.save_tokens({"refresh_token": "long-dead"})
@@ -435,7 +435,7 @@ def test_a_dead_session_is_logged_into_again_never_refreshed(logged_in, fake_v1)
                                          (20, None), (None, None)])
 def test_a_refused_proof_fails_and_says_when_the_clock_is_off(logged_in, fake_v1,
                                                               offset, said):
-    '''🔴 Surface D167: a bad proof is not a stale token, so nothing is
+    '''Surface D167: a bad proof is not a stale token, so nothing is
     refreshed; a clock over a minute out is named from the server's `Date`.'''
     import email.utils
     import time as clock
@@ -559,7 +559,7 @@ def test_logout_forgets_the_session(fake_v1, logged_in, tmp_credentials, answer)
 def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credentials,
                                              client_credentials, caplog, software, said,
                                              unsaid):
-    '''🔴 Visible while somebody watches, not at the first submit; the server
+    '''Visible while somebody watches, not at the first submit; the server
     still decides. A server naming no software is not second-guessed. A new
     server is not identity drift, so the old principal is forgotten.'''
     if software is not None:

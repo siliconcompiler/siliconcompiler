@@ -88,7 +88,7 @@ wait_for_port() {
 
 case "$role" in
 bootstrap)
-    # 🔴 The one role that is not a daemon and does not touch munge or slurm.
+    # The one role that is not a daemon and does not touch munge or slurm.
     # It puts the two images compose just built into the registry, registers
     # them and stages their bundles, and then exits -- and `scserver` waits for
     # that exit, which is what makes `docker compose up` the whole procedure.
@@ -121,7 +121,7 @@ ctld)
     start_munge
     wait_for_port slurmdbd 6819 "slurmdbd"
 
-    # 🔴 **Recover the JOBS and never the NODES.** StateSaveLocation is on a
+    # **Recover the JOBS and never the NODES.** StateSaveLocation is on a
     # volume so a controller restart does not forget what was queued -- but
     # every node in this cluster is DYNAMIC: it exists because `slurmd -Z` said
     # so, and it appears in no configuration file. Recovering one from state
@@ -141,7 +141,7 @@ ctld)
     # seconds. `job_state` is deliberately left alone.
     rm -f /sc_tools/spool/slurm/node_state /sc_tools/spool/slurm/node_state.old
 
-    # ⚠️ Say so before slurmctld does. On a first start there is genuinely no
+    # Say so before slurmctld does. On a first start there is genuinely no
     # saved state, and slurmctld announces that as two `error:` lines and
     # "Jobs may be lost!" -- which is true of no jobs and reads like a fault on
     # a deployment that has never run one. It cannot be suppressed: it is the
@@ -158,7 +158,7 @@ ctld)
     # slim one -- and docker pre-populates an empty NAMED volume from the image
     # path, ownership included. Verified: the volume comes up 999:996.
     #
-    # ⚠️ That copy is a named-volume behaviour only. Bind-mount a host
+    # That copy is a named-volume behaviour only. Bind-mount a host
     # directory over it instead and it arrives root-owned, and slurmctld
     # refuses a state directory it cannot write.
 
@@ -242,7 +242,7 @@ ctld)
     # underneath it -- which surfaces later and far away, as jobs that never
     # dispatch. Exiting on the first child to die makes the container's status
     # say what actually happened.
-    # 🔴 Signal them AND WAIT. slurmctld saves its state on SIGTERM by writing
+    # Signal them AND WAIT. slurmctld saves its state on SIGTERM by writing
     # job_state.new, fsyncing and renaming it into place -- so a shell that
     # signals and then exits takes PID 1 down mid-save, docker tears the
     # container apart, and what is left on the volume is a ZERO-LENGTH
@@ -336,7 +336,7 @@ node)
     # On the way out, take the node back out of the cluster, so scaling down
     # does not leave the controller holding nodes that will never answer.
     #
-    # 🔴 **And then EXIT, rather than returning into the loop below.** A trap
+    # **And then EXIT, rather than returning into the loop below.** A trap
     # interrupts the `sleep`, runs, and hands control back -- so without this
     # the shell went round again, slept another fifteen seconds, and was still
     # sleeping when docker's ten-second grace period ran out. Every stop became
@@ -354,13 +354,13 @@ node)
     }
     trap cleanup INT TERM
 
-    # 🔴 Deleting the node is not politeness, it is what stops a zombie job.
+    # Deleting the node is not politeness, it is what stops a zombie job.
     # A dynamic node that vanishes without being deleted leaves the controller
     # holding it AND whatever was running on it, reported RUNNING for ever on a
     # container that no longer exists -- and the API believes the scheduler,
     # so the job never leaves `running` either.
 
-    # 🔴 **Re-register when the controller has forgotten us.** A dynamic node
+    # **Re-register when the controller has forgotten us.** A dynamic node
     # exists only in slurmctld's memory -- "slurmd -Z" tells the controller it
     # is here and appears in no configuration file -- so a controller that
     # restarts comes back with no record of any of them. `sinfo` then reports
@@ -371,7 +371,7 @@ node)
     # that says "restart the runners", which is the fix, and it had to be done
     # by hand in the right order every time the server was rebuilt.
     #
-    # ⚠️ Restarting slurmd ends whatever it was running, and that is not a
+    # Restarting slurmd ends whatever it was running, and that is not a
     # cost: a controller with no record of this node has already lost those
     # jobs. The node is unreachable work either way, and this way it comes
     # back.
@@ -380,7 +380,7 @@ node)
     # unreachable is a different thing -- it is down, or restarting -- and
     # bouncing slurmd at it then would just churn until it returns.
     #
-    # ⚠️ The interval is also how long a stop can take, which is why `cleanup`
+    # The interval is also how long a stop can take, which is why `cleanup`
     # exits rather than waiting for the next tick.
     while true; do
         if ! kill -0 "$slurmd_pid" 2>/dev/null; then
@@ -390,7 +390,7 @@ node)
             exit "$status"
         fi
 
-        # 🔴 Backgrounded and waited on, NOT a plain `sleep 15`. Bash defers a
+        # Backgrounded and waited on, NOT a plain `sleep 15`. Bash defers a
         # trap until the current FOREGROUND command finishes, so with a plain
         # sleep the TERM handler did not run for up to fifteen seconds --
         # longer than docker's ten-second grace period, so every stop became a

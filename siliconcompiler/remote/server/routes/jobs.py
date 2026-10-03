@@ -69,7 +69,7 @@ def create(session):
     '''Endpoint 13: no payload, so a job can be refused before bytes move.'''
     body, status = _jobs().create(session, _body(), _idempotency_key())
 
-    # 🔴 The job object itself, so `upload_sources` is one member wherever the
+    # The job object itself, so `upload_sources` is one member wherever the
     # server asks.
     response = _private(body, status)
     if status == 201:

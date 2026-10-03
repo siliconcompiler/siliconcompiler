@@ -22,7 +22,7 @@ __all__ = ["Storage", "SignatureError"]
 # Short-lived on purpose: it is re-issuable, so an interrupted client asks again.
 GRANT_SECONDS = 900
 
-# 🔴 What a grant must outlast (surface §14): the upload is one PUT with no
+# What a grant must outlast (surface §14): the upload is one PUT with no
 # resume, so the largest upload over a slow link, about fifteen minutes a GiB.
 GRANT_BITS_PER_SECOND = 10_000_000
 

@@ -270,7 +270,7 @@ def test_a_second_thread_gets_a_working_connection():
 @pytest.mark.skipif(not os.path.isdir("/proc/self/fd"),
                     reason="needs /proc to count descriptors")
 def test_a_server_polled_for_a_while_does_not_run_out_of_descriptors(tmp_path):
-    '''🔴 A thread per request, three descriptors a connection under WAL, kept
+    '''A thread per request, three descriptors a connection under WAL, kept
     for `close()` and never released: a client polling once a second ran the
     process out in minutes.'''
     import urllib.request

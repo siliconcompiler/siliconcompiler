@@ -1,7 +1,7 @@
 '''
 Starting the manifest's read (`manifestread`), and holding it to its limits.
 
-🔴 The process starts with nothing of the server's (profile §5;
+The process starts with nothing of the server's (profile §5;
 implementation-notes §E): an empty environment bar its own ``HOME``,
 ``TMPDIR`` and the ``PYTHONPATH`` of this server's SiliconCompiler, so no
 credential, proxy or data-directory path; an empty working directory outside
@@ -239,7 +239,7 @@ def _command(request: Path):
 
 def _environment(home: Path, cpu_seconds: Optional[int] = None,
                  memory_bytes: Optional[int] = None) -> Dict[str, str]:
-    '''🔴 Nothing of the server's: its own HOME, and where this server's
+    '''Nothing of the server's: its own HOME, and where this server's
     SiliconCompiler is.'''
     import siliconcompiler
 

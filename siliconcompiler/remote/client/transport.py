@@ -2,11 +2,11 @@
 The one request path: every API request goes through :meth:`Transport.request`,
 so none forgets its token, DPoP proof, ``User-Agent`` or operator headers.
 
-🔴 Two error shapes: OAuth refusals at ``/v1/auth/token`` and ``/v1/auth/device``
+Two error shapes: OAuth refusals at ``/v1/auth/token`` and ``/v1/auth/device``
 are ``{"error", "error_description", "reason"}``, all else problem+json, so the
 ``Content-Type`` is read first.
 
-🔴 The HTTP library never follows a redirect: it would carry the session's
+The HTTP library never follows a redirect: it would carry the session's
 headers and proof along. A ``303`` is followed by hand without them; any other
 redirect on a ``/v1`` path is the edge refusing.
 '''
@@ -51,9 +51,9 @@ USER_AGENT = f"siliconcompiler/{__version__}"
 class _NoEnvironmentCredential(requests.auth.AuthBase):
     '''A session `auth` that adds nothing: requests sends only what was set (surface D305).
 
-    🔴 Without it requests fills `auth` from `~/.netrc`, replacing the DPoP
+    Without it requests fills `auth` from `~/.netrc`, replacing the DPoP
     `Authorization` everywhere. `trust_env` stays on for proxies and CA bundles.
-    ⚠️ Holds only with `allow_redirects=False`: `rebuild_auth` rereads netrc.
+    Holds only with `allow_redirects=False`: `rebuild_auth` rereads netrc.
     '''
 
     def __call__(self, r):
@@ -179,7 +179,7 @@ class Transport:
     def operator_headers(self, url: str) -> Dict[str, str]:
         '''The operator headers a request to ``url`` carries.
 
-        🔴 Only to the API's origin, whatever a redirect names (surface D304).
+        Only to the API's origin, whatever a redirect names (surface D304).
         '''
         if origin_of(url) != self.api_origin:
             return {}
@@ -276,7 +276,7 @@ class Transport:
         401 loops on a nonce challenge, and on `session-ended` on a dead session.'''
         status = response.status_code
 
-        # 🔴 At the OAuth endpoints, problem+json is handled below, never read for `error`.
+        # At the OAuth endpoints, problem+json is handled below, never read for `error`.
         if again["oauth"] and not (response.headers.get("Content-Type") or "").lower() \
                 .startswith("application/problem+json"):
             return self._handle_oauth(response, again, attempt=attempt, waits=waits)
@@ -295,7 +295,7 @@ class Transport:
             if slug == "invalid-dpop-proof" and self._correct_clock(response):
                 return self.request(**again, _attempt=attempt + 1, _waits=waits)
 
-            # 🔴 Only an AUTHENTICATED request renews: an unauthenticated refresh
+            # Only an AUTHENTICATED request renews: an unauthenticated refresh
             # renewing on its own 401 would loop.
             if again["authenticated"] and slug == "invalid-token":
                 self._access_token = None
@@ -415,7 +415,7 @@ class Transport:
                     url, data=f, headers=sent, timeout=TIMEOUT_SECONDS,
                     allow_redirects=False)
             except requests.RequestException as e:
-                # 🔴 The URL is a capability: never printed.
+                # The URL is a capability: never printed.
                 raise RemoteError(f"could not upload the archive: {_why(e)}") from None
 
         if response.status_code >= 400:
@@ -433,7 +433,7 @@ class Transport:
         from urllib.parse import urljoin
         target = urljoin(response.url or self.base_url, target)
 
-        # 🔴 Contract rule 5 (D70): https never redirects to http.
+        # Contract rule 5 (D70): https never redirects to http.
         ours, theirs = urlsplit(self.base_url).scheme, urlsplit(target).scheme
         if theirs not in ("http", "https") or (ours == "https" and theirs != "https"):
             raise RemoteError(f"the server redirected an {ours} request to {theirs}, "
@@ -454,7 +454,7 @@ class Transport:
         '''Stream a response body to a file via a temporary name, so an
         interrupted download never looks complete.
 
-        🔴 Only the bytes: a refusal or redirect is never saved as the object.'''
+        Only the bytes: a refusal or redirect is never saved as the object.'''
         import os
         import shutil
 
@@ -495,7 +495,7 @@ class Transport:
     def refresh(self) -> bool:
         '''Spend the refresh token for a new access token; whether it worked.
 
-        🔴 One refresh at a time per store, inside its locked transaction: a
+        One refresh at a time per store, inside its locked transaction: a
         rotated token presented after the grace window ends every worker's session.
         '''
         if self._refreshing:

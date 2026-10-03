@@ -182,7 +182,7 @@ def test_a_test_module_that_cannot_be_read_stops_the_work(site):
 
 
 def test_the_lists_are_what_the_code_reaches_and_what_that_depends_on(site):
-    '''🔴 Canonical names at installed versions, constraining only what the
+    '''Canonical names at installed versions, constraining only what the
     install needs through `Requires-Dist` -- never the rest of this machine.'''
     _distribution(site, "SCFake_Umi", "0.3.1", requires=["scfakebits"])
     _distribution(site, "scfakebits", "1.2.0", requires=["scfakedeep>=1"])
@@ -394,7 +394,7 @@ def _created(fake_v1):
 
 def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
         site, fake_v1, logged_in, offers_python_env):
-    '''🔴 The index package listed as installed; the editable one a wheel in
+    '''The index package listed as installed; the editable one a wheel in
     neither list; the helper beside the test; cocotb left to the image.'''
     pytest.importorskip("pip")
 
@@ -491,7 +491,7 @@ def tb_project(gcd_design, **nodes):
 
 def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run(
         site, gcd_design, fake_v1, logged_in):
-    '''🔴 Its setup cannot run here: stop before create, naming it and why.
+    '''Its setup cannot run here: stop before create, naming it and why.
     A failing setup elsewhere drops no other node's Python.'''
     with pytest.raises(RemoteError, match="sim/0 runs your own Python.*cocotb is not installed"):
         RemoteRun(tb_project(gcd_design, sim=CannotSetUpHere()), logged_in)._python()

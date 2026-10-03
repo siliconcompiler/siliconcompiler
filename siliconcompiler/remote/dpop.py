@@ -57,7 +57,7 @@ def load_key(pem: bytes):
 def public_jwk(key) -> Dict[str, str]:
     '''The public half as a JWK: ``kty``, ``crv``, ``x`` and ``y``.
 
-    🔴 From the PUBLIC key, always: PyJWT adds ``d`` for a private one.
+    From the PUBLIC key, always: PyJWT adds ``d`` for a private one.
     '''
     from jwt.algorithms import ECAlgorithm
 
@@ -163,7 +163,7 @@ def verify_proof(proof: str, method: str, url: str,
     try:
         key = jwt.PyJWK.from_dict({**jwk, "alg": ALGORITHM}).key
         claims = jwt.decode(proof, key, algorithms=[ALGORITHM],
-                            # 🔴 The window below is the only `iat` check: PyJWT's
+                            # The window below is the only `iat` check: PyJWT's
                             # refuses a client a second fast.
                             options={"verify_exp": False, "verify_iat": False,
                                      "require": ["jti", "htm", "htu", "iat"]})

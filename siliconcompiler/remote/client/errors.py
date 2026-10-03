@@ -107,7 +107,7 @@ _NEXT_STEP = {
 
 
 def _by_status(status: Optional[int]) -> Optional[str]:
-    '''🔴 An unknown `type` is acted on by its status, as an untyped failure is.'''
+    '''An unknown `type` is acted on by its status, as an untyped failure is.'''
     if not isinstance(status, int):
         return None
     if status >= 500:
@@ -142,7 +142,7 @@ _NEXT_STEP_BY_REASON = {
 # A time or memory limit named in a run's `detail`.
 _LIMIT_IN_DETAIL = re.compile(r"\b(time|memory|wall[- ]?clock|oom)\b", re.IGNORECASE)
 
-# 🔴 For a run that failed with no failed NODE (common: dying in setup leaves every
+# For a run that failed with no failed NODE (common: dying in setup leaves every
 # node `cancelled`), where *the failing node's log* does not exist.
 NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")

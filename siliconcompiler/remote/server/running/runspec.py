@@ -3,7 +3,7 @@ What a submitted job becomes: the settings the server applies to an uploaded
 manifest, and the files the run and the API process speak through. No Flask:
 both the API process and the batch job read it, on different machines.
 
-🔴 The settings list is the sanitation policy, applied in this one place: two
+The settings list is the sanitation policy, applied in this one place: two
 copies would drift, and two spellings of one setup would be two run hashes.
 '''
 
@@ -94,16 +94,16 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
 
     Applied by the run itself (:func:`apply_run`). None of it is negotiable:
     no dashboard or display, per-user build and cache directories, the
-    server's job id as the remote id, 🔴 remote off (left on, the compute node
+    server's job id as the remote id, remote off (left on, the compute node
     submits the job again), and tracking where ``track``. The cache is per
     user, not shared: ``ccache`` and ``coursier`` dirs would get the first
     user's uid, and ``chmod`` cannot repair them.
 
-    🔴 `quiet` is deliberately not set: it is the submitter's
-    (`runner._silence_console` instead). 🔴 On a cluster every node is its own
-    Slurm job, so the API process still polls one orchestrator id. 🔴 A node's
+    `quiet` is deliberately not set: it is the submitter's
+    (`runner._silence_console` instead). On a cluster every node is its own
+    Slurm job, so the API process still polls one orchestrator id. A node's
     image is ``srun --container`` there and the docker scheduler by digest on
-    ``local``: ``option,scheduler,name`` holds one value. ⚠️ For Slurm,
+    ``local``: ``option,scheduler,name`` holds one value. For Slurm,
     ``option,scheduler,queue`` is the partition, so never an image reference.
     '''
     project.option.set_nodashboard(True)
@@ -121,12 +121,12 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
         project.get('option', 'scheduler', key, field=None).reset()
 
     if cluster == "slurm":
-        # 🔴 Every node its own Slurm job, image or not: inside one allocation a
-        # flow never outgrows its machine. ⚠️ A job, not a step
+        # Every node its own Slurm job, image or not: inside one allocation a
+        # flow never outgrows its machine. A job, not a step
         # (`runner._leave_the_allocation`).
         for step, index in runtime_nodes(project):
             project.option.scheduler.set_name('slurm', step=step, index=index)
-            # 🔴 Never `--no-requeue` here: srun refuses that sbatch option and
+            # Never `--no-requeue` here: srun refuses that sbatch option and
             # exits 255, and Slurm requeues only batch jobs anyway.
 
             where = (images or {}).get((step, index))
@@ -135,7 +135,7 @@ def normalize(project, job_id: str, builddir, cachedir, images=None,
                     ['--container', str(where)], step=step, index=index)
     else:
         for (step, index), where in (images or {}).items():
-            # 🔴 A digest, never a tag: the pinned form has to reach the node
+            # A digest, never a tag: the pinned form has to reach the node
             # (`images.pinned_ref`).
             project.option.scheduler.set_name('docker', step=step, index=index)
             project.option.scheduler.set_queue(str(where), step=step, index=index)
@@ -193,7 +193,7 @@ def dataroot_targets(entries, collection, uploads=None) -> List[List[Optional[st
 def point_dataroots(project, targets) -> int:
     '''Point every dataroot at the copy the run will read; returns how many.
 
-    🔴 The run's manifest then records which copy each resolved to (D111), and
+    The run's manifest then records which copy each resolved to (D111), and
     no dataroot names a path on the submitter's machine (D112). An uploaded
     dataroot is rebuilt first: collected files are filed by a hash of the
     dataroot's source, so repointing it would lose them.
@@ -204,7 +204,7 @@ def point_dataroots(project, targets) -> int:
     if uploaded:
         _rebuild_uploads(project, uploaded)
 
-    # 🔴 By the dataroot's own keypath, so each task's is pointed on its own.
+    # By the dataroot's own keypath, so each task's is pointed on its own.
     by = {tuple(entry[0]): entry[1] for entry in targets}
     pointed = 0
     for key in sorted(project.allkeys(include_default=False)):
@@ -276,7 +276,7 @@ def read_run(path) -> Optional[Dict[str, Any]]:
 def apply_run(project, run: Dict[str, Any]) -> None:
     '''Apply the server's overrides in the job's own SiliconCompiler.
 
-    🔴 Here and nowhere else: the API process never rewrites a manifest (contract §1).
+    Here and nowhere else: the API process never rewrites a manifest (contract §1).
     '''
     normalize(project, run["job_id"], run["builddir"], run["cachedir"],
               images={(step, index): where for step, index, where in run["placements"]},
@@ -330,7 +330,7 @@ def write_images(path, sources: Dict[str, str], mounts, shared=None,
 def read_progress(path, root=None) -> Optional[Dict[str, Any]]:
     '''What the run last said, or None on any failure to read: it is read on a poll.'''
     try:
-        # 🔴 The run writes this file: given ``root``, a planted link is refused.
+        # The run writes this file: given ``root``, a planted link is refused.
         if root is not None:
             from siliconcompiler.remote.server.outputs import confine
             opened = confine.open_inside(root, path, "r")
