@@ -25,10 +25,6 @@ def test_dashboard(asic_gcd, unused_tcp_port, wait_for_port):
     assert not dashboard.is_running()
 
 
-# ---------------------------------------------------------------------------
-# WebDashboard atexit lifecycle (issue #5035)
-# ---------------------------------------------------------------------------
-
 def test_init_registers_atexit_hook(asic_gcd, unused_tcp_port):
     """__init__ registers a weakref trampoline with atexit so resources are
     torn down on program exit without the atexit registry pinning it alive."""

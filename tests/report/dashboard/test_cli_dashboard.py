@@ -2334,10 +2334,6 @@ def test_update_rendable_data_no_jobs(mock_project, fake_console):
     assert len(dashboard._render_data.jobs) == 0
 
 
-# ---------------------------------------------------------------------------
-# LogBufferHandler.formatter_source
-# ---------------------------------------------------------------------------
-
 def _info_record(msg="hello"):
     return logging.LogRecord(
         name="test", level=logging.INFO, pathname=__file__, lineno=1,
@@ -2395,10 +2391,6 @@ def test_log_buffer_handler_falls_back_when_source_has_no_formatter():
 
     assert handler.format(_info_record("hi")) == "OWN:hi"
 
-
-# ---------------------------------------------------------------------------
-# CliDashboard set_logger / _detach_logger
-# ---------------------------------------------------------------------------
 
 @pytest.mark.timeout(30)
 def test_set_logger_adds_dashboard_handler_without_removing_terminal(
@@ -2599,10 +2591,6 @@ def test_should_disable_with_breakpoint(project_logger, caplog):
     assert CliDashboard.should_disable(proj) is True
     assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
 
-
-# ---------------------------------------------------------------------------
-# CliDashboard atexit lifecycle (issue #5035)
-# ---------------------------------------------------------------------------
 
 @pytest.mark.timeout(30)
 def test_init_registers_atexit_hook(mock_project, fake_console):

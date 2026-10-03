@@ -14,9 +14,6 @@ from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, \
 from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 
 
-####################################################
-# Target Setup Function
-####################################################
 def asap7_demo(
         project: ASIC,
         syn_np: int = 1,

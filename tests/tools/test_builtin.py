@@ -806,9 +806,6 @@ def test_filter_keep_default():
         assert node.task.get("output") == ['test0.out', 'test1.out', 'test2.out']
 
 
-###############################################################################
-# Tests for Wait.serialize_tool_tasks
-###############################################################################
 def test_wait_serialize_tool_tasks_simple():
     """Test serialization of two directly connected nodes with the same tool."""
     flow = Flowgraph("testflow")

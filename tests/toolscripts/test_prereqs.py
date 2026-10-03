@@ -499,16 +499,12 @@ def test_script_sudo_is_on_the_allowlist(script):
             assert line in allowed, \
                 f"{script}:{lineno}: unexpected sudo, use install_prereqs instead: {line!r}"
 
-# ---------------------------------------------------------------------------
-# sc_remove_prereqs
-#
 # The mirror of install_prereqs, and asymmetric with it on purpose. Installing
 # errs toward acting: an unrecognised name is handed to the package manager.
 # Removing errs toward leaving things alone, because "apt-get remove" exits 100
 # on a name it does not recognise -- and tool.docker cleans /var/lib/apt/lists
 # before docker-cmds run, so the only names apt recognises there are the
 # installed ones. An unfiltered remove list fails the image build outright.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -584,10 +580,6 @@ def test_remove_on_rpm_uses_the_right_manager(run_prereqs, backend, manager):
 def test_remove_on_rpm_with_nothing_installed_is_a_noop(run_prereqs):
     assert run_prereqs("sc_remove_prereqs absent-gnat", backend="rpm") == []
 
-
-# ---------------------------------------------------------------------------
-# sc_strip_prefix
-# ---------------------------------------------------------------------------
 
 ELF_MAGIC = b"\x7fELF\x02\x01\x01\x00" + b"\x00" * 8
 
@@ -685,14 +677,10 @@ def test_strip_with_no_argument_falls_back_to_prefix(run_prereqs, tmp_path):
     assert len(log) == 1
     assert log[0].endswith("/sta")
 
-# ---------------------------------------------------------------------------
-# sc_strip_prefix_managed
-#
 # The container builds hit an image with no "strip" whenever a tool builds with
 # bazel against a prebuilt toolchain and never installs binutils. Plain
 # sc_strip_prefix skips silently there, which is how openroad came to ship 27MB
 # of symbol tables.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -743,14 +731,10 @@ def test_managed_strip_gives_back_only_what_it_took(run_prereqs, tmp_path):
     assert "libbinutils" not in removed, \
         "removed a family member the image already had"
 
-# ---------------------------------------------------------------------------
-# sc_remove_build_only
-#
 # A criterion, not a list: a build-only package goes unless something outside
 # that class hard-depends on it. What it must never do is take out the -dev
 # packages a runtime tool needs -- clang-16 needs libclang-common-16-dev, g++
 # needs libstdc++-13-dev, and neither is named anywhere.
-# ---------------------------------------------------------------------------
 
 
 def _db(tmp_path, entries):
@@ -876,11 +860,6 @@ def test_build_only_rejects_an_unknown_argument(run_prereqs, tmp_path):
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_build_only_is_a_noop_on_rpm(run_prereqs, tmp_path):
     assert run_prereqs("sc_remove_build_only", backend="rpm") == []
-
-
-# ---------------------------------------------------------------------------
-# sc_prune_build_artifacts
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")

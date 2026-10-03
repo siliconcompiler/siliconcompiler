@@ -4,9 +4,6 @@ import sys
 from siliconcompiler.remote import Server
 
 
-###############################################
-# Main method to run the sc-server application.
-###############################################
 def main():
     progname = "sc-server"
     description = """

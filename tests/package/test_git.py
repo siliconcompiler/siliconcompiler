@@ -122,10 +122,6 @@ def test_dirty_warning(project_logger, caplog, tmp_path):
     assert "The repo of the cached data is dirty." in caplog.text
 
 
-# ============================================================================
-# Additional GitResolver Tests
-# ============================================================================
-
 def test_git_resolver_get_resolver():
     """Test get_resolver returns correct mapping for Git schemes."""
     from siliconcompiler.package.git import get_resolver
@@ -784,11 +780,6 @@ def test_git_resolver_include_submodule_true(value):
                            "main")
     assert resolver.include_submodules is True
     assert resolver.git_path == "https://github.com/owner/repo.git"
-
-
-# ============================================================================
-# Git LFS Tests
-# ============================================================================
 
 
 def test_git_resolver_include_lfs_default():

@@ -305,6 +305,23 @@ def test_test_docstrings_are_brief():
         f"with no blank lines and at most four lines: {offenders}")
 
 
+# A rule of six or more repeated characters, or a title framed by three or more.
+DIVIDER = re.compile(r"^#\s*([-=*#~_])\1{5,}\s*$|^#\s*([-=*#~_])\2{2,}\s+\S.*\s+\2{3,}\s*$")
+
+
+def test_no_divider_comments():
+    """AGENTS.md bans divider and section-heading comments; examples/ is exempt, as the docs
+    anchor includes on them."""
+    offenders = []
+    for path in _python_files("siliconcompiler", "tests"):
+        with open(path, encoding="utf-8") as f:
+            source = f.read()
+        offenders.extend(f"{os.path.relpath(path, docs.sc_root)}:{token.start[0]}"
+                         for token in tokenize.generate_tokens(io.StringIO(source).readline)
+                         if token.type == tokenize.COMMENT and DIVIDER.match(token.string.strip()))
+    assert not offenders, f"divider or section-heading comments: {offenders}"
+
+
 def test_agents_md_references_resolve(agents):
     """Relative links in AGENTS.md are read on GitHub, where they must resolve."""
     broken = []

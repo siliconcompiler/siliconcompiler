@@ -329,14 +329,10 @@ def test_vcd_viewer_preference(available, expected):
     assert proc.stdout.strip() == expected
 
 
-# ---------------------------------------------------------------------------
-# Tool-hint resolution against the real built-in registry.
-#
 # showtasks() registers OpenROADWeb *before* OpenROADShow so that the
 # "later registration wins" rule makes openroad/show the default viewer for
 # odb/def/vg. These pin that the -tool hint agrees with the default instead of
 # inverting it.
-# ---------------------------------------------------------------------------
 
 OPENROAD_SHOW_EXTS = ["odb", "def", "vg"]
 
@@ -531,12 +527,10 @@ def test_registry_order_independent_of_viewer_import_order(when):
     assert hinted == "openroad/show"
 
 
-# ---------------------------------------------------------------------------
 # vg is claimed by three open tasks. showtasks() registers opensta last, so it
 # wins the extension. What keeps odb ahead of vg in the search Project.show()
 # falls back on is separate: openroad/open lists vg last of the three formats
 # it reads.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.quick
@@ -593,9 +587,6 @@ def test_open_registration_leaves_show_alone():
     assert ScreenshotTask.get_task("def").tool() in ("openroad", "klayout")
 
 
-# ---------------------------------------------------------------------------
-# Extension search order.
-#
 # get_extension_map()'s key order is what Project.show() searches a build
 # directory in, and the search is extension-major, so it is a global priority
 # across every node rather than a tie-break inside one.
@@ -605,7 +596,6 @@ def test_open_registration_leaves_show_alone():
 # higher-priority tool. These pin the outcome rather than the mechanism, and on
 # relative order only -- an installed plugin outranks every core viewer, so its
 # formats legitimately lead the list.
-# ---------------------------------------------------------------------------
 
 #: Formats an ASIC flow emits into the same node, so their relative order is
 #: the only part of the search that can actually change which file is shown.

@@ -192,10 +192,6 @@ def test_resolve_remote_relative_symlink(broken_tarfile_data_filter):
         assert f.read() == b"hello"
 
 
-# ============================================================================
-# Additional HTTPResolver Tests
-# ============================================================================
-
 def test_http_resolver_get_resolver():
     """Test get_resolver returns correct mapping for HTTP/HTTPS schemes."""
     from siliconcompiler.package.https import get_resolver
@@ -550,14 +546,10 @@ def test_http_resolver_resolve_remote_bz2_tarball():
         assert os.path.exists(os.path.join(str(resolver.cache_path), "test.txt"))
 
 
-# ============================================================================
-# Compressed archive handling
-#
 # Every fixture below is built with the same bindings the resolver reads it back
 # with, so these run unchanged on an interpreter using the stdlib
 # ``compression.zstd`` (3.14+) and on one using the ``backports.zstd`` package
 # (3.10-3.13), exercising whichever the shim selected.
-# ============================================================================
 
 #: Tar compressions the resolver accepts, as (archive suffix, tarfile mode
 #: suffix). "zst" is not a mode stdlib tarfile can write before 3.14, and is
@@ -820,10 +812,6 @@ def test_http_resolver_resolve_remote_github_flatten_compressed(suffix, compress
     assert os.path.isfile(os.path.join(str(resolver.cache_path), "test.txt"))
     assert not os.path.exists(os.path.join(str(resolver.cache_path), "repo-1.0.2"))
 
-
-# ============================================================================
-# HTTPResolver._get_headers() tests
-# ============================================================================
 
 def test_http_resolver_get_headers_non_github_url(monkeypatch):
     """Test _get_headers returns empty dict for non-GitHub URLs."""

@@ -389,7 +389,6 @@ def test_forking_restores_filters_after_exception():
     assert warnings.filters == before
 
 
-# --- FileLock ---
 @pytest.fixture
 def guarded(tmp_path):
     """The file a test locks; its lock file is this plus ``.lock``."""
@@ -574,7 +573,6 @@ def test_file_lock_timeout_message():
     assert unlimited.timeout is None
 
 
-# --- FileLock where the filesystem cannot lock files ---
 @pytest.fixture
 def no_flock():
     """Make every lockf fail, as on an NFS mount without lock support."""

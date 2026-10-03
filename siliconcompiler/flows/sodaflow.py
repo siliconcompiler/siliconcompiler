@@ -72,9 +72,6 @@ class SODAElaborationFlow(Flowgraph):
     This class is the part they share; it is not a flow on its own.
     '''
 
-    ###############################################################
-    # Definition, overridden by each strategy
-    ###############################################################
     def _strategy(self) -> Task:
         """
         Task that lowers the outlined kernel to the LLVM dialect.
@@ -191,7 +188,6 @@ SODA_STRATEGIES = {
 }
 
 
-##################################################
 if __name__ == "__main__":
     for flowcls in [SODABaselineElaborationFlow,
                     SODAOptimizedElaborationFlow,

@@ -67,10 +67,6 @@ def age_lock(lock_file, age_days):
     os.utime(lock_file, (when, when))
 
 
-# ============================================================================
-# format_size
-# ============================================================================
-
 def test_format_size_bytes():
     assert cleanup.format_size(512) == "512.0B"
 
@@ -90,10 +86,6 @@ def test_format_size_gigabytes():
 def test_format_size_terabytes():
     assert cleanup.format_size(1024 * 1024 * 1024 * 1024) == "1.0TB"
 
-
-# ============================================================================
-# cleanup_cache: entries
-# ============================================================================
 
 def test_cleanup_cache_removes_old_entry(cachedir):
     entry = make_entry(cachedir, "old", age_days=91)
@@ -226,10 +218,6 @@ def test_cleanup_cache_logs_access_time(cachedir, caplog):
 
     assert "Removing old (last accessed:" in caplog.text
 
-
-# ============================================================================
-# cleanup_cache: orphaned lock files (nothing else can ever collect these)
-# ============================================================================
 
 def test_cleanup_cache_removes_orphaned_lock(cachedir):
     lock_file = cachedir / "gone.lock"
@@ -412,10 +400,6 @@ def test_cleanup_cache_orphan_lock_delete_error(cachedir, caplog):
     assert "Failed to delete gone.lock" in caplog.text
 
 
-# ============================================================================
-# cleanup_cache: an entry another process is working on must survive
-# ============================================================================
-
 def test_cleanup_cache_skips_locked_entry(cachedir, caplog):
     entry = make_entry(cachedir, "old", age_days=91)
     caplog.set_level(logging.INFO)
@@ -538,10 +522,6 @@ def test_cleanup_cache_does_not_create_lock_to_delete_entry(cachedir):
     assert not list(cachedir.iterdir())
 
 
-# ============================================================================
-# cleanup_cache: the areas of the cache
-# ============================================================================
-
 def test_cleanup_cache_removes_old_dataroot_entry(cachedir, dataroot):
     entry = make_entry(dataroot, "old", age_days=91)
 
@@ -632,10 +612,6 @@ def test_cleanup_cache_leaves_the_tool_cache_alone(cachedir):
     assert stats.entries == 0
     assert stats.locks == 0
 
-
-# ============================================================================
-# auto_cleanup: the unattended sweep at the start of a local run
-# ============================================================================
 
 @pytest.fixture
 def swept_cache(cachedir):

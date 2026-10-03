@@ -423,15 +423,11 @@ def test_slang_duplicate_inputs(heartbeat_design):
     assert proj.history("job0").get('metric', 'warnings', step='lint', index='0') == 0
 
 
-# ---------------------------------------------------------------------------
-# Python-only tests for the pyslang interface used by the slang tool.
-#
 # These tests directly exercise the pyslang API paths referenced by
 # siliconcompiler.tools.slang. They do not run a full SC project, which makes
 # them fast and easy to debug when pyslang reorganizes its modules. If pyslang
 # moves a symbol again, these tests pinpoint the exact attribute path that
 # broke.
-# ---------------------------------------------------------------------------
 
 
 def test_pyslang_api_surface():
@@ -532,13 +528,9 @@ def test_pyslang_syntax_printer():
     assert found_token
 
 
-# ---------------------------------------------------------------------------
-# uniquify: enumerate the distinct parameterizations of a module.
-#
 # Python-only pyslang tests (no full SC run) so they are fast and pinpoint the
 # exact pyslang path if the API moves. One test drives the Design-facing wrapper
 # against the real heartbeat example.
-# ---------------------------------------------------------------------------
 
 
 _UNIQUIFY_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -877,12 +869,8 @@ def test_uniquify_enumerate_design_heartbeat(heartbeat_design):
     assert ports == {"clk": "input", "nreset": "input", "out": "output"}
 
 
-# ---------------------------------------------------------------------------
-# wrapper: generate the parameterized wrapper + param-less variants.
-#
 # The generated SystemVerilog is round-tripped back through slang to prove it
 # elaborates and dispatches correctly, rather than string-matching the output.
-# ---------------------------------------------------------------------------
 
 
 _WRAPPER_HEARTBEAT = """
@@ -1155,11 +1143,6 @@ def test_enumerate_design_accepts_list(heartbeat_design):
     # A single string still returns a bare list.
     single = enumerate_design(heartbeat_design, "heartbeat", fileset="rtl")
     assert single[0].name == "heartbeat__N8"
-
-
-# ---------------------------------------------------------------------------
-# macro: build wrapper/variant designs and wire them into a parent (alias).
-# ---------------------------------------------------------------------------
 
 
 _HIER_HEARTBEAT = (

@@ -2316,10 +2316,6 @@ def test_run_task_breakpoint_not_used(running_node, monkeypatch):
             runner.assert_not_called()
 
 
-# ---------------------------------------------------------------------------
-# Tests for _run_breakpoint (PTY runner)
-# ---------------------------------------------------------------------------
-
 def _block_dev_tty(monkeypatch):
     """Prevent _run_breakpoint from grabbing the real terminal during tests.
 
@@ -3908,10 +3904,8 @@ def test_open_get_supported_task_extentions_backwards_compatibility(cls):
         assert DummyClass().get_supported_task_extentions() == ["ext"]
 
 
-# ---------------------------------------------------------------------------
 # OpenTask accessor tests (has_showfilepath, get_showfilepath, has_shownode,
 # get_shownode, showfiletype, job_root, show_workdir).
-# ---------------------------------------------------------------------------
 
 
 class _AccessorOpenTask(OpenTask):
@@ -5961,10 +5955,6 @@ def test_get_required_inputs_drops_an_excused_branch_outside_the_run(project_log
     assert _required_inputs(io_project, "steptwo", "0") == ["one.v"]
     assert "No longer requiring input zero.v for steptwo/0" in caplog.text
 
-
-###########################
-# schema_task parameter groups
-###########################
 
 _SCHEMA_TASK_GROUPS = [
     ("tool", ["exe", "format", "licenseserver", "path", "sbom", "vendor", "version",

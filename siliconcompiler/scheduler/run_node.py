@@ -21,7 +21,6 @@ from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler._metadata import detailed_version
 
 
-##########################
 def main():
     """
     Run a single node (specified by step and index) from a SiliconCompiler project
@@ -152,7 +151,6 @@ def main():
     return 0
 
 
-##########################
 if __name__ == "__main__":
     # This makes the script executable.
     sys.exit(main())

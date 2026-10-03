@@ -116,6 +116,5 @@ To include another project object to compare to:
     return 0
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

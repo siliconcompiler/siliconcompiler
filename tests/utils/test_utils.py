@@ -381,10 +381,6 @@ def test_invalid_regex_error(caplog):
     assert "Invalid regex pattern" in caplog.text
 
 
-# ---------------------------------------------------------------------------
-# check_python_dependencies (pre-run informative dependency check)
-# ---------------------------------------------------------------------------
-
 @pytest.fixture
 def logger():
     return logging.getLogger("test-python-deps")
@@ -409,11 +405,6 @@ class FakeSpec:
     def __init__(self, origin=None, locations=None):
         self.origin = origin
         self.submodule_search_locations = locations
-
-
-# ---------------------------------------------------------------------------
-# _import_toml / _load_pyproject_data
-# ---------------------------------------------------------------------------
 
 
 def test_load_pyproject_data_valid(tmp_path):
@@ -442,11 +433,6 @@ def test_load_pyproject_data_no_toml_parser(tmp_path, monkeypatch):
     assert _load_pyproject_data(str(pyproject)) is None
 
 
-# ---------------------------------------------------------------------------
-# _installed_distribution_versions
-# ---------------------------------------------------------------------------
-
-
 def test_installed_distribution_versions(monkeypatch):
     dists = [
         FakeDist("Foo_Bar", "1.2.3"),
@@ -458,11 +444,6 @@ def test_installed_distribution_versions(monkeypatch):
 
     installed = _installed_distribution_versions()
     assert installed == {"foo-bar": "1.2.3"}
-
-
-# ---------------------------------------------------------------------------
-# _evaluate_requirement
-# ---------------------------------------------------------------------------
 
 
 def test_evaluate_requirement_unparsable():
@@ -527,11 +508,6 @@ def test_evaluate_requirement_marker_evaluate_raises(monkeypatch):
     assert _evaluate_requirement("foo", {}) == ("skip", None, None)
 
 
-# ---------------------------------------------------------------------------
-# _check_optional_group
-# ---------------------------------------------------------------------------
-
-
 def test_check_optional_group_non_string_and_all_skipped(logger, caplog):
     with caplog.at_level(logging.WARNING):
         # None entry is skipped; marker-excluded entry is skipped -> nothing applicable.
@@ -580,11 +556,6 @@ def test_check_optional_group_fully_installed_silent(logger, caplog):
             "docs", ["a >= 1.0", "b"], {"a": "1.0", "b": "1.0"}, "demo", logger)
     assert issues == 0
     assert caplog.records == []
-
-
-# ---------------------------------------------------------------------------
-# _check_project_dependencies
-# ---------------------------------------------------------------------------
 
 
 def test_check_project_dependencies_not_a_dict(logger):
@@ -727,11 +698,6 @@ def test_check_project_dependencies_clean_no_hint(logger, caplog):
     assert caplog.records == []
 
 
-# ---------------------------------------------------------------------------
-# _locate_pyproject_for_module
-# ---------------------------------------------------------------------------
-
-
 def test_locate_pyproject_find_spec_raises(monkeypatch):
     def _boom(_):
         raise ValueError("bad module")
@@ -791,11 +757,6 @@ def test_locate_pyproject_walk_stops_at_root(monkeypatch, tmp_path):
     assert _locate_pyproject_for_module("pkg") is None
 
 
-# ---------------------------------------------------------------------------
-# _find_editable_pyproject_paths
-# ---------------------------------------------------------------------------
-
-
 def _install_fake_resolver(monkeypatch, mapping, editable, locate):
     import siliconcompiler.package as package
 
@@ -843,11 +804,6 @@ def test_find_editable_pyproject_paths_mapping_raises(monkeypatch):
         package.PythonPathResolver, "get_python_module_mapping",
         staticmethod(_boom))
     assert _find_editable_pyproject_paths() == []
-
-
-# ---------------------------------------------------------------------------
-# check_python_dependencies (orchestrator)
-# ---------------------------------------------------------------------------
 
 
 def test_check_python_dependencies_happy(monkeypatch, tmp_path, logger, caplog):
@@ -921,10 +877,6 @@ def test_check_python_dependencies_isolates_per_project(
         "run 'pip install -e .' to update",
     ]
 
-
-# ============================================================================
-# tarfile extraction filter
-# ============================================================================
 
 @pytest.fixture
 def symlink_archive():
@@ -1148,14 +1100,10 @@ def test_corrected_filter_honors_a_skipped_member(broken_tarfile_data_filter, mo
     assert utils._symlink_safe_data_filter(member, os.getcwd()) is None
 
 
-#############################
-# Zstandard bindings
-#
 # Zstandard entered the stdlib in Python 3.14 (PEP 784) and is carried to 3.10-3.13
 # by the 'backports.zstd' dependency, so which module answers below depends on the
 # interpreter. Nothing here names one: the point is that every supported release
 # reaches a working implementation.
-#############################
 def test_zstd_available():
     """Every supported interpreter can read Zstandard, so a wrong dependency marker fails here."""
     assert utils.zstd_available() is True, utils.zstd_unavailable_message()

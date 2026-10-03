@@ -183,7 +183,6 @@ class Client():
 
         return post_params
 
-    ###################################
     def __post(self, action, post_action, success_action, error_action=None):
         '''
         Helper function to handle the post request
@@ -255,7 +254,6 @@ class Client():
         return self.__post('/cancel_job/', post_action, success_action,
                            error_action=error_action)
 
-    ###################################
     def delete_job(self):
         '''
         Helper method to delete a job from shared remote storage.
@@ -1097,7 +1095,6 @@ class Client():
         # Save the values to the target config file in JSON format.
         self.__write_remote_config_file(cfg_file)
 
-    #######################################
     def __getstate__(self):
         # Called when generating a serial stream of the object
         attributes = self.__dict__.copy()

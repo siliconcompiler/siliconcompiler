@@ -11,10 +11,6 @@ from siliconcompiler.utils.logging import (
     SCColorLoggerFormatter, SCLoggerFormatter, SC_LOG, SC_LOGERROR)
 
 
-# ---------------------------------------------------------------------------
-# SCSuppressLoggerFilter
-# ---------------------------------------------------------------------------
-
 def _make_record(level=logging.INFO, msg="hello"):
     return logging.LogRecord(
         name="test", level=level, pathname=__file__, lineno=1,
@@ -69,10 +65,6 @@ def test_suppress_filter_attached_to_handler_blocks_emit():
 
     assert received == ["first", "third"]
 
-
-# ---------------------------------------------------------------------------
-# SCTeeLoggerHandler
-# ---------------------------------------------------------------------------
 
 class _Capture(logging.Handler):
     def __init__(self):
@@ -182,10 +174,6 @@ def test_tee_tolerates_handler_emit_failure(logger):
     assert good.records == ["survive"]
 
 
-# ---------------------------------------------------------------------------
-# SCHistoryLogHandler
-# ---------------------------------------------------------------------------
-
 def test_history_retains_emitted_records():
     h = SCHistoryLogHandler()
     h.emit(_make_record(msg="one"))
@@ -255,10 +243,6 @@ def test_history_captures_through_logger():
 
     assert [r.getMessage() for r in h.records] == ["captured value", "warned"]
 
-
-# ---------------------------------------------------------------------------
-# console_quiet / SCConsoleQuietFilter
-# ---------------------------------------------------------------------------
 
 def test_console_quiet_filter_passes_untagged_records():
     f = SCConsoleQuietFilter()
@@ -421,10 +405,6 @@ def test_history_drops_quiet_records():
     assert [r.getMessage() for r in h.records] == ["kept"]
 
 
-# ---------------------------------------------------------------------------
-# Tool output levels
-# ---------------------------------------------------------------------------
-
 def test_tool_levels_are_named():
     assert logging.getLevelName(SC_LOG) == "LOG"
     assert logging.getLevelName(SC_LOGERROR) == "LOGERROR"
@@ -463,10 +443,6 @@ def test_logerror_is_colored_like_error():
     # LOG stands in for INFO, which is left uncolored.
     assert formatter.format(_make_record(level=SC_LOG, msg="x")).startswith("| LOG")
 
-
-# ---------------------------------------------------------------------------
-# report_schema_warnings
-# ---------------------------------------------------------------------------
 
 def _warn_newer_schema(text="0.99.0 is newer"):
     warnings.warn(text, SchemaVersionWarning)

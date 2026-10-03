@@ -89,10 +89,6 @@ def test_download_find_artifact():
         get_repo.assert_called_once()
 
 
-# ============================================================================
-# Additional GithubResolver Tests
-# ============================================================================
-
 def test_github_resolver_get_resolver():
     """Test get_resolver returns correct mapping for GitHub schemes."""
     from siliconcompiler.package.github import get_resolver
@@ -334,9 +330,6 @@ def test_github_resolver_download_url_fallback_to_private(monkeypatch):
         assert "asset.tar.gz" in url
 
 
-# ============================================================================
-# New tests for GithubResolver headers and URL caching
-# ============================================================================
 def test_github_resolver_get_headers(monkeypatch):
     """Test _get_headers returns correct headers for GitHub download."""
     monkeypatch.setenv("GITHUB_TOKEN", "test_token")
@@ -428,10 +421,6 @@ def test_github_resolver_get_gh_auth_multiple_special_chars(monkeypatch):
     token = resolver._GithubResolver__get_gh_token()
     assert token == "special_token"
 
-
-# ============================================================================
-# Tests for gh CLI bypass in __get_gh_token
-# ============================================================================
 
 def test_github_resolver_get_gh_token_fallback_gh_cli_success():
     """Test __get_gh_token falls back to gh CLI and succeeds."""
@@ -634,10 +623,6 @@ def test_github_resolver_get_gh_token_with_capture_output():
         assert call_kwargs['capture_output'] is True
 
 
-# ============================================================================
-# Tests for gh CLI output validation
-# ============================================================================
-
 def test_github_resolver_get_gh_token_rejects_empty_output():
     """Test __get_gh_token rejects empty token from gh CLI."""
     resolver = GithubResolver("test", None,
@@ -769,10 +754,6 @@ def test_github_resolver_get_gh_token_rejects_carriage_returns():
             resolver._GithubResolver__get_gh_token()
 
 
-# ============================================================================
-# GitHub archives, as a dataroot reaches them: through the resolver registry
-# ============================================================================
-
 _SHA = "938df309b4803fd79b10de6d3c7d7aa4645c39f5"
 
 
@@ -901,10 +882,6 @@ def test_github_accept_header(source, accept):
     headers = resolver._get_headers()
     assert (headers.get("Accept") == "application/octet-stream") is accept
 
-
-# ============================================================================
-# GithubArchiveResolver: plain URLs on GitHub's hosts
-# ============================================================================
 
 def test_github_archive_resolver_resolve_remote_header():
     """Test resolve_remote sets GitHub-specific Accept header."""

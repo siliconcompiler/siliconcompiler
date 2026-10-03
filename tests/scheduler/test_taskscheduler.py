@@ -570,9 +570,6 @@ def test_check_says_nothing_when_nothing_failed(project_logger, large_flow, make
     assert "Run completed with errors" not in caplog.text
 
 
-# ---------------------------------------------------------------------------
-# Breakpoint scheduling
-#
 # A node with a breakpoint must execute in complete isolation: it takes
 # priority over ordinary nodes, only starts once nothing else is running, and
 # blocks all other launches until it finishes. When several breakpoints are
@@ -582,7 +579,6 @@ def test_check_says_nothing_when_nothing_failed(project_logger, large_flow, make
 # processes so the launch decisions are fully deterministic (no subprocess
 # timing involved), plus a couple of real end-to-end runs to guard against the
 # wiring breaking.
-# ---------------------------------------------------------------------------
 
 
 def _set_breakpoints(proj, *nodes):
@@ -788,9 +784,6 @@ def test_no_breakpoint_respects_max_parallel(large_flow, make_tasks):
     assert scheduler.get_running_nodes() == [("stepone", "0"), ("stepone", "1")]
 
 
-# ---------------------------------------------------------------------------
-# The launch gate and [option,continue]
-#
 # A failed dependency normally disqualifies a node before it ever starts. The
 # option excuses that failure -- read from the node it happened on, never from
 # the node that consumes it -- so the consumer launches and runs on whatever
@@ -798,7 +791,6 @@ def test_no_breakpoint_respects_max_parallel(large_flow, make_tasks):
 #
 # Nodes here are built directly rather than through Scheduler, so none of them
 # carries the builtin flag and every one exercises the non-builtin path.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])

@@ -124,10 +124,10 @@ def png_to_gds(
         r_up_right = region.moved(pya.Vector(pixel_size_dbu, pixel_size_dbu))
         r_up_left = region.moved(pya.Vector(-pixel_size_dbu, pixel_size_dbu))
 
-        # --- KISS TYPE 1: (\) Diagonal ---
+        # KISS TYPE 1: (\) Diagonal
         bridges_1 = (r_right & r_up) - region - r_up_right
 
-        # --- KISS TYPE 2: (/) Diagonal ---
+        # KISS TYPE 2: (/) Diagonal
         bridges_2 = (r_left & r_up) - region - r_up_left
 
         # Check for fixed point: if no new bridges are needed, terminate the loop

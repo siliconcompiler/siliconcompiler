@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from siliconcompiler import Design
 
 
-###########################################################################
 class FileSetSchema(NamedSchema, PathSchemaBase):
     '''
     Schema for storing and managing file sets.
@@ -167,7 +166,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
     def __design(self) -> 'Design':
         return self._parent()._parent()
 
-    ###############################################
     def add_file(self,
                  filename: Union[List[Union[Path, str]], Set[Union[Path, str]],
                                  Tuple[Union[Path, str], ...], Path, str],
@@ -242,7 +240,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
             else:
                 return self.add('file', filetype, filename)
 
-    ###############################################
     def get_file(self, filetype: Optional[str] = None) -> List[str]:
         """Returns a list of files.
 
@@ -269,7 +266,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
 
         return filelist
 
-    ###############################################
     def has_file(self, filetype: Optional[str] = None) -> bool:
         """Returns true if the fileset contains files.
 
@@ -295,7 +291,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
 
         return False
 
-    ############################################
     def set_topmodule(self, value: str) -> str:
         """Sets the topmodule of a fileset.
 
@@ -333,7 +328,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return self.get('topmodule')
 
-    ##############################################
     def add_idir(self, value: str, clobber: bool = False,
                  dataroot: Optional[str] = None) -> List[str]:
         """Adds include directories to a fileset.
@@ -380,7 +374,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return bool(self.get('idir'))
 
-    ##############################################
     def add_define(self, value: str, clobber: bool = False) -> List[str]:
         """Adds preprocessor macro definitions to a fileset.
 
@@ -408,7 +401,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return self.get('define')
 
-    ##############################################
     def add_undefine(self, value: str, clobber: bool = False) -> List[str]:
         """Adds preprocessor macro (un)definitions to a fileset.
 
@@ -436,7 +428,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return self.get('undefine')
 
-    ###############################################
     def add_libdir(self, value: str, clobber: bool = False,
                    dataroot: Optional[str] = None) -> List[str]:
         """Adds dynamic library directories to a fileset.
@@ -483,7 +474,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return bool(self.get('libdir'))
 
-    ###############################################
     def add_lib(self, value: str, clobber: bool = False) -> List[str]:
         """Adds dynamic libraries to a fileset.
 
@@ -510,7 +500,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return self.get('lib')
 
-    ###############################################
     def set_param(self, name: str, value: str) -> str:
         """Sets a named parameter for a fileset.
 
@@ -540,7 +529,6 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         """
         return self.get('param', name)
 
-    ###############################################
     def add_depfileset(self, dep: str, depfileset: Optional[str] = None):
         """
         Record a reference to an imported dependency's fileset.

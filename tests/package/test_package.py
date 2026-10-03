@@ -2338,10 +2338,6 @@ def test_indirect_resolver_does_not_repeat_the_log():
     assert len([msg for msg in messages if "data at" in msg]) == 1
 
 
-# ============================================================================
-# Tests for _touch_lock(): the cache's only record of when an entry was used
-# ============================================================================
-
 def test_resolve_touches_lock_on_cache_hit():
     """A cache hit bumps the lock file's mtime, which cleanup reads as the entry's last use."""
     class AlwaysCached(RemoteResolver):
@@ -2407,10 +2403,6 @@ def test_touch_lock_failure_is_not_fatal(project_logger, caplog):
 
     assert "Could not update access time of" in caplog.text
 
-
-# ============================================================================
-# Tests for _make_readonly() method
-# ============================================================================
 
 def test_make_readonly_single_file(tmp_path):
     """Test making a single file read-only."""
@@ -2821,10 +2813,6 @@ def test_make_readonly_skips_nested_git_directory(tmp_path):
     assert os.stat(nested_git / "config").st_mode & stat.S_IWUSR
 
 
-# ============================================================================
-# Tests for _make_writable() method (for cache cleanup/deletion)
-# ============================================================================
-
 def test_make_writable_single_file(tmp_path):
     """Test making a read-only file writable."""
     # Create a read-only file
@@ -2924,10 +2912,6 @@ def test_make_writable_preserves_read_and_exec(tmp_path):
     # Verify it's still readable
     assert os.access(exec_file, os.R_OK)
 
-
-# ============================================================================
-# Tests for DatarootResolver
-# ============================================================================
 
 def test_dataroot_resolver_init():
     """Test DatarootResolver initialization."""

@@ -41,11 +41,6 @@ class UniquifyError(RuntimeError):
     """Raised when elaboration fails or the request cannot be satisfied."""
 
 
-# ---------------------------------------------------------------------------
-# Data model
-# ---------------------------------------------------------------------------
-
-
 class ParamPort:
     """A single resolved port of a parameterization.
 
@@ -120,11 +115,6 @@ def _type_tag(value: ParamValue) -> str:
     if isinstance(value, float):
         return "r"
     return "s"
-
-
-# ---------------------------------------------------------------------------
-# pyslang value / port extraction
-# ---------------------------------------------------------------------------
 
 
 def _sv_int_to_python(const_value: Any) -> int:
@@ -262,10 +252,6 @@ def iter_instances(compilation: Compilation) -> List[Any]:
     return found
 
 
-# ---------------------------------------------------------------------------
-# Variant naming (sanitize + hash)
-# ---------------------------------------------------------------------------
-
 # A value may be embedded literally in a name only if it is short and made up of
 # identifier-safe characters; otherwise it is replaced by a short stable hash so
 # the resulting name is always a legal, filesystem-safe identifier.
@@ -358,11 +344,6 @@ def assign_variant_names(parameterizations: List[Parameterization],
     for param, name in zip(parameterizations, hashed):
         param.name = name
     return parameterizations
-
-
-# ---------------------------------------------------------------------------
-# Compilation building + enumeration
-# ---------------------------------------------------------------------------
 
 
 def build_compilation(sources: List[str], top: str,

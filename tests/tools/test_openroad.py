@@ -2471,9 +2471,6 @@ def test_openroad_rcx_extract_parameter_corner():
     assert task.get("var", "corner") == 'test_corner'
 
 
-##############################################################################
-# PEX task setup
-##############################################################################
 def _rcx_project(design):
     """A project running the OpenRCX deck-generation flow (NOP for the PEX tool)."""
     from siliconcompiler import ASIC
@@ -3086,11 +3083,6 @@ def test_openroad_repair_timing_parameter_skip_recover_power():
     assert task.get("var", "rsz_skip_recover_power") is True
 
 
-# ----------------------------------------------------------------------
-# DetailedRouteAntennaRepairTask
-# ----------------------------------------------------------------------
-
-
 def test_openroad_detailed_route_antenna_repair_identity():
     """Its own node and task, so route.detailed reports pure routing results and the
     diode/reroute cost is attributable on its own."""
@@ -3207,11 +3199,6 @@ def test_openroad_repair_timing_parameter_wns_sequence_appends_to_default():
     assert task.get("var", "rsz_wns_sequence") == ["vt_swap", "reroute", "sizeup"]
 
 
-# ----------------------------------------------------------------------
-# PostRouteRepairTimingTask
-# ----------------------------------------------------------------------
-
-
 def test_openroad_post_route_repair_timing_identity():
     """A distinct task() name is required: the schema namespace is keyed on it, so
     sharing "repair_timing" with the cts node would let the two clobber each
@@ -3321,11 +3308,6 @@ def test_openroad_screenshot_parameter_include_report_images():
     task.set_openroad_includereportimages(False, step='screenshot', index='1')
     assert task.get("var", "include_report_images", step='screenshot', index='1') is False
     assert task.get("var", "include_report_images") is True
-
-
-# ----------------------------------------------------------------------
-# OpenTask: identity + file copying
-# ----------------------------------------------------------------------
 
 
 def test_openroad_open_basics():
@@ -3610,14 +3592,12 @@ def test_openroad_show_screenshot_inherit_copy(open_project, task_cls):
     assert os.path.exists("inputs/gcd.sdc")
 
 
-# ----------------------------------------------------------------------
 # Regression guard: every OpenROAD open/show/screenshot variant must end up
 # pointing at sc_open.tcl with the right sc_do_screenshot value. The original
 # bug here was that ShowTask/ScreenshotTask called set_script("sc_show.tcl")
 # *after* OpenTask.setup() had already set sc_open.tcl, but set_script defaults
 # to clobber=False so the override was a silent no-op and the screenshot path
 # ran the wrong script.
-# ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("task_cls", [
@@ -3669,9 +3649,6 @@ def test_openroad_sc_show_tcl_removed(scroot):
         f"{script_path} should be removed; sc_open.tcl is now the single entry script"
 
 
-# ---------------------------------------------------------------------------
-# OpenRCX per-corner rules merge utility (utils/rcx_merge.py)
-# ---------------------------------------------------------------------------
 def _single_corner(layer_count, corner_tag):
     """Build a minimal single-corner OpenRCX rules file body."""
     return (
@@ -4023,12 +4000,6 @@ def test_rcx_merge_roundtrip_reference():
     assert merge_openrcx_rules(files) == original
 
 
-##############################################################################
-# pex_calibrate utility
-##############################################################################
-##############################################################################
-# Target resolution
-##############################################################################
 def test_resolve_target_callable():
     def my_target(project):
         pass
@@ -4064,16 +4035,10 @@ def test_resolve_target_dotted():
     assert fn.__name__ == "freepdk45_demo"
 
 
-##############################################################################
-# PDK introspection
-##############################################################################
 def test_derive_pdk_name():
     assert pc.derive_pdk_name("freepdk45_demo") == "freepdk45"
 
 
-##############################################################################
-# Designs
-##############################################################################
 def test_demo_designs_build():
     # Construction is network-free (git dataroots fetch lazily at run time).
     designs = [design_cls() for design_cls in pc.DEMO_DESIGNS.values()]
@@ -4126,9 +4091,6 @@ def _via(res, source="pdk"):
     return {"res": res, "cap": None, "layertype": "via", "source": source}
 
 
-##############################################################################
-# CSV data files (round-trip)
-##############################################################################
 def test_rclayer_csv_round_trip():
     model = {
         "typical": {
@@ -4175,9 +4137,6 @@ def test_write_rccorr_skips_none_cap_factor():
     assert got["typical"]["metal3"]["cap_factor"] == 0.5
 
 
-##############################################################################
-# Factor math and line rendering
-##############################################################################
 def test_compute_factors():
     # pooled: sum_len, sum_cap (F), sum_res (ohm), nseg
     pooled = {"metal2": [100.0, 50.0e-15, 357.14, 10]}
@@ -4314,9 +4273,6 @@ def test_format_rccorr_lines():
     assert 'pdk.add_openroad_rccorrection("typical", "metal2", cap_factor=0.6960)' in out
 
 
-##############################################################################
-# Orchestration: caching / rerun / print (no EDA - the flows are stubbed)
-##############################################################################
 # Stand-in survey design: the flows are stubbed out, so only the list length
 # matters - but it must be non-empty, since calibrate() rejects an empty survey.
 _DUMMY_DESIGN = pc._bench_design()
@@ -4486,9 +4442,6 @@ def test_main_print_only_missing_files(monkeypatch, capsys):
         capsys.readouterr().err
 
 
-##############################################################################
-# Scoring (quantify the win) - EDA-free math + wiring
-##############################################################################
 def test_apply_factors_cap_only_and_clears_previous():
     pdk = OpenROADPDK()
     pdk.add_openroad_rccorrection("typical", "metal9", cap_factor=0.5)  # cleared
@@ -4609,9 +4562,6 @@ def test_openroad_mode_sdcfileset_is_per_node(asic_gcd, tmp_path):
     assert f"library,{design.name},fileset,globalsdc,file,sdc" not in require
 
 
-##############################################################################
-# Delay model / CCS
-##############################################################################
 def _select_delaymodel(project, delaymodel):
     '''Point the target at ``delaymodel``, registering a ccs libcorner fileset.
 

@@ -1995,9 +1995,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         EditableSchema(self).insert("var", name, param)
         return param
 
-    ###############################################################
-    # Task settings
-    ###############################################################
     def add_required_key(self, obj: Union[BaseSchema, str], *key: str,
                          step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         '''
@@ -2517,9 +2514,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         else:
             return self.add("warningoff", type, step=step, index=index)
 
-    ###############################################################
-    # Tool settings
-    ###############################################################
     def set_exe(self, exe: Optional[str] = None, vswitch: Optional[Union[str, List[str]]] = None,
                 format: Optional[str] = None,
                 step: Optional[str] = None, index: Optional[Union[str, int]] = None,
@@ -2729,9 +2723,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 keys.append((obj, key))
         return keys
 
-    ###############################################################
-    # Schema
-    ###############################################################
     def get(self, *keypath: str, field: Optional[str] = 'value',
             step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         if step is None:
@@ -2954,9 +2945,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return docs
 
-    ###############################################################
-    # Task methods
-    ###############################################################
     @classmethod
     def make_docs(cls):
         from siliconcompiler import Flowgraph, Design, Project

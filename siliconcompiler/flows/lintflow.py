@@ -89,7 +89,6 @@ class SlangLintFlow(Flowgraph):
         self.node("lint", SlangLint())
 
 
-##################################################
 if __name__ == "__main__":
     flow = LintFlow()
     flow.write_flowgraph(f"{flow.name}.png")

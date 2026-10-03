@@ -264,7 +264,6 @@ def test_load_generic_exception(tmp_path, caplog):
     assert "Unexpected error loading settings" in caplog.text
 
 
-# --- LOCKING TESTS ---
 def test_lock_file_exists(settings_file):
     """Test that the .lock file exists after saving."""
     manager = SettingsManager(settings_file, logging.getLogger())
@@ -300,11 +299,6 @@ def test_filepath_none():
     # Set/Get should work in memory
     manager.set('memory', 'test', 123)
     assert manager.get('memory', 'test') == 123
-
-
-# ---------------------------------------------------------------------------
-# System settings layer (defaults + system priority)
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -618,7 +612,6 @@ def test_locks_reset_after_fork(settings_file, wait_for_child):
     assert read_ok, "forked child failed to read the category"
 
 
-# --- ATOMIC SAVES ---
 posix_only = pytest.mark.skipif(os.name == "nt", reason="POSIX permission bits")
 
 
@@ -850,7 +843,6 @@ def test_transaction_lifts_save_refusal(settings_file):
         assert json.load(f) == {"keep": {"this": True}, "new": {"key": 1}}
 
 
-# --- TRANSACTIONS ---
 def test_transaction_keeps_another_managers_write(settings_file):
     """The lost update: both managers loaded before either wrote."""
     first = SettingsManager(settings_file, logging.getLogger())

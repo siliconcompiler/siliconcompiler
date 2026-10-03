@@ -58,7 +58,6 @@ class PausedNOP(NOPTask):
         return super().run()
 
 
-###########################
 def mock_results(project, node):
     '''Mocked 'fetch_results' method which imitates a successful quick job run.
     '''
@@ -67,7 +66,6 @@ def mock_results(project, node):
         wf.write('Job results.\n')
 
 
-###########################
 def mock_post(url, data={}, files={}, stream=True, timeout=0):
     '''Mocked 'post' method which imitates a successful quick job run.
     '''
@@ -117,7 +115,6 @@ def mock_post(url, data={}, files={}, stream=True, timeout=0):
         return build_response(200, json_obj=versions())
 
 
-###########################
 def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     '''Basic sc-remote test: Call with no user credentials and no arguments.
     '''
@@ -134,7 +131,6 @@ def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     assert retcode == 0
 
 
-###########################
 def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credential):
     '''Basic sc-remote test: Call with an authenticated user and no arguments.
     '''
@@ -155,7 +151,6 @@ def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credenti
     assert retcode == 0
 
 
-###########################
 def test_sc_remote_check_progress(gcd_nop_project, monkeypatch, unused_tcp_port,
                                   scserver_credential):
     '''Test that sc-remote can get info about a running job.
@@ -186,7 +181,6 @@ def test_sc_remote_check_progress(gcd_nop_project, monkeypatch, unused_tcp_port,
     assert retcode == 0
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scserver_credential):
     '''Test that sc-remote can reconnect to a running job.
@@ -735,7 +729,6 @@ def test_empty_call(monkeypatch, gcd_nop_project):
                 assert mock1.called
 
 
-###########################
 def test_cancel_job_response(gcd_nop_project, monkeypatch, unused_tcp_port,
                              scserver_credential):
     '''The server's answer to a cancel request is reported back to the caller.
@@ -752,7 +745,6 @@ def test_cancel_job_response(gcd_nop_project, monkeypatch, unused_tcp_port,
     }
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_cancel_job_unknown(gcd_nop_project, scserver, scserver_credential):
     '''Canceling a job the server has never heard of is reported, not raised.

@@ -309,10 +309,8 @@ def test_detect_elaboration_language_multiple_filesets():
     assert detect_elaboration_language(proj) == "vhdl"
 
 
-# ---------------------------------------------------------------------------
 # Incomplete / malformed project setups: detection must never raise, it should
 # always fall back to the (possibly customized) default language.
-# ---------------------------------------------------------------------------
 
 def test_detect_elaboration_language_no_design():
     # An empty project has no design name set.

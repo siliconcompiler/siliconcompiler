@@ -202,9 +202,6 @@ def derive_pdk_name(target):
     return str(pdk)
 
 
-##############################################################################
-# rclayer model application / readback
-##############################################################################
 def apply_initial_rclayer(pdk, model):
     """Force the bench-derived values into the PDK's routing ``rclayer``.
 
@@ -232,9 +229,6 @@ def rclayer_model(pdk, corner):
             if pex_corner == corner and layertype == "routing"}
 
 
-##############################################################################
-# Phase 1: bench (initial per-layer model)
-##############################################################################
 def run_bench(target):
     """Run the bench flow and return the initial per-layer model.
 
@@ -299,9 +293,6 @@ def _merge_preserved(model, pdk):
             "res": res, "cap": cap, "layertype": layertype, "source": "pdk"}
 
 
-##############################################################################
-# Phase 2: survey (correction factors)
-##############################################################################
 def run_survey(target, designs, initial_rclayer=None):
     """Route each design, measure golden per-layer parasitics, pool per corner.
 
@@ -404,9 +395,6 @@ def compute_all_factors(pooled, pdk):
     return factors
 
 
-##############################################################################
-# Scoring: quantify the per-net estimate error before vs after calibration
-##############################################################################
 def apply_factors(pdk, factors):
     """Apply calibration factors to the PDK as ``rccorrection`` (cap_factor only)."""
     pdk.unset_openroad_rccorrection()
@@ -533,9 +521,6 @@ def print_score(before, after):
                   f"{(av - bv) * 100:>+8.1f}%")
 
 
-##############################################################################
-# CSV data files
-##############################################################################
 def write_rclayer_csv(path, model):
     """Write the initial model to a CSV (``source`` = bench-characterized or pdk-preserved)."""
     with open(path, "w", newline="") as fid:
@@ -605,9 +590,6 @@ def read_rccorr_csv(path):
     return factors
 
 
-##############################################################################
-# PDK setup line rendering
-##############################################################################
 _PRESERVED_NOTE = "  # preserved from PDK (not characterized by OpenRCX)"
 
 
@@ -660,9 +642,6 @@ def print_calibration(model, factors):
     print(format_rccorr_lines(factors))
 
 
-##############################################################################
-# Orchestration
-##############################################################################
 def calibrate(target, designs=None, outdir="pex", rerun=False, score=False):
     """Two-phase calibration: return ``(model, factors)``, write the CSVs, and
     print the paste-able PDK lines.
@@ -737,9 +716,6 @@ def _log(message):
     print(message, file=sys.stderr)
 
 
-##############################################################################
-# CLI
-##############################################################################
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Calibrate OpenROAD's pre-route parasitic estimate for a PDK and emit the "

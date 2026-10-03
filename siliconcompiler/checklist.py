@@ -510,9 +510,6 @@ class Checklist(NamedSchema):
         return settings
 
 
-############################################
-# Design Checklist Schema Definition
-############################################
 def schema_checklist(schema: Criteria):
     """
     Adds standard checklist parameters to a Criteria schema object.

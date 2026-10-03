@@ -169,7 +169,7 @@ To run a target with arguments, use:
     smake <target> --arg1 value1 --arg2 value2
 -----------------------------------------------------------"""
 
-    # --- Pre-parsing to find --file and --directory arguments ---
+    # Pre-parsing to find --file and --directory arguments
     # This allows us to load the correct file before setting up the full parser.
     if not source_file:
         source_file = __default_source_file
@@ -206,7 +206,7 @@ To run a target with arguments, use:
         # Add temp dir to path
         sys.path.insert(0, dir)
 
-        # --- Process the source file to discover targets ---
+        # Process the source file to discover targets
         # If the user is only asking for help, allow the file to be missing so
         # `smake --help` still prints usage information.
         help_requested = any(arg in sys.argv for arg in ('--help', '-h'))
@@ -222,7 +222,7 @@ To run a target with arguments, use:
             description += f"\n\n{module_help}\n\n"
             description += "-----------------------------------------------------------"
 
-        # --- Set up the main argument parser ---
+        # Set up the main argument parser
         parser = argparse.ArgumentParser(
             progname,
             description=description,
@@ -241,7 +241,7 @@ To run a target with arguments, use:
             action='version',
             version=f"%(prog)s {version}")
 
-        # --- Create subparsers for each discovered target ---
+        # Create subparsers for each discovered target
         targetparsers = parser.add_subparsers(
             dest='target',
             metavar='<target>',
@@ -286,7 +286,7 @@ To run a target with arguments, use:
                 except TypeError:
                     pass
 
-        # --- Parse arguments and execute the target ---
+        # Parse arguments and execute the target
         args = parser.parse_args()
         target = args.target or default_arg
 

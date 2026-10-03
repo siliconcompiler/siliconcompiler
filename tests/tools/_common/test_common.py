@@ -8,11 +8,6 @@ from siliconcompiler import Task
 from siliconcompiler.tools._common import distinct, CCache
 
 
-# ============================================================================
-# distinct
-# ============================================================================
-
-
 def test_distinct_empty():
     assert distinct([]) == []
 
@@ -55,10 +50,6 @@ def test_distinct_paths():
     idirs = ["/proj/rtl/include", "/proj/common/include", "/proj/rtl/include"]
     assert distinct(idirs) == ["/proj/rtl/include", "/proj/common/include"]
 
-
-# ============================================================================
-# CCache
-# ============================================================================
 
 class BaseTask(Task):
     '''Stands in for the rest of the task chain.

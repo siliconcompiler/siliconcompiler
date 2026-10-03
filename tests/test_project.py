@@ -2886,10 +2886,6 @@ def test_write_depgraph_extra_edges_merged_into_existing_node():
     assert "extra_child" in graph["test"]
 
 
-# ============================================================================
-# Tests for Project.show() method
-# ============================================================================
-
 class MockShowTask(Task):
     """Mock ShowTask for testing."""
     def __init__(self, name="mock_tool", extensions=None):

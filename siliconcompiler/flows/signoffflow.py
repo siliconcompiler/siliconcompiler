@@ -36,7 +36,6 @@ class SignoffFlow(Flowgraph):
         self.edge("lvs", "signoff")
 
 
-##################################################
 if __name__ == "__main__":
     flow = SignoffFlow()
     flow.write_flowgraph(f"{flow.name}.png")

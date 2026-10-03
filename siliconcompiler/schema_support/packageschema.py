@@ -212,9 +212,6 @@ class PackageSchema(PathSchema):
         return section
 
 
-############################################
-# Package information
-############################################
 def schema_package(schema):
     """
     Adds package schema parameters to the given schema.

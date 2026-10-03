@@ -2486,10 +2486,6 @@ def test_unguarded_run_with_non_fork_default():
             f"[{run}] hit the multiprocessing guard error:\n{combined}"
 
 
-###########################
-# cancel
-###########################
-
 def test_cancel_reaches_the_task_scheduler(gcd_nop_project):
     '''A cancel arriving mid-run is handed straight down'''
     scheduler = Scheduler(gcd_nop_project)
@@ -2565,9 +2561,6 @@ def test_project_scheduler_is_not_serialized(gcd_nop_project):
     assert gcd_nop_project.copy()._scheduler is None
 
 
-# ---------------------------------------------------------------------------
-# [option,continue] across a whole run
-#
 # The option excuses a node's failure for the benefit of everything downstream:
 # an excused branch supplies nothing, so a fan-in assembles the branches that
 # survived. It is read from the node that failed, never from the node that
@@ -2577,7 +2570,6 @@ def test_project_scheduler_is_not_serialized(gcd_nop_project):
 # decision in test_taskscheduler.py, input forwarding and validation in
 # test_schedulernode.py, the Task-level rules in test_tool.py. These are the
 # real runs that prove the pieces are wired together.
-# ---------------------------------------------------------------------------
 
 
 class ContinueTask(Task):
@@ -3162,10 +3154,6 @@ def test_a_builtin_join_still_dies_on_an_unexcused_arm(continue_join):
                        match=r"Could not run final steps \(join\) due to errors in: A/0"):
         project.run()
 
-
-###########################
-# What is collected for nodes that run elsewhere
-###########################
 
 RTL = ("library", "gcd", "fileset", "rtl", "file", "verilog")
 SDC = ("library", "gcd", "fileset", "sdc", "file", "sdc")

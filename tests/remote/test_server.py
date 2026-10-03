@@ -34,7 +34,6 @@ def _job_owner(nfs_path):
         return json.load(f)
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserver_credential,
                               scserver_nfs_path):
@@ -75,7 +74,6 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
     assert _job_owner(scserver_nfs_path) == {'username': user}
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
                                   scserver_credential):
@@ -135,7 +133,6 @@ def test_server(gcd_remote_test, scserver_nfs_path):
     assert _job_owner(scserver_nfs_path) == {'username': None}
 
 
-###########################
 @pytest.mark.timeout(60)
 def test_server_partial(gcd_remote_test):
     '''A remote run with option 'to' set runs the flowgraph only up to that step.'''
@@ -183,10 +180,6 @@ def test_server_slurm(gcd_remote_test):
     assert gcd_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
 
-
-###########################
-# Unit tests for Server class
-###########################
 
 def test_server_init():
     '''Test Server initialization'''
@@ -1193,10 +1186,6 @@ async def test_handle_get_results_with_auth_error():
     assert response.status == 403
 
 
-###########################
-# Job tracking helpers
-###########################
-
 def _make_server(cluster='local', auth=False):
     '''Server with a working nfs mount, ready to have handlers called on it.'''
     server = Server()
@@ -1221,10 +1210,6 @@ def _register_job(server, job_hash, nodes=None, username=None, project=None):
                                            'project': project}
     return job_name
 
-
-###########################
-# job ownership, across every handler that names a job
-###########################
 
 def _authed_server_with_job(job_hash, owner):
     """A server with one job owned by `owner`, and two users who can authenticate."""
@@ -1405,10 +1390,6 @@ async def test_job_ownership(handler, case, auth, owner, caller, refused):
         assert response.status != 403, case
 
 
-###########################
-# handle_cancel_job
-###########################
-
 @pytest.mark.asyncio
 async def test_handle_cancel_job_not_running():
     '''A job the server is not tracking cannot be canceled'''
@@ -1541,10 +1522,6 @@ async def test_handle_cancel_job_then_check_progress():
     assert json.loads(response.body)['status'] == JobStatus.CANCELED
 
 
-###########################
-# check_progress per-node reporting
-###########################
-
 @pytest.mark.asyncio
 async def test_handle_check_progress_elapsed_time():
     '''Running nodes report how long they have been going, finished ones how
@@ -1610,10 +1587,6 @@ async def test_handle_check_progress_claimed_job():
     assert body['message'] == {}
 
 
-###########################
-# Routing
-###########################
-
 def test_server_routes():
     '''Every documented endpoint is routed, and results are not served
        statically'''
@@ -1650,10 +1623,6 @@ def test_server_run_creates_staging():
     assert os.path.isdir(server.staging_mount)
     assert os.path.dirname(server.staging_mount) == server.nfs_mount
 
-
-###########################
-# Upload staging
-###########################
 
 class _MockPart:
     def __init__(self, name, data=None, chunks=None):
@@ -1741,10 +1710,6 @@ async def test_handle_remote_run_removes_failed_upload(gcd_nop_project):
     assert not mock_run.called
     assert os.listdir(server.staging_mount) == []
 
-
-###########################
-# Job bookkeeping
-###########################
 
 def test_remote_sc_tracks_and_clears_nodes(gcd_nop_project, monkeypatch):
     '''remote_sc publishes the node list while the job runs, and takes it back
@@ -1858,10 +1823,6 @@ async def test_shutdown_with_no_jobs():
     assert not mock_halt.called
 
 
-###########################
-# Live server
-###########################
-
 @pytest.mark.timeout(60)
 def test_server_does_not_serve_mount(scserver, scserver_nfs_path):
     '''A GET cannot walk out of the results endpoint into the mount'''
@@ -1914,10 +1875,6 @@ async def test_handle_delete_job_archive_only():
     assert response.status == 200
     assert not os.path.exists(tar_file)
 
-
-###########################
-# Upload size
-###########################
 
 def test_max_upload_size_default():
     '''A job is as big as it is: the server does not cap it unless told to'''
@@ -1984,10 +1941,6 @@ def test_server_enforces_upload_limit(scserver):
 
     assert resp.status_code == 413
 
-
-###########################
-# Progress callbacks
-###########################
 
 def _callback_project(server, job_hash):
     '''A project set up the way remote_sc() leaves one for the callbacks:
@@ -2106,10 +2059,6 @@ def test_node_end_archives_and_stops_the_clock():
     assert node['status'] == NodeStatus.SUCCESS
     assert node['endtime'] >= node['starttime']
 
-
-###########################
-# Remaining server paths
-###########################
 
 def test_run_loads_users_json():
     '''run() imports the user table when authentication is on'''
