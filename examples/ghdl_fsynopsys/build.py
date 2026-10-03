@@ -20,7 +20,7 @@ def main():
     Requires: ghdl, yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
-    # --- Design Setup ---
+    # Design Setup
     # Create a design schema to hold the project's configuration.
     design = Design("ghdl_fsynopsys")
     # Set up a 'dataroot' to easily reference local files.
@@ -31,7 +31,7 @@ def main():
         design.set_topmodule("binary_4_bit_adder_top")
         design.add_file("binary_4_bit_adder_top.vhd")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create a standard ASIC project.
     project = ASIC(design)
 
@@ -41,13 +41,13 @@ def main():
     # Load the target configuration for the FreePDK45 technology.
     freepdk45_demo(project)
 
-    # --- Flow Configuration ---
+    # Flow Configuration
     # Set the project to use the VHDLASICFlow. This is a pre-built flow
     # that automatically inserts a VHDL-to-Verilog conversion step at the
     # beginning, using the GHDL tool.
     project.set_flow(VHDLASICFlow())
 
-    # --- Task-Specific Adjustments ---
+    # Task-Specific Adjustments
     # Get the specific task that handles the VHDL conversion (ConvertTask).
     # We then set a tool-specific option on it. `set_ghdl_usefsynopsys(True)`
     # passes -fsynopsys to GHDL, which makes the non-standard Synopsys
@@ -56,7 +56,7 @@ def main():
     # does not analyze without the flag.
     ConvertTask.find_task(project).set_ghdl_usefsynopsys(True)
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Run the complete flow. SC will first run GHDL to convert the VHDL
     # file to Verilog, and then proceed with the rest of the ASIC flow.
     project.run()

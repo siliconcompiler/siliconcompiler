@@ -64,7 +64,7 @@ what lets the second job pick up where the first left off:
 
 .. literalinclude:: examples/gcd/gcd_skywater.py
    :language: python
-   :start-after: # --- Part 2: Standalone LVS and DRC Verification ---
+   :start-after: # Part 2: Standalone LVS and DRC Verification
    :end-before: # Print a summary of the signoff results.
    :dedent: 4
 
@@ -91,7 +91,7 @@ Carry each variant as its own :term:`fileset` and give each run its own jobname:
 .. literalinclude:: examples/oh_experiments/adder_sweep.py
    :language: python
    :start-after: # Loop through the data widths again, this time to run the synthesis flow for each one.
-   :end-before: # --- Plotting and Reporting Results ---
+   :end-before: # Plotting and Reporting Results
    :dedent: 4
 
 The loop body is the whole pattern: swap the fileset, name the job, run, read the

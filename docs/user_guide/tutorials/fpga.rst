@@ -60,7 +60,7 @@ iCE40 UP5K, the part on an `iCEBreaker
 .. literalinclude:: examples/blinky/blinky.py
    :language: python
    :start-after: # Create a design schema to hold the project's configuration.
-   :end-before: # --- Execution & Analysis ---
+   :end-before: # Execution & Analysis
    :dedent: 4
 
 Three things differ from an :term:`ASIC` script:

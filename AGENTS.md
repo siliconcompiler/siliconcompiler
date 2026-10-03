@@ -112,11 +112,11 @@ work, prefer one that removes code, then one that adds no new surface.
   quotes, `...` for an ellipsis, no box-drawing rules. The exceptions are strings
   the UI displays, such as the dashboard's box drawing or a unit symbol, and test
   data that checks Unicode handling.
-- **Brief.** Say why, where the code cannot. In tests a comment is a line or
-  two; in package code it can run longer, but a long comment makes the code
-  around it harder to read. Do not narrate the next line or recount how the
-  code got here; that is the commit message. No divider or section-heading
-  comments.
+- **Brief.** Say why, where the code cannot. In tests a comment is a line or two;
+  in package code it can run longer, but a long comment makes the code around it
+  harder to read. Do not narrate the next line or recount how the code got here;
+  that is the commit message. No divider comments, and no section-heading comments
+  outside `examples/`, whose scripts are tutorials and comment more.
 - **A test docstring is at most two sentences** saying what the test checks,
   with the issue it guards if there is one. A long or intricate test may need a
   little more; none needs paragraphs.

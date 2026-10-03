@@ -65,9 +65,7 @@ def make_project(design, n, syn_np=1):
     return project
 
 
-# ---------------------------------------------------------------------------
 # 1. Serial: one node at a time.
-# ---------------------------------------------------------------------------
 def run_serial():
     design = make_design()
 
@@ -79,9 +77,7 @@ def run_serial():
         project.run()
 
 
-# ---------------------------------------------------------------------------
 # 2. Indexed: parallel *within* a job.
-# ---------------------------------------------------------------------------
 def run_indexed():
     design = make_design()
 
@@ -94,9 +90,7 @@ def run_indexed():
         project.run()
 
 
-# ---------------------------------------------------------------------------
 # 3. Processes: parallel *across* jobs.
-# ---------------------------------------------------------------------------
 def _run_one(n):
     """Worker body: a complete, independent run in its own process."""
     project = make_project(make_design(), n)

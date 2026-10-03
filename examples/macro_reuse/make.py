@@ -69,7 +69,7 @@ def build_and() -> StdCellLibrary:
     # Create a reproducible snapshot of the build
     project.snapshot()
 
-    # --- Packaging the Macro ---
+    # Packaging the Macro
     # Create a new library object to represent this hardened block
     library = StdCellLibrary("module_and")
 
@@ -103,7 +103,7 @@ def build_top(size: int = 250, margin: int = 10):
     project = ASIC(Top())
     project.add_fileset('rtl')
 
-    # --- Hierarchical Configuration ---
+    # Hierarchical Configuration
     # 1. 'add_alias': Tells the tool "When you see module 'And', do not compile its RTL."
     #    This effectively turns 'And' into a blackbox during synthesis.
     project.add_alias(And(), "rtl", None, None)
@@ -115,7 +115,7 @@ def build_top(size: int = 250, margin: int = 10):
     # Load target technology
     skywater130_demo(project)
 
-    # --- Constraints ---
+    # Constraints
     # Setting explicit die area is critical for macros.
     # If the core is too small, the placer may fail to fit the child macros.
     project.constraint.area.set_dieoutline(size, size, coremargin=margin)

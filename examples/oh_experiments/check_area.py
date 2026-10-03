@@ -72,7 +72,7 @@ def main(limit: int = -1):
         limit (int): The maximum number of modules to process. Defaults to -1,
             which means all modules will be processed. Useful for quick tests.
     '''
-    # --- Design Setup ---
+    # Design Setup
     # Create a master Design to hold all our module configurations.
     design = Design("oh")
     # Set up a 'dataroot' to fetch the design sources from a GitHub repository.
@@ -88,7 +88,7 @@ def main(limit: int = -1):
 
     # Iterate through each discovered Verilog file.
     for file in verilog_files:
-        # --- File Filtering ---
+        # File Filtering
         # Create a blocklist of files that are not synthesizable modules
         # (e.g., infrastructure, simulation models, empty wrappers).
         if os.path.basename(file) in [
@@ -100,7 +100,7 @@ def main(limit: int = -1):
             # Skip the current file and move to the next one.
             continue
 
-        # --- Fileset Creation ---
+        # Fileset Creation
         # Infer the top-level module name from the filename (e.g., "oh_add.v" -> "oh_add").
         top_module = os.path.basename(file).split(".")[0]
 
@@ -111,7 +111,7 @@ def main(limit: int = -1):
             # Add the Verilog source file. The path is relative to the dataroot.
             design.add_file(os.path.join("asiclib", "hdl", os.path.basename(file)))
 
-    # --- Execution ---
+    # Execution
     # Get a sorted list of all the "rtl.*" filesets we just created.
     # The slice [0:limit] applies the user-defined limit on how many to process.
     filesets = sorted([key for key in design.getkeys("fileset") if key.startswith('rtl')])[0:limit]
@@ -122,9 +122,7 @@ def main(limit: int = -1):
     return 0
 
 
-#########################
 # Main execution block
-#########################
 if __name__ == "__main__":
     # This makes the script runnable from the command line.
     # It calls the main function and exits with its return code.

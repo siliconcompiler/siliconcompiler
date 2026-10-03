@@ -310,10 +310,9 @@ DIVIDER = re.compile(r"^#\s*([-=*#~_])\1{5,}\s*$|^#\s*([-=*#~_])\2{2,}\s+\S.*\s+
 
 
 def test_no_divider_comments():
-    """AGENTS.md bans divider and section-heading comments; examples/ is exempt, as the docs
-    anchor includes on them."""
+    """No comment is a rule line or a title framed by one, as AGENTS.md asks."""
     offenders = []
-    for path in _python_files("siliconcompiler", "tests"):
+    for path in _python_files("siliconcompiler", "tests", "examples"):
         with open(path, encoding="utf-8") as f:
             source = f.read()
         offenders.extend(f"{os.path.relpath(path, docs.sc_root)}:{token.start[0]}"

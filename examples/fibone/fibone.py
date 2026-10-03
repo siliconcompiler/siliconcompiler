@@ -16,7 +16,7 @@ def main():
     Requires: bsc (Bluespec), yosys, openroad, opensta, klayout; freepdk45 (via lambdapdk)
     '''
 
-    # --- Design Setup ---
+    # Design Setup
     # Create a design schema to hold the project's configuration.
     design = Design("fibone")
     # Set up a 'dataroot' to easily reference local files.
@@ -30,14 +30,14 @@ def main():
         design.set_topmodule("mkFibOne")
         design.add_file("FibOne.bsv")
 
-    # --- Project Setup ---
+    # Project Setup
     # Create a standard ASIC project.
     project = ASIC(design)
 
     # Tell the project to use the "rtl" fileset we defined.
     project.add_fileset("rtl")
 
-    # --- Target Loading ---
+    # Target Loading
     # Load the target configuration for the FreePDK45 technology. This is the
     # key part of the example: the target picks the flow's front end from the
     # design's sources, so the .bsv file above selects a 'convert' step running
@@ -46,7 +46,7 @@ def main():
     # language="bluespec" here would select the same front end explicitly.
     freepdk45_demo(project)
 
-    # --- Execution & Analysis ---
+    # Execution & Analysis
     # Run the flow. SiliconCompiler will execute the 'convert' step first, then
     # proceed with synthesis, place, route, and GDS export.
     project.run()
