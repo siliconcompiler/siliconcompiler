@@ -267,7 +267,7 @@ def test_an_install_from_a_local_file_is_repacked_as_a_pure_wheel(site):
 ], ids=["compiled", "pth", "url"])
 def test_a_wheel_the_server_would_reject_is_refused_before_anything_is_built(
         site, change, why):
-    '''D292: a compiled file, a file that runs by itself, a dependency by URL --
+    '''A compiled file, a file that runs by itself, a dependency by URL --
     named, before anything is created.'''
     _distribution(site, "scfakehook", "1.0.0", archive=os.path.abspath("h.tar.gz"),
                   **change)
@@ -416,7 +416,7 @@ def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
     assert not listed & {"cocotb", "siliconcompiler", "scfake-helper", "scfakebits"}
     assert "python.env" in body["descriptor"]["needs"]
     assert "cocotb" in body["descriptor"]["requested_versions"]["python"]
-    # The Python its modules were written for: this one's major.minor (D293).
+    # The Python its modules were written for: this one's major.minor.
     assert body["descriptor"]["requested_versions"]["interpreter"] == {
         "python": [f"=={sys.version_info[0]}.{sys.version_info[1]}.*"]}
 
@@ -504,7 +504,7 @@ def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run
 
 def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_in,
                                                           tmp_path):
-    '''Repacked from the install here. D306: asked at create, in the first
+    '''Repacked from the install here. Asked at create, in the first
     archive beside the manifest; asked later, alone in the follow-up.'''
     from siliconcompiler.utils.paths import collectiondir
 
@@ -551,7 +551,7 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     ([], False, "is not granted python-packages"),
     ([{"name": "python-packages", "via": ["self"]}], True,
      "python-wheels to upload scfakeloose-3.0.0-py3-none-any.whl.*not granted python-wheels"),
-    # Each document in the way, by its `terms` title or its id (D309).
+    # Each document in the way, by its `terms` title or its id.
     ([{"name": "python-packages", "via": ["self"], "blocked_by": ["py-terms"]}], False,
      "holds python-packages blocked on an agreement.*sign The Python terms"),
     ([{"name": "python-packages", "via": ["self"], "blocked_by": ["other-terms"]}], False,

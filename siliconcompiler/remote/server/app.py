@@ -70,7 +70,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     datadir.mkdir(parents=True, exist_ok=True)
 
     # Nothing under the data directory is importable: every job's extracted
-    # archive is there. No manifest is read in this process (contract §1).
+    # archive is there. No manifest is read in this process.
     _keep_off_path(datadir)
 
     config = Config.load(datadir, test_mode=test_mode)
@@ -105,8 +105,8 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
 
     _check_page_scheme(config["web_url_base"], app.config["SC_PUBLIC_ORIGINS"])
     _register_error_handlers(app)
-    # The portal is served wherever the API is (implementation-notes §O), so
-    # over plain http its session cookie is a bearer secret on the wire.
+    # The portal is served wherever the API is, so over plain http its session
+    # cookie is a bearer secret on the wire.
     beyond = plaintext_origins(app.config["SC_PUBLIC_ORIGINS"])
     if beyond:
         logging.getLogger("sc-server").warning(
@@ -136,14 +136,14 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # Browser sessions live here and nowhere else (see portal.Sessions).
     app.config["SC_PORTAL"] = portal.Sessions()
 
-    # One SiliconCompiler, the one this server runs (profile §5): checked here
-    # rather than at somebody's first submit.
+    # One SiliconCompiler, the one this server runs (PROFILE.md section 5):
+    # checked here rather than at somebody's first submit.
     _check_an_image_holds_this_version(store, config)
     _report_read_containment()
 
     # Before anything can refuse, so every `detail` is held to the bound.
     errors.set_detail_max(config.limits["max_detail_chars"])
-    # What a published `detail` must never say about this deployment (D122).
+    # What a published `detail` must never say about this deployment.
     import socket
     errors.set_internals(
         paths=[datadir] + list(config["container_mounts"] or [])
@@ -178,9 +178,9 @@ def plaintext_origins(origins) -> List[str]:
 
 
 def _check_page_scheme(web_url_base, origins) -> None:
-    '''Contract rule 5 (D70): an answer to an `https` request sends only to
-    `https` URLs. `POST /v1/auth/browser`'s link is built on `web_url_base`, so
-    that may not be `http` beside an `https` origin.'''
+    '''An answer to an `https` request sends only to `https` URLs.
+    `POST /v1/auth/browser`'s link is built on `web_url_base`, so that may not be
+    `http` beside an `https` origin.'''
     from urllib.parse import urlsplit
 
     if not web_url_base or urlsplit(str(web_url_base)).scheme != "http":
@@ -211,7 +211,7 @@ def _origins(values) -> List[str]:
 
 def _report_read_containment() -> None:
     '''Warn at startup of what the manifest's read cannot contain itself with
-    on this host (profile §5).'''
+    on this host (PROFILE.md section 5).'''
     from siliconcompiler.remote.server.staging import sandbox
 
     logger = logging.getLogger("sc-server")
@@ -256,8 +256,8 @@ def _register_error_handlers(app) -> None:
         return response
 
     def _occurrence(body, status):
-        '''Which request this was (surface D152): `instance`, and a
-        correlation id the server's log carries too.'''
+        '''Which request this was: `instance`, and a correlation id the server's
+        log carries too.'''
         body.setdefault("instance", flask.request.path)
         body.setdefault("trace_id", errors.trace_id(flask.request.headers))
         if status >= 500:

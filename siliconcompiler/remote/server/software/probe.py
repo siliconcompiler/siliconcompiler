@@ -7,7 +7,7 @@ image: ``setup/server/bootstrap.py`` runs it in each image it registers.
 ``python``       ``importlib.metadata.version(<name>)``
 ``tool``         the driver's ``exe`` and ``vswitch``, read back through its
                  ``parse_version`` and ``normalize_version``
-``interpreter``  the image's own ``python3``, as ``X.Y.Z`` (surface D293)
+``interpreter``  the image's own ``python3``, as ``X.Y.Z``
 
 The command runs in the image and the parsing happens here: most tool images
 (``sc_tools`` included) have no SiliconCompiler. :func:`script` writes the shell
@@ -35,7 +35,7 @@ __all__ = ["ANSWER_BYTES", "INTERPRETER", "KINDS", "MARKER", "MAX_OUTPUT", "comm
 
 KINDS = ("python", "tool", "interpreter")
 
-# The one name of the interpreter kind: the image's own Python (surface D293).
+# The one name of the interpreter kind: the image's own Python.
 INTERPRETER = "python"
 
 # What a caller greps for: one line, JSON after.

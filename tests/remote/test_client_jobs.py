@@ -24,7 +24,7 @@ def _node(step, state, **extra):
 
 
 def job_body(state="running", nodes=None, terminal=None, **extra):
-    '''A job object shaped the way the contract publishes it.'''
+    '''A job object shaped the way the v1 API publishes it.'''
     nodes = nodes if nodes is not None else [_node("stepone", "running"),
                                              _node("steptwo", "pending")]
     if terminal is None:
@@ -123,7 +123,7 @@ def test_every_node_state_maps(state, terminal, expected):
 
 def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, caplog):
     '''The PUT addresses storage, which may be somebody else's bucket. The
-    grant carries the archive's own size and digest (D125), and each POST its
+    grant carries the archive's own size and digest, and each POST its
     own idempotency key.'''
     _routes_for_a_submit(fake_v1)
 
@@ -155,7 +155,7 @@ def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, ca
 
 def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     '''Authoritative at the top, advisory under `descriptor`; no `versions`,
-    no `resources` and no `run_hash`; submit has no body (D277).'''
+    no `resources` and no `run_hash`; submit has no body.'''
     _routes_for_a_submit(fake_v1)
 
     run._start()
@@ -167,11 +167,11 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     assert "versions" not in descriptor and "resources" not in descriptor
     pins = descriptor["requested_versions"]["python"]["siliconcompiler"]
     assert isinstance(pins, list) and pins[0].startswith("==")
-    # The flow's name and node count (D289).
+    # The flow's name and node count.
     assert isinstance(descriptor["flow"], str) and descriptor["flow"]
     assert descriptor["node_count"] == 2
     assert "run_hash" not in body and "run_hash" not in descriptor
-    # No node runs the user's own Python, so no interpreter is named (D293).
+    # No node runs the user's own Python, so no interpreter is named.
     assert "interpreter" not in descriptor["requested_versions"]
 
     submitted = next(c.request for c in fake_v1.calls
@@ -460,7 +460,7 @@ def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened):
     "</v1/jobs?limit=1&cursor=abc&kept=1>; REL=Next",
 ], ids=["unquoted", "second", "absolute", "case"])
 def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
-    '''Surface D306 and RFC 8288: the `rel="next"` URL requested unchanged,
+    '''RFC 8288: the `rel="next"` URL requested unchanged,
     never this request rebuilt around a cursor.'''
     from urllib.parse import urlsplit
 
@@ -486,7 +486,7 @@ def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
 
 
 def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
-    '''S §16's spelling, never Python's `True`.'''
+    '''`true` or `false`, never Python's `True`.'''
     from urllib.parse import parse_qs, urlsplit
 
     fake_v1.route(responses.GET, "jobs", {"items": []})
@@ -522,7 +522,7 @@ def test_a_cancel_always_says_why(fake_v1, logged_in, reason, sent):
                                          ("two\nlines", "control character"),
                                          ("a\x9bb", "control character")])
 def test_a_cancel_reason_is_checked_before_it_is_sent(fake_v1, logged_in, reason, said):
-    '''Surface D288/D306: refused here, naming why, never cut; nothing sent.'''
+    '''Refused here, naming why, never cut; nothing sent.'''
     with pytest.raises(RemoteError, match=said):
         logged_in.cancel_job("01J9-job", reason=reason)
 
@@ -564,7 +564,7 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
      ["feature: projects", "does not offer that"]),
     ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf12"},
      ["resource: gf12", "resource_kind: pdk", "Ask for a grant"]),
-    # Each entry says which requirement failed by its `kind` (surface D311).
+    # Each entry says which requirement failed by its `kind`.
     ("software-unavailable", 422,
      {"reason": "unavailable", "unresolved": [
          {"kind": "tools", "name": "openroad", "requirement": [">=24.3.2011", "==2.0"],
@@ -628,7 +628,7 @@ def test_every_refusal_renders(fake_v1, logged_in, slug, status, members, expect
 
 
 def test_a_resource_named_without_its_kind_prints_cleanly(fake_v1, logged_in):
-    '''Surface D285: by name, never as `resource_kind: None`.'''
+    '''By name, never as `resource_kind: None`.'''
     _refused(fake_v1, responses.POST, "jobs", "resource-unavailable", 422, resource="secret",
              detail="secret (secret) is marked private, and this server holds no copy of it")
 
@@ -684,7 +684,7 @@ def test_a_failed_run_explains_itself_briefly_and_still_fetches(fake_v1, run, ca
 
 
 @pytest.mark.parametrize("nodes,error,said,unsaid", [
-    # A node's `error` detail (surface §17) is printed beside the node.
+    # A node's `error` detail is printed beside the node.
     ([_node("stepone", "failed", error={"type": RUN_FAILED, "title": "The run failed",
                                         "detail": "the node exceeded its time limit"}),
       _node("steptwo", "cancelled")],
@@ -893,8 +893,8 @@ def test_a_refused_job_stream_falls_back_for_good(fake_v1, run, tails):
 
 
 def test_a_log_asked_too_early_is_asked_again(fake_v1, run):
-    '''`not-ready` is transient for the job's stream and a node's (review
-    row 54); a final refusal is not asked again.'''
+    '''`not-ready` is transient for the job's stream and a node's; a final
+    refusal is not asked again.'''
     from siliconcompiler.remote.client.run import JOB, _Tails
 
     run.project.option.set_quiet(False)
@@ -917,8 +917,7 @@ def test_a_log_asked_too_early_is_asked_again(fake_v1, run):
 
 def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabilities,
                                                         monkeypatch):
-    '''Client-v1-migration D16: create decides, from a `GET /v1` this client
-    may hold stale.'''
+    '''Create decides, from a `GET /v1` this client may hold stale.'''
     said = []
     monkeypatch.setattr(run.logger, "warning", lambda message, *_, **__: said.append(message))
     fake_v1.replace(responses.GET, "", dict(capabilities, software={
@@ -1094,7 +1093,7 @@ def test_only_the_manifest_and_the_sources_are_uploaded(run, nop_project, tmp_pa
 
 
 def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path):
-    '''Surface D302: each dataroot's path -- a library's, a private one, a
+    '''Each dataroot's path -- a library's, a private one, a
     task's, the history's -- goes up without userinfo and with query values
     masked; the user's own project and manifest keep what they registered.'''
     from siliconcompiler.remote import owners
@@ -1151,9 +1150,9 @@ def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
 def test_a_run_from_part_way_sends_the_outputs_it_starts_from_as_they_are(
         run, nop_project, tmp_path):
     '''`-from steptwo`: stepone's outputs, manifest unchanged, and nothing else
-    of either node. contract.md, *An upload keeps links*: a hard link is a
-    tar hard link to the first, a symlink to an archived file a link, and a
-    dangling one is left out.'''
+    of either node. An upload keeps links: a hard link is a tar hard link to
+    the first, a symlink to an archived file a link, and a dangling one is
+    left out.'''
     _leftovers(nop_project)
     outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
     os.makedirs(os.path.join(os.path.dirname(outputs), "inputs"), exist_ok=True)
@@ -1274,7 +1273,7 @@ def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
 
 def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
         fake_v1, run, nop_project, monkeypatch):
-    '''Upload nothing, and cancel saying which and why (surface D287).'''
+    '''Upload nothing, and cancel saying which and why.'''
     from siliconcompiler.package.https import HTTPResolver
 
     def unreachable(self):
@@ -1324,7 +1323,7 @@ def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
 
 @pytest.mark.parametrize("state,polls", [("staging", 2), ("queued", 1)])
 def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state, polls):
-    '''Surface D166: the server may still ask this machine for a source, so
+    '''The server may still ask this machine for a source, so
     leaving a job before it is queued warns, and a second interrupt leaves.'''
     import logging
 
@@ -1347,7 +1346,7 @@ def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state
 
 
 @pytest.mark.parametrize("refusal,said", [
-    # A private task root this server does not hold (surface D298).
+    # A private task root this server does not hold.
     (problem("resource-unavailable", 422, resource="acme_sim",
              keypath=["tool", "acme_sim", "task", "run", "dataroot", "scripts"],
              detail="the private dataroot tool,acme_sim,task,run,dataroot,scripts is not "
@@ -1567,7 +1566,7 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
 
 
 def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project, tmp_path):
-    '''Never the name alone: many objects use the default, `root` (D282).'''
+    '''Never the name alone: many objects use the default, `root`.'''
     from siliconcompiler import StdCellLibrary
 
     for name in ("alib", "blib"):
@@ -1588,7 +1587,7 @@ def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project
 
 
 def test_the_poll_line_reads_its_time_and_reason_from_transitions():
-    '''From the last `transitions` entry (§17; D278); a live staging phase wins.'''
+    '''From the last `transitions` entry; a live staging phase wins.'''
     import time
     from datetime import datetime, timezone
 

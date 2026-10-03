@@ -139,7 +139,7 @@ def test_a_pure_wheel_is_taken(tmp_path):
     (dict(files={"/abs.py": ""}), "does not stay inside"),
     (dict(purelib=False), "Root-Is-Purelib"),
     (dict(wheel_tags=["py3-none-manylinux1_x86_64"]), "tags it for a platform"),
-    # surface D292: nothing that runs by itself, and no dependency by URL.
+    # Nothing that runs by itself, and no dependency by URL.
     (dict(files={"scfake_hook.pth": "import os\n"}), "a .pth file"),
     (dict(files={"scfake/nested.pth": "import os\n"}), "a .pth file"),
     (dict(files={"sitecustomize.py": "print('hello')\n"}), "runs in any Python"),
@@ -364,7 +364,7 @@ def installed(monkeypatch, tmp_path):
      {"python_packages": {"requirements": ["numpy==1.26.4"],
                           "constraints": ["scfake==0.9"]}}, "also lists"),
     ([("scfake", "1.0", {}), ("scfake", "1.1", {})], {}, "both wheels for scfake"),
-    # surface D292, named by the file in the wheel.
+    # Self-running code, named by the file in the wheel.
     ([("scfake", "1.0", {"files": {"scfake_hook.pth": "import os\n"}})], {},
      "scfake_hook.pth"),
     ([("scfake", "1.0", {"requires": ["bits @ https://example.test/bits.whl"]})], {},
@@ -392,7 +392,7 @@ def test_a_wheel_that_is_impure_or_overlaps_is_refused(
 
 def test_a_wheels_own_members_are_held_to_the_extraction_limits(
         server, server_client, key, token, job_archive, python_project, tmp_path):
-    '''Counted with the archive's own (D292), and the wheel named.'''
+    '''Counted with the archive's own, and the wheel named.'''
     import tarfile
 
     offers_python_env(server)
@@ -425,7 +425,7 @@ def test_the_lists_and_the_wheels_are_installed_once_while_staging(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         installed, dispatcher):
     '''From the deployment's indexes, linked where the node finds it, and
-    recorded in the job's `staging` record (D295).'''
+    recorded in the job's `staging` record.'''
     from siliconcompiler.remote.server.outputs import record
 
     offers_python_env(server)
@@ -474,7 +474,7 @@ def test_nothing_is_installed_where_nothing_would_use_it(
 @pytest.mark.parametrize("name,version,refusal", [
     ("scfake-private", "1.2.0", None),               # installed in place of its entry
     ("scfake-other", "1.0", "unrequested_member"),   # not what was asked for
-    ("scfake-private", "1.3.0", "python_package"),   # not at its entry's version (D286)
+    ("scfake-private", "1.3.0", "python_package"),   # not at its entry's version
 ])
 def test_a_package_no_index_has_is_sent_back_and_answered_by_its_own_wheel(
         server, server_client, key, token, job_archive, python_project, tmp_path,
@@ -514,7 +514,7 @@ def test_a_package_no_index_has_is_sent_back_and_answered_by_its_own_wheel(
 def test_a_wheel_beside_its_listed_entry_in_the_first_archive_is_taken_only_where_asked(
         server, server_client, key, token, job_archive, python_project, tmp_path,
         installed, dispatcher, monkeypatch, asked):
-    '''D306: the wheel exception covers an ask at create too (made here:
+    '''The wheel exception covers an ask at create too (made here:
     this create asks only for dataroots); unasked, it travels two ways.'''
     from siliconcompiler.remote.server.jobs import JobService
 

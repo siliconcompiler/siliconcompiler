@@ -18,8 +18,8 @@ from siliconcompiler import PDK                                        # noqa: E
 from siliconcompiler.remote.server.staging.sources import Permanent            # noqa: E402
 
 
-# What the server cannot supply it asks for (D114). Create looks up and never
-# fetches; the fetch runs while `staging`, after submit (D130); a source that
+# What the server cannot supply it asks for. Create looks up and never
+# fetches; the fetch runs while `staging`, after submit; a source that
 # fails for good sends the job back -- the one backwards edge -- asking for it.
 
 LAMBDA = "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/"
@@ -130,7 +130,7 @@ def collected(project, *keypath, n=None):
       {"keypath": ["library", "acme_ip", "dataroot", "acme_ip"],
        "source": "git+ssh://github.com/acme/ip.git", "ref": "v1.2", "private": False}],
      [["library", "acme_ip", "dataroot", "acme_ip"]]),
-    # A dataroot name is unique only within its owner, and many use `root` (§13; D282).
+    # A dataroot name is unique only within its owner, and many use `root`.
     ([{"keypath": ["library", "acme_ip", "dataroot", "root"],
        "source": "git+ssh://github.com/acme/ip.git", "ref": "v1", "private": False},
       {"keypath": ["library", "beta_ip", "dataroot", "root"],
@@ -167,7 +167,7 @@ def test_nothing_to_send_means_no_upload_sources(server_client, key, token):
 ])
 def test_a_private_source_no_route_supplies_is_refused_at_create(server_client, key, token,
                                                                  keypath, source, resource):
-    '''Before a byte moves (D285, D299, D308): not the operator's, not held, not
+    '''Before a byte moves: not the operator's, not held, not
     allowlisted. No kind, since names are unique across kinds; never asked for.'''
     entry = {"keypath": keypath, "private": True}
     if source:
@@ -238,7 +238,7 @@ def test_a_query_value_in_a_source_is_never_stored(server, server_client, key, t
 @pytest.mark.parametrize("private", [False, True])
 def test_a_queried_source_is_asked_for_and_never_fetched(server, server_client, key, token,
                                                          private):
-    '''Surface D308: a masked value says what the source is, not enough to
+    '''A masked value says what the source is, not enough to
     fetch it, even from the allowlist. A public one is asked for; a private
     one, with no operator's or held copy, is refused.'''
     fetched = []
@@ -270,7 +270,7 @@ def test_a_queried_source_is_asked_for_and_never_fetched(server, server_client, 
     # The old spelling, alone or beside the new, is an unknown member.
     {"name": "acme", "dataroot": "acme"},
     {"keypath": ["library", "acme", "dataroot", "acme"], "dataroot": "acme"},
-    # So is a `kind`: the server finds a name's kind (entitlements D75).
+    # So is a `kind`: the server finds a name's kind.
     {"keypath": LAMBDA_KEYPATH, "kind": "pdk"},
     "not an object",
 ])
@@ -296,7 +296,7 @@ def test_one_dataroot_named_twice_is_refused(server_client, key, token):
 def test_an_allowlisted_source_is_fetched_after_submit_then_dispatched(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
     '''No request waits on the fetch, and it happens BEFORE `queued`, which
-    only moves forward (D130). The run reads the server's held copy.'''
+    only moves forward. The run reads the server's held copy.'''
     fake_fetch(server)
     job, response = submitted(server_client, key, token, job_archive(remote_project))
 
@@ -329,7 +329,7 @@ def test_a_source_that_fails_for_good_sends_the_job_back_saying_why(
         "SELECT reason FROM job_state_transitions WHERE job_id = ? "
         "AND from_state = 'staging' AND to_state = 'awaiting_input'", (job["id"],))["reason"]
     assert "the dataroot library,lambda,dataroot,lambda: the source answered 404" in reason
-    # `transitions` lists every state entered, the send-back included (§17; D278).
+    # `transitions` lists every state entered, the send-back included.
     assert [entry["state"] for entry in back["transitions"]] == \
         ["created", "awaiting_input", "staging", "awaiting_input"]
     assert "the source answered 404" in back["transitions"][-1]["reason"]
@@ -472,7 +472,7 @@ def test_the_asked_for_sources_arrive_each_upload_kept_and_the_job_runs(
 
 def test_the_staging_record_gains_a_section_each_pass_and_is_scrubbed(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
-    '''The job's `staging` artifact (D295): a section per pass, one artifact,
+    '''The job's `staging` artifact: a section per pass, one artifact,
     scrubbed like `detail`, a credential in a fetch's error included.'''
     import gzip
 
@@ -503,7 +503,7 @@ def test_the_staging_record_gains_a_section_each_pass_and_is_scrubbed(
 
 def test_staging_past_its_limit_ends_the_job_staging_timed_out(
         server, server_client, key, token, job_archive, remote_project, dispatcher):
-    '''Surface D294: bounded as a whole by `max_staging_seconds`, whatever
+    '''Bounded as a whole by `max_staging_seconds`, whatever
     phase the time goes on, then `failed`, `staging-timed-out`, naming the
     limit: the job's own, not this server's failure.'''
     server.config["SC_CONFIG"].limits["max_staging_seconds"] = 1
@@ -706,7 +706,7 @@ def test_an_archive_carrying_a_private_value_is_refused_naming_it(
         tmp_path):
     '''It must never have been sent, so it is not used in place of the
     server's own: `unrequested_member`, the dataroot as `keypath` and the
-    member in `detail` -- and the upload is not kept (D308).'''
+    member in `detail` -- and the upload is not kept.'''
     import gzip
 
     fake_fetch(server)

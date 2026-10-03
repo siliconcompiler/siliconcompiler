@@ -49,7 +49,7 @@ USER_AGENT = f"siliconcompiler/{__version__}"
 
 
 class _NoEnvironmentCredential(requests.auth.AuthBase):
-    '''A session `auth` that adds nothing: requests sends only what was set (surface D305).
+    '''A session `auth` that adds nothing: requests sends only what was set.
 
     Without it requests fills `auth` from `~/.netrc`, replacing the DPoP
     `Authorization` everywhere. `trust_env` stays on for proxies and CA bundles.
@@ -131,7 +131,7 @@ class Transport:
         self._key = key
         self._credentials = credentials
         self._session = requests.Session()
-        # Never netrc, never a credential from the environment (surface D305).
+        # Never netrc, never a credential from the environment.
         self._session.auth = _NoEnvironmentCredential()
 
         self._access_token: Optional[str] = None
@@ -179,7 +179,7 @@ class Transport:
     def operator_headers(self, url: str) -> Dict[str, str]:
         '''The operator headers a request to ``url`` carries.
 
-        Only to the API's origin, whatever a redirect names (surface D304).
+        Only to the API's origin, whatever a redirect names.
         '''
         if origin_of(url) != self.api_origin:
             return {}
@@ -433,7 +433,7 @@ class Transport:
         from urllib.parse import urljoin
         target = urljoin(response.url or self.base_url, target)
 
-        # Contract rule 5 (D70): https never redirects to http.
+        # https never redirects to http.
         ours, theirs = urlsplit(self.base_url).scheme, urlsplit(target).scheme
         if theirs not in ("http", "https") or (ours == "https" and theirs != "https"):
             raise RemoteError(f"the server redirected an {ours} request to {theirs}, "

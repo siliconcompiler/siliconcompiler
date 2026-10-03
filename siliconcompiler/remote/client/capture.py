@@ -1,8 +1,8 @@
 '''
 What a job's own Python needs, read from the static imports of each node's test
-modules on the submitting machine (surface *A node's own Python packages, built
-while staging*): indexable distributions are listed at their installed versions,
-others built as wheels (`wheels`), and the user's helper modules sent as files.
+modules on the submitting machine: indexable distributions are listed at their
+installed versions, others built as wheels (`wheels`), and the user's helper
+modules sent as files.
 
 What `requested_versions.python` names is never listed: the image holds it,
 and a second copy would land on the tool's path.

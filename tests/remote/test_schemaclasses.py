@@ -9,7 +9,7 @@ from conftest import outcome, slug                                      # noqa: 
 from test_server_jobs import FakeDispatcher, stage, submit              # noqa: E402
 
 
-# Contract §1: an uploaded manifest is read as data. Every class and task module
+# An uploaded manifest is read as data. Every class and task module
 # it names is looked up among what is installed, and nothing is imported.
 
 
@@ -43,8 +43,7 @@ def submitted(server_client, key, token, archive):
 
 def test_a_task_class_this_server_does_not_have_is_refused_and_never_imported(
         server_client, key, token, job_archive, nop_project, dispatcher, unloaded):
-    '''Never run as its base class instead (surface D163), and looked up,
-    not imported.'''
+    '''Never run as its base class instead, and looked up, not imported.'''
     nop_project.get_flow().get_graph_node("stepone", "0").set(
         "taskmodule", "sc_uploaded_names/NamedTask")
 

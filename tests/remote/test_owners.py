@@ -99,8 +99,8 @@ def test_the_design_always_goes_up_and_the_credentials_file_never(project, tmp_p
     # fetched into the cache on first use, so every file it names IS on disk.
     ("https://example.test/pdk.tar.gz", False, owners.REMOTE, False),
     ("{tmp}/pdk", False, owners.LOCAL, True),
-    # D112, reversing D109: the server never expands a variable, so the
-    # client does, with its own environment, and uploads what it finds.
+    # The server never expands a variable, so the client does, with its own
+    # environment, and uploads what it finds.
     ("$FOUNDRY_ROOT", False, owners.LOCAL, True),
     ("dataroot://real", False, owners.REMOTE, False),       # judged by the one it names
     ("python://some_pdk_package", False, owners.INSTALLED, False),
@@ -130,8 +130,8 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
     "file+private", "git+private", "git+https+private", "git+ssh+private",
     "ssh+private", "http+private", "https+private"])
 def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path, scheme):
-    '''A `+private` suffix on any scheme (D274): never uploaded, even from
-    this disk; a remote one sends its cleaned source and ref (D308), a local none.'''
+    '''A `+private` suffix on any scheme: never uploaded, even from
+    this disk; a remote one sends its cleaned source and ref, a local none.'''
     local = scheme == "file+private"
     (tmp_path / "secret").mkdir()
     (tmp_path / "secret" / "datasheet.pdf").write_text("x")
@@ -179,7 +179,7 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
     record, = [one for one in owners.value_records(owners.without_credentials(project), "none")
                if one["key"][:2] == ["library", "lambda"]]
 
-    assert not any("kind" in item for item in listed.values())       # by keypath (D298)
+    assert not any("kind" in item for item in listed.values())       # by keypath
     assert not any(keypath[1] == "gcd" for keypath in listed)
     sent = listed[("library", "lambda", "dataroot", "lambda")]
     assert sent["source"] == ("https://github.com/siliconcompiler/x/archive/v1.tar.gz"
@@ -192,7 +192,7 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
 
 
 def test_every_dataroot_path_leaves_without_its_credential(gcd_nop_project):
-    '''D302: the design's, a private one, a task's query, and the same in the
+    '''The design's, a private one, a task's query, and the same in the
     history -- on a copy, so the user's project keeps what they registered.'''
     assert owners.without_credentials(gcd_nop_project) is gcd_nop_project   # none: no copy
     project = gcd_nop_project
@@ -356,7 +356,7 @@ def two_sources(tmp_path, second, *, create=True):
     ("file+private://{tmp}/secret", owners.PRIVATE),
 ])
 def test_a_value_goes_up_on_its_own(project, tmp_path, second, origin):
-    '''Surface *A parameter may go up in part*: the local value goes up, the
+    '''A parameter may go up in part: the local value goes up, the
     one beside it in the same parameter stays behind.'''
     project.option.set_builddir(str(tmp_path / "build"))
     (tmp_path / "secret").mkdir()
@@ -406,7 +406,7 @@ def status(project, name, supply, collection="none"):
 
 
 @pytest.mark.parametrize("root,supply,expected", [
-    # The live hole (D112): rooted at `/etc`, left out of the archive, and
+    # The live hole: rooted at `/etc`, left out of the archive, and
     # the file IS on this machine -- asked of the client, never looked for.
     ("/etc", {}, owners.ASK),
     (GITHUB, {"allowed": ["https://github.com/siliconcompiler/"]}, owners.FETCH),
@@ -441,8 +441,8 @@ def test_an_uploaded_file_is_accounted_as_uploaded(project, tmp_path):
 
 
 def test_a_private_design_is_supplied_like_any_other(project, tmp_path):
-    '''D299: *designs can have private data for the same reason* -- supplied
-    from the operator's copy, refused in the same words where there is none.'''
+    '''Designs can have private data too -- supplied from the operator's copy,
+    refused in the same words where there is none.'''
     (tmp_path / "top.v").write_text("module top; endmodule\n")
     design = project.get("library", "gcd", field="schema")
     design.set_dataroot("mine", f"file+private://{tmp_path}")
@@ -484,7 +484,7 @@ def test_a_path_escaping_a_supplied_root_is_refused_links_and_all(project, tmp_p
 
 def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
         project, tmp_path):
-    '''D299: the operator's copy, a held copy of its source, a fetch from the
+    '''The operator's copy, a held copy of its source, a fetch from the
     allowlist -- and UNAVAILABLE where none answers, never ASK.'''
     pdk = PDK("secret")
     pdk.set_dataroot("secret", GITHUB.replace("https", "https+private", 1), tag="v1")
@@ -575,7 +575,7 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
         server_client, key, token, job_archive, project,
         left_out=collected_path(project, ("library", "mine", *DATASHEET)))
 
-    # The 202 says `staging`, never `awaiting_input` (D151): the ask goes
+    # The 202 says `staging`, never `awaiting_input`: the ask goes
     # back through the one backwards edge, from `staging`.
     assert (response.status_code, response.get_json()["state"]) == (202, "staging")
     assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
@@ -589,7 +589,7 @@ def test_a_local_pdk_left_out_is_asked_for_not_supplied_from_the_host(
 def test_a_private_source_the_server_has_no_copy_of_is_refused(
         server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path, design):
     '''A PDK names its `resource_kind`; a design file -- found by the manifest's
-    read, the backstop for a source the descriptor never listed -- none (D285).'''
+    read, the backstop for a source the descriptor never listed -- none.'''
     from conftest import slug
     from test_server_sources_flow import read
 
@@ -617,7 +617,7 @@ def test_a_mapped_private_pdk_runs_and_the_manifest_says_whose_copy(
         server, server_client, key, token, job_archive, dispatcher, gcd_design,
         tmp_path):
     '''The operator's copy, confined -- and the manifest the run loads points
-    each dataroot at the copy it resolves to (D111).'''
+    each dataroot at the copy it resolves to.'''
     from conftest import run_manifest
     from siliconcompiler.remote.server.running import runspec
 

@@ -226,7 +226,7 @@ def staging_inline(request, monkeypatch):
     monkeypatch.setattr(JobService, "_start_preparing", inline)
 
 
-# The one SiliconCompiler version the tests' registries hold (profile §5).
+# The one SiliconCompiler version the tests' registries hold (PROFILE.md section 5).
 TEST_SC_VERSION = "0.38.0"
 
 

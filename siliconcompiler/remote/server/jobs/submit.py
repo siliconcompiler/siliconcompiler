@@ -1,6 +1,6 @@
 '''
 The upload: its grant, the submit that checks the digest before anything is
-opened, and the archive checked against the manifest's read (surface §14, §15).
+opened, and the archive checked against the manifest's read.
 '''
 
 import json
@@ -30,8 +30,8 @@ class SubmitMixin:
               body: Dict[str, Any]) -> Dict[str, Any]:
         '''Endpoint 14: a grant for the archive about to be uploaded.
 
-        The first grant for each archive fixes `size_bytes` and `digest`
-        (D125); a re-issue must repeat them.
+        The first grant for each archive fixes `size_bytes` and `digest`; a
+        re-issue must repeat them.
         '''
         job = self.owned(session, job_id)
 
@@ -96,9 +96,9 @@ class SubmitMixin:
                idempotency_key: Optional[str]) -> Dict[str, Any]:
         '''Endpoint 15: `202` in `staging`, once the upload matches the digest.
 
-        Nothing here opens the archive (surface §15): extraction, the
-        manifest's read and every check run while staging. A refusal here
-        leaves the job `awaiting_input` with its upload, to submit again.
+        Nothing here opens the archive: extraction, the manifest's read and
+        every check run while staging. A refusal here leaves the job
+        `awaiting_input` with its upload, to submit again.
         '''
         with self._keyed(session.user_id, "submit", idempotency_key):
             return self._submit(session, job_id, body, idempotency_key)
@@ -116,7 +116,7 @@ class SubmitMixin:
                 "job-state-conflict",
                 detail=f"a job in {job['state']} cannot be submitted")
 
-        # No body (surface §15; D277): the grant bound size and digest.
+        # No body: the grant bound size and digest.
         _only(body, (), "the submit request")
         digest = job["grant_digest"]
         if not digest:
@@ -140,7 +140,7 @@ class SubmitMixin:
                 detail=f"storage holds {size} bytes, {reported_digest}, and the grant "
                        f"bound {digest}")
 
-        # Every archive of the job together (D125).
+        # Every archive of the job together.
         ceiling = self._config.limits["max_upload_bytes"]
         if job["archives_bytes"] + size > ceiling:
             raise ProblemError(
@@ -165,8 +165,8 @@ class SubmitMixin:
                         "UPDATE jobs SET submit_idempotency_key = NULL, submit_reply = NULL "
                         "WHERE id = ?", (other["id"],))
 
-        # Kept from here on as its own `input` (surface D133), unless refused
-        # for what it must not carry (`rows._kept`).
+        # Kept from here on as its own `input`, unless refused for what it
+        # must not carry (`rows._kept`).
         def admit():
             # State and `concurrent_jobs` re-checked inside the transaction
             # that moves the job to `staging` (`Store.admission`), before
@@ -215,8 +215,8 @@ class SubmitMixin:
             "AND kind = 'input' ORDER BY upload_seq DESC LIMIT 1", (job["id"],))
         follow_up = latest["upload_seq"] > 1
 
-        # A follow-up may hold only what was asked for (D124), decided from
-        # the last read before this archive is opened.
+        # A follow-up may hold only what was asked for, decided from the
+        # last read before this archive is opened.
         allowed = self._requested_members(job, root) if follow_up else None
         tally: Dict[str, Any] = {}
         try:
@@ -286,7 +286,7 @@ class SubmitMixin:
                 outputs.append(member)
 
         # A link in an upstream `outputs/` may point only into the outputs
-        # this archive carries (contract.md, *An upload keeps links*).
+        # this archive carries.
         homes = [os.path.realpath(str(path)) for path in outputs]
         for here in outputs:
             for dirpath, dirnames, filenames in os.walk(here, followlinks=False):
@@ -307,11 +307,10 @@ class SubmitMixin:
         '''Every file the manifest names, as how it reaches the run; refuse
         what nobody can supply.
 
-        No path the job names is read (D112). `resource-unavailable` only for
-        what the caller could not send either (D127).
+        No path the job names is read. `resource-unavailable` only for what
+        the caller could not send either.
 
-        A private value the archive carries is refused first, never used
-        (surface D299).
+        A private value the archive carries is refused first, never used.
         '''
         collection = unpacked / "sc_collected_files"
         carried = owners.uploaded_private(summary["values"], collection)
@@ -328,7 +327,7 @@ class SubmitMixin:
         for entry in entries:
             if entry.status != owners.UNAVAILABLE:
                 continue
-            # Never for the design, which is no resource (surface D285).
+            # Never for the design, which is no resource.
             kind = entry.kind if entry.kind in RESOURCE_KINDS else None
             where = f" in the dataroot {owners.shown(entry.keypath)}" \
                 if entry.keypath else ""
@@ -350,13 +349,12 @@ class SubmitMixin:
         return entries
 
     def _check_wheels(self, job, unpacked: Path, tally=None) -> None:
-        '''The job's wheels (surface *Uploaded wheels*): each pure and well
-        formed, one per distribution, none for a listed distribution but one
-        sent back for, and none without `python.env`. Each failure is a client
-        bug.
+        '''The job's wheels: each pure and well formed, one per distribution,
+        none for a listed distribution but one sent back for, and none without
+        `python.env`. Each failure is a client bug.
 
-        A wheel's members count toward the archive's limits (surface D292),
-        via the extraction's ``tally``.
+        A wheel's members count toward the archive's limits, via the
+        extraction's ``tally``.
         '''
         top = unpacked / environment.wheels_path()
         if not top.exists() and not top.is_symlink():
@@ -406,18 +404,18 @@ class SubmitMixin:
                 raise refuse(f"{name} is {wheel.name}, which python_packages also lists: "
                              "a distribution travels as a wheel or in the lists, not both")
             if wheel.name in listed and not _same_version(wheel.version, listed[wheel.name]):
-                # A wheel answering an entry is at its version (surface D286).
+                # A wheel answering an entry is at its version.
                 raise refuse(f"{name} is {wheel.name} {wheel.version}, sent for an entry "
                              f"python_packages lists at {listed[wheel.name]}: the wheel "
                              "that answers an entry is at its version")
 
     def _check_owed(self, job, summary, asked) -> None:
         '''Refuse a required value the client should have sent and did not,
-        before anything dispatches (D129).
+        before anything dispatches.
 
         *Should have sent*: the design, anything local or editable, anything
-        already asked for, and a file in no dataroot (surface D298); the rest
-        can still be asked for. Only a flow whose required set is known.
+        already asked for, and a file in no dataroot; the rest can still be
+        asked for. Only a flow whose required set is known.
         '''
         before = {tuple(item.get("keypath") or ())
                   for item in json.loads(job["upload_sources"] or "[]")
@@ -442,7 +440,7 @@ class SubmitMixin:
 
         Per value, as the client collects it (`owners.collection`).'''
         entries = json.loads(job["upload_sources"] or "[]")
-        # By keypath, not dataroot name (surface D298).
+        # By keypath, not dataroot name.
         asked = {tuple(item.get("keypath") or ())
                  for item in entries if item.get("kind") == "dataroot"}
         packages = {environment.canonical(item.get("name") or "")
@@ -470,7 +468,7 @@ class SubmitMixin:
 
     def _forget_upload(self, job, slug: str) -> None:
         '''Delete an upload refused for what it must not carry, a credential
-        or a private dataroot (surface D307, D308), with its row and tree.'''
+        or a private dataroot, with its row and tree.'''
         row = self._store.one(
             "SELECT id, storage_key FROM artifacts WHERE job_id = ? AND upload_seq = "
             "(SELECT max(upload_seq) FROM artifacts WHERE job_id = ?)",

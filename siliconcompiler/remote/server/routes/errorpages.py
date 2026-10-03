@@ -2,7 +2,7 @@
 The error `type` pages, served from this host.
 
 Every refusal's `type` is ``https://siliconcompiler.com/server-errors/<slug>``,
-and RFC 9457 §3.1.1 says that URI SHOULD dereference to documentation for the
+and RFC 9457 section 3.1.1 says that URI SHOULD dereference to documentation for the
 type. The pages are static and identical on every deployment; this serves the
 same pages at the same path on this host, so a person holding a refusal from
 `sc-server` can read what it means without the public site.
@@ -19,7 +19,7 @@ writes the static folder that is deployed there.
 deployment because a client compares it against a constant; this is a copy of
 the pages, not a second namespace.
 
-Outside ``/v1`` on purpose: the contract claims only ``/v1/`` paths, and a
+Outside ``/v1`` on purpose: the v1 API claims only ``/v1/`` paths, and a
 deployment's own pages need no reservation.
 '''
 

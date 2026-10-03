@@ -1,11 +1,11 @@
 '''
-Building a job's Python packages into a derived image (implementation-notes §L).
+Building a job's Python packages into a derived image.
 
 ``python -m siliconcompiler.remote.server.packages.envbuild <workspace>/spec.json``
 runs as its own job on the builder queue while the job stages, and always
 writes ``<workspace>/result.json``, all the API reads.
 
-Isolated, every part load-bearing (contract item 3): pip runs inside the base
+Isolated, every part load-bearing: pip runs inside the base
 image, under the node's Python; in its own container with a read-only root, a
 private /tmp and none of the base's bind mounts (no PDK, build tree or cluster
 socket); with only a loopback and a unix socket to a proxy admitting the
@@ -110,7 +110,7 @@ def build(spec: Dict[str, Any], workspace: Path, run=None) -> Dict[str, Any]:
                    "--proxy-socket", f"{_PROXY}/proxy.sock"]
         for wheel in wheels:
             command += ["--wheel", f"{_REQ}/{WHEELS}/{wheel.name}"]
-        # Source builds only if the operator allows, and only here (surface D291).
+        # Source builds only if the operator allows, and only here.
         for index in spec.get("indexes") or []:
             command += ["--index-url", index]
         if spec.get("source_builds"):
@@ -254,7 +254,7 @@ class Proxy:
 
     ``CONNECT`` is checked by host and port, a plain http ``GET``/``HEAD`` by
     whole URL. Never to a non-public address, but for the builder's
-    ``private_exact_hosts`` (surface D172): an exact-host index entry may be the
+    ``private_exact_hosts``: an exact-host index entry may be the
     operator's own mirror; a wildcard never. Past ``max_bytes`` relayed back,
     the connection is cut and ``oversize`` set.
     '''

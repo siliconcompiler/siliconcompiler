@@ -1,11 +1,11 @@
 '''
 Where this server will fetch a job's sources from.
 
-The list decides who fetches, never whether the data arrives (D128): a source
+The list decides who fetches, never whether the data arrives: a source
 not on it is uploaded by the client with its own credentials. What it bounds
 is the server making requests on a job's behalf, the SSRF.
 
-An entry may be a glob (D128, profile D30), each URL part matched on its own:
+An entry may be a glob, each URL part matched on its own:
 
 ==========  ==============================================================
 scheme      exact, never a glob: ``http`` for ``https`` is a downgrade

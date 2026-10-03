@@ -73,7 +73,7 @@ def _artifacts(store, storage, config, datadir) -> int:
 
     `deleted_at` is set: retention passing is not a ladder row, so without it
     a reaped artifact reports `fetchable: true`. `deleted_by` stays NULL, which
-    reads as `deleted_cause: "expired"` (surface §21). A legal hold is skipped.
+    reads as `deleted_cause: "expired"`. A legal hold is skipped.
     '''
     from siliconcompiler.remote.server.outputs.artifacts import referenced_elsewhere
 

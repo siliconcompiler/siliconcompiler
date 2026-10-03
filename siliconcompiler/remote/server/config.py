@@ -57,9 +57,9 @@ DEFAULT_LIMITS: Dict[str, int] = {
     # (`ReconcileMixin.abandon_if_expired`).
     "abandon_after_seconds": 900,           # seconds
 
-    # One pass of staging: sources, manifest read and Python packages together
-    # (surface D294). Past it the job ends `failed`, `staging-timed-out`, so one
-    # user's package set cannot hold the queue. Each resubmit gets it afresh.
+    # One pass of staging: sources, manifest read and Python packages together.
+    # Past it the job ends `failed`, `staging-timed-out`, so one user's package
+    # set cannot hold the queue. Each resubmit gets it afresh.
     "max_staging_seconds": 3600,            # seconds
 }
 
@@ -163,7 +163,7 @@ DEFAULTS: Dict[str, Any] = {
     # be written as, so a client learns of a denial at submit.
     "denied_resources": {},
 
-    # Where this server fetches a job's remote sources from (D113, D128), as
+    # Where this server fetches a job's remote sources from, as
     # globs (see `allowlist`).
     # Decides who fetches, not whether the data arrives: a source not on it
     # is asked of the client. The default is SiliconCompiler's GitHub org, which
@@ -182,32 +182,31 @@ DEFAULTS: Dict[str, Any] = {
                         "https://files.pythonhosted.org/"],
 
     # Whether this server builds an image of a job's Python packages over the
-    # node's base image (implementation-notes §L), shared by every job asking
-    # for the same set.
+    # node's base image, shared by every job asking for the same set.
     # Needs `containers`; on advertises `python.env`, and false is the kill
     # switch. A build runs on a compute node (`build_queue`) whose only way out
     # is a proxy admitting `index_allowlist`.
     "env_builder": False,
 
-    # Whether packages may be built from source where no wheel fits (surface
-    # D291): the deployment's policy in place of `python-sdist`, off because a
-    # build runs the package's own code. Only in the builder: needs `env_builder`.
+    # Whether packages may be built from source where no wheel fits: the
+    # deployment's policy in place of `python-sdist`, off because a build runs
+    # the package's own code. Only in the builder: needs `env_builder`.
     "python_source_builds": False,
 
     # The Slurm partition for environment builds, None for the default; its own
     # keeps a burst of builds off the slots flows are waiting on.
     "build_queue": None,
 
-    # Private dataroots this server supplies (surface D298):
+    # Private dataroots this server supplies:
     #   {"library": {"acme_pdk": {"acme_pdk": "/opt/pdks/acme"}},
     #    "tool":    {"acme_sim": {"scripts": "/opt/acme/scripts"}},
     #    "task":    {"acme_sim": {"run": {"scripts": "/opt/acme/run-scripts"}}}}
     # `library` is `library,<name>,dataroot,<root>`; `tool` covers every task of
     # the tool, and `task` overrides it for one (tool, task).
     # Such a root never leaves the submitter, so its files come from here
-    # first, then a held copy of its source, then a fetch (surface D299); this is
-    # the one needing no source. A path is confined to its root. Mounted
-    # read-only; a change needs the bundles re-staged.
+    # first, then a held copy of its source, then a fetch; this is the one
+    # needing no source. A path is confined to its root. Mounted read-only; a
+    # change needs the bundles re-staged.
     "private_dataroots": {},
 
     # Per source, and for all of a job's sources after submit; what is missing
@@ -225,17 +224,17 @@ DEFAULTS: Dict[str, Any] = {
     # takes the follow-up path after submit. For test mode 4.
     "fetch_fails": False,
 
-    # Out-of-tree task-driver modules software may name (D95). The probe imports
+    # Out-of-tree task-driver modules software may name. The probe imports
     # them on the server, so this is what an operator allows it to import.
     "software_drivers": [],
 }
 
-# A notice (surface §1). The times are REQUIRED and nullable on the wire.
+# A notice. The times are REQUIRED and nullable on the wire.
 NOTICE_LEVELS = ("info", "warning")
 NOTICE_MEMBERS = ("level", "message", "starts_at", "ends_at")
 MAX_NOTICE_CHARS = 500
 
-# `denied_resources` keys: the contract's closed `resource_kinds` set.
+# `denied_resources` keys: the API's closed `resource_kinds` set.
 RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
 
 # Limits this server enforces and does not publish.
@@ -306,8 +305,7 @@ def _check_policy(values: Dict[str, Any]) -> None:
     from siliconcompiler.remote.server.outputs.artifacts import KINDS
 
     # A limit is a non-negative number, or null where this server treats it
-    # as unlimited (surface D177). `-1` is only the store's spelling, in
-    # `user_limits`.
+    # as unlimited. `-1` is only the store's spelling, in `user_limits`.
     for name, value in (values["limits"] or {}).items():
         if value is None and name not in UNLIMITED_ALLOWED:
             raise ValueError(f"limits.{name} may not be null: only "
@@ -332,8 +330,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
                 f"{', '.join(sorted(unknown))}")
 
     features = values["features"]
-    # A registry (surface *features is a registry*): an unknown string would
-    # be advertised for something nothing here serves.
+    # A registry: an unknown string would be advertised for something nothing
+    # here serves.
     unregistered = sorted(set(features) - set(FEATURES))
     if unregistered:
         raise ValueError(f"features lists {', '.join(unregistered)}, which is not a "
@@ -381,8 +379,8 @@ def _check_policy(values: Dict[str, Any]) -> None:
         raise ValueError("features lists python.env, and nodes here run in "
                          "containers with no env_builder to build them an image")
 
-    # A reuse hit compares the host's tools among its inputs (surface §13),
-    # and a host run records none: reuse waits for containers (profile §5).
+    # A reuse hit compares the host's tools among its inputs, and a host run
+    # records none: reuse waits for containers (PROFILE.md section 5).
     if "jobs.reuse" in features and not values["containers"]:
         raise ValueError("features lists jobs.reuse, and nodes here run on the host, "
                          "whose tools this server does not record, so a reused job's "
@@ -548,8 +546,7 @@ class Config:
         if values["env_builder"] and "python.env" not in values["features"]:
             values["features"] = list(values["features"]) + ["python.env"]
 
-        # S3 takes one PUT of at most 5 GiB, and the upload is one PUT
-        # (surface §14).
+        # S3 takes one PUT of at most 5 GiB, and the upload is one PUT.
         base = values["storage_uri_base"] or ""
         if base.startswith("s3://") and values["limits"]["max_upload_bytes"] > S3_ONE_PUT_BYTES:
             raise ValueError(
@@ -596,7 +593,7 @@ class Config:
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
-            # Every one REQUIRED (surface §1), less `_NOT_PUBLISHED`.
+            # Every one REQUIRED, less `_NOT_PUBLISHED`.
             "limits": {name: value for name, value in self._values["limits"].items()
                        if name not in _NOT_PUBLISHED},
             "features": list(self._values["features"]),

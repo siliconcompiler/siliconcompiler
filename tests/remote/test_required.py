@@ -11,7 +11,7 @@ from test_owners import (DATASHEET, GITHUB, Supply, account, collected_path, pri
                          resource, submit_project, two_sources)
 
 
-# Only what the flow requires goes up (D129): the union of every running node's
+# Only what the flow requires goes up: the union of every running node's
 # `require`, empty until setup runs, so worked out on a copy and carried.
 
 QUICKSTART = ("package", "doc", "quickstart")

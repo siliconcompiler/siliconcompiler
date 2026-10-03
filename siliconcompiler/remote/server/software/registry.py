@@ -30,7 +30,7 @@ __all__ = ["main"]
 
 logger = logging.getLogger("sc-server")
 
-# An administrative action is a person's (identity.md): here, whoever has a shell
+# An administrative action is a person's: here, whoever has a shell
 # on the host, under an issuer of its own so it never collides with an API login.
 OPERATOR_ISSUER = "operator"
 
@@ -194,7 +194,7 @@ def _cmd_add_image(store, args) -> int:
     print(f"  {image_id}")
     print(f"  {digest}")
 
-    # One SiliconCompiler, this server's (profile §5).
+    # One SiliconCompiler, this server's (PROFILE.md section 5).
     held = [version for name, version in contents if name == images.PRIMARY]
     if not any(images.normalize(version) == images.normalize(images.own_version())
                for version in held):

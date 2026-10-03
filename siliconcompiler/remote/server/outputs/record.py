@@ -1,5 +1,5 @@
 '''
-The server's own record of a job, kept apart from the run's `logs` (surface D295).
+The server's own record of a job, kept apart from the run's `logs`.
 
 ``staging``      for the submitter: what this server did from create to
                  dispatch, a section per staging pass, every line scrubbed like

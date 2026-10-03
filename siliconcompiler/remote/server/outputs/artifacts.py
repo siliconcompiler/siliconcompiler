@@ -3,8 +3,7 @@ What a finished run left behind, as artifact rows.
 
 The results tarball is an artifact, not an endpoint: every object is a row
 with a kind and a retention, so the listing answers *where did my results go*
-even when the bytes are gone. Every kind is stored and served gzipped (surface
-§21):
+even when the bytes are gone. Every kind is stored and served gzipped:
 
 ``manifest``    the job's ``<design>.pkg.json``, job-level. Often the only one
                 left, and it carries the record: node states, metrics, versions
@@ -72,7 +71,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
     # Every read below is confined (see `confine`): a node can leave a link
     # anywhere, and following one would index the host's files as results.
     root = Path(build_root)
-    # Where a link may end, walked once for this node's archives (database D142).
+    # Where a link may end, walked once for this node's archives.
     job_tree = root / job["design"] / job["jobname"]
     homes = links.Homes(job_tree)
 
@@ -96,7 +95,7 @@ def collect_node(store, storage, config, job, build_root, step, index) -> int:
 
     # A link inside the job stays a link, pointed at the file's real home,
     # so a node archive is not self-contained: a passed-through file resolves
-    # where its home node is unpacked beside it (database D142).
+    # where its home node is unpacked beside it.
     if any(child.name not in _NOT_IN_A_NODE for child in workdir.iterdir()):
         written += _archive(store, storage, job, location, floor, "node",
                             step, index, workdir, workdir, root, skip=_NOT_IN_A_NODE,
@@ -138,7 +137,7 @@ def record_upload(store, storage, config, job, upload: Path, digest: str,
 
 # Refusals that come before the archive's safety checks: such an upload is
 # never opened afterwards, since the portal's look-inside would decompress the
-# bomb `archive-rejected` refused (surface D133).
+# bomb `archive-rejected` refused.
 UNOPENED = ("upload-digest-mismatch", "upload-too-large", "archive-rejected")
 
 
@@ -191,7 +190,7 @@ def collect(store, storage, config, job, build_root) -> int:
     written += _index(store, storage, job, location, floor, "manifest",
                       None, None, manifest, build_root)
 
-    # SiliconCompiler's `job.log`, and nothing of this server's (surface D295).
+    # SiliconCompiler's `job.log`, and nothing of this server's.
     written += _index(store, storage, job, location, floor, "logs",
                       None, None, root / "job.log", build_root)
 
@@ -369,7 +368,7 @@ def _archive(store, storage, job, location, floor, kind, step, index,
     '''Index a directory as one gzipped tar, relative to ``base``.
 
     Relative to the node's directory so a client unpacks it in place, which is
-    why the contract has no per-artifact path. Links are stored, never followed.
+    why the API has no per-artifact path. Links are stored, never followed.
     '''
     if _exists(store, job, kind, step, index):
         return 0
@@ -430,7 +429,7 @@ def _retention(store, kind: str, floor_seconds: int) -> str:
     return stamp(datetime.now(timezone.utc) + timedelta(seconds=seconds))
 
 
-# A gated `node` archive answers with its worst member's refusal (D120):
+# A gated `node` archive answers with its worst member's refusal:
 # permanent over transient.
 _WORST = ("artifact-not-approved", "entitlement-denied", "not-ready")
 
@@ -453,7 +452,7 @@ def ladder(row, surface_allows: bool = True,
     '''The refusal an artifact gets from the first ladder row that matches, or None.
 
     ``admin`` is the portal asking, where row 3's kinds are read. The ladder is
-    entitlements.md's, with this profile's rows:
+    the API's, with this profile's rows:
 
     ===  ==========================================  ======================
     1    ``deleted_at`` set                          ``not-found``
@@ -479,7 +478,7 @@ def ladder(row, surface_allows: bool = True,
     if row["withheld_at"] or (row["kind"] in NEVER_OVER_THE_API and not admin):
         return "artifact-not-approved"
     if row["kind"] == "node" and members:
-        # Held back only by a pending member is `not-ready` (D107).
+        # Held back only by a pending member is `not-ready`.
         return members
     if not surface_allows:
         return "artifact-not-approved"
@@ -506,7 +505,7 @@ def cause(row) -> Optional[str]:
 
 def wire(row, surface_allows: bool = True,
          members: Optional[str] = None, admin: bool = False) -> Dict[str, Any]:
-    '''One artifact, as §21 publishes it.'''
+    '''One artifact, as the API publishes it.'''
     return {
         "id": row["id"],
         "step": row["step"],
@@ -524,10 +523,9 @@ def wire(row, surface_allows: bool = True,
         "deleted_cause": cause(row),
         "deleted_reason": row["deleted_reason"],
         "fetchable": fetchable(row, surface_allows, members, admin),
-        # Required, though this profile takes no access requests (surface D177).
+        # Required, though this profile takes no access requests.
         "access_requested_at": None,
-        # Always false: an unauthenticated deployment offers no way to ask
-        # (surface D309).
+        # Always false: an unauthenticated deployment offers no way to ask.
         "can_request_access": False,
     }
     # No `blocked_by`: this deployment has no agreements.

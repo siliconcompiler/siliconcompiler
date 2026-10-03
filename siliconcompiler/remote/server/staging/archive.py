@@ -1,13 +1,13 @@
 '''
 Opening somebody else's archive, held to the limits.
 
-Nothing here runs until the digest has been checked: the contract's one
-ordering that is a security property, since examining undeclared bytes is how
-an archive bomb gets opened.
+Nothing here runs until the digest has been checked: the API's one ordering
+that is a security property, since examining undeclared bytes is how an
+archive bomb gets opened.
 
 Every refusal is ``archive-rejected`` with a ``reason`` naming the rule: a
 member value can be added after the v1 freeze, a slug cannot. An upload may
-carry links that resolve inside it (D65); one resolving outside is
+carry links that resolve inside it; one resolving outside is
 ``link_member`` and never followed.
 '''
 

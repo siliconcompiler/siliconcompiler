@@ -29,7 +29,7 @@ def runtime_nodes(project) -> List[Tuple[str, str]]:
 
 
 def upstream_nodes(project, skipped=()) -> List[Tuple[str, str]]:
-    '''The nodes outside the run that it takes inputs from (surface D175).
+    '''The nodes outside the run that it takes inputs from.
     A node in ``skipped`` has no results, so it is looked through to its inputs.'''
     runtime = runtime_flow(project)
     flow = project.get_flow()

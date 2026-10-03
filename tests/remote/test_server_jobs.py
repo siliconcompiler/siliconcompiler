@@ -12,7 +12,7 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 from siliconcompiler.remote.server.state.store import now                  # noqa: E402
 
 
-# The integration rig, in process: every ordering rule the contract calls
+# The integration rig, in process: every ordering rule the v1 API calls
 # normative, since a canned answer cannot get one wrong.
 
 
@@ -90,7 +90,7 @@ def stage(client, key, token, archive, size, **body):
 
 
 def submit(client, key, token, job_id, digest=None, size=None, **extra):
-    '''Submit takes no body (surface §15): ``digest`` and ``size`` are taken
+    '''Submit takes no body: ``digest`` and ``size`` are taken
     for symmetry with `stage` and never sent; ``extra`` is, to test refusal.'''
     headers = {}
     if "idempotency_key" in extra:
@@ -166,7 +166,7 @@ def test_create_returns_the_job_object_and_a_location(server_client, key, token)
 
 def test_the_listing_is_newest_first_by_creation_never_by_id(
         server_client, key, token, monkeypatch):
-    '''By `created_at`, the id only breaking a tie (surface §6): here each id
+    '''By `created_at`, the id only breaking a tie: here each id
     sorts below the one before it. A collection, so MINUS `nodes`.'''
     import types
     import uuid
@@ -197,11 +197,11 @@ _ABSENT = object()
     {"resources": {"upload_bytes": 10}},               # gone: the grant's size
     {"descriptor": {"resources": {"upload_bytes": 10}}},
     {"descriptor": {"flow": {"name": "f", "tools": ["yosys"]}}},
-    {"descriptor": {"requires": {"python": {}}}},      # pre-D289 names, none kept
+    {"descriptor": {"requires": {"python": {}}}},      # former names, none kept
     {"descriptor": {"flow": {"name": "asicflow", "nodes": 3}}},
     {"descriptor": {"node_count": "3"}},
     {"extra": 1},
-    # `run_hash` is top-level (D160), and 1 to 128 printable ASCII.
+    # `run_hash` is top-level, and 1 to 128 printable ASCII.
     {"descriptor": {"run_hash": "abc"}},
     *[{"run_hash": value} for value in ("", "x" * 129, "ok✓", "tab\there", 7)],
 ])
@@ -247,7 +247,7 @@ def test_a_requirement_is_always_a_list(server_client, key, token):
     "git+https+private://ghp_TOKEN@example.com/ip.git"])
 def test_a_source_carrying_userinfo_is_refused_at_create_by_its_keypath(
         server, server_client, key, token, caplog, source):
-    '''Surface D310: refused, never stripped, naming the keypath and never the
+    '''Refused, never stripped, naming the keypath and never the
     value, which is neither stored nor logged.'''
     import logging
 
@@ -311,8 +311,7 @@ def test_the_same_key_with_a_different_body_is_refused(server_client, key, token
 
 
 def test_a_refused_create_binds_no_key(server, server_client, key, token):
-    '''A refusal has no side effect, so a retry is evaluated afresh (surface
-    §6; database D144).'''
+    '''A refusal has no side effect, so a retry is evaluated afresh.'''
     server.config["SC_CONFIG"].limits["pending_uploads"] = 1
     held = create(server_client, key, token, jobname="held").get_json()
 
@@ -470,7 +469,7 @@ def test_without_jobs_reuse_a_hash_is_validated_and_ignored(
 
 def test_the_grant_fixes_the_size_and_a_re_issue_repeats_it(server_client, key, token):
     '''`200`, since re-issue is the point; the first grant fixes the size
-    (D125) and a re-issue cannot widen it. The job is now `awaiting_input`.'''
+    and a re-issue cannot widen it. The job is now `awaiting_input`.'''
     job = create(server_client, key, token).get_json()
 
     first = grant(server_client, key, token, job["id"], sized(4096))
@@ -519,7 +518,7 @@ def test_no_grant_for_a_job_that_is_past_it(server, server_client, key, token, m
 
 def test_the_signature_is_the_credential(server_client, key, token, job_archive, dispatcher):
     '''No Authorization and no proof, as a presigned URL is; and a descriptor
-    with no size still uploads, the size being the grant's (D125).'''
+    with no size still uploads, the size being the grant's.'''
     archive, digest, size = job_archive()
     job = create(server_client, key, token).get_json()
     granted = grant(server_client, key, token, job["id"], sized(size, digest)).get_json()
@@ -605,7 +604,7 @@ def test_a_digest_mismatch_refuses_before_anything_is_extracted(
                                          ("digest", 400)])
 def test_submit_takes_no_body_and_ignores_nothing(server_client, key, token,
                                                   job_archive, dispatcher, body, status):
-    '''Surface §15 (D277): sent empty or as `{}` (D306), and a member is
+    '''Sent empty or as `{}`, and a member is
     refused, the digest a client used to send included.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
@@ -655,8 +654,8 @@ def test_submitting_with_nothing_uploaded(server_client, key, token):
 
 def test_a_replayed_submit_answers_the_original_202(server_client, key, token,
                                                     job_archive, dispatcher):
-    '''The original body, `staging` and all, whatever the job did since
-    (surface §6), and dispatched once.'''
+    '''The original body, `staging` and all, whatever the job did since,
+    and dispatched once.'''
     archive, digest, size = job_archive()
     job = stage(server_client, key, token, archive, size)
 
@@ -810,8 +809,8 @@ def test_only_a_live_job_says_when_to_ask_again_and_none_is_cacheable(
 
 
 def test_the_job_object_carries_every_required_member(server_client, key, token):
-    '''`transitions` in place of `state_changed_at` (D278), never empty, and
-    no `deleted_cause`: every deletion is a person's (D279).'''
+    '''`transitions` in place of `state_changed_at`, never empty, and
+    no `deleted_cause`: every deletion is a person's.'''
     body = read(server_client, key, token, create(server_client, key, token).get_json()["id"])
 
     for member in ("id", "state", "terminal", "transitions", "design",
@@ -826,7 +825,7 @@ def test_the_job_object_carries_every_required_member(server_client, key, token)
 @pytest.mark.parametrize("web_url_base", [None, "http://sc.example/"])
 def test_no_job_object_carries_a_portal_url(server, server_client, key, token,
                                             web_url_base):
-    '''Surface D309: a job's page is asked for at `POST /v1/auth/browser`, so
+    '''A job's page is asked for at `POST /v1/auth/browser`, so
     no answer carries one, with a portal configured or not.'''
     server.config["SC_CONFIG"]._values["web_url_base"] = web_url_base
 
@@ -860,7 +859,7 @@ def test_paging_is_a_keyset_over_the_published_ordering(server_client, key, toke
 @pytest.mark.parametrize("query,refused", [
     ("cursor=nonsense!!", "invalid-cursor"),   # only ever taken from a Link header
     ("state=nearly", "invalid-request"),
-    # S §16: a boolean is `true` or `false`; `archived=yes` read as false
+    # A boolean is `true` or `false`; `archived=yes` read as false
     # would answer the unarchived list.
     *[(query, "invalid-request") for query in (
         "archived=yes", "archived=True", "archived=1", "terminal=no",
@@ -954,12 +953,12 @@ def test_cancel_takes_no_body_and_is_idempotent(server_client, key, token):
 
 
 @pytest.mark.parametrize("reason,status", [
-    ("é" * 300, 202),        # code points, not bytes: 600 bytes of UTF-8 (D306)
+    ("é" * 300, 202),        # code points, not bytes: 600 bytes of UTF-8
     ("é" * 301, 400), ("x" * 301, 400), ("x" * 5000, 400),
     ("two\nlines", 400), ("a\x07bell", 400)])
 def test_a_cancel_reason_is_one_line_of_at_most_300_code_points(
         server, server_client, key, token, reason, status):
-    '''Text the portal renders and a CLI prints (D288): refused rather than
+    '''Text the portal renders and a CLI prints: refused rather than
     cut, naming the rule it broke and never echoed; a taken one is recorded
     where the portal reads it.'''
     job = create(server_client, key, token).get_json()
@@ -1002,7 +1001,7 @@ def test_a_cancel_of_a_job_the_scheduler_already_ended_leaves_it(
 def test_a_cancelling_job_ends_cancelled_even_if_its_run_finished(
         server, server_client, key, token, job_archive, dispatcher, me):
     '''The reason is on its `transitions` entry, never the job's
-    `state_reason`, a live staging phase's (D278); a node the cancel stopped
+    `state_reason`, a live staging phase's; a node the cancel stopped
     has no exit code and says why.'''
     job = running(server, server_client, key, token, job_archive, me)
     cancelled = cancel(server_client, key, token, job["id"], reason="wrong corner").get_json()
@@ -1029,7 +1028,7 @@ LONG_REASON = ("stopped by hand:  " + "the corner was wrong and the run is repea
 
 def test_a_300_character_reason_is_served_whole(
         server, server_client, key, token, job_archive, dispatcher, me, monkeypatch):
-    '''What is accepted is what everyone reads (D288): whole, on both
+    '''What is accepted is what everyone reads: whole, on both
     transitions and each node the cancel stopped, even where a deployment
     bounds its own text shorter.'''
     from siliconcompiler.remote.server import errors
@@ -1339,7 +1338,7 @@ def test_a_failed_node_carries_the_type_and_the_job_no_bare_slug(
                                             ({"exit_code": 137, "limit": "memory"}, 137)])
 def test_a_limit_is_run_failed_naming_it_on_the_job_and_the_node(
         server, server_client, key, token, job_archive, dispatcher, me, node, published):
-    '''Surface §17, *A node's `error`*: the job's shape, `detail` included.'''
+    '''A node's `error` has the job's shape, `detail` included.'''
     job = running(server, server_client, key, token, job_archive, me)
     report(server, me, job, "failed", {"stepone/0": {"state": "failed", **node},
                                        "steptwo/0": {"state": "pending"}})
@@ -1556,7 +1555,7 @@ def registry(runs_test_version):
         images.register_software(store, "siliconcompiler", "SiliconCompiler", actor, "python")
         images.register_version(store, "siliconcompiler", "0.38.0", actor,
                                 preference=10)
-        # Its own Python, as the probe records every image's (surface D293).
+        # Its own Python, as the probe records every image's.
         images.register_software(store, "python", "Python", actor, "interpreter")
         images.register_version(store, "python", "3.11.9", actor)
         images.register_image(store, "ghcr.io/x/sc:0.38.0", digest("a"),
@@ -1696,7 +1695,7 @@ def test_requested_versions_are_resolved_at_create(container_client, key, contai
 
 def test_a_python_no_image_runs_is_refused_at_create_naming_what_there_is(
         container_client, key, container_token):
-    '''Surface D293: a job running the user's Python names the one it was
+    '''A job running the user's Python names the one it was
     written for, and one no live image runs is refused naming those there are.'''
     response = create(container_client, key, container_token, requested_versions={
         "python": {}, "tools": {}, "interpreter": {"python": ["==3.12.*"]}})
@@ -1725,7 +1724,7 @@ def test_a_name_that_reports_no_version_is_told_so_and_not_told_no_match(
     response = create(container_client, key, container_token,
                       requested_versions=wants(tools={"magic": ">=8.0"}))
 
-    # Software no image holds, not `version-skew`, the client's own SiliconCompiler (§7).
+    # Software no image holds, not `version-skew`, the client's own SiliconCompiler.
     assert (response.status_code, slug(response)) == (422, "software-unavailable")
     assert "reports no version" in response.get_json()["detail"]
     assert response.get_json()["unresolved"] == [
@@ -1763,7 +1762,7 @@ def test_the_job_identity_folds_in_what_the_server_chose(
 def test_a_hit_needs_the_python_its_own_modules_were_written_for(
         container_server, container_client, key, container_token, container_me,
         container_reuses):
-    '''Job-reuse D23: one image serves a job naming no Python and one written
+    '''One image serves a job naming no Python and one written
     for its 3.11 alike, so the requirement is part of what the job is.'''
     written_for = {"python": {}, "tools": {}, "interpreter": {"python": ["==3.11.*"]}}
     existing = reuse_job(container_server.config["SC_JOBS"],
@@ -1780,7 +1779,7 @@ def test_a_hit_needs_the_python_its_own_modules_were_written_for(
 
 def test_a_hit_needs_the_same_packages_from_the_same_indexes(container_server,
                                                              container_reuses):
-    '''Job-reuse D23: a swapped mirror, or source builds turned on, may install
+    '''A swapped mirror, or source builds turned on, may install
     something else under the same names. A job listing none does not depend
     on the indexes.'''
     jobs = container_server.config["SC_JOBS"]
@@ -1852,8 +1851,8 @@ def test_a_version_with_no_image_is_never_advertised(container_server, container
 
 def test_an_image_of_another_siliconcompiler_is_neither_advertised_nor_used(
         registry, key):
-    '''One version, the one this server runs (profile §5): an image holding
-    another is registered but never advertised or run.'''
+    '''One version, the one this server runs (PROFILE.md section 5): an image
+    holding another is registered but never advertised or run.'''
     from siliconcompiler.remote.server.app import create_app
     from siliconcompiler.remote.server.software import images
     from siliconcompiler.remote.server.state.store import Store
@@ -1993,7 +1992,7 @@ def test_a_container_job_cannot_read_the_signing_key_or_the_store(
         monkeypatch):
     '''A node sees its job's tree and its user's cache read-write, the
     supplied roots read-only, and nothing else of the data directory
-    (profile §0). The run writes the bundle from what the server recorded.'''
+    (PROFILE.md section 0). The run writes the bundle from what the server recorded.'''
     from siliconcompiler.remote.server.running import runner, runspec
 
     job, _ = submitted(container_client, key, container_token, job_archive(),

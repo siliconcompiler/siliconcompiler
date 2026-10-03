@@ -66,7 +66,7 @@ def test_a_plain_archive_lands(tmp_path):
 
 def test_every_violation_is_in_the_vocabulary():
     '''One slug, many discriminators: a value can be added after the v1 freeze
-    and a slug cannot (D302, D124, D129, D283, contract D40, D165).'''
+    and a slug cannot.'''
     assert set(VIOLATIONS) == {"member_count", "expanded_bytes", "ratio",
                                "link_member", "device_member", "traversal",
                                "missing_manifest", "invalid_manifest", "credential",
@@ -147,7 +147,7 @@ def test_traversal_through_a_directory_the_archive_made(tmp_path):
 
 
 def test_a_hard_link_to_an_earlier_file_is_extracted_as_one(tmp_path):
-    '''The same file under a second name (contract.md's Member types row).'''
+    '''The same file under a second name.'''
     archive = build(tmp_path / "a.tar.gz", [
         regular("manifest.json", b"{}"), special("shadow", tarfile.LNKTYPE, "manifest.json")])
 

@@ -2,7 +2,7 @@
 Where the bytes live, and how a client is let at them.
 
 ``storage_locations.uri_base`` is a URI, so ``file://`` is a first-class
-deployment and the contract's presigned ``PUT`` is a signed route on this host;
+deployment and the API's presigned ``PUT`` is a signed route on this host;
 another backend swaps this module alone. The signature is that route's only
 credential, bounded by naming one job, expiring and binding the byte count.
 '''
@@ -22,8 +22,8 @@ __all__ = ["Storage", "SignatureError"]
 # Short-lived on purpose: it is re-issuable, so an interrupted client asks again.
 GRANT_SECONDS = 900
 
-# What a grant must outlast (surface §14): the upload is one PUT with no
-# resume, so the largest upload over a slow link, about fifteen minutes a GiB.
+# What a grant must outlast: the upload is one PUT with no resume, so the
+# largest upload over a slow link, about fifteen minutes a GiB.
 GRANT_BITS_PER_SECOND = 10_000_000
 
 

@@ -247,7 +247,7 @@ def ask_image(image: str, python_names, tools) -> dict:
     from siliconcompiler.remote.server.software import probe
 
     wanted = [(name, "python", None, None) for name in python_names]
-    # The image's own Python (surface D293).
+    # The image's own Python.
     wanted.append((probe.INTERPRETER, "interpreter", None, None))
     for name, driver in sorted(tools.items()):
         wanted.append((name, "tool", driver, AS_DISTRIBUTION.get(name)))

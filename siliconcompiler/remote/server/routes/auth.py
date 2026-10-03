@@ -24,7 +24,7 @@ GRANT_REFRESH_TOKEN = "refresh_token"
 GRANT_DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
 
 # Refused, since dropping one mints a token its caller misunderstands; other
-# unknown parameters are ignored (RFC 6749 §3.2).
+# unknown parameters are ignored (RFC 6749 section 3.2).
 _REFUSED_PARAMETERS = ("actor_token", "audience", "resource")
 
 
@@ -38,7 +38,7 @@ def public_origin() -> str:
     Never `Host`, `X-Forwarded-Host` or the socket's scheme: a handed-out URL
     gets clicked, and a proof checked against a caller-chosen host is not
     checked. The request only picks AMONG configured origins: the proof's,
-    then `Host`'s, else the first (contract D70).
+    then `Host`'s, else the first.
     '''
     origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
     signed = _signed_origin()
@@ -186,7 +186,7 @@ def _oauth_form():
 
 
 def _machine_id_source(form) -> str:
-    # One of four (identity D59): the weak-path flag a device keeps for ever.
+    # One of four: the weak-path flag a device keeps for ever.
     source = form.get("machine_id_source") or "none"
     if source not in MACHINE_ID_SOURCES:
         raise OAuthError("invalid_request",
@@ -223,7 +223,7 @@ def browser():
     '''Endpoint 6: a single-use sign-in that lands on one portal page.
 
     The landing is built from the named id, never a caller's path, which
-    would be an open redirect. Any session but a CI one may ask (surface D310).
+    would be an open redirect. Any session but a CI one may ask.
     '''
     from siliconcompiler.remote.server.jobs.common import _from_epoch
 
@@ -263,7 +263,7 @@ def browser():
 
 def _page_named():
     '''``(member, id)`` the request's body names, or None for the portal's
-    home; an empty body is `{}` (surface D306).'''
+    home; an empty body is `{}`.'''
     if flask.request.mimetype not in ("application/json", ""):
         raise ProblemError("unsupported-media-type",
                            detail=f"this endpoint takes application/json, not "

@@ -41,10 +41,10 @@ ROTATE_COMMAND = "sc-remote -rotate_key"
 # Named on every create by a CI credential bound to a project.
 PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
 
-# The server refuses a longer cancel reason rather than cutting it (surface D288).
+# The server refuses a longer cancel reason rather than cutting it.
 MAX_CANCEL_REASON = 300
 
-# What a cancel's reason may not hold: a control character (surface D306).
+# What a cancel's reason may not hold: a control character.
 _UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 
@@ -103,7 +103,7 @@ class Client:
         if self.credentials.user_id:
             self.logger.info(f"Identity on this server: {self.credentials.user_id}")
 
-        # Names only: a header's value is a secret (surface D304).
+        # Names only: a header's value is a secret.
         if self._transport is not None:
             names = ", ".join(sorted(self.credentials.headers()))
             if names:
@@ -210,7 +210,7 @@ class Client:
 
     def print_identity(self, identity: Dict[str, Any]) -> None:
         '''Who the server says you are, this machine's session and your usage,
-        from one `GET /v1/me` (surface §5).'''
+        from one `GET /v1/me`.'''
         from siliconcompiler.utils.units import format_binary, format_duration
 
         self.logger.info(f"Server reports you as {identity['id']} "
@@ -241,12 +241,12 @@ class Client:
             self.logger.info(f"Storage: {used}")
 
     def login(self) -> Dict[str, Any]:
-        '''Obtain a session, the way this deployment offers one (identity §3).
+        '''Obtain a session, the way this deployment offers one.
 
         Only `unsupported_grant_type` switches grant: that one is dropped and
         `GET /v1` reread. A `401`, timeout or `503` means later, never switch.
         A CI key goes straight to token exchange and never prints a
-        `user_code` (identity §2).
+        `user_code`.
         '''
         if self.credentials.ci_secret():
             return self._ci_login()
@@ -481,7 +481,7 @@ class Client:
         if self.transport.access_token is not None:
             return
         if self.credentials.ci_secret():
-            # No refresh token to spend (identity D91).
+            # No refresh token to spend.
             self._mode = GRANT_TOKEN_EXCHANGE
             self._trade_login()
             return
@@ -600,7 +600,7 @@ class Client:
             self.set_header(name.strip(), read_secret(name.strip()))
 
     def set_header(self, name: str, value: Optional[str]) -> None:
-        '''An operator header, sent only to the server's own origin (surface D304).
+        '''An operator header, sent only to the server's own origin.
         Its value is a secret, never printed.'''
         self.credentials.set_header(name, value)
         self.logger.info(f"{'Set' if value is not None else 'Removed'} the {name} header "
@@ -728,7 +728,6 @@ class Client:
         if os.environ.get(PROJECT_VARIABLE):
             body["project"] = os.environ[PROJECT_VARIABLE]
         if continues_from:
-            # Surface D175.
             body["continues_from"] = continues_from
         if python_packages:
             body["python_packages"] = python_packages
@@ -760,8 +759,7 @@ class Client:
         self.transport.put_object(grant["url"], headers, path)
 
     def submit_job(self, job_id: str) -> Dict[str, Any]:
-        '''``POST /v1/jobs/{id}/submit``, with no body: the grant bound the digest
-        (surface §15; D277).'''
+        '''``POST /v1/jobs/{id}/submit``, with no body: the grant bound the digest.'''
         self.ensure_session()
 
         # Fresh per submit, a resubmit included; a retry of this one reuses it.
@@ -848,7 +846,7 @@ class Client:
 
         A reason is always sent, so the job page says why it stopped; no host
         name, since every reader sees it. Too long or holding a control
-        character is refused here, as the server would (surface D288, D306).
+        character is refused here, as the server would.
         '''
         if reason is not None and len(reason) > MAX_CANCEL_REASON:
             raise RemoteError(f"a cancel's reason is at most {MAX_CANCEL_REASON} "
@@ -880,7 +878,7 @@ class Client:
         '''A listing's `items`, following `Link` to the end.
 
         Each next page is the `rel="next"` target as given, never a rebuilt
-        cursor (surface D306), and only on the API's origin: it carries the session.
+        cursor, and only on the API's origin: it carries the session.
         '''
         response = self.transport.request("GET", path, params=params or None)
         items = []
@@ -896,7 +894,7 @@ class Client:
 
     def fetch_artifact(self, job_id: str, artifact_id: str, dest) -> str:
         '''``GET /v1/jobs/{id}/artifacts/{artifact_id}``, followed to the bytes.
-        The redirect is the contract: the bytes may be on another origin.'''
+        The API redirects: the bytes may be on another origin.'''
         self.ensure_session()
 
         response = self.transport.request(
@@ -1048,7 +1046,7 @@ class Client:
         '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
         ``artifact_id``, or the portal's home.
 
-        Asked for, never built: the portal's routes are not contract.
+        Asked for, never built: the portal's routes are outside the API.
         '''
         if self.ci_session:
             raise RemoteError("a CI session asks for no page: nobody is at a browser")
@@ -1118,7 +1116,7 @@ class Client:
 
 
 def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
-    '''Listing filters as query parameters: booleans as `true`/`false` (S §16),
+    '''Listing filters as query parameters: booleans as `true`/`false`,
     not Python's `True`; lists repeated; None left out.'''
     def one(value):
         return ("true" if value else "false") if isinstance(value, bool) else value

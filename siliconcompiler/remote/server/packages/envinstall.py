@@ -4,8 +4,8 @@ one that will not install rejects the job before any node runs. A deployment
 running containers builds a derived image instead (`envbuild`), with the same
 install (`pipbuild`).
 
-Each install is an environment of its own, by key, with its own pip cache
-(implementation-notes §L): the second job asking for a key waits and reuses.
+Each install is an environment of its own, by key, with its own pip cache:
+the second job asking for a key waits and reuses.
 Nothing the job wrote is handed to pip: the files are this server's, wheels
 only (source builds only in the isolated builder), from `package_indexes`
 only. The result goes on the tool's `PYTHONPATH`, never SiliconCompiler's.
@@ -51,7 +51,7 @@ def digest(path) -> str:
 def recorded(target) -> Dict[str, Any]:
     '''What the install of ``target`` added, kept beside it so a cached one reports alike.
 
-    Installed, substituted and ignored versions (profile §5).'''
+    Installed, substituted and ignored versions (PROFILE.md section 5).'''
     try:
         with open(f"{target}.json") as f:
             found = json.load(f)

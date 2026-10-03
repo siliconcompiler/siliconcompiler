@@ -193,7 +193,7 @@ def test_resuming_from_the_last_id_has_no_gap_and_no_repeat(
 
 
 @pytest.mark.parametrize("to_logs,last_id", [
-    # D306: the header belongs on the stream; sent to `/logs` it changes nothing.
+    # The header belongs on the stream; sent to `/logs` it changes nothing.
     (True, "4"),
     (False, "not-a-number"),
     (False, format(10_000, "x")),
@@ -392,7 +392,7 @@ def test_a_skipped_node_is_settled_as_skipped_and_published_at_once(nop_project,
 
 
 def test_a_run_grown_past_its_window_fails_naming_the_node(nop_project):
-    '''D225: where `-from` widens to rebuild an upstream, the run fails before
+    '''Where `-from` widens to rebuild an upstream, the run fails before
     any node starts, naming it.'''
     from siliconcompiler.remote.server.running import runner
     nop_project.option.add_from("steptwo")

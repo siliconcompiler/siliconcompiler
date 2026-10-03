@@ -75,7 +75,7 @@ def test_get_v1_is_complete_on_a_bare_datadir(client):
 
 def test_only_this_servers_own_siliconcompiler_is_advertised(server, client):
     '''One version, the one this server runs, whatever the registry tracks
-    (profile §5): the manifest's read is this server's SiliconCompiler.'''
+    (PROFILE.md section 5): the manifest's read is this server's SiliconCompiler.'''
     store = server.config["SC_STORE"]
     user = store.upsert_user("local", "operator")
     store.execute("INSERT INTO software (name, display_name, kind, added_by) "
@@ -154,7 +154,7 @@ def internals(monkeypatch):
 
 
 def test_a_detail_says_nothing_of_the_servers_own_layout(internals):
-    '''D122: a tool's exception carries mount paths and hostnames.'''
+    '''A tool's exception carries mount paths and hostnames.'''
     body = internals.problem(
         "invalid-request",
         detail="cannot open /srv/sc/datadir/users/u1/builds/j/x.v on "
@@ -226,7 +226,7 @@ def _notice(**members):
     ({"limits": {"concurrent_log_streams": None}},
      "limits.concurrent_log_streams may not be null"),
     ({"limits": {"max_upload_bytes": None}}, "limits.max_upload_bytes may not be null"),
-    # Surface §14: one PUT, no resume.
+    # One PUT, no resume.
     ({"storage_uri_base": "s3://bucket/artifacts/",
       "limits": {"max_upload_bytes": 6 * 1024 ** 3}}, "one PUT"),
     ({"fetch_allowlist": ["https://*/"]}, "leftmost label"),
@@ -356,8 +356,8 @@ def test_a_raised_problem_renders_with_its_members(server):
 
 
 def test_every_refusal_names_its_request(client):
-    '''`instance` and a correlation id on every problem body (surface
-    D152); the caller's own `traceparent` is the id where it sent one.'''
+    '''`instance` and a correlation id on every problem body; the caller's
+    own `traceparent` is the id where it sent one.'''
     routed = client.get("/v1/no/such/path").get_json()
     assert routed["instance"] == "/v1/no/such/path" and len(routed["trace_id"]) == 32
 

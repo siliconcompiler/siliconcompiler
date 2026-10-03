@@ -56,7 +56,7 @@ MAX_TRANSIENT_POLLS = 20
 MAX_LINE = 70
 
 
-# The contract's node states as SiliconCompiler's. An unknown state is not an error:
+# The API's node states as SiliconCompiler's. An unknown state is not an error:
 # the loop reads `terminal`, so a new state is additive.
 _NODE_STATES = {
     "pending": SCNodeStatus.PENDING,
@@ -96,7 +96,7 @@ class RemoteRun:
         self._uploading = []
         self._sent = set()
 
-        # What the flow reads (D129), worked out once with each node's Python.
+        # What the flow reads, worked out once with each node's Python.
         self._needed = None
         self._environments = {}
         self._tasks = {}
@@ -172,7 +172,7 @@ class RemoteRun:
             with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
                 asked = job.get("upload_sources") or []
                 if asked:
-                    # D114: sent with this machine's OWN credentials, or cancelled.
+                    # Sent with this machine's OWN credentials, or cancelled.
                     self.logger.info(f"The server asked for {_named(asked)}")
                     self._asked_rows = self._answer(asked, collectiondir(self.project))
 
@@ -252,7 +252,7 @@ class RemoteRun:
 
     def _check_dataroots(self) -> None:
         '''Stop where a dataroot the server would be told of has no library or
-        task keypath naming it (surface D298): the server refuses it.'''
+        task keypath naming it: the server refuses it.'''
         from siliconcompiler.remote import owners
 
         try:
@@ -397,8 +397,8 @@ class RemoteRun:
         return needed + self._upstream()[0]
 
     def _upstream(self) -> Tuple[List[str], List[Dict[str, str]]]:
-        '''Where each node a `-from` run reads but does not run gets its results
-        (surface D175), worked out once, as ``(packed, continues_from)``:
+        '''Where each node a `-from` run reads but does not run gets its results,
+        worked out once, as ``(packed, continues_from)``:
 
         - outputs here: its ``outputs/`` is packed, so a hand-edited file is used;
         - only its manifest here: named in ``continues_from`` with the job this
@@ -456,8 +456,8 @@ class RemoteRun:
                              f"{files} file{'s' if files != 1 else ''}")
 
     def _send_asked(self, job_id: str, asked) -> None:
-        '''Answer a job sent back to `awaiting_input` (D124): an archive of ONLY
-        what was asked for, its own grant, and submit again.'''
+        '''Answer a job sent back to `awaiting_input`: an archive of ONLY what was
+        asked for, its own grant, and submit again.'''
         from siliconcompiler.remote import owners
 
         seen = tuple(sorted((item.get("kind"), ",".join(item.get("keypath") or ()),
@@ -490,7 +490,7 @@ class RemoteRun:
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page where a person is plainly watching.
 
-        Provisional (surface D309): deleting this method and its one call removes it.
+        Provisional: deleting this method and its one call removes it.
 
         The page comes from `POST /v1/auth/browser`, never built, and opens only
         outside CI, without `option,nodisplay`, and with stdout a terminal.
@@ -515,7 +515,7 @@ class RemoteRun:
         '''``(manifest project, required keys)``, worked out once per run.
 
         The owner table says whether a value MAY go up; this says whether the
-        flow NEEDS it (D129), carried in the manifest for the server to read.
+        flow NEEDS it, carried in the manifest for the server to read.
         Where a setup cannot run here the set is None: every file goes up by owner.
         '''
         from siliconcompiler.remote import owners
@@ -546,7 +546,7 @@ class RemoteRun:
         return self._needed
 
     def _requested_interpreter(self) -> Dict[str, Dict[str, List[str]]]:
-        '''`requested_versions.interpreter` (surface D293): this Python as
+        '''`requested_versions.interpreter`: this Python as
         `==3.12.*`, only for a job running the user's own Python, written against it.'''
         self._needs()
         if not self._environments:
@@ -555,7 +555,7 @@ class RemoteRun:
                                            f"{sys.version_info[1]}.*"]}}
 
     def _requested_python(self) -> Dict[str, List[str]]:
-        '''`requested_versions.python` (surface *The descriptor*): siliconcompiler,
+        '''`requested_versions.python`: siliconcompiler,
         each executed task's distribution, each declared framework at its range,
         each distribution whose dataroot the server supplies, and each holder of
         a private dataroot. Exact pins, frameworks excepted.'''
@@ -633,9 +633,8 @@ class RemoteRun:
                 if not self._supplied(distribution)}
 
     def _python(self):
-        '''The job's Python, worked out once (surface *A node's own Python packages,
-        built while staging*): ``(python_packages or None, {wheel: path here},
-        {collected path: helper file here})``.
+        '''The job's Python, worked out once: ``(python_packages or None,
+        {wheel: path here}, {collected path: helper file here})``.
 
         Always built by the client: imported distributions at their installed
         versions, their dependencies as constraints, less what the image holds;
@@ -799,7 +798,7 @@ class RemoteRun:
         '''
         from siliconcompiler.remote import owners
 
-        # By keypath, never name: many owners share the default `root` (D298).
+        # By keypath, never name: many owners share the default `root`.
         wanted = {tuple(item.get("keypath") or ())
                   for item in asked if item.get("kind") == "dataroot"}
         required = self._needs()[1]
@@ -832,7 +831,7 @@ class RemoteRun:
 
         Named entries only: a reused job directory holds old logs, fetched
         nodes and the `job.log` this run is appending to.
-        No manifest in it carries a credential (surface D302): anyone who can
+        No manifest in it carries a credential: anyone who can
         read the job reads its `input`, so each manifest goes as a masked copy.
         '''
         from siliconcompiler.remote import owners
@@ -924,8 +923,8 @@ class RemoteRun:
         return rows
 
     def _answer(self, asked, collection: str, only_asked: bool = False) -> list:
-        '''Put everything the server asked for into ``collection``, or nothing
-        (surface D287); return the wheels' upload-report rows.
+        '''Put everything the server asked for into ``collection``, or nothing;
+        return the wheels' upload-report rows.
 
         Never a partial answer: every item is tried first, and any failure
         raises _CannotSupply naming each, which cancels the job.
@@ -1084,7 +1083,7 @@ class RemoteRun:
                 self._poll(job_id)
                 return
             except KeyboardInterrupt:
-                # Not yet `queued` (D166): the server may still ask this
+                # Not yet `queued`: the server may still ask this
                 # machine for a source. Said once; a second interrupt leaves.
                 if not warned and self._last_state in _NOT_YET_SUBMITTED:
                     warned = True
@@ -1308,7 +1307,7 @@ class RemoteRun:
         else:
             self.logger.error(f"Remote job {state}")
 
-        # Each failed node and why (surface §17, *A node's `error`*), in flow order.
+        # Each failed node and why, in flow order.
         order = self._flow_order()
         for (step, index), said in sorted(
                 _node_details(job).items(),
@@ -1534,8 +1533,8 @@ def _durations(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
 
 
 def _state_line(job: Dict[str, Any]) -> str:
-    '''The job's state as a person reads it: for how long (from `transitions`,
-    surface §17), and why.'''
+    '''The job's state as a person reads it: for how long (from `transitions`),
+    and why.'''
     state = str(job.get("state"))
     last = (job.get("transitions") or [{}])[-1]
     entered = _epoch(last.get("at")) if last.get("state") == job.get("state") else None
@@ -1557,7 +1556,7 @@ def _epoch(timestamp: str) -> Optional[float]:
         return None
 
     if moment.tzinfo is None:
-        # The contract says UTC; a server that omits the offset meant it.
+        # The API says UTC; a server that omits the offset meant it.
         moment = moment.replace(tzinfo=timezone.utc)
     return moment.timestamp()
 
@@ -1641,8 +1640,7 @@ def _satisfied(versions, spec: str) -> bool:
 
 
 class _LinkPacker:
-    '''Pack upstream ``outputs/`` with links as links and each file once
-    (contract.md, *An upload keeps links, and stores a linked file once*).
+    '''Pack upstream ``outputs/`` with links as links and each file once.
 
     A link into the archive stays one link; one into the build directory but
     not the archive stores its target once; a hard link stays a tar hard link;
@@ -1821,7 +1819,7 @@ class _Unsupplied(Exception):
 
 class _CannotSupply(RemoteError):
     '''What the server asked for and this machine cannot supply, each item
-    and why. ``reason`` is what the job is cancelled with (surface D287).'''
+    and why. ``reason`` is what the job is cancelled with.'''
 
     LEAD = "it cannot supply what the server asked for: "
 
@@ -1834,7 +1832,7 @@ class _CannotSupply(RemoteError):
 
 def _fitted(lead: str, items: List[str]) -> str:
     '''``lead`` and as many ``items`` as fit in `MAX_CANCEL_REASON`, then *and N
-    more* (surface D288). One line: the server takes no control character.'''
+    more*. One line: the server takes no control character.'''
     items = [" ".join(_UNPRINTABLE.sub(" ", str(item)).split()) for item in items]
     for count in range(len(items), 0, -1):
         rest = len(items) - count

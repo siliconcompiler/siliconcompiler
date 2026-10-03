@@ -31,7 +31,7 @@ __all__ = [
 logger = logging.getLogger("sc-server")
 
 
-# The registered scopes (identity.md, *Scopes*); none is ever administrative.
+# The registered scopes; none is ever administrative.
 SCOPES = (
     "jobs:read",
     "jobs:write",
@@ -298,7 +298,7 @@ class TokenIssuer:
         return self._rotate(row)
 
     def _check_fingerprint(self, row, machine_id_hash, machine_id_source) -> None:
-        '''Step up, never revoke (identity §6): a refresh from a machine
+        '''Step up, never revoke: a refresh from a machine
         whose fingerprint changed is refused `invalid_grant` with no reason,
         and the session stays live. A device enrolled with `none` has no
         change detection.'''
@@ -445,7 +445,7 @@ class TokenIssuer:
             raise ProblemError("session-ended", reason=reason, detail=_ENDED.get(reason),
                                headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
 
-        # Best effort, with no security claim (profile §0): a token whose
+        # Best effort, with no security claim (PROFILE.md section 0): a token whose
         # family is another user's is not a token for this one.
         if family["user_id"] != claims["sub"]:
             raise ProblemError(

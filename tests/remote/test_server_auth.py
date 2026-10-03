@@ -73,7 +73,7 @@ def test_nothing_recognised_left_is_invalid_scope():
 def test_a_session_with_no_human_involved(client, key, server):
     '''`no-store` is RFC 6749's MUST on tokens; `scope` is always sent (stricter
     than RFC 6749) and says what was granted; an unknown parameter is ignored
-    (§3.2). First contact records the key.'''
+    (RFC 6749 section 3.2). First contact records the key.'''
     response = login(client, key, some_future_parameter="x")
 
     assert response.status_code == 200
@@ -149,7 +149,7 @@ def test_a_method_refusal_at_an_oauth_endpoint_is_problem_json(client, path):
 def test_one_user_cannot_claim_another(client, key, server, address):
     '''Without the binding, A on a shared machine presents B's public
     derivation with A's own key and becomes B. Never rebound automatically,
-    loopback included (profile §7): `invalid_client`, saying why, recorded.'''
+    loopback included (PROFILE.md section 7): `invalid_client`, saying why, recorded.'''
     client.environ_base["REMOTE_ADDR"] = address
     login(client, key, subject="machine:1001")
 
@@ -321,7 +321,7 @@ def test_a_refresh_rotates_and_a_lost_response_gets_the_same_pair(client, key, s
 
 
 def test_a_refresh_returns_the_full_scope_whatever_it_asks(client, key, server):
-    '''Rule 3: a refresh never narrows a session, nor writes a narrowed scope.'''
+    '''A refresh never narrows a session, nor writes a narrowed scope.'''
     first = login(client, key, scope="jobs:write profile:read").get_json()
     assert first["scope"] == "jobs:read jobs:write profile:read"
 
@@ -334,7 +334,7 @@ def test_a_refresh_returns_the_full_scope_whatever_it_asks(client, key, server):
 
 def test_a_repeat_after_the_window_ends_the_session_as_reused(client, key, server):
     '''The whole family dies; the window is 300 s, this deployment's "a few
-    minutes" (profile §6).'''
+    minutes" (PROFILE.md section 6).'''
     from siliconcompiler.remote.server.identity import auth
 
     first = login(client, key).get_json()
@@ -364,7 +364,7 @@ def test_a_dead_refresh_token_is_invalid_grant_with_its_reason(client, key):
 
 
 def test_a_changed_fingerprint_steps_up_and_revokes_nothing(client, key, server):
-    '''Identity §6: a wrong fingerprint with a valid key is a machine that
+    '''A wrong fingerprint with a valid key is a machine that
     changed: `invalid_grant` with no reason, and the session lives.'''
     first = login(client, key, machine_id_hash="aaaa",
                   machine_id_source="linux_machine_id").get_json()
@@ -388,7 +388,7 @@ def test_a_device_enrolled_with_none_has_no_change_detection(client, key):
 
 
 def test_a_refresh_is_bound_to_the_key_and_a_foreign_proof_revokes_nothing(client, key):
-    '''Identity D56: reuse is judged only after the proof verifies, or a
+    '''Reuse is judged only after the proof verifies, or a
     leaked, long-rotated token could end the owner's session without the key.'''
     first = login(client, key).get_json()["refresh_token"]
     second = refreshing(client, first, key).get_json()["refresh_token"]
@@ -477,7 +477,7 @@ def proxied_token(client, key, origin, host="backend:8080"):
 
 @pytest.mark.parametrize("signed", ["https://sc.example.test", "http://lab.test:8080"])
 def test_the_scheme_a_request_arrived_on_is_its_htus_origin(tmp_path, signed):
-    '''Contract rule 5 (D70): the configured origin the proof's `htu`
+    '''The configured origin the proof's `htu`
     matched -- never the socket's, which behind a TLS-terminating proxy is
     http whichever origin the client used.'''
     client = proxied(tmp_path, "http://lab.test:8080", "https://sc.example.test")
@@ -532,7 +532,7 @@ def test_me_reports_the_callers_account(client, key):
     there are no grants; `projects` is sent empty, deliberately. `limits`
     are the caller's effective values: `GET /v1` takes no credential, so cannot
     vary by caller. `usage` is derived, never metered: `used` this calendar
-    month, `total` everything, `null` on a stock (entitlements §3; D74).'''
+    month, `total` everything, `null` on a stock.'''
     token = login(client, key).get_json()["access_token"]
     body = call(client, key, "GET", "/v1/me", token).get_json()
 
@@ -560,8 +560,8 @@ def test_me_reports_the_callers_account(client, key):
 
 
 def test_me_carries_the_session_the_request_was_made_in(client, key):
-    '''From the calling token's family and device, every member REQUIRED
-    (surface §5; D276), and reading it rotates nothing.'''
+    '''From the calling token's family and device, every member REQUIRED,
+    and reading it rotates nothing.'''
     first = login(client, key).get_json()
     session = call(client, key, "GET", "/v1/me", first["access_token"]).get_json()["session"]
 
@@ -577,8 +577,8 @@ def test_me_carries_the_session_the_request_was_made_in(client, key):
 
 
 def test_a_ci_session_has_no_device_and_no_refresh(server):
-    '''`device_id` and `refresh_expires_at` null. CI credentials are
-    crucible's, so the family is written as crucible writes one.'''
+    '''`device_id` and `refresh_expires_at` null. This server issues no CI
+    credentials, so the family is written by hand.'''
     from siliconcompiler.remote.server.identity import accounts
     from siliconcompiler.remote.server.identity.auth import Session
 

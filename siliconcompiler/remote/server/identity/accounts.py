@@ -51,9 +51,8 @@ def effective_limits(store, config, user_id: str) -> Dict[str, Any]:
 def account_limits(config, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     '''The account's allowance, as `GET /v1/me` publishes it.
 
-    Every member REQUIRED, with the caller's effective values (entitlements
-    *Combining the two `limits` blocks*): `GET /v1` cannot vary by caller, so a
-    per-user override is published only here.
+    Every member REQUIRED, with the caller's effective values: `GET /v1` cannot
+    vary by caller, so a per-user override is published only here.
     '''
     ceiling = dict(config.limits)
     ceiling.update(overrides or {})
@@ -114,7 +113,7 @@ def usage(store, user_id: str) -> Dict[str, Any]:
             "  AND finished_at >= ?", (user_id, start))["n"])
 
     return {
-        # `total` is every job row, deleted ones included (entitlements §3).
+        # `total` is every job row, deleted ones included.
         "compute_seconds": {
             "used": compute_since(month_start),
             "total": compute_since(""),

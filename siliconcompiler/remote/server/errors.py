@@ -16,7 +16,7 @@ __all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "OAuthError", "ProblemError",
            "bound", "problem", "set_detail_max"]
 
 
-# Fixed by the contract and identical on every deployment.
+# Fixed by the v1 API and identical on every deployment.
 TYPE_BASE = "https://siliconcompiler.com/server-errors"
 
 
@@ -40,7 +40,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # `limit` only over max_upload_bytes; a body over its endpoint's cap has none.
     _Error("upload-too-large", 413, "Upload too large"),
     _Error("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
-    # D117: `max_download_bytes`, which never refills -- so not
+    # Over `max_download_bytes`, which never refills -- so not
     # `limit-exceeded`, whose `Retry-After` a client would obey for ever.
     _Error("download-too-large", 403, "Download too large", ("limit",)),
     _Error("rate-limited", 429, "Too many requests"),
@@ -50,18 +50,17 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
            ("resource_kind", "resource")),
     _Error("resource-unresolved", 422, "Could not resolve what this flow needs",
            ("resource_kind",)),
-    # D91, D110: no live image satisfies the job's software requirements;
+    # No live image satisfies the job's software requirements;
     # `reason` is "unavailable" or "combination".
     _Error("software-unavailable", 422, "No image provides that software",
            ("reason", "unresolved")),
-    # D105, D116: a resource of any kind this deployment neither holds nor can
-    # supply; `resource-unresolved` is not knowing WHICH. `resource_kind` (surface
-    # D285) and `keypath` (surface D298) are optional, so not listed.
+    # A resource of any kind this deployment neither holds nor can supply;
+    # `resource-unresolved` is not knowing WHICH. `resource_kind` and `keypath`
+    # are optional, so not listed.
     _Error("resource-unavailable", 422, "This server does not hold that resource",
            ("resource",)),
-    # D105, D115: crucible's, for restricted material found while staging.
-    # Registered because the registry is the contract's; this profile allows
-    # every upload (profile D26) and never raises it.
+    # For restricted material found while staging. The API defines it; this
+    # profile allows every upload and never raises it.
     _Error("upload-forbidden", 422, "Upload of that resource is not allowed",
            ("resource_kind", "detected", "member")),
     _Error("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
@@ -99,15 +98,15 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     # The environment ended the run: lost by the scheduler, preempted, a failed
     # compute node, an image that could not be pulled.
     _Error("run-interrupted", None, "The run was interrupted"),
-    # A `continues_from` entry whose results cannot be used (surface D175).
+    # A `continues_from` entry whose results cannot be used.
     _Error("prior-results-unavailable", 422, "Those earlier results cannot be used",
            ("step", "index", "job_id", "reason")),
-    # Identity D58; this profile provisions on first contact and never raises it.
+    # This profile provisions on first contact and never raises it.
     _Error("account-not-provisioned", 403, "Your account is not set up on this deployment"),
-    # A job-level type (surface D169): staging the server could not complete
-    # for its own reasons, after retrying.
+    # A job-level type: staging the server could not complete for its own
+    # reasons, after retrying.
     _Error("staging-failed", None, "The server could not get this job ready"),
-    # The job's own limit, not the server's failure (surface D294).
+    # The job's own limit, not the server's failure.
     _Error("staging-timed-out", None, "The job took too long to get ready", ("limit",)),
     _Error("run-failed", None, "The run failed"),
 )}
@@ -122,27 +121,24 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
                       "link_member", "device_member", "traversal",
                       # No manifest at the root, or one that cannot be read.
                       "missing_manifest", "invalid_manifest",
-                      # A dataroot path carrying userinfo (surface D302).
+                      # A dataroot path carrying userinfo.
                       "credential",
-                      # A follow-up archive carrying what was not asked for
-                      # (D124).
+                      # A follow-up archive carrying what was not asked for.
                       "unrequested_member",
-                      # A value the flow reads that the client should have sent
-                      # (D129).
+                      # A value the flow reads that the client should have sent.
                       "missing_member",
                       # An impure, malformed or overlapping wheel, or any wheel
-                      # without `python.env` (D283).
+                      # without `python.env`.
                       "python_package",
-                      # Contract D40; this profile never raises it.
+                      # This profile never raises it.
                       "extension",
-                      # A job that would wait for a person nobody is at
-                      # (surface D165).
+                      # A job that would wait for a person nobody is at.
                       "breakpoint", "interactive_task")
 
 
 class OAuthError(Exception):
     '''A refusal from OAuth processing at `/v1/auth/token` or `/v1/auth/device`,
-    in RFC 6749 §5.2's shape. Transport refusals raised before it (405, 415,
+    in RFC 6749 section 5.2's shape. Transport refusals raised before it (405, 415,
     426, 429) stay `ProblemError`.'''
 
     # The codes a client branches on, and nothing else is ever sent.
@@ -215,8 +211,8 @@ def set_detail_max(characters: int) -> None:
     DETAIL_MAX = int(characters)
 
 
-# This server's internals, which a `detail` must never carry (D122): its data
-# and mount paths, and its host names.
+# This server's internals, which a `detail` must never carry: its data and
+# mount paths, and its host names.
 _INTERNAL_PATHS: list = []
 _INTERNAL_NAMES: list = []
 
@@ -248,7 +244,7 @@ _CREDENTIALS = (
 
 
 def scrub(detail: str) -> str:
-    '''Take this server's internals out of a `detail` (D122).
+    '''Take this server's internals out of a `detail`.
 
     A tool's exception text carries mount paths, hostnames and environment
     dumps, which leak how the deployment is laid out.
@@ -309,8 +305,8 @@ def trace_id(headers) -> str:
 
 
 def only_query(args, allowed, where: str) -> None:
-    '''Refuse a query parameter the collection does not define (surface
-    D177): a misspelled filter would otherwise return everything.'''
+    '''Refuse a query parameter the collection does not define: a misspelled
+    filter would otherwise return everything.'''
     unknown = sorted(set(args) - set(allowed))
     if unknown:
         raise ProblemError(

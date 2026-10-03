@@ -40,9 +40,9 @@ def test_the_store_is_created_on_first_open():
 
 
 def test_the_profiles_tables():
-    '''The profile's 18 of the contract's 41, plus `user_limits` (a per-account
+    '''The profile's 18 of the v1 API's 41, plus `user_limits` (a per-account
     `max_download_bytes` is stored per account; `plans` stays out, since a row
-    inherits from config.json) and `job_continuations` (surface D175).
+    inherits from config.json) and `job_continuations`.
     Counted exactly: every omission -- entitlements, terms, projects, the
     artifact gate, admin, metering -- was a decision, and is wholly absent.'''
     with Store("server.db") as store:

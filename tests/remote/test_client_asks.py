@@ -16,8 +16,8 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 
 
 # A client that cannot supply what the server asks for cancels the job,
-# naming each item and why (surface D287) -- at create, after submit, and for
-# a Python package alike, and never with a partial answer.
+# naming each item and why -- at create, after submit, and for a Python
+# package alike, and never with a partial answer.
 
 # Nothing listens here, and its credentials would be in any message that
 # echoed the URL.
@@ -62,7 +62,7 @@ def acme(tag):
 
 def the_job(app, client):
     '''The one job this client ran, as the wire shows it and as the store
-    keeps it -- the same reason, served whole (surface D288).'''
+    keeps it -- the same reason, served whole.'''
     job, = client.jobs()
     row = dict(app.config["SC_STORE"].one(
         "SELECT state, state_reason FROM jobs WHERE id = ?", (job["id"],)))
@@ -197,7 +197,7 @@ def test_one_item_that_cannot_be_had_sends_none_and_names_every_failure(
 
 def test_a_long_reason_is_fitted_to_what_the_server_takes(fake_v1, cancels, logged_in,
                                                           nop_project):
-    '''The items that fit, then *and N more* (surface D288), on one line
+    '''The items that fit, then *and N more*, on one line
     within 300; an item too long even alone is cut, so something is named.'''
     run = RemoteRun(nop_project, logged_in)
     failures = [f"lib{n} (lib{n}): it cannot be fetched here either:\n404" for n in range(20)]

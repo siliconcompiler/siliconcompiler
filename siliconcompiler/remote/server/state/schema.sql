@@ -1,6 +1,6 @@
--- The v1 store: 20 tables of the contract's 42.
+-- The v1 store: 20 of the v1 schema's 42 tables.
 --
--- Every table's shape is the contract's; the engine and the subset differ.
+-- Every table's shape is the v1 schema's; the engine and the subset differ.
 -- sc-server is the unauthenticated profile plus the image registry, so
 -- entitlements, terms, projects, the artifact gate, the admin tables and
 -- metering are absent, and each foreign key they take with them is noted.
@@ -34,7 +34,7 @@ CREATE TABLE users (
     role            text NOT NULL DEFAULT 'user'
                         CHECK (role IN ('user', 'admin')),
                                                     -- nothing reads it (everyone is an admin
-                                                    -- here); kept for one shape with crucible
+                                                    -- here); kept to match the v1 schema
     created_at      text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     last_seen_at    text,
     deactivated_at  text,                           -- active is deactivated_at IS NULL
@@ -82,9 +82,9 @@ CREATE TABLE token_families (
     user_id             text NOT NULL REFERENCES users(id),
     device_id           text REFERENCES devices(id),
     kind                text NOT NULL CHECK (kind IN ('interactive', 'ci')),
-                                                    -- the contract's closed vocabulary; only
+                                                    -- the API's closed vocabulary; only
                                                     -- 'interactive' is written here. CI is
-                                                    -- crucible's, so ci_credential_id is absent
+                                                    -- not served, so ci_credential_id is absent
     dpop_jkt            text NOT NULL,              -- the bound key, checked on every refresh
     scope               text NOT NULL,              -- the CEILING, space-delimited and ALREADY
                                                     -- EXPANDED ('jobs:read jobs:write'). A
@@ -163,7 +163,7 @@ CREATE TABLE jobs (
                                                     -- literal 'none' = this flow requires no PDK
     manifest_resources text,                        -- JSON [[kind, name], ...], re-derived at
                                                     -- submit: the PDKs and libraries the run
-                                                    -- uses, which a continuing job takes on (D175)
+                                                    -- uses, which a continuing job takes on
 
     upload_storage_key      text,                   -- the object key the grant was issued for
     upload_location_id      text REFERENCES storage_locations(id),
@@ -183,8 +183,8 @@ CREATE TABLE jobs (
     upload_sources          text,                   -- JSON: what the server is ASKING for, in
                                                     -- created or awaiting_input. NULL otherwise
     python_packages         text,                   -- JSON: the create body's python_packages
-                                                    -- as accepted, the builder's input (database
-                                                    -- D147). NULL where the job lists none
+                                                    -- as accepted, the builder's input. NULL
+                                                    -- where the job lists none
     python_answered         text,                   -- JSON: each distribution this job was sent
                                                     -- back for, by canonical name; its wheel
                                                     -- replaces the entry and alone may overlap
@@ -206,8 +206,8 @@ CREATE TABLE jobs (
                                                     -- is keyed on, so re-registering an image
                                                     -- invalidates reuse exactly when it should
     image_id          text REFERENCES images(id),   -- the container this job's own process runs
-                                                    -- in, from requested_versions.python alone
-                                                    -- (D145). NULL where no containers run
+                                                    -- in, from requested_versions.python alone.
+                                                    -- NULL where no containers run
     scheduler_job_id  text,                         -- set only where the JOB is the unit of
                                                     -- submission; per-node dispatch puts it on
                                                     -- job_nodes instead. At most one level
@@ -234,8 +234,7 @@ CREATE TABLE jobs (
     deleted_reason    text,                         -- prose naming who acted, never the device
 
     -- A job that was queued has a resolved PDK. Staging re-derives the
-    -- manifest, so a staging, cancelling or failed job can lack one (database
-    -- D129, reversing D100).
+    -- manifest, so a staging, cancelling or failed job can lack one.
     CONSTRAINT jobs_admitted_pdk_resolved
         CHECK (state NOT IN ('queued', 'running', 'completed')
                OR (manifest_pdk IS NOT NULL AND manifest_pdk <> '')),
@@ -310,7 +309,7 @@ CREATE TABLE job_nodes (
     metrics     text,                               -- JSON: what the node's portal panel shows,
     records     text,                               -- from the run's final manifest read ONCE as
                                                     -- plain JSON when the job ends, never through
-                                                    -- SiliconCompiler (contract §1). NULL before
+                                                    -- SiliconCompiler. NULL before
     PRIMARY KEY (job_id, step, "index")
 );
 CREATE INDEX job_nodes_scheduler_idx                -- the sweep's direction is id -> node
@@ -327,7 +326,7 @@ CREATE TABLE job_node_edges (                       -- the flow's shape, as rows
     FOREIGN KEY (job_id, to_step,   to_index)   REFERENCES job_nodes (job_id, step, "index")
 );
 
-CREATE TABLE job_continuations (                    -- a run starting part-way (surface D175):
+CREATE TABLE job_continuations (                    -- a run starting part-way:
     job_id      text NOT NULL REFERENCES jobs(id),  -- per node it reads and does not run, the job
     step        text NOT NULL,                      -- whose results were copied in, written at
     "index"     text NOT NULL,                      -- create. The key demands the job that RAN
@@ -358,7 +357,7 @@ INSERT INTO artifact_kinds (kind, retention_seconds) VALUES
                              -- to dispatch: a section each time it stages. Kept as logs are
     ('diagnostics', 7776000); -- 90 days. The operators' record, unscrubbed: read when
                              -- something went wrong recently, and never over the API
--- Starting values. The numbers are the deployment's; the SHAPE is the contract.
+-- Starting values. The numbers are the deployment's; the SHAPE is the API's.
 -- The set is CLOSED and PUBLISHED, so a new value is a version bump.
 
 CREATE TABLE storage_locations (                    -- WHERE 'where' is
@@ -427,7 +426,7 @@ CREATE INDEX artifacts_live_object_idx ON artifacts (location_id, storage_key)
 -- and two writers that check before inserting can both pass.
 -- coalesce because SQLite counts NULLs as distinct in a unique index, which
 -- would leave the job-level rows unprotected. `upload_seq` makes a job-level
--- `input` one per UPLOAD rather than exempt (database D101).
+-- `input` one per UPLOAD rather than exempt.
 CREATE UNIQUE INDEX artifacts_one_per_node_idx
     ON artifacts (job_id, kind, coalesce(step, ''), coalesce("index", ''),
                   coalesce(upload_seq, 0));
@@ -517,7 +516,7 @@ CREATE TABLE images (                               -- a container this deployme
                                                     -- the later resolved_at does
     registered_by text REFERENCES users(id),        -- a person, in the portal...
     registered_via text,                            -- ...or 'derived': the server built it. CI
-                                                    -- registration is crucible's
+                                                    -- registration is not served here
     derived_from  text REFERENCES images(id),       -- the image a node's Python layer was built
                                                     -- on. NULL for a registered image
     derivation    text,                             -- the cache key: a hash of the base digest,
@@ -554,10 +553,10 @@ CREATE INDEX image_contents_lookup_idx ON image_contents (software_name, version
 
 
 -- SPARSE: a row exists only where somebody overrode something, and a NULL
--- column inherits the deployment's value from config.json. The contract pairs
+-- column inherits the deployment's value from config.json. The v1 schema pairs
 -- this table with `plans`, which this profile does not have: hence no `plan_id`.
 --
--- The encoding is three-valued and it is the contract's:
+-- The encoding is three-valued and it is the v1 schema's:
 --   NULL  inherit
 --   -1    UNLIMITED
 --   >= 0  that value

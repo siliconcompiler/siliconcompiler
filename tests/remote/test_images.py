@@ -22,7 +22,7 @@ def py(name=None, wanted=None, tools=None):
     return {"python": {name: wanted} if name else {}, "tools": tools or {}}
 
 
-# The SiliconCompiler this registry holds, so the one the server runs (§5).
+# The SiliconCompiler this registry holds, so the one the server runs (PROFILE.md section 5).
 OWN = "0.39.1"
 
 
@@ -166,7 +166,7 @@ def test_specifiers_read_a_bare_version_as_exact_and_a_list_as_alternatives():
 @pytest.mark.parametrize("version,admitted", [
     ("0.38.10.dev7", True), ("0.38.10", True), ("0.38.10rc1", True), ("0.38.11.dev1", False)])
 def test_a_prefix_admits_pre_releases(version, admitted):
-    '''Surface D154: `packaging` before 26.0 leaves `0.38.10.dev7` out of
+    '''`packaging` before 26.0 leaves `0.38.10.dev7` out of
     `==0.38.10.*` by default, so the match passes `prereleases=True`.'''
     assert images.matches(version, "reported", ("==0.38.10.*",)) is admitted
 
@@ -201,7 +201,7 @@ def test_a_tool_with_no_live_software_is_refused_as_a_resource(registry, store, 
 
     problem = refused(store, py("siliconcompiler", "0.39.1"), {("x", "0"): tool})
 
-    # `unsatisfiable-request` was retired (D116): a tool is a resource too.
+    # `unsatisfiable-request` was retired: a tool is a resource too.
     assert problem.error.slug == "resource-unavailable"
     assert problem.members == {"resource_kind": "tool", "resource": tool}
     assert "nowhere for it to run" in problem.detail
@@ -211,7 +211,7 @@ def test_a_tool_with_no_live_software_is_refused_as_a_resource(registry, store, 
     # A range nothing satisfies, refused before anything runs.
     ([], py("siliconcompiler", ">=0.40"), {("import", "0"): None},
      ("python", "siliconcompiler", [">=0.40"], ["0.39.1"])),
-    # D91: what IS available, so the caller can act on it.
+    # What IS available, so the caller can act on it.
     ([], py(tools={"openroad": ">=3.0"}), {("place", "0"): "openroad"},
      ("tools", "openroad", [">=3.0"], ["2.0"])),
     # The alternatives exactly as asked for.
@@ -431,7 +431,7 @@ def test_a_node_is_preparing_only_while_its_image_is_fetched(monkeypatch, nop_pr
 def test_a_node_whose_image_would_not_pull_is_interrupted_naming_it(
         monkeypatch, nop_project):
     '''Told by the runtime's pull error, never an exit status: the node
-    failed with its image absent, its pull having failed first (§10).'''
+    failed with its image absent, its pull having failed first.'''
     placed(nop_project, "stepone")
     nodes = progress(monkeypatch, **{"stepone/0": "pending"})
     monkeypatch.setattr(runner, "_placement_present", lambda placement: False)
@@ -606,8 +606,8 @@ def test_what_a_job_ran_is_the_union_of_its_images(registry, store):
 
 
 def test_the_python_set_must_be_held_by_one_image(store):
-    '''They share an interpreter. D110: each resolves alone and no image
-    holds them together, so it is a combination naming every requirement with
+    '''They share an interpreter. Each resolves alone and no image holds
+    them together, so it is a combination naming every requirement with
     what is available.'''
     both = {"python": {"siliconcompiler": "0.39.1", "za-sclib": "0.1.80"}, "tools": {}}
     sc(store, "0.39.1")
@@ -633,8 +633,7 @@ def test_the_python_set_must_be_held_by_one_image(store):
 
 
 def test_requested_versions_is_the_one_member_and_every_value_is_a_list():
-    '''`versions` and its per-name fallback are gone (D126, superseded); a
-    bare string is refused.'''
+    '''`versions` and its per-name fallback are gone; a bare string is refused.'''
     from siliconcompiler.remote.server.jobs.common import requirements
 
     found = requirements({
@@ -652,7 +651,7 @@ def test_requested_versions_is_the_one_member_and_every_value_is_a_list():
 
 @pytest.mark.parametrize("name,kind,driver,match", [
     ("za-sclib", "python", "za_sclib.tools", "a driver is what makes"),
-    # D95: the probe imports the driver, and anyone can register software.
+    # The probe imports the driver, and anyone can register software.
     *[("x", "tool", driver, "not a driver this server imports")
       for driver in ("os", "subprocess", "evil.module", "siliconcompiler.toolsx", "a..b")],
     ("pypy", "interpreter", None, "one name"),

@@ -167,7 +167,7 @@ class DispatchMixin:
                 shared[bundle] = str(common)
 
         # Every dataroot points at the copy the run reads, the upload or a
-        # supplied copy, never the submitter's path (D111, D112).
+        # supplied copy, never the submitter's path.
         unpacked = root / job["design"] / job["jobname"]
         runspec.write_run(
             root / runspec.RUN_FILENAME, job_id=job["id"], builddir=root, cachedir=cache,

@@ -1,7 +1,6 @@
 '''
 A job's Python packages: the create body's `python_packages` (``requirements``
-and ``constraints``) and the wheels it uploads (surface *A node's own Python
-packages, built while staging*).
+and ``constraints``) and the wheels it uploads.
 
 One grammar at both ends: each entry exactly ``name==version``, canonical,
 each name once, within :data:`MAX_ENTRIES` and :data:`MAX_BYTES`. No entry
@@ -198,7 +197,7 @@ def check_wheel(path) -> Wheel:
     members confined, no link, device or compiled file, one matching
     ``.dist-info``. Reads only; runs nothing.
 
-    Nothing that runs by itself and no dependency by URL (surface D292): a
+    Nothing that runs by itself and no dependency by URL: a
     ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory
     or a ``name @ url`` requirement would let installing run or fetch code.
     '''

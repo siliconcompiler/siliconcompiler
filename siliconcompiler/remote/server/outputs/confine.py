@@ -12,9 +12,9 @@ refused. A FIFO is refused too, since opening one blocks forever. Without
 window without closing it. Only the root may be reached through a link: it is
 the server's own directory.
 
-An archive keeps a link inside the job as a link and follows none out of it
-(database D142); nothing is copied in place of a link, since some tools keep
-links to terabytes. See `add_tree`.
+An archive keeps a link inside the job as a link and follows none out of it;
+nothing is copied in place of a link, since some tools keep links to
+terabytes. See `add_tree`.
 '''
 
 import logging

@@ -129,7 +129,7 @@ def job_events(nodes, path_of, node_states, job_over, start, deadline, keepalive
     ``nodes`` is in the store's fixed order, since an index entry names a node
     by its place in it. ``start`` is what :func:`resume_job` read.
 
-    The id is job-wide and one number (D121): how many entries of the job's
+    The id is job-wide and one number: how many entries of the job's
     :class:`EventIndex` this caller has been sent. Not a vector of per-node
     offsets, which could pass what proxies accept for one `Last-Event-ID` on a
     thousand-node flow.

@@ -28,7 +28,7 @@ def test_another_scheme_needs_its_own_storage(tmp_path):
 
 
 def test_a_grant_outlasts_the_largest_upload_at_ten_megabits():
-    '''Surface §14: one PUT, no resume -- about fifteen minutes a GiB.'''
+    '''One PUT, no resume -- about fifteen minutes a GiB.'''
     assert grant_seconds(1024) == GRANT_SECONDS                  # never less than the floor
     assert grant_seconds(1024 ** 3) == GRANT_SECONDS             # 859 s: under it
     assert 28 * 60 < grant_seconds(2 * 1024 ** 3) < 29 * 60

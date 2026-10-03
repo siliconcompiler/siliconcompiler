@@ -90,7 +90,7 @@ def upload_grant(session, job_id):
 @require("jobs:write")
 def submit(session, job_id):
     '''Endpoint 15: the job is ready to run (the order is the job service's).'''
-    # `{}`: an empty body and a JSON `{}` alike (surface D306).
+    # `{}`: an empty body and a JSON `{}` alike.
     return _private(_jobs().submit(session, job_id, _body(required=False),
                                    _idempotency_key()), 202)
 

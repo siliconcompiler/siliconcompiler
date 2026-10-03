@@ -12,8 +12,8 @@ from siliconcompiler.remote.client import OAuthRefusal
 from siliconcompiler.remote.client.errors import describe
 
 
-# The client half of the contract's behaviour tests (contract.md §6) that the
-# rest of the suite does not already hold.
+# The client half of the v1 API's behaviour tests that the rest of the suite
+# does not already hold.
 
 ORIGIN = "https://sc-server.test"
 
@@ -132,7 +132,7 @@ def terms_refusal(fake_v1):
 @pytest.mark.parametrize("tty", [True, False], ids=["terminal", "no-terminal"])
 def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_v1,
                                                                 monkeypatch, tty):
-    '''`blocked_by` is `terms` ids (surface D309), named by title from
+    '''`blocked_by` is `terms` ids, named by title from
     `GET /v1/me`, else by id; on a terminal each page is asked for at
     endpoint 6 and opened, off one none is minted. Nothing is accepted.'''
     opened = []

@@ -1,6 +1,6 @@
 '''
 A run that starts part-way through its flow: each node it reads and does not
-run, from the archive or the job that ran it (surface D175).
+run, from the archive or the job that ran it.
 '''
 
 import gzip
@@ -106,8 +106,7 @@ class ContinuationsMixin:
 
     def _resolve_links(self, job, unpacked: Path, node, from_job: str, in_place) -> None:
         '''Replace each link in a copied node's ``outputs/`` whose home is not in
-        this job's tree with the file, from the earlier job's archive of the
-        home (surface *Passed-through files are resolved while staging*).
+        this job's tree with the file, from the earlier job's archive of the home.
         '''
         outputs = unpacked / node[0] / node[1] / "outputs"
         for dirpath, dirnames, filenames in os.walk(outputs, followlinks=False):

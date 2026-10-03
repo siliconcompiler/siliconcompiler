@@ -122,7 +122,7 @@ that anyone cancelled it. A node the flow considered and chose not to run reads
     </td>
     <td class="mono muted">{{ node.started_at | when }}</td>
     <td class="mono muted">{{ node | runtime }}</td>
-    {# Deployment detail, not on the wire: the contract's place for it is this screen. #}
+    {# Deployment detail, not on the wire: only this screen shows it. #}
     <td class="mono muted">{{ (placed[0] if placed else None) or '—' }}</td>
     <td class="mono muted">{{ (placed[1] if placed else None) or '—' }}</td>
     <td><a href="{{ url_for('portal.log', job_id=job.id,

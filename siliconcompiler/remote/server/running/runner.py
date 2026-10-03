@@ -5,7 +5,7 @@ The process the batch job starts, and all that runs on a compute node.
 
 It holds no database connection and makes no HTTP request, so no compute node
 needs a credential or the store: it applies the server's overrides in the job's
-own SiliconCompiler (`runspec.apply_run`, contract §1), runs the job, and writes
+own SiliconCompiler (`runspec.apply_run`), runs the job, and writes
 its progress into the job's directory for the API process to read.
 '''
 
@@ -102,7 +102,7 @@ def _node_finished(project, step, index) -> None:
 def _explain_failure(project, step, index, node) -> None:
     '''Say why a failed node failed where the runtime told us, never by exit status.
 
-    137 is any SIGKILL (implementation-notes §10). An image that would not
+    137 is any SIGKILL. An image that would not
     pull is an interruption, not the node's failure; an OOM kill names the
     memory limit.
     '''
@@ -178,7 +178,7 @@ def run(manifest: Path) -> int:
 
 
 def _check_task_classes(project) -> None:
-    '''Fail a node whose task class is not installed here, naming it (surface D163).
+    '''Fail a node whose task class is not installed here, naming it.
 
     Run as its base class, its own setup and processing would silently not happen.'''
     flow = project.get_flow()
@@ -235,7 +235,7 @@ def _before_the_flow(project) -> None:
 
 
 def _hold_the_window(project) -> None:
-    '''Fail the run where it has grown past the nodes the server admitted (surface D225).
+    '''Fail the run where it has grown past the nodes the server admitted.
 
     SiliconCompiler may widen ``[option,from]`` to rebuild an upstream node,
     which would run a node with no image planned for it.'''

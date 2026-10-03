@@ -47,8 +47,8 @@ _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 # bucket possibly `{}`. Written out, not derived by adding an "s".
 BUCKETS = {"python": "python", "tool": "tools", "interpreter": "interpreter"}
 
-# A requirement's `kind` on a `software-unavailable` `unresolved` entry
-# (surface D311): the `requested_versions` key it is under, as spelled.
+# A requirement's `kind` on a `software-unavailable` `unresolved` entry:
+# the `requested_versions` key it is under, as spelled.
 UNRESOLVED_KIND = {"library": "python", "tool": "tools", "interpreter": "interpreter"}
 
 
@@ -167,7 +167,8 @@ class Plan(NamedTuple):
 
 
 def own_version() -> str:
-    '''The SiliconCompiler this server runs: the one version every job resolves to (profile §5).
+    '''The SiliconCompiler this server runs: the one version every job resolves to
+    (PROFILE.md section 5).
 
     One, because the manifest's read is this server's own SiliconCompiler.
     '''
@@ -254,7 +255,7 @@ def live_software(store) -> Dict[str, Dict[str, List[str]]]:
     '''Which distributions this deployment tracks, at which versions, in the three buckets.
 
     The split is structural: the python set is satisfied by one image per job,
-    a tool per node (surface D293 for `interpreter`). Only a registered name
+    a tool or the `interpreter` per node. Only a registered name
     raises a requirement at all. Keyed on the software, so a name whose
     every version is retired is still tracked, with none: retiring the last
     version must not hand jobs back to the host. `reported` versions sort first.
@@ -308,7 +309,7 @@ def _rank(image, requirements: Sequence[Requirement] = ()):
     '''
     preference = max((entry.preference for entry in image["contents"]
                       if entry.name == PRIMARY), default=None)
-    # Every other name asked for by preference too, never build time (surface D177).
+    # Every other name asked for by preference too, never build time.
     chosen = []
     for want in requirements:
         if want.name == PRIMARY:
@@ -343,7 +344,7 @@ def plan_for_job(store, requires: Dict[str, Any],
     A node no image can place fails the whole submit, before anything runs.
     Only called where containers run, so an empty registry refuses rather
     than falling back to the host. ``python_nodes`` are also matched on
-    `requested_versions.interpreter` (surface D293).
+    `requested_versions.interpreter`.
     '''
     images = live_images(store)
     software = live_software(store)
@@ -454,7 +455,7 @@ def resolve_declared(images, requirements: Sequence[Requirement]):
 def job_image_for(store, requires: Dict[str, Any]) -> Dict[str, Any]:
     '''The job's own image from `requested_versions.python` alone, picked at create.
 
-    Surface §13; database D145. Raises the refusal create answers with.'''
+    Raises the refusal create answers with.'''
     return resolve_declared(live_images(store),
                             declared_requirements(live_software(store), requires))
 
@@ -463,8 +464,8 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
                 interpreter_ids: Sequence[Optional[str]] = ()) -> Dict[str, List[str]]:
     '''Every version the given images declare, by distribution: what a job actually ran.
 
-    The `interpreter` bucket holds only ``interpreter_ids``' Python (surface
-    D293). A list per name: a wide flow's images may differ.
+    The `interpreter` bucket holds only ``interpreter_ids``' Python. A list
+    per name: a wide flow's images may differ.
     '''
     wanted = {image_id for image_id in image_ids if image_id}
     interpreted = {image_id for image_id in interpreter_ids if image_id}
@@ -501,14 +502,14 @@ def contents_of(store, image_ids: Sequence[Optional[str]],
     if not any(found.values()):
         return {}
     # `python` and `tools` always, as `software` has them; `interpreter` where
-    # a node ran the user's Python (surface §17).
+    # a node ran the user's Python.
     return {bucket: {name: sorted(versions) for name, versions in sorted(held.items())}
             for bucket, held in found.items()
             if bucket != BUCKETS["interpreter"] or held}
 
 
 def _unsatisfiable(requirements: Sequence[Requirement], images) -> ProblemError:
-    '''No live image holds the python set: `software-unavailable` with a `reason` (D110).
+    '''No live image holds the python set: `software-unavailable` with a `reason`.
 
     ``unavailable`` lists every requirement no image satisfies alone;
     ``combination`` lists all of them when each exists but never together.
@@ -712,7 +713,7 @@ def _weigh(path) -> int:
     return total
 
 
-# Never held by a container's process (profile D39), though a containerised
+# Never held by a container's process, though a containerised
 # compute node needs NET_ADMIN for crun to bring up the build loopback.
 WITHHELD_CAPABILITIES = ("CAP_NET_ADMIN",)
 
@@ -798,9 +799,9 @@ def job_bundle(shared, target, mounts):
 def read_bundle(shared, target, tree):
     '''A bundle for reading one job's manifest in its own image.
 
-    The staging sandbox (implementation-notes §E; profile D63): every bind
-    mount removed but ``tree``, read-only, and its own network namespace, so no
-    credential, munge socket, PDK data, private root or network.
+    The staging sandbox: every bind mount removed but ``tree``, read-only, and
+    its own network namespace, so no credential, munge socket, PDK data, private
+    root or network.
     '''
     target = Path(target)
     with open(Path(shared) / "config.json") as f:
@@ -828,7 +829,7 @@ def _is_bind(entry) -> bool:
 
 def derivation(base_digest: str, requirements: str, constraints: str, wheels=(),
                constrain=(), indexes=(), source_builds: bool = False) -> str:
-    '''The cache key of a derived image (implementation-notes §L).
+    '''The cache key of a derived image.
 
     The index configuration is in it, since a package set means something else
     from another index; the base's Python is a function of its digest.'''
@@ -954,7 +955,7 @@ def is_staged(bundle) -> bool:
 
 
 def driver_allowed(driver: str, allowed: Sequence[str] = ()) -> bool:
-    '''Whether ``driver`` is a module this server will import (D95).
+    '''Whether ``driver`` is a module this server will import.
 
     The probe imports it on the server, so it is under ``siliconcompiler.tools``
     or named by configuration, never a free form field anyone could fill.

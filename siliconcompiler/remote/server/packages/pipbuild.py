@@ -1,7 +1,7 @@
 '''
 A job's Python packages, installed into a directory of their own: the one
 install, run by the builder inside the node's base image and by host mode on the
-host (implementation-notes §L).
+host.
 
 Standard library only, never importing SiliconCompiler: it is copied into the
 base image and run as a file under that image's Python.
@@ -256,7 +256,7 @@ def _file_of(filename: str, name: str, version: str):
 def listing(name, version, indexes, proxy=None):
     '''The indexes' files of ``name`` at exactly ``version``, by kind, or None if unaskable.
 
-    Exact-version matching (surface D292), so an unrelated project sharing
+    Exact-version matching, so an unrelated project sharing
     the name is never installed in its place.'''
     found = {"wheels": [], "compiled": [], "sources": [], "yanked": []}
     for index in indexes or ():
@@ -431,7 +431,7 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
                            "tail": f"an index could not be asked about {key}"})
             return result
 
-        # Each entry looked up before pip runs (surface D292): an unlisted
+        # Each entry looked up before pip runs: an unlisted
         # requirement is absent, never substituted; a yanked pin, which pip
         # would install, takes its release line (PEP 592).
         if indexes:

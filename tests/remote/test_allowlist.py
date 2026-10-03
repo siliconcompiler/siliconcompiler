@@ -6,8 +6,8 @@ from siliconcompiler.remote.server.staging import allowlist
 from siliconcompiler.remote.server.staging.sources import SourceStore
 
 
-# Where this server fetches a job's sources from (D113, D128, profile D30): the
-# list admits exactly what it says and nothing a URL can dress up as it.
+# Where this server fetches a job's sources from: the list admits exactly what
+# it says and nothing a URL can dress up as it.
 
 
 def rules(*entries):
@@ -55,7 +55,7 @@ def test_the_default_admits_what_lambdapdk_needs_and_nothing_like_it(url, allowe
      "https://github.com/zeroasiccorp/brand-new-repo/archive/v1.tar.gz", True),
 ])
 def test_a_glob_matches_what_it_says(entry, url, allowed):
-    '''Globs (D128).'''
+    '''Globs.'''
     assert allowlist.allows(rules(entry), url) is allowed
 
 

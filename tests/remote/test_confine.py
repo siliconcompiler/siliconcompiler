@@ -125,8 +125,7 @@ def test_a_link_out_of_the_archived_tree_is_left_out(tree, mode, target, top):
 
 def test_a_chain_is_one_link_to_where_it_ends_and_nothing_is_copied(tree, mode):
     '''`outputs/x` -> `inputs/x` -> upstream `outputs/x` becomes one link to
-    the upstream file (contract.md, *A produced archive keeps a link inside
-    the job as a link*); a link out of the job is dropped.'''
+    the upstream file; a link out of the job is dropped.'''
     root, secret = tree
     upstream = root / "up" / "outputs"
     upstream.mkdir(parents=True)

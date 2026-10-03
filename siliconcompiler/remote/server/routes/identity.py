@@ -89,8 +89,7 @@ def revoke_device(session, device_id):
 
 
 def _device(row, session) -> dict:
-    '''One device, the same object in the list and endpoint 11 (surface §10,
-    §11).'''
+    '''One device, the same object in the list and endpoint 11.'''
     return {
         "id": row["id"],
         "name": row["name"],

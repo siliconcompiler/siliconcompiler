@@ -10,7 +10,7 @@ from test_server_jobs import create, stage, submit                      # noqa: 
 from test_server_sources_flow import wait_for                          # noqa: E402
 
 
-# A run that starts part-way through its flow (surface D175): a node it reads
+# A run that starts part-way through its flow: a node it reads
 # and does not run comes from the upload, or from the earlier job named in
 # `continues_from`, copied in while staging.
 

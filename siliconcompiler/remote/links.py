@@ -1,7 +1,7 @@
 '''
 Links in a job's build directory, and where each one's file really lives: the
 one reading both ends use to keep a link inside the job as a link and follow
-none out of it (contract.md, *An upload keeps links, and stores a linked file once*).
+none out of it.
 
 Link targets are read; a file is never opened through a link. :func:`resolve`
 walks one component at a time, so a chain leaving the tree is caught first.

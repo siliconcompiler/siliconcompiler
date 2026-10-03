@@ -1,6 +1,6 @@
 '''
 A job's rows and the objects they become: ownership, state moves, and the job
-object as §17 publishes it.
+object as the API publishes it.
 '''
 
 import json
@@ -88,8 +88,8 @@ class RowsMixin:
 
     def _list_records(self, job_id: str) -> None:
         '''A job turns terminal only once every artifact it will list is
-        listed (surface D308): the server's own records, here, in the caller's
-        transaction; a run's output is `_index`'s, before it.'''
+        listed: the server's own records, here, in the caller's transaction; a
+        run's output is `_index`'s, before it.'''
         job = self._row(job_id)
         root = self.job_root(job["user_id"], job_id)
         try:
@@ -106,7 +106,7 @@ class RowsMixin:
                 (what, job_id))
 
     def wire(self, job, nodes: bool = True) -> Dict[str, Any]:
-        '''The job object, as §17 publishes it.'''
+        '''The job object, as the API publishes it.'''
         owner = self._store.one("SELECT display_name FROM users WHERE id = ?",
                                 (job["user_id"],))
         body = {
@@ -115,8 +115,7 @@ class RowsMixin:
             # Published so clients never switch on the name, keeping new
             # states additive.
             "terminal": job["state"] in TERMINAL_STATES,
-            # Every state entered, oldest first, never empty (surface §17;
-            # D278).
+            # Every state entered, oldest first, never empty.
             "transitions": self._transitions(job),
             "design": job["design"],
             "jobname": job["jobname"],
@@ -130,7 +129,7 @@ class RowsMixin:
             "finished_at": job["finished_at"],
             "archived_at": job["archived_at"],
             "deleted_at": job["deleted_at"],
-            # Every job deletion is a person's, so no deleted_cause (D279).
+            # Every job deletion is a person's, so no deleted_cause.
             "deleted_reason": job["deleted_reason"] if job["deleted_at"] else None,
             "error": _error(job["error_type"], self._why(job), job["error_members"])
             if job["state"] in ("failed", "rejected") else None,
@@ -139,7 +138,7 @@ class RowsMixin:
         if job["state"] == "staging" and job["state_reason"] and body["error"] is None:
             body["state_reason"] = bound(job["state_reason"])
 
-        # No portal URL: a client asks `POST /v1/auth/browser` (surface D309).
+        # No portal URL: a client asks `POST /v1/auth/browser`.
 
         # What the server chose, where the descriptor says what was asked.
         # Absent rather than `{}` on the host, which would claim it ran
@@ -154,7 +153,7 @@ class RowsMixin:
             body["continues_from"] = [{"step": step, "index": index, "job_id": from_job}
                                       for step, index, from_job in continued]
 
-        # Present only while the server is asking, and never `[]` (D127).
+        # Present only while the server is asking, and never `[]`.
         if job["state"] in PENDING_STATES and job["upload_sources"]:
             asking = json.loads(job["upload_sources"])
             if asking:
@@ -177,11 +176,11 @@ class RowsMixin:
                     "started_at": row["started_at"],
                     "finished_at": row["finished_at"],
                     "exit_code": row["exit_code"],
-                    # Null unless the node failed (surface §17).
+                    # Null unless the node failed.
                     "error": _error(row["error_type"], members=row["error_members"]),
                 }
                 if row["state_reason"] and not row["error_type"]:
-                    # Only a cancel writes it: the caller's words (surface D288).
+                    # Only a cancel writes it: the caller's words.
                     node["state_reason"] = row["state_reason"]
                 body["nodes"].append(node)
 
@@ -201,8 +200,8 @@ class RowsMixin:
         '''`transitions`: each state entered, when, and any recorded reason.
 
         A reason entering `cancelling` or `cancelled` is the caller's, checked
-        at the boundary and served whole (surface D288); every other is this
-        server's, bounded and scrubbed like `detail`.
+        at the boundary and served whole; every other is this server's,
+        bounded and scrubbed like `detail`.
         '''
         rows = self._store.all(
             "SELECT to_state, occurred_at, reason FROM job_state_transitions "
@@ -245,7 +244,7 @@ class RowsMixin:
 
 def _kept(problem: ProblemError) -> bool:
     '''Whether a refused job's upload is kept: not where it carried what it
-    must not, a `credential` or a private dataroot (surface D307, D308).'''
+    must not, a `credential` or a private dataroot.'''
     if problem.error.slug != "archive-rejected":
         return True
     reason = problem.members.get("reason")

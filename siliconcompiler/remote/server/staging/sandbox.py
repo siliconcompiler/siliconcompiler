@@ -1,13 +1,13 @@
 '''
 Starting the manifest's read (`manifestread`), and holding it to its limits.
 
-The process starts with nothing of the server's (profile §5;
-implementation-notes §E): an empty environment bar its own ``HOME``,
-``TMPDIR`` and the ``PYTHONPATH`` of this server's SiliconCompiler, so no
-credential, proxy or data-directory path; an empty working directory outside
-the upload's tree, so the upload is never on ``sys.path``; no inherited
-descriptor; and one request. It is killed at a wall-clock limit or when the job
-leaves `staging`, and contains itself before opening anything.
+The process starts with nothing of the server's (PROFILE.md section 5): an
+empty environment bar its own ``HOME``, ``TMPDIR`` and the ``PYTHONPATH`` of
+this server's SiliconCompiler, so no credential, proxy or data-directory path;
+an empty working directory outside the upload's tree, so the upload is never on
+``sys.path``; no inherited descriptor; and one request. It is killed at a
+wall-clock limit or when the job leaves `staging`, and contains itself before
+opening anything.
 '''
 
 import functools
@@ -94,7 +94,7 @@ def run_read_in_bundle(dispatcher, asked: Dict[str, Any], workdir, bundle: str,
                        timeout: float, alive: Optional[Callable[[], bool]] = None,
                        queue: Optional[str] = None, cpu_seconds: Optional[int] = None,
                        memory_bytes: Optional[int] = None) -> Any:
-    '''Run one read as a batch job in the job's own image (`images.read_bundle`, profile D63).'''
+    '''Run one read as a batch job in the job's own image (`images.read_bundle`).'''
     workdir = _fresh(workdir)
     command = [*_python(), "-m", "siliconcompiler.remote.server.staging.manifestread",
                json.dumps(asked)]

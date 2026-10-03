@@ -47,7 +47,7 @@ def _advertised(store, config, read):
         software = {bucket: {} for bucket in BUCKETS.values()}
 
     # One SiliconCompiler, the one this server runs, which reads every
-    # manifest (profile §5).
+    # manifest (PROFILE.md section 5).
     software["python"][PRIMARY] = [own_version()]
     if not containers:
         # Where nodes run on this host, the user's Python runs in this one.

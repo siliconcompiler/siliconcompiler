@@ -4,7 +4,7 @@ What owns each file a job names, where it came from, and how it reaches a run.
 The client asks this what to archive and what the server should supply; the
 server asks it whether each file the manifest names arrived or can be supplied.
 
-Every file is uploaded or supplied by identity (D112): the server never reads
+Every file is uploaded or supplied by identity: the server never reads
 a path a job names, or a manifest could root a library at `/etc` and have the
 server supply the host's files.
 
@@ -22,9 +22,9 @@ marked private                  supplied, never  the operator's copy, by its
 ==============================  ===============  =================================
 
 `+private` governs the bytes leaving the submitter, not where the server gets
-them (surface D299, D308).
+them.
 
-A dataroot is named by its keypath (surface D298, :func:`dataroot_keypath`):
+A dataroot is named by its keypath (:func:`dataroot_keypath`):
 its own name is unique only within its owner.
 
 The design always uploads; a PDK's, library's, device's or tool's files only
@@ -34,7 +34,7 @@ when local or editable. Private wins over both.
 fetched PDK is on local disk too, and would upload with every job.
 
 The table says whether a value MAY go up; the flow says whether it is NEEDED
-(D129, :func:`required`). Each value goes up on its own (:func:`collection`).
+(:func:`required`). Each value goes up on its own (:func:`collection`).
 '''
 
 import os
@@ -60,7 +60,7 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLE
 DESIGN = "design"
 PROJECT = "project"
 
-# Kinds following the local-or-editable rule, as the contract's `resource_kinds`.
+# Kinds following the local-or-editable rule, as the API's `resource_kinds`.
 RESOURCE_KINDS = ("pdk", "library", "fpga")
 
 # Where a dataroot's files come from.
@@ -89,8 +89,7 @@ def skipped(key) -> bool:
 
 def is_dataroot_keypath(keypath) -> bool:
     '''Whether ``keypath`` is ``library,<name>,dataroot,<root>`` or
-    ``tool,<tool>,task,<task>,dataroot,<root>``; the server refuses any other
-    (surface D298).'''
+    ``tool,<tool>,task,<task>,dataroot,<root>``; the server refuses any other.'''
     if not isinstance(keypath, (list, tuple)) or \
             not all(isinstance(part, str) and part for part in keypath):
         return False
@@ -246,7 +245,7 @@ def is_masked(url: Optional[str]) -> bool:
 
 def has_userinfo(url: Optional[str]) -> bool:
     '''Whether a URL carries userinfo, read as `Resolver._masked_uri` does, so
-    what a client strips and a server refuses agree (surface D302).'''
+    what a client strips and a server refuses agree.'''
     if not url or not isinstance(url, str):
         return False
     return "@" in urlsplit(url).netloc
@@ -265,7 +264,7 @@ def dataroot_paths(schema) -> Iterator[Tuple[Tuple[str, ...], str]]:
 
 def without_credentials(project):
     '''``project`` as its manifest may leave this machine, every dataroot path
-    :func:`masked` (surface D302): a copy if anything changes, else ``project``.
+    :func:`masked`: a copy if anything changes, else ``project``.
 
     Nothing resolves a masked path: the server supplies by keypath, and
     `collection_id` hashes the source masked the same way.'''
@@ -340,8 +339,8 @@ class Collection(NamedTuple):
 
 
 def collection(project, pick: Callable[[_Value], bool]) -> Collection:
-    '''Every value ``pick`` takes and no other: per value, never per parameter
-    (surface *A parameter may go up in part*); the rest is never resolved.
+    '''Every value ``pick`` takes and no other: per value, never per parameter;
+    the rest is never resolved.
 
     A private value is never picked, whatever ``pick`` says. ``select``
     knows values by object: call it on the project this was built from.
@@ -402,10 +401,10 @@ def collected_paths(project, paths) -> Dict[str, str]:
 
 def sources(project, required=None) -> List[Dict[str, Any]]:
     '''The descriptor's `sources`: each dataroot the flow reads that the server
-    should supply, by ``keypath`` (surface D298). Raises :class:`Unnamed`.
+    should supply, by ``keypath``. Raises :class:`Unnamed`.
 
     Every URL is `safe_source`: enough to say what it is, not to fetch it. A
-    private one carries its remote source and ref (surface D308); a local
+    private one carries its remote source and ref; a local
     private path is never sent.
     '''
     found: Dict[Tuple[str, ...], Dict[str, Any]] = {}
@@ -501,7 +500,7 @@ class Entry(NamedTuple):
 
     @property
     def wire(self) -> Dict[str, Any]:
-        '''As `upload_sources` spells it (surface D298); only a dataroot is ever asked for.'''
+        '''As `upload_sources` spells it; only a dataroot is ever asked for.'''
         return {"kind": "dataroot", "keypath": list(self.keypath)}
 
 
@@ -530,7 +529,7 @@ def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]
         if one.origin == INSTALLED and resolver is not None:
             record["package"] = resolver.urlpath
         elif one.origin in (REMOTE, PRIVATE) and _remote(resolver):
-            # A private source too: a held copy or a fetch supplies it (surface D299).
+            # A private source too: a held copy or a fetch supplies it.
             record["source"] = safe_source(resolver)
             record["ref"] = getattr(resolver, "reference", None)
         records.append(record)
@@ -546,7 +545,7 @@ def _remote(resolver) -> bool:
 
 def uploaded_private(records, collection_dir) -> List[Tuple[Tuple[str, ...], str]]:
     '''Each private value the archive carries anyway, as ``(keypath, member)``,
-    found by the server itself: the archive is refused (surface D299).'''
+    found by the server itself: the archive is refused.'''
     found = []
     for record in records:
         where = record.get("collected")

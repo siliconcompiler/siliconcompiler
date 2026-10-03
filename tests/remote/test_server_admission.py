@@ -10,10 +10,10 @@ from test_server_jobs import create, stage, submit                      # noqa: 
 from siliconcompiler.remote.server.errors import ProblemError           # noqa: E402
 
 
-# `pending_uploads` and `concurrent_jobs` are optional hard ceilings
-# (entitlements §2): `null` where not enforced, and otherwise never exceeded
-# however many requests arrive at once -- the count and the write it decides
-# are one transaction (implementation-notes §3; `BEGIN IMMEDIATE`).
+# `pending_uploads` and `concurrent_jobs` are optional hard ceilings: `null`
+# where not enforced, and otherwise never exceeded however many requests
+# arrive at once -- the count and the write it decides are one transaction
+# (`BEGIN IMMEDIATE`).
 
 
 def session_of(server_client, key, token):

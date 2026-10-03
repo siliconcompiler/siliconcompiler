@@ -22,7 +22,7 @@ from siliconcompiler.remote.server.software import images, oci
 from test_environment import make_wheel, simple_index
 
 
-# A job's Python packages built into an image while it stages (§L, container
+# A job's Python packages built into an image while it stages (container
 # mode). No container, index or registry is reached: each is faked at its edge.
 
 
@@ -340,7 +340,7 @@ def names_cocotb(names):
     ("cocotb-bus==0.3.0\n", None, {"installed": [["cocotb-bus", "0.3.0"]]}),
     # A listed version of one the image holds is ignored, and said.
     ("cocotb==1.9\n", None, {"installed": [], "ignored": {"cocotb": ["1.9", "2.0"]}}),
-    # §L: listed, but nothing of it installs here -- the newest of its line, said.
+    # Listed, but nothing of it installs here -- the newest of its line, said.
     ("cocotb-bus==0.3.7\n", None, {"installed": [["cocotb-bus", "0.3.0"]],
                                    "substituted": {"cocotb-bus": ["0.3.7", "0.3.0"]}}),
     # PEP 592: pip installs a yanked file pinned with `==`, so it is held to its line.
@@ -362,7 +362,7 @@ def test_an_install_in_the_images_python_keeps_the_images_own(
 
 @pytest.mark.parametrize("text,needs,offline,expected", [
     ("pyuvm==3.0.0\n", None, False, {"unresolved": names_cocotb, "absent": None}),
-    # Absent is the exact version (D292): never taken from its line.
+    # Absent is the exact version: never taken from its line.
     ("cocotb-bus==0.3.5\n", None, False, {"absent": ["cocotb-bus"], "substituted": None}),
     # Pure, only a source: sent back for, the rest still worked through.
     ("scfake-pure==1.0\ncocotb-bus==0.3.0\n", None, False,
@@ -427,7 +427,7 @@ def test_the_build_container_reaches_nothing_but_its_three_directories(tmp_path)
     assert config["process"]["args"] == ["python3", "x"]
     assert "SECRET=from-the-image-config" not in config["process"]["env"]
     assert "PATH=/venv/bin:/usr/bin:/bin" in config["process"]["env"]
-    # NET_ADMIN is crun's, on the node: no build's or node's process holds it (D39).
+    # NET_ADMIN is crun's, on the node: no build's or node's process holds it.
     assert config["process"]["capabilities"] == {"bounding": ["CAP_CHOWN"], "effective": []}
     assert BASE["mounts"][2]["destination"] == "/sc_server"        # the base untouched
     (tmp_path / "config.json").write_text(json.dumps(BASE))
@@ -682,7 +682,7 @@ def test_an_admitted_tunnel_and_get_carry_both_ways(proxy, monkeypatch):
 ])
 def test_only_an_exact_index_host_may_be_a_private_address(
         monkeypatch, private_exact, target, public_only):
-    '''Surface D172: an exact index host is a mirror on the operator's own
+    '''An exact index host is a mirror on the operator's own
     network; a wildcard, and every source-allowlist entry, keep the address rule.'''
     asked = []
 
@@ -740,8 +740,7 @@ def test_a_derived_image_is_reached_only_by_its_key(store):
 
 
 def test_the_key_is_the_base_the_lists_the_wheels_and_the_framework(store):
-    '''§L, *What it caches*: whatever changes what the install gives the run
-    changes the key.'''
+    '''Whatever changes what the install gives the run changes the key.'''
     def key(base="a", listed="numpy==2.0.1\n", limited="", wheels=(), names=("cocotb",),
             indexes=(), source_builds=False):
         return images.derivation(digest(base), listed, limited, wheels, names,

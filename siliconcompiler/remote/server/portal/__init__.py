@@ -355,7 +355,7 @@ def job(session, job_id):
         job_level=per_node.get((None, None), []),
         job_log=next((item for item in per_node.get((None, None), [])
                       if item["kind"] == "logs" and item["fetchable"]), None),
-        # Beside the run's log, never inside it (surface D295).
+        # Beside the run's log, never inside it.
         staging_log=next((item for item in per_node.get((None, None), [])
                           if item["kind"] == "staging" and item["fetchable"]), None),
         diagnostics=next((item for item in per_node.get((None, None), [])
@@ -668,7 +668,7 @@ def _member(archive, wanted: str):
     """One entry, matched against the archive's own list.
 
     Matched, never joined into a path: the name comes from a query string.
-    A regular member only (surface D159): `extractfile` follows links, and
+    A regular member only: `extractfile` follows links, and
     `isfile()` is false for both kinds.
     """
     with tarfile.open(archive, "r:*") as tar:
@@ -786,7 +786,7 @@ def _show(detail, row, archive, wanted: str):
 @blueprint.route("/portal/jobs/<job_id>/metrics/<step>/<index>", methods=["GET"])
 @screen
 def metrics(session, job_id, step, index):
-    '''One node's metrics and records, from the table, never a manifest parse (contract §1).'''
+    '''One node's metrics and records, from the table, never a manifest parse.'''
     detail = _jobs().get(session, job_id)
     found = _jobs().node_metrics(session, job_id, step, index)
     if found is None:

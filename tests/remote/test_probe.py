@@ -210,7 +210,7 @@ def test_a_probe_that_printed_too_much_is_not_believed():
 
 
 def test_the_interpreter_is_asked_by_running_it():
-    '''surface D293: the image's own Python (`python`, kind `interpreter`) is
+    '''The image's own Python (`python`, kind `interpreter`) is
     present when it answered, and read back as `X.Y.Z`.'''
     wanted = [(probe.INTERPRETER, "interpreter", None)]
     output = subprocess.run(["sh", "-c", probe.script(wanted)], capture_output=True,

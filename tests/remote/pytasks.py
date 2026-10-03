@@ -20,7 +20,7 @@ class RunsPython(NOPTask):
 class AcmeTask(NOPTask):
     '''One tool's task with a dataroot of its own, `scripts`, from wherever
     ``SOURCE`` says: every task of the tool registers one of that name, from a
-    source of its own (surface D298).'''
+    source of its own.'''
 
     SOURCE = None
 

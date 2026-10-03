@@ -218,7 +218,7 @@ def test_a_deprecation_warns_once_per_session_with_its_sunset(
 
 
 def terms_entry(accepted_at=None, can_decide=True):
-    '''A `terms` entry as surface D309 has it: `can_decide`, and no URL.'''
+    '''A `terms` entry as the v1 API has it: `can_decide`, and no URL.'''
     return {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
             "version": "2026-09-01", "accepted_at": "2026-09-02T00:00:00Z",
             "declined_at": None, "can_decide": can_decide,
@@ -435,7 +435,7 @@ def test_a_dead_session_is_logged_into_again_never_refreshed(logged_in, fake_v1)
                                          (20, None), (None, None)])
 def test_a_refused_proof_fails_and_says_when_the_clock_is_off(logged_in, fake_v1,
                                                               offset, said):
-    '''Surface D167: a bad proof is not a stale token, so nothing is
+    '''A bad proof is not a stale token, so nothing is
     refreshed; a clock over a minute out is named from the server's `Date`.'''
     import email.utils
     import time as clock

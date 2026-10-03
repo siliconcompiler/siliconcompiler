@@ -53,7 +53,7 @@ def state_dir(manifest) -> Path:
     return Path(os.path.abspath(manifest)).parents[2]
 
 
-# SiliconCompiler's node vocabulary to the contract's, mapped at the boundary.
+# SiliconCompiler's node vocabulary to the API's, mapped at the boundary.
 _NODE_STATES = {
     "pending": "pending",
     "queued": "queued",
@@ -79,7 +79,7 @@ def exit_code(value) -> Optional[int]:
 
 
 def node_state(status: Optional[str]) -> str:
-    '''One SiliconCompiler node status as one of the contract's eight.
+    '''One SiliconCompiler node status as one of the API's eight.
 
     An unmapped status is `failed`, terminal and visible, never passed through.
     '''
@@ -193,8 +193,8 @@ def dataroot_targets(entries, collection, uploads=None) -> List[List[Optional[st
 def point_dataroots(project, targets) -> int:
     '''Point every dataroot at the copy the run will read; returns how many.
 
-    The run's manifest then records which copy each resolved to (D111), and
-    no dataroot names a path on the submitter's machine (D112). An uploaded
+    The run's manifest then records which copy each resolved to, and
+    no dataroot names a path on the submitter's machine. An uploaded
     dataroot is rebuilt first: collected files are filed by a hash of the
     dataroot's source, so repointing it would lose them.
     '''
@@ -276,7 +276,7 @@ def read_run(path) -> Optional[Dict[str, Any]]:
 def apply_run(project, run: Dict[str, Any]) -> None:
     '''Apply the server's overrides in the job's own SiliconCompiler.
 
-    Here and nowhere else: the API process never rewrites a manifest (contract §1).
+    Here and nowhere else: the API process never rewrites a manifest.
     '''
     normalize(project, run["job_id"], run["builddir"], run["cachedir"],
               images={(step, index): where for step, index, where in run["placements"]},

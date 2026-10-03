@@ -122,7 +122,7 @@ def test_the_id_is_the_jobs_only_goes_up_and_is_the_same_for_every_reader(tmp_pa
 
 
 def test_the_id_does_not_grow_with_the_node_count(tmp_path):
-    '''D121: `Last-Event-ID` is a request header; a vector of per-node
+    '''`Last-Event-ID` is a request header; a vector of per-node
     positions can pass what proxies accept on a thousand-node flow.'''
     job = Job(tmp_path, nodes=[(f"n{i}", "0") for i in range(1000)])
     for i in range(0, 1000, 3):

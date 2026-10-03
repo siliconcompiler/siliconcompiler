@@ -1,6 +1,6 @@
 '''
 Creating a job: the create body checked, a reused job found, and what the
-server cannot supply asked for (surface §13).
+server cannot supply asked for.
 '''
 
 import hashlib
@@ -50,11 +50,11 @@ class CreateMixin:
         if not isinstance(descriptor, dict):
             raise ProblemError("invalid-request", detail="descriptor must be an object")
         _only(descriptor, DESCRIPTOR_MEMBERS, "descriptor")
-        # Top level (surface D160, job-reuse D15), never recomputed. Always
-        # validated; used only where `jobs.reuse` is advertised.
+        # Top level, never recomputed. Always validated; used only where
+        # `jobs.reuse` is advertised.
         run_hash = _run_hash(body.get("run_hash"))
         reuses = "jobs.reuse" in (self._config["features"] or ())
-        # Authoritative: no job id is read out of the upload (surface D175).
+        # Authoritative: no job id is read out of the upload.
         continuations = _continuations(body.get("continues_from"))
         # Authoritative: nothing in the manifest records it.
         packages = _python_packages(body.get("python_packages"))
@@ -123,8 +123,8 @@ class CreateMixin:
         asked = self._look_up(declared) if declared is not None else None
 
         # The job's own image, from `requested_versions.python` alone, before
-        # the upload (surface §13; database D145). Node images wait for the
-        # manifest's read, which says which tools the nodes run.
+        # the upload. Node images wait for the manifest's read, which says
+        # which tools the nodes run.
         if image is None and self._config["containers"]:
             image = images.job_image_for(self._store, requires)
         image_id = image["id"] if image else None
@@ -132,8 +132,8 @@ class CreateMixin:
         job_id = str(uuid.uuid4())
         device_id = session.device_id
 
-        # The wheel answering a `python` ask replaces its listed entry
-        # (surface D306). Create asks only for dataroots today, so none is.
+        # The wheel answering a `python` ask replaces its listed entry.
+        # Create asks only for dataroots today, so none is.
         answered = sorted({environment.canonical(item["name"]) for item in asked or []
                            if item.get("kind") == "python" and item.get("name")})
 
@@ -185,7 +185,7 @@ class CreateMixin:
 
     def _look_up(self, declared) -> List[Dict[str, Any]]:
         '''What of the declared sources this server cannot supply, to list in
-        `upload_sources`: a LOOKUP, never a fetch (D124). Held, allowlisted and
+        `upload_sources`: a LOOKUP, never a fetch. Held, allowlisted and
         installed-package sources are supplied; a private one none of those
         covers is `resource-unavailable`.
 
@@ -197,8 +197,8 @@ class CreateMixin:
             keypath = item["keypath"]
             source, ref = item.get("source"), item.get("ref")
             if item["private"]:
-                # Never asked for (surface D299, D308); one nothing here can
-                # supply is refused before a byte moves (D285, D298).
+                # Never asked for; one nothing here can supply is refused
+                # before a byte moves.
                 if self._supply.private_root(keypath) or \
                         self._supply.held(source, ref) or \
                         self._supply.allowlisted(source, ref):
@@ -236,7 +236,7 @@ class CreateMixin:
         digests = [image["digest"]] if image else []
 
         # What else decides what the install gives the run, which the
-        # client's hash may not cover (job-reuse D23).
+        # client's hash may not cover.
         indexes = {"indexes": list(self._config["package_indexes"] or []),
                    "source_builds": bool(self._config["python_source_builds"])} \
             if packages else None
@@ -327,8 +327,7 @@ class CreateMixin:
                            f"{limits['max_job_nodes']}")
 
         # The early entitlement check, re-derived at submit. A task's dataroot
-        # needs its tool; a library's owner may be any resource kind (surface
-        # D298, entitlements D75).
+        # needs its tool; a library's owner may be any resource kind.
         wanted = []
         for item in descriptor.get("sources") or []:
             keypath, name = item["keypath"], owners.keypath_owner(item["keypath"])
@@ -388,10 +387,10 @@ class CreateMixin:
                        for version in said.get(name, ())):
                     continue
 
-                # Software no image holds, SiliconCompiler included (surface §7).
+                # Software no image holds, SiliconCompiler included.
                 if bucket == images.BUCKETS["interpreter"]:
-                    # The friction is the point (surface D293): said before
-                    # the upload rather than failing a test later.
+                    # The friction is the point: said before the upload
+                    # rather than failing a test later.
                     detail = (f"the job's own Python needs {', '.join(asked)}, and this "
                               f"server's images run Python {', '.join(here[name])}: the "
                               "operator would have to add an image with that Python")

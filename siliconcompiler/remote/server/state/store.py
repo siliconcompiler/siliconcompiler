@@ -1,9 +1,9 @@
 '''
 The v1 job store.
 
-sc-server owns the schema crucible implements, so ``schema.sql``'s table shapes
-are the deliverable. The engine may differ; SQLite is this one's because it is a
-file and needs no service.
+``schema.sql``'s table shapes are the v1 schema's, and the deliverable. The
+engine may differ; SQLite is this one's because it is a file and needs no
+service.
 '''
 
 import sqlite3
@@ -204,10 +204,10 @@ class Store:
         '''Run ``work`` -- a count and the write it decides -- as one
         transaction no other admission can interleave with; return its result.
 
-        A numeric `pending_uploads` or `concurrent_jobs` is a hard ceiling
-        (entitlements §2). ``BEGIN IMMEDIATE`` takes SQLite's write lock BEFORE
-        the count, so two admissions cannot both read one count and both insert,
-        as a deferred ``BEGIN`` allows (implementation-notes §3, *(c)*).
+        A numeric `pending_uploads` or `concurrent_jobs` is a hard ceiling.
+        ``BEGIN IMMEDIATE`` takes SQLite's write lock BEFORE the count, so two
+        admissions cannot both read one count and both insert, as a deferred
+        ``BEGIN`` allows.
 
         Only the ``BEGIN IMMEDIATE`` waits on the lock, which it holds to the
         commit, so only it is retried, never one statement alone; ``work`` runs

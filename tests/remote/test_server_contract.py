@@ -17,8 +17,8 @@ from test_server_jobs import (                                          # noqa: 
 running = test_logs.running
 
 
-# The server half of the contract's behaviour tests (contract.md §6), written
-# so crucible can reuse them: the rules the rest of the suite does not hold.
+# The server half of the v1 API's behaviour tests: the rules the rest of the
+# suite does not hold.
 
 
 @pytest.fixture

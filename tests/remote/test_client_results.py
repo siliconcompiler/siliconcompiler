@@ -46,7 +46,7 @@ def tarball(members):
 
 @pytest.fixture
 def fake_v1(fake_v1):
-    '''Serves each artifact as the contract stores it: gzipped, and a node's
+    '''Serves each artifact as the v1 API stores it: gzipped, and a node's
     `logs` as a gzip tar of its log files. A test routes the plain bytes.'''
     import gzip
     import re
@@ -186,7 +186,7 @@ def test_the_five_states_are_different_sentences(results):
 
 
 def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
-    '''*Sign* (D309): each `terms` id by its title from GET /v1/me, or by its
+    '''*Sign*: each `terms` id by its title from GET /v1/me, or by its
     id where it has none -- and no link is invented.'''
     fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
         {"id": "gf22-nda", "title": "GF22 non-disclosure agreement", "can_decide": True}]})
@@ -233,7 +233,7 @@ def test_an_approval_is_asked_for_and_opened_only_on_a_terminal_yes(
 
 
 def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
-    '''D308: `fetchable: false` is the answer and nothing is fetched to find
+    '''`fetchable: false` is the answer and nothing is fetched to find
     out; ungranted with no way to yes says asking will not help.'''
     serve(fake_v1, [
         artifact("node", "stepone", "0", fetchable=False),

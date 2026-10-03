@@ -103,7 +103,7 @@ def test_what_this_host_holds_is_pinned_and_wins(pip, tmp_path):
 def test_the_same_set_is_built_once_and_shared_and_reports_what_it_added(
         pip, tmp_path, monkeypatch):
     '''Keyed by lists, wheel digests, indexes and this Python. A cached one
-    reports what the fresh one added: the job log is the only record (§5).'''
+    reports what the fresh one added: the job log is the only record.'''
     monkeypatch.setattr(pipbuild, "installed", lambda site: [["scfake-bits", "2.0.1"]])
     wheel = tmp_path / "scfake_helper-0.1.0-py3-none-any.whl"
     wheel.write_bytes(b"PK one")
@@ -139,7 +139,7 @@ def test_one_that_will_not_install_says_which_and_leaves_nothing(pip, tmp_path, 
 
 def test_a_version_that_does_not_install_is_tried_within_its_release_line(
         pip, tmp_path, monkeypatch):
-    '''§L: else its release line -- `X.*`, or `0.Y.*` below 1.0 -- one entry
+    '''Else its release line -- `X.*`, or `0.Y.*` below 1.0 -- one entry
     relaxed at a time, and the substitution recorded.'''
     pip.fail = ["ERROR: No matching distribution found for scfake-bits==1.26.4",
                 "ERROR: No matching distribution found for scfake-tq==0.4.1", None]

@@ -52,7 +52,7 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         self._preparing = set()
         self._preparing_lock = threading.Lock()
         # Each staging pass's `max_staging_seconds` deadline, by
-        # `time.monotonic()`, set as it starts (surface D294).
+        # `time.monotonic()`, set as it starts.
         self._staging_deadlines: Dict[str, float] = {}
 
         # One environment build per key at a time; a second asker reuses it.
@@ -101,7 +101,7 @@ class JobService(CreateMixin, ContinuationsMixin, SubmitMixin, StagingMixin, Pyt
         shared bundle.
 
         Never the data directory: it holds the signing key, the store and
-        every user's tree (profile §0). One job's own is :meth:`job_mounts`.
+        every user's tree (PROFILE.md section 0). One job's own is :meth:`job_mounts`.
         '''
         return [str(path) for path in (self._config["container_mounts"] or [])]
 

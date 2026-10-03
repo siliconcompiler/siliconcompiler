@@ -18,9 +18,9 @@ from test_server_sources_flow import read, wait_for                      # noqa:
 from siliconcompiler.remote.server.staging import manifestread, sandbox          # noqa: E402
 
 
-# Contract §1, *No server process holding credentials parses a manifest*: the
-# read runs in a process of its own and the server acts on its data summary
-# alone. Tests marked `real_read` run that subprocess; the rest read in-process.
+# No server process holding credentials parses a manifest: the read runs in a
+# process of its own and the server acts on its data summary alone. Tests marked
+# `real_read` run that subprocess; the rest read in-process.
 
 
 @pytest.fixture
@@ -95,8 +95,8 @@ def test_a_manifest_carrying_a_credential_is_refused_and_kept_nowhere(
         server, server_client, key, token, job_archive, nop_project, dispatcher, caplog,
         tmp_path, where):
     '''As a client that did not strip it would send it, in the root
-    manifest or an upstream node's under `<step>/<index>/outputs/` (surface
-    D307): `archive-rejected`, `credential`, the first such keypath and every
+    manifest or an upstream node's under `<step>/<index>/outputs/`:
+    `archive-rejected`, `credential`, the first such keypath and every
     one in `detail`, never the value -- in no response, row, log line or file
     this server wrote. Nor is the upload kept: only the record of why.'''
     import copy
@@ -170,7 +170,7 @@ def test_a_masked_manifest_is_read_as_sent(server_client, key, token, job_archiv
 
 
 def test_a_run_from_part_way_counts_only_the_nodes_it_runs(nop_project, tmp_path):
-    '''Surface D306: the read and the client's descriptor both leave out the
+    '''The read and the client's descriptor both leave out the
     nodes a `-from` run copies, so `node-limit-exceeded` counts what runs.'''
     from siliconcompiler.remote.client.run import RemoteRun
 
@@ -405,7 +405,7 @@ def test_with_containers_the_read_runs_in_a_bundle_of_the_jobs_own_image(  # noq
         container_server, container_client, key, container_token, job_archive,  # noqa: F811
         monkeypatch):
     '''A batch job in the job's framework image: the tree mounted read-only,
-    nothing else bound, a network namespace of its own (profile D63).'''
+    nothing else bound, a network namespace of its own.'''
     from siliconcompiler.remote.server.software import images
 
     fake = ReadingDispatcher()

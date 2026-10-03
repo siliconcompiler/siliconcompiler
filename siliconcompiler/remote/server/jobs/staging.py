@@ -44,8 +44,8 @@ class StagingMixin:
         Fetches run in parallel, transient failures retried to one deadline;
         what still fails goes back to the client, which holds the credentials.
 
-        The whole pass is bounded by `max_staging_seconds` (surface D294);
-        a resubmit gets a fresh deadline.
+        The whole pass is bounded by `max_staging_seconds`; a resubmit gets
+        a fresh deadline.
 
         A refusal found in the upload ends the job `rejected`; this server's
         own failure ends it `failed`, `staging-failed`, never `rejected`.
@@ -129,8 +129,8 @@ class StagingMixin:
             if job["state"] != "staging":
                 raise _NoLongerStaging(job_id)
 
-            # A private dataroot is never asked for (surface D299): its failed
-            # fetch rejects the job, as create would have.
+            # A private dataroot is never asked for: its failed fetch rejects
+            # the job, as create would have.
             private = [(entry, why) for entry, why in failed
                        if entry.origin == owners.PRIVATE]
             if private:
@@ -147,7 +147,7 @@ class StagingMixin:
             # Everything in hand: a file missing from a fetched copy is refused.
             entries = self._account(job, summary, unpacked)
 
-            # Each node the run reads and does not run (surface D175).
+            # Each node the run reads and does not run.
             copies = self._account_upstream(job, summary, unpacked)
             if copies:
                 self._phase(job_id, "copying earlier results")
@@ -287,8 +287,8 @@ class StagingMixin:
         return self._sources.fetch(source, ref, timeout)
 
     def _send_back(self, job, failed, python=()) -> None:
-        '''`staging` back to `awaiting_input`, the one backwards edge (surface
-        D130), asking for what failed and saying why for each.
+        '''`staging` back to `awaiting_input`, the one backwards edge, asking
+        for what failed and saying why for each.
 
         ``failed`` is ``(entry, why)`` for dataroots; ``python`` is
         ``(name, why)`` for packages the client answers with a wheel.
@@ -342,8 +342,7 @@ class StagingMixin:
         the answer that does not change when an image is added.
 
         The first found is named (one `resource`), the detail counting the
-        rest. A lying summary can evade it, which widens nothing on this
-        profile (contract §1, *The summary cannot widen access*).
+        rest. A lying summary can evade it, which widens nothing on this profile.
         '''
         wanted = _resources(summary) + [("tool", name) for name in summary["tools"]]
 
@@ -363,8 +362,8 @@ class StagingMixin:
         '''Read the uploaded manifest in a process of its own and act on what
         it says; returns :meth:`_summary`'s shape.
 
-        Contract §1: `manifestread`, contained by `sandbox`, returns data
-        that is validated here and stored. This, not the descriptor, is
+        `manifestread`, contained by `sandbox`, returns data that is
+        validated here and stored. This, not the descriptor, is
         authoritative, which is why the checks run twice.
         '''
         unpacked = root / job["design"] / job["jobname"]
@@ -426,7 +425,7 @@ class StagingMixin:
 
     def _run_read(self, job, root: Path, asked) -> Any:
         '''The read: in the job's own image with containers, else on this host
-        under this server's own SiliconCompiler (profile §5, D63).'''
+        under this server's own SiliconCompiler (PROFILE.md section 5).'''
         limits = dict(
             # Its own limit, or what is left of this pass of staging.
             timeout=max(1, min(self._config["manifest_read_timeout_seconds"],
@@ -446,7 +445,7 @@ class StagingMixin:
             try:
                 return sandbox.run_read_in_image(asked, workdir, ref, **limits)
             except OSError as e:
-                # This server's failure, not the job's (database D145).
+                # This server's failure, not the job's.
                 raise _ServerFailure(str(e)) from None
 
         # A bundle of the job's own image, with nothing but its tree mounted.
@@ -500,8 +499,8 @@ class StagingMixin:
                 detail=f"the manifest is {raw['design']}/{raw['jobname']} and the job "
                        f"is {job['design']}/{job['jobname']}"))
 
-        # Userinfo in a dataroot path (surface D302), named by keypath, never
-        # value; before anything is fetched, and the upload is not kept (D307).
+        # Userinfo in a dataroot path, named by keypath, never value; before
+        # anything is fetched, and the upload is not kept.
         found = raw.get("credentials") or []
         if found:
             named = ", ".join(owners.shown(keypath) for keypath in found)
@@ -542,7 +541,7 @@ class StagingMixin:
             "pdk": raw["pdk"],
             "libraries": list(raw["libraries"]),
             "fpga": raw["fpga"],
-            # What the flow reads (D129); None where the client could not say.
+            # What the flow reads; None where the client could not say.
             "required": ({tuple(key) for key in raw["required"]}
                          if raw["required"] is not None else None),
             "upstream": [tuple(node) for node in raw["upstream"]],

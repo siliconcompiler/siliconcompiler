@@ -1,7 +1,6 @@
 '''
 A job's Python packages, installed while it stages: on the host, or built into
-an image a node resolved to (surface *A node's own Python packages*;
-implementation-notes §L).
+an image a node resolved to.
 '''
 
 import json
@@ -90,7 +89,7 @@ class PythonEnvMixin:
         link.symlink_to(target, target_is_directory=True)
 
         # No image on the host, so the `staging` record is the record of what
-        # the install added (profile §5; surface D295).
+        # the install added (PROFILE.md section 5).
         self._note(job, _install_lines(installed, "this host"))
         if self._row(job["id"])["state"] != "staging":
             raise _NoLongerStaging(job["id"])
@@ -186,7 +185,7 @@ class PythonEnvMixin:
                 (workspace / envbuild.WHEELS).mkdir()
                 for wheel in inputs["wheels"]:
                     shutil.copy(wheel, workspace / envbuild.WHEELS / os.path.basename(wheel))
-            # What is left of this staging pass (surface D294).
+            # What is left of this staging pass.
             timeout = max(1, int(self._staging_left(job["id"])))
             (workspace / envbuild.SPEC).write_text(json.dumps({
                 "key": key, "base_ref": base_ref, "base_digest": base_ref.split("@", 1)[1],
@@ -223,7 +222,7 @@ class PythonEnvMixin:
                 if self._staging_left(job["id"]) <= 1:
                     raise _StagingTimedOut(
                         f"building the job's Python packages on {base_ref}")
-                # Gone with time to spare: lost, this server's failure (D294).
+                # Gone with time to spare: lost, this server's failure.
                 log = workspace / envbuild.LOG
                 tail = "\n".join(log.read_text(errors="replace").strip().splitlines()[-10:]) \
                     if log.is_file() else ""

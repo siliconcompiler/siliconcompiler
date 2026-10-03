@@ -34,7 +34,7 @@ class ResultsMixin:
     def _members_refusal(self, row, surface: str) -> Optional[str]:
         '''Ladder row 4: a `node` archive holds every artifact at its
         coordinates, so it is fetchable only when they all are. Returns the
-        WORST member's refusal (D120), or None.'''
+        WORST member's refusal, or None.'''
         if row["kind"] != "node":
             return None
         members = self._store.all(
@@ -44,8 +44,8 @@ class ResultsMixin:
                                      admin=surface == "portal")
                     for member in members]
         if "not-found" in refusals and not row["deleted_at"]:
-            # A member deleted on its own (entitlements D41): handing the
-            # archive over would undo the deletion. The state is a bug.
+            # A member deleted on its own: handing the archive over would undo
+            # the deletion. The state is a bug.
             if row["id"] not in _ALERTED:
                 _ALERTED.add(row["id"])
                 logger.error(f"node archive {row['id']} of job {row['job_id']} "
@@ -83,8 +83,7 @@ class ResultsMixin:
             # The job stays readable and its subresources do not.
             raise ProblemError("not-found", detail="this job's data was deleted")
 
-        # Listed once described, a `node` archive once its members are
-        # (surface D308).
+        # Listed once described, a `node` archive once its members are.
         where = ["job_id = ?", "provenance <> 'pending'",
                  "NOT (kind = 'node' AND EXISTS (SELECT 1 FROM artifacts AS member "
                  "  WHERE member.job_id = artifacts.job_id AND member.step = artifacts.step "
@@ -183,8 +182,8 @@ class ResultsMixin:
         '''Endpoint 20 for one node: whether its live stream may be opened;
         returns the node.
 
-        `/logs` is live output only (surface §20): a finished node's stream
-        ends at once, naming its `logs` artifact.
+        `/logs` is live output only: a finished node's stream ends at once,
+        naming its `logs` artifact.
         '''
         job = self.owned(session, job_id)
         if job["deleted_at"]:
@@ -289,7 +288,7 @@ class ResultsMixin:
         return [(path.name, path) for path in found]
 
     def stream_index_path(self, job_id: str) -> Path:
-        '''The job stream's event index (D121), outside the build directory an
+        '''The job stream's event index, outside the build directory an
         uploaded archive fills, so no member can pose as one.'''
         return self._datadir / "streams" / f"{job_id}.idx"
 

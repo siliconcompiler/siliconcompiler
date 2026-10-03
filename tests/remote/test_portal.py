@@ -122,7 +122,7 @@ def finished(server, server_client, key, token, job_archive, dispatcher, me):
 
 
 def test_the_portal_is_served_wherever_the_api_is(signed_in):
-    '''Over plain http to a peer beyond this machine too (§O): the server warns
+    '''Over plain http to a peer beyond this machine too: the server warns
     at startup instead.'''
     remote = {"REMOTE_ADDR": "10.1.2.3"}
 
@@ -160,7 +160,7 @@ def test_plain_http_beyond_this_machine_is_warned_at_startup(tmp_path, caplog, o
 ])
 def test_a_sign_in_link_is_never_plain_http_beside_an_https_origin(tmp_path, base,
                                                                    origins, refused):
-    '''Contract rule 5 (D70): an `https` answer sends only to `https` URLs, and
+    '''An `https` answer sends only to `https` URLs, and
     the link is built on `web_url_base` whatever origin the request used.'''
     from siliconcompiler.remote.server.app import create_app
 
@@ -288,7 +288,7 @@ def test_a_body_naming_anything_but_one_page_is_refused(server_client, key, toke
 
 
 def test_only_an_interactive_session_gets_a_page(server, server_client, key, token):
-    '''Identity D94: a session is CI exactly when a CI key minted it, so a
+    '''A session is CI exactly when a CI key minted it, so a
     client-credentials one is interactive. Nobody is at a browser in CI; this
     profile mints no CI session, so the family is made one here.'''
     me = call(server_client, key, "GET", "/v1/me", token).get_json()
@@ -407,7 +407,7 @@ def test_cancelling_from_the_browser_moves_the_job_and_needs_its_own_form(
 def test_a_nodes_metrics_come_from_the_table_the_jobs_end_filled(
         server, server_client, key, token, job_archive, dispatcher, me, signed_in):
     '''The final manifest is read once, as plain JSON, when the job ends;
-    the panel reads the table, never the manifest (contract §1).'''
+    the panel reads the table, never the manifest.'''
     job = submitted(server_client, key, token, job_archive)
     manifest = node_root(server, me, job).parents[1] / "gcd.pkg.json"
     manifest.parent.mkdir(parents=True, exist_ok=True)
@@ -650,8 +650,8 @@ def test_a_node_archive_is_browsed_one_member_at_a_time_by_name(signed_in, finis
 
 
 def test_the_portal_shows_the_operators_diagnostics(signed_in, finished, server):
-    '''Never fetchable over the API; an administrator (everyone, here: surface
-    D295) reads the scheduler's view of a node in the portal.'''
+    '''Never fetchable over the API; an administrator (everyone, here) reads
+    the scheduler's view of a node in the portal.'''
     row = artifact_id(server, finished, "diagnostics")
 
     assert "diagnostics" in page(signed_in, f"/portal/jobs/{finished['id']}/artifacts")
@@ -765,7 +765,7 @@ def test_the_portal_is_the_way_past_the_download_ceiling(signed_in, finished,
 def test_the_account_page_shows_each_ceiling_beside_its_default(signed_in, server, me):
     '''Two columns: one value says neither *is this mine* nor *what would
     it be otherwise*. Read-only, as this deployment has no admin mode.
-    `max_staging_seconds` (surface D294) is the deployment's alone.'''
+    `max_staging_seconds` is the deployment's alone.'''
     import re
 
     from siliconcompiler.remote.server.identity import accounts

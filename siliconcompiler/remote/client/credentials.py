@@ -6,7 +6,7 @@ What this machine holds, and how tightly: ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves
 ``dpop-key.pem``   this machine's private key, **the machine pin itself**, in a
                    file of its own so no rewrite of the store can take it.
 
-The modes are normative (identity §4): directory ``0700``, files ``0600``,
+The modes are normative: directory ``0700``, files ``0600``,
 each created with its mode set. A wider store stops the client rather than
 being repaired: the key may already be copied.
 

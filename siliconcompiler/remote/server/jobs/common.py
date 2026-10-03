@@ -48,7 +48,7 @@ SURFACES = ("api", "portal")
 
 MAX_NAME = 100
 
-# A cancel's `reason`, at most (surface D288): refused above it, never cut.
+# A cancel's `reason`, at most: refused above it, never cut.
 MAX_REASON = 300
 
 # Refused in a caller's reason, which is served as it arrived.
@@ -58,7 +58,7 @@ _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 # again at submit.
 _NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
-# How long an `Idempotency-Key` is honoured (surface §6).
+# How long an `Idempotency-Key` is honoured.
 IDEMPOTENCY_SECONDS = 24 * 3600
 
 
@@ -76,7 +76,7 @@ class _Supply:
 
     def package(self, module: str) -> bool:
         '''Whether this installation has ``module``, without importing anything
-        a job named (contract §1).
+        a job named.
 
         `find_spec` on a dotted name imports its parent, so a submodule is
         answered only once its parent is already loaded.
@@ -175,8 +175,8 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     return found
 
 
-# Strict on requests (contract.md): what each body may carry. `run_hash` is
-# job reuse's, and top level: the descriptor is what submit re-derives.
+# Strict on requests: what each body may carry. `run_hash` is job reuse's,
+# and top level: the descriptor is what submit re-derives.
 CREATE_MEMBERS = ("design", "jobname", "project", "descriptor", "run_hash", "continues_from",
                   "python_packages")
 DESCRIPTOR_MEMBERS = ("flow", "node_count", "needs", "requested_versions", "sources")
@@ -324,7 +324,7 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         _only(item, SOURCE_MEMBERS, "a source")
         keypath = item.get("keypath")
         # One of SiliconCompiler's two dataroot keypaths, and nothing else:
-        # no guessing what owns one (surface D298).
+        # no guessing what owns one.
         if not owners.is_dataroot_keypath(keypath) or \
                 any(len(part) > MAX_NAME for part in keypath):
             raise ProblemError(
@@ -338,12 +338,12 @@ def _declared_sources(descriptor) -> Optional[List[Dict[str, Any]]]:
         if tuple(keypath) in seen:
             raise ProblemError("invalid-request", detail=f"sources names {where} twice")
         seen.add(tuple(keypath))
-        # A private entry may carry its source and ref too (surface D299, D308).
+        # A private entry may carry its source and ref too.
         private = item.get("private", False)
         entry = {"keypath": list(keypath), "private": private}
         if isinstance(item.get("source"), str):
-            # Refused, never stripped (surface D310), naming the keypath and
-            # never the value, which is neither stored nor logged.
+            # Refused, never stripped, naming the keypath and never the value,
+            # which is neither stored nor logged.
             if owners.has_userinfo(item["source"]):
                 raise ProblemError(
                     "invalid-request",
@@ -424,8 +424,8 @@ class _ServerFailure(Exception):
 
 
 class _StagingTimedOut(Exception):
-    '''This pass of staging ran past `max_staging_seconds`: `staging-timed-out`
-    (surface D294), its message what staging was doing.'''
+    '''This pass of staging ran past `max_staging_seconds`: `staging-timed-out`,
+    its message what staging was doing.'''
 
 
 # A larger final manifest is not read for its metrics.
@@ -537,7 +537,7 @@ def _build_refusal(packages, result: Dict[str, Any], where: str = "") -> Problem
         detail=_bounded(
             f"the job's Python packages will not install{where} for {target}: "
             f"{', '.join(named) or 'the uploaded wheels'}"
-            # Said, because the user can act on it (surface D291).
+            # Said, because the user can act on it.
             + (f"; {', '.join(only_source)} has only a source distribution for it, "
                "and this deployment builds none: publish a wheel for this platform "
                "to its index" if only_source else "")
@@ -584,7 +584,7 @@ def _error(error_type: Optional[str],
            detail: Optional[str] = None,
            members: Optional[str] = None) -> Optional[Dict[str, Any]]:
     '''A job's error, as an RFC 9457 object; a node's has the same shape, its
-    `detail` arriving in ``members`` (surface §17).
+    `detail` arriving in ``members``.
 
     Bounded here, since it bypasses `problem()`: a run's reason can be a
     tool's exception text carrying paths the client's design named.
@@ -616,7 +616,7 @@ def _node_error(state: str, node: Dict[str, Any]) -> Tuple[Optional[str], Option
 
     `run-interrupted` where the environment ended it (an image would not
     pull), so resubmitting unchanged may work; `run-failed` otherwise, a time
-    or memory limit included (surface §17).
+    or memory limit included.
     '''
     if state != "failed":
         return None, None
@@ -642,8 +642,8 @@ def _members_json(members: Dict[str, Any]) -> Optional[str]:
 
 
 def _flag(value, name: str) -> bool:
-    '''A boolean query parameter, `true` or `false` (S §16); anything else is
-    `invalid-request` (S §6), never read as false.'''
+    '''A boolean query parameter, `true` or `false`; anything else is
+    `invalid-request`, never read as false.'''
     if value == "true":
         return True
     if value == "false":

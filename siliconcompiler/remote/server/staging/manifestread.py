@@ -4,16 +4,16 @@ stages, whose only output is a data summary.
 
 ``python3 -m siliconcompiler.remote.server.staging.manifestread <request>``
 
-Contract §1: no server process holding credentials parses a manifest, since
-reading one resolves whatever classes the uploader named. So the read runs
-here, from ``sc-server``'s own SiliconCompiler (profile §5), given only
+No server process holding credentials parses a manifest, since reading one
+resolves whatever classes the uploader named. So the read runs here, from
+``sc-server``'s own SiliconCompiler (PROFILE.md section 5), given only
 :func:`request`'s data and no path to the data directory, key, store or
 private roots. Its summary is untrusted input, held to :func:`validate`.
 
-It contains itself as far as the host allows (:func:`contain`; profile §5,
-implementation-notes §E); in the job's container, the container is the
-boundary. Where nodes run on the host there is no filesystem boundary: this
-profile makes no security claim (§0).
+It contains itself as far as the host allows (:func:`contain`; PROFILE.md
+section 5); in the job's container, the container is the boundary. Where
+nodes run on the host there is no filesystem boundary: this profile makes no
+security claim (PROFILE.md section 0).
 '''
 
 import json
@@ -33,7 +33,7 @@ SUMMARY_VERSION = 4
 # whole and per field as it is read back.
 MAX_SUMMARY_BYTES = 16 * 1024 * 1024
 MAX_STRING = 4096
-# `manifest_flow` and `manifest_pdk` are columns (database D145).
+# `manifest_flow` and `manifest_pdk` are columns.
 MAX_NAME = 200
 MAX_NODES = 100_000
 MAX_VALUES = 500_000
@@ -91,7 +91,7 @@ def validate(summary: Any) -> Dict[str, Any]:
     '''``summary`` held to its shape and bounds, or :class:`Invalid`.
 
     Every node name goes through the one node-name check before it reaches
-    a column, a path or a URL (implementation-notes §E).
+    a column, a path or a URL.
     '''
     from siliconcompiler.flowgraph import Flowgraph
     from siliconcompiler.remote import owners
@@ -169,7 +169,7 @@ def validate(summary: Any) -> Dict[str, Any]:
         for key in listed(required, "required", MAX_VALUES):
             _key(key, fail, text)
 
-    # Keypaths only: the read never reports the value (surface D302).
+    # Keypaths only: the read never reports the value.
     for key in listed(summary.get("credentials") or [], "credentials", MAX_VALUES):
         _key(key, fail, text)
 
@@ -256,11 +256,11 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                       f"the manifest is {project.name}/{project.option.get_jobname()} "
                       f"and the job is {design}/{jobname}")
 
-    # Each dataroot path carrying userinfo, by keypath, never value (surface D302).
+    # Each dataroot path carrying userinfo, by keypath, never value.
     summary["credentials"] = [list(keypath)
                               for keypath, path in owners.dataroot_paths(project)
                               if owners.has_userinfo(path)]
-    # And in every upstream node's manifest (surface D307).
+    # And in every upstream node's manifest.
     for member in _outputs_manifests(tree):
         try:
             with warnings.catch_warnings():
@@ -288,7 +288,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     summary["flow"] = flow.name
     tasks = {node: flow.get_graph_node(*node).get_taskmodule() for node in nodes}
 
-    # An unprovided task class is refused (surface D163), by name, before
+    # An unprovided task class is refused, by name, before
     # anything below asks for a task, which imports it.
     known = manifests.known_classes()
     unknown: Dict[str, List[str]] = {}
@@ -366,7 +366,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _unattended(project, nodes):
-    '''``(reason, detail)`` for a node that would wait for a person, or None (surface D165).
+    '''``(reason, detail)`` for a node that would wait for a person, or None.
 
     A breakpoint, or a task that opens a window; a `ScreenshotTask` is headless.'''
     from siliconcompiler import OpenTask, ScreenshotTask

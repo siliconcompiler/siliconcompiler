@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(sys.platform == "win32",
 
 
 # Every read the server makes of a job's tree, given a link a node's own code
-# planted there (surface D133): none may show the caller the host's files.
+# planted there: none may show the caller the host's files.
 
 SECRET = "the host's own file\n"
 

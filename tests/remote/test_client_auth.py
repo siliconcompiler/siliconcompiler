@@ -197,7 +197,7 @@ def test_an_access_layer_refusal_is_the_edge_not_the_api(logged_in, fake_v1, bod
         "stream-same-origin"])
 def test_a_followed_redirect_gets_operator_headers_only_on_the_apis_origin(
         logged_in, fake_v1, tmp_path, location):
-    '''Surface D304: operator headers go to the API's origin, where an edge
+    '''Operator headers go to the API's origin, where an edge
     wants them, and nowhere else; no token or proof goes to either, since the
     signature is the credential.'''
     logged_in.set_header("CF-Access-Client-Id", "id")
@@ -313,7 +313,7 @@ def test_requests_itself_follows_no_redirect(logged_in, fake_v1, netrc_everywher
     ids=["downgrade", "ftp", "file", "upgrade"])
 def test_a_redirect_is_followed_only_to_https_from_https(base, target, followed,
                                                          tmp_credentials):
-    '''Contract rule 5 (D70): an https answer sends the client only to
+    '''An https answer sends the client only to
     https, an http one to either, and nothing else is followed.'''
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.client.transport import Transport
@@ -701,7 +701,7 @@ def exchange(fake_v1, capabilities, ci_secret):
                          ids=["exchange-offered", "device-only"])
 def test_a_ci_key_trades_first_and_never_prints_a_code(
         fake_v1, capabilities, tmp_credentials, exchange, capsys, offered):
-    '''Identity §2: token exchange first whatever is offered, never a
+    '''Token exchange first whatever is offered, never a
     `user_code` in a CI log, and no refresh token kept.'''
     exchange()
     if offered:
@@ -783,7 +783,7 @@ def test_a_ci_key_trades_after_the_grants_say_it_now_can(
 
 
 def test_insecure_transport_stops_and_is_never_sent_again(logged_in, fake_v1):
-    '''Contract rule 5: never switch scheme, which would hide a mistyped address.'''
+    '''Never switch scheme, which would hide a mistyped address.'''
     fake_v1.route(responses.GET, "me", problem("insecure-transport", 426), status=426,
                   content_type="application/problem+json", headers={"Upgrade": "TLS/1.2"})
 

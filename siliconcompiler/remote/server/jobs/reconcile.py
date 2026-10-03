@@ -92,12 +92,12 @@ class ReconcileMixin:
             step, _, index = key.partition("/")
             state = node.get("state", "pending")
             if state in TERMINAL_NODE_STATES:
-                # Any terminal state only once the node's artifacts are listed
-                # (surface D310), indexed as the node finishes, not the job.
+                # Any terminal state only once the node's artifacts are listed,
+                # indexed as the node finishes, not the job.
                 self._index_node(job, step, index)
 
             # Written on every node, or a failed node's published `error`
-            # would be null (implementation-notes §10).
+            # would be null.
             error_type, error_members = _node_error(state, node)
 
             self._store.execute(
@@ -139,7 +139,7 @@ class ReconcileMixin:
 
         # The later of the operator's clock and a live grant, so an upload in
         # flight is never taken; a job never granted one still expires.
-        # From the latest transition, so a job sent back (D124) starts again.
+        # From the latest transition, so a job sent back starts again.
         deadline = max(
             _after(job["state_changed_at"] or job["created_at"],
                    self._config.limits["abandon_after_seconds"]),
@@ -310,7 +310,7 @@ class ReconcileMixin:
 
         logger.warning(f"{job['id']} is gone from the scheduler with no result")
         # What it left, the operators' record above all, listed before the
-        # job turns terminal (surface D310).
+        # job turns terminal.
         self._index(job)
         with self._store.transaction():
             self._store.execute(
@@ -338,7 +338,7 @@ class ReconcileMixin:
     def _settle_cancelled(self, job) -> None:
         '''A cancel that has taken effect: the job and every unfinished node
         `cancelled`, with the cancel's reason and no error. A stopped run is
-        indexed first (surface D310).'''
+        indexed first.'''
         if job["scheduler_job_id"] and job["state"] == "cancelling":
             self._index(job)
         with self._store.transaction():
@@ -405,10 +405,10 @@ class ReconcileMixin:
 
     def _record_metrics(self, job) -> None:
         '''Each node's metrics and records into `job_nodes`, once, as the job
-        ends, for the portal's panel (implementation-notes §E).
+        ends, for the portal's panel.
 
-        Plain JSON, never SiliconCompiler (contract §1), and nothing read
-        this way decides a refusal or a grant.
+        Plain JSON, never SiliconCompiler, and nothing read this way decides
+        a refusal or a grant.
         '''
         root = self.job_root(job["user_id"], job["id"])
         found = _node_metrics(root / job["design"] / job["jobname"]
@@ -446,7 +446,7 @@ class ReconcileMixin:
 
     def _keep_scheduler_record(self, job) -> None:
         '''What the scheduler says of the job and each node, into the operators'
-        `diagnostics` (surface D295), while the scheduler still remembers.'''
+        `diagnostics`, while the scheduler still remembers.'''
         root = self.job_root(job["user_id"], job["id"])
         if job["scheduler_job_id"]:
             said = self._dispatcher.describe(job["scheduler_job_id"])

@@ -1,5 +1,5 @@
 '''
-Deriving an image in a registry: the base with one layer more (implementation-notes §L).
+Deriving an image in a registry: the base with one layer more.
 
 Only the layer, the new config and the new manifest move; the base, often
 gigabytes, is never pulled. Pushed to the base's own repository, since a
@@ -93,7 +93,7 @@ def layer_from(directory: Path, inside: str) -> Tuple[bytes, str, str]:
 def derive(base_ref: str, layer: Tuple[bytes, str, str], comment: str) -> Tuple[str, str]:
     '''Push the base with ``layer`` on top; returns (``host/repository@digest``, digest).
 
-    By digest, no tag (profile D39), so nothing can be repointed. A GC of
+    By digest, no tag, so nothing can be repointed. A GC of
     untagged manifests would take them; this stack's registry runs none.'''
     import requests
 

@@ -4,7 +4,7 @@ The server's own copies of remote sources, held under ``<datadir>/sources/`` by
 
 The run never fetches: it points a supplied dataroot at the held copy
 (`runspec.point_dataroots`). The fetch is SiliconCompiler's own resolver,
-submodules and LFS included (surface D164), isolated in `staging.fetch`.
+submodules and LFS included, isolated in `staging.fetch`.
 
 A transient failure (``429``, ``5xx``, timeout) is retried until the job's
 deadline, or a GitHub blip becomes a huge upload; a permanent one (``401``,
@@ -87,7 +87,7 @@ class SourceStore:
     def allowlisted(self, source: Optional[str], ref: Optional[str]) -> bool:
         '''Whether this server would fetch the source itself.
 
-        Never one whose URL has a query (surface D308): its values are masked.'''
+        Never one whose URL has a query: its values are masked.'''
         if not source or urlsplit(source).query:
             return False
         scheme = urlsplit(source).scheme.lower()

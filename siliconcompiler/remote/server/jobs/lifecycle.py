@@ -1,6 +1,6 @@
 '''
 What a caller does to a job once it exists: list it, read it, cancel it, delete
-it, archive it (surface §16 to §19).
+it, archive it.
 '''
 
 import shutil
@@ -24,8 +24,8 @@ class LifecycleMixin:
         where = ["user_id = ?", "deleted_at IS NULL"]
         params: List[Any] = [session.user_id]
 
-        # A filter repeats to OR within its key; keys AND together
-        # (surface §16) -- so `?archived=true&archived=false` is both views.
+        # A filter repeats to OR within its key; keys AND together -- so
+        # `?archived=true&archived=false` is both views.
         def values(name):
             if hasattr(args, "getlist"):
                 given = args.getlist(name)
@@ -111,7 +111,7 @@ class LifecycleMixin:
         job = self.owned(session, job_id)
 
         if reason is not None:
-            # Checked, never repaired or echoed (surface §6, D306).
+            # Checked, never repaired or echoed.
             if not isinstance(reason, str):
                 raise ProblemError("invalid-request", detail="reason is a string")
             if len(reason) > MAX_REASON:
@@ -187,8 +187,8 @@ class LifecycleMixin:
             path.unlink(missing_ok=True)
         self._storage.discard_upload(job["id"])
 
-        # An artifact under legal hold is never deleted (entitlements D54),
-        # so the rest go through `_unlink`, never a sweep of the directory.
+        # An artifact under legal hold is never deleted, so the rest go
+        # through `_unlink`, never a sweep of the directory.
         going = self._store.all(
             "SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? "
             "AND deleted_at IS NULL AND legal_hold_at IS NULL", (job["id"],))
@@ -226,7 +226,7 @@ class LifecycleMixin:
             raise ProblemError(
                 "not-found", detail=f"no node {step}/{index} in this job")
 
-        # Not the operators' record of how it ran (surface D295).
+        # Not the operators' record of how it ran.
         rows = self._store.all(
             'SELECT id, location_id, storage_key FROM artifacts WHERE job_id = ? '
             'AND step = ? AND "index" = ? AND deleted_at IS NULL '

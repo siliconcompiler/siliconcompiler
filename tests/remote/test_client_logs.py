@@ -70,7 +70,7 @@ def no_wait(monkeypatch):
 def test_an_ended_stream_reconnects_with_the_last_event_id(logged_in, fake_v1, no_wait,
                                                            reason):
     '''An `end` other than `terminal` ends this connection: ask `/logs`
-    again and hand the last id to the new stream, never to `/logs` (D306).'''
+    again and hand the last id to the new stream, never to `/logs`.'''
     stream(fake_v1, 1, sse(log("7", "one\n"), end(reason)))
     stream(fake_v1, 2, sse(log("8", "two\n"), end("terminal")))
 

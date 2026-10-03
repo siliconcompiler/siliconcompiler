@@ -59,7 +59,7 @@ def recorded_job(directory: str) -> Optional[str]:
 _ARCHIVES = ("node", "outputs", "reports", "final", "logs")
 
 # Never taken, never reported as left behind: `input` is what went in, and
-# `diagnostics` is the operators' record (surface D295).
+# `diagnostics` is the operators' record.
 _NOT_TAKEN = ("input", "diagnostics")
 
 
@@ -67,7 +67,7 @@ _NOT_TAKEN = ("input", "diagnostics")
 # truncates it. Nor `job.<x>.log`, a pattern SiliconCompiler rotates and prunes.
 REMOTE_JOB_LOG = "remote-job.log"
 
-# The server's record of create to dispatch (surface D295).
+# The server's record of create to dispatch.
 REMOTE_STAGING_LOG = "remote-staging.log"
 
 
@@ -443,7 +443,7 @@ class Results:
     def _replay(self) -> None:
         '''Fold the retrieved manifests' record and metrics into this project, for `summary()`.
 
-        Nothing a job returns is imported or executed (surface §6): only
+        Nothing a job returns is imported or executed: only
         `_folded` values, for nodes the job ran.
         '''
         from siliconcompiler.remote.runflow import runtime_nodes

@@ -148,7 +148,7 @@ NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")
 
 
-# An `unresolved` entry's `kind`, as a person reads it (surface D311).
+# An `unresolved` entry's `kind`, as a person reads it.
 _UNRESOLVED_KIND = {"python": "python", "tools": "tool", "interpreter": "interpreter",
                     "class": "task class", "package": "package"}
 
@@ -226,7 +226,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     return "\n".join(lines)
 
 
-# A capability refused (surface *Who may use it: three capabilities*).
+# A capability refused.
 _CAPABILITY_STEP = {
     "python-packages": "Ask the deployment for the python-packages grant. A job whose "
                        "only Python is its own modules needs none.",
@@ -251,7 +251,7 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
     if slug == "software-unavailable" and any(
             isinstance(entry, dict) and entry.get("kind") == "interpreter"
             for entry in problem.get("unresolved") or []):
-        # Nothing in the job changes the interpreter (surface D293).
+        # Nothing in the job changes the interpreter.
         return ("No image here runs the Python this machine does. The server's "
                 "operator would have to add one; until then, run the job from a "
                 "Python it has.")
@@ -278,7 +278,7 @@ _CONTROL = re.compile(r"\x1b(?!\[[0-9;]*m)|[\x00-\x08\x0b-\x1a\x1c-\x1f\x7f\x80-
 
 def clean(text: Optional[str]) -> str:
     '''Server text made safe for a terminal: control characters stripped,
-    except newline, tab and colour (surface §20, the last bullet).'''
+    except newline, tab and colour.'''
     if text is None:
         return ""
     text = str(text)

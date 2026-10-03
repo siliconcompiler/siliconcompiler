@@ -1,6 +1,6 @@
 '''
 The wheels a remote run uploads, one per distribution no index can supply
-(PEP 610 ``direct_url.json``; surface *Uploaded wheels*): a local-directory
+(PEP 610 ``direct_url.json``): a local-directory
 install is built with ``pip wheel --no-deps``, anything else repacked from its
 installed files (:func:`repack`).
 
