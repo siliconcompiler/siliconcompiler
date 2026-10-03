@@ -582,7 +582,6 @@ def test_asic_set_asic_var_from_lib(running_node):
     with task.runtime(running_node) as runtool:
         assert runtool.set_asic_var("test_param", defvalue="defvalue")
         assert runtool.get("var", "test_param") == "libvalue"
-        # Required once, though `set_asic_var` declares it twice.
         assert runtool.get("require") == ['task,var,test_param',
                                           'library,testlib,tool,testtool,test_param']
 
@@ -611,7 +610,6 @@ def test_asic_set_asic_var_from_pdk(running_node):
     with task.runtime(running_node) as runtool:
         assert runtool.set_asic_var("test_param", defvalue="defvalue")
         assert runtool.get("var", "test_param") == "pdkvalue"
-        # Required once, though `set_asic_var` declares it twice.
         assert runtool.get("require") == ['task,var,test_param',
                                           'library,testpdk,tool,testtool,test_param']
 
@@ -722,7 +720,6 @@ def test_asic_set_asic_var_skip_main(running_node):
     with task.runtime(running_node) as runtool:
         assert runtool.set_asic_var("test_param", defvalue="defvalue", check_mainlib=False)
         assert runtool.get("var", "test_param") == "pdkvalue"
-        # Required once, though `set_asic_var` declares it twice.
         assert runtool.get("require") == ['task,var,test_param',
                                           'library,testpdk,tool,testtool,test_param']
 
@@ -863,7 +860,6 @@ def test_asic_set_asic_var_from_pdk_as_list(running_node):
     with task.runtime(running_node) as runtool:
         assert runtool.set_asic_var("test_param", defvalue="defvalue")
         assert runtool.get("var", "test_param") == ["pdkvalue"]
-        # Required once, though `set_asic_var` declares it twice.
         assert runtool.get("require") == ['task,var,test_param',
                                           'library,testpdk,tool,testtool,test_param']
 

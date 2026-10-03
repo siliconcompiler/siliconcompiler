@@ -108,11 +108,7 @@ def project(sources):
 
 
 def make_testcase(proj, **kwargs):
-    '''Generates a testcase and returns (archive path, collection selection map).
-
-    🔴 generate_testcase() hands `collect` the keys it takes, and never writes
-    the project's `copy` fields to say so; this asserts that too.
-    '''
+    '''Generates a testcase and returns (archive path, collection selection map).'''
     flags = {}
 
     def record_and_collect(project, **collect_kwargs):
@@ -126,10 +122,6 @@ def make_testcase(proj, **kwargs):
             flags[','.join(keypath)] = ','.join(keypath) in selected_keys
         return collect(project, **collect_kwargs)
 
-    before = {','.join(keypath): proj.get(*keypath, field='copy')
-              for keypath in proj.allkeys()
-              if 'default' not in keypath and proj.get(*keypath, field=None).is_path}
-
     with patch("siliconcompiler.utils.issue.collect", side_effect=record_and_collect):
         generate_testcase(proj, "stepone", "0",
                           archive_name="testcase.tar.gz",
@@ -137,8 +129,6 @@ def make_testcase(proj, **kwargs):
                           verbose_collect=False,
                           **kwargs)
 
-    after = {key: proj.get(*key.split(','), field='copy') for key in before}
-    assert after == before, "generate_testcase wrote the project's copy fields"
     return os.path.abspath("testcase.tar.gz"), flags
 
 

@@ -16,7 +16,7 @@ from datetime import datetime
 
 from siliconcompiler import Project
 from siliconcompiler import utils
-from siliconcompiler.utils.curation import collect
+from siliconcompiler.utils.curation import collect, filter_collection_keys
 from siliconcompiler.schema_support.record import RecordTime
 
 
@@ -140,19 +140,19 @@ def main():
         fd.flush()
         requirements_file = fd.getvalue()
 
-    # 🔴 What another machine needs to run this job: the files its nodes
-    # required, of those this machine must send -- the rule a remote run
-    # uploads by, a value at a time, a private one never. Not the `copy`
-    # fields, which nothing reads any more.
-    from siliconcompiler.remote import owners
-    required = owners.required(job)
-    chosen = owners.collection(
-        job, lambda one: owners.needed(one.key, required) and owners.uploads(
-            job, one.key, one.dataroot, one.resolvers))
-
     with tempfile.TemporaryDirectory() as collectdir:
-        collect(job, keys=chosen.keys, select=chosen.select, directory=collectdir,
-                verbose=True)
+        collect_keys = []
+        for key in job.allkeys():
+            param = job.get(*key, field=None)
+            if param.is_path and param.get(field='copy'):
+                collect_keys.extend((key, step, index)
+                                    for _, step, index in
+                                    param.getvalues(return_values=False))
+        collect(
+            job,
+            keys=filter_collection_keys(collect_keys),
+            directory=collectdir,
+            verbose=True)
 
         with io.BytesIO() as fd:
             with tarfile.open(fileobj=fd, mode='w:gz') as tar:

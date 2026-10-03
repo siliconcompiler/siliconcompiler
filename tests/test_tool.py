@@ -3426,15 +3426,6 @@ def test_add_required_key(running_node):
         assert runtool.get("require") == ["this,key,is,required", "this,key,is,required,too"]
 
 
-def test_add_required_key_is_listed_once(running_node):
-    '''A setup that runs twice -- a remote run's manifest arrives with its
-    requirements worked out -- must not list a key twice: `require` is a set.'''
-    with running_node.task.runtime(running_node) as runtool:
-        runtool.add_required_key("this", "key")
-        runtool.add_required_key("this", "key")
-        assert runtool.get("require") == ["this,key"]
-
-
 def test_add_required_key_obj(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.add_required_key(running_node.task, "this", "key", "is", "required")

@@ -1,8 +1,8 @@
 import os
-import subprocess
 import sys
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -14,9 +14,9 @@ from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
 from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask
 
 
-# The cocotb driver, on a machine that need not have cocotb: setup runs where
-# a run is submitted from, and what needs cocotb -- the GPI bootstrap, the VPI
-# library -- is the node's.
+# The cocotb driver, on a machine that need not have cocotb: setup runs
+# wherever a flow is configured, and what needs cocotb -- the GPI bootstrap,
+# the VPI library -- is the node's.
 
 
 @pytest.fixture
@@ -37,20 +37,10 @@ def project():
     return project
 
 
-def test_importing_the_driver_imports_no_cocotb():
-    code = ("import sys, siliconcompiler.tools.icarus.cocotb_exec, "
-            "siliconcompiler.tools.verilator.cocotb_compile; "
-            "print('cocotb_tools' in sys.modules or 'find_libpython' in sys.modules)")
-    done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
-                          env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)})
-
-    assert done.stdout.strip() == "False", done.stderr
-
-
 def test_setup_needs_no_cocotb_and_sets_no_gpi_users(project, monkeypatch, caplog):
-    '''🔴 GPI_USERS names absolute paths into the Python and cocotb that run
-    the node, so it is not set on the machine that sets the node up.'''
-    monkeypatch.setattr(cocotb_task, "_cocotb", lambda: None)
+    '''GPI_USERS names absolute paths into the Python and cocotb that run the
+    node, so it is not set on the machine that sets the node up.'''
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", False)
 
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
@@ -65,7 +55,7 @@ def test_the_tool_check_stops_the_run_without_cocotb(project, monkeypatch):
     '''The scheduler's tool check looks up each node's executable before any
     node runs, which is where a missing cocotb is reported. The environment it
     is looked up in has to build without cocotb for that to be reached.'''
-    monkeypatch.setattr(cocotb_task, "_cocotb", lambda: None)
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", False)
 
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
@@ -91,7 +81,10 @@ class _FindLibpython:
 def test_the_node_computes_gpi_users_for_its_own_python(project, monkeypatch):
     '''Even where setup has cocotb, the manifest does not record GPI_USERS:
     the node computes it.'''
-    monkeypatch.setattr(cocotb_task, "_cocotb", lambda: (_Config, _FindLibpython))
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", True)
+    monkeypatch.setattr(cocotb_task, "cocotb_tools", SimpleNamespace(config=_Config),
+                        raising=False)
+    monkeypatch.setattr(cocotb_task, "find_libpython", _FindLibpython, raising=False)
 
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
@@ -104,30 +97,20 @@ def test_the_node_computes_gpi_users_for_its_own_python(project, monkeypatch):
     assert env["PATH"].split(os.pathsep)[0] == str(Path("/opt/cocotb/libs"))
 
 
-def test_a_renamed_test_module_keeps_its_own_name(project, monkeypatch, tmp_path):
-    '''Collection renames a file `<name>_<hash>.py`; the module is still
-    imported, and reported, under its own name.'''
-    renamed = tmp_path / "test_gcd_0123abcd.py"
-    renamed.write_text("import cocotb\n")
+def test_setup_names_the_test_modules_without_resolving_them(project, monkeypatch):
+    '''setup() must not resolve a path, and COCOTB_TEST_MODULES needs only
+    the declared files' stems.'''
     design = project.get("library", "gcd", field="schema")
-    real = design.get_file
-    monkeypatch.setattr(type(design), "get_file",
-                        lambda self, fileset=None, filetype=None:
-                        [str(renamed)] if filetype == "python" else
-                        real(fileset=fileset, filetype=filetype))
-    monkeypatch.setattr(cocotb_task, "_cocotb", lambda: None)
+
+    def resolved(self, *args, **kwargs):
+        raise AssertionError("setup() resolved a file")
+    monkeypatch.setattr(type(design), "get_file", resolved)
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", False)
 
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
         node.setup()
         assert node.task.get("env", "COCOTB_TEST_MODULES") == "test_gcd"
-        os.makedirs(node.task.nodeworkdir, exist_ok=True)
-        node.task.pre_process()
-        staged = os.path.join(node.task.nodeworkdir, "cocotb_modules")
-        path = node.task.get_runtime_environmental_variables()["PYTHONPATH"]
-
-    assert os.path.isfile(os.path.join(staged, "test_gcd.py"))
-    assert path.split(os.pathsep)[0] == staged
 
 
 def test_cocotb_is_declared_on_the_class():
