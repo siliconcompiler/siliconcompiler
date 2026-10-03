@@ -39,11 +39,7 @@ BAD_REF = re.compile(r"`[^`<>\n]+ <([A-Za-z0-9_-]+)>`_")
 
 
 def test_no_external_link_syntax_pointing_at_internal_labels():
-    """Catch `text <label>`_ that should be :ref:`text <label>`.
-
-    Six of these shipped to the live installation page and produced 404s across
-    many releases without ever emitting a build warning.
-    """
+    """Catch `text <label>`_ that should be :ref:`text <label>`; it 404s with no build warning."""
     found = []
     for path in _sources():
         with open(path, encoding="utf-8") as f:
@@ -59,11 +55,7 @@ def test_no_external_link_syntax_pointing_at_internal_labels():
 
 
 def test_no_markdown_link_syntax():
-    """Catch [text](url), which RST renders as literal brackets and parens.
-
-    One of these sat on the first screen of the installation page across many
-    releases, alongside the correct RST form of the same link 130 lines later.
-    """
+    """Catch [text](url), which RST renders as literal brackets and parens."""
     markdown_link = re.compile(r"\[[^\]\n]+\]\((?:https?://|\.{0,2}/)[^)\n]+\)")
     found = []
     for path in _sources():
@@ -80,14 +72,8 @@ def test_no_markdown_link_syntax():
 
 
 def test_in_repo_github_links_resolve():
-    """Catch links into our own repository that point at a file we do not have.
-
-    A ``blob/main/<path>`` link is checked only by the weekly link check, and
-    only after GitHub has agreed to answer -- a rate-limited run reports 429 and
-    tells you nothing. The path is in this repository, so it can be checked
-    here, offline, on every pull request: `quickstart.rst` pointed at
-    `siliconcompiler/targets/asic_demo.py` for as long as it took a weekly run
-    to get through, and the file had moved to `siliconcompiler/demos/`.
+    """Catch links into our own repository that point at a file we do not have, checked offline
+    here since the weekly link check is often rate-limited by GitHub.
     """
     link = re.compile(
         r"github\.com/siliconcompiler/siliconcompiler/(?:blob|tree)/main/([^\s>`)]+)")

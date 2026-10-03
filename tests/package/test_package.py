@@ -716,12 +716,8 @@ def test_populate_resolvers_marker_written_last(fake_plugins):
 
 def test_find_resolver_concurrent_population(monkeypatch):
     """
-    A thread arriving mid-population must not be told a good URI is unsupported.
-
-    The first write to the registry makes it non-empty, and the remote schemes
-    are registered last, so a second thread that treats "non-empty" as
-    "populated" looks up https before it exists. Widen that window by stalling
-    the https registration and send a crowd of threads through it.
+    Threads that call find_resolver while the registry is still being populated all get
+    HTTPResolver, not an unsupported-scheme error, though https is registered last.
     """
     real_get_resolver = siliconcompiler.package.https.get_resolver
 
@@ -757,15 +753,8 @@ def test_find_resolver_concurrent_population(monkeypatch):
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
 def test_find_resolver_after_fork_mid_population(monkeypatch, wait_for_child):
     """
-    A child forked mid-population rebuilds instead of trusting what it inherited.
-
-    This is the case the category lock cannot cover, and the reason the marker
-    exists alongside it. The lock keeps other *threads* out, but a fork copies
-    the registry and leaves the child no lock to wait on: it gets the schemes
-    written so far and nothing to say the rest never arrived. SC forks its
-    scheduler workers, so a fork landing inside the population window is exactly
-    the shape of the original bug -- and reading "non-empty" as "finished" there
-    breaks the child permanently, not just for one lookup.
+    A child forked while the resolver registry is half populated rebuilds it rather than
+    trusting the inherited partial copy, which the lock cannot guard across a fork.
     """
     real_get_resolver = siliconcompiler.package.https.get_resolver
     stalled = threading.Event()
@@ -2354,11 +2343,7 @@ def test_indirect_resolver_does_not_repeat_the_log():
 # ============================================================================
 
 def test_resolve_touches_lock_on_cache_hit():
-    """A hit stamps the lock file, which is the access time cleanup reads.
-
-    Without this the mtime never moves off the download, so an entry resolved
-    every day looks as stale as one nothing has asked for since it landed.
-    """
+    """A cache hit bumps the lock file's mtime, which cleanup reads as the entry's last use."""
     class AlwaysCached(RemoteResolver):
         def check_cache(self):
             return True

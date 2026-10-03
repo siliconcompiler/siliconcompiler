@@ -21,14 +21,10 @@ from siliconcompiler.utils.settings import SettingsManager
 
 
 def test_get_process_context_linux(monkeypatch):
-    '''On Linux the start method is pinned to fork so that unguarded
-    module-level proj.run() scripts keep working regardless of the interpreter
-    default (which became forkserver in Python 3.14).
-
-    Assert on the requested method name rather than the returned context so the
-    test is portable: Windows has no fork context, so actually calling
-    get_context("fork") there raises ValueError.'''
+    '''On Linux the start method is fork, not the interpreter default (forkserver from 3.14),
+    so unguarded module-level proj.run() scripts keep working.'''
     monkeypatch.setattr("sys.platform", "linux")
+    # Patched because Windows has no fork context to return.
     with patch("multiprocessing.get_context") as get_ctx:
         get_process_context()
         get_ctx.assert_called_once_with("fork")

@@ -875,12 +875,8 @@ def test_rerun(gcd_nop_project):
 
 @pytest.mark.timeout(120)
 def test_rerun_from_after_fork_to_join(forkjoin_project):
-    """Re-running with option.from after a fork and option.to at the join
-    must forward the bypassed leg's prior SUCCESS so the join can launch.
-
-    Regression for a bug where __configure_collect_previous_information
-    only loaded prior manifests for nodes upstream of option.from,
-    silently dropping fork-sibling legs that re-converge downstream.
+    """Re-running with option.from after a fork and option.to at the join forwards the
+    bypassed leg's prior SUCCESS, so the join can launch.
     """
     assert forkjoin_project.run()
     for step in ("entry", "A1", "A2", "B1", "B2", "joinstep"):
@@ -1271,16 +1267,8 @@ def test_same_named_flow_with_different_nodes_triggers_full_reset(gcd_design, pr
 
 @pytest.mark.timeout(60)
 def test_changing_a_declared_output_reruns_the_node(gcd_design):
-    """The reported failure, reduced.
-
-    Both runs use the same flow, same nodes, same tools and tasks -- so neither
-    the job-level flow check nor `check_previous_run_status` sees a difference.
-    What changed is the *file* `syn` declares as its output, via a var the driver
-    never passed to `add_required_key`. Before declared IO was part of
-    `get_check_changed_keys`, `syn` was not rerun: `place` kept the first run's
-    `a.v` and `antenna_repair` halted without the `b.v` it now required --
-    exactly the "not getting the right inputs" that deleting the build directory
-    cleared."""
+    """Changing only the file a node declares as its output reruns it, even when the change
+    comes through a var the driver never passed to `add_required_key`."""
     _run_first_flow(gcd_design)
 
     second = _flow_switch_project(gcd_design, "firstflow", "b.v")
@@ -1312,11 +1300,7 @@ def _poison_manifest(path):
 
 @pytest.mark.timeout(60)
 def test_unreadable_previous_manifest_reruns_the_node(gcd_design, project_logger, caplog):
-    """An unreadable manifest is a statement about the previous run, not this one.
-
-    Before, the exception came back out of the checking pool's `map()` and ended
-    the job -- the user saw a backtrace through `configure_nodes` and no run.
-    """
+    """An unreadable previous manifest makes the node rerun rather than ending the job."""
     first = _flow_switch_project(gcd_design, "firstflow", "a.v")
     first.run()
 
@@ -1517,11 +1501,8 @@ def _runtime_skip_project(gcd_design, enabled):
 
 @pytest.mark.timeout(60)
 def test_reenabling_a_previously_skipped_node_runs_it(gcd_design):
-    """SKIPPED describes a run, not a result. A runtime skip leaves a manifest
-    recording it, and forwarding that into the next run strands the node: it is
-    excused from IO validation, consumers look straight through it, and
-    TaskScheduler only creates PENDING nodes -- so a step the user just
-    re-enabled would silently never run."""
+    """A node skipped at runtime in the previous run runs once re-enabled: its old SKIPPED
+    status is not forwarded, since TaskScheduler only launches PENDING nodes."""
     _runtime_skip_project(gcd_design, False).run()
 
     second = _runtime_skip_project(gcd_design, True)
@@ -2461,17 +2442,8 @@ def test_logger_cleanup_on_manifest_exception(basic_project):
                     reason="unguarded module-level run() is only supported on linux, "
                            "where the fork start method is pinned")
 def test_unguarded_run_with_non_fork_default():
-    '''Regression: an unguarded module-level ``proj.run()`` script must succeed
-    even when the interpreter's default start method is not fork.
-
-    Python 3.14 changed the POSIX default to ``forkserver``; both it and
-    ``spawn`` re-import ``__main__`` and would recurse into the multiprocessing
-    "bootstrapping phase" RuntimeError for a script without an
-    ``if __name__ == "__main__"`` guard. SiliconCompiler pins fork on Linux for
-    every process it launches (node workers, the run-check pool and the
-    SyncManager), so this must work regardless of the default. This runs twice:
-    a clean run and a re-run (the re-run exercises the check pool, which is
-    skipped on a clean run).'''
+    '''A module-level ``proj.run()`` with no ``__main__`` guard succeeds under a spawn default
+    start method, since SiliconCompiler pins fork on Linux for every process it launches.'''
     # The test already runs in its own isolated cwd (autouse test_wrapper
     # fixture), so write the script and let its build dir land there.
     script = Path("unguarded_flow.py")
@@ -2502,6 +2474,7 @@ def test_unguarded_run_with_non_fork_default():
         print("SC_RUN_OK")
         """))
 
+    # the re-run exercises the run-check pool, which a clean run skips
     for run in ("clean", "rerun"):
         proc = subprocess.run(
             [sys.executable, str(script)],
@@ -2530,12 +2503,8 @@ def test_cancel_reaches_the_task_scheduler(gcd_nop_project):
 
 
 def test_cancel_during_setup_is_held_for_the_task_scheduler(gcd_nop_project):
-    '''Setup is the long part of a run, and the scheduler that executes nodes
-       does not exist until the end of it.
-
-    A cancel landing in that window has nothing to hand the request to, so this
-    scheduler keeps it and applies it the moment there is one -- before any node
-    is launched.
+    '''A cancel during setup, before the task scheduler exists, is held and applied to it
+       before it runs any node.
     '''
     scheduler = Scheduler(gcd_nop_project)
     scheduler.cancel()
@@ -2907,10 +2876,8 @@ def test_continue_records_only_the_surviving_input_nodes(continue_diamond):
 
 @pytest.mark.timeout(120)
 def test_continue_does_not_resurrect_a_stale_output(continue_diamond):
-    """A failed task must not leave behind outputs that it never produced.
-
-    The diamond on a clean tree cannot catch this: it takes a re-run into a
-    build tree where the node that now fails previously succeeded.
+    """A continued node that fails on a re-run leaves none of its previous run's outputs for
+    its consumers to pick up.
     """
     project = continue_diamond(ContinueDataTask, fail_step=None)
 
@@ -2970,10 +2937,8 @@ def test_continue_fanout_merges_surviving_shards(continue_fanout, caplog):
 
 @pytest.mark.timeout(120)
 def test_continue_does_not_propagate_down_a_branch(continue_fanout):
-    """continue on bin but not sim: sim0's own failure must still halt the flow.
-
-    Marking one node must not quietly excuse everything below it -- which is
-    why the answer to the issue is that *both* nodes need marking.
+    """continue on bin but not sim: sim0's own failure still halts the flow, since continue
+    does not excuse the nodes below the one it marks.
     """
     project = continue_fanout(width=3, fail_indexes=(0,))
     project.option.set_continue(True, step="bin")
@@ -2990,10 +2955,8 @@ def test_continue_does_not_propagate_down_a_branch(continue_fanout):
 
 @pytest.mark.timeout(120)
 def test_continue_on_the_consumer_branch_alone_starves_it(continue_fanout):
-    """continue on sim but not bin: sim0 is never launched at all.
-
-    The other of the two failure modes -- the merge's missing input comes from
-    a starved predecessor rather than a failed one.
+    """continue on sim but not bin: sim0 is never launched, so the merge's missing input comes
+    from a starved node rather than a failed one.
     """
     project = continue_fanout(width=3, fail_indexes=(0,))
     project.option.set_continue(True, step="sim")
@@ -3009,10 +2972,8 @@ def test_continue_on_the_consumer_branch_alone_starves_it(continue_fanout):
 
 @pytest.mark.timeout(120)
 def test_continue_with_every_input_excused_still_fails(continue_fanout):
-    """A merge with nothing to merge is not a success.
-
-    "At least one" behaves differently at k = N, and this is the case where a
-    best-effort relaxation would otherwise report a green run over no work.
+    """With every input excused by continue, the merge has nothing to merge and fails rather
+    than reporting a green run over no work.
     """
     project = continue_fanout(width=3, fail_indexes=(0, 1, 2))
     project.option.set_continue(True, step="bin")
@@ -3176,11 +3137,8 @@ def test_a_builtin_join_with_every_arm_excused_fails_rather_than_stalling(contin
 
 @pytest.mark.timeout(60)
 def test_a_builtin_join_with_one_arm_unexcused_behaves_like_a_normal_task(continue_join):
-    """Both arms dead but only one excused: the join is pruned, not launched.
-
-    The excuse is per node, so a mix must not relax the whole fan-in -- and the
-    outcome has to match what a non-builtin does with the same inputs, which is
-    to stay PENDING and let the run report the unreached exit step."""
+    """Both arms dead but only one excused: the builtin join is pruned and stays PENDING, as a
+    non-builtin task would with the same inputs."""
     project = continue_join()
     ContinueDataTask.find_task(project).set("var", "fail", True, step="B")
     project.option.set_continue(True, step="A")

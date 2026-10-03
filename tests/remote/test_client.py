@@ -151,11 +151,7 @@ def test_report_job_status_truncates_long_lists(gcd_nop_project, caplog):
 
 
 def test_report_job_status_reads_server_payload(gcd_nop_project):
-    '''The client parses what the server actually sends.
-
-    Both halves of 'check_progress' are exercised here rather than a
-    hand-written payload, so a change to one that the other cannot read fails.
-    '''
+    '''The client parses the progress payload the server builds, not a hand-written one.'''
     server = Server()
     server.set('option', 'nfsmount', os.path.abspath('mount'))
 
@@ -187,11 +183,8 @@ def test_report_job_status_reads_server_payload(gcd_nop_project):
 
 @pytest.mark.timeout(60)
 def test_fetch_results_inline(gcd_remote_test, inline_download_pool):
-    '''Results are downloaded, unpacked and merged into the local build.
-
-    Runs the download in this process rather than in a pool worker, so the
-    fetch is actually exercised here instead of in a subprocess nothing can
-    see.
+    '''Results are downloaded, unpacked and merged into the local build, with the download
+    run in this process rather than in a pool worker the test cannot see.
     '''
     project = gcd_remote_test()
 
@@ -423,12 +416,8 @@ def test_run_loop_interrupt_reports_how_to_return(gcd_nop_project, monkeypatch, 
 
 
 def test_get_results_body_matches_published_schema(gcd_nop_project):
-    '''What the client puts in the body must validate against the schema the
-       server publishes.
-
-       The job hash is in the URL, so a request schema that requires it in the
-       body rejects every fetch a client makes -- on any server that validates
-       the body as sent.
+    '''The client's get_results body validates against the server's published schema, which
+       must not require the job hash the client sends in the URL.
     '''
     # Compiling the published schema needs fastjsonschema, from the server
     # extra. Everything else in this file is client side and needs neither.

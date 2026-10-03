@@ -621,13 +621,7 @@ def test_sc_show_list_single_tool(monkeypatch, capsys):
 
 @pytest.mark.timeout(90)
 def test_sc_show_list_declared_extension_order(monkeypatch, capsys):
-    '''Test sc-show -list displays extensions as the task declares them.
-
-    A task lists the formats it reads best-first, and that is what decides
-    which one sc-show reaches for. Alphabetizing hid it: openroad declares
-    ["odb", "def", "vg"] but printed "def, odb, vg", reading as though a def
-    outranked the odb beside it.
-    '''
+    '''sc-show -list prints a task's extensions in its declared, best-first order, not sorted.'''
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
 
     class MockTaskWithUnsortedExts:
@@ -1069,12 +1063,7 @@ def test_sc_show_with_file_does_not_reset_params(monkeypatch, make_manifests,
 
 @pytest.mark.timeout(90)
 def test_sc_show_list_prints_search_order(monkeypatch, capsys):
-    '''Test sc-show -list reports the order the build directory is searched in.
-
-    The per-tool lists above it cannot be read as a search order: the map
-    interleaves them, so the answer to "which file will sc-show pick" is not
-    something to work out by eye.
-    '''
+    '''sc-show -list prints the build directory search order, which the per-tool lists hide.'''
     monkeypatch.setattr('sys.argv', ['sc-show', '-list'])
 
     mock_tasks = [MockShowTask1, MockShowTask2]

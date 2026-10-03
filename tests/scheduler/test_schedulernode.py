@@ -383,13 +383,7 @@ def _find_sleeper():
                            "what a node leaves behind -- but the tidy path it takes here does")
 @pytest.mark.timeout(120)
 def test_a_terminated_node_takes_its_tool_with_it(sleep_project):
-    '''A node that gets the chance ends its own tool.
-
-    The tidy path, and the only one that can stop a container rather than just
-    the client talking to it. What a node does not manage is ended by the
-    scheduler instead, which is where the guarantee actually lives; this is
-    about the node doing it first, and doing it properly.
-    '''
+    '''A terminated node that gets the chance to unwind ends its own tool.'''
     node = SchedulerNode(sleep_project, "stepone", "0")
     proc = get_process_context().Process(target=node.run_process)
     proc.start()
@@ -428,11 +422,7 @@ def test_a_terminated_node_takes_its_tool_with_it(sleep_project):
 
 
 def test_run_process_records_an_interrupted_node(project, monkeypatch):
-    '''An interrupt outside execute() still leaves the node recorded.
-
-    Without this the process simply goes away: nothing is written, and the
-    scheduler is left inferring the outcome from an exit code.
-    '''
+    '''An interrupt outside execute() still records the node as ERROR before the process exits.'''
     node = SchedulerNode(project, "steptwo", "0")
     node.task.setup_work_directory(node.workdir)
 
@@ -484,12 +474,8 @@ def test_run_process_records_a_node_whose_cancel_failed(project, monkeypatch):
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="Windows ends a process outright, with no signal to handle")
 def test_run_process_covers_an_overridden_run(project):
-    '''The handling has to survive run() being replaced.
-
-    Every scheduler that dispatches elsewhere overrides run(), and so can
-    anything outside this package. Interrupt handling written inside run() is
-    handling each of those has to remember to reproduce, which is why it lives
-    around the call instead.
+    '''A signal during an overridden run() still records the node as ERROR, since the
+    interrupt handling wraps the call rather than living inside run().
     '''
     class OverridingNode(SchedulerNode):
         def run(self):
@@ -1700,11 +1686,8 @@ def test_setup_input_directory_input_error(project_logger, project, error, caplo
 
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
 def test_setup_input_directory_input_error_excused(project_logger, project, error, caplog):
-    """An excused failure drops the branch instead of halting. Nothing is
-    forwarded from it, and -- unlike a SKIPPED node -- nothing stands in for it.
-
-    select_input_nodes() already filters these out, so this path is reached only
-    by a task that overrode it; the excuse has to hold there too."""
+    """setup_input_directory() skips an excused failed input and forwards nothing from it, a
+    path reached only by a task that overrides select_input_nodes()."""
     project_logger(project)
 
     output_dir = Path(workdir(project, step="stepone", index="0")) / "outputs"
@@ -2161,12 +2144,8 @@ def test_run_with_queue(project):
 
 
 def test_init_run_logger_with_queue_strips_inherited_handlers(project):
-    """In the multiprocessing path the child must drop every handler it
-    inherited from the parent and keep only the QueueHandler. Anything else
-    (terminal handler, dashboard's LogBufferHandler, etc.) would either
-    corrupt parent state or -- when its sink is a manager-backed queue
-    shared with the parent -- deliver the same record twice (once from the
-    child directly, once via the parent's QueueListener)."""
+    """With a log queue, the child drops every handler inherited from the parent and keeps
+    only the QueueHandler, so no record is delivered twice or into parent state."""
     extra_handler = logging.NullHandler()
     project.logger.addHandler(extra_handler)
     assert extra_handler in project.logger.handlers

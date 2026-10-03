@@ -120,18 +120,8 @@ def test_run(large_flow, make_tasks):
 
 
 def test_log_queue_matches_start_method(large_flow, make_tasks):
-    """The per-scheduler log queue must be fork-safe for the active start method.
-
-    Under ``fork`` a node worker inherits the parent's live SyncManager socket
-    connection; a manager-backed queue then has the worker's put() and the
-    parent's QueueListener get() drive the *same* inherited connection from two
-    processes at once, corrupting the manager's framed protocol and deadlocking
-    the run. So on the fork path the queue must be a plain pipe-backed
-    multiprocessing queue. Spawn/forkserver cannot inherit fds and need the
-    picklable manager queue (reconnected fresh per worker, hence safe).
-
-    This runs on every OS and asserts whichever choice this platform's start
-    method requires.
+    """The log queue is a plain queue under fork, where a manager queue's inherited connection
+    used from two processes deadlocks the run, and a picklable manager queue otherwise.
     """
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     log_queue = scheduler._TaskScheduler__log_queue
@@ -151,13 +141,8 @@ def test_log_queue_matches_start_method(large_flow, make_tasks):
     "fork" not in multiprocessing.get_all_start_methods(),
     reason="fork start method not available on this platform (e.g. Windows)")
 def test_log_queue_is_plain_on_fork(large_flow, make_tasks, monkeypatch):
-    """Force the fork path and assert a plain, non-manager queue is chosen.
-
-    Complements ``test_log_queue_matches_start_method`` by exercising the
-    fork-safety invariant even on platforms whose *default* start method is not
-    fork (macOS), so a regression that reintroduces a manager-backed queue on
-    the fork path is caught on both Linux and macOS CI. Only the queue-selection
-    logic is exercised -- no worker is actually forked.
+    """With the fork context forced, a plain non-manager log queue is chosen, which covers the
+    fork path where the default start method is not fork (macOS).
     """
     fork_ctx = multiprocessing.get_context("fork")
     monkeypatch.setattr(taskscheduler_module, "get_process_context",
@@ -303,20 +288,8 @@ def _flood_log_queue(queue):
 
 @pytest.mark.timeout(60)
 def test_run_control_c_halts_node_blocked_on_log_queue(large_flow, make_tasks, monkeypatch):
-    '''An interrupt must not leave a node process writing into the log queue.
-
-    run()'s cleanup stops the QueueListener, which is the queue's only reader, so
-    a node still alive afterwards blocks as soon as the pipe fills. Node
-    processes are not daemons, so the interpreter joins them at exit with no
-    timeout and never exits -- which presented as a CI job that ran every test,
-    printed its summary and then produced no further output until it was killed.
-
-    The deadlock itself cannot be asserted from inside the test process, since
-    reproducing it would hang the test rather than fail it. What is asserted is
-    the invariant that prevents it: an interrupted run leaves no node alive.
-
-    Only meaningful for the pipe-backed queue the fork path uses; spawn gets a
-    manager-backed queue, where there is no such pipe to fill.
+    '''An interrupted run leaves no node process alive, since one left blocked writing to the
+    log queue after its only reader stopped would hang interpreter exit.
     '''
     if get_process_context().get_start_method() != "fork":
         pytest.skip("log queue is only pipe-backed on the fork path")
@@ -350,11 +323,7 @@ def test_run_control_c_halts_node_blocked_on_log_queue(large_flow, make_tasks, m
 
 
 def test_run_completion_leaves_nodes_untouched(large_flow, make_tasks, monkeypatch):
-    '''The interrupt cleanup must not reach into a normally completed run.
-
-    __run_loop() has joined every process by the time run() returns, so the halt
-    step has nothing to do; this pins that it does not terminate anything.
-    '''
+    '''The interrupt cleanup does not terminate or kill any node of a normally completed run.'''
     killed = []
 
     class FakeProc:
@@ -897,11 +866,8 @@ def _make_tasks_marking_builtins(proj, make_tasks):
 
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
 def test_a_builtin_with_every_dep_excused_still_launches(large_flow, make_tasks, error):
-    """A builtin is normally pruned when nothing upstream succeeded. Excusing
-    those failures has to lift that too, or the builtin is left PENDING and its
-    own consumers wait on a node that will never reach a terminal state -- the
-    thing the excuse exists to avoid. It launches, finds its fan-in empty and
-    halts on "No inputs selected"."""
+    """A builtin whose every input failed but was excused launches rather than being pruned,
+    so its consumers are not left waiting on a node stuck in PENDING."""
     for index in ("0", "1", "2"):
         large_flow.set("record", "status", error, step="stepone", index=index)
     large_flow.option.set_continue(True, step="stepone")
@@ -932,11 +898,8 @@ def test_a_builtin_with_every_dep_failed_and_unexcused_is_still_pruned(
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
 def test_a_builtin_with_a_mix_of_excused_and_unexcused_deps_is_pruned(
         large_flow, make_tasks, error):
-    """*Every* failure has to be excused, not merely one of them.
-
-    One unexcused arm and the builtin is pruned exactly as it is today -- which
-    is also what a non-builtin does with the same fan-in. Launching on a mix
-    would let the option relax a node nobody excused."""
+    """A builtin with one unexcused failed input is pruned, as a non-builtin would be; every
+    failure has to be excused for it to launch."""
     for index in ("0", "1", "2"):
         large_flow.set("record", "status", error, step="stepone", index=index)
     large_flow.option.set_continue(True, step="stepone", index="0")
@@ -1037,12 +1000,8 @@ def _sleep_forever():
 
 @pytest.mark.timeout(60)
 def test_halt_all_ends_node_processes(large_flow, make_tasks):
-    '''halt_all() reaches a run that the caller holds no handle to.
-
-    This is what a server shutting down mid-job has to work with: the run is
-    inside a thread, and its node processes are not daemons, so anything still
-    alive is joined at interpreter exit -- which is an sc-server that never goes
-    away after being told to stop.
+    '''halt_all() ends the node processes of a run the caller holds no handle to, as a server
+    shutting down mid-job needs.
     '''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
@@ -1062,13 +1021,8 @@ def test_halt_all_ends_node_processes(large_flow, make_tasks):
 
 @pytest.mark.timeout(60)
 def test_cancel_stops_the_run_from_scheduling(large_flow, make_tasks):
-    '''A canceled run launches nothing further.
-
-    Ending the node processes is only half of a cancel: the loop that started
-    them is untouched by that, and left alone it fills the machine straight back
-    up with whatever became ready. Cancelling from post_node is the version that
-    tells the two halves apart -- the run's first level has just succeeded, so
-    there is a whole next level ready to go and nothing left running to stop.
+    '''A run canceled from post_node launches nothing further, even with a whole next level
+    ready and nothing running for the cancel to stop.
     '''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
@@ -1122,12 +1076,7 @@ def test_cancel_with_nothing_running(large_flow, make_tasks):
 
 @pytest.mark.timeout(60)
 def test_canceled_scheduler_runs_nothing(large_flow, make_tasks):
-    '''A run canceled before its loop starts launches nothing at all.
-
-    This is what a cancel landing during setup becomes: Scheduler holds the
-    request until it has a TaskScheduler to give it to, which is after every
-    node is configured but before any has run.
-    '''
+    '''A run canceled before its loop starts (a cancel held from setup) launches nothing.'''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     scheduler.cancel()
 
@@ -1210,16 +1159,8 @@ def test_a_canceled_run_refuses_to_start_a_node(large_flow, make_tasks):
 
 
 def test_a_launch_holds_the_cancel_lock(large_flow, make_tasks):
-    '''Checking the flag and starting the node have to be one step.
-
-    Apart, a cancel lands between them and its halt scans for live processes
-    just before the one it was meant to end exists: nothing stops that node,
-    and the run loop goes on to join it -- with a single node running, that
-    join has no timeout, so a canceled run sits through a whole task.
-
-    Holding the lock across both is what makes the two orderings the only ones:
-    the launch finishes first and halt finds it running, or the cancel gets
-    there first and the launch never happens.
+    '''Starting a node holds the cancel lock, so a cancel cannot land between the flag check
+    and the launch and miss the node it was meant to end.
     '''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
@@ -1289,12 +1230,8 @@ def _find_marked(marker):
 @pytest.mark.skipif(sys.platform == "win32", reason="posix process tree")
 @pytest.mark.timeout(120)
 def test_halt_ends_a_tool_its_node_did_not(large_flow, make_tasks):
-    '''Asking a node to clean up cannot be depended on.
-
-    The fallback for a node that will not go is SIGKILL, which no node can
-    handle, and by then its tool is reparented with nothing tying it to this
-    run. So the scheduler notes what each node started while it can still be
-    asked, and ends whatever the node did not take with it.
+    '''Canceling kills a node that ignores SIGTERM and also ends the tool it started, which
+    SIGKILL alone would leave running.
     '''
     marker = f"{os.getpid()}42"
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
@@ -1383,11 +1320,7 @@ class _OverlapProbeProc:
 
 @pytest.mark.timeout(60)
 def test_halt_all_is_serialized(large_flow, make_tasks):
-    '''Only one thread at a time may be ending a run's node processes.
-
-    run()'s own cleanup and a halt_all() from a server shutting down are exactly
-    that pair of callers.
-    '''
+    '''Concurrent halt_all() calls end a run's node processes one thread at a time.'''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
     state = {"lock": Lock(), "inside": 0, "peak": 0}

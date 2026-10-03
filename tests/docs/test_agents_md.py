@@ -75,15 +75,7 @@ def orientation(request):
 
 
 def test_exported_symbols_exist(orientation):
-    """Every ``siliconcompiler.X`` name presented as current must import.
-
-    The failure this guards against is the file outliving a rename, which is
-    exactly what happened to the class names it is warning the reader about.
-
-    This is a one-way check over every capitalized code span in the file, so it
-    catches a name that stops existing. It cannot catch an export the file never
-    mentioned -- that is ``test_export_list_is_complete``.
-    """
+    """Every capitalized code span names a current export, so the file cannot outlive a rename."""
     name, text = orientation
     quoted = set(re.findall(r"`([A-Z][A-Za-z]+)`", text))
     # Names the files quote as *removed* are expected to be absent.
@@ -104,14 +96,7 @@ EXPORT_LIST = re.compile(r"Top-level exports, in full:(.*?)\n\s*\n", re.DOTALL)
 
 
 def test_export_list_is_complete(orientation):
-    """The list says "in full", so it has to match ``__all__`` exactly.
-
-    Both directions matter. A name that disappears from the package leaves the
-    file describing an API that is gone; a name added to ``__all__`` and not here
-    leaves the file quietly incomplete while claiming otherwise. The second is the
-    one that actually happened -- ``__version__`` was missing from both files and
-    the existence check above passed anyway.
-    """
+    """The export list says "in full", so it matches ``__all__`` in both directions."""
     name, text = orientation
     match = EXPORT_LIST.search(text)
     assert match, (
@@ -179,12 +164,7 @@ def test_directories_it_says_do_not_exist(orientation):
 
 
 def test_lint_gates_match_ci(agents):
-    """AGENTS.md claims four lint gates; CI is the authority on how many.
-
-    Contributors and agents fail the gates they do not know about, which is the
-    whole reason the list is in the file. A fifth job landing in CI without a
-    line here recreates that gap.
-    """
+    """Every lint job in lint.yml is named in AGENTS.md, so a new CI gate cannot go unmentioned."""
     with open(LINT_WORKFLOW, encoding="utf-8") as f:
         jobs = list(yaml.safe_load(f)["jobs"])
     assert jobs, "could not read job names out of lint.yml"
@@ -218,15 +198,7 @@ def test_install_command_extras_exist(agents):
 
 
 def test_install_command_covers_the_docs_build(agents):
-    """The install line has to be enough to run the gates listed under it.
-
-    The docs build is the gate this has got wrong, because for a while its
-    dependencies were split across two extras and only one of them was named
-    ``docs``. AGENTS.md claimed then that the ``docs`` extra pulled ``cocotb`` in;
-    it never did, so a contributor following the file exactly could not build the
-    docs on any Python version. ``docs.yml`` is the authority on what the build
-    needs.
-    """
+    """The install line covers every extra docs.yml installs to build the docs."""
     workflow = _read(DOCS_WORKFLOW)
     needed = set()
     for match in PIP_EXTRAS.finditer(workflow):
@@ -252,13 +224,7 @@ def test_example_command_is_runnable(orientation):
 
 
 def test_named_project_classes_carry_domain_schema():
-    """The reason both files say to prefer the named classes over ``Project``.
-
-    The advice is only worth giving while it is true: a named class exists to
-    bring its domain's parameters, and the base class deliberately has none of
-    them. If ``Project`` ever grew an ``asic`` section the guidance would need
-    rewording.
-    """
+    """ASIC carries an ``asic`` section and Project and Lint do not, as both files claim."""
     from siliconcompiler import ASIC, Design, Lint, Project
 
     design = Design("t")
@@ -274,15 +240,7 @@ def test_named_project_classes_carry_domain_schema():
 
 
 def test_orientation_files_are_ascii(orientation):
-    """Keep these two plain ASCII.
-
-    The preamble is copied verbatim into ``llms.txt`` and ``llms-full.txt``, which
-    are plain-text files people grep, diff and paste snippets out of. A curly
-    apostrophe next to code is a small trap for no benefit, and the same argument
-    applies to ``AGENTS.md``. The llms.txt generator strips the typographic
-    characters Sphinx introduces; nothing strips the ones an author types, so
-    they are rejected here instead.
-    """
+    """Both files are plain ASCII; the preamble is copied verbatim into llms.txt."""
     name, text = orientation
     offenders = sorted({character for character in text if ord(character) > 127})
     assert not offenders, (
@@ -309,20 +267,42 @@ def _non_ascii_comment_lines(path):
             and not token.string.isascii()]
 
 
-def test_comments_and_docstrings_are_ascii():
-    """AGENTS.md's ASCII rule; strings are exempt for UI text and Unicode test data."""
-    offenders = []
-    for top in ("siliconcompiler", "tests", "examples", "scripts", "docs", "setup", ".github"):
+def _python_files(*tops):
+    """Every ``.py`` file under the given top-level directories of the source tree."""
+    for top in tops:
         for dirpath, dirnames, filenames in os.walk(os.path.join(docs.sc_root, top)):
             dirnames[:] = [d for d in dirnames if d not in ("__pycache__", "build", "_build")]
             for name in filenames:
                 if name.endswith(".py"):
-                    path = os.path.join(dirpath, name)
-                    offenders.extend(f"{os.path.relpath(path, docs.sc_root)}:{line}"
-                                     for line in _non_ascii_comment_lines(path))
+                    yield os.path.join(dirpath, name)
+
+
+def test_comments_and_docstrings_are_ascii():
+    """AGENTS.md's ASCII rule; strings are exempt for UI text and Unicode test data."""
+    offenders = [f"{os.path.relpath(path, docs.sc_root)}:{line}"
+                 for path in _python_files("siliconcompiler", "tests", "examples", "scripts",
+                                           "docs", "setup", ".github")
+                 for line in _non_ascii_comment_lines(path)]
     assert not offenders, (
         "comments and docstrings must be ASCII; use \"--\" for a dash, straight "
         f"quotes, and \"...\" for an ellipsis: {offenders}")
+
+
+def test_test_docstrings_are_brief():
+    """AGENTS.md's cap on test docstrings: no paragraphs, and at most four lines."""
+    offenders = []
+    for path in _python_files("tests"):
+        with open(path, encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                    and node.name.startswith("test_"):
+                doc = ast.get_docstring(node)
+                if doc and (len(doc.splitlines()) > 4 or "\n\n" in doc):
+                    offenders.append(f"{os.path.relpath(path, docs.sc_root)}:{node.lineno}")
+    assert not offenders, (
+        "a test docstring is at most two sentences saying what the test checks, "
+        f"with no blank lines and at most four lines: {offenders}")
 
 
 def test_agents_md_references_resolve(agents):

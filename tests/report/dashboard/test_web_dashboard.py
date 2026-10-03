@@ -84,11 +84,8 @@ def test_cleanup_unregisters_atexit_and_removes_directory(asic_gcd, unused_tcp_p
 
 
 def test_cleanup_unregisters_atexit_when_stop_raises(asic_gcd, unused_tcp_port):
-    """Even when stop() raises (e.g. multiprocessing internals torn down during
-    exit, or signal.signal off the main thread), __cleanup must not propagate,
-    must still release the atexit hook, and must still remove the temp
-    directory. Otherwise the dangling hook fires again at exit and surfaces as
-    "Exception ignored in atexit callback" (issue #5035)."""
+    """__cleanup does not raise, releases the atexit hook and removes the temp directory even
+    when stop() raises (issue #5035)."""
     pytest.importorskip("streamlit")
 
     dashboard = WebDashboard(asic_gcd, port=unused_tcp_port)

@@ -3272,12 +3272,8 @@ def test_show_tool_not_found_for_extension(monkeypatch):
 
 
 def test_show_auto_find_preserves_tool_order(monkeypatch):
-    """Test that auto-find respects tool priority order.
-
-    Both tasks read a single format, so neither says anything about how the two
-    rank against each other and the tie falls to the higher-priority tool --
-    the same order get_task() resolves a shared extension in, which is
-    registration order read backwards.
+    """Auto-find tries tools in get_task() priority order, last registered first.
+    Each task reads one format, so its own extension order cannot break the tie.
     """
     design = Design("test")
     with design.active_fileset("rtl"):

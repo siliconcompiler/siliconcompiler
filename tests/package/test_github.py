@@ -999,10 +999,8 @@ def test_github_archive_resolver_resolve_remote_flatten_tgz():
 
 def test_github_archive_resolver_resolve_remote_flatten_zip():
     """
-    A GitHub source zip flattens like the tarballs do.
-
-    ``github://`` builds these itself, as '<release>.zip' -- so the dotted release
-    that defeats the fallback guess is the normal case, not an exotic one.
+    A GitHub source zip of a dotted release flattens like the tarballs do; github:// names
+    these '<release>.zip', so a dotted release is the normal case.
     """
     project = Project("testproj")
     project.option.set_cachedir(".")

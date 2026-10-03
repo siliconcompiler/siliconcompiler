@@ -138,11 +138,7 @@ def test_server(gcd_remote_test, scserver_nfs_path):
 ###########################
 @pytest.mark.timeout(60)
 def test_server_partial(gcd_remote_test):
-    '''Basic sc-server test: Run a local instance of a server, and build the GCD
-       example using loopback network calls to that server.
-
-       This test runs a partial flowgraph on the remote server.
-    '''
+    '''A remote run with option 'to' set runs the flowgraph only up to that step.'''
 
     # Get the partially-configured GCD project object from the fixture.
     gcd_project = gcd_remote_test()
@@ -617,9 +613,7 @@ async def test_handle_delete_job_owner():
 @pytest.mark.asyncio
 async def test_handle_delete_job_unowned_is_open():
     '''A job submitted without authentication has no owner, so anyone may delete it.
-
-    That is this reference server's documented behaviour on an unauthenticated
-    server, not a gap: with no identity on the request there is nothing to check.
+    That is intended, not a gap.
     '''
     server = Server()
     server.set('option', 'auth', False)
@@ -1393,12 +1387,8 @@ def _job_request(handler, job_hash, username, node='step0'):
 @pytest.mark.parametrize("case,auth,owner,caller,refused", _OWNERSHIP_CASES,
                          ids=[c[0] for c in _OWNERSHIP_CASES])
 async def test_job_ownership(handler, case, auth, owner, caller, refused):
-    """Every handler that names a job agrees on who may act on it.
-
-    The unowned rows matter as much as the refused one: a job submitted without
-    authentication has no owner, and anybody holding its hash may act on it. That is
-    this server's intended behaviour, so it is asserted rather than left to be
-    tightened by accident.
+    """Every handler that names a job agrees on who may act on it; a job submitted without
+    authentication has no owner, and anyone holding its hash may act on it, by design.
     """
     job_hash = 'a' * 32
     server = _server_holding_job(job_hash, owner, auth)
@@ -1509,13 +1499,7 @@ async def test_handle_cancel_job_invalid_params(params):
 @pytest.mark.asyncio
 @pytest.mark.parametrize('cluster', ['local', 'slurm', 'docker'])
 async def test_handle_cancel_job_asks_the_job(cluster, gcd_nop_project):
-    '''Every cluster is canceled the same way.
-
-    Where a job's nodes run is the job's own business: the project reaches its
-    scheduler, the scheduler ends its nodes, and a node that dispatched
-    elsewhere releases that itself. The server used to branch on the cluster
-    here and reach past all of it.
-    '''
+    '''Every cluster is canceled the same way, by calling cancel() on the job's scheduler.'''
     server = _make_server(cluster=cluster)
     job_hash = 'd' * 32
     job_name = _register_job(server, job_hash, project=gcd_nop_project)
@@ -1788,11 +1772,8 @@ def test_remote_sc_tracks_and_clears_nodes(gcd_nop_project, monkeypatch):
 
 
 def test_remote_sc_reports_a_cancel_as_a_cancel(gcd_nop_project, monkeypatch):
-    '''A canceled run raises like any incomplete flow, but it is not a failure
-
-    The run stops by raising -- it never reached its exit nodes -- and that
-    exception would otherwise come out of the job thread as a traceback, for an
-    outcome the client asked for.
+    '''remote_sc treats the exception a canceled run raises as a cancel, not a failure, and
+    clears the job's state.
     '''
     server = _make_server()
     job_hash = 'd' * 32
@@ -2052,11 +2033,8 @@ def test_run_start_publishes_node_statuses():
 
 
 def test_run_start_applies_a_cancel_that_beat_the_run():
-    '''A cancel can land after the job is claimed but before its thread reaches
-       Project.run(), where there is no scheduler yet to hand it to.
-
-    It is recorded rather than lost, and pre_run is the first point past that
-    window: the scheduler exists and no node has been launched.
+    '''A cancel recorded before the job's run had a scheduler is applied when the run starts,
+       before any node is launched.
     '''
     server = _make_server()
     job_hash = 'd' * 32
@@ -2288,11 +2266,8 @@ async def test_shutdown_tolerates_job_finishing_first():
     'A' * 32,
 ])
 def test_server_get_results_rejects_bad_job_hash(scserver, scserver_nfs_path, job_hash):
-    '''A job hash from the URL cannot walk out of the mount.
-
-    aiohttp percent-decodes a path segment into match_info, so '%2e%2e%2f'
-    reaches the handler as '../' -- the hash has to be validated before it is
-    joined onto a path, not merely matched by the route.
+    '''A malformed job hash in the URL is rejected with 400, including a percent-encoded
+    traversal, which aiohttp decodes to '../' before the handler sees it.
     '''
     port = scserver()
 
@@ -2305,12 +2280,9 @@ def test_server_get_results_rejects_bad_job_hash(scserver, scserver_nfs_path, jo
 
 @pytest.mark.timeout(60)
 def test_server_get_results_cannot_escape_mount(scserver, scserver_nfs_path):
-    '''The traversal that reaches a real file outside the mount is refused.
-
-    Escaping needs the path to stay resolvable, so this lays out what an
-    unchecked hash of '../x' resolves to: a sibling directory of the mount, and
-    the archive name the handler builds, one level above it.
-    '''
+    '''A '../x' job hash is refused even when the file it resolves to exists outside the mount.'''
+    # what an unchecked '../x' resolves to: a sibling of the mount, and the archive
+    # name the handler builds one level above it
     outside = os.path.dirname(scserver_nfs_path)
     os.makedirs(os.path.join(outside, 'x'), exist_ok=True)
     with open(os.path.join(outside, 'x_None.tar.gz'), 'w') as f:

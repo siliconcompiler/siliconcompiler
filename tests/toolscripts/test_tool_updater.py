@@ -111,13 +111,8 @@ def test_is_version_tag_keeps_markers_inside_words(name):
     "rc", "alpha", "beta", "pre", "preview", "snapshot", "dev", "milestone", "m",
 ])
 def test_is_version_tag_rejects_every_marker_in_both_forms(marker):
-    """Every marker has to be recognised in both spellings.
-
-    The two halves of the pattern were written separately and kept disagreeing.
-    First on the marker list: the digit form knew only rc, alpha and beta, so
-    v1.0-dev1 was rejected while v1.0dev1 was accepted as a release. Then on
-    the number: the separator form required one, so v1.0rc was rejected while
-    v1.0-rc was not, and sbt's real v0.12.0-Beta went through as a release.
+    """Every pre-release marker is rejected with or without a separator and with or without a
+    number (sbt's v0.12.0-Beta once passed as a release).
     """
 
     assert not sc_tools.is_version_tag(f"v1.0-{marker}1", "")   # separator
@@ -153,12 +148,8 @@ def test_is_version_tag_honours_prefix():
 
 @pytest.mark.parametrize("tool,pin", list(_tag_pinned_tools()))
 def test_pinned_tag_is_selectable(tool, pin):
-    """A tool marked auto-update must be able to select the tag it is pinned to.
-
-    Without this the flag can be quietly inert. bluespec's tags are 2026.01 and
-    the like, so under the default 'v' prefix its updater matched no tag at all,
-    found no newest, and returned no change on every run for as long as the flag
-    had been set.
+    """An auto-updated tool's tag selection accepts its own pinned tag; otherwise the updater
+    silently never moves (bluespec's 2026.01 under the default 'v' prefix).
     """
 
     prefix = sc_tools.get_field(tool, "version-prefix")
@@ -170,10 +161,8 @@ def test_pinned_tag_is_selectable(tool, pin):
 
 
 def test_bump_commit_routes_tags_to_tag_selection(monkeypatch):
-    """A pin that is not a 40-character sha has to take the tag path.
-
-    icarus is pinned to the tag v13_0, having previously been pinned to a commit
-    sha, and the two are told apart by nothing but that regex.
+    """bump_commit sends a pin that is not a 40-character sha (icarus's v13_0) to tag selection,
+    and a sha pin to the clone path.
     """
 
     class FakeCommit:

@@ -10,17 +10,8 @@ def test_py_make_check():
 
 @pytest.mark.timeout(600)
 def test_py_make_model():
-    """Regenerating mm.mlir from the PyTorch model produces the file the flow reads.
-
-    What is checked is the two things about the export the whole flow depends on:
-    that the entry function is still called ``forward`` -- soda-opt outlines
-    ``<function>_kernel``, so that name is what the design's topmodule has to be
-    -- and that the model really came out in TOSA rather than in a torch dialect.
-
-    model() imports torch and torch-mlir itself, so what it raises when they are
-    absent is what this skips on. Neither is a SiliconCompiler dependency: they
-    are in the example's own requirements.txt, and mm.mlir is checked in
-    precisely so that nothing else here needs them.
+    """The regenerated MLIR is TOSA with entry function forward, which soda-opt outlines as the
+    forward_kernel topmodule; skips without the example's torch requirements.
     """
     from soda import make
 
@@ -60,14 +51,8 @@ def test_py_make_elaborate(strategy):
 @pytest.mark.eda
 @pytest.mark.timeout(1200)
 def test_py_make_syn():
-    """The optimized strategy, synthesized.
-
-    This is where that strategy is paid for and checked: soda-opt fully unrolls
-    the loop nest, so the kernel it hands Yosys maps to ~7x the cells the
-    baseline does, and the mapped netlist is what shows it. Place-and-route on
-    top of that is what test_py_make_asic declines to do, so what runs here is
-    the whole of the optimized coverage past elaboration -- do not quietly
-    demote it to the baseline to save time.
+    """The optimized strategy synthesizes to a mapped netlist; this is its only coverage past
+    elaboration, so do not demote it to the baseline to save time.
     """
     from soda import make
     make.syn()
@@ -78,25 +63,11 @@ def test_py_make_syn():
 
 
 @pytest.mark.eda
+# Measured ~12 minutes on the two cores limit_cpus leaves; detailed routing is over half.
 @pytest.mark.timeout(1800)
 def test_py_make_asic():
-    """GDSII, on the baseline kernel rather than the optimized one.
-
-    What this target adds over syn is the backend -- the SODA front end's
-    Verilog carried through OpenROAD and out as GDS -- and the baseline kernel
-    exercises every node of it. The optimized kernel exercises the same nodes on
-    ~158k cells instead of ~23k, which is routing runtime spent on nothing this
-    test looks at; the strategy itself is covered by test_py_make_elaborate and
-    test_py_make_syn.
-
-    The timeout is set against a measured ~12 minutes, which is what the
-    baseline takes on the two cores the limit_cpus fixture leaves an eda test.
-    Detailed routing is over half of that, so it is the number to re-measure if
-    this ever needs raising again.
-
-    make.asic() still defaults to the optimized strategy: it is what the
-    tutorial shows and what `smake asic` should build. Only the test asks for
-    the cheaper one.
+    """The baseline kernel reaches GDSII; the optimized one runs the same nodes on ~7x the cells,
+    and its strategy is covered by test_py_make_elaborate and test_py_make_syn.
     """
     from soda import make
     make.asic(strategy="baseline")

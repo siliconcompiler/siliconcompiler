@@ -543,13 +543,8 @@ def test_remove_filters_to_the_installed_subset(run_prereqs):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_remove_never_autoremoves(run_prereqs):
-    """No autoremove, ever.
-
-    These images keep runtime libraries that arrived only as a build package's
-    dependency -- libxcb-keysyms1 under libxcb-keysyms1-dev, libgmp10 under ghc,
-    libllvm18 under llvm-18-dev. An autoremove would take them along with the
-    build packages and break the tool at run time rather than at build time.
-    """
+    """sc_remove_prereqs never autoremoves, which would take runtime libraries pulled in only by a
+    build package (libgmp10 under ghc) and break the tool at run time."""
     log = run_prereqs("sc_remove_prereqs present-ghc")
 
     assert not any("autoremove" in line for line in log)
@@ -612,12 +607,8 @@ def _make_prefix(root, files):
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_strip_uses_strip_all_on_executables_and_strip_unneeded_on_libraries(
         run_prereqs, tmp_path):
-    """The distinction that matters.
-
-    A shared object keeps .dynsym, which is what the loader and dlopen() resolve
-    against -- strip it and every plugin in the tree stops loading. An
-    executable has no such constraint, so it gets the full strip.
-    """
+    """Executables get --strip-all; shared objects get --strip-unneeded, keeping the .dynsym the
+    loader and dlopen() resolve against."""
     prefix = _make_prefix(str(tmp_path / "px"), {
         "bin/yosys": True,
         "lib/libyosys.so": True,
@@ -634,14 +625,8 @@ def test_strip_uses_strip_all_on_executables_and_strip_unneeded_on_libraries(
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_strip_leaves_static_archives_alone(run_prereqs, tmp_path):
-    """Static archives are skipped, and not as an oversight.
-
-    Three tools link an archive from their own prefix at run time --
-    lib/ghdl/libgrt.a into every elaborated design, lib/panda/*.a into bambu's
-    generated designs, lib/Bluesim/*.a for "bsc -sim" -- and stripping an
-    archive breaks linking against it. The container drops the archives it does
-    not need by name instead.
-    """
+    """sc_strip_prefix skips static archives: ghdl, bambu and bsc link archives from their prefix
+    at run time, and a stripped archive cannot be linked against."""
     prefix = _make_prefix(str(tmp_path / "pa"), {
         "lib/ghdl/libgrt.a": True,
         "lib/panda/libbambu_clang16.a": True,
@@ -672,11 +657,8 @@ def test_strip_skips_non_elf_files(run_prereqs, tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_strip_survives_an_object_it_cannot_strip(run_prereqs, tmp_path):
-    """A refusal is not fatal: a tool that builds is worth more than the bytes.
-
-    The install scripts run under "set -e", so a non-zero strip would otherwise
-    abort the whole install.
-    """
+    """An object strip refuses is skipped and the rest are still stripped; the install scripts run
+    under "set -e", so a failing strip would abort the install."""
     prefix = _make_prefix(str(tmp_path / "pu"), {
         "bin/unstrippable-thing": True,
         "bin/openroad": True,
@@ -726,12 +708,8 @@ def test_managed_strip_uses_the_strip_it_has(run_prereqs, tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_managed_strip_borrows_binutils_and_gives_it_back(run_prereqs, tmp_path):
-    """The openroad case: no strip on the image.
-
-    binutils goes in, the prefix is stripped, and binutils comes back out --
-    the order matters, and so does the fact that it is removed at all: apt.txt
-    is generated after this step, so anything still installed would ship.
-    """
+    """With no strip on the image, binutils is installed before stripping and removed after;
+    apt.txt is generated later, so anything left installed would ship."""
     prefix = _make_prefix(str(tmp_path / "m2"), {"bin/openroad": True})
 
     # Drop the strip stub to stand in for a bazel-built image that never
@@ -750,13 +728,8 @@ def test_managed_strip_borrows_binutils_and_gives_it_back(run_prereqs, tmp_path)
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_managed_strip_gives_back_only_what_it_took(run_prereqs, tmp_path):
-    """A family member that was already installed stays installed.
-
-    The image already has libbinutils, so the before/after diff sees only
-    binutils arrive and only binutils is handed back. Which packages the family
-    has is never named -- that is the point: the diff catches whatever the
-    distribution's binutils happens to pull in.
-    """
+    """sc_strip_prefix_managed removes only what a before/after package diff shows it installed,
+    so an already-present libbinutils stays."""
     prefix = _make_prefix(str(tmp_path / "m3"), {"bin/sta": True})
     pre = _db(tmp_path, {"libbinutils": ""})
 
@@ -821,11 +794,8 @@ def test_build_only_keeps_what_a_runtime_package_depends_on(run_prereqs, tmp_pat
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_build_only_still_removes_a_dev_needed_only_by_another_dev(run_prereqs, tmp_path):
-    """Both ends inside the class, so the whole chain goes.
-
-    This is what recovers the boost family: libboost-all-dev is a metapackage
-    and removing it alone leaves 103 -dev packages behind.
-    """
+    """A -dev package needed only by another build-only package is removed with it, so a
+    metapackage like libboost-all-dev does not leave its -dev packages behind."""
     pre = _db(tmp_path, {
         "libboost1.83-dev": "",
         "libboost-all-dev": "libboost1.83-dev",
@@ -937,13 +907,8 @@ def test_prune_removes_archives_headers_and_build_trees(run_prereqs, tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_prune_keeps_the_archives_that_are_runtime_dependencies(run_prereqs, tmp_path):
-    """The three that are linked after the build, not during it.
-
-    Deleting any of them breaks the tool well after the image is built, which is
-    how the first version of this work broke bambu and ghdl. No exception list
-    protects them any more: "lib/*.a" is one level up from lib/ghdl, so a tool
-    that declares it says exactly what it means.
-    """
+    """Pruning "lib/*.a" deletes only archives directly under lib/, keeping the ghdl, bambu and
+    Bluesim archives in subdirectories that are linked at run time."""
     prefix = _make_prefix(str(tmp_path / "pk"), {
         "lib/ghdl/libgrt.a": True,
         "lib/panda/libbambu_clang16.a": True,
@@ -1041,13 +1006,8 @@ def test_prune_of_a_missing_prefix_is_a_noop(run_prereqs, tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_build_only_follows_provides(run_prereqs, tmp_path):
-    """A dependency can name a package through a virtual name.
-
-    This is the t64 transition: libamd-comgr2 depended on "libllvm17", a name
-    libllvm17t64 provides rather than its own. Matching only the real name
-    reported libllvm17t64 as unreferenced, and removing it cascaded through six
-    more packages -- harmless as it turned out, but by luck rather than design.
-    """
+    """A package depended on only through a virtual name it provides (libllvm17t64 as libllvm17)
+    counts as referenced and is not removed."""
     pre = _db(tmp_path, {
         "libllvm17t64": ("", "libllvm17"),
         # a plain runtime package, so only the virtual name links the two
@@ -1065,12 +1025,8 @@ def test_build_only_follows_provides(run_prereqs, tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_build_only_protects_a_kept_package_transitively(run_prereqs, tmp_path):
-    """A one-level check is not enough.
-
-    zlib1g-dev is kept by verilator and depends on a build-only package, which
-    in turn depends on another. Holding back only the first is no use:
-    "apt-get remove" on the second takes the first, and zlib1g-dev with it.
-    """
+    """--keep protects a kept package's build-only dependencies transitively, since removing a
+    deeper one would cascade up and take the kept package with it."""
     pre = _db(tmp_path, {
         "zlib1g-dev": "libmid-dev",
         "libmid-dev": "libleaf-dev",

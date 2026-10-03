@@ -1317,9 +1317,8 @@ def test_runtime_get_nodes_flows_from_to():
 
 def test_runtime_get_nodes_flows_disjoint_graph_from():
     '''
-    Check to ensure get_nodes properly handles disjoint flowgraphs
+    get_nodes from B on a disjoint flowgraph returns B onward and none of the other graph.
     A --{B}-- C -- D
-
     E -- F -- G -- H
     '''
     flow = Flowgraph('test')
@@ -1351,9 +1350,8 @@ def test_runtime_get_nodes_flows_disjoint_graph_from():
 
 def test_runtime_get_nodes_flows_disjoint_graph_to():
     '''
-    Check to ensure get_nodes properly handles disjoint flowgraphs
+    get_nodes to C on a disjoint flowgraph returns up to C and none of the other graph.
     A -- B --[C]-- D
-
     E -- F -- G -- H
     '''
     flow = Flowgraph('test')
@@ -1385,9 +1383,8 @@ def test_runtime_get_nodes_flows_disjoint_graph_to():
 
 def test_runtime_get_nodes_flows_disjoint_graph_from_to():
     '''
-    Check to ensure get_nodes properly handles disjoint flowgraphs
+    get_nodes from B to C on a disjoint flowgraph returns B..C and none of the other graph.
     A --{B}--[C]-- D
-
     E -- F -- G -- H
     '''
     flow = Flowgraph('test')

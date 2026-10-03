@@ -218,12 +218,7 @@ MIN_ONE_HOP = 36
 
 
 def test_every_tutorial_is_one_hop_from_the_landing_page():
-    """A reader should not have to guess which section index hides a tutorial.
-
-    Tutorials are the pages that answer "how do I actually do this", and they
-    were the furthest thing from the landing page: reachable only by opening the
-    User Guide first and scrolling past four other captions.
-    """
+    """Every tutorial is one click from the landing page, not hidden behind a section index."""
     hops = _hops()
     buried = {t: hops.get(t) for t in _tutorials() if hops.get(t) != 1}
 
@@ -266,10 +261,8 @@ def test_landing_page_reach_does_not_regress():
 
 
 def test_no_page_is_unreachable():
-    """A page nothing links to is a page nobody reads.
-
-    Sphinx catches a document missing from every *toctree*, but not one that is
-    in a toctree whose own page nothing reaches.
+    """Every document is reachable from the landing page; Sphinx does not catch one sitting in a
+    toctree whose own page nothing reaches.
     """
     hops = _hops()
     unreachable = [name for name in _documents() if name not in hops]

@@ -600,11 +600,8 @@ def test_cleanup_cache_without_dataroot_area(cachedir):
 
 
 def test_cleanup_cache_spares_the_areas_themselves(cachedir, dataroot):
-    '''The subdirectories of the cache are areas, not entries left by an old release.
-
-    Both are old enough and lock-file-adorned enough to look collectable to the
-    sweep of the root, which is exactly the mistake to avoid: collecting either
-    would delete every entry inside it.
+    '''cleanup_cache never collects the cache's area subdirectories, even with old lock files
+    beside them, since that would delete every entry inside.
     '''
     toolcache = cachedir / "tools"
     toolcache.mkdir()
@@ -650,11 +647,8 @@ def swept_cache(cachedir):
 
 
 def test_auto_cleanup_first_call_spares_entries(project, cachedir, caplog):
-    '''An install upgrading into access tracking must not lose a cache it uses.
-
-    Before the resolver stamped lock files, their mtime was the download time,
-    so every entry looks as old as the day it was fetched. The orphaned locks
-    have no such excuse and go on the first sweep.
+    '''The first auto_cleanup keeps old entries, whose lock mtime may predate access tracking,
+    but still removes orphaned lock files.
     '''
     entry = make_entry(cachedir, "old", age_days=cleanup.DEFAULT_DAYS + 1)
     orphan = cachedir / "gone.lock"

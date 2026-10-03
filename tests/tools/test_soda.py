@@ -318,12 +318,8 @@ def test_post_process_collects_testbench(mm_design):
 
 
 def test_post_process_picks_the_topmodules_own_testbench(mm_design):
-    """A module with several functions emits several testbenches, and the HLS tool
-    has to get the one for the topmodule -- not whichever sorts first.
-
-    ``add_kernel_testbench.c`` sorts before ``forward_kernel_testbench.c``, so a
-    first-match copy would put the wrong kernel's arguments in front of Bambu.
-    """
+    """With several testbenches emitted, post_process() keeps the topmodule's own rather than
+    whichever sorts first."""
     node = SchedulerNode(_project(mm_design, BaselineTask()), "soda", "0")
 
     pathlib.Path("outputs").mkdir()
@@ -359,12 +355,8 @@ def test_post_process_warns_on_kernel_mismatch(mm_design, caplog):
 
 
 def test_post_process_missing_testbench(mm_design, caplog):
-    """A missing artifact is an error in the log, not an exception.
-
-    post_process() runs whether or not soda-opt succeeded, so raising would bury
-    a failed run's own error under a traceback. The file is a declared output, so
-    the scheduler halts the node on it a moment later regardless.
-    """
+    """A missing testbench is logged as an error, not raised, since post_process() also runs
+    after a failed soda-opt; the scheduler still fails the node on the declared output."""
     node = SchedulerNode(_project(mm_design, BaselineTask()), "soda", "0")
 
     pathlib.Path("outputs").mkdir()
@@ -518,12 +510,8 @@ def mm_soda_design(datadir):
 @pytest.mark.eda
 @pytest.mark.timeout(1200)
 def test_flow_simulates_with_the_generated_testbench(mm_soda_design):
-    """The whole point of soda-opt emitting a testbench: bambu can simulate.
-
-    The testbench reaches the HLS node over the soda -> convert edge, so turning
-    simulation on is all a caller does -- no fileset naming a file the flow
-    already produced.
-    """
+    """bambu simulates with the testbench soda-opt emits, staged over the soda -> convert edge
+    with no fileset needed."""
     from siliconcompiler import ASIC
     from siliconcompiler.targets import freepdk45_demo
     from siliconcompiler.tools.bambu.convert import ConvertTask
@@ -555,14 +543,8 @@ def test_flow_simulates_with_the_generated_testbench(mm_soda_design):
                                      SODAOptimizedElaborationFlow,
                                      SODATransformedElaborationFlow))
 def test_front_end(mm_soda_design, flowcls):
-    """The whole SODA front end: TOSA in, LLVM IR for the outlined kernel out.
-
-    Stops at the link step rather than running the HLS one, because that needs a
-    bambu whose front-end compiler can read opaque pointers -- see the install
-    note in the SODA tutorial. Everything ahead of it is what this covers: the
-    TOSA lowering, the bufferization, the outlining and whichever lowering the
-    flow under test chose.
-    """
+    """The SODA front end lowers TOSA to LLVM IR for the outlined kernel, stopping at link:
+    the HLS step needs a bambu whose front-end compiler reads opaque pointers."""
     from siliconcompiler import ASIC
     from siliconcompiler.targets import freepdk45_demo
 

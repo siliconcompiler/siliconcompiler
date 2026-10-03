@@ -290,14 +290,8 @@ def configured_node(running_node):
 
 
 def test_task_get_digest_exact(configured_node):
-    """The cache-key contract: this configuration has this digest.
-
-    A directory named after a digest is findable only for as long as the digest
-    is the same value. Changing the key set, the ordering, the encoding or the
-    hash function orphans every cache directory a released SiliconCompiler ever
-    named, and nothing collects them. So this number changing is a decision to
-    take deliberately, with a release note -- never a test updated to match a
-    diff.
+    """This configuration's digest is pinned: released versions named cache directories by it.
+    Changing it orphans those caches, so do it deliberately and with a release note.
     """
     with configured_node.task.runtime(configured_node) as task:
         assert task.get_digest() == \
@@ -306,16 +300,8 @@ def test_task_get_digest_exact(configured_node):
 
 
 def test_task_get_digest_exact_material(configured_node):
-    """Which values are hashed, and in what shape.
-
-    The keys are hashed first, so that a key carrying no value still moves the
-    digest by being there at all; then each value in the same order. Note the
-    shapes: a path carries a second element for its dataroot, an unset one
-    carries both, and a tuple keeps its interior None rather than closing the
-    gap the way the Tcl writer does.
-
-    Built independently of the digest above so that a break names the entry that
-    moved rather than only the number.
+    """get_digest() hashes the key list first, so an unset key still counts, then each value.
+    A path pairs with its dataroots, and a tuple keeps its interior None, unlike the Tcl writer.
     """
     keys = [
         ["library", "testdesign", "fileset", "rtl", "topmodule"],
@@ -455,12 +441,7 @@ def test_task_get_digest_tracks_task_option(running_node):
 
 
 def test_task_get_digest_tracks_scalar_require(running_node):
-    """The point of the digest: a required non-path value counts.
-
-    Drivers put booleans and thresholds in [require] -- openroad's
-    repair_timing requires five of them -- and a cache key that only looked at
-    paths would hand one configuration's results to another.
-    """
+    """Changing a required non-path value, here a bool, changes the digest."""
     nop = running_node.project.get_nop()
     nop.add_parameter("aggressive", "bool", "run aggressively", defvalue=False)
     nop.add_required_key("var", "aggressive")
@@ -493,12 +474,7 @@ def test_task_get_digest_tracks_exe(running_node):
 
 
 def test_task_get_digest_ignores_the_tool_install_path(running_node):
-    """Where the executable was found is a property of the machine, not the task.
-
-    klayout sets [path] to ~/AppData/Roaming/KLayout or
-    /Applications/klayout.app/..., so hashing it would give one task a different
-    digest per machine and partition the shared cache the digest exists to name.
-    """
+    """The tool's [path] is per machine, so it stays out of the digest and the shared cache key."""
     with running_node.task.runtime(running_node) as task:
         before = task.get_digest()
 
@@ -1197,13 +1173,8 @@ def test_get_runtime_environmental_variables_envs(running_node, monkeypatch):
 
 
 def test_get_runtime_environmental_variables_unset(running_node, monkeypatch):
-    """Env keys that exist without a value must be dropped, not passed through.
-
-    The scheduler hands this dict straight to os.environ.update() before it
-    launches the tool, and os.environ rejects None with a TypeError, so a None
-    here takes the node down before the tool ever starts. A key can reach that
-    state by being declared and then cleared, which is how a testcase built by
-    utils.issue records QT_QPA_PLATFORM when the run behind it was headless.
+    """Env keys declared then unset are dropped, since os.environ rejects a None value.
+    utils.issue leaves QT_QPA_PLATFORM this way when the original run was headless.
     """
     running_node.project.set('option', 'env', 'GLOBAL_SET', 'here')
     running_node.project.set('option', 'env', 'GLOBAL_UNSET', 'gone')
@@ -1638,16 +1609,8 @@ def test_write_task_manifest(running_node, suffix):
 
 @pytest.mark.parametrize("suffix", ("tcl", "yaml", "csv"))
 def test_write_task_manifest_specifies_encoding(running_node, monkeypatch, suffix):
-    """The manifest writer must not take the platform's default encoding.
-
-    Every format except json/gz went through a bare ``open(path, 'w')``. A
-    non-ASCII value then failed to write on any host whose locale is not UTF-8 --
-    LANG=C in a minimal container, or a Windows code page -- and it failed
-    mid-run, while writing a node's manifest.
-
-    Asserting on the encoding rather than on the written bytes is deliberate:
-    Python 3.15 makes UTF-8 the default, which would let a round-trip test pass
-    on a new interpreter while the bug was still live on a supported one.
+    """Non-json manifests are opened with an explicit UTF-8 encoding, not the locale default.
+    Checks the encoding, not the bytes, since Python 3.15 defaults to UTF-8 and would hide it.
     """
     opened = []
     real_open = builtins.open
@@ -1669,12 +1632,7 @@ def test_write_task_manifest_specifies_encoding(running_node, monkeypatch, suffi
 
 
 def test_write_task_manifest_non_ascii_roundtrip(running_node):
-    """A non-ASCII value survives being written, as an escape.
-
-    Every format SC writes is ASCII: json escapes to \\uXXXX, PyYAML to \\xNN,
-    and tcl to \\uXXXX (test_write_task_manifest_tcl_is_ascii). That is what lets
-    a reader decode a manifest without knowing the host's locale.
-    """
+    """A non-ASCII value is written to the json manifest as an ASCII escape."""
     suffix = "json"
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
     assert running_node.project.set("tool", "builtin", "task", "nop", "option",
@@ -1692,13 +1650,8 @@ def test_write_task_manifest_non_ascii_roundtrip(running_node):
 
 
 def test_write_task_manifest_tcl_is_ascii(running_node):
-    """The Tcl manifest must contain no byte above 0x7f.
-
-    Tcl decodes a script with the *system* encoding, which follows the host's
-    locale. Raw UTF-8 read back under LANG=C does not merely display oddly, it
-    decodes to a different string -- a Greek/Latin mix comes back with a length of
-    12 instead of 9 -- so a path or a design name silently stops matching. An
-    ASCII file with \\uXXXX escapes decodes identically under every locale.
+    """The Tcl manifest is pure ASCII, since Tcl decodes a script with the locale's encoding.
+    Raw UTF-8 under LANG=C decodes to a different string, so names silently stop matching.
     """
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "tcl")
     assert running_node.project.set("tool", "builtin", "task", "nop", "option",
@@ -1745,15 +1698,7 @@ def bare_tcl_interp():
 @pytest.mark.parametrize("sysencoding", ("utf-8", "iso8859-1"))
 def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding, bare_tcl_interp):
     """Tcl reads a non-ASCII value back as the string SC wrote, under any locale.
-
-    ``encoding system`` is what Tcl decodes a sourced script with, and it
-    follows the host's locale: iso8859-1 under LANG=C, utf-8 otherwise. Setting
-    it directly covers both without a subprocess and without depending on the
-    locale the test happens to run under.
-
-    Written raw, the value comes back longer than it went in -- each non-ASCII
-    character split into its UTF-8 bytes -- so a path or a design name silently
-    stops matching, with no error to notice.
+    Setting ``encoding system`` stands in for the locale: iso8859-1 under LANG=C, else utf-8.
     """
     value = "naïve-Ω µm"
     nop = running_node.project.get_nop()
@@ -2396,11 +2341,8 @@ def _block_dev_tty(monkeypatch):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
 def test_run_breakpoint_logs_raw_output(tmp_path, monkeypatch):
-    """End-to-end: log captures the raw byte stream verbatim.
-
-    Filtering would lose information for in-place line edits (history
-    recall, completion) so the log is intentionally a faithful recording.
-    Use ``cat`` or ``less -R`` to view the rendered form.
+    """The breakpoint log records the child's raw bytes, escapes included, unfiltered.
+    Filtering would garble in-place line edits; view the log with ``cat`` or ``less -R``.
     """
     pytest.importorskip('pty')
     _block_dev_tty(monkeypatch)
@@ -2569,18 +2511,8 @@ def test_run_breakpoint_raises_when_pty_unavailable(monkeypatch, tmp_path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
 def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
-    """End-to-end: arrows, Tab, printable chars, and Enter all reach the child.
-
-    Regression test for the multiprocessing-worker case: the worker's
-    ``sys.stdin`` is reassigned to wrap /dev/null (CPython
-    ``multiprocessing/util._close_stdin``) so reading from it returns
-    instant EOF. ``_run_breakpoint`` must instead read from ``/dev/tty``
-    (or, failing that, fd 0 directly) so keystrokes still reach the
-    child.
-
-    We simulate that environment here by forcing ``sys.stdin`` to wrap
-    /dev/null and providing a controllable fake ``/dev/tty`` whose
-    "user side" we can drive from the test.
+    """Arrows, Tab, text and Enter reach the child via /dev/tty when sys.stdin wraps /dev/null.
+    That is a multiprocessing worker's stdin, where reading gives instant EOF.
     """
     pytest.importorskip('pty')
     import fcntl
@@ -2677,12 +2609,7 @@ def test_run_breakpoint_forwards_keystrokes_via_dev_tty(tmp_path, monkeypatch):
 @pytest.mark.skipif(sys.platform == "win32", reason="pty unavailable on Windows")
 def test_run_breakpoint_falls_back_to_fd0_when_dev_tty_unavailable(
         tmp_path, monkeypatch):
-    """When /dev/tty can't be opened (CI, daemon), fall back to fd 0.
-
-    Mirrors what ``pty.spawn`` did: read from STDIN_FILENO directly,
-    not from ``sys.stdin.fileno()`` (which may have been reassigned by
-    the multiprocessing bootstrap to a /dev/null fd).
-    """
+    """Without /dev/tty the breakpoint reads fd 0, not a possibly reassigned sys.stdin.fileno()."""
     pytest.importorskip('pty')
     import fcntl
     import termios
@@ -3367,13 +3294,7 @@ def test_get_files_from_input_nodes_skipped(running_node):
 
 
 def test_get_files_from_input_nodes_skipped_does_not_hide_a_later_input(running_node):
-    """Regression: traversing a skipped node must not drop the input nodes
-    ordered after it.
-
-    The recursion is the only place a second dict of node lists is in scope,
-    and it used to rebind the name holding this loop's own membership guard --
-    so a live sibling listed after a skipped node vanished silently, with the
-    edge order deciding whether it happened."""
+    """A skipped input node does not hide the input nodes listed after it."""
     flow = running_node.project.get("flowgraph", "testflow", field="schema")
     flow.node("sibling", NOPTask())
     flow.node("lastnode", NOPTask())
@@ -4319,14 +4240,8 @@ def test_showtask_plugin_overrides_builtin(fake_plugins):
 
 def test_populate_tasks_sibling_category_is_not_populated():
     """
-    Populating one base class must not pass its siblings off as populated.
-
-    showtasks() writes into the OpenTask, ShowTask and ScreenshotTask
-    categories alike, so populating any one of them leaves the other two
-    non-empty -- but holding only the viewers hard-coded in showtools, never
-    the task classes discovery would have found by recursing subclasses. Under
-    the old "the category is non-empty" test those tasks stayed invisible for
-    the life of the process.
+    Populating OpenTask does not mark ShowTask populated, so its subclasses are still discovered.
+    showtasks() fills every viewer category, so a non-empty category is not a populated one.
     """
     class SiblingShow(ShowTask):
         def tool(self):
@@ -4353,10 +4268,7 @@ def test_get_task_excludes_populated_marker():
 
 def test_populate_tasks_marker_written_last():
     """
-    The marker records completion, so nothing may see it set mid-population.
-
-    Plugin registration is the last step of the build, which makes a plugin the
-    latest possible observer inside the window.
+    The populated marker is written last: even a plugin, registered at the end, sees it unset.
     """
     observed = []
 
@@ -4376,13 +4288,8 @@ def test_populate_tasks_marker_written_last():
 @pytest.mark.timeout(60)
 def test_populate_tasks_concurrent(monkeypatch):
     """
-    A thread arriving mid-population must wait, not read a half-built registry.
-
-    The core recursion makes the category non-empty well before the viewers are
-    registered, so a second thread treating "non-empty" as "populated" resolves
-    against a registry the first thread has not finished writing. Widen that
-    window by stalling the viewer registration and send a crowd of threads
-    through it.
+    Threads arriving mid-population wait for it rather than resolve against a partial registry.
+    The category is non-empty well before the stalled viewer registration finishes.
     """
     def slow_showtasks():
         # Defined inside so the subclass recursion cannot find it: this stands
@@ -4426,14 +4333,8 @@ def test_populate_tasks_concurrent(monkeypatch):
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
 def test_populate_tasks_after_fork_mid_population(monkeypatch, wait_for_child):
     """
-    A child forked mid-population rebuilds instead of trusting what it inherited.
-
-    This is the case the category lock cannot cover, and the reason the marker
-    exists alongside it. The lock keeps other *threads* out, but a fork copies
-    the registry and leaves the child no lock to wait on: it gets the tasks
-    written so far and nothing to say the rest never arrived. Reading
-    "non-empty" as "finished" there breaks the child permanently, not just for
-    one lookup.
+    A child forked mid-population rebuilds the registry instead of trusting its partial copy.
+    The category lock covers threads, not a fork; the marker is what tells the child.
     """
     stalled = threading.Event()
     release = threading.Event()
@@ -4969,13 +4870,8 @@ def test_get_extension_map_single_tool(isolated_tasks):
 
 
 def test_get_extension_map_collects_all_extensions(isolated_tasks):
-    """All extensions across all registered tasks are present as keys.
-
-    The order is derived, not registration order: an extension takes the worst
-    rank any task gives it, ties going to the higher-priority tool. ToolMulti
-    is registered last, so it outranks ToolA and its first choice leads; ToolA
-    reads one format, so all it can say is that "ext" is a first choice too,
-    which lands it in the same rank behind ToolMulti's.
+    """Every registered extension is a key, ordered by the worst rank any task gives it.
+    Ties go to the later-registered tool, so ToolA's "ext" follows ToolMulti's first choice.
     """
 
     class ToolMulti(ShowTask):
@@ -5045,13 +4941,8 @@ def test_get_extension_map_respects_user_preference(isolated_tasks):
 
 
 def test_get_extension_map_tool_filter_matches_get_task(isolated_tasks):
-    """tool= behavior in get_extension_map mirrors get_task: it is a filter.
-
-    For extensions the requested tool supports, the requested tool is the
-    preferred one. Extensions it cannot handle are dropped rather than mapped
-    to a fallback, matching get_task refusing to substitute a tool the caller
-    did not name. This is what Project.show relies on to keep its search to
-    files the requested tool can actually open.
+    """tool= filters get_extension_map as in get_task, dropping extensions the tool cannot open.
+    Project.show relies on this to search only for files the requested tool can open.
     """
 
     class ToolOnlyXyz(ShowTask):
@@ -5267,13 +5158,8 @@ def priority_tasks(isolated_tasks):
 
 
 def test_get_task_tool_only_hint_matches_unhinted_priority(priority_tasks):
-    """A tool-only hint must not select a lower-priority task than no hint at all.
-
-    Registration order is "later wins" (see showtasks()), so a tool that
-    registers its fallback viewer first and its preferred viewer second must
-    resolve to the preferred one either way. Walking the registry forward here
-    used to return the first match, i.e. exactly the task the ordering was set
-    up to lose -- e.g. "openroad" gave openroad/web instead of openroad/show.
+    """A tool-only hint resolves to the same higher-priority task as no hint at all.
+    Later registration wins, so "openroad" must give openroad/show, not openroad/web.
     """
     unhinted = ShowTask.get_task("prio_ext")
     hinted = ShowTask.get_task("prio_ext", tool="prio")
@@ -5314,11 +5200,7 @@ def test_get_extension_map_tool_only_hint_matches_unhinted(priority_tasks):
 
 
 def test_get_task_unknown_tool_returns_none(priority_tasks):
-    """A misspelled tool or task is refused rather than substituted.
-
-    "prioo" and "prio/nosuchtask" used to fall through to automatic discovery
-    and quietly launch whatever else handled the extension.
-    """
+    """A misspelled tool or task returns None instead of falling back to automatic discovery."""
     assert ShowTask.get_task("prio_ext", tool="prioo") is None
     assert ShowTask.get_task("prio_ext", tool="prio/nosuchtask") is None
 

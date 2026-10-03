@@ -85,13 +85,8 @@ def test_elaborate(heartbeat_design):
 
 
 def test_elaborate_drops_unused_modules():
-    """Only the top module and the submodules it instantiates should be
-    written to the elaborated output; unused modules present in the sources
-    must be dropped, while packages are always retained.
-
-    The unused module lives in its own file, so this also verifies that the
-    emitted source-path annotations only reference files that actually
-    contributed a module to the output."""
+    """Elaboration emits the top and the modules it instantiates, always keeps packages, and
+    drops unused modules along with the source annotations of files that held only those."""
     with open("used.v", "w") as src:
         src.write(
             "package pkg; parameter W = 1; endpackage\n"
@@ -137,14 +132,8 @@ def test_elaborate_drops_unused_modules():
 
 
 def test_elaborate_bakes_top_param_overrides():
-    """The emitted top module advertises the parameters it was elaborated with.
-
-    ``top`` selects a submodule via ``generate`` on parameter ``MODE``. The
-    fileset overrides ``MODE`` to 1 (so ``impl_b`` is used and ``impl_a`` is
-    pruned). Because the top is emitted with ``MODE``'s default rewritten to 1,
-    re-elaborating the output file standalone -- with only its own defaults --
-    reproduces the same hierarchy instead of reaching the pruned ``impl_a``.
-    """
+    """The emitted top carries its overridden parameter values as defaults, so re-elaborating
+    the output alone reproduces the same hierarchy rather than reaching a pruned module."""
     with open("design.sv", "w") as src:
         src.write(
             "module impl_a(input x, output y); assign y = x; endmodule\n"
@@ -251,12 +240,8 @@ def _assert_reelaborates_clean(path):
 
 
 def test_elaborate_typed_param_overrides_render_valid_sv():
-    """Overriding enum- and wide-typedef-typed top parameters must emit valid
-    SystemVerilog: enums cast to their type, wide values as full literals.
-
-    This is the ibex-style regression: a bare integer default for an enum
-    parameter (or an abbreviated wide literal) does not compile.
-    """
+    """Overridden enum- and wide-typedef-typed top parameters emit valid SystemVerilog: enums
+    cast to their type, wide values as full literals."""
     result = _elaborate_typed({"MODE": "C", "WIDE": "160'hdeadbeef"})
     with open(result) as fout:
         content = fout.read()
@@ -334,12 +319,8 @@ def test_elaborate_source_paths_disabled():
 
 
 def test_elaborate_errors_on_unrenderable_param():
-    """If an overridden top parameter's value cannot be rendered as valid
-    SystemVerilog, the task must fail loudly rather than emit a bad default.
-
-    An unpacked-struct parameter elaborates fine but has no simple literal
-    form, so overriding it forces the error-out path.
-    """
+    """Overriding a top parameter that has no SystemVerilog literal form, such as an unpacked
+    struct, fails the task rather than emitting a bad default."""
     proj = _build_elaborate(
         "top", "err.sv",
         "package q; typedef struct { int a; int b; } up_t; endpackage\n"
@@ -454,11 +435,8 @@ def test_slang_duplicate_inputs(heartbeat_design):
 
 
 def test_pyslang_api_surface():
-    """Verify every pyslang attribute path used by the slang tool resolves.
-
-    When pyslang reorganizes its package layout (as in the v10 -> v11 move
-    of Driver/CommandLineOptions/SyntaxPrinter/Token into submodules), this
-    test fails fast with a clear pointer to the missing path."""
+    """Every pyslang attribute path the slang tool uses resolves, so a pyslang package
+    reorganization fails here naming the missing path."""
     assert pyslang.VersionInfo is not None
     assert pyslang.Diags is not None
     assert pyslang.DiagnosticSeverity.Ignored is not None
@@ -482,10 +460,8 @@ def test_pyslang_api_surface():
 
 
 def test_pyslang_driver_parses_verilog():
-    """Drive pyslang directly on a tiny verilog file.
-
-    Mirrors the calls made in SlangTask._init_driver / _compile so a regression
-    in the underlying pyslang API can be reproduced without any SC plumbing."""
+    """pyslang compiles a tiny verilog file through the calls SlangTask._init_driver and
+    _compile make, so a pyslang API regression reproduces without SC."""
     with open("tiny.v", "w") as src:
         src.write(
             "module tiny(input clk, output reg q);\n"
@@ -620,12 +596,8 @@ def test_uniquify_multilevel_hierarchy(tmp_path):
 
 
 def test_uniquify_ignores_modules_absent_from_elaboration(tmp_path):
-    """Only instances in the final elaboration are enumerated.
-
-    A parameterization that lives in a pruned ``generate`` branch, and a module
-    that is never instantiated at all, must both be excluded -- otherwise we'd
-    generate variants for hardware the design does not actually contain.
-    """
+    """Only elaborated instances are enumerated: a parameterization in a pruned generate branch
+    and a module that is never instantiated are both excluded."""
     text = """
     module foo #(parameter N = 1) (input a, output b);
         assign b = a;
@@ -1430,13 +1402,8 @@ def test_uniquified_wireup_requires_built_macros():
 
 
 def test_macro_corners_from_project_scenarios(asic_heartbeat):
-    """build_macro derives corners from the project's timing scenarios.
-
-    freepdk45 defines a single 'typical' scenario, so a macro built from it must
-    not require the skywater130 'slow'/'typical'/'fast' set. This asserts the
-    keypath build_macro reads (:keypath:`constraint,timing,scenario`) matches
-    the per-corner ``.lib`` files write.views emits.
-    """
+    """build_macro takes its corners from the project's timing scenarios, which on freepdk45 is
+    a single 'typical' rather than skywater130's slow/typical/fast set."""
     corners = asic_heartbeat.getkeys("constraint", "timing", "scenario")
     assert list(corners) == ["typical"]
 
@@ -1470,13 +1437,8 @@ def test_macro_rtl_view_bundles_models_sim(asic_heartbeat, monkeypatch):
 
 def test_macro_warns_when_library_has_no_models_sim(asic_heartbeat, monkeypatch,
                                                     caplog):
-    """A logic library with no cell models cannot make the rtl view simulate.
-
-    nangate45 ships no cell verilog, so freepdk45 is the case this warns on. It
-    is a warning and not an error because the netlist, the liberty and the
-    physical views are all still good -- only standalone simulation of the rtl
-    view is lost.
-    """
+    """build_macro warns, rather than errors, when the main library has no models.sim fileset,
+    since only standalone simulation of the rtl view is lost."""
     asic_heartbeat.logger.propagate = True
     _fake_results(asic_heartbeat, monkeypatch)
 
