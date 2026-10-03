@@ -31,8 +31,6 @@ def temp_files(design_with_tmpdir):
     return files
 
 
-# Initialization
-
 def test_filesetschema_instantiation():
     """Test basic FileSetSchema creation."""
     schema = FileSetSchema()
@@ -63,8 +61,6 @@ def test_filesetschema_has_expected_methods():
     for method in expected_methods:
         assert hasattr(schema, method), f"FileSetSchema missing method {method}"
 
-
-# Topmodule
 
 def test_set_topmodule_valid_identifier(design_with_tmpdir):
     """Test setting topmodule with valid Verilog identifier."""
@@ -164,8 +160,6 @@ def test_set_topmodule_multiple_times(design_with_tmpdir):
         assert d.get_topmodule() == 'second'
 
 
-# Define
-
 def test_add_define_simple(design_with_tmpdir):
     """Test adding a simple define."""
     d = design_with_tmpdir
@@ -225,8 +219,6 @@ def test_get_define_returns_list(design_with_tmpdir):
         assert isinstance(result, list)
 
 
-# Undefine
-
 def test_add_undefine_single(design_with_tmpdir):
     """Test adding single undefine."""
     d = design_with_tmpdir
@@ -274,8 +266,6 @@ def test_get_undefine_returns_list(design_with_tmpdir):
         result = d.get_undefine()
         assert isinstance(result, list)
 
-
-# Idir
 
 def test_add_idir_single_path(design_with_tmpdir):
     """Test adding single include directory."""
@@ -348,8 +338,6 @@ def test_has_idir_when_present(design_with_tmpdir):
         assert d.has_idir()
 
 
-# Libdir
-
 def test_add_libdir_single_path(design_with_tmpdir):
     """Test adding single library directory."""
     d = design_with_tmpdir
@@ -419,8 +407,6 @@ def test_has_libdir_when_present(design_with_tmpdir):
         assert d.has_libdir()
 
 
-# Lib
-
 def test_add_lib_single(design_with_tmpdir):
     """Test adding single library."""
     d = design_with_tmpdir
@@ -470,8 +456,6 @@ def test_get_lib_returns_list(design_with_tmpdir):
         result = d.get_lib()
         assert isinstance(result, list)
 
-
-# Param
 
 def test_set_param_simple(design_with_tmpdir):
     """Test setting simple parameter."""
@@ -535,8 +519,6 @@ def test_set_param_with_special_chars(design_with_tmpdir):
         assert d.get_param('PATH') == '/path/to/file.txt'
 
 
-# Depfileset
-
 def test_get_depfileset_returns_list(design_with_tmpdir):
     """Test get_depfileset returns list."""
     d = design_with_tmpdir
@@ -552,8 +534,6 @@ def test_get_depfileset_empty_initially(design_with_tmpdir):
         result = d.get_depfileset()
         assert result == []
 
-
-# FileOperations
 
 def test_get_file_empty(design_with_tmpdir):
     """Test get_file on empty fileset."""
@@ -610,8 +590,6 @@ def test_has_file_with_nonexistent_filetype(design_with_tmpdir, temp_files):
         d.add_file('test.v', filetype='verilog')
     assert not d.has_file('rtl', filetype='systemverilog')
 
-
-# AddFile
 
 def test_add_file_string(design_with_tmpdir, temp_files):
     """Test adding file as string."""
@@ -706,16 +684,12 @@ def test_add_file_multiple_filesets(design_with_tmpdir, temp_files):
     assert len(sim_files) > 0
 
 
-# DocGeneration
-
 def test_generate_doc_exists():
     """Test that _generate_doc method exists."""
     schema = FileSetSchema()
     assert hasattr(schema, '_generate_doc')
     assert callable(schema._generate_doc)
 
-
-# Integration
 
 def test_complete_workflow(design_with_tmpdir, temp_files):
     """Test a complete workflow using multiple methods."""

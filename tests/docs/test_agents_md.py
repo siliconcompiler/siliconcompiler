@@ -298,19 +298,22 @@ def test_test_docstrings_are_brief():
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
                     and node.name.startswith("test_"):
                 doc = ast.get_docstring(node)
+                # Lines, not sentences: dotted names such as Project.show() defeat a splitter.
                 if doc and (len(doc.splitlines()) > 4 or "\n\n" in doc):
                     offenders.append(f"{os.path.relpath(path, docs.sc_root)}:{node.lineno}")
     assert not offenders, (
-        "a test docstring is at most two sentences saying what the test checks, "
-        f"with no blank lines and at most four lines: {offenders}")
+        "test docstrings with a blank line or more than four lines; AGENTS.md asks for at "
+        f"most two sentences: {offenders}")
 
 
-# A rule of six or more repeated characters, or a title framed by three or more.
-DIVIDER = re.compile(r"^#\s*([-=*#~_])\1{5,}\s*$|^#\s*([-=*#~_])\2{2,}\s+\S.*\s+\2{3,}\s*$")
+# A run of four or more decoration characters at either end of the comment, or a title
+# framed by three or more on each side.
+DIVIDER = re.compile(r"^#\s*([-=*#~_])\1{3,}|^#.*([-=*#~_])\2{3,}\s*$"
+                     r"|^#\s*([-=*#~_])\3{2,}\s+\S.*\s+\3{2,}\s*$")
 
 
 def test_no_divider_comments():
-    """No comment is a rule line or a title framed by one, as AGENTS.md asks."""
+    """No comment carries divider decoration; plain section headings are left to review."""
     offenders = []
     for path in _python_files("siliconcompiler", "tests", "examples"):
         with open(path, encoding="utf-8") as f:
@@ -318,7 +321,7 @@ def test_no_divider_comments():
         offenders.extend(f"{os.path.relpath(path, docs.sc_root)}:{token.start[0]}"
                          for token in tokenize.generate_tokens(io.StringIO(source).readline)
                          if token.type == tokenize.COMMENT and DIVIDER.match(token.string.strip()))
-    assert not offenders, f"divider or section-heading comments: {offenders}"
+    assert not offenders, f"divider comments: {offenders}"
 
 
 def test_agents_md_references_resolve(agents):
