@@ -11,8 +11,13 @@ import sys
 
 from typing import Dict, Type, Optional, TYPE_CHECKING
 
-from git import Repo, GitCommandError
 from urllib import parse as url_parse
+
+try:
+    import git
+except ImportError:
+    # GitPython raises ImportError when it cannot find a git executable.
+    git = None
 
 from siliconcompiler.package import RemoteResolver
 
@@ -145,14 +150,23 @@ class GitResolver(RemoteResolver):
 
         Returns:
             bool: True if a valid repository exists, False otherwise.
+
+        Raises:
+            RuntimeError: If no git executable is available.
         """
+        # resolve() always checks the cache before resolve_remote(), so this
+        # guards every use of git.
+        if git is None:
+            raise RuntimeError(
+                f"git is required to fetch {self.display_name}, but no git executable was found")
+
         if os.path.exists(self.cache_path):
             try:
-                repo = Repo(self.cache_path)
+                repo = git.Repo(self.cache_path)
                 if repo.untracked_files or repo.index.diff("HEAD"):
                     self.logger.warning('The repo of the cached data is dirty.')
                 return True
-            except GitCommandError:
+            except git.GitCommandError:
                 self.logger.warning('Deleting corrupted cache data.')
                 # Make writable first, in case cache was previously made read-only
                 try:
@@ -389,7 +403,7 @@ class GitResolver(RemoteResolver):
             return False
         return False
 
-    def _pull_lfs(self, repo: "Repo") -> None:
+    def _pull_lfs(self, repo: "git.Repo") -> None:
         """
         Runs ``git lfs pull`` on the given repo if it has LFS-tracked files.
 
@@ -404,7 +418,7 @@ class GitResolver(RemoteResolver):
             repo.git.update_environment(**env)
         try:
             repo.git.lfs("pull")
-        except GitCommandError as e:
+        except git.GitCommandError as e:
             msg = f"{e}".lower()
             if "lfs" in msg and ("is not a git command" in msg or "not found" in msg):
                 raise RuntimeError(
@@ -431,9 +445,9 @@ class GitResolver(RemoteResolver):
             path = self.git_path
             self.logger.info(
                 f'Cloning {self.display_name} data from {self._redact_url(path)}')
-            repo = Repo.clone_from(path, self.cache_path,
-                                   recurse_submodules=self.include_submodules,
-                                   env=env or None)
+            repo = git.Repo.clone_from(path, self.cache_path,
+                                       recurse_submodules=self.include_submodules,
+                                       env=env or None)
             if env:
                 # clone_from's env covers only the clone itself; the checkout,
                 # submodule and LFS steps below run through this repo's git.
@@ -454,7 +468,7 @@ class GitResolver(RemoteResolver):
                 if has_submodules:
                     for submodule in repo.submodules:
                         self._pull_lfs(submodule.module())
-        except GitCommandError as e:
+        except git.GitCommandError as e:
             error_msg = str(e)
             # What git says for a credential that was refused, missing, or
             # unobtainable. 'could not read Username'/'Password' are what it

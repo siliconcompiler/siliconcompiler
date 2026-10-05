@@ -413,19 +413,9 @@ def archive(project: "Project",
 
     history = project.history(jobname)
 
-    flow = None
     try:
-        flow = history.get_flow()
+        flowgraph_nodes = RuntimeFlowgraph.from_project(history).get_nodes()
     except KeyError:
-        pass
-
-    if flow:
-        flowgraph_nodes = RuntimeFlowgraph(
-            flow,
-            from_steps=history.option.get_from(),
-            to_steps=history.option.get_to(),
-            prune_nodes=history.option.get_prune()).get_nodes()
-    else:
         flowgraph_nodes = []
 
     if not archive_name:

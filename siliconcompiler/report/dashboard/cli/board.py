@@ -1242,11 +1242,7 @@ class Board:
         if not flow:
             return None
 
-        check_flow = RuntimeFlowgraph(
-            project.get_flow(flow),
-            from_steps=project.option.get_from(),
-            to_steps=project.option.get_to(),
-            prune_nodes=project.option.get_prune())
+        check_flow = RuntimeFlowgraph.from_project(project)
         runtime_flow = RuntimeFlowgraph(
             project.get_flow(flow),
             to_steps=project.option.get_to(),

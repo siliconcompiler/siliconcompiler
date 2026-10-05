@@ -98,6 +98,17 @@ def test_git_path_default():
     assert resolver.git_path == "https://github.com/test_owner/test_repo"
 
 
+def test_resolve_without_git(monkeypatch):
+    """Resolving a git source without a git executable raises a clear error."""
+    monkeypatch.setattr("siliconcompiler.package.git.git", None)
+
+    proj = Project("testproj")
+    proj.set("option", "cachedir", os.path.abspath("cache"))
+    resolver = GitResolver("testgit", proj, "git://github.com/test_owner/test_repo", "main")
+    with pytest.raises(RuntimeError, match="no git executable was found"):
+        resolver.resolve()
+
+
 @pytest.mark.skipif(sys.platform == "win32", reason="Appears to cause issues on windows machines")
 def test_dirty_warning(project_logger, caplog, tmp_path):
     proj = Project("testproj")
@@ -152,7 +163,7 @@ def test_git_resolver_check_cache_valid_repo(monkeypatch):
 
     import siliconcompiler.package.git as git_module
     with patch("os.path.exists", return_value=True), \
-         patch.object(git_module, "Repo", return_value=mock_repo):
+         patch.object(git_module.git, "Repo", return_value=mock_repo):
         assert resolver.check_cache() is True
 
 
@@ -166,7 +177,7 @@ def test_git_resolver_check_cache_dirty_repo(monkeypatch, caplog):
 
     import siliconcompiler.package.git as git_module
     with patch("os.path.exists", return_value=True), \
-         patch.object(git_module, "Repo", return_value=mock_repo):
+         patch.object(git_module.git, "Repo", return_value=mock_repo):
         caplog.clear()
         caplog.set_level(logging.WARNING)
         result = resolver.check_cache()
@@ -183,7 +194,7 @@ def test_git_resolver_check_cache_corrupted_repo(monkeypatch, caplog):
     from git.exc import GitCommandError
 
     with patch("os.path.exists", return_value=True), \
-         patch.object(git_module, "Repo",
+         patch.object(git_module.git, "Repo",
                       side_effect=GitCommandError("git", "init", stderr=b"corrupted")), \
          patch.object(git_module, "shutil") as mock_shutil:
         result = resolver.check_cache()
@@ -490,7 +501,7 @@ def test_clone_logs_redacted_url_but_clones_with_the_real_one(monkeypatch, caplo
     mock_repo.submodules = []
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class, \
+    with patch.object(git_module.git, "Repo") as mock_repo_class, \
          patch.object(GitResolver, "_repo_uses_lfs", return_value=False):
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
@@ -645,7 +656,7 @@ def test_git_resolver_resolve_remote_success(monkeypatch):
     mock_repo.submodules = []
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class:
+    with patch.object(git_module.git, "Repo") as mock_repo_class:
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
 
@@ -662,7 +673,7 @@ def test_git_resolver_resolve_remote_with_submodules(monkeypatch):
     mock_repo.submodules = [mock_submodule]
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class, \
+    with patch.object(git_module.git, "Repo") as mock_repo_class, \
          patch.object(GitResolver, "_repo_uses_submodules", return_value=True):
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
@@ -679,7 +690,7 @@ def test_git_resolver_resolve_remote_skips_submodules_when_absent(monkeypatch):
     mock_repo.submodules = [mock_submodule]
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class, \
+    with patch.object(git_module.git, "Repo") as mock_repo_class, \
          patch.object(GitResolver, "_repo_uses_submodules", return_value=False):
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
@@ -706,7 +717,7 @@ def test_git_resolver_resolve_remote_ssh_auth_error(monkeypatch):
     # Create GitCommandError that will show 'Permission denied' in repr
     error = GitCommandError("git", "clone", stderr="Permission denied")
 
-    with patch.object(git_module, "Repo") as mock_repo_class:
+    with patch.object(git_module.git, "Repo") as mock_repo_class:
         mock_repo_class.clone_from.side_effect = error
         with pytest.raises(RuntimeError, match="SSH"):
             resolver.resolve_remote()
@@ -722,7 +733,7 @@ def test_git_resolver_resolve_remote_https_auth_error(monkeypatch):
     # Create GitCommandError that will show 'could not read Username' in repr
     error = GitCommandError("git", "clone", stderr="could not read Username")
 
-    with patch.object(git_module, "Repo") as mock_repo_class:
+    with patch.object(git_module.git, "Repo") as mock_repo_class:
         mock_repo_class.clone_from.side_effect = error
         with pytest.raises(RuntimeError, match="token"):
             resolver.resolve_remote()
@@ -739,7 +750,7 @@ def test_git_resolver_resolve_remote_other_error(monkeypatch):
         from git.exc import GitCommandError
         raise GitCommandError("git", "clone", stderr=b"some other error")
 
-    with patch.object(git_module, "Repo") as mock_repo_class:
+    with patch.object(git_module.git, "Repo") as mock_repo_class:
         mock_repo_class.clone_from = raise_other_error
         with pytest.raises(Exception):  # Will raise GitCommandError
             resolver.resolve_remote()
@@ -901,7 +912,7 @@ def test_git_resolver_resolve_remote_pulls_lfs(tmp_path):
     mock_repo.submodules = []
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class, \
+    with patch.object(git_module.git, "Repo") as mock_repo_class, \
          patch.object(GitResolver, "_repo_uses_lfs", return_value=True):
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
@@ -920,7 +931,7 @@ def test_git_resolver_resolve_remote_lfs_disabled(tmp_path):
     mock_repo.submodules = []
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class, \
+    with patch.object(git_module.git, "Repo") as mock_repo_class, \
          patch.object(GitResolver, "_repo_uses_lfs", return_value=True):
         mock_repo_class.clone_from.return_value = mock_repo
         resolver.resolve_remote()
@@ -942,7 +953,7 @@ def test_git_resolver_resolve_remote_pulls_lfs_in_submodules(tmp_path):
     mock_repo.submodules = [mock_submodule]
 
     import siliconcompiler.package.git as git_module
-    with patch.object(git_module, "Repo") as mock_repo_class, \
+    with patch.object(git_module.git, "Repo") as mock_repo_class, \
          patch.object(GitResolver, "_repo_uses_lfs", return_value=True), \
          patch.object(GitResolver, "_repo_uses_submodules", return_value=True):
         mock_repo_class.clone_from.return_value = mock_repo

@@ -148,7 +148,6 @@ def send(project, msg_type, step, index):
         return
 
     jobname = project.option.get_jobname()
-    flow = project.option.get_flow()
 
     msg = MIMEMultipart()
 
@@ -183,15 +182,10 @@ def send(project, msg_type, step, index):
                                           filename=os.path.basename(layout_img))
                     msg.attach(img_attach)
 
-        runtime = RuntimeFlowgraph(
-            project.get_flow(flow),
-            from_steps=project.option.get_from(),
-            to_steps=project.option.get_to(),
-            prune_nodes=project.option.get_prune())
+        runtime = RuntimeFlowgraph.from_project(project)
 
         nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-            report_utils._collect_data(project, flow=flow,
-                                       flowgraph_nodes=runtime.get_nodes())
+            report_utils._collect_data(project, flowgraph_nodes=runtime.get_nodes())
 
         text_msg = get_file_template('email/summary.j2').render(
             design=project.name,
@@ -233,7 +227,7 @@ def send(project, msg_type, step, index):
 
         # Collect metrics for the specific node
         nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-            report_utils._collect_data(project, flow=flow, flowgraph_nodes=[(step, index)])
+            report_utils._collect_data(project, flowgraph_nodes=[(step, index)])
 
         status = project.get('record', 'status', step=step, index=index)
 

@@ -96,11 +96,7 @@ class TaskScheduler:
         # clip max parallel jobs to 1 <= jobs <= max_cores
         self.__max_parallel_run = max(1, min(self.__max_parallel_run, self.__max_cores))
 
-        self.__runtime_flow = RuntimeFlowgraph(
-            self.__flow,
-            from_steps=self.__project.option.get_from(),
-            to_steps=self.__project.option.get_to(),
-            prune_nodes=self.__project.option.get_prune())
+        self.__runtime_flow = RuntimeFlowgraph.from_project(self.__project)
 
         # Queue for collecting log records from node worker processes.
         #
