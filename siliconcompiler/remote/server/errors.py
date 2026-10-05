@@ -35,7 +35,6 @@ class _Error(NamedTuple):
 
 # `title` is fixed here so every occurrence of a slug is identical.
 ERRORS: Dict[str, _Error] = {err.slug: err for err in (
-    # -- ceilings ------------------------------------------------------------
     _Error("limit-exceeded", 429, "Limit exceeded", ("limit",)),
     # `limit` only over max_upload_bytes; a body over its endpoint's cap has none.
     _Error("upload-too-large", 413, "Upload too large"),
@@ -45,7 +44,6 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("download-too-large", 403, "Download too large", ("limit",)),
     _Error("rate-limited", 429, "Too many requests"),
 
-    # -- entitlement and resolution -----------------------------------------
     _Error("entitlement-denied", 403, "Not entitled to this resource",
            ("resource_kind", "resource")),
     _Error("resource-unresolved", 422, "Could not resolve what this flow needs",
@@ -66,7 +64,6 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("terms-not-accepted", 403, "Terms not accepted", ("blocked_by",)),
     _Error("artifact-not-approved", 403, "Artifact not approved"),
 
-    # -- the request itself --------------------------------------------------
     _Error("declared-mismatch", 422, "The manifest contradicts the descriptor"),
     _Error("upload-digest-mismatch", 422, "Upload digest does not match"),
     _Error("archive-rejected", 422, "Archive rejected", ("reason",)),
@@ -77,7 +74,6 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("unsupported-media-type", 415, "Unsupported media type"),
     _Error("not-acceptable", 406, "Not acceptable"),
 
-    # -- state ---------------------------------------------------------------
     _Error("job-state-conflict", 409, "The job is not in a state that allows this"),
     # A write on a job the caller can read and may not act on, and a create
     # naming an archived project.
@@ -86,7 +82,6 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("not-ready", 409, "Not ready yet", ("artifact_kind",)),
     _Error("feature-unsupported", 501, "This deployment does not support that", ("feature",)),
 
-    # -- credentials ---------------------------------------------------------
     _Error("invalid-token", 401, "Invalid access token"),
     _Error("invalid-dpop-proof", 401, "Invalid DPoP proof"),
     _Error("dpop-nonce-required", 401, "DPoP nonce required"),
@@ -94,7 +89,6 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("session-ended", 401, "Session ended", ("reason",)),
     _Error("insecure-transport", 426, "Upgrade required"),
 
-    # -- job outcomes, and two refusals registered beside them ---------------
     # The environment ended the run: lost by the scheduler, preempted, a failed
     # compute node, an image that could not be pulled.
     _Error("run-interrupted", None, "The run was interrupted"),
