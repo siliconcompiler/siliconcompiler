@@ -1277,10 +1277,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     def __abspath_schema(self) -> "Project":
         """
         Private helper to create a copy of the schema with all file/dir paths
-        converted to absolute paths.
+        converted to absolute paths, and its dataroot paths masked: no tool
+        reads one once every path is resolved, and build directories get shared.
         """
         root = self.project
-        schema = root.copy()
+        schema = utils.mask_credentials(root)
 
         for keypath in root.allkeys():
             if keypath[0] == "history":

@@ -1607,6 +1607,25 @@ def test_write_task_manifest(running_node, suffix):
         assert os.listdir() == [f'sc_manifest.{suffix}']
 
 
+@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml", "csv"))
+def test_write_task_manifest_masks_credentials(running_node, suffix):
+    """No format of the task manifest holds a dataroot's credential, and the
+    project keeps it."""
+    url = "https://alice:USERTOKEN@example.com/x.tar.gz?token=QUERYTOKEN"
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
+    assert running_node.project.set("tool", "builtin", "task", "nop", "dataroot", "x", "path",
+                                    url)
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.write_task_manifest('.')
+
+    with open(f"sc_manifest.{suffix}", encoding="utf-8") as f:
+        manifest = f.read()
+    assert "example.com/x.tar.gz" in manifest
+    assert "USERTOKEN" not in manifest and "QUERYTOKEN" not in manifest
+    assert running_node.project.get("tool", "builtin", "task", "nop", "dataroot", "x",
+                                    "path") == url
+
+
 @pytest.mark.parametrize("suffix", ("tcl", "yaml", "csv"))
 def test_write_task_manifest_specifies_encoding(running_node, monkeypatch, suffix):
     """Non-json manifests are opened with an explicit UTF-8 encoding, not the locale default.

@@ -116,7 +116,6 @@ def test_replay_cfg_print_tools(monkeypatch, run_cli, asic_gcd):
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
-@pytest.mark.skipif(sys.platform == "darwin", reason="realpath not available in bash on macos")
 @pytest.mark.timeout(30)
 def test_replay_cfg_setup(monkeypatch, run_cli, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
@@ -180,3 +179,23 @@ def test_replay_cfg_no_file(monkeypatch, gcd_nop_project_run):
     assert replay.main() == 0
 
     assert os.path.isfile('replay.sh')
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
+def test_replay_manifest_masks_credentials(monkeypatch, run_cli, gcd_nop_project_run):
+    '''The manifest the replay script carries holds no dataroot credential.'''
+    job = gcd_nop_project_run.history("job0")
+    job.set("library", "gcd", "dataroot", "ip", "path",
+            "git+https://alice:USERTOKEN@example.com/ip.git")
+    job.set("library", "gcd", "dataroot", "ip", "tag", "v1")
+    gcd_nop_project_run.write_manifest('test.json')
+
+    monkeypatch.setattr('sys.argv',
+                        [replay.__name__, '-cfg', 'test.json', '-file', 'test_replay.sh'])
+    assert replay.main() == 0
+    run_cli(['./test_replay.sh', '-extract_only'])
+
+    with open('replay/sc_manifest.json') as f:
+        manifest = f.read()
+    assert "example.com/ip.git" in manifest
+    assert "USERTOKEN" not in manifest
