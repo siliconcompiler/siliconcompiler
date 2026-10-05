@@ -232,6 +232,27 @@ def test_node_allow_global_index():
         "teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index="global")
 
 
+@pytest.mark.parametrize("index", ["0", 0])
+def test_check_node_name(index):
+    Flowgraph.check_node_name("place", index)
+
+
+@pytest.mark.parametrize("step,index", [
+    ("default", "0"),
+    (Parameter.GLOBAL_KEY, "0"),
+    ("", "0"),
+    ("place/route", "0"),
+    ("..", "0"),
+    ("place", "default"),
+    ("place", Parameter.GLOBAL_KEY),
+    ("place", "0/1"),
+    ("place", ".."),
+])
+def test_check_node_name_invalid(step, index):
+    with pytest.raises(ValueError):
+        Flowgraph.check_node_name(step, index)
+
+
 def test_edge():
     flow = Flowgraph("testflow")
     flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")

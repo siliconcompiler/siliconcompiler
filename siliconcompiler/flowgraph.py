@@ -100,6 +100,24 @@ class Flowgraph(NamedSchema, DocsSchema):
             raise ValueError(f"{index} is a reserved name")
 
     @staticmethod
+    def check_node_name(step: str, index: Union[str, int]) -> None:
+        '''
+        Validates that ``step`` and ``index`` form a node name, by the rule
+        :meth:`node` applies. A node name becomes two directories of the build,
+        so a name read from outside a flowgraph, such as from a manifest, is
+        held to the same rule.
+
+        Args:
+            step (str): The step name to validate.
+            index (str or int): The index to validate.
+
+        Raises:
+            ValueError: If either is reserved or not a single path segment.
+        '''
+        Flowgraph._assert_valid_step(step)
+        Flowgraph._assert_valid_index(str(index))
+
+    @staticmethod
     def __assert_valid_node_name(name: str, what: str) -> None:
         # A step and an index are directories of the build: one segment each.
         if not isinstance(name, str) or name in ("", ".", ".."):
