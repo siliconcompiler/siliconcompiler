@@ -36,7 +36,7 @@ cat <<EOF{% for line in tools %}
 EOF
 }
 
-path=$(realpath replay)
+path=replay
 venv="venv"
 extract_only="no"
 setup_only="no"
@@ -62,7 +62,7 @@ while [ "$#" -gt 0 ]; do
             exit 0
             ;;
         -dir=*)
-            path=$(realpath ${1#-dir=})
+            path=${1#-dir=}
             ;;
         -venv=*)
             venv=${1#-venv=}
@@ -76,8 +76,10 @@ while [ "$#" -gt 0 ]; do
     shift 1
 done
 
-# Create output path
+# Create output path; made absolute only once it exists, since BSD realpath
+# (macOS) refuses a path that does not
 mkdir -p "$path"
+path=$(cd "$path" && pwd)
 
 # Change to output path directory
 cd "$path"
