@@ -19,6 +19,7 @@ from unittest.mock import Mock, AsyncMock, patch  # noqa: E402
 from siliconcompiler import NodeStatus  # noqa: E402
 from siliconcompiler.remote.server import Server  # noqa: E402
 from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus  # noqa: E402
+from siliconcompiler.utils import tarfile_module  # noqa: E402
 
 
 def _job_owner(nfs_path):
@@ -1704,7 +1705,7 @@ async def test_handle_remote_run_removes_failed_upload(gcd_nop_project):
     request = _upload_request(gcd_nop_project.getdict(), archive=b'not a tarball')
 
     with patch.object(Server, 'remote_sc', autospec=True) as mock_run:
-        with pytest.raises(tarfile.ReadError):
+        with pytest.raises(tarfile_module().ReadError):
             await server.handle_remote_run(request)
 
     assert not mock_run.called
