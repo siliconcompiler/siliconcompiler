@@ -1409,9 +1409,14 @@ class DatarootResolver(Resolver):
     @property
     def _collection_source(self) -> str:
         # The name means another dataroot in every schema, so the dataroot it
-        # names identifies it
+        # names identifies it. One that cannot be found, as in a cycle, leaves
+        # the source as written, so a file found without it is still collected
+        try:
+            target = self.__target()
+        except RuntimeError:
+            return super()._collection_source
         subpath = self.source.partition("://")[2].partition("/")[2]
-        return f"dataroot://{self.__target().collection_id}/{subpath}"
+        return f"dataroot://{target.collection_id}/{subpath}"
 
     def resolve(self) -> str:
         """
