@@ -948,6 +948,14 @@ def test_tar_extract_kwargs_legacy_python(monkeypatch):
     utils._data_filter_mishandles_symlinks.cache_clear()
 
 
+def test_tarfile_module_legacy_python(monkeypatch):
+    """A release predating PEP 706 reads archives with backports.zstd's tarfile, which filters."""
+    backport = pytest.importorskip("backports.zstd.tarfile")
+    monkeypatch.delattr(tarfile, "data_filter", raising=False)
+
+    assert utils.tarfile_module() is backport
+
+
 @needs_filters
 def test_data_filter_symlinks_probe_agrees_with_the_filter():
     """

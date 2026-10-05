@@ -13,6 +13,7 @@ import os.path
 
 from io import StringIO
 from pathlib import Path
+from types import ModuleType
 
 from typing import IO, Dict, Optional, Tuple, Type, Union, Callable, List, cast, TYPE_CHECKING
 
@@ -169,6 +170,23 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     return {"filter": filter}
 
 
+def tarfile_module() -> ModuleType:
+    """Returns the ``tarfile`` module to read archives with.
+
+    That is the standard library's where it has the PEP 706 extraction filters.
+    Python 3.10.0-3.10.11 and 3.11.0-3.11.3 do not, so there it is the copy of
+    3.14's ``tarfile`` that ``backports.zstd`` ships, which filters with ``data``
+    by default; :func:`tar_extract_kwargs` has nothing to add to it.
+
+    The two modules have separate exception classes, so match an archive's errors
+    against the module that opened it.
+    """
+    if hasattr(tarfile, "data_filter"):
+        return tarfile
+    from backports.zstd import tarfile as backport
+    return backport
+
+
 def zstd_available() -> bool:
     """Reports whether this interpreter can read Zstandard streams.
 
@@ -246,12 +264,13 @@ def open_zstd_stream(fileobj: IO[bytes]) -> IO[bytes]:
     with its own ``TarInfo``, its own ``data_filter`` and its own exception
     classes. Extraction here depends on both: :func:`tar_extract_kwargs` may
     substitute a filter that calls stdlib ``tarfile.data_filter``, and the resolver
-    retry logic decides whether a failure is worth retrying by matching stdlib
-    ``tarfile.FilterError``. Feeding either one a backported member would make the
-    substitution a duck-typed guess and leave a refused archive misclassified as a
-    transient failure -- re-downloaded in full, to be refused again. Handing a
-    plain decompressed stream to ``mode="r:"`` keeps one ``tarfile`` on every
-    supported release, and streams rather than materializing the whole archive.
+    retry logic decides whether a failure is worth retrying by matching the
+    ``FilterError`` of :func:`tarfile_module`. Feeding either one a backported
+    member would make the substitution a duck-typed guess and leave a refused
+    archive misclassified as a transient failure -- re-downloaded in full, to be
+    refused again. Handing a plain decompressed stream to ``mode="r:"`` keeps one
+    ``tarfile`` per interpreter, and streams rather than materializing the whole
+    archive.
 
     Args:
         fileobj (IO[bytes]): The compressed stream, positioned at the frame start.
