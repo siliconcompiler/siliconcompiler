@@ -6,7 +6,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Flowgraph, Task
+from siliconcompiler import Design, Flowgraph, Project, Task
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -1083,6 +1083,22 @@ def test_runtime_get_entry_nodes_prune_from(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
     assert runtime.get_entry_nodes() == (('stepone', '1'), ('stepone', '2'))
+
+
+def test_runtime_from_project(large_flow):
+    project = Project(Design("test"))
+    project.set_flow(large_flow)
+    project.option.add_from("steptwo")
+    project.option.add_to("jointwo")
+    project.option.add_prune(("steptwo", "1"))
+
+    runtime = RuntimeFlowgraph.from_project(project)
+    assert runtime.get_nodes() == (('jointwo', '0'), ('steptwo', '0'), ('steptwo', '2'))
+
+
+def test_runtime_from_project_no_flow():
+    with pytest.raises(KeyError):
+        RuntimeFlowgraph.from_project(Project(Design("test")))
 
 
 def test_runtime_get_nodes_starting_at_invalid(large_flow):

@@ -87,11 +87,7 @@ class Scheduler:
                 logger=self.__logger):
             raise SCRuntimeError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
 
-        self.__flow_runtime = RuntimeFlowgraph(
-            self.__flow,
-            from_steps=from_steps,
-            to_steps=to_steps,
-            prune_nodes=prune_nodes)
+        self.__flow_runtime = RuntimeFlowgraph.from_project(self.__project)
         if not self.__flow_runtime.get_nodes():
             raise SCRuntimeError(f"{self.__flow.name} flowgraph contains no nodes to run.")
 
@@ -620,11 +616,7 @@ class Scheduler:
             entries = set(self.__project.option.get_from())
             entries.update(step for step, _ in rebuild)
             self.__project.option.add_from(self.__leading_entries(entries), clobber=True)
-            self.__flow_runtime = RuntimeFlowgraph(
-                self.__flow,
-                from_steps=self.__project.option.get_from(),
-                to_steps=self.__project.option.get_to(),
-                prune_nodes=self.__project.option.get_prune())
+            self.__flow_runtime = RuntimeFlowgraph.from_project(self.__project)
 
             for step, index in rebuild:
                 # Now inside the window, so this also marks everything downstream.

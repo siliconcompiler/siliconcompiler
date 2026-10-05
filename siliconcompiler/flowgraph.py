@@ -13,7 +13,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import NodeStatus
 
 if TYPE_CHECKING:
-    from siliconcompiler import Task
+    from siliconcompiler import Project, Task
     from siliconcompiler.schema_support.record import RecordSchema
 
 
@@ -1341,6 +1341,28 @@ class RuntimeFlowgraph:
         self.__to = [node for node in self.__to if node not in self.__prune]
 
         self.__compute_graph()
+
+    @classmethod
+    def from_project(cls, project: "Project") -> "RuntimeFlowgraph":
+        '''
+        Creates the runtime flowgraph of the run a project is configured for:
+        its selected flow, narrowed by :keypath:`option,from`,
+        :keypath:`option,to` and :keypath:`option,prune`.
+
+        Args:
+            project (Project): The project to read the flow and options from.
+
+        Returns:
+            RuntimeFlowgraph: The view of the nodes the run executes.
+
+        Raises:
+            KeyError: If the project has no flow selected, or the selected
+                flow is not loaded.
+        '''
+        return cls(project.get_flow(),
+                   from_steps=project.option.get_from(),
+                   to_steps=project.option.get_to(),
+                   prune_nodes=project.option.get_prune())
 
     def __walk_graph(self, node: Tuple[str, str],
                      path: Optional[List[Tuple[str, str]]] = None,

@@ -215,11 +215,7 @@ def get_flowgraph_path(project):
         Returns the "winning" path for that job.
     '''
     flow = project.option.get_flow()
-    runtime = RuntimeFlowgraph(
-        project.get_flow(),
-        from_steps=project.option.get_from(),
-        to_steps=project.option.get_to(),
-        prune_nodes=project.option.get_prune())
+    runtime = RuntimeFlowgraph.from_project(project)
     return utils._get_flowgraph_path(project, flow, runtime.get_nodes())
 
 
