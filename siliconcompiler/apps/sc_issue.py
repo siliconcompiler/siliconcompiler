@@ -1,7 +1,6 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import json
 import sys
-import tarfile
 
 import os.path
 
@@ -9,7 +8,7 @@ from typing import Optional
 
 from siliconcompiler import Project
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.utils import extract_safely
+from siliconcompiler.utils import tar_extract_kwargs, tarfile_module
 from siliconcompiler.utils.issue import generate_testcase
 
 
@@ -145,8 +144,8 @@ To run a testcase, use:
             raise ValueError('-file must be provided or pass testcase file as positional argument')
 
         test_dir = os.path.basename(file)[0:-7]
-        with tarfile.open(file, 'r:gz') as f:
-            extract_safely(f, '.')
+        with tarfile_module().open(file, 'r:gz') as f:
+            f.extractall(path='.', **tar_extract_kwargs())
 
         manifest_path = f'{test_dir}/orig_manifest.json'
         try:

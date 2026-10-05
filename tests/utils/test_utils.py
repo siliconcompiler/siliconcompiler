@@ -948,6 +948,14 @@ def test_tar_extract_kwargs_legacy_python(monkeypatch):
     utils._data_filter_mishandles_symlinks.cache_clear()
 
 
+def test_tarfile_module_legacy_python(monkeypatch):
+    """A release predating PEP 706 reads archives with backports.zstd's tarfile, which filters."""
+    backport = pytest.importorskip("backports.zstd.tarfile")
+    monkeypatch.delattr(tarfile, "data_filter", raising=False)
+
+    assert utils.tarfile_module() is backport
+
+
 @needs_filters
 def test_data_filter_symlinks_probe_agrees_with_the_filter():
     """
@@ -1219,147 +1227,6 @@ def test_is_zstd_recognizes_what_it_cannot_read(monkeypatch):
     monkeypatch.setattr(utils, "_zstd", None)
 
     assert utils.is_zstd(blob) is True
-
-
-def _tar_with(tmp_path, *members):
-    import io
-    import tarfile
-
-    path = tmp_path / "t.tar"
-    with tarfile.open(path, "w") as tar:
-        for info in members:
-            data = b"x" if info.isfile() else None
-            if data is not None:
-                info.size = len(data)
-            tar.addfile(info, io.BytesIO(data) if data is not None else None)
-    return path
-
-
-@pytest.mark.parametrize("make", [
-    lambda t: t("../escape"),
-    lambda t: t("/abs"),
-    lambda t: t("link", type=__import__("tarfile").SYMTYPE, linkname="../../etc"),
-    lambda t: t("fifo", type=__import__("tarfile").FIFOTYPE),
-])
-def test_extract_safely_without_the_data_filter(tmp_path, monkeypatch, make):
-    '''Where tarfile has no data filter, SC's own check refuses the same.'''
-    import tarfile
-
-    from siliconcompiler import utils
-
-    def info(name, **fields):
-        member = tarfile.TarInfo(name)
-        for key, value in fields.items():
-            setattr(member, key, value)
-        return member
-
-    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
-    archive = _tar_with(tmp_path, make(info))
-    (tmp_path / "out").mkdir()
-    with tarfile.open(archive) as tar, pytest.raises(ValueError):
-        utils.extract_safely(tar, str(tmp_path / "out"))
-
-
-def test_extract_safely_strips_setuid_without_the_data_filter(tmp_path, monkeypatch):
-    import os
-    import tarfile
-
-    from siliconcompiler import utils
-
-    member = tarfile.TarInfo("tool")
-    member.mode = 0o4777
-    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
-    archive = _tar_with(tmp_path, member)
-    with tarfile.open(archive) as tar:
-        utils.extract_safely(tar, str(tmp_path / "out"))
-    assert os.stat(tmp_path / "out" / "tool").st_mode & 0o7777 == 0o755
-
-
-def _unfiltered(tar):
-    '''What an interpreter with no extraction filter does, on one that has
-    one: extract exactly as asked, so only SC's own checks stand.'''
-    import tarfile
-
-    if hasattr(tarfile, "fully_trusted_filter"):
-        tar.extraction_filter = tarfile.fully_trusted_filter
-    return tar
-
-
-def test_extract_safely_refuses_a_path_through_an_earlier_link(tmp_path, monkeypatch):
-    '''`b -> .`, then `a -> b/..`, then `a/escaped.txt`: each looks inside
-    on its own, and together they write outside. Checked against what is on
-    disk as each member lands.'''
-    import io
-    import tarfile
-
-    from siliconcompiler import utils
-
-    path = tmp_path / "chain.tar"
-    with tarfile.open(path, "w") as tar:
-        for name, target in (("b", "."), ("a", "b/..")):
-            info = tarfile.TarInfo(name)
-            info.type, info.linkname = tarfile.SYMTYPE, target
-            tar.addfile(info)
-        info = tarfile.TarInfo("a/escaped.txt")
-        info.size = 4
-        tar.addfile(info, io.BytesIO(b"out\n"))
-    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
-    (tmp_path / "out").mkdir()
-
-    with tarfile.open(path) as tar, pytest.raises(utils.UnsafeArchiveError):
-        utils.extract_safely(_unfiltered(tar), str(tmp_path / "out"))
-    assert not (tmp_path / "escaped.txt").exists()
-
-
-def test_extract_safely_fills_a_read_only_directory_without_the_data_filter(
-        tmp_path, monkeypatch):
-    '''A directory takes its mode after what goes in it, as `extractall` does.'''
-    import io
-    import os
-    import tarfile
-
-    from siliconcompiler import utils
-
-    path = tmp_path / "ro.tar"
-    with tarfile.open(path, "w") as tar:
-        info = tarfile.TarInfo("ro")
-        info.type, info.mode = tarfile.DIRTYPE, 0o555
-        tar.addfile(info)
-        info = tarfile.TarInfo("ro/file.txt")
-        info.size = 2
-        tar.addfile(info, io.BytesIO(b"x\n"))
-    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
-    try:
-        with tarfile.open(path) as tar:
-            utils.extract_safely(_unfiltered(tar), str(tmp_path / "out"))
-        assert (tmp_path / "out" / "ro" / "file.txt").read_text() == "x\n"
-        assert os.stat(tmp_path / "out" / "ro").st_mode & 0o777 == 0o555
-    finally:
-        os.chmod(tmp_path / "out" / "ro", 0o755)
-
-
-def test_extract_safely_needs_no_uid_without_the_data_filter(tmp_path, monkeypatch):
-    '''Windows has no `os.getuid`: ownership is left as it is there.'''
-    import os
-    import tarfile
-
-    from siliconcompiler import utils
-
-    monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
-    monkeypatch.delattr(os, "getuid", raising=False)
-    archive = _tar_with(tmp_path, tarfile.TarInfo("file"))
-    with tarfile.open(archive) as tar:
-        utils.extract_safely(_unfiltered(tar), str(tmp_path / "out"))
-    assert (tmp_path / "out" / "file").read_bytes() == b"x"
-
-
-def test_an_unsafe_archive_is_a_permanent_failure():
-    '''The same archive is refused the same way however often it is fetched.'''
-    from siliconcompiler import utils
-    from siliconcompiler.package import Resolver
-
-    assert Resolver.is_permanent_failure(None, utils.UnsafeArchiveError("x"))
-    assert issubclass(utils.UnsafeArchiveError, ValueError)
 
 
 @pytest.mark.parametrize("stdlib", [True, False])

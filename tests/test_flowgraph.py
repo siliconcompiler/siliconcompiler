@@ -6,7 +6,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Flowgraph, Task
+from siliconcompiler import Design, Flowgraph, Project, Task
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -230,6 +230,27 @@ def test_node_reserved_index(index):
 def test_node_allow_global_index():
     Flowgraph("testflow").node(
         "teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index="global")
+
+
+@pytest.mark.parametrize("index", ["0", 0])
+def test_check_node_name(index):
+    Flowgraph.check_node_name("place", index)
+
+
+@pytest.mark.parametrize("step,index", [
+    ("default", "0"),
+    (Parameter.GLOBAL_KEY, "0"),
+    ("", "0"),
+    ("place/route", "0"),
+    ("..", "0"),
+    ("place", "default"),
+    ("place", Parameter.GLOBAL_KEY),
+    ("place", "0/1"),
+    ("place", ".."),
+])
+def test_check_node_name_invalid(step, index):
+    with pytest.raises(ValueError):
+        Flowgraph.check_node_name(step, index)
 
 
 def test_edge():
@@ -1062,6 +1083,22 @@ def test_runtime_get_entry_nodes_prune_from(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
     assert runtime.get_entry_nodes() == (('stepone', '1'), ('stepone', '2'))
+
+
+def test_runtime_from_project(large_flow):
+    project = Project(Design("test"))
+    project.set_flow(large_flow)
+    project.option.add_from("steptwo")
+    project.option.add_to("jointwo")
+    project.option.add_prune(("steptwo", "1"))
+
+    runtime = RuntimeFlowgraph.from_project(project)
+    assert runtime.get_nodes() == (('jointwo', '0'), ('steptwo', '0'), ('steptwo', '2'))
+
+
+def test_runtime_from_project_no_flow():
+    with pytest.raises(KeyError):
+        RuntimeFlowgraph.from_project(Project(Design("test")))
 
 
 def test_runtime_get_nodes_starting_at_invalid(large_flow):

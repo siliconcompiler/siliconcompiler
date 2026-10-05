@@ -566,13 +566,13 @@ def serve_nodes(fake_v1, archives):
           {f"node-{step}-0": body for step, body in archives.items()})
 
 
-@pytest.fixture(params=[False, True], ids=["data-filter", "fallback"])
+@pytest.fixture(params=[False, True], ids=["data-filter", "backport"])
 def extraction(request, monkeypatch):
-    '''Each way an archive is extracted: the `data` filter, and the checks
-    made by hand where the interpreter has none.'''
-    from siliconcompiler import utils
+    '''Each way an archive is extracted: the stdlib's `data` filter, and
+    backports.zstd's tarfile where the interpreter has none.'''
     if request.param:
-        monkeypatch.setattr(utils, "tar_extract_kwargs", lambda: {})
+        pytest.importorskip("backports.zstd.tarfile")
+        monkeypatch.delattr(tarfile, "data_filter", raising=False)
 
 
 def test_a_link_into_a_sibling_nodes_outputs_extracts_inside_the_job(

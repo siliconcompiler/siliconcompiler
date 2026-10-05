@@ -1,3 +1,4 @@
+import json
 import pytest
 import tarfile
 
@@ -272,3 +273,14 @@ def test_history_and_option_files_excluded(project):
     assert flags['option,credentials'] is False
     assert not any(key.startswith('history,') and value
                    for key, value in flags.items())
+
+
+def test_testcase_without_git(project, monkeypatch):
+    '''A testcase is still generated without a git executable, minus the git details.'''
+    monkeypatch.setattr("siliconcompiler.utils.issue.git", None)
+
+    archive, _ = make_testcase(project)
+
+    with tarfile.open(archive) as tar:
+        issue = json.load(tar.extractfile("testcase/issue.json"))
+    assert issue["version"]["git"] == {}

@@ -13,6 +13,7 @@ import os.path
 
 from io import StringIO
 from pathlib import Path
+from types import ModuleType
 
 from typing import IO, Dict, Optional, Tuple, Type, Union, Callable, List, cast, TYPE_CHECKING
 
@@ -169,75 +170,21 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     return {"filter": filter}
 
 
-class UnsafeArchiveError(ValueError):
-    """An archive member that would land, or link, outside where the archive
-    is extracted, or that is a device node or a FIFO. Permanent: the same
-    archive is refused the same way every time."""
+def tarfile_module() -> ModuleType:
+    """Returns the ``tarfile`` module to read archives with.
 
+    That is the standard library's where it has the PEP 706 extraction filters.
+    Python 3.10.0-3.10.11 and 3.11.0-3.11.3 do not, so there it is the copy of
+    3.14's ``tarfile`` that ``backports.zstd`` ships, which filters with ``data``
+    by default; :func:`tar_extract_kwargs` has nothing to add to it.
 
-def extract_safely(tar: tarfile.TarFile, path: str, members=None) -> None:
-    """Extracts ``tar`` into ``path`` with nothing landing outside it.
-
-    Uses the ``data`` filter where the interpreter has one. Where it does not
-    (3.10.0-3.10.11, 3.11.0-3.11.3), the same rules are checked here: nothing
-    outside the destination, no link resolving outside it, no device node or
-    FIFO, and no ownership, setuid or setgid bits.
-
-    Args:
-        tar (tarfile.TarFile): The open archive.
-        path (str): The destination directory.
-        members (list, optional): The members to extract; all by default.
-
-    Raises:
-        UnsafeArchiveError: If a member would break one of those rules.
+    The two modules have separate exception classes, so match an archive's errors
+    against the module that opened it.
     """
-    kwargs = tar_extract_kwargs()
-    if kwargs:
-        tar.extractall(path=path, members=members, **kwargs)
-        return
-    # One member at a time, each checked against what is already on disk: a
-    # path can run through a link an earlier member made (`b -> .`, then
-    # `a -> b/..`, then `a/x`), which no check made before extracting can see.
-    # Directories take their mode last, as `extractall` does, so a read-only
-    # one does not refuse what goes in it.
-    directories = []
-    for member in (members if members is not None else tar.getmembers()):
-        member = _checked_member(member, path)
-        if member.isdir():
-            os.makedirs(os.path.join(path, member.name), exist_ok=True)
-            directories.append(member)
-        else:
-            tar.extract(member, path=path)
-    if directories:
-        tar.extractall(path=path, members=directories)
-
-
-def _checked_member(member: tarfile.TarInfo, path: str) -> tarfile.TarInfo:
-    """One member, refused where it would leave ``path`` as the files already
-    extracted resolve, and stripped of what it should not carry."""
-    root = os.path.realpath(path)
-
-    def inside(target: str) -> bool:
-        return os.path.commonpath([root, os.path.realpath(target)]) == root
-
-    name = member.name
-    if os.path.isabs(name) or not inside(os.path.join(root, name)):
-        raise UnsafeArchiveError(f"{name} would extract outside {path}")
-    if member.isdev() or member.isfifo():
-        raise UnsafeArchiveError(f"{name} is a device node or a FIFO")
-    if member.issym() and (os.path.isabs(member.linkname) or not inside(
-            os.path.join(root, os.path.dirname(name), member.linkname))):
-        raise UnsafeArchiveError(f"{name} links outside {path}")
-    if member.islnk() and (os.path.isabs(member.linkname) or not inside(
-            os.path.join(root, member.linkname))):
-        raise UnsafeArchiveError(f"{name} links outside {path}")
-
-    # No ownership: whoever extracts owns what lands. Windows has no uid.
-    if hasattr(os, "getuid"):
-        member.uid, member.gid = os.getuid(), os.getgid()
-    member.uname, member.gname = "", ""
-    member.mode &= 0o755
-    return member
+    if hasattr(tarfile, "data_filter"):
+        return tarfile
+    from backports.zstd import tarfile as backport
+    return backport
 
 
 def zstd_available() -> bool:
@@ -317,12 +264,13 @@ def open_zstd_stream(fileobj: IO[bytes]) -> IO[bytes]:
     with its own ``TarInfo``, its own ``data_filter`` and its own exception
     classes. Extraction here depends on both: :func:`tar_extract_kwargs` may
     substitute a filter that calls stdlib ``tarfile.data_filter``, and the resolver
-    retry logic decides whether a failure is worth retrying by matching stdlib
-    ``tarfile.FilterError``. Feeding either one a backported member would make the
-    substitution a duck-typed guess and leave a refused archive misclassified as a
-    transient failure -- re-downloaded in full, to be refused again. Handing a
-    plain decompressed stream to ``mode="r:"`` keeps one ``tarfile`` on every
-    supported release, and streams rather than materializing the whole archive.
+    retry logic decides whether a failure is worth retrying by matching the
+    ``FilterError`` of :func:`tarfile_module`. Feeding either one a backported
+    member would make the substitution a duck-typed guess and leave a refused
+    archive misclassified as a transient failure -- re-downloaded in full, to be
+    refused again. Handing a plain decompressed stream to ``mode="r:"`` keeps one
+    ``tarfile`` per interpreter, and streams rather than materializing the whole
+    archive.
 
     Args:
         fileobj (IO[bytes]): The compressed stream, positioned at the frame start.

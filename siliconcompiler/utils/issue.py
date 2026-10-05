@@ -1,4 +1,3 @@
-import git
 import json
 import os
 import shutil
@@ -12,6 +11,12 @@ import os.path
 from typing import Optional, List, TYPE_CHECKING
 
 from datetime import datetime, timezone
+
+try:
+    import git
+except ImportError:
+    # GitPython raises ImportError when it cannot find a git executable.
+    git = None
 
 import siliconcompiler
 
@@ -163,28 +168,28 @@ def generate_testcase(project: "Project",
     os.chdir(current_work_dir)
 
     git_data = {}
-    try:
-        # Check git information
-        repo = git.Repo(path=os.path.join(os.path.dirname(siliconcompiler.__file__), '..'))
-        commit = repo.head.commit
-        git_data['commit'] = commit.hexsha
-        git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S',
-                                         time.gmtime(commit.committed_date))
-        git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
-        git_data['msg'] = commit.message
-        # Count number of commits ahead of version
-        version_tag = repo.tag(f'v{siliconcompiler.__version__}')
-        count = 0
-        for c in commit.iter_parents():
-            count += 1
-            if c == version_tag.commit:
-                break
-        git_data['count'] = count
-    except git.InvalidGitRepositoryError:
-        pass
-    except Exception as e:
-        git_data['failed'] = str(e)
-        pass
+    if git is not None:
+        try:
+            # Check git information
+            repo = git.Repo(path=os.path.join(os.path.dirname(siliconcompiler.__file__), '..'))
+            commit = repo.head.commit
+            git_data['commit'] = commit.hexsha
+            git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S',
+                                             time.gmtime(commit.committed_date))
+            git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
+            git_data['msg'] = commit.message
+            # Count number of commits ahead of version
+            version_tag = repo.tag(f'v{siliconcompiler.__version__}')
+            count = 0
+            for c in commit.iter_parents():
+                count += 1
+                if c == version_tag.commit:
+                    break
+            git_data['count'] = count
+        except git.InvalidGitRepositoryError:
+            pass
+        except Exception as e:
+            git_data['failed'] = str(e)
 
     issue_time = datetime.now(timezone.utc).timestamp()
     issue_information = {}

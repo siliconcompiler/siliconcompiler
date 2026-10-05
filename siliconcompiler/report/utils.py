@@ -15,18 +15,13 @@ def _find_summary_image(project, ext='png'):
     return None
 
 
-def _collect_data(project, flow=None, flowgraph_nodes=None, format_as_string=True):
-    if not flow:
-        flow = project.option.get_flow()
+def _collect_data(project, flowgraph_nodes=None, format_as_string=True):
+    flow = project.option.get_flow()
     if not flow:
         return [], {}, {}, {}, [], {}
 
     if not flowgraph_nodes:
-        runtime = RuntimeFlowgraph(
-            project.get_flow(flow),
-            from_steps=project.option.get_from(),
-            to_steps=project.option.get_to(),
-            prune_nodes=project.option.get_prune())
+        runtime = RuntimeFlowgraph.from_project(project)
 
         flowgraph_nodes = list(runtime.get_nodes())
         # only report tool based steps functions

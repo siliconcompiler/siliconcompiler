@@ -531,13 +531,20 @@ def test_collection_id_dataroot_follows_target():
         DatarootResolver("n", design_a, "dataroot://shared_name/other").collection_id
 
 
-def test_collection_id_dataroot_cycle():
+@pytest.mark.parametrize("dataroots,collection_id", [
+    ({}, "55f8fb5943dc88a8de05b75e9e74e0796f5bc81a"),
+    ({"dataA": "dataroot://dataB", "dataB": "dataroot://dataA"},
+     "632ef1b0d96d72118a856505cf519c5326ae2f01"),
+])
+def test_collection_id_dataroot_without_target(dataroots, collection_id):
+    """A dataroot:// whose target cannot be found, undefined or in a cycle, still has
+    an ID, so a file found without it is still collected."""
     design = Design("testdesign")
-    design.set_dataroot("dataA", "dataroot://dataB")
-    design.set_dataroot("dataB", "dataroot://dataA")
+    for name, path in dataroots.items():
+        design.set_dataroot(name, path)
 
-    with pytest.raises(RuntimeError, match="Circular dataroot reference detected"):
-        DatarootResolver("thisname", design, "dataroot://dataA").collection_id
+    assert DatarootResolver("thisname", design, "dataroot://dataA").collection_id == \
+        collection_id
 
 
 def test_init_with_env_project():

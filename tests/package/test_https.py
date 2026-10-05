@@ -722,6 +722,38 @@ def test_http_resolver_zstd_filter_refusal_is_permanent():
     assert resolver.is_permanent_failure(error) is True
 
 
+@pytest.fixture
+def filterless_tarfile(monkeypatch):
+    """Fakes a release predating PEP 706, where backports.zstd's tarfile reads archives."""
+    pytest.importorskip("backports.zstd.tarfile")
+    monkeypatch.delattr(tarfile, "data_filter", raising=False)
+
+
+def test_http_resolver_filterless_python_refuses_escape(filterless_tarfile):
+    """Without the stdlib's filters, the backport refuses an escaping member, and that settles."""
+    project = Project("testproj")
+    project.option.set_cachedir(".")
+
+    resolver = HTTPResolver("test", project, "https://example.com/data.tar.gz", "v1.0")
+
+    archive = _tarball({"safe.txt": b"ok", "../escape.txt": b"bad"}, "gz")
+
+    with pytest.raises(utils.tarfile_module().OutsideDestinationError) as error:
+        _resolve_with_content(resolver, archive)
+
+    assert resolver.is_permanent_failure(error.value) is True
+    assert not os.path.exists("escape.txt")
+
+
+def test_extract_archive_filterless_python_reports_zip(filterless_tarfile):
+    """The backport's ReadError still hands a zip on to the zip reader."""
+    archive = BytesIO()
+    with zipfile.ZipFile(archive, 'w') as zf:
+        zf.writestr("test.txt", "test")
+
+    assert extract_archive(archive, ".", "https://example.com/data") == "zip"
+
+
 def test_http_resolver_resolve_remote_zstd_that_is_not_a_tar():
     """
     A zstd frame holding something other than a tar raises the ordinary unknown-format error,

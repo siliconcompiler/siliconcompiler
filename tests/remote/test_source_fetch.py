@@ -12,7 +12,7 @@ from siliconcompiler.package.cache import DataSourceUnavailableError
 from siliconcompiler.remote.server.packages import envbuild
 from siliconcompiler.remote.server.staging import allowlist, fetch, sources
 from siliconcompiler.remote.server.staging.sources import Permanent, SourceStore, Transient
-from siliconcompiler.utils import UnsafeArchiveError
+from siliconcompiler.utils import tarfile_module
 
 
 # A source is fetched by SiliconCompiler's own resolver in a process of its
@@ -177,7 +177,7 @@ def test_a_source_heavier_than_the_ceiling_is_refused(site, loopback, monkeypatc
     (RuntimeError("fatal: could not read Username for 'https://x': terminal prompts disabled"),
      True),
     (TypeError("File is not a valid tar or zip archive."), True),
-    (UnsafeArchiveError("a member escapes"), True),
+    (tarfile_module().FilterError("a member escapes"), True),
     (RuntimeError("something else"), False),
 ])
 def test_a_resolvers_failure_is_classified_by_what_it_means(error, permanent):

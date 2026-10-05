@@ -5,21 +5,20 @@ A download is identified by trying each known format on it in turn, so it works
 the same for every resolver that fetches one: :mod:`~siliconcompiler.package.https`
 and the resolvers built on it, and :mod:`~siliconcompiler.package.s3`.
 """
-import tarfile
 import zipfile
 
 from typing import Callable, IO, List, Tuple
 
 from siliconcompiler.package import Resolver
 from siliconcompiler.package.cache import PermanentResolutionError
-from siliconcompiler.utils import extract_safely, is_zstd, open_zstd_stream, \
-    zstd_available, zstd_errors, zstd_unavailable_message
+from siliconcompiler.utils import is_zstd, open_zstd_stream, tar_extract_kwargs, \
+    tarfile_module, zstd_available, zstd_errors, zstd_unavailable_message
 
 
 def extract_tar(fileobj: IO[bytes], path: str, mode: str) -> None:
     """Extracts a tar archive, applying the PEP 706 extraction filter."""
-    with tarfile.open(fileobj=fileobj, mode=mode) as tar_ref:
-        extract_safely(tar_ref, path)
+    with tarfile_module().open(fileobj=fileobj, mode=mode) as tar_ref:
+        tar_ref.extractall(path=path, **tar_extract_kwargs())
 
 
 def extract_zstd_tar(fileobj: IO[bytes], path: str) -> None:
@@ -92,7 +91,7 @@ def extract_archive(fileobj: IO[bytes], path: str, data_url: str) -> str:
         fileobj.seek(0)
         try:
             extract(fileobj, path)
-        except (tarfile.ReadError, zipfile.BadZipFile, *zstd_errors()):
+        except (tarfile_module().ReadError, zipfile.BadZipFile, *zstd_errors()):
             # Not this format: the next one gets the same bytes from the start.
             continue
         return name

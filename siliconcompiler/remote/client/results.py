@@ -12,7 +12,6 @@ import json
 import logging
 import os
 import sys
-import tarfile
 import tempfile
 
 from typing import Any, Dict, List, Optional
@@ -425,7 +424,7 @@ class Results:
         prefix = os.path.relpath(into, root).replace(os.sep, "/")
         with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
             path = self._download(job_id, item, tmpdir)
-            with tarfile.open(path, "r:*") as tar:
+            with utils.tarfile_module().open(path, "r:*") as tar:
                 members = []
                 for member in tar.getmembers():
                     name = member.name
@@ -438,7 +437,7 @@ class Results:
                             target = target[2:]
                         member.linkname = f"{prefix}/{target}"
                     members.append(member)
-                utils.extract_safely(tar, root, members=members)
+                tar.extractall(root, members=members, **utils.tar_extract_kwargs())
 
     def _replay(self) -> None:
         '''Fold the retrieved manifests' record and metrics into this project, for `summary()`.

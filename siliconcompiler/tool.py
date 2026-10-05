@@ -642,11 +642,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             # Used by IO validation to distinguish running upstreams (whose
             # outputs come from declared task outputs) from non-running ones
             # (whose outputs must already exist on disk).
-            self.__io_runtime_flow = RuntimeFlowgraph(
-                self.__schema_flow,
-                from_steps=self.__schema_full.option.get_from(),
-                to_steps=self.__schema_full.option.get_to(),
-                prune_nodes=self.__schema_full.option.get_prune())
+            self.__io_runtime_flow = RuntimeFlowgraph.from_project(self.__schema_full)
 
     @property
     def design_name(self) -> str:

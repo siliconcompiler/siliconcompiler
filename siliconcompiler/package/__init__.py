@@ -18,19 +18,18 @@ import re
 import site
 import shutil
 import stat
-import tarfile
 import time
 import threading
 
 import os.path
 
-from typing import Optional, List, Dict, Tuple, Type, Union, TYPE_CHECKING
+from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING
 
 from pathlib import Path, PureWindowsPath
 
 from siliconcompiler.package.cache import PathCache, DataRootResolutionError, \
     PermanentResolutionError
-from siliconcompiler.utils import UnsafeArchiveError, get_plugins
+from siliconcompiler.utils import get_plugins, tarfile_module
 from siliconcompiler.utils.paths import cwdirsafe, datarootdir
 from siliconcompiler.utils.multiprocessing import MPManager, FileLockTimeout, \
     get_file_lock
@@ -41,12 +40,6 @@ if TYPE_CHECKING:
     from siliconcompiler.project import Project
     from siliconcompiler.schema_support.pathschema import PathSchema
     from siliconcompiler.schema import BaseSchema
-
-
-#: The extraction filters, and so the errors they raise, only exist on Python
-#: releases carrying the PEP 706 backport.
-_TAR_FILTER_ERRORS: Tuple[Type[BaseException], ...] = \
-    (tarfile.FilterError,) if hasattr(tarfile, "FilterError") else ()
 
 
 #: Registry key marking resolver population as *complete*, written only once
@@ -281,11 +274,10 @@ class Resolver:
         * :class:`~siliconcompiler.package.cache.PermanentResolutionError`, raised
           by a resolver that has itself established the answer will not change --
           an HTTP status saying the data is not there, for instance.
-        * ``tarfile.FilterError``, raised when the extraction filter refuses a
-          member of a downloaded archive, and
-          :class:`~siliconcompiler.utils.UnsafeArchiveError`, its equivalent
-          where the interpreter has no filter. That verdict is a property of the
-          archive's contents, so a fresh copy of the same archive earns it again.
+        * The ``FilterError`` of :func:`~siliconcompiler.utils.tarfile_module`,
+          raised when the extraction filter refuses a member of a downloaded
+          archive. That verdict is a property of the archive's contents, so a
+          fresh copy of the same archive earns it again.
 
         Anything else counts as transient, deliberately: this decides how much
         effort a failure is worth, and treating a retryable error as settled costs
@@ -298,8 +290,7 @@ class Resolver:
         Returns:
             bool: True if the source should be abandoned without further attempts.
         """
-        return isinstance(error, (PermanentResolutionError, UnsafeArchiveError,
-                                  *_TAR_FILTER_ERRORS))
+        return isinstance(error, (PermanentResolutionError, tarfile_module().FilterError))
 
     @property
     def is_indirect(self) -> bool:
@@ -1418,9 +1409,14 @@ class DatarootResolver(Resolver):
     @property
     def _collection_source(self) -> str:
         # The name means another dataroot in every schema, so the dataroot it
-        # names identifies it
+        # names identifies it. One that cannot be found, as in a cycle, leaves
+        # the source as written, so a file found without it is still collected
+        try:
+            target = self.__target()
+        except RuntimeError:
+            return super()._collection_source
         subpath = self.source.partition("://")[2].partition("/")[2]
-        return f"dataroot://{self.__target().collection_id}/{subpath}"
+        return f"dataroot://{target.collection_id}/{subpath}"
 
     def resolve(self) -> str:
         """
