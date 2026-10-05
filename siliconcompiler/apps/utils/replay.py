@@ -170,7 +170,8 @@ def main():
         fd.flush()
         script = convert_base64(compress(fd.getvalue()))
 
-    manifest = convert_base64(compress(json.dumps(job.getdict(), indent=2)))
+    # The script is handed to someone else, so its manifest carries no credential
+    manifest = convert_base64(compress(json.dumps(utils.mask_credentials(job).getdict(), indent=2)))
 
     tool_info = []
     for tool, version in tools.items():

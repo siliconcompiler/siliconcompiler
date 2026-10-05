@@ -13,7 +13,8 @@ from importlib.metadata import entry_points
 from io import BytesIO
 from unittest.mock import patch
 
-from siliconcompiler import utils
+from siliconcompiler import Design, Flowgraph, Project, utils
+from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils import \
     truncate_text, safecompare, get_cores, grep, \
     get_plugins, tar_extract_kwargs, \
@@ -1368,3 +1369,49 @@ def test_file_digest_fallback_reads_in_chunks(monkeypatch):
     assert utils.file_digest("data.bin").hexdigest() == hashlib.sha256(data).hexdigest()
     assert len(reads) > 1
     assert all(0 < size <= 2**20 for size in reads)
+
+
+def test_find_schemas_searches_lazily_loaded_parts():
+    """Every part of the type is found, the history's included, in a project
+    loaded lazily from a manifest."""
+    proj = Project(Design("testdesign"))
+    proj._record_history()
+    proj.write_manifest("test.pkg.json")
+
+    found = utils.find_schemas(Project.from_manifest(filepath="test.pkg.json"), Design)
+
+    assert sorted(part._keypath for part in found) == [
+        ("history", "job0", "library", "testdesign"), ("library", "testdesign")]
+
+
+def test_mask_credentials():
+    """The copy has every dataroot path masked, a private one, a task's and the
+    history's included, and the project keeps what was registered."""
+    proj = Project(Design("testdesign"))
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    proj.set_flow(flow)
+    design = proj.get("library", "testdesign", field="schema")
+    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
+    design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
+                        "v1")
+    design.set_dataroot("local", "/home/me@corp/ip")
+    proj.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
+             "https://example.com/scripts.tar.gz?token=TOKEN")
+    proj._record_history()
+
+    masked = utils.mask_credentials(proj)
+
+    expect = {
+        ("library", "testdesign", "dataroot", "ip"): "git+https://example.com/ip.git",
+        ("library", "testdesign", "dataroot", "secret"):
+            "git+https+private://example.com/secret.git",
+        ("library", "testdesign", "dataroot", "local"): "/home/me@corp/ip",
+        ("tool", "builtin", "task", "nop", "dataroot", "scripts"):
+            "https://example.com/scripts.tar.gz?token=***",
+        ("history", "job0", "library", "testdesign", "dataroot", "ip"):
+            "git+https://example.com/ip.git",
+    }
+    assert {keypath: masked.get(*keypath, "path") for keypath in expect} == expect
+    assert proj.get("library", "testdesign", "dataroot", "ip", "path") == \
+        "git+https://alice:TOKEN@example.com/ip.git"
