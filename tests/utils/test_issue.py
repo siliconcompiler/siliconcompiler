@@ -284,3 +284,17 @@ def test_testcase_without_git(project, monkeypatch):
     with tarfile.open(archive) as tar:
         issue = json.load(tar.extractfile("testcase/issue.json"))
     assert issue["version"]["git"] == {}
+
+
+def test_environment_leaves_out_credentials(project, monkeypatch):
+    '''issue.json leaves out the environment variables named like a credential.'''
+    for name in ("GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "db_password", "CLIENT_SECRET"):
+        monkeypatch.setenv(name, "hidden")
+    monkeypatch.setenv("SC_TESTCASE_SHOWN", "shown")
+
+    archive, _ = make_testcase(project)
+
+    with tarfile.open(archive) as tar:
+        environment = json.load(tar.extractfile("testcase/issue.json"))["environment"]
+    assert environment["SC_TESTCASE_SHOWN"] == "shown"
+    assert "hidden" not in environment.values()

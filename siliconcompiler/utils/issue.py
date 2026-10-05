@@ -193,7 +193,10 @@ def generate_testcase(project: "Project",
 
     issue_time = datetime.now(timezone.utc).timestamp()
     issue_information = {}
-    issue_information['environment'] = {key: value for key, value in os.environ.items()}
+    # A testcase is handed to someone else, so leave out what may be a credential
+    issue_information['environment'] = {
+        key: value for key, value in os.environ.items()
+        if not any(word in key.upper() for word in ("TOKEN", "KEY", "PASS", "SECRET"))}
     issue_information['python'] = {"path": sys.path,
                                    "version": sys.version}
     issue_information['date'] = datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')
