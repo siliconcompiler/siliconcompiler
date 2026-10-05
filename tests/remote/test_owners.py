@@ -9,6 +9,7 @@ import pytest
 
 from siliconcompiler import ASIC, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
+from siliconcompiler.utils import mask_credentials
 
 
 # What goes in a remote run's archive, and the server's accounting for the rest.
@@ -176,7 +177,7 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
     project.add_asiclib(private(StdCellLibrary, "secretlib", tmp_path))
 
     listed = {tuple(item["keypath"]): item for item in owners.sources(project)}
-    record, = [one for one in owners.value_records(owners.without_credentials(project), "none")
+    record, = [one for one in owners.value_records(mask_credentials(project), "none")
                if one["key"][:2] == ["library", "lambda"]]
 
     assert not any("kind" in item for item in listed.values())       # by keypath
@@ -189,33 +190,6 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
     assert owners.is_masked(sent["source"]) and not owners.is_masked(GITHUB)
     hidden = listed[("library", "secretlib", "dataroot", "secretlib")]
     assert hidden["private"] is True and "source" not in hidden
-
-
-def test_every_dataroot_path_leaves_without_its_credential(gcd_nop_project):
-    '''The design's, a private one, a task's query, and the same in the
-    history -- on a copy, so the user's project keeps what they registered.'''
-    assert owners.without_credentials(gcd_nop_project) is gcd_nop_project   # none: no copy
-    project = gcd_nop_project
-    design = project.get("library", "gcd", field="schema")
-    design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
-    design.set_dataroot("secret", "git+https+private://alice:TOKEN@example.com/secret.git",
-                        "v1")
-    project.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
-                "https://example.com/scripts.tar.gz?token=TOKEN")
-    project._record_history()
-
-    paths = dict(owners.dataroot_paths(owners.without_credentials(project)))
-
-    assert paths[("library", "gcd", "dataroot", "ip")] == "git+https://example.com/ip.git"
-    assert paths[("library", "gcd", "dataroot", "secret")] == \
-        "git+https+private://example.com/secret.git"
-    assert paths[("tool", "builtin", "task", "nop", "dataroot", "scripts")] == \
-        "https://example.com/scripts.tar.gz?token=***"
-    assert paths[("history", "job0", "library", "gcd", "dataroot", "ip")] == \
-        "git+https://example.com/ip.git"
-    assert not any("TOKEN" in path or owners.has_userinfo(path) for path in paths.values())
-    assert project.get("library", "gcd", "dataroot", "ip", "path") == \
-        "git+https://alice:TOKEN@example.com/ip.git"
 
 
 def test_userinfo_is_read_as_the_mask_reads_it():
@@ -239,7 +213,7 @@ def test_a_masked_source_is_never_fetched(project, tmp_path):
                        Supply(held=held, allowed=[""]))
 
     project.set_pdk(resource(PDK, "lambda", f"{GITHUB}?token=SECRET", create=False))
-    assert status(owners.without_credentials(project), "lambda", supply()).status == \
+    assert status(mask_credentials(project), "lambda", supply()).status == \
         owners.ASK
 
     secret = PDK("secret")
@@ -248,7 +222,7 @@ def test_a_masked_source_is_never_fetched(project, tmp_path):
     with secret.active_dataroot("secret"):
         secret.set(*DATASHEET, "datasheet.pdf")
     project.set_pdk(secret)
-    sent = owners.without_credentials(project)
+    sent = mask_credentials(project)
     masked = "https://github.com/siliconcompiler/s/?token=***"
     (tmp_path / "datasheet.pdf").write_text("x")
     assert status(sent, "secret", supply()).status == owners.UNAVAILABLE
@@ -791,7 +765,7 @@ def test_an_uploaded_file_is_found_by_the_run_once_its_dataroot_is_pointed(
     chosen = uploaded_by_owner(project)
     collect(project, keys=chosen.keys, directory=str(collection), verbose=False,
             select=chosen.select)
-    owners.without_credentials(project).write_manifest(str(tree / "top.pkg.json"))
+    mask_credentials(project).write_manifest(str(tree / "top.pkg.json"))
     assert "SECRET" not in (tree / "top.pkg.json").read_text()
     shutil.rmtree(tmp_path / "submitter")
     monkeypatch.setattr(HTTPResolver, "resolve",

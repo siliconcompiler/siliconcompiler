@@ -156,13 +156,13 @@ def test_a_credential_is_refused_after_what_the_read_itself_refuses(
 def test_a_masked_manifest_is_read_as_sent(server_client, key, token, job_archive,
                                            nop_project, dispatcher):
     '''What a client sends -- the path without its userinfo -- is not refused.'''
-    from siliconcompiler.remote import owners
+    from siliconcompiler.utils import mask_credentials
 
     design = nop_project.get("library", "gcd", field="schema")
     design.set_dataroot("ip", "git+https://alice:TOKEN@example.com/ip.git", "v1")
 
     _, response = submitted(server_client, key, token,
-                            job_archive(owners.without_credentials(nop_project)))
+                            job_archive(mask_credentials(nop_project)))
 
     assert response.status_code == 202, response.get_json()
 

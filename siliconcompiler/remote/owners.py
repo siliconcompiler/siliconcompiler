@@ -48,8 +48,7 @@ __all__ = ["DESIGN", "PROJECT", "RESOURCE_KINDS", "LOCAL", "EDITABLE", "INSTALLE
            "is_private", "skipped", "owner", "source", "uploads", "sources",
            "dataroot_keypath", "is_dataroot_keypath", "keypath_owner", "shown",
            "Unnamed",
-           "safe_source", "masked", "is_masked", "has_userinfo", "dataroot_paths",
-           "without_credentials", "Entry", "confined",
+           "safe_source", "masked", "is_masked", "has_userinfo", "Entry", "confined",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "installed_dataroots",
            "private_holders", "collection", "Collection", "collected_path",
@@ -251,37 +250,6 @@ def has_userinfo(url: Optional[str]) -> bool:
     return "@" in urlsplit(url).netloc
 
 
-def dataroot_paths(schema) -> Iterator[Tuple[Tuple[str, ...], str]]:
-    '''Every dataroot path ``schema`` holds, history included, as
-    ``(dataroot keypath, path)``.'''
-    for key in sorted(schema.allkeys(include_default=False)):
-        if len(key) < 3 or key[-1] != "path" or key[-3] != "dataroot":
-            continue
-        path = schema.get(*key)
-        if isinstance(path, str) and path:
-            yield tuple(key[:-1]), path
-
-
-def without_credentials(project):
-    '''``project`` as its manifest may leave this machine, every dataroot path
-    :func:`masked`: a copy if anything changes, else ``project``.
-
-    Nothing resolves a masked path: the server supplies by keypath, and
-    `collection_id` hashes the source masked the same way.'''
-    import copy
-
-    changed = [(keypath, masked(path)) for keypath, path in dataroot_paths(project)
-               if masked(path) != path]
-    if not changed:
-        return project
-    cleaned = copy.deepcopy(project)
-    for keypath, path in changed:
-        if not cleaned.set(*keypath, "path", path):
-            raise ValueError(f"[{shown(keypath)}] could not have its credentials "
-                             "removed, so the manifest cannot be sent")
-    return cleaned
-
-
 class _Value(NamedTuple):
     key: Tuple[str, ...]
     value: Any                  # the PathNodeValue
@@ -361,13 +329,8 @@ def collection(project, pick: Callable[[_Value], bool]) -> Collection:
 
 
 def _dataroot_id(one: _Value) -> Optional[str]:
-    '''``one``'s dataroot as `collect` files it: its `collection_id`, else its name.'''
-    if not one.dataroot:
-        return None
-    try:
-        return one.resolvers[one.dataroot].collection_id
-    except Exception:                                           # noqa: BLE001
-        return one.dataroot
+    '''``one``'s dataroot as `collect` files it: its `collection_id`.'''
+    return one.resolvers[one.dataroot].collection_id if one.dataroot else None
 
 
 def collected_path(one: _Value) -> Optional[str]:
@@ -751,12 +714,12 @@ def required(project) -> Optional[Set[Tuple[str, ...]]]:
     The one definition, read by both ends from the same manifest.
     None means not worked out, so nothing is filtered; never the empty set.
     '''
-    from siliconcompiler.remote.runflow import runtime_flow
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
 
     flow = project.get_flow()
     keys: Set[Tuple[str, ...]] = set()
     declared = False
-    for step, index in runtime_flow(project).get_nodes():
+    for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
         prefix = ("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"))
         for item in project.get(*prefix, "require", step=step, index=index) or []:
             keys.add(tuple(item.split(",")))
@@ -792,7 +755,7 @@ def work_out(project) -> WorkedOut:
     import copy
     import logging
 
-    from siliconcompiler.remote.runflow import runtime_flow
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
     from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
     work = copy.deepcopy(project)
@@ -803,7 +766,7 @@ def work_out(project) -> WorkedOut:
     try:
         work._init_run()
         flow = work.get_flow()
-        executed = set(runtime_flow(work).get_nodes())
+        executed = set(RuntimeFlowgraph.from_project(work).get_nodes())
         declared: Dict[Tuple[str, str], List[str]] = {}
         environments: Dict[Tuple[str, str], Any] = {}
         tasks: Dict[Tuple[str, str], Any] = {}

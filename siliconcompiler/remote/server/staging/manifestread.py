@@ -206,6 +206,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
     '''
     import warnings
 
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
     from siliconcompiler.schema.baseschema import SchemaVersionWarning
 
     from siliconcompiler.remote import manifests
@@ -257,9 +258,7 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                       f"and the job is {design}/{jobname}")
 
     # Each dataroot path carrying userinfo, by keypath, never value.
-    summary["credentials"] = [list(keypath)
-                              for keypath, path in owners.dataroot_paths(project)
-                              if owners.has_userinfo(path)]
+    summary["credentials"] = _credentials(project)
     # And in every upstream node's manifest.
     for member in _outputs_manifests(tree):
         try:
@@ -270,12 +269,12 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
             return refuse("archive-rejected",
                           f"the uploaded manifest {member} could not be read: {e}",
                           reason="invalid_manifest")
-        for keypath, path in owners.dataroot_paths(upstream):
-            if owners.has_userinfo(path) and list(keypath) not in summary["credentials"]:
-                summary["credentials"].append(list(keypath))
+        for keypath in _credentials(upstream):
+            if keypath not in summary["credentials"]:
+                summary["credentials"].append(keypath)
 
     try:
-        runtime = runflow.runtime_flow(project)
+        runtime = RuntimeFlowgraph.from_project(project)
         nodes = list(runtime.get_nodes())
     except Exception as e:                                   # noqa: BLE001
         return refuse("archive-rejected", f"the manifest names no runnable flow: {e}",
@@ -363,6 +362,19 @@ def read(asked: Dict[str, Any]) -> Dict[str, Any]:
                       "with set_pdk() before it is submitted",
                       resource_kind="pdk")
     return summary
+
+
+def _credentials(project) -> List[List[str]]:
+    '''The keypath of each dataroot ``project`` holds whose path carries
+    userinfo, history included, found as `utils.mask_credentials` finds them.'''
+    from siliconcompiler.remote import owners
+    from siliconcompiler.schema_support.pathschema import PathSchema
+    from siliconcompiler.utils import find_schemas
+
+    return sorted([*part._keypath, "dataroot", name]
+                  for part in find_schemas(project, PathSchema) if part.valid("dataroot")
+                  for name in part.getkeys("dataroot")
+                  if owners.has_userinfo(part.get("dataroot", name, "path")))
 
 
 def _unattended(project, nodes):

@@ -1108,13 +1108,14 @@ def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path)
     _, blobs = _members(run, tmp_path)
     sent = _read_manifest(blobs["gcd.pkg.json"], tmp_path)
 
-    paths = dict(owners.dataroot_paths(sent))
-    assert paths[("library", "gcd", "dataroot", "ip")] == "git+https://example.com/ip.git"
-    assert paths[("library", "gcd", "dataroot", "secret")] == \
+    assert sent.get("library", "gcd", "dataroot", "ip", "path") == \
+        "git+https://example.com/ip.git"
+    assert sent.get("library", "gcd", "dataroot", "secret", "path") == \
         "git+https+private://example.com/secret.git"
-    assert paths[("tool", "builtin", "task", "nop", "dataroot", "scripts")] == \
+    assert sent.get("tool", "builtin", "task", "nop", "dataroot", "scripts", "path") == \
         "https://example.com/scripts.tar.gz?token=***"
-    assert ("history", "job0", "library", "gcd", "dataroot", "ip") in paths
+    assert sent.get("history", "job0", "library", "gcd", "dataroot", "ip", "path") == \
+        "git+https://example.com/ip.git"
     assert not [name for name, body in blobs.items() if b"TOKEN" in body]
 
     # Still the set the archive was filtered by.
@@ -1128,8 +1129,6 @@ def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path)
 def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
         run, nop_project, tmp_path):
     '''A `-from` run carries each upstream node's own manifest too.'''
-    from siliconcompiler.remote import owners
-
     _registered_with_credentials(nop_project)
     _leftovers(nop_project)
     outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
@@ -1139,7 +1138,7 @@ def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
     _, blobs = _members(run, tmp_path)
     upstream = _read_manifest(blobs["stepone/0/outputs/gcd.pkg.json"], tmp_path)
 
-    assert dict(owners.dataroot_paths(upstream))[("library", "gcd", "dataroot", "ip")] == \
+    assert upstream.get("library", "gcd", "dataroot", "ip", "path") == \
         "git+https://example.com/ip.git"
     assert blobs["stepone/0/outputs/gcd.vg"] == b"module gcd; endmodule\n"
     assert not [name for name, body in blobs.items() if b"TOKEN" in body]

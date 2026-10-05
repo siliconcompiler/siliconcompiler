@@ -8,30 +8,23 @@ server extra.
 
 from typing import Dict, List, Optional, Set, Tuple
 
-__all__ = ["runtime_flow", "runtime_nodes", "upstream_nodes", "outputs_present",
-           "node_tools", "inheriting_nodes", "python_nodes"]
-
-
-def runtime_flow(project):
-    '''The flow this run will actually execute, narrowed by ``from``, ``to`` and ``prune``.'''
-    from siliconcompiler.flowgraph import RuntimeFlowgraph
-
-    return RuntimeFlowgraph(
-        project.get_flow(),
-        from_steps=project.option.get_from(),
-        to_steps=project.option.get_to(),
-        prune_nodes=project.option.get_prune())
+__all__ = ["runtime_nodes", "upstream_nodes", "outputs_present", "node_tools",
+           "inheriting_nodes", "python_nodes"]
 
 
 def runtime_nodes(project) -> List[Tuple[str, str]]:
     '''The nodes this run will execute, in flowgraph order.'''
-    return list(runtime_flow(project).get_nodes())
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
+
+    return list(RuntimeFlowgraph.from_project(project).get_nodes())
 
 
 def upstream_nodes(project, skipped=()) -> List[Tuple[str, str]]:
     '''The nodes outside the run that it takes inputs from.
     A node in ``skipped`` has no results, so it is looked through to its inputs.'''
-    runtime = runtime_flow(project)
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
+
+    runtime = RuntimeFlowgraph.from_project(project)
     flow = project.get_flow()
     pruned = set(project.option.get_prune() or [])
     running = set(runtime.get_nodes())

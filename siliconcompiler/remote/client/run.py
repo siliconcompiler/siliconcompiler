@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler._common import NodeStatus as SCNodeStatus
-from siliconcompiler.utils import file_digest
+from siliconcompiler.utils import file_digest, mask_credentials
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
@@ -214,7 +214,7 @@ class RemoteRun:
 
     def _preflight(self) -> None:
         '''What the server would refuse, said here before create.'''
-        from siliconcompiler.remote.runflow import runtime_flow
+        from siliconcompiler.flowgraph import RuntimeFlowgraph
 
         project = self.project
 
@@ -230,7 +230,7 @@ class RemoteRun:
         provided = capture._module_distributions()
         flow = project.get_flow()
         missing = {}
-        for step, index in runtime_flow(project).get_nodes():
+        for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
             name = flow.get_graph_node(step, index).get_taskmodule() or ""
             module = name.split("/", 1)[0]
             top = module.split(".", 1)[0]
@@ -308,7 +308,7 @@ class RemoteRun:
 
     def _check_upstream_files(self) -> None:
         '''Stop a `-from` run whose local upstream outputs lack a file it reads.'''
-        from siliconcompiler.remote.runflow import runtime_flow
+        from siliconcompiler.flowgraph import RuntimeFlowgraph
 
         from siliconcompiler.remote import links
 
@@ -332,7 +332,7 @@ class RemoteRun:
                             "the node it belongs to, or the whole job, or run from an "
                             "earlier step")
 
-        runtime = runtime_flow(self.project)
+        runtime = RuntimeFlowgraph.from_project(self.project)
         flow = self.project.get_flow()
         for step, index in runtime.get_nodes():
             node = flow.get_graph_node(step, index)
@@ -562,7 +562,7 @@ class RemoteRun:
         if self._python_pins is None:
             from siliconcompiler.remote import owners
             from siliconcompiler.remote.client import capture
-            from siliconcompiler.remote.runflow import runtime_flow
+            from siliconcompiler.flowgraph import RuntimeFlowgraph
 
             project, required = self._needs()
             pins = {"siliconcompiler": [_pin(sc_version)]}
@@ -580,7 +580,7 @@ class RemoteRun:
             flow = project.get_flow()
             framework = {name for env in self._environments.values()
                          for name in env.framework}
-            for step, index in runtime_flow(project).get_nodes():
+            for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
                 module = (flow.get_graph_node(step, index).get_taskmodule() or "")
                 for distribution in installed.get(module.split("/", 1)[0]
                                                   .split(".", 1)[0], ()):
@@ -728,13 +728,13 @@ class RemoteRun:
     def _check_worked_out(self) -> None:
         '''Stop where an executed node runs the user's Python and its setup failed
         here: its imports cannot be worked out.'''
-        from siliconcompiler.remote.runflow import runtime_flow
+        from siliconcompiler.flowgraph import RuntimeFlowgraph
         from siliconcompiler.tool import Task
 
         if not self._failed:
             return
         flow = self.project.get_flow()
-        executed = set(runtime_flow(self.project).get_nodes())
+        executed = set(RuntimeFlowgraph.from_project(self.project).get_nodes())
         for (step, index), why in sorted(self._failed.items()):
             if (step, index) not in executed:
                 continue
@@ -849,7 +849,7 @@ class RemoteRun:
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as scratch:
             # Carries every node's `require`: the set this archive was filtered by.
             sent = os.path.join(scratch, manifest)
-            _uploadable(self._needs()[0]).write_manifest(sent)
+            mask_credentials(self._needs()[0]).write_manifest(sent)
             replaced = self._upstream_manifests(root, packed, scratch)
 
             with tarfile.open(upload, mode="w:gz") as tar:
@@ -887,8 +887,9 @@ class RemoteRun:
                 raise RemoteError(
                     f"{name}/{self.project.name}.pkg.json could not be read, so this "
                     f"client cannot tell that it carries no credential: {e}") from None
-            cleaned = _uploadable(held)
-            if cleaned is held:
+            cleaned = mask_credentials(held)
+            if cleaned.getdict() == held.getdict():
+                # The node's own record: sent as written unless it held a credential.
                 continue
             copy = os.path.join(scratch, f"upstream-{n}.pkg.json")
             cleaned.write_manifest(copy)
@@ -1746,16 +1747,6 @@ class _LinkPacker:
         info = tarfile.TarInfo(arcname)
         info.type, info.linkname = tarfile.SYMTYPE, target
         self.tar.addfile(info)
-
-
-def _uploadable(project):
-    '''`owners.without_credentials`, or a refusal the user reads.'''
-    from siliconcompiler.remote import owners
-
-    try:
-        return owners.without_credentials(project)
-    except ValueError as e:
-        raise RemoteError(str(e)) from None
 
 
 # A job the server may still need this machine for.
