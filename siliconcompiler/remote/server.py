@@ -28,7 +28,7 @@ from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler.remote import JobStatus, NodeStatus
 from siliconcompiler.remote.schema import ServerSchema
-from siliconcompiler.utils import tar_extract_kwargs
+from siliconcompiler.utils import tar_extract_kwargs, tarfile_module
 from siliconcompiler.utils.paths import jobdir
 
 # aiohttp and fastjsonschema ship in the "server" extra rather than the default
@@ -350,7 +350,7 @@ class Server(ServerSchema):
             # record must still drop the staged upload.
             self.__record_job_owner(job_hash, job_params['username'])
 
-            with tarfile.open(tmp_file, "r:gz") as tar:
+            with tarfile_module().open(tmp_file, "r:gz") as tar:
                 tar.extractall(path=job_dir, **tar_extract_kwargs())
         finally:
             # Drop the staged upload even if the extract raised: on that path
