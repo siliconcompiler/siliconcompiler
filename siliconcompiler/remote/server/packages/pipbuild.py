@@ -341,7 +341,9 @@ def install(requirements, constraints, site, wheels=(), proxy_socket=None, echo=
 
         sites = [path for path in interpreter.getsitepackages() if os.path.isdir(path)]
         with open(os.path.join(packages[0], _VISIBLE), "w") as f:
-            f.write(f"import site; [site.addsitedir(p) for p in {sites!r}]\n")
+            # No comprehension: before Python 3.12 its scope cannot see `site`
+            # when `site.addpackage` execs the line.
+            f.write(f"import site; list(map(site.addsitedir, {sites!r}))\n")
 
         # No configuration of anybody's: the indexes are passed below.
         env = {key: value for key, value in os.environ.items()

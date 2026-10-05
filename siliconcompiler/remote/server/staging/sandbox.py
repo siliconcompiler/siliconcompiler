@@ -2,7 +2,7 @@
 Starting the manifest's read (`manifestread`), and holding it to its limits.
 
 The process starts with nothing of the server's (PROFILE.md section 5): an
-empty environment bar its own ``HOME``, ``TMPDIR`` and the ``PYTHONPATH`` of
+empty environment bar its own ``HOME``, a ``TMPDIR`` and the ``PYTHONPATH`` of
 this server's SiliconCompiler, so no credential, proxy or data-directory path;
 an empty working directory outside the upload's tree, so the upload is never on
 ``sys.path``; no inherited descriptor; and one request. It is killed at a
@@ -17,6 +17,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 
 from pathlib import Path
@@ -243,7 +244,9 @@ def _environment(home: Path, cpu_seconds: Optional[int] = None,
     SiliconCompiler is.'''
     import siliconcompiler
 
-    env = {"HOME": str(home), "TMPDIR": str(home), "LC_ALL": "C.UTF-8",
+    # TMPDIR is the server's, not under ``home``: SiliconCompiler binds a unix
+    # socket there, and a path that deep is past its limit before Python 3.13.
+    env = {"HOME": str(home), "TMPDIR": tempfile.gettempdir(), "LC_ALL": "C.UTF-8",
            "PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1",
            # The server's own install: a development checkout is on no default path.
            "PYTHONPATH": str(Path(siliconcompiler.__file__).resolve().parent.parent)}
