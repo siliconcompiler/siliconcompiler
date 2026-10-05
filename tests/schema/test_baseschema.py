@@ -5128,3 +5128,47 @@ def test_cached_from_manifest_is_unfrozen_and_distinct():
     # the shared singleton is untouched and still frozen
     assert _CachedLib("orig").get("val") == "built"
     assert _CachedLib("orig")._is_frozen is True
+
+
+def test_cached_from_manifest_does_not_copy_singleton():
+    # Every value is replaced from the manifest, so loading must build a private
+    # instance rather than deep copy the shared one: for a large library the
+    # copy is the dominant cost of reading a manifest.
+    lib = _CachedLib()
+    cfg = lib.getdict()
+
+    copied = []
+    orig_copy = BaseSchema.copy
+
+    def spy(self, *args, **kwargs):
+        copied.append(self)
+        return orig_copy(self, *args, **kwargs)
+
+    with patch.object(BaseSchema, "copy", spy):
+        loaded = _CachedLib.from_manifest(cfg=cfg)
+
+    assert all(obj is not lib for obj in copied)
+    assert loaded is not lib
+    assert loaded._is_frozen is False
+
+
+class _CachedHolder(NamedSchema, CachedSchema):
+    def __init__(self, name="holder"):
+        super().__init__(name)
+        # Embeds the shared, frozen _CachedLib singleton
+        EditableSchema(self).insert("child", _CachedLib())
+
+
+def test_cached_from_manifest_with_frozen_child_is_mutable():
+    # A constructor that embeds another cached object yields a frozen child even
+    # when built directly; loading must still return a fully mutable object and
+    # must not unfreeze the shared child in place.
+    holder = _CachedHolder()
+    loaded = _CachedHolder.from_manifest(cfg=holder.getdict())
+
+    assert loaded._is_frozen is False
+    loaded.set("child", "val", "changed")
+    assert loaded.get("child", "val") == "changed"
+
+    assert _CachedLib().get("val") == "built"
+    assert _CachedLib()._is_frozen is True
