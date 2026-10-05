@@ -22,7 +22,7 @@ from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFo
 
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
-from siliconcompiler.schema import Journal, Parameter
+from siliconcompiler.schema import BaseSchema, Journal, Parameter
 from siliconcompiler.scheduler import send_messages
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir, cwdir
 
@@ -61,6 +61,25 @@ class SchedulerNodeResetSilent(SchedulerNodeReset):
 
     def log(self, logger: logging.Logger) -> None:
         _SchedulerReset.log(self, logger)
+
+
+def _read_previous_run(filepath: str) -> "Project":
+    """
+    Reads a previous run's manifest, building each library as its SC type
+    (Design, StdCellLibrary, PDK, ...) rather than the class that wrote it.
+
+    Only the previous run's values are compared, and building each library's own
+    class reruns its constructor, which for a large design dominates the time to
+    decide. A key the SC type does not hold is missing from the previous run,
+    which already makes the node rerun.
+    """
+    from siliconcompiler import Project
+
+    manifest = BaseSchema._read_manifest(filepath)
+    for name, library in manifest.get("library", {}).items():
+        if name != "__meta__":
+            library["__meta__"].pop("class", None)
+    return Project.from_manifest(cfg=manifest)
 
 
 class SchedulerNode:
@@ -687,7 +706,7 @@ class SchedulerNode:
         if os.path.exists(self.__manifests["input"]):
             previous_node_time = os.path.getmtime(self.__manifests["input"])
             try:
-                i_project: Project = Project.from_manifest(filepath=self.__manifests["input"])
+                i_project: Project = _read_previous_run(self.__manifests["input"])
             except:  # noqa E722
                 raise SchedulerNodeResetSilent("Input manifest failed to load")
             previous_node = SchedulerNode(i_project, self.__step, self.__index)
@@ -698,7 +717,7 @@ class SchedulerNode:
         previous_node_end = None
         if os.path.exists(self.__manifests["output"]):
             try:
-                o_project = Project.from_manifest(filepath=self.__manifests["output"])
+                o_project = _read_previous_run(self.__manifests["output"])
             except:  # noqa E722
                 raise SchedulerNodeResetSilent("Output manifest failed to load")
             previous_node_end = SchedulerNode(o_project, self.__step, self.__index)
