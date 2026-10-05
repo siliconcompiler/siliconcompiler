@@ -20,7 +20,8 @@ except ImportError:
 
 import siliconcompiler
 
-from siliconcompiler.utils import get_file_template
+from siliconcompiler import Project
+from siliconcompiler.utils import get_file_template, mask_credentials
 from siliconcompiler.utils.curation import collect, filter_collection_keys
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
@@ -30,7 +31,6 @@ from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 from siliconcompiler.utils.logging import console_quiet
 
 if TYPE_CHECKING:
-    from siliconcompiler.project import Project
     from siliconcompiler import Task
 
 
@@ -69,8 +69,9 @@ def generate_testcase(project: "Project",
                     missing_ok=True,
                     step=key_step, index=key_index)
 
+    # The testcase is handed to someone else, so no manifest in it carries a credential
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
-    project.write_manifest(manifest_path)
+    mask_credentials(project).write_manifest(manifest_path)
 
     flow = project.get_flow()
     node = flow.get_graph_node(step, index)
@@ -129,6 +130,11 @@ def generate_testcase(project: "Project",
 
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
+    for subdir in ("inputs", "outputs"):
+        node_manifest = os.path.join(new_work_dir, subdir, f"{project.name}.pkg.json")
+        if os.path.isfile(node_manifest):
+            mask_credentials(Project.from_manifest(filepath=node_manifest)) \
+                .write_manifest(node_manifest)
     # Copy in source files
     collect(project,
             keys=filter_collection_keys(collect_keys),
@@ -160,8 +166,8 @@ def generate_testcase(project: "Project",
                 '.',
                 include_path=False)
 
-        # Rewrite tool manifest
-        task_obj.write_task_manifest('.')
+        # Rewrite tool manifest; the original run's, kept as a backup, could hold a credential
+        task_obj.write_task_manifest('.', backup=False)
 
     # Restore current directory
     project._Project__cwd = original_cwd
@@ -193,7 +199,10 @@ def generate_testcase(project: "Project",
 
     issue_time = datetime.now(timezone.utc).timestamp()
     issue_information = {}
-    issue_information['environment'] = {key: value for key, value in os.environ.items()}
+    # A testcase is handed to someone else, so leave out what may be a credential
+    issue_information['environment'] = {
+        key: value for key, value in os.environ.items()
+        if not any(word in key.upper() for word in ("TOKEN", "KEY", "PASS", "SECRET"))}
     issue_information['python'] = {"path": sys.path,
                                    "version": sys.version}
     issue_information['date'] = datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')

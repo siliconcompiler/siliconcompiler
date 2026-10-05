@@ -7,6 +7,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Design, Flowgraph, PDK, Project
+from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.yosys import YosysStdCellLibrary
 from siliconcompiler.utils.curation import collect
@@ -284,3 +285,73 @@ def test_testcase_without_git(project, monkeypatch):
     with tarfile.open(archive) as tar:
         issue = json.load(tar.extractfile("testcase/issue.json"))
     assert issue["version"]["git"] == {}
+
+
+def test_environment_leaves_out_credentials(project, monkeypatch):
+    '''issue.json leaves out the environment variables named like a credential.'''
+    for name in ("GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "db_password", "CLIENT_SECRET"):
+        monkeypatch.setenv(name, "hidden")
+    monkeypatch.setenv("SC_TESTCASE_SHOWN", "shown")
+
+    archive, _ = make_testcase(project)
+
+    with tarfile.open(archive) as tar:
+        environment = json.load(tar.extractfile("testcase/issue.json"))["environment"]
+    assert environment["SC_TESTCASE_SHOWN"] == "shown"
+    assert "hidden" not in environment.values()
+
+
+@pytest.fixture
+def tokened_project(sources, monkeypatch):
+    '''A run whose design file is under a dataroot with a query token, and whose
+    task registers one with a user token; both are "fetched" as src/.'''
+    monkeypatch.setattr(HTTPResolver, "get_path", lambda self: os.path.abspath("src"))
+
+    design = Design("heartbeat")
+    design.set_dataroot("tokened", "https://example.com/src.tar.gz?token=QUERYTOKEN", "v1")
+    with design.active_fileset("rtl"), design.active_dataroot("tokened"):
+        design.set_topmodule("heartbeat")
+        design.add_file("heartbeat.v")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    proj.set("tool", "builtin", "task", "nop", "format", "tcl")
+    proj.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "path",
+             "git+https://alice:USERTOKEN@example.com/scripts.git")
+    proj.set("tool", "builtin", "task", "nop", "dataroot", "scripts", "tag", "v1")
+    assert proj.run()
+
+    proj = Project.from_manifest(filepath=NODE_MANIFEST)
+    proj.add("tool", "builtin", "task", "nop", "require",
+             "library,heartbeat,fileset,rtl,file,verilog", step="stepone", index="0")
+    return proj
+
+
+def test_testcase_carries_no_credential(tokened_project):
+    '''No member of the testcase holds a dataroot's token, and its masked node
+    manifest still finds the file collected under one.'''
+    with open(NODE_MANIFEST, "rb") as f:
+        assert b"USERTOKEN" in f.read()
+
+    archive, _ = make_testcase(tokened_project)
+
+    with tarfile.open(archive) as tar:
+        names = [member.name for member in tar.getmembers() if member.isfile()]
+        leaked = [name for name in names
+                  if any(token in tar.extractfile(name).read()
+                         for token in (b"USERTOKEN", b"QUERYTOKEN"))]
+        tar.extractall("replay")
+    assert leaked == []
+    assert "testcase/build/heartbeat/job0/stepone/0/sc_manifest.tcl" in names
+    assert not any(name.endswith(".bak") for name in names)
+
+    os.rename("src", "src-moved")
+    os.chdir(os.path.join("replay", "testcase"))
+    rtl, = Project.from_manifest(filepath=NODE_MANIFEST).find_files(
+        "library", "heartbeat", "fileset", "rtl", "file", "verilog")
+    assert os.path.commonpath((os.path.abspath(COLLECT_DIR.removeprefix("testcase/")), rtl)) \
+        == os.path.abspath(COLLECT_DIR.removeprefix("testcase/"))

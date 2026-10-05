@@ -15,7 +15,8 @@ from io import StringIO
 from pathlib import Path
 from types import ModuleType
 
-from typing import IO, Dict, Optional, Tuple, Type, Union, Callable, List, cast, TYPE_CHECKING
+from typing import IO, Dict, Optional, Tuple, Type, TypeVar, Union, Callable, List, cast, \
+    TYPE_CHECKING
 
 import importlib.util
 
@@ -40,6 +41,9 @@ from siliconcompiler.utils.paths import builddir
 if TYPE_CHECKING:
     from jinja2 import Template
     from siliconcompiler.project import Project
+    from siliconcompiler.schema import BaseSchema
+
+TSchema = TypeVar("TSchema", bound="BaseSchema")
 
 
 @functools.lru_cache(maxsize=None)
@@ -1355,3 +1359,41 @@ class FilterDirectories:
             return files
 
         return hidden_files
+
+
+def find_schemas(schema: "BaseSchema", cls: Type[TSchema]) -> List[TSchema]:
+    '''Every part of ``schema`` that is a ``cls``, ``schema`` and its history
+    included; a part still lazily loaded is loaded to be searched.'''
+    from siliconcompiler.schema import BaseSchema, EditableSchema
+
+    found = [schema] if isinstance(schema, cls) else []
+    editable = EditableSchema(schema)
+    for key in schema.getkeys():
+        child = editable.search(key)
+        if isinstance(child, BaseSchema):
+            found.extend(find_schemas(child, cls))
+    return found
+
+
+def mask_credentials(schema: TSchema) -> TSchema:
+    '''A copy of ``schema`` with every dataroot path masked as
+    `Resolver.safe_source` masks a source, for a manifest handed to someone else.
+
+    A masked dataroot cannot be fetched, so write the copy and never run it. Its
+    collected files are still found, because `Resolver.collection_id` hashes the
+    source masked the same way.'''
+    from siliconcompiler.package import Resolver
+    from siliconcompiler.schema_support.pathschema import PathSchema
+
+    masked = schema.copy()
+    for part in find_schemas(masked, PathSchema):
+        if not part.valid("dataroot"):
+            # A design's package removes the dataroot it would have
+            continue
+        for name in part.getkeys("dataroot"):
+            path = part.get("dataroot", name, "path")
+            if path:
+                safe = Resolver._masked_uri(path, show_userinfo=False)
+                if safe != path:
+                    part.set("dataroot", name, "path", safe)
+    return masked
