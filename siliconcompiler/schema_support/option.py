@@ -594,7 +594,14 @@ class OptionSchema(BaseSchema):
                     "api: option.set('from', 'import')"],
                 help="""
                 Inclusive list of steps to start execution from. The default is to start
-                at all entry steps in the flow graph."""))
+                at all entry steps in the flow graph.
+
+                Steps ahead of the starting steps are not rerun: the run uses their
+                outputs from the existing build directory, even when they are out of
+                date. If a step that feeds a starting step has no usable outputs, the
+                run fails. Any other step left out of the run whose outputs are missing
+                or failed is added back and rerun, such as a parallel branch that merges
+                with the run further downstream."""))
 
         schema.insert(
             'to',
