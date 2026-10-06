@@ -943,6 +943,49 @@ def test_read_fileset_multiple_packages(datadir):
     ]
 
 
+def test_read_fileset_nested():
+    """Nested -f/-F lists, -I and -v are read rather than taken as file names."""
+    for path in ("rtl/top.v", "rtl/inc/defs.vh", "ip/ip.v", "ip/inc/ip.vh", "cells/cells.v"):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        Path(path).touch()
+    with open("top.f", "w") as f:
+        f.write("-f rtl/rtl.f\n-F ip/ip.f\n-v cells/cells.v\n")
+    with open("rtl/rtl.f", "w") as f:
+        f.write("-Irtl/inc\nrtl/top.v\n")
+    with open("ip/ip.f", "w") as f:
+        f.write("-I inc\nip.v\n")
+
+    d = Design("test")
+    d.read_fileset("top.f", fileset="rtl")
+
+    assert d.get_idir("rtl") == [os.path.abspath("rtl/inc"), os.path.abspath("ip/inc")]
+    assert d.get_file("rtl") == [
+        os.path.abspath("rtl/top.v"),
+        os.path.abspath("ip/ip.v"),
+        os.path.abspath("cells/cells.v"),
+    ]
+
+
+def test_read_fileset_nested_cycle():
+    with open("a.f", "w") as f:
+        f.write("-F b.f\n")
+    with open("b.f", "w") as f:
+        f.write("-f a.f\n")
+
+    with pytest.raises(ValueError, match=r"^file list includes itself: .*a\.f$"):
+        Design("test").read_fileset("a.f", fileset="rtl")
+
+
+@pytest.mark.parametrize("line", ["-y libdir", "+libext+.v", "-f"])
+def test_read_fileset_unsupported_option(line):
+    with open("test.f", "w") as f:
+        f.write(f"{line}\n")
+
+    with pytest.raises(ValueError,
+                       match=rf"^unsupported option in test\.f: {re.escape(line)}$"):
+        Design("test").read_fileset("test.f", fileset="rtl")
+
+
 def test_heartbeat_example(datadir):
     datadir = Path(datadir)
 
