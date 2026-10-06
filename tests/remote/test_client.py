@@ -7,10 +7,13 @@ import time
 import os.path
 
 from siliconcompiler import NodeStatus
-from siliconcompiler.remote import Client, ConfigureClient
+from siliconcompiler.remote import Client, ClientScheduler, ConfigureClient
 from siliconcompiler.remote import NodeStatus as RemoteNodeStatus
 from siliconcompiler.remote.server import Server
+from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
+from siliconcompiler.scheduler.listener import RunListener
+from siliconcompiler.scheduler.send_messages import SummaryEmailListener
 
 
 @pytest.fixture(autouse=True)
@@ -28,19 +31,36 @@ def configured_server(monkeypatch):
                         lambda: cfg_file)
 
 
-def _client(project, nodes=('stepone0', 'steptwo0')):
+class _Recorder(RunListener):
+    def __init__(self):
+        self.events = []
+
+    def node_started(self, project, step, index):
+        self.events.append(("node_started", step, index))
+
+    def node_finished(self, project, step, index):
+        self.events.append(("node_finished", step, index))
+
+
+def _client(project, nodes=('stepone0', 'steptwo0'), listener=None):
     '''A client with the node table __run_loop() would have built for it.'''
-    client = Client(project)
+    client = Client(project, listener)
     client._Client__node_information = {
         node: {
             "step": node[:-1],
             "index": node[-1],
             "imported": False,
             "fetched": False,
+            "started": False,
+            "finished": False,
             "print": f"{node[:-1]}/{node[-1]}"
         } for node in nodes
     }
     return client
+
+
+def _starttime(project, step, index):
+    return project.get("record", field="schema").get_recorded_time(step, index, "starttime")
 
 
 def _status(busy, message):
@@ -51,19 +71,18 @@ def test_report_job_status_finished(gcd_nop_project):
     '''A job that is not running ends the wait loop'''
     client = _client(gcd_nop_project)
 
-    completed, starttimes, running = client._report_job_status(
+    completed, running = client._report_job_status(
         _status(False, 'Job has no running steps.'))
 
     assert running is False
     assert completed == []
-    assert starttimes == {}
 
 
 def test_report_job_status_unparsable_message(gcd_nop_project, caplog):
     '''A message that is not the node payload is reported, not crashed on'''
     client = _client(gcd_nop_project)
 
-    completed, starttimes, running = client._report_job_status(
+    completed, running = client._report_job_status(
         _status(True, 'Job is being scheduled'))
 
     assert running is True
@@ -72,8 +91,10 @@ def test_report_job_status_unparsable_message(gcd_nop_project, caplog):
 
 
 def test_report_job_status_running_nodes(gcd_nop_project):
-    '''Node statuses are recorded and elapsed times become start times'''
-    client = _client(gcd_nop_project)
+    '''Node statuses are recorded, and a running node's elapsed time becomes its recorded start
+    time as it is reported started'''
+    listener = _Recorder()
+    client = _client(gcd_nop_project, listener=listener)
 
     payload = {
         'null': {'status': NodeStatus.SUCCESS},
@@ -82,16 +103,18 @@ def test_report_job_status_running_nodes(gcd_nop_project):
     }
 
     before = time.time()
-    completed, starttimes, running = client._report_job_status(
+    completed, running = client._report_job_status(
         _status(True, json.dumps(payload)))
 
     assert running is True
     # The 'null' key is the setup manifest, which the loop fetches as None.
     assert sorted(completed, key=str) == [None, 'stepone0']
 
-    # 65s of elapsed time means the node started 65s ago, and 30s means 30.
-    assert before - 66 <= starttimes[('steptwo', '0')] <= before - 64
-    assert before - 31 <= starttimes[('stepone', '0')] <= before - 29
+    # 65s of elapsed time means the node started 65s ago. A finished node's
+    # times come from its own manifest.
+    assert before - 66 <= _starttime(gcd_nop_project, 'steptwo', '0') <= before - 64
+    assert _starttime(gcd_nop_project, 'stepone', '0') is None
+    assert listener.events == [("node_started", "steptwo", "0")]
 
     assert gcd_nop_project.get('record', 'status', step='stepone', index='0') == \
         NodeStatus.SUCCESS
@@ -106,7 +129,7 @@ def test_report_job_status_uploaded_is_pending(gcd_nop_project):
 
     payload = {'stepone0': {'status': RemoteNodeStatus.UPLOADED}}
 
-    completed, _, running = client._report_job_status(
+    completed, running = client._report_job_status(
         _status(True, json.dumps(payload)))
 
     assert running is True
@@ -116,7 +139,8 @@ def test_report_job_status_uploaded_is_pending(gcd_nop_project):
 
 
 def test_report_job_status_without_elapsed_time(gcd_nop_project):
-    '''A server that reports no timing still drives the loop'''
+    '''A server that reports no timing still drives the loop, and a running node starts when
+    it is first seen'''
     client = _client(gcd_nop_project)
 
     payload = {
@@ -124,12 +148,61 @@ def test_report_job_status_without_elapsed_time(gcd_nop_project):
         'steptwo0': {'status': NodeStatus.PENDING}
     }
 
-    completed, starttimes, running = client._report_job_status(
+    before = time.time()
+    completed, running = client._report_job_status(
         _status(True, json.dumps(payload)))
 
     assert running is True
     assert completed == []
-    assert starttimes == {}
+    assert before <= _starttime(gcd_nop_project, 'stepone', '0') <= time.time()
+    assert _starttime(gcd_nop_project, 'steptwo', '0') is None
+
+
+def test_report_job_status_reports_a_node_started_once(gcd_nop_project):
+    '''A node seen running on several polls is reported started, and its time recorded, once'''
+    listener = _Recorder()
+    client = _client(gcd_nop_project, listener=listener)
+
+    client._report_job_status(_status(True, json.dumps(
+        {'stepone0': {'status': NodeStatus.RUNNING, 'elapsed_time': '0:00:10'}})))
+    started = _starttime(gcd_nop_project, 'stepone', '0')
+    client._report_job_status(_status(True, json.dumps(
+        {'stepone0': {'status': NodeStatus.RUNNING, 'elapsed_time': '0:00:40'}})))
+
+    assert listener.events == [("node_started", "stepone", "0")]
+    assert _starttime(gcd_nop_project, 'stepone', '0') == started
+
+
+def test_finalize_loop_reports_nodes_without_results(gcd_nop_project):
+    '''A finished node whose results never arrived is still reported finished, and a node that
+    never finished is not'''
+    listener = _Recorder()
+    client = _client(gcd_nop_project, listener=listener)
+    client._Client__setup_information_fetched = False
+    client._Client__setup_information_loaded = False
+    gcd_nop_project.set('record', 'status', NodeStatus.ERROR, step='stepone', index='0')
+    gcd_nop_project.set('record', 'status', NodeStatus.PENDING, step='steptwo', index='0')
+
+    client._finalize_loop()
+    client._finalize_loop()
+
+    assert listener.events == [("node_finished", "stepone", "0")]
+
+
+@pytest.mark.parametrize("nodashboard", [False, True])
+def test_client_scheduler_listeners(gcd_nop_project, nodashboard):
+    '''The client side of a remote run is heard by the dashboard, the registered listeners and
+    the summary mail, and leaves node mail and the deprecated callbacks to the server's run'''
+    gcd_nop_project.option.set_nodashboard(nodashboard)
+    listener = RunListener()
+    Scheduler.add_listener(listener)
+
+    listeners = ClientScheduler(gcd_nop_project)._listeners()
+
+    if not nodashboard:
+        assert listeners.pop(0) is gcd_nop_project._dashboard
+    assert listeners[0] is listener
+    assert [type(other) for other in listeners[1:]] == [SummaryEmailListener]
 
 
 def test_report_job_status_truncates_long_lists(gcd_nop_project, caplog):
@@ -163,14 +236,13 @@ def test_report_job_status_reads_server_payload(gcd_nop_project):
     message = server._Server__progress_message(job_hash)
 
     client = _client(gcd_nop_project)
-    completed, starttimes, running = client._report_job_status(
+    completed, running = client._report_job_status(
         _status(True, json.dumps(message)))
 
     assert running is True
     assert sorted(completed, key=str) == [None, 'stepone0']
-    # 0:01:00 of recorded runtime for the finished node, 0:00:12 for the running one.
-    assert now - 61 <= starttimes[('stepone', '0')] <= now - 59
-    assert now - 13 <= starttimes[('steptwo', '0')] <= now - 11
+    # 0:00:12 of runtime so far for the running node.
+    assert now - 13 <= _starttime(gcd_nop_project, 'steptwo', '0') <= now - 11
 
 
 @pytest.mark.timeout(60)

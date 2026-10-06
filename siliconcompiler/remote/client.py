@@ -19,7 +19,10 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
+from siliconcompiler.scheduler.listener import RunListener
+from siliconcompiler.scheduler.send_messages import SummaryEmailListener
 from siliconcompiler.schema import Journal, Parameter
+from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
 
 from siliconcompiler.utils.logging import get_console_formatter
@@ -35,7 +38,18 @@ remote_step_name = 'remote'
 
 class ClientScheduler(Scheduler):
     def run_core(self):
-        Client(self.project).run()
+        Client(self.project, self.listener).run()
+
+    def _listeners(self):
+        # Node mail and the deprecated callbacks belong to the run on the
+        # server, which is where they have always come from; only the summary is
+        # sent from here.
+        listeners = []
+        if self.project._dashboard:
+            listeners.append(self.project._dashboard)
+        listeners.extend(Scheduler._registered_listeners())
+        listeners.append(SummaryEmailListener())
+        return listeners
 
     def configure_nodes(self):
         return
@@ -48,10 +62,11 @@ class Client():
     # Step name to use while logging
     STEP_NAME = "remote"
 
-    def __init__(self, project):
+    def __init__(self, project, listener=None):
         self.__project = project
         self.__logger = self.__project.logger.getChild('remote-client')
-        self.__dashboard = self.__project._Project__dashboard
+        # Told as the server reports each node starting and its results arrive.
+        self.__listener = listener or RunListener()
         self.__name = self.__project.name
 
         # Used when reporting node information during run
@@ -382,11 +397,10 @@ class Client():
 
     def _report_job_status(self, info):
         completed = []
-        starttimes = {}
 
         if not info['busy']:
             # Job is not running
-            return completed, starttimes, False
+            return completed, False
 
         try:
             # Decode response JSON, if possible.
@@ -396,7 +410,7 @@ class Client():
                 del job_info["null"]
         except json.JSONDecodeError:
             self.__logger.warning(f"Job is still running: {info['message']}")
-            return completed, starttimes, True
+            return completed, True
 
         nodes_to_log = {}
         for node, node_info in job_info.items():
@@ -431,28 +445,50 @@ class Client():
         # Running / in-progress flowgraph nodes should all be printed:
         base_time = time.time()
         for stat, nodes in nodes_to_log.items():
-            for node, node_info in nodes:
-                if 'elapsed_time' in node_info:
-                    runtime = 0
-                    for part in node_info['elapsed_time'].split(":"):
-                        runtime = 60 * runtime + float(part)
-                    starttimes[(self.__node_information[node]["step"],
-                                self.__node_information[node]["index"])] = base_time - runtime
-
             if SCNodeStatus.is_running(stat):
                 self.__logger.info(f'  {stat.title()} ({len(nodes)}):')
                 for node, node_info in nodes:
+                    starttime = base_time
                     running_log = f"    {self.__node_information[node]['print']}"
                     if 'elapsed_time' in node_info:
                         running_log += f" ({node_info['elapsed_time']})"
+                        runtime = 0
+                        for part in node_info['elapsed_time'].split(":"):
+                            runtime = 60 * runtime + float(part)
+                        starttime -= runtime
                     self.__logger.info(running_log)
+                    self.__report_started(node, starttime)
 
         # Queued and pending flowgraph nodes:
         for stat, nodes in nodes_to_log.items():
             if SCNodeStatus.is_waiting(stat):
                 self.__log_node_status(stat, nodes)
 
-        return completed, starttimes, True
+        return completed, True
+
+    def __report_started(self, node, starttime):
+        '''
+        Records when a node the server is running started, and reports it
+        started the first time it is seen running.
+        '''
+        node_info = self.__node_information[node]
+        if node_info["started"]:
+            return
+        node_info["started"] = True
+
+        self.__project.get("record", field="schema").record_time(
+            node_info["step"], node_info["index"], RecordTime.START, timestamp=starttime)
+        self.__listener.node_started(self.__project, node_info["step"], node_info["index"])
+
+    def __report_finished(self, node_info):
+        '''
+        Reports a node finished, once.
+        '''
+        if node_info["finished"]:
+            return
+        node_info["finished"] = True
+
+        self.__listener.node_finished(self.__project, node_info["step"], node_info["index"])
 
     def __check(self):
         def post_action(url):
@@ -564,10 +600,8 @@ class Client():
             self._run_loop()
         finally:
             # Restore logger
-            if self.__dashboard:
-                self.__dashboard.end_of_run()
-                self.__project._logger_console.setFormatter(
-                    get_console_formatter(self.__project, False, None, None))
+            self.__project._logger_console.setFormatter(
+                get_console_formatter(self.__project, False, None, None))
 
     def __request_run(self):
         '''
@@ -692,7 +726,7 @@ class Client():
             self.__logger.info(f'To cancel this job use: {cancel_cmd}')
             raise
 
-    def __import_run_manifests(self, starttimes):
+    def __import_run_manifests(self):
         if not self.__setup_information_loaded:
             if self.__setup_information_fetched:
                 manifest = os.path.join(jobdir(self.__project), f'{self.__name}.pkg.json')
@@ -732,9 +766,8 @@ class Client():
                 node_info["imported"] = True
                 changed = True
 
-        if changed and self.__dashboard:
-            # Update dashboard if active
-            self.__dashboard.update_manifest({"starttimes": starttimes})
+            if node_info["imported"]:
+                self.__report_finished(node_info)
 
         return changed
 
@@ -767,6 +800,8 @@ class Client():
                 "index": index,
                 "imported": done,
                 "fetched": done,
+                "started": done,
+                "finished": done,
                 "print": f"{step}/{index}"
             }
             self.__node_information[f'{step}{index}'] = node_info
@@ -777,13 +812,11 @@ class Client():
         # Check the job's progress periodically until it finishes.
         running = True
 
-        starttimes = {}
-
         while running:
             sleepremaining = self.__check_interval
             while any([nodeinfo["fetched"] and not nodeinfo["imported"]
                        for nodeinfo in self.__node_information.values()]):
-                self.__import_run_manifests(starttimes)
+                self.__import_run_manifests()
                 sleepremaining -= 1
                 if sleepremaining <= 0:
                     break
@@ -799,14 +832,7 @@ class Client():
                 self._finalize_loop()
                 raise SCRuntimeError(
                     'Server refused to report on this job, it belongs to another user')
-            completed, new_starttimes, running = self._report_job_status(job_info)
-
-            # preserve old starttimes
-            starttimes = {**starttimes, **new_starttimes}
-
-            if self.__dashboard:
-                # Update dashboard if active
-                self.__dashboard.update_manifest({"starttimes": starttimes})
+            completed, running = self._report_job_status(job_info)
 
             if None in completed:
                 completed.remove(None)
@@ -836,16 +862,19 @@ class Client():
         # Un-set the 'remote' option to avoid from/to-based summary/show errors
         self.__project.option.unset('remote')
 
-        if self.__dashboard:
-            self.__dashboard.update_manifest()
-
     def _finalize_loop(self):
         if self.__download_pool:
             self.__download_pool.close()
             self.__download_pool.join()
             self.__download_pool = None
 
-        self.__import_run_manifests({})
+        self.__import_run_manifests()
+
+        # A node whose results never arrived is still over.
+        for node_info in self.__node_information.values():
+            if SCNodeStatus.is_done(self.__project.get(
+                    'record', 'status', step=node_info["step"], index=node_info["index"])):
+                self.__report_finished(node_info)
 
     def __schedule_fetch_result(self, node):
         if node:
@@ -1100,7 +1129,7 @@ class Client():
         attributes = self.__dict__.copy()
 
         attributes['_Client__download_pool'] = None
-        attributes['_Client__dashboard'] = None
+        attributes['_Client__listener'] = None
 
         return attributes
 

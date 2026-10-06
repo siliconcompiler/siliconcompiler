@@ -3,13 +3,14 @@ import atexit
 from typing import TYPE_CHECKING
 
 from siliconcompiler.report.dashboard import AbstractDashboard, weak_atexit_call
+from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter, SCHistoryLogHandler
 
 if TYPE_CHECKING:
     from siliconcompiler import Project
 
 
-class CliDashboard(AbstractDashboard):
+class CliDashboard(AbstractDashboard, RunListener):
     """
     A command-line interface (CLI) implementation of the AbstractDashboard.
 
@@ -17,8 +18,10 @@ class CliDashboard(AbstractDashboard):
     directly in the terminal. It acts as a bridge between the core `project` object
     and the `Board` class, which handles the actual `rich`-based rendering.
 
-    It manages the lifecycle of the dashboard, including starting, stopping,
-    and updating it with data from the project. While active it attaches its
+    It hears its project's runs as a :class:`RunListener`: it opens as a run
+    begins, so setup is shown too, paints once the flow starts and as nodes
+    start and finish, and stops when the run is over.
+    Everything it shows is read from the project. While active it attaches its
     own log handler to the project's logger as an additional sink and silences
     the project's terminal handler via a filter. The terminal handler itself
     is never swapped or detached, so other components (scheduler, slurm,
@@ -68,9 +71,9 @@ class CliDashboard(AbstractDashboard):
         method inspects every node in the project's flow for a breakpoint and,
         when any are found, logs which nodes triggered the decision.
 
-        Keeping the decision here (rather than inline in
-        :meth:`.Project._init_run`) makes it straightforward to unit test and
-        to add new disabling conditions in one place.
+        Keeping the decision here (rather than inline in :meth:`run_started`)
+        makes it straightforward to unit test and to add new disabling
+        conditions in one place.
 
         Args:
             project: The SiliconCompiler project object to inspect.
@@ -202,25 +205,72 @@ class CliDashboard(AbstractDashboard):
 
         self._dashboard.open_dashboard()
 
-    def update_manifest(self, payload=None):
+    def update_manifest(self):
         """
         Updates the dashboard with the latest data from the project's manifest.
 
         This method is called to refresh the dashboard's display with the
         current state of the compilation flow.
-
-        Args:
-            payload (dict, optional): A dictionary that can contain additional
-                                      data, such as node start times. Defaults to None.
         """
-        starttimes = None
-        if payload and "starttimes" in payload:
-            starttimes = payload["starttimes"]
-        self._dashboard.update_manifest(self._project, starttimes=starttimes)
+        self._dashboard.update_manifest(self._project)
 
     def update_graph_manifests(self):
         """Placeholder method for updating graph manifests. Currently not implemented."""
         pass
+
+    def run_started(self, project):
+        """
+        Opens the dashboard for a run, so setup is shown in it too, unless the
+        run has a breakpoint.
+
+        Nothing is painted yet: until setup has reset them, the record holds the
+        previous run's statuses.
+
+        Args:
+            project: The project being run.
+        """
+        if not self._dashboard._active:
+            # No terminal to show it on, so no reason to look for breakpoints,
+            # which means building every node.
+            return
+
+        if CliDashboard.should_disable(project):
+            self.stop()
+            return
+
+        if not self.is_running():
+            self.open_dashboard()
+        self.set_logger(project.logger)
+
+    def flow_started(self, project):
+        """Paints the nodes this run will execute, now that setup has decided them."""
+        self.update_manifest()
+
+    def node_started(self, project, step, index):
+        """Repaints for a node that was launched."""
+        self.update_manifest()
+
+    def node_finished(self, project, step, index):
+        """Repaints for a node that is over."""
+        self.update_manifest()
+
+    def run_finished(self, project, error):
+        """
+        Paints the run's final state and stops the dashboard.
+
+        Args:
+            project: The project being run.
+            error (BaseException): What ended the run, or None. A failure dumps
+                the full log on stop; an interrupt or an exit does not.
+        """
+        # A failing final repaint must not keep the dashboard up and the
+        # terminal suppressed.
+        try:
+            self.update_manifest()
+        except Exception as e:
+            project.logger.debug(f"Failed to update dashboard at end of run: {e}")
+        finally:
+            self.stop(force=isinstance(error, Exception))
 
     def is_running(self):
         """

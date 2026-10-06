@@ -4,7 +4,8 @@ import uuid
 
 import os.path
 
-from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar, cast
+from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar, cast, \
+    TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version, \
@@ -30,6 +31,9 @@ from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
+
+if TYPE_CHECKING:
+    from siliconcompiler.report.dashboard.cli import CliDashboard
 
 TProject = TypeVar("TProject", bound="Project")
 
@@ -605,26 +609,19 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.logger.warning(f"Setting design fileset to: {fileset}")
                 self.option.add_fileset(fileset, clobber=True)
 
-        # Disable dashboard if breakpoints are set
-        if self.__dashboard and self.__dashboard.is_running():
-            from siliconcompiler.report.dashboard.cli import CliDashboard
-
-            if CliDashboard.should_disable(self):
-                self.__dashboard.stop()
-
     def run(self) -> TProject:
         '''
         Executes the compilation flow defined in the project's flowgraph.
 
-        The run method orchestrates the entire compilation process. It starts by
-        initializing the dashboard and then hands off execution to a `Scheduler`
-        (or `ClientScheduler` for remote runs). The scheduler manages the
+        The run method hands off execution to a `Scheduler` (or
+        `ClientScheduler` for remote runs). The scheduler manages the
         step-by-step execution of tasks defined in the flowgraph, respecting
-        dependencies and handling errors.
+        dependencies and handling errors, and tells the dashboard and any
+        registered listeners how the run is going.
 
-        After the scheduler completes, the dashboard is updated with the final
-        run status, and non-global job parameters are reset. The method returns
-        a `Project` object representing the completed job's history.
+        After the scheduler completes, non-global job parameters are reset. The
+        method returns a `Project` object representing the completed job's
+        history.
 
         Returns:
             Project: A mutable reference to the completed job's record in the
@@ -635,13 +632,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             # Executes the flow, and returns a project object for the completed job.
         '''
         from siliconcompiler.remote import ClientScheduler
-
-        # Start dashboard
-        if self.__dashboard:
-            if not self.__dashboard.is_running():
-                self.__dashboard.open_dashboard()
-            # Attach logger
-            self.__dashboard.set_logger(self.logger)
 
         scheduler = None
         try:
@@ -654,37 +644,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.__scheduler = scheduler
             scheduler.run()
         except SCRuntimeError as e:
-            # Tear the dashboard down first: this restores (un-suppresses) the
-            # terminal handler and dumps the full log tail to scrollback, so
-            # the messages below and the propagating error are actually visible
-            # instead of being swallowed while the dashboard owns the screen.
-            if self.__dashboard:
-                self.__dashboard.stop(force=True)
             self.logger.error(f"Run failed: {e.msg}")
             if scheduler and scheduler.log:
                 self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
             raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
-            if self.__dashboard:
-                # Push the final manifest (best-effort), then ALWAYS tear the
-                # dashboard down. stop() finalizes the run (it calls end_of_run()
-                # internally), detaches the logger (restoring normal terminal
-                # output), and unregisters the atexit hook, so this project is no
-                # longer pinned and can be garbage collected. update_manifest()
-                # does a schema retraversal that can raise (I/O / serialization);
-                # a failing final repaint must not skip teardown, nor mask the
-                # run's own result or error, so it is guarded. The shared Board
-                # is a process-wide singleton: its completeness guard keeps it
-                # alive for other concurrent runs and only truly stops it once
-                # all jobs are done; MPManager.stop() is the process-exit backstop.
-                try:
-                    self.__dashboard.update_manifest()
-                except Exception as e:
-                    # Best-effort final repaint: never fail or mask the run, but
-                    # record why it was skipped for diagnostics.
-                    self.logger.debug(f"Failed to update dashboard at end of run: {e}")
-                finally:
-                    self.__dashboard.stop()
             self.__scheduler = None
 
         self.__reset_job_params()
@@ -702,6 +666,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         thing :meth:`run` cannot be asked from the thread inside it.
         '''
         return self.__scheduler
+
+    @property
+    def _dashboard(self) -> Optional["CliDashboard"]:
+        '''
+        CliDashboard: The dashboard this project's runs are shown on, or None
+        when ``[option,nodashboard]`` is set. The scheduler tells it about each
+        run as a listener.
+        '''
+        return self.__dashboard
 
     def __reset_job_params(self):
         """

@@ -23,8 +23,9 @@ from siliconcompiler._metadata import detailed_version as sc_version
 from siliconcompiler.schema import __version__ as sc_schema_version
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.scheduler import Scheduler, SchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.scheduler.listener import RunListener
 
 from siliconcompiler.remote import JobStatus, NodeStatus
 from siliconcompiler.remote.schema import ServerSchema
@@ -95,13 +96,16 @@ validate_delete_job = _RequestSchema('delete_job')
 validate_get_results = _RequestSchema('get_results')
 
 
-class Server(ServerSchema):
+class Server(ServerSchema, RunListener):
     """
     The core class for the siliconcompiler 'gateway' server, which can run
     locally or on a remote host. Its job is to process requests for
     asynchronous siliconcompiler jobs, by using the slurm HPC daemon to
     schedule work on available compute nodes. It can also be configured to
     launch new compute nodes in the cloud, for on-demand jobs.
+
+    It listens to the runs it starts to keep each job's progress, which
+    'check_progress' reports.
     """
 
     __version__ = '0.0.1'
@@ -136,11 +140,15 @@ class Server(ServerSchema):
         self.sc_canceled_jobs = set()
         self.sc_project_lookup = {}
 
-    def __run_start(self, project):
-        nodes = project.get_flow().get_nodes()
-
+    def flow_started(self, project):
         with self.sc_jobs_lock:
-            job_hash = self.sc_project_lookup[project]["jobhash"]
+            job = self.sc_project_lookup.get(project)
+        if job is None:
+            # A listener hears every run in the process, not just this server's.
+            return
+        job_hash = job["jobhash"]
+
+        nodes = project.get_flow().get_nodes()
 
         start_tar = os.path.join(self.build_root, job_hash, f'{job_hash}_None.tar.gz')
         start_status = NodeStatus.SUCCESS
@@ -150,7 +158,7 @@ class Server(ServerSchema):
                    arcname=os.path.relpath(start_manifest, self.build_root))
 
         with self.sc_jobs_lock:
-            job_name = self.sc_project_lookup[project]["name"]
+            job_name = job["name"]
 
             self.sc_jobs[job_name][None]["status"] = start_status
 
@@ -175,17 +183,22 @@ class Server(ServerSchema):
             if scheduler:
                 scheduler.cancel()
 
-    def __node_start(self, project, step, index):
+    def node_started(self, project, step, index):
         with self.sc_jobs_lock:
-            job_name = self.sc_project_lookup[project]["name"]
-            node = self.sc_jobs[job_name][f"{step}{index}"]
+            job = self.sc_project_lookup.get(project)
+            if job is None:
+                return
+            node = self.sc_jobs[job["name"]][f"{step}{index}"]
             node["status"] = NodeStatus.RUNNING
             node["starttime"] = time.time()
 
-    def __node_end(self, project, step, index):
+    def node_finished(self, project, step, index):
         with self.sc_jobs_lock:
-            job_hash = self.sc_project_lookup[project]["jobhash"]
-            job_name = self.sc_project_lookup[project]["name"]
+            job = self.sc_project_lookup.get(project)
+        if job is None:
+            return
+        job_hash = job["jobhash"]
+        job_name = job["name"]
 
         project = project.copy()
         project._Project__cwd = os.path.join(project.option.get_builddir(), '..')
@@ -247,10 +260,7 @@ class Server(ServerSchema):
                                     "file in the server's working directory. "
                                     "(User : Key) mappings were not imported.")
 
-        # Register callbacks
-        TaskScheduler.register_callback("pre_run", self.__run_start)
-        TaskScheduler.register_callback("pre_node", self.__node_start)
-        TaskScheduler.register_callback("post_node", self.__node_end)
+        Scheduler.add_listener(self)
 
         # Create a minimal web server to process the 'remote_run' API call.
         # aiohttp's own default body limit is 1MB, which no real job fits in:
@@ -689,6 +699,9 @@ class Server(ServerSchema):
         returns. Without this, a Ctrl+C or SIGTERM mid-job would leave the slurm
         jobs it submitted queued with nobody left to collect them.
         '''
+        # Runs already started keep reporting here: a run hears the listeners
+        # registered when it began.
+        Scheduler.remove_listener(self)
 
         with self.sc_jobs_lock:
             running = dict(self.sc_job_threads)

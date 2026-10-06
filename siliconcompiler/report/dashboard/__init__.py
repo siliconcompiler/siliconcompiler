@@ -122,17 +122,12 @@ class AbstractDashboard(ABC):
         pass
 
     @abstractmethod
-    def update_manifest(self, payload=None):
+    def update_manifest(self):
         """
         Updates the dashboard with the latest information from the project's manifest.
 
         This method is the primary mechanism for pushing new data to the
         dashboard as the compilation flow progresses.
-
-        Args:
-            payload (dict, optional): A dictionary of metadata to pass to the
-                dashboard. A common use is to provide node start times, e.g.,
-                `{"starttimes": {<node_tuple>: time, ...}}`. Defaults to None.
         """
         pass
 

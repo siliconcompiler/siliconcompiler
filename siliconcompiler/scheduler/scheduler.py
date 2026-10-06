@@ -19,13 +19,16 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.scheduler.listener import RunListener, RunListeners
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, SchedulerNodeReset
+from siliconcompiler.scheduler.send_messages import EmailListener
+from siliconcompiler.scheduler.taskscheduler import _CallbackListener
 from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter, report_schema_warnings
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
-from siliconcompiler.scheduler import send_messages, SCRuntimeError
+from siliconcompiler.scheduler import SCRuntimeError
 from siliconcompiler.package.cleanup import auto_cleanup
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 from siliconcompiler.utils.curation import collect, filter_collection_keys
@@ -50,6 +53,55 @@ class Scheduler:
     and reporting results.
     """
     __MAX_LOG_BACKUPS: Final[int] = 5
+
+    # Guards the read-modify-write of the registered listeners, which sit with
+    # the other process-wide state in MPManager.
+    __listeners_lock = threading.Lock()
+
+    @staticmethod
+    def add_listener(listener: RunListener) -> None:
+        """Registers a listener to hear every run in this process.
+
+        A run hears the listeners registered when it starts. Adding a listener
+        that is already registered does nothing.
+
+        Args:
+            listener (RunListener): The listener to add.
+
+        Raises:
+            TypeError: If the listener is not a :class:`RunListener`.
+        """
+        if not isinstance(listener, RunListener):
+            raise TypeError(f"{type(listener).__name__} is not a RunListener")
+
+        with Scheduler.__listeners_lock:
+            listeners = Scheduler._registered_listeners()
+            if listener not in listeners:
+                MPManager.get_transient_settings().set(
+                    'Scheduler', 'listeners', (*listeners, listener))
+
+    @staticmethod
+    def remove_listener(listener: RunListener) -> None:
+        """Stops a listener hearing runs that start from now on. Removing one
+        that is not registered does nothing.
+
+        Args:
+            listener (RunListener): The listener to remove.
+        """
+        with Scheduler.__listeners_lock:
+            listeners = Scheduler._registered_listeners()
+            if listener in listeners:
+                MPManager.get_transient_settings().set(
+                    'Scheduler', 'listeners',
+                    tuple(registered for registered in listeners if registered is not listener))
+
+    @staticmethod
+    def _registered_listeners() -> Tuple[RunListener, ...]:
+        """
+        Returns:
+            tuple of RunListener: The listeners :meth:`add_listener` registered.
+        """
+        return MPManager.get_transient_settings().get('Scheduler', 'listeners', ())
 
     def __init__(self, project: "Project"):
         """
@@ -116,6 +168,9 @@ class Scheduler:
         self.__canceled = False
         self.__task_scheduler: Optional[TaskScheduler] = None
 
+        # Replaced when the run starts, by the listeners registered then.
+        self.__listener: RunListener = RunListeners()
+
         # Create tasks
         for step, index in self.__flow.get_nodes():
             node_cls = SchedulerNode
@@ -164,6 +219,29 @@ class Scheduler:
             Project: The Project object for the current project.
         """
         return self.__project
+
+    @property
+    def listener(self) -> RunListener:
+        """
+        Returns what hears this run's events, as one :class:`RunListener`.
+        """
+        return self.__listener
+
+    def _listeners(self) -> List[RunListener]:
+        """
+        The listeners that hear this run, collected as it starts: the project's
+        dashboard, the registered listeners, email, and the deprecated callbacks.
+
+        Returns:
+            list of RunListener: The listeners, in the order they are told.
+        """
+        listeners = []
+        if self.__project._dashboard:
+            listeners.append(self.__project._dashboard)
+        listeners.extend(Scheduler._registered_listeners())
+        listeners.append(EmailListener())
+        listeners.append(_CallbackListener())
+        return listeners
 
     def __print_status(self, header: str) -> None:
         """
@@ -217,7 +295,7 @@ class Scheduler:
         """
         self.__record.record_python_packages()
 
-        task_scheduler = TaskScheduler(self.__project, self.__tasks)
+        task_scheduler = TaskScheduler(self.__project, self.__tasks, self.__listener)
 
         with self.__cancel_lock:
             self.__task_scheduler = task_scheduler
@@ -295,81 +373,89 @@ class Scheduler:
             # Install job file logger
             self.__install_file_logger()
 
-            # Configure run
-            self.__project._init_run()
+            self.__listener = RunListeners(self._listeners())
+            self.__listener.run_started(self.__project)
 
-            # Informational check: warn if an editable install's environment is
-            # out of sync with its declared pyproject.toml dependencies.
-            utils.check_python_dependencies(self.__logger)
-
-            # Collect data sources that have gone unused, before this run's own
-            # resolves mark everything it needs as fresh. Throttled and very
-            # forgiving by default, and it never raises -- see auto_cleanup().
-            auto_cleanup(self.__project)
-
-            # Check validity of setup
-            if not self.check_manifest():
-                raise SCRuntimeError("check_manifest() failed")
-
-            # Initialize schedulers
-            self.__init_schedulers()
-
-            self.__run_setup()
-            self.configure_nodes()
-
-            # Verify task classes
-            if not self.__check_task_classes():
-                raise SCRuntimeError("Task classes are missing")
-
-            # Verify tool setups
-            if not self.__check_tool_versions():
-                raise SCRuntimeError("Tools did not meet version requirements")
-
-            # Verify tool setups
-            if not self.__check_tool_requirements():
-                raise SCRuntimeError("Tools requirements not met")
-
-            # Cleanup build directory
-            self.__clean_build_dir_incr()
-
-            # Check validity of flowgraphs IO
-            if not self.__check_flowgraph_io():
-                raise SCRuntimeError("Flowgraph file IO constrains errors")
-
-            # Collect what the nodes that run elsewhere cannot reach
-            keys = set().union(*(task.collect_keys() for task in self.__tasks.values()))
-            if keys:
-                collect_keys = [(key, step, index)
-                                for key in sorted(keys)
-                                for _, step, index in self.project.get(
-                                    *key, field=None).getvalues(return_values=False)]
-                collect(self.project, keys=filter_collection_keys(collect_keys))
-
+            error = None
             try:
-                self.run_core()
+                # Configure run
+                self.__project._init_run()
+
+                # Informational check: warn if an editable install's environment is
+                # out of sync with its declared pyproject.toml dependencies.
+                utils.check_python_dependencies(self.__logger)
+
+                # Collect data sources that have gone unused, before this run's own
+                # resolves mark everything it needs as fresh. Throttled and very
+                # forgiving by default, and it never raises -- see auto_cleanup().
+                auto_cleanup(self.__project)
+
+                # Check validity of setup
+                if not self.check_manifest():
+                    raise SCRuntimeError("check_manifest() failed")
+
+                # Initialize schedulers
+                self.__init_schedulers()
+
+                self.__run_setup()
+                self.configure_nodes()
+
+                # Verify task classes
+                if not self.__check_task_classes():
+                    raise SCRuntimeError("Task classes are missing")
+
+                # Verify tool setups
+                if not self.__check_tool_versions():
+                    raise SCRuntimeError("Tools did not meet version requirements")
+
+                # Verify tool setups
+                if not self.__check_tool_requirements():
+                    raise SCRuntimeError("Tools requirements not met")
+
+                # Cleanup build directory
+                self.__clean_build_dir_incr()
+
+                # Check validity of flowgraphs IO
+                if not self.__check_flowgraph_io():
+                    raise SCRuntimeError("Flowgraph file IO constrains errors")
+
+                # Collect what the nodes that run elsewhere cannot reach
+                keys = set().union(*(task.collect_keys() for task in self.__tasks.values()))
+                if keys:
+                    collect_keys = [(key, step, index)
+                                    for key in sorted(keys)
+                                    for _, step, index in self.project.get(
+                                        *key, field=None).getvalues(return_values=False)]
+                    collect(self.project, keys=filter_collection_keys(collect_keys))
+
+                self.__listener.flow_started(self.__project)
+                flow_error = None
+                try:
+                    self.run_core()
+                except BaseException as e:
+                    flow_error = e
+                    raise
+                finally:
+                    # Store run in history
+                    self.__project._record_history()
+
+                    # Record final manifest
+                    self.__project.write_manifest(self.manifest)
+
+                    self.__listener.flow_finished(self.__project, flow_error)
+            except BaseException as e:
+                error = e
+                raise
             finally:
-                # Store run in history
-                self.__project._record_history()
-
-                # Record final manifest
-                self.__project.write_manifest(self.manifest)
-
-                send_messages.send(self.__project, 'summary', None, None)
+                # Told before the error propagates, so a dashboard is down and
+                # the messages below reach the terminal.
+                self.__listener.run_finished(self.__project, error)
         except KeyboardInterrupt:
             pass
         except SCRuntimeError:
-            # Stop the dashboard before propagating so the terminal handler is
-            # un-suppressed and the full log tail is dumped to scrollback;
-            # otherwise an early failure's output stays hidden behind the
-            # (now torn-down) live screen.
-            if self.__project._Project__dashboard:
-                self.__project._Project__dashboard.stop(force=True)
             raise
         except Exception as e:
             utils.print_traceback(self.__logger, e)
-
-            if self.__project._Project__dashboard:
-                self.__project._Project__dashboard.stop(force=True)
 
             MPManager.error(str(e) or "uncaught exception")
 

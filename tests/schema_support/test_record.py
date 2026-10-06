@@ -99,6 +99,16 @@ def test_record_time(type, mock_datetime_now):
         '2020-03-11 14:00:00.000000'
 
 
+def test_record_time_given():
+    """A time given in seconds since the epoch is recorded in place of now."""
+    schema = RecordSchema()
+
+    assert schema.record_time("teststep", "testindex", RecordTime.START,
+                              timestamp=1583935230.5) == 1583935230.5
+    assert schema.get("starttime", step="teststep", index="testindex") == \
+        '2020-03-11 14:00:30.500000'
+
+
 @pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
 def test_get_recorded_time(type, mock_datetime_now):
     schema = RecordSchema()

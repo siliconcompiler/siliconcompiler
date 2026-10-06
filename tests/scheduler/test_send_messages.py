@@ -1,6 +1,7 @@
 import pytest
+from siliconcompiler import Design, NodeStatus, Project
 from siliconcompiler.scheduler import send_messages
-from unittest.mock import patch
+from unittest.mock import call, patch
 from siliconcompiler.utils import default_email_credentials_file
 import json
 import re
@@ -335,3 +336,48 @@ def test_load_config_reports_bad_field(asic_gcd, email_creds, caplog):
         mock_smtp.assert_not_called()
 
     assert "Email credentials failed to validate: missing field(s): port" in caplog.text
+
+
+@pytest.mark.parametrize("status,msg_type", [
+    (NodeStatus.SUCCESS, "end"),
+    (NodeStatus.SKIPPED, "skipped"),
+    (NodeStatus.ERROR, "fail"),
+    (NodeStatus.TIMEOUT, "fail")])
+def test_email_listener_node_finished(status, msg_type):
+    """A finished node is mailed as end, skipped or fail, by its recorded status."""
+    project = Project(Design("testdesign"))
+    project.set("record", "status", status, step="import", index="0")
+
+    with patch.object(send_messages, "send") as send:
+        send_messages.EmailListener().node_finished(project, "import", "0")
+
+    send.assert_called_once_with(project, msg_type, "import", "0")
+
+
+def test_email_listener_begin_and_summary():
+    """A node starting is mailed as begin, and the end of the flow as summary; the end of a run
+    alone, as after a failed setup, is not mailed."""
+    project = Project(Design("testdesign"))
+    listener = send_messages.EmailListener()
+
+    with patch.object(send_messages, "send") as send:
+        listener.node_started(project, "import", "0")
+        listener.flow_finished(project, None)
+        listener.run_finished(project, None)
+
+    assert send.call_args_list == [
+        call(project, "begin", "import", "0"),
+        call(project, "summary", None, None)]
+
+
+def test_summary_email_listener_sends_only_summary():
+    """The client side of a remote run mails the summary and nothing for its nodes."""
+    project = Project(Design("testdesign"))
+    listener = send_messages.SummaryEmailListener()
+
+    with patch.object(send_messages, "send") as send:
+        listener.node_started(project, "import", "0")
+        listener.node_finished(project, "import", "0")
+        listener.flow_finished(project, None)
+
+    send.assert_called_once_with(project, "summary", None, None)
