@@ -1384,11 +1384,17 @@ def test_uniquified_wireup_requires_built_macros():
         uq.wireup(project)
 
 
-def test_macro_corners_from_project_scenarios(asic_heartbeat):
+def test_macro_corners_from_project_scenarios(asic_heartbeat, monkeypatch):
     """build_macro takes its corners from the project's timing scenarios, which on freepdk45 is
     a single 'typical' rather than skywater130's slow/typical/fast set."""
-    corners = asic_heartbeat.getkeys("constraint", "timing", "scenario")
-    assert list(corners) == ["typical"]
+    _fake_results(asic_heartbeat, monkeypatch)
+
+    library = macro.build_macro(asic_heartbeat, "heartbeat")
+
+    timing = [fs for fs in library.getkeys("fileset") if fs.startswith("models.timing.")]
+    assert timing == ["models.timing.typical"]
+    assert library.get("fileset", "models.timing.typical", "file", "liberty") == \
+        ["/fake/typical.lib"]
 
 
 def _fake_results(project, monkeypatch):

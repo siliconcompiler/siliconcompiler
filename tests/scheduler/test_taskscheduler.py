@@ -1221,7 +1221,7 @@ def _find_marked(marker):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="posix process tree")
 @pytest.mark.timeout(120)
-def test_halt_ends_a_tool_its_node_did_not(large_flow, make_tasks):
+def test_cancel_ends_a_tool_its_node_did_not(large_flow, make_tasks):
     '''Canceling kills a node that ignores SIGTERM and also ends the tool it started, which
     SIGKILL alone would leave running.
     '''

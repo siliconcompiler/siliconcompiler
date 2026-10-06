@@ -1272,10 +1272,10 @@ def test_changing_a_declared_output_reruns_the_node(gcd_design):
     second = _flow_switch_project(gcd_design, "firstflow", "b.v")
     second.run()
 
-    place_outputs = os.listdir(os.path.join(
-        workdir(second, step="place", index="0"), "outputs"))
-    assert "b.v" in place_outputs
-    assert "a.v" not in place_outputs
+    for step in ("syn", "place"):
+        outputs = os.listdir(os.path.join(workdir(second, step=step, index="0"), "outputs"))
+        assert "b.v" in outputs, step
+        assert "a.v" not in outputs, step
 
 
 def _poison_manifest(path):
