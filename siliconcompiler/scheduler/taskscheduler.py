@@ -660,8 +660,8 @@ class TaskScheduler:
         """
         Private helper to start a single node's process.
 
-        Marks the node as running, records the start time, reports the node
-        started, and launches the underlying process.
+        Marks the node as running, records the start time, launches the
+        underlying process, and reports the node started.
 
         Args:
             node (tuple): The (step, index) of the node to start.
@@ -677,14 +677,16 @@ class TaskScheduler:
         # listener can see how long the node has been running.
         self.__record.record_time(step, index, RecordTime.START)
 
-        self.__listener.node_started(self.__project, step, index)
-
         # Start the process
         info["running"] = True
         info["parent_pipe"], pipe = get_process_context().Pipe()
         info["node"].set_queue(pipe, self.__log_queue)
         with forking():
             info["proc"].start()
+
+        # Only once there is a process: a launch that fails is not a node that
+        # started, and nothing would ever report it finished.
+        self.__listener.node_started(self.__project, step, index)
 
     def __launch_nodes(self) -> bool:
         """

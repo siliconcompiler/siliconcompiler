@@ -1144,6 +1144,45 @@ def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, projec
     assert "Failed to cancel elsewhere/0: scancel exploded" in caplog.text
 
 
+class _LaunchRecorder(RunListener):
+    """Notes, for each node reported started, whether its process had been started."""
+    def __init__(self):
+        self.scheduler = None
+        self.started = []
+
+    def node_started(self, project, step, index):
+        info = self.scheduler._TaskScheduler__nodes[(step, index)]
+        self.started.append(info["proc"].start.called)
+
+
+def _launch_recorder(large_flow, make_tasks, proc):
+    listener = _LaunchRecorder()
+    listener.scheduler = TaskScheduler(large_flow, make_tasks(large_flow), listener)
+    listener.scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+    return listener
+
+
+def test_node_started_follows_its_launch(large_flow, make_tasks):
+    """A node is reported started only once its process has been."""
+    listener = _launch_recorder(large_flow, make_tasks, MagicMock())
+
+    listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    assert listener.started == [True]
+
+
+def test_failed_launch_is_not_reported_started(large_flow, make_tasks):
+    """A node whose process cannot be started is never reported started."""
+    proc = MagicMock()
+    proc.start.side_effect = OSError("no more processes")
+    listener = _launch_recorder(large_flow, make_tasks, proc)
+
+    with pytest.raises(OSError, match="no more processes"):
+        listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    assert listener.started == []
+
+
 def test_a_canceled_run_refuses_to_start_a_node(large_flow, make_tasks):
     '''The check that guards a launch, on its own'''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))

@@ -436,13 +436,19 @@ class Scheduler:
                     flow_error = e
                     raise
                 finally:
-                    # Store run in history
-                    self.__project._record_history()
+                    try:
+                        # Store run in history
+                        self.__project._record_history()
 
-                    # Record final manifest
-                    self.__project.write_manifest(self.manifest)
-
-                    self.__listener.flow_finished(self.__project, flow_error)
+                        # Record final manifest
+                        self.__project.write_manifest(self.manifest)
+                    except BaseException as e:
+                        # Reported if the flow itself did not already fail.
+                        if flow_error is None:
+                            flow_error = e
+                        raise
+                    finally:
+                        self.__listener.flow_finished(self.__project, flow_error)
             except BaseException as e:
                 error = e
                 raise

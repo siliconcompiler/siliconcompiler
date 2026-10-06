@@ -3213,6 +3213,19 @@ def test_listener_hears_a_run_that_fails_setup(basic_project):
     assert listener.events == [("run_started",), ("run_finished", error.value)]
 
 
+def test_listener_hears_flow_end_when_recording_it_fails(basic_project):
+    """A flow whose history cannot be recorded is still heard ending, with that failure."""
+    listener = _Recorder()
+    Scheduler.add_listener(listener)
+    error = RuntimeError("history broke")
+
+    with patch.object(basic_project, "_record_history", side_effect=error):
+        with pytest.raises(SCRuntimeError, match=r"^history broke$"):
+            Scheduler(basic_project).run()
+
+    assert listener.events[-2:] == [("flow_finished", error), ("run_finished", error)]
+
+
 def test_failing_listener_does_not_stop_run(basic_project):
     """A listener that raises on every event leaves the run, and the other listeners, alone."""
     class Broken(RunListener):
