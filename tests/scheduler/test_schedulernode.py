@@ -604,22 +604,6 @@ def test_halt_swallows_write_manifest_error(project_logger, project, caplog):
     assert "kicking off halt" in caplog.text
 
 
-def test_halt_swallows_send_messages_error(project_logger, project, caplog):
-    '''halt() must still call sys.exit(1) if send_messages.send raises.'''
-    project_logger(project)
-    node = SchedulerNode(project, "steptwo", "0")
-    node.task.setup_work_directory(node.workdir)
-
-    with patch("siliconcompiler.scheduler.schedulernode.send_messages.send",
-               side_effect=RuntimeError("messaging broker down")):
-        with pytest.raises(SystemExit) as excinfo:
-            node.halt("kicking off halt")
-    assert excinfo.value.code == 1
-    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
-    # The "Halting..." line should still have been logged before the suppressed exception.
-    assert "Halting steptwo/0 due to errors" in caplog.text
-
-
 def test_halt_swallows_record_set_error(project_logger, project):
     '''halt() must still call sys.exit(1) if the very first internal call
     (recording status) raises.'''

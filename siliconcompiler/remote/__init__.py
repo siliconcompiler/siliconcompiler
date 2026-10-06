@@ -6,6 +6,7 @@ when `option,remote` is set; ``tests/remote/BEHAVIOUR.md`` lists what the client
 
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
+from siliconcompiler.scheduler.send_messages import SummaryEmailListener
 from siliconcompiler.utils.logging import get_console_formatter
 
 
@@ -42,12 +43,22 @@ class ClientScheduler(Scheduler):
         previous = project._logger_console.formatter
         project._logger_console.setFormatter(formatter)
         try:
-            RemoteRun(project, client).run()
+            RemoteRun(project, client, self.listener).run()
         except RemoteError as e:
             # A message, not a traceback.
             raise SCRuntimeError(str(e)) from None
         finally:
             project._logger_console.setFormatter(previous)
+
+    def _listeners(self):
+        # Node mail and the deprecated callbacks belong to the run on the
+        # server; only the summary is sent from here.
+        listeners = []
+        if self.project._dashboard:
+            listeners.append(self.project._dashboard)
+        listeners.extend(Scheduler._registered_listeners())
+        listeners.append(SummaryEmailListener())
+        return listeners
 
     def configure_nodes(self) -> None:
         '''Nothing to configure: no node runs here.'''

@@ -425,26 +425,59 @@ def test_settling_changes_and_writes_nothing_the_record_does_not_say(
     assert runner._progress["nodes"]["stepone/0"]["state"] == "failed"
 
 
-def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
-    '''Project.run() resets `record,status` on its way out, so settling is a
-    post_run callback and not something done after run() returns.'''
+def _listened(project, nodes):
+    '''Run ``project`` with the runner's listener, holding the job to ``nodes``.'''
     from siliconcompiler.remote.server.running import runner
-    from siliconcompiler.scheduler.taskscheduler import TaskScheduler
-    from siliconcompiler.utils.multiprocessing import MPManager
+    from siliconcompiler.scheduler import Scheduler
 
-    nop_project.option.set_builddir("build")
     runner._progress_path = None
-    runner._progress = {"nodes": {"stepone/0": {"state": "pending"},
-                                  "steptwo/0": {"state": "pending"}}}
+    runner._refused = None
+    runner._progress = {"nodes": {node: {"state": "pending"} for node in nodes}}
+    listener = runner._Listener()
+    Scheduler.add_listener(listener)
+    try:
+        project.run()
+    finally:
+        Scheduler.remove_listener(listener)
+    return runner
 
-    TaskScheduler.register_callback("post_run", runner._settle)
-    nop_project.run()
+
+def test_the_verdict_is_taken_before_the_record_is_reset(nop_project):
+    '''Project.run() resets `record,status` on its way out, so settling is the
+    listener's and not something done after run() returns.'''
+    nop_project.option.set_builddir("build")
+
+    runner = _listened(nop_project, ("stepone/0", "steptwo/0"))
 
     assert runner._progress["nodes"]["stepone/0"]["state"] == "completed"
     assert runner._progress["nodes"]["steptwo/0"]["state"] == "completed"
     assert nop_project.get("record", "status", step="stepone", index="0") is None
-    MPManager.get_transient_settings().set("TaskScheduler", "post_run",
-                                           lambda project: None)
+
+
+def test_a_run_grown_past_its_window_is_canceled_before_any_node_starts(nop_project):
+    '''A listener that raises is only logged, so the window is held by canceling
+    the run: it fails naming the node, and none starts.'''
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.remote.server.running import runner
+    from siliconcompiler.tools.builtin.join import JoinTask
+    from siliconcompiler.tools.builtin.nop import NOPTask
+
+    flow = Flowgraph("window")
+    flow.node("one", NOPTask())
+    flow.node("two", NOPTask())
+    flow.node("join", JoinTask())
+    flow.edge("one", "join")
+    flow.edge("two", "join")
+    nop_project.set_flow(flow)
+    # `two` never ran, and feeds no `-from` step, so it is added to the run.
+    nop_project.option.add_from("one")
+
+    with pytest.raises(RuntimeError, match="canceled"):
+        _listened(nop_project, ("one/0", "join/0"))
+
+    assert "would rebuild two/0" in runner._refused
+    assert set(runner._progress["nodes"]) == {"one/0", "join/0"}
+    assert all(node["state"] == "pending" for node in runner._progress["nodes"].values())
 
 
 def test_quiet_is_left_as_the_caller_set_it(nop_project, tmp_path):

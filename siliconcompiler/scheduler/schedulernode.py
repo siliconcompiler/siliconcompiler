@@ -23,7 +23,6 @@ from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFo
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import BaseSchema, Journal, Parameter
-from siliconcompiler.scheduler import send_messages
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir, cwdir
 
 if TYPE_CHECKING:
@@ -416,7 +415,6 @@ class SchedulerNode:
                 self.logger.error(errmsg)
             else:
                 self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
-            send_messages.send(self.__project, "fail", self.__step, self.__index)
         except:  # noqa E722
             # Catch everything to avoid generating additional errors during error handling
             pass
@@ -1182,8 +1180,6 @@ class SchedulerNode:
                                         f'outputs/{outfile.name}',
                                         dirs_exist_ok=True,
                                         copy_function=utils.link_symlink_copy)
-
-            send_messages.send(self.__project, "skipped", self.__step, self.__index)
         else:
             with self.__set_env():
                 toolpath = self.__task.get_exe()
@@ -1198,8 +1194,6 @@ class SchedulerNode:
 
                 if toolpath:
                     self.__record.record_tool(self.__step, self.__index, toolpath, RecordTool.PATH)
-
-                send_messages.send(self.__project, "begin", self.__step, self.__index)
 
                 try:
                     if not self.__replay:
@@ -1280,8 +1274,6 @@ class SchedulerNode:
                       f'{self.__step}/{self.__index}')
 
         self.__report_output_files()
-
-        send_messages.send(self.__project, "end", self.__step, self.__index)
 
     def __generate_testcase(self) -> None:
         """

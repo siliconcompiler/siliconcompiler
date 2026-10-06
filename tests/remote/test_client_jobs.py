@@ -727,31 +727,43 @@ def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, capsys):
 
 @pytest.fixture
 def board(nop_project):
-    painted = []
-
     class Board:
         def is_running(self):
             return True
 
-        def update_manifest(self, payload=None):
-            painted.append(payload)
-
     nop_project._Project__dashboard = Board()
-    return painted
 
 
-def test_the_dashboard_is_given_the_running_clocks_and_the_finished_times(fake_v1, run,
-                                                                          board):
-    '''`starttimes` make a running node's timer tick; a finished node's
-    time comes from the job, before any manifest; one never run has none.'''
-    run._paint(job_body("running", nodes=[
+def test_each_node_is_told_started_and_finished_once(fake_v1, run):
+    '''The start is recorded from `started_at`, so a dashboard's timer survives
+    reconnects; a node that never started is only told finished.'''
+    from siliconcompiler.scheduler.listener import RunListener
+    from siliconcompiler.schema_support.record import RecordTime
+
+    heard = []
+
+    class Listener(RunListener):
+        def node_started(self, project, step, index):
+            heard.append(("started", step))
+
+        def node_finished(self, project, step, index):
+            heard.append(("finished", step))
+
+    run.listener = Listener()
+    job = job_body("running", nodes=[
         _node("stepone", "completed", started_at="2026-09-22T10:00:00.000Z",
               finished_at="2026-09-22T10:01:30.500Z"),
         _node("steptwo", "running", started_at="2026-09-22T10:01:31.000Z"),
-        _node("stepthree", "skipped")]))
+        _node("stepthree", "skipped")])
+    moved = [("stepone", "0", "completed"), ("steptwo", "0", "running"),
+             ("stepthree", "0", "skipped")]
+    run._tell(job, moved)
+    run._tell(job, moved)
 
-    assert board[0]["starttimes"] == {("steptwo", "0"): 1790071291.0}
-    assert board[0]["durations"] == {("stepone", "0"): 90.5}
+    assert heard == [("started", "stepone"), ("finished", "stepone"),
+                     ("started", "steptwo"), ("finished", "stepthree")]
+    record = run.project.get("record", field="schema")
+    assert record.get_recorded_time("steptwo", "0", RecordTime.START) == 1790071291.0
 
 
 def test_a_dashboard_run_reports_only_what_moved(fake_v1, run, board, caplog):

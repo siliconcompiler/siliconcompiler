@@ -25,15 +25,18 @@ from siliconcompiler.remote.server.running.runspec import (
     write_json)
 from siliconcompiler.remote.server.software import images
 from siliconcompiler.remote.server.state.store import now
+from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.utils.logging import SCSuppressLoggerFilter
 
 __all__ = ["main"]
 
 
-# Module state, not a closure: the callbacks reach forked children through a
-# shared settings object, and only a plain function survives that trip.
+# Module state, not the listener's: it reaches the scheduler through a shared
+# settings object, as a copy.
 _progress_path = None
 _progress = None
+# Why the run was stopped before any node started, where it was.
+_refused = None
 
 # Bundle directory -> reference it unpacks from, and what to mount into it.
 _image_sources = {}
@@ -116,10 +119,10 @@ def _explain_failure(project, step, index, node) -> None:
 
 def run(manifest: Path) -> int:
     '''Run one job, reporting as it goes.'''
-    global _progress_path, _progress
+    global _progress_path, _progress, _refused
 
     from siliconcompiler import Project
-    from siliconcompiler.scheduler.taskscheduler import TaskScheduler
+    from siliconcompiler.scheduler import Scheduler
 
     _leave_the_allocation()
 
@@ -149,12 +152,8 @@ def run(manifest: Path) -> int:
 
     threading.Thread(target=_beat, daemon=True).start()
 
-    TaskScheduler.register_callback("pre_node", _node_started)
-    TaskScheduler.register_callback("post_node", _node_finished)
-    # Settled in hooks, not after project.run(), which resets `record,status`
-    # on its way out; and on both ends, since skipped nodes are decided in setup.
-    TaskScheduler.register_callback("pre_run", _before_the_flow)
-    TaskScheduler.register_callback("post_run", _settle)
+    _refused = None
+    Scheduler.add_listener(_Listener())
 
     try:
         _check_task_classes(project)
@@ -164,7 +163,7 @@ def run(manifest: Path) -> int:
         _progress["state"] = "failed"
         # The job's `error.detail`, the only account of the failure a CLI
         # user sees; the class name only when there is no message.
-        _progress["error"] = str(e) or type(e).__name__
+        _progress["error"] = _refused or str(e) or type(e).__name__
         traceback.print_exc()
         return 1
     else:
@@ -227,11 +226,33 @@ def _sweep() -> None:
             node["state"] = "cancelled"
 
 
-def _before_the_flow(project) -> None:
-    '''The one `pre_run` hook: `register_callback` replaces rather than appends.'''
-    _hold_the_window(project)
-    _settle(project)
-    _fetch_images(project)
+class _Listener(RunListener):
+    '''Each node's progress, into the job's progress file.
+
+    Settled when the flow starts and when it finishes, not after project.run(),
+    which resets `record,status` on its way out; and on both ends, since
+    skipped nodes are decided in setup.'''
+
+    def flow_started(self, project) -> None:
+        global _refused
+        try:
+            _hold_the_window(project)
+        except RuntimeError as e:
+            # A listener that raises is only logged: cancel before a node starts.
+            _refused = str(e)
+            project._scheduler.cancel()
+            return
+        _settle(project)
+        _fetch_images(project)
+
+    def node_started(self, project, step, index) -> None:
+        _node_started(project, step, index)
+
+    def node_finished(self, project, step, index) -> None:
+        _node_finished(project, step, index)
+
+    def flow_finished(self, project, error) -> None:
+        _settle(project)
 
 
 def _hold_the_window(project) -> None:
@@ -251,7 +272,7 @@ def _hold_the_window(project) -> None:
 def _fetch_images(project) -> None:
     '''Make every container this run needs present, showing `preparing` meanwhile.
 
-    Front-loaded: in `pre_node` a multi-minute fetch would stall the loop that
+    Front-loaded: per node, a multi-minute fetch would stall the loop that
     reaps every node. A failed fetch is not fatal here: the node's own
     launch retries and fails with a better message.
     '''
@@ -380,10 +401,10 @@ def _silence_console(project) -> None:
 
 
 def _settle(project) -> None:
-    '''Take `record,status` for every node no callback fired for.
+    '''Take `record,status` for every node no event was reported for.
 
-    A node the scheduler skipped (metal fill a PDK disables) never fires a
-    callback; calling it `cancelled` would show a client an error for work
+    A node the scheduler skipped (metal fill a PDK disables) is never
+    reported; calling it `cancelled` would show a client an error for work
     nobody intended. Runs before the flow too, so nothing is written off
     here: that is `_sweep`'s.
     '''

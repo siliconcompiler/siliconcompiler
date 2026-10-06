@@ -30,6 +30,8 @@ from siliconcompiler.utils import file_digest, mask_credentials
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
+from siliconcompiler.scheduler.listener import RunListener
+from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, _slug, clean, describe)
@@ -83,9 +85,13 @@ def node_status(state: str, terminal: bool) -> str:
 class RemoteRun:
     '''One project, run on one server.'''
 
-    def __init__(self, project, client):
+    def __init__(self, project, client, listener: Optional[RunListener] = None):
         self.project = project
         self.client = client
+        # Told as the server reports each node starting and finishing.
+        self.listener = listener or RunListener()
+        self._told_started = set()
+        self._told_finished = set()
         self.logger = project.logger.getChild("remote")
 
         # The tails' threads and the poll loop share a console whose formatter
@@ -1143,7 +1149,7 @@ class RemoteRun:
 
             changed = self._record(job, seen)
             results.take(job_id, job)
-            self._paint(job)
+            self._tell(job, changed)
             self._say_substituted(job)
             tails.follow(job_id, job)
 
@@ -1272,26 +1278,31 @@ class RemoteRun:
                 break
         self.logger.info(f"  {state.title()} ({len(nodes)}): {', '.join(names)}")
 
-    def _paint(self, job: Dict[str, Any]) -> None:
-        '''Hand the dashboard the states and the clocks.
+    def _tell(self, job: Dict[str, Any], changed) -> None:
+        '''Report each node that moved as started or finished, once each.
 
-        Without this it never rereads the record. ``starttimes`` come from
-        ``started_at``, an instant, so a timer survives polls, reconnects and restarts.
+        The start goes into the record from ``started_at``, an instant, so a
+        dashboard's timer survives polls, reconnects and restarts. Finished is
+        told after `Results.take`, so its results are in the project if any came.
         '''
-        board = self._dashboard()
-        if board is None:
-            return
+        nodes = {(node.get("step"), node.get("index")): node
+                 for node in job.get("nodes") or []}
+        record = self.project.get("record", field="schema")
 
-        try:
-            board.update_manifest({"starttimes": _starttimes(job),
-                                   "durations": _durations(job)})
-        except Exception as e:                                   # noqa: BLE001
-            # A failed repaint must not end the run.
-            logger.debug(f"could not update the dashboard: {e}")
+        for step, index, _ in changed:
+            node = nodes.get((step, index)) or {}
+            started = _epoch(node["started_at"]) if node.get("started_at") else None
+            if started is not None and (step, index) not in self._told_started:
+                self._told_started.add((step, index))
+                record.record_time(step, index, RecordTime.START, timestamp=started)
+                self.listener.node_started(self.project, step, index)
+            if node.get("terminal") and (step, index) not in self._told_finished:
+                self._told_finished.add((step, index))
+                self.listener.node_finished(self.project, step, index)
 
     def _dashboard(self):
         '''The dashboard this run is being watched through, if any.'''
-        board = getattr(self.project, "_Project__dashboard", None)
+        board = self.project._dashboard
         try:
             return board if board is not None and board.is_running() else None
         except Exception:                                        # noqa: BLE001
@@ -1485,52 +1496,6 @@ class _Tails:
 
 # The job stream thread's key: no flow has this (step, index).
 JOB = (None, None)
-
-
-def _starttimes(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
-    '''When each running node started, as ``{(step, index): epoch seconds}``.'''
-    starttimes = {}
-
-    for node in job.get("nodes") or []:
-        step, index = node.get("step"), node.get("index")
-        started = node.get("started_at")
-        if not step or index is None or not started:
-            continue
-
-        if node.get("terminal"):
-            # A finished node must stop counting: the board ticks these against now.
-            continue
-
-        moment = _epoch(started)
-        if moment is not None:
-            starttimes[(step, index)] = moment
-
-    return starttimes
-
-
-def _durations(job: Dict[str, Any]) -> Dict[Tuple[str, str], float]:
-    '''How long each finished node took, as the server saw it.
-
-    Here before the node's manifest, which may never come; the board prefers
-    `metric,tasktime` once it does. Server wall time, startup included, so
-    never written into the record.
-    '''
-    durations = {}
-
-    for node in job.get("nodes") or []:
-        step, index = node.get("step"), node.get("index")
-        if not step or index is None or not node.get("terminal"):
-            continue
-        if not node.get("started_at") or not node.get("finished_at"):
-            # Never ran: skipped, or cancelled first.
-            continue
-
-        started = _epoch(node["started_at"])
-        finished = _epoch(node["finished_at"])
-        if started is not None and finished is not None and finished >= started:
-            durations[(step, index)] = finished - started
-
-    return durations
 
 
 def _state_line(job: Dict[str, Any]) -> str:

@@ -28,6 +28,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuiet
     SC_LOG, SC_LOGERROR
 from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.utils.units import format_time
 from siliconcompiler.report.dashboard.cli.layout import Layout
 from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
@@ -496,23 +497,17 @@ class Board:
 
                     self._render_thread.start()
 
-    def update_manifest(self, project, starttimes=None, durations=None):
+    def update_manifest(self, project):
         """
         Updates the dashboard with the latest data from a project object's manifest.
 
         Args:
             project: The SiliconCompiler project object.
-            starttimes (dict, optional): A dictionary mapping (step, index) tuples
-                                         to their start times. Defaults to None.
-            durations (dict, optional): A dictionary mapping (step, index) tuples
-                                        to how long a finished node took, shown
-                                        where the node has no ``tasktime`` yet.
-                                        Defaults to None.
         """
         if not self._active:
             return
 
-        self._update_render_data(project, starttimes=starttimes, durations=durations)
+        self._update_render_data(project)
 
     def is_running(self) -> bool:
         """
@@ -1202,24 +1197,20 @@ class Board:
 
         return Group(*items)
 
-    def _update_render_data(self, project, starttimes=None, complete=False,
-                            durations=None):
+    def _update_render_data(self, project, complete=False):
         """
         Extracts job and node information from a project object and updates the
         shared job data dictionary, triggering a render event.
 
         Args:
             project: The SiliconCompiler project object.
-            starttimes (dict, optional): Dictionary of node start times. Defaults to None.
             complete (bool, optional): Flag indicating if the job is complete. Defaults to False.
-            durations (dict, optional): Dictionary of finished nodes' durations,
-                used where a node has no ``tasktime``. Defaults to None.
         """
 
         if not project:
             return
 
-        job_data = self._get_job(project, starttimes=starttimes, durations=durations)
+        job_data = self._get_job(project)
         job_data.complete = complete
 
         if not job_data.nodes:
@@ -1348,7 +1339,7 @@ class Board:
         self._topology_cache[project_id] = topology
         return topology
 
-    def _get_job(self, project, starttimes=None, durations=None) -> JobData:
+    def _get_job(self, project) -> JobData:
         """
         Parses a project object to extract detailed information about the flowgraph,
         node statuses, timings, and metrics.
@@ -1358,21 +1349,11 @@ class Board:
 
         Args:
             project: The SiliconCompiler project object to parse.
-            starttimes (dict, optional): A dictionary of node start times.
-                                         Defaults to None.
-            durations (dict, optional): A dictionary of how long each finished
-                node took, for a node whose ``tasktime`` is not known -- a
-                remote run knows when a node started and ended before it has
-                the node's manifest, and may never be handed it.
-                                         Defaults to None.
 
         Returns:
             JobData: A data object populated with the extracted information.
         """
-        if not starttimes:
-            starttimes = {}
-        if not durations:
-            durations = {}
+        record = project.get("record", field="schema")
 
         design = project.option.get_design()
         jobname = project.option.get_jobname()
@@ -1465,10 +1446,8 @@ class Board:
             if NodeStatus.is_done(status):
                 duration = project.get("metric", "tasktime", step=step, index=index)
                 totaltime = project.get("metric", "totaltime", step=step, index=index)
-                if duration is None:
-                    duration = durations.get((step, index))
-            if (step, index) in starttimes:
-                starttime = starttimes[(step, index)]
+            elif NodeStatus.is_running(status):
+                starttime = record.get_recorded_time(step, index, RecordTime.START)
 
             node_metrics = []
             for metric in self._metrics:

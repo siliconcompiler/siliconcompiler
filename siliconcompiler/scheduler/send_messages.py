@@ -13,9 +13,10 @@ import uuid
 
 import os.path
 
-from siliconcompiler import sc_open
+from siliconcompiler import NodeStatus, sc_open
 from siliconcompiler.utils import default_email_credentials_file, get_file_template
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.utils.paths import workdir
 
 
@@ -132,8 +133,8 @@ def send(project, msg_type, step, index):
         return
 
     # Imported here rather than at module scope: smtplib pulls in ssl and the
-    # report package pulls in Pillow, and this module is reached from
-    # schedulernode on every run, almost none of which send mail.
+    # report package pulls in Pillow, and every run reaches this module through
+    # EmailListener, almost none of which send mail.
     import smtplib
 
     from email.mime.multipart import MIMEMultipart
@@ -270,6 +271,40 @@ def send(project, msg_type, step, index):
                 smtp_server.sendmail(msg['From'], to, msg.as_string())
             except Exception as e:
                 project.logger.error(f'An error occurred while sending email: {e}')
+
+
+class SummaryEmailListener(RunListener):
+    """
+    Sends the ``summary`` email, if ``[option,scheduler,msgevent]`` asks for it,
+    once a run's flow is over. A run that fails in setup sends none.
+
+    This is the mail the client side of a remote run sends; the server's run
+    sends the rest.
+    """
+
+    def flow_finished(self, project, error):
+        send(project, "summary", None, None)
+
+
+class EmailListener(SummaryEmailListener):
+    """
+    Sends a run's email notifications, as ``[option,scheduler,msgevent]``
+    selects them: ``begin`` as a node is launched, ``end``, ``skipped`` or
+    ``fail`` as it finishes, and ``summary`` once the flow is over.
+    """
+
+    def node_started(self, project, step, index):
+        send(project, "begin", step, index)
+
+    def node_finished(self, project, step, index):
+        status = project.get('record', 'status', step=step, index=index)
+        if status == NodeStatus.SKIPPED:
+            msg_type = "skipped"
+        elif NodeStatus.is_error(status):
+            msg_type = "fail"
+        else:
+            msg_type = "end"
+        send(project, msg_type, step, index)
 
 
 if __name__ == "__main__":

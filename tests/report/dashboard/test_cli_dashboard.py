@@ -1508,24 +1508,6 @@ def test_get_job_records_totaltime_metric(mock_project, fake_console):
 
 
 @pytest.mark.timeout(30)
-def test_get_job_falls_back_to_a_given_duration(mock_project, fake_console):
-    """A finished node with no tasktime yet shows the duration it was given --
-    a remote run knows when a node started and ended before it has the node's
-    manifest -- and the tool's own tasktime wins once there is one."""
-    mock_project.set("record", "status", "success", step="route.global", index=0)
-    mock_project.set("record", "status", "success", step="route.detailed", index=0)
-    mock_project.set("metric", "tasktime", 12.5, step="route.detailed", index=0)
-
-    dashboard = MPManager.get_dashboard()
-    job = dashboard._get_job(mock_project, durations={("route.global", "0"): 7.0,
-                                                      ("route.detailed", "0"): 99.0})
-
-    time_of = {n["step"]: n["time"]["duration"] for n in job.nodes}
-    assert time_of["route.global"] == 7.0
-    assert time_of["route.detailed"] == 12.5
-
-
-@pytest.mark.timeout(30)
 def test_render_job_dashboard_multi_job_limit_progress(
         mock_running_job_lg, mock_running_job_lg_second,
         dashboard_xsmall):
@@ -2608,6 +2590,109 @@ def test_should_disable_with_breakpoint(project_logger, caplog):
 
     assert CliDashboard.should_disable(proj) is True
     assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
+
+
+@pytest.mark.parametrize("running", [False, True])
+def test_run_started_opens_dashboard(fake_console, running):
+    """A run opens the dashboard as setup begins, unless another run already has, and
+    attaches the logger, but paints nothing until its nodes are set up."""
+    proj = _project_with_flow()
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(proj)
+
+    with patch.object(CliDashboard, "is_running", return_value=running), \
+            patch.object(CliDashboard, "open_dashboard") as open_dashboard, \
+            patch.object(CliDashboard, "set_logger") as set_logger, \
+            patch.object(CliDashboard, "update_manifest") as update_manifest, \
+            patch.object(CliDashboard, "stop") as stop:
+        dashboard.run_started(proj)
+
+    assert open_dashboard.called is not running
+    set_logger.assert_called_with(proj.logger)
+    update_manifest.assert_not_called()
+    stop.assert_not_called()
+
+
+def test_run_started_headless(mock_project, monkeypatch):
+    """Without a terminal a run neither opens the dashboard nor builds its nodes to look for
+    breakpoints."""
+    monkeypatch.setattr(Console, "is_terminal", False)
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(mock_project)
+
+    with patch.object(CliDashboard, "should_disable") as should_disable, \
+            patch.object(CliDashboard, "open_dashboard") as open_dashboard:
+        dashboard.run_started(mock_project)
+
+    should_disable.assert_not_called()
+    open_dashboard.assert_not_called()
+
+
+def test_run_started_with_breakpoint_stays_closed(fake_console, project_logger, caplog):
+    """A run with a breakpoint leaves the terminal to it."""
+    proj = _project_with_flow()
+    project_logger(proj)
+    proj.set("option", "breakpoint", True, step="faux")
+    with patch("threading.Thread"):
+        dashboard = CliDashboard(proj)
+
+    with patch.object(CliDashboard, "open_dashboard") as open_dashboard, \
+            patch.object(CliDashboard, "stop") as stop:
+        dashboard.run_started(proj)
+
+    open_dashboard.assert_not_called()
+    stop.assert_called_once_with()
+    assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
+
+
+def test_flow_and_node_events_repaint(dashboard, mock_project):
+    with patch.object(CliDashboard, "update_manifest") as update_manifest:
+        dashboard.flow_started(mock_project)
+        dashboard.node_started(mock_project, "syn", "0")
+        dashboard.node_finished(mock_project, "syn", "0")
+
+    assert update_manifest.call_count == 3
+
+
+@pytest.mark.parametrize("error,force", [
+    (None, False),
+    (ValueError("run failed"), True),
+    (KeyboardInterrupt(), False),
+    (SystemExit(0), False)])
+def test_run_finished_stops_dashboard(dashboard, mock_project, error, force):
+    """The end of a run paints its final state and stops the dashboard, dumping the full log
+    only for a failure."""
+    with patch.object(CliDashboard, "update_manifest") as update_manifest, \
+            patch.object(CliDashboard, "stop") as stop:
+        dashboard.run_finished(mock_project, error)
+
+    update_manifest.assert_called_once_with()
+    stop.assert_called_once_with(force=force)
+
+
+def test_run_finished_stops_when_paint_fails(dashboard, mock_project):
+    """A failing final paint must not leave the dashboard up with the terminal suppressed."""
+    with patch.object(CliDashboard, "update_manifest", side_effect=RuntimeError("boom")), \
+            patch.object(CliDashboard, "stop") as stop:
+        dashboard.run_finished(mock_project, None)
+
+    stop.assert_called_once_with(force=False)
+
+
+def test_get_job_start_time_from_record(dashboard):
+    """A running node's timer starts from its recorded start time; a node that is not running
+    shows none."""
+    proj = _project_with_flow()
+    proj.set("option", "flow", "testflow")
+    record = proj.get("record", field="schema")
+    record.record_time("faux", "0", "starttime", timestamp=1000.0)
+
+    board = dashboard._dashboard
+    proj.set("record", "status", NodeStatus.RUNNING, step="faux", index="0")
+    assert board._get_job(proj).nodes[0]["time"]["start"] == 1000.0
+
+    proj.set("record", "status", NodeStatus.PENDING, step="faux", index="0")
+    assert board._get_job(proj).nodes[0]["time"]["start"] is None
 
 
 @pytest.mark.timeout(30)
