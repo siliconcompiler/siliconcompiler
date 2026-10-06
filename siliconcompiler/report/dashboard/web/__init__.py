@@ -138,7 +138,7 @@ class WebDashboard(AbstractDashboard):
         with forking():
             self.__dashboard.start()
 
-    def update_manifest(self, payload=None):
+    def update_manifest(self):
         """
         Writes the main project's manifest to the shared temporary directory.
 

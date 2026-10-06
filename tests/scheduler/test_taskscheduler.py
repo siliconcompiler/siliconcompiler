@@ -14,10 +14,12 @@ from unittest.mock import MagicMock
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler import NodeStatus
 from siliconcompiler import Project, Flowgraph, Design
-from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.scheduler import Scheduler, TaskScheduler
 from siliconcompiler.scheduler import taskscheduler as taskscheduler_module
+from siliconcompiler.scheduler.taskscheduler import _CallbackListener
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
 from siliconcompiler.scheduler import SchedulerNode, SCRuntimeError
+from siliconcompiler.scheduler.listener import RunListener
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -106,7 +108,8 @@ def test_register_callback():
 
     settings = MPManager().get_transient_settings()
     assert "pre_run" not in settings.get_category('TaskScheduler')
-    TaskScheduler.register_callback("pre_run", callback)
+    with pytest.warns(DeprecationWarning, match="Scheduler.add_listener"):
+        TaskScheduler.register_callback("pre_run", callback)
     assert settings.get('TaskScheduler', "pre_run") is callback
 
 
@@ -160,67 +163,71 @@ def test_log_queue_is_plain_on_fork(large_flow, make_tasks, monkeypatch):
 
 
 @pytest.mark.timeout(180)
-def test_run_callbacks(large_flow, make_tasks):
-    class Callback:
-        pre_run = 0
-        pre_node = 0
-        post_node = 0
-        post_run = 0
+def test_deprecated_callbacks_hear_run(large_flow):
+    """Functions set with register_callback are still called through a run, each at its old
+    point."""
+    calls = []
+    with pytest.warns(DeprecationWarning):
+        TaskScheduler.register_callback("pre_run", lambda proj: calls.append("pre_run"))
+        TaskScheduler.register_callback(
+            "pre_node", lambda proj, step, index: calls.append("pre_node"))
+        TaskScheduler.register_callback(
+            "post_node", lambda proj, step, index: calls.append("post_node"))
+        TaskScheduler.register_callback("post_run", lambda proj: calls.append("post_run"))
 
-        @staticmethod
-        def callback_pre_run(proj):
-            Callback.pre_run += 1
+    Scheduler(large_flow).run()
 
-        @staticmethod
-        def callback_pre_node(proj, step, index):
-            Callback.pre_node += 1
+    assert calls[0] == "pre_run"
+    assert calls[-1] == "post_run"
+    assert calls.count("pre_node") == 12
+    assert calls.count("post_node") == 12
 
-        @staticmethod
-        def callback_post_node(proj, step, index):
-            Callback.post_node += 1
 
-        @staticmethod
-        def callback_post_run(proj):
-            Callback.post_run += 1
+@pytest.mark.parametrize("error,called", [
+    (None, True),
+    (SCRuntimeError("Could not run final steps"), True),
+    (ValueError("loop failed"), False),
+    (SystemExit(0), False)])
+def test_deprecated_post_run_follows_a_finished_loop(large_flow, error, called):
+    """post_run follows a scheduling loop that finished, even if the flow then failed, and not
+    one that was stopped."""
+    calls = []
+    with pytest.warns(DeprecationWarning):
+        TaskScheduler.register_callback("post_run", calls.append)
 
-    TaskScheduler.register_callback("pre_run", Callback.callback_pre_run)
-    TaskScheduler.register_callback("pre_node", Callback.callback_pre_node)
-    TaskScheduler.register_callback("post_node", Callback.callback_post_node)
-    TaskScheduler.register_callback("post_run", Callback.callback_post_run)
+    _CallbackListener().flow_finished(large_flow, error)
 
-    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
-    scheduler.run(logging.NullHandler())
-
-    assert Callback.pre_run == 1
-    assert Callback.pre_node == 12
-    assert Callback.post_node == 12
-    assert Callback.post_run == 1
+    assert calls == ([large_flow] if called else [])
 
 
 @pytest.mark.timeout(180)
-def test_run_dashboard(large_flow, make_tasks, monkeypatch):
-    class FakeDashboard:
-        lock = Lock()
-        calls = []
+def test_run_listener(large_flow, make_tasks):
+    """Each node is reported started, with its status and start time in the record, then
+    finished with its final status."""
+    class Recorder(RunListener):
+        def __init__(self):
+            self.started = []
+            self.finished = []
 
-        def update_manifest(self, payload=None):
-            with self.lock:
-                self.calls.append(payload)
+        def node_started(self, project, step, index):
+            record = project.get("record", field="schema")
+            self.started.append((step, index, record.get("status", step=step, index=index),
+                                 record.get_recorded_time(step, index, "starttime")))
 
-    def dummy_get_cores(*args, **kwargs):
-        return 1
-    monkeypatch.setattr(imported_utils, "get_cores", dummy_get_cores)
+        def node_finished(self, project, step, index):
+            self.finished.append(
+                (step, index, project.get("record", "status", step=step, index=index)))
 
-    dashboard = FakeDashboard()
-    large_flow._Project__dashboard = dashboard
-
-    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    listener = Recorder()
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow), listener)
     scheduler.run(logging.NullHandler())
 
-    assert len(dashboard.calls) == 14
-    assert dashboard.calls[0] is None
-    assert all(["starttimes" in c for c in dashboard.calls[1:]])
-    assert len(dashboard.calls[-1]["starttimes"]) == 13
+    nodes = set(scheduler.get_nodes())
+    assert {(step, index) for step, index, _, _ in listener.started} == nodes
+    assert all(status == NodeStatus.RUNNING and start is not None
+               for _, _, status, start in listener.started)
+    assert sorted(listener.finished) == sorted(
+        (step, index, NodeStatus.SUCCESS) for step, index in nodes)
 
 
 def test_run_control_c(large_flow, make_tasks, monkeypatch):
@@ -1013,15 +1020,14 @@ def test_halt_all_ends_node_processes(large_flow, make_tasks):
 
 @pytest.mark.timeout(60)
 def test_cancel_stops_the_run_from_scheduling(large_flow, make_tasks):
-    '''A run canceled from post_node launches nothing further, even with a whole next level
+    '''A run canceled from node_finished launches nothing further, even with a whole next level
     ready and nothing running for the cancel to stop.
     '''
-    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    class CancelRun(RunListener):
+        def node_finished(self, project, step, index):
+            scheduler.cancel()
 
-    def cancel_run(project, step, index):
-        scheduler.cancel()
-
-    TaskScheduler.register_callback("post_node", cancel_run)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow), CancelRun())
 
     scheduler.run(logging.NullHandler())
 
@@ -1136,6 +1142,85 @@ def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, projec
     assert scheduler.cancel() is True
     proc.terminate.assert_called_once()
     assert "Failed to cancel elsewhere/0: scancel exploded" in caplog.text
+
+
+class _LaunchRecorder(RunListener):
+    """Notes, for each node reported started, whether its process had been started."""
+    def __init__(self):
+        self.scheduler = None
+        self.started = []
+
+    def node_started(self, project, step, index):
+        info = self.scheduler._TaskScheduler__nodes[(step, index)]
+        self.started.append(info["proc"].start.called)
+
+
+def _launch_recorder(large_flow, make_tasks, proc):
+    listener = _LaunchRecorder()
+    listener.scheduler = TaskScheduler(large_flow, make_tasks(large_flow), listener)
+    listener.scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+    return listener
+
+
+def test_node_started_follows_its_launch(large_flow, make_tasks):
+    """A node is reported started, with its start time recorded, only once its process has
+    been."""
+    listener = _launch_recorder(large_flow, make_tasks, MagicMock())
+
+    listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    assert listener.started == [True]
+    assert large_flow.get("record", "starttime", step="stepone", index="0") is not None
+
+
+def test_failed_launch_is_not_reported_started(large_flow, make_tasks):
+    """A node whose process cannot be started is never reported started, nor given a start
+    time."""
+    proc = MagicMock()
+    proc.start.side_effect = OSError("no more processes")
+    listener = _launch_recorder(large_flow, make_tasks, proc)
+
+    with pytest.raises(OSError, match="no more processes"):
+        listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    assert listener.started == []
+    assert large_flow.get("record", "starttime", step="stepone", index="0") is None
+
+
+def test_deprecated_pre_node_runs_before_launch(large_flow, make_tasks):
+    """pre_node still runs before the node's process starts, so what it changes reaches the
+    node."""
+    proc = MagicMock()
+    seen = []
+    with pytest.warns(DeprecationWarning):
+        TaskScheduler.register_callback(
+            "pre_node", lambda project, step, index: seen.append(proc.start.called))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+
+    scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    assert seen == [False]
+    proc.start.assert_called_once()
+
+
+def test_failing_deprecated_pre_node_does_not_stop_launch(large_flow, make_tasks,
+                                                          project_logger, caplog):
+    """A pre_node that raises is logged, and the node is launched anyway."""
+    def pre_node(project, step, index):
+        raise ValueError("callback broke")
+
+    project_logger(large_flow)
+    with pytest.warns(DeprecationWarning):
+        TaskScheduler.register_callback("pre_node", pre_node)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    proc = MagicMock()
+    scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+
+    scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    proc.start.assert_called_once()
+    assert "pre_node callback failed: callback broke" in caplog.text
 
 
 def test_a_canceled_run_refuses_to_start_a_node(large_flow, make_tasks):

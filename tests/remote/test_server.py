@@ -18,6 +18,7 @@ from aiohttp import web  # noqa: E402
 from unittest.mock import Mock, AsyncMock, patch  # noqa: E402
 from siliconcompiler import NodeStatus  # noqa: E402
 from siliconcompiler.remote.server import Server  # noqa: E402
+from siliconcompiler.scheduler import Scheduler  # noqa: E402
 from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus  # noqa: E402
 from siliconcompiler.utils import tarfile_module  # noqa: E402
 
@@ -1811,17 +1812,20 @@ async def test_shutdown_cancels_running_jobs(gcd_nop_project):
 
 @pytest.mark.asyncio
 async def test_shutdown_with_no_jobs():
-    '''Shutdown is a no-op when nothing is running'''
+    '''Shutdown is a no-op when nothing is running, apart from the server no longer listening
+       for runs'''
     server = _make_server()
 
     with patch("aiohttp.web.run_app"):
         server.run()
+    assert server in Scheduler._registered_listeners()
 
     server.app.freeze()
     with patch('siliconcompiler.remote.server.TaskScheduler.halt_all') as mock_halt:
         await server.app.cleanup()
 
     assert not mock_halt.called
+    assert server not in Scheduler._registered_listeners()
 
 
 @pytest.mark.timeout(60)
@@ -1971,15 +1975,15 @@ def _callback_project(server, job_hash):
 
 
 def test_run_start_publishes_node_statuses():
-    '''The pre_run callback archives the starting manifest and publishes the
-       statuses the job starts from'''
+    '''Starting a run archives the starting manifest and publishes the statuses the job
+       starts from'''
     server = _make_server()
     job_hash = 'a' * 32
     project, job_root = _callback_project(server, job_hash)
 
     project.set('record', 'status', NodeStatus.SUCCESS, step='stepone', index='0')
 
-    server._Server__run_start(project)
+    server.flow_started(project)
 
     assert os.path.isfile(os.path.join(job_root, f'{job_hash}_None.tar.gz'))
     assert server.sc_jobs[job_hash][None]['status'] == NodeStatus.SUCCESS
@@ -1998,7 +2002,7 @@ def test_run_start_applies_a_cancel_that_beat_the_run():
     project._Project__scheduler = scheduler
     server.sc_canceled_jobs.add(job_hash)
 
-    server._Server__run_start(project)
+    server.flow_started(project)
 
     scheduler.cancel.assert_called_once_with()
 
@@ -2012,7 +2016,7 @@ def test_run_start_leaves_an_uncanceled_run_alone():
     scheduler = Mock()
     project._Project__scheduler = scheduler
 
-    server._Server__run_start(project)
+    server.flow_started(project)
 
     assert not scheduler.cancel.called
 
@@ -2025,19 +2029,19 @@ def test_run_start_ignores_untracked_nodes():
 
     del server.sc_jobs[job_hash]['stepone0']
 
-    server._Server__run_start(project)
+    server.flow_started(project)
 
     assert set(server.sc_jobs[job_hash]) == {None}
 
 
 def test_node_start_stamps_start_time():
-    '''The pre_node callback marks the node running and starts its clock'''
+    '''Starting a node marks it running and starts its clock'''
     server = _make_server()
     job_hash = 'c' * 32
     project, _ = _callback_project(server, job_hash)
 
     before = time.time()
-    server._Server__node_start(project, 'stepone', '0')
+    server.node_started(project, 'stepone', '0')
 
     node = server.sc_jobs[job_hash]['stepone0']
     assert node['status'] == NodeStatus.RUNNING
@@ -2045,20 +2049,35 @@ def test_node_start_stamps_start_time():
 
 
 def test_node_end_archives_and_stops_the_clock():
-    '''The post_node callback archives the node and freezes its elapsed time'''
+    '''Finishing a node archives it and freezes its elapsed time'''
     server = _make_server()
     job_hash = 'd' * 32
     project, job_root = _callback_project(server, job_hash)
 
-    server._Server__node_start(project, 'stepone', '0')
+    server.node_started(project, 'stepone', '0')
     project.set('record', 'status', NodeStatus.SUCCESS, step='stepone', index='0')
 
-    server._Server__node_end(project, 'stepone', '0')
+    server.node_finished(project, 'stepone', '0')
 
     assert os.path.isfile(os.path.join(job_root, f'{job_hash}_stepone0.tar.gz'))
     node = server.sc_jobs[job_hash]['stepone0']
     assert node['status'] == NodeStatus.SUCCESS
     assert node['endtime'] >= node['starttime']
+
+
+def test_listener_ignores_other_runs():
+    '''A listener hears every run in the process; a run that is not one of this server's jobs
+       is left alone'''
+    server = _make_server()
+    project, _ = _callback_project(server, 'f' * 32)
+    server.sc_project_lookup.clear()
+
+    server.flow_started(project)
+    server.node_started(project, 'stepone', '0')
+    server.node_finished(project, 'stepone', '0')
+
+    assert server.sc_jobs['f' * 32]['stepone0'] == \
+        {'status': RemoteNodeStatus.PENDING, 'step': 'stepone', 'index': '0'}
 
 
 def test_run_loads_users_json():

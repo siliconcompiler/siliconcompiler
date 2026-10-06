@@ -2,7 +2,7 @@ import logging
 import pickle
 import sys
 import threading
-import time
+import warnings
 import weakref
 
 import os.path
@@ -16,11 +16,13 @@ from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 from siliconcompiler.schema import Journal
+from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter, \
     SCBlankColorlessLoggerFormatter, SCTeeLoggerHandler
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context, forking
 from siliconcompiler.scheduler import SCRuntimeError
+from siliconcompiler.scheduler.listener import RunListener
 
 if TYPE_CHECKING:
     import psutil
@@ -58,7 +60,11 @@ class TaskScheduler:
                           func: Callable[..., None]) -> None:
         """Registers a callback function to be executed at a specific hook point.
 
-        Valid hooks are 'pre_run', 'pre_node', 'post_node', and 'post_run'.
+        Valid hooks are 'pre_run', 'pre_node', 'post_node', and 'post_run'. Each
+        hook holds one function, so registering another replaces it.
+
+        Deprecated: use :meth:`~siliconcompiler.scheduler.Scheduler.add_listener`,
+        which takes any number of listeners.
 
         Args:
             hook (str): The name of the hook to register the callback for.
@@ -70,15 +76,21 @@ class TaskScheduler:
         """
         if hook not in ('pre_run', 'pre_node', 'post_node', 'post_run'):
             raise ValueError(f"{hook} is not a valid callback")
+        warnings.warn("TaskScheduler.register_callback is deprecated, "
+                      "use Scheduler.add_listener with a RunListener",
+                      DeprecationWarning, stacklevel=2)
         MPManager.get_transient_settings().set('TaskScheduler', hook, func)
 
-    def __init__(self, project: "Project", tasks: Dict[Tuple[str, str], "SchedulerNode"]):
+    def __init__(self, project: "Project", tasks: Dict[Tuple[str, str], "SchedulerNode"],
+                 listener: Optional[RunListener] = None):
         """Initializes the TaskScheduler.
 
         Args:
             project (Project): The project object containing the configuration.
             tasks (dict): A dictionary of SchedulerNode objects keyed by
                 (step, index) tuples.
+            listener (RunListener): What to tell as each node starts and
+                finishes.
         """
         self.__project = project
         self.__logger = self.__project.logger
@@ -86,7 +98,7 @@ class TaskScheduler:
         self.__schema = self.__project
         self.__flow: "Flowgraph" = self.__schema.get_flow()
         self.__record: "RecordSchema" = self.__schema.get("record", field="schema")
-        self.__dashboard = project._Project__dashboard
+        self.__listener = listener or RunListener()
 
         self.__max_cores = utils.get_cores()
         self.__max_threads = utils.get_cores()
@@ -116,7 +128,6 @@ class TaskScheduler:
             self.__log_queue = MPManager.get_manager().Queue()
 
         self.__nodes: Dict[Tuple[str, str], Dict[str, Any]] = {}
-        self.__startTimes: Dict[Optional[Tuple[str, str]], float] = {}
         self.__dwellTime: float = 0.1
 
         # Guards __halt_running_nodes(): halt_all() can arrive on another thread
@@ -132,8 +143,8 @@ class TaskScheduler:
         # cancel can land between the check and proc.start(), and then halt's
         # scan for live processes runs just before the process it was meant to
         # end exists -- leaving a node running, and the loop about to join it.
-        # Reentrant because a pre_node callback runs inside a launch and is
-        # entitled to cancel the run it is being called from.
+        # Reentrant because a listener's node_started runs inside a launch and
+        # is entitled to cancel the run it is being called from.
         self.__launch_lock = threading.RLock()
 
         self.__create_nodes(tasks)
@@ -199,8 +210,7 @@ class TaskScheduler:
         The main entry point for the task scheduling loop.
 
         This method sets up a listener to handle logs from child processes,
-        calls the 'pre_run' callback, enters the main execution loop, and
-        handles cleanup and the 'post_run' callback.
+        enters the main execution loop, and handles cleanup.
 
         Args:
             job_log_handler (logging.FileHandler): The handler for the main job log file.
@@ -233,17 +243,8 @@ class TaskScheduler:
 
         log_listener.start()
 
-        # Update dashboard before run begins
-        if self.__dashboard:
-            self.__dashboard.update_manifest()
-
-        MPManager.get_transient_settings().get(
-            'TaskScheduler', 'pre_run', lambda project: None)(self.__project)
-
         try:
             self.__run_loop()
-            MPManager.get_transient_settings().get(
-                'TaskScheduler', 'post_run', lambda project: None)(self.__project)
         except KeyboardInterrupt:
             # Defer cleanup to the finally block so the listener is only
             # stopped once. Calling stop() twice raises AttributeError when
@@ -297,8 +298,6 @@ class TaskScheduler:
         run. In each iteration, it processes completed nodes and launches new
         ones whose dependencies have been met.
         """
-        self.__startTimes = {None: time.time()}
-
         while len(self.get_nodes_waiting_to_run()) > 0 or len(self.get_running_nodes()) > 0:
             if self.__canceled.is_set():
                 # Checked before anything is launched: ending the running nodes
@@ -308,18 +307,13 @@ class TaskScheduler:
                 # cancel() has already ended those processes -- which is what
                 # released the join at the bottom of this loop -- so the work
                 # left here is to reap them: __process_completed_nodes() records
-                # each one's status and fires post_node before the loop stops.
+                # each one's status and reports it finished before the loop stops.
                 self.__halt_running_nodes()
-                if self.__process_completed_nodes() and self.__dashboard:
-                    self.__dashboard.update_manifest(payload={"starttimes": self.__startTimes})
+                self.__process_completed_nodes()
                 break
 
-            changed = self.__process_completed_nodes()
-            changed |= self.__launch_nodes()
-
-            if changed and self.__dashboard:
-                # Update dashboard if the manifest changed
-                self.__dashboard.update_manifest(payload={"starttimes": self.__startTimes})
+            self.__process_completed_nodes()
+            self.__launch_nodes()
 
             running_nodes = self.get_running_nodes()
 
@@ -616,9 +610,7 @@ class TaskScheduler:
 
                 changed = True
 
-                MPManager.get_transient_settings().get(
-                    'TaskScheduler', 'post_node',
-                    lambda project, step, index: None)(self.__project, step, index)
+                self.__listener.node_finished(self.__project, step, index)
 
                 if cache is not None:
                     # Merged last, and outside the handler above: what the child sent
@@ -668,8 +660,8 @@ class TaskScheduler:
         """
         Private helper to start a single node's process.
 
-        Marks the node as running, records the start time, fires the
-        'pre_node' callback, and launches the underlying process.
+        Marks the node as running, launches the underlying process, records
+        the start time, and reports the node started.
 
         Args:
             node (tuple): The (step, index) of the node to start.
@@ -680,11 +672,8 @@ class TaskScheduler:
         self.__logger.debug(f'Launching {info["name"]}')
 
         self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
-        self.__startTimes[node] = time.time()
 
-        MPManager.get_transient_settings().get(
-            'TaskScheduler', 'pre_node',
-            lambda project, step, index: None)(self.__project, step, index)
+        _CallbackListener.pre_node(self.__project, step, index)
 
         # Start the process
         info["running"] = True
@@ -692,6 +681,14 @@ class TaskScheduler:
         info["node"].set_queue(pipe, self.__log_queue)
         with forking():
             info["proc"].start()
+
+        # Only once there is a process: a launch that fails is not a node that
+        # started, and nothing would ever report it finished. Recorded here as
+        # well as in the node, which only reports its own once its manifest is
+        # replayed: until then the record is the only place a listener can see
+        # how long the node has been running.
+        self.__record.record_time(step, index, RecordTime.START)
+        self.__listener.node_started(self.__project, step, index)
 
     def __launch_nodes(self) -> bool:
         """
@@ -713,10 +710,10 @@ class TaskScheduler:
         if self.__canceled.is_set():
             # The run loop breaks on the same flag, but only at the top of the
             # next pass: a cancel arriving part way through one -- from another
-            # thread while nodes were being reaped, or from a post_node callback
-            # -- would otherwise get one full round of launches in first. This
-            # is the cheap check; __try_start_node() is the one that cannot be
-            # raced.
+            # thread while nodes were being reaped, or from a listener's
+            # node_finished -- would otherwise get one full round of launches in
+            # first. This is the cheap check; __try_start_node() is the one that
+            # cannot be raced.
             return False
 
         changed = False
@@ -883,3 +880,46 @@ class TaskScheduler:
             # [option,continue] permits but must not hide: a run this quiet
             # would otherwise be indistinguishable from one where nothing failed.
             self.__logger.warning(f'Run completed with errors in: {", ".join(sorted(errors))}')
+
+
+class _CallbackListener(RunListener):
+    """Calls the functions :meth:`TaskScheduler.register_callback` set, as it
+    always has: each is looked up as its event happens, and post_run follows a
+    scheduling loop that finished, whether or not the flow then reached its end.
+    """
+
+    @staticmethod
+    def __hook(name: str) -> Optional[Callable[..., None]]:
+        return MPManager.get_transient_settings().get('TaskScheduler', name)
+
+    @staticmethod
+    def pre_node(project: "Project", step: str, index: str) -> None:
+        """Calls pre_node where it always ran: before the node's process is
+        started, so what it changes in the project reaches the node. No listener
+        event comes that early, so the scheduler calls this itself.
+        """
+        hook = _CallbackListener.__hook("pre_node")
+        if not hook:
+            return
+        try:
+            hook(project, step, index)
+        except Exception as e:
+            # Kept as safe as a listener: a callback cannot break the run.
+            project.logger.error(f"pre_node callback failed: {e}")
+
+    def flow_started(self, project: "Project") -> None:
+        hook = _CallbackListener.__hook("pre_run")
+        if hook:
+            hook(project)
+
+    def node_finished(self, project: "Project", step: str, index: str) -> None:
+        hook = _CallbackListener.__hook("post_node")
+        if hook:
+            hook(project, step, index)
+
+    def flow_finished(self, project: "Project", error: Optional[BaseException]) -> None:
+        hook = _CallbackListener.__hook("post_run")
+        # An unfinished flow ends with SCRuntimeError, after the loop; anything
+        # else stopped the loop itself.
+        if hook and (error is None or isinstance(error, SCRuntimeError)):
+            hook(project)

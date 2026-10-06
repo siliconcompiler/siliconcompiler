@@ -498,6 +498,13 @@ Execution and settings
     :members:
     :show-inheritance:
 
+.. autoclass:: siliconcompiler.scheduler.listener.RunListener
+    :members:
+
+.. automethod:: siliconcompiler.scheduler.Scheduler.add_listener
+
+.. automethod:: siliconcompiler.scheduler.Scheduler.remove_listener
+
 .. autoclass:: siliconcompiler.utils.settings.SettingsManager
     :members:
 

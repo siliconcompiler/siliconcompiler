@@ -17,7 +17,10 @@ from unittest.mock import patch, MagicMock
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode, \
     SlurmSchedulerNode, DockerSchedulerNode
+from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.scheduler.schedulernode import SchedulerNodeReset
+from siliconcompiler.scheduler.send_messages import EmailListener
+from siliconcompiler.scheduler.taskscheduler import _CallbackListener
 from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
@@ -2226,13 +2229,14 @@ def test_scruntime_error_run_task_classes(basic_project):
             scheduler.run()
 
 
-def test_scruntime_error_dashboard_stopped(basic_project):
-    """Verify dashboard.stop() is called when unexpected exceptions occur during run"""
+def test_listeners_hear_what_ended_the_run(basic_project):
+    """A run that fails once started tells its listeners, including the dashboard, what ended
+    it, before the failure is logged."""
     scheduler = Scheduler(basic_project)
-    mock_dashboard = MagicMock()
-    basic_project._Project__dashboard = mock_dashboard
+    dashboard = MagicMock()
+    basic_project._Project__dashboard = dashboard
+    error = ValueError("Unexpected")
 
-    # Dashboard is stopped when an unexpected exception (ValueError) is converted to SCRuntimeError
     with patch.object(scheduler, "check_manifest", return_value=True), \
             patch.object(scheduler, "_Scheduler__init_schedulers"), \
             patch.object(scheduler, "_Scheduler__run_setup"), \
@@ -2242,12 +2246,16 @@ def test_scruntime_error_dashboard_stopped(basic_project):
             patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
             patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
             patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
-            patch.object(scheduler, "run_core", side_effect=ValueError("Unexpected")):
+            patch.object(scheduler, "run_core", side_effect=error), \
+            patch("siliconcompiler.scheduler.scheduler.utils.print_traceback",
+                  side_effect=lambda *args: dashboard.traceback_printed()):
         with pytest.raises(SCRuntimeError):
             scheduler.run()
 
-    # Dashboard should be stopped when exception occurs
-    mock_dashboard.stop.assert_called()
+    assert [call[0] for call in dashboard.method_calls] == \
+        ["run_started", "flow_started", "flow_finished", "run_finished", "traceback_printed"]
+    dashboard.flow_finished.assert_called_once_with(basic_project, error)
+    dashboard.run_finished.assert_called_once_with(basic_project, error)
 
 
 def test_scruntime_error_mpmanager_notified(basic_project):
@@ -2312,30 +2320,6 @@ def test_unexpected_exception_logged(basic_project):
         # Exception should be logged and converted to SCRuntimeError
         with pytest.raises(SCRuntimeError, match="Something unexpected"):
             scheduler.run()
-
-
-def test_unexpected_exception_dashboard_stopped(basic_project):
-    """Verify dashboard.stop() is called on unexpected exceptions"""
-    scheduler = Scheduler(basic_project)
-    mock_dashboard = MagicMock()
-    basic_project._Project__dashboard = mock_dashboard
-    unexpected_error = ValueError("Something unexpected")
-
-    with patch.object(scheduler, "check_manifest", return_value=True), \
-            patch.object(scheduler, "_Scheduler__init_schedulers"), \
-            patch.object(scheduler, "_Scheduler__run_setup"), \
-            patch.object(scheduler, "configure_nodes"), \
-            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
-            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
-            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
-            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
-            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
-            patch.object(scheduler, "run_core", side_effect=unexpected_error):
-
-        with pytest.raises(SCRuntimeError):
-            scheduler.run()
-
-    mock_dashboard.stop.assert_called()
 
 
 def test_keyboard_interrupt_handled(basic_project):
@@ -3173,3 +3157,138 @@ def test_nothing_is_collected_where_no_node_asks(gcd_nop_project):
         Scheduler(gcd_nop_project).run()
 
     collect.assert_not_called()
+
+
+class _Recorder(RunListener):
+    def __init__(self):
+        self.events = []
+
+    def run_started(self, project):
+        self.events.append(("run_started",))
+
+    def flow_started(self, project):
+        self.events.append(("flow_started",))
+
+    def node_started(self, project, step, index):
+        self.events.append(("node_started", step, index))
+
+    def node_finished(self, project, step, index):
+        self.events.append(("node_finished", step, index))
+
+    def flow_finished(self, project, error):
+        self.events.append(("flow_finished", error))
+
+    def run_finished(self, project, error):
+        self.events.append(("run_finished", error))
+
+
+def test_listener_hears_run(basic_project):
+    """A registered listener hears the run begin, the flow start, its node start and finish, the
+    flow end, and the run end."""
+    listener = _Recorder()
+    Scheduler.add_listener(listener)
+
+    Scheduler(basic_project).run()
+
+    assert listener.events == [
+        ("run_started",),
+        ("flow_started",),
+        ("node_started", "stepone", "0"),
+        ("node_finished", "stepone", "0"),
+        ("flow_finished", None),
+        ("run_finished", None)]
+
+
+def test_listener_hears_a_run_that_fails_setup(basic_project):
+    """A run that fails in setup is heard beginning and ending, with the error, but not
+    starting its flow."""
+    listener = _Recorder()
+    Scheduler.add_listener(listener)
+
+    scheduler = Scheduler(basic_project)
+    with patch.object(scheduler, "check_manifest", return_value=False):
+        with pytest.raises(SCRuntimeError, match=r"^check_manifest\(\) failed$") as error:
+            scheduler.run()
+
+    assert listener.events == [("run_started",), ("run_finished", error.value)]
+
+
+def test_listener_hears_flow_end_when_recording_it_fails(basic_project):
+    """A flow whose history cannot be recorded is still heard ending, with that failure."""
+    listener = _Recorder()
+    Scheduler.add_listener(listener)
+    error = RuntimeError("history broke")
+
+    # On the class: a mock on the instance would be pickled with it into a spawned node.
+    with patch.object(Project, "_record_history", side_effect=error):
+        with pytest.raises(SCRuntimeError, match=r"^history broke$"):
+            Scheduler(basic_project).run()
+
+    assert listener.events[-2:] == [("flow_finished", error), ("run_finished", error)]
+
+
+def test_failing_listener_does_not_stop_run(basic_project):
+    """A listener that raises on every event leaves the run, and the other listeners, alone."""
+    class Broken(RunListener):
+        def run_started(self, project):
+            raise ValueError("listener broke")
+
+        def flow_started(self, project):
+            raise ValueError("listener broke")
+
+        def node_started(self, project, step, index):
+            raise ValueError("listener broke")
+
+        def node_finished(self, project, step, index):
+            raise ValueError("listener broke")
+
+        def flow_finished(self, project, error):
+            raise ValueError("listener broke")
+
+        def run_finished(self, project, error):
+            raise ValueError("listener broke")
+
+    listener = _Recorder()
+    Scheduler.add_listener(Broken())
+    Scheduler.add_listener(listener)
+
+    Scheduler(basic_project).run()
+
+    assert listener.events[-1] == ("run_finished", None)
+    assert basic_project.history("job0").get(
+        "record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
+
+
+def test_add_listener_rejects_non_listener():
+    with pytest.raises(TypeError, match=r"^object is not a RunListener$"):
+        Scheduler.add_listener(object())
+
+
+def test_add_and_remove_listener():
+    """A listener added twice is registered once, and removing one that is not registered is
+    harmless."""
+    listener = RunListener()
+
+    Scheduler.add_listener(listener)
+    Scheduler.add_listener(listener)
+    assert Scheduler._registered_listeners() == (listener,)
+
+    Scheduler.remove_listener(listener)
+    Scheduler.remove_listener(listener)
+    assert Scheduler._registered_listeners() == ()
+
+
+@pytest.mark.parametrize("nodashboard", [False, True])
+def test_listeners_of_a_local_run(basic_project, nodashboard):
+    """A local run is heard by the project's dashboard if it has one, the registered listeners,
+    email, and the deprecated callbacks."""
+    basic_project.option.set_nodashboard(nodashboard)
+    listener = RunListener()
+    Scheduler.add_listener(listener)
+
+    listeners = Scheduler(basic_project)._listeners()
+
+    if not nodashboard:
+        assert listeners.pop(0) is basic_project._dashboard
+    assert listeners[0] is listener
+    assert [type(other) for other in listeners[1:]] == [EmailListener, _CallbackListener]
