@@ -703,17 +703,16 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         '''
         Internal helper to read a Verilog-style file list (`.f` file).
 
-        This method parses the file list for `+incdir+`, `+define+`, and
-        source files, and populates the specified fileset in the schema.
+        This method parses the file list for `+incdir+` and `-I` include
+        directories, `+define+`, source files, `-v` library files (read as
+        source files) and nested `-f`/`-F` file lists, and populates the
+        specified fileset in the schema.
 
         Args:
             filename (str): The path to the input file list.
             fileset (str): The name of the fileset to populate.
         '''
-        # Extract information
-        rel_path = os.path.dirname(os.path.abspath(filename))
-
-        def expand_path(path):
+        def expand_path(path, rel_path):
             path = os.path.expandvars(path)
             path = os.path.expanduser(path)
             if os.path.isabs(path):
@@ -723,19 +722,41 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         include_dirs = []
         defines = []
         files = []
-        with utils.sc_open(filename) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                if line.startswith("//"):
-                    continue
-                if line.startswith("+incdir+"):
-                    include_dirs.append(expand_path(line[8:]))
-                elif line.startswith("+define+"):
-                    defines.append(os.path.expandvars(line[8:]))
-                else:
-                    files.append(expand_path(line))
+        root = os.path.dirname(os.path.abspath(filename))
+
+        def read(flist, rel_path, parents):
+            parents = parents + (os.path.realpath(flist),)
+            if parents[-1] in parents[:-1]:
+                raise ValueError(f"file list includes itself: {flist}")
+
+            with utils.sc_open(flist) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith("//"):
+                        continue
+                    if line.startswith("+incdir+"):
+                        include_dirs.append(expand_path(line[8:], rel_path))
+                    elif line.startswith("-I"):
+                        include_dirs.append(expand_path(line[2:].strip(), rel_path))
+                    elif line.startswith("+define+"):
+                        defines.append(os.path.expandvars(line[8:]))
+                    elif line.startswith(("-", "+")):
+                        option, *arg = line.split(maxsplit=1)
+                        if option not in ("-f", "-F", "-v") or not arg:
+                            raise ValueError(f"unsupported option in {flist}: {line}")
+                        path = expand_path(arg[0], rel_path)
+                        if option == "-v":
+                            files.append(path)
+                        elif option == "-f":
+                            read(path, root, parents)
+                        else:
+                            read(path, os.path.dirname(path), parents)
+                    else:
+                        files.append(expand_path(line, rel_path))
+
+        read(filename, root, ())
 
         # Create dataroots
         all_paths = include_dirs + [os.path.dirname(f) for f in files]
@@ -787,12 +808,21 @@ class Design(DependencySchema, PathSchema, NamedSchema):
         Currently supports Verilog `flist` format only.
         Intended to support other formats in the future.
 
+        Relative paths in a file list resolve as if the tool ran from the
+        directory of ``filename``. As in the tools, a nested `-F` list
+        resolves its own relative paths from its directory, and a nested
+        `-f` list from that same starting directory.
+
         Args:
             filename (str or Path): Input file name.
             fileset (str or list[str]): Fileset to import into. If not
                 provided, the active fileset is used.
             fileformat (str, optional): Import format. Inferred from file
                 extension if not provided.
+
+        Raises:
+            ValueError: If a file list includes itself, or has an option a
+                fileset cannot hold, such as `-y` or `+libext+`.
         """
 
         if filename is None:

@@ -2253,7 +2253,7 @@
             "cli: -from 'import'",
             "api: option.set('from', 'import')"
           ],
-          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.",
+          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.\n\n                Steps ahead of the starting steps are not rerun: the run uses their\n                outputs from the existing build directory, even when they are out of\n                date. If a step that feeds a starting step has no usable outputs, the\n                run fails. Any other step left out of the run whose outputs are missing\n                or failed is added back and rerun, such as a parallel branch that merges\n                with the run further downstream.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -5913,7 +5913,7 @@
             "cli: -from 'import'",
             "api: option.set('from', 'import')"
           ],
-          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.",
+          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.\n\n                Steps ahead of the starting steps are not rerun: the run uses their\n                outputs from the existing build directory, even when they are out of\n                date. If a step that feeds a starting step has no usable outputs, the\n                run fails. Any other step left out of the run whose outputs are missing\n                or failed is added back and rerun, such as a parallel branch that merges\n                with the run further downstream.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -9915,7 +9915,7 @@
             "cli: -from 'import'",
             "api: option.set('from', 'import')"
           ],
-          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.",
+          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.\n\n                Steps ahead of the starting steps are not rerun: the run uses their\n                outputs from the existing build directory, even when they are out of\n                date. If a step that feeds a starting step has no usable outputs, the\n                run fails. Any other step left out of the run whose outputs are missing\n                or failed is added back and rerun, such as a parallel branch that merges\n                with the run further downstream.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -13651,7 +13651,7 @@
             "cli: -from 'import'",
             "api: option.set('from', 'import')"
           ],
-          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.",
+          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.\n\n                Steps ahead of the starting steps are not rerun: the run uses their\n                outputs from the existing build directory, even when they are out of\n                date. If a step that feeds a starting step has no usable outputs, the\n                run fails. Any other step left out of the run whose outputs are missing\n                or failed is added back and rerun, such as a parallel branch that merges\n                with the run further downstream.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -16623,7 +16623,7 @@
             "cli: -from 'import'",
             "api: option.set('from', 'import')"
           ],
-          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.",
+          "help": "\n                Inclusive list of steps to start execution from. The default is to start\n                at all entry steps in the flow graph.\n\n                Steps ahead of the starting steps are not rerun: the run uses their\n                outputs from the existing build directory, even when they are out of\n                date. If a step that feeds a starting step has no usable outputs, the\n                run fails. Any other step left out of the run whose outputs are missing\n                or failed is added back and rerun, such as a parallel branch that merges\n                with the run further downstream.",
           "notes": null,
           "pernode": "never",
           "node": {

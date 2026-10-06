@@ -18,7 +18,7 @@ from multiprocessing import Queue
 from queue import Empty
 from unittest.mock import patch
 
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler import Project, Flowgraph, Design, StdCellLibrary
 from siliconcompiler import NodeStatus
 from siliconcompiler import Task
 from siliconcompiler import TaskSkip
@@ -30,7 +30,7 @@ from scheduler.tools.sleeper import SleepTask, SLEEP_SECONDS
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
-    SchedulerNodeReset, SchedulerNodeResetSilent
+    SchedulerNodeReset, SchedulerNodeResetSilent, _read_previous_run
 from siliconcompiler.utils.logging import SC_CONSOLE_QUIET_ATTR
 from siliconcompiler.utils.paths import jobdir, workdir
 
@@ -1312,6 +1312,37 @@ def test_requires_run_all_pass(project, monkeypatch):
     monkeypatch.setattr(node, "check_previous_run_status", dummy_check_previous_run_status)
 
     node.requires_run()
+
+
+class _PreviousRunDesign(Design):
+    def __init__(self):
+        super().__init__("previousrun")
+        with self.active_fileset("rtl"):
+            self.set_topmodule("top")
+            self.add_define("VALUE")
+
+
+class _PreviousRunLibrary(StdCellLibrary):
+    def __init__(self):
+        super().__init__("previousrunlib")
+        self.define_tool_parameter("openroad", "extra", "str", "extra parameter")
+        self.set("tool", "openroad", "extra", "value")
+
+
+def test_read_previous_run_libraries_as_sctype(tmp_path):
+    design = _PreviousRunDesign()
+    design.add_dep(_PreviousRunLibrary())
+    manifest = str(tmp_path / "previous.pkg.json")
+    Project(design).write_manifest(manifest)
+
+    previous = _read_previous_run(manifest)
+
+    assert type(previous.get_library("previousrun")) is Design
+    assert type(previous.get_library("previousrunlib")) is StdCellLibrary
+    assert previous.get_library("previousrun").get_dep("previousrunlib") is \
+        previous.get_library("previousrunlib")
+    assert previous.getdict(values_only=True) == \
+        Project.from_manifest(filepath=manifest).getdict(values_only=True)
 
 
 def test_requires_run_all_input_corrupt(project_logger, project, caplog):

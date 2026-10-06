@@ -253,9 +253,17 @@ class BaseSchema:
         """
         if isinstance(cls, CachedSchemaMeta):
             # Loading from disk repopulates the object in place, so it must not
-            # return the shared, frozen singleton. Copy it to get a fresh,
-            # mutable instance (copy() unfreezes).
-            return cls().copy()
+            # return the shared, frozen singleton. Construct a private instance
+            # directly, bypassing the cache, rather than copying the singleton:
+            # every value is about to be replaced from the manifest, and a deep
+            # copy of a large library costs far more than building it again.
+            obj = type.__call__(cls)
+            if any(node._is_frozen for node in obj.__iter_subtree()):
+                # The constructor embedded another shared, frozen object.
+                # Copying is the only way to get a mutable version of it
+                # without unfreezing the original in place.
+                return obj.copy()
+            return obj
         return cls()
 
     @staticmethod

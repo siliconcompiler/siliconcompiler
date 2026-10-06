@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "444194f8753d34c1e5716d7593a28a00320b2fbf",
+    "git-commit": "755f5778c466d0249c371fd22eb5f2f8151d9429",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
@@ -659,7 +659,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "68cc28b0c03ba2f18b01be30048fbf8afbf924a3",
+    "git-commit": "acb85ea8eb7b733ee8269d103df7b37f8c28fe4f",
     "auto-update": true,
     "docker-drop-pkgs": [
       "clang",
