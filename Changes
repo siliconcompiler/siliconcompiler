@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.10 (2026-10-06)
+=========================================
+
+**Major:**
+
+ * Removed the public server as the default for remote runs, so a remote run now fails unless a server has been configured with `sc-remote`.
+
+**Minor:**
+
+ * Added `gitlab://` and `s3://` dataroots, the latter through a new `s3` extra, along with a `+private` form of every scheme and `python://` paths to a directory inside a package.
+ * Masked dataroot credentials in logs, in the manifests a run writes for its tools, and in `sc-issue` testcases, which also leave out environment variables that look like secrets.
+ * Reworked file collection for remote runs and `sc-issue` so collected files keep their names, each file is stored once, and links inside a collected directory are kept.
+ * Changed `sc-show` without a file to open the richest view a build has, an odb ahead of the def beside it, and made `sc-show -list` print the order it searches in.
+ * Added nested `-f` and `-F` file lists, `-I` include directories and `-v` library files to `Design.read_fileset`.
+ * Added a `toolscripts` entry point so a package can add tools to `sc-install` or override SiliconCompiler's version pins, along with reusable workflows that keep those pins current and build their docker images.
+
+ * Tools:
+
+  * klayout: changed the screenshot `margin` to a percentage of the design's size, defaulting to 1%, rather than a distance in microns.
+  * openroad: fixed a def opened with `sc-show` losing its contents when a hierarchical netlist sat beside it, and detailed routing ignoring `[asic,minlayer]` and `[asic,maxlayer]`.
+  * yosys: added cross-boundary optimization of a design that is not flattened, on by default with yosys 0.58 or newer, and SAT-based flip-flop merging through `opt_dff_sat`.
+
 SiliconCompiler 0.38.9 (2026-09-21)
 =========================================
 
