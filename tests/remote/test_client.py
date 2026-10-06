@@ -154,7 +154,8 @@ def test_report_job_status_without_elapsed_time(gcd_nop_project):
 
     assert running is True
     assert completed == []
-    assert before <= _starttime(gcd_nop_project, 'stepone', '0') <= time.time()
+    # The record keeps microseconds, so the time read back can fall just short.
+    assert before - 0.001 <= _starttime(gcd_nop_project, 'stepone', '0') <= time.time()
     assert _starttime(gcd_nop_project, 'steptwo', '0') is None
 
 

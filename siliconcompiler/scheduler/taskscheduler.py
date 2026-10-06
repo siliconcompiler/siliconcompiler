@@ -660,8 +660,8 @@ class TaskScheduler:
         """
         Private helper to start a single node's process.
 
-        Marks the node as running, records the start time, launches the
-        underlying process, and reports the node started.
+        Marks the node as running, launches the underlying process, records
+        the start time, and reports the node started.
 
         Args:
             node (tuple): The (step, index) of the node to start.
@@ -672,10 +672,8 @@ class TaskScheduler:
         self.__logger.debug(f'Launching {info["name"]}')
 
         self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
-        # Recorded here as well as in the node, which only reports its own once
-        # its manifest is replayed: until then the record is the only place a
-        # listener can see how long the node has been running.
-        self.__record.record_time(step, index, RecordTime.START)
+
+        _CallbackListener.pre_node(self.__project, step, index)
 
         # Start the process
         info["running"] = True
@@ -685,7 +683,11 @@ class TaskScheduler:
             info["proc"].start()
 
         # Only once there is a process: a launch that fails is not a node that
-        # started, and nothing would ever report it finished.
+        # started, and nothing would ever report it finished. Recorded here as
+        # well as in the node, which only reports its own once its manifest is
+        # replayed: until then the record is the only place a listener can see
+        # how long the node has been running.
+        self.__record.record_time(step, index, RecordTime.START)
         self.__listener.node_started(self.__project, step, index)
 
     def __launch_nodes(self) -> bool:
@@ -890,15 +892,25 @@ class _CallbackListener(RunListener):
     def __hook(name: str) -> Optional[Callable[..., None]]:
         return MPManager.get_transient_settings().get('TaskScheduler', name)
 
+    @staticmethod
+    def pre_node(project: "Project", step: str, index: str) -> None:
+        """Calls pre_node where it always ran: before the node's process is
+        started, so what it changes in the project reaches the node. No listener
+        event comes that early, so the scheduler calls this itself.
+        """
+        hook = _CallbackListener.__hook("pre_node")
+        if not hook:
+            return
+        try:
+            hook(project, step, index)
+        except Exception as e:
+            # Kept as safe as a listener: a callback cannot break the run.
+            project.logger.error(f"pre_node callback failed: {e}")
+
     def flow_started(self, project: "Project") -> None:
         hook = _CallbackListener.__hook("pre_run")
         if hook:
             hook(project)
-
-    def node_started(self, project: "Project", step: str, index: str) -> None:
-        hook = _CallbackListener.__hook("pre_node")
-        if hook:
-            hook(project, step, index)
 
     def node_finished(self, project: "Project", step: str, index: str) -> None:
         hook = _CallbackListener.__hook("post_node")

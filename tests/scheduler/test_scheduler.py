@@ -3219,7 +3219,8 @@ def test_listener_hears_flow_end_when_recording_it_fails(basic_project):
     Scheduler.add_listener(listener)
     error = RuntimeError("history broke")
 
-    with patch.object(basic_project, "_record_history", side_effect=error):
+    # On the class: a mock on the instance would be pickled with it into a spawned node.
+    with patch.object(Project, "_record_history", side_effect=error):
         with pytest.raises(SCRuntimeError, match=r"^history broke$"):
             Scheduler(basic_project).run()
 

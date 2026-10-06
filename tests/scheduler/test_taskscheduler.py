@@ -1163,16 +1163,19 @@ def _launch_recorder(large_flow, make_tasks, proc):
 
 
 def test_node_started_follows_its_launch(large_flow, make_tasks):
-    """A node is reported started only once its process has been."""
+    """A node is reported started, with its start time recorded, only once its process has
+    been."""
     listener = _launch_recorder(large_flow, make_tasks, MagicMock())
 
     listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
 
     assert listener.started == [True]
+    assert large_flow.get("record", "starttime", step="stepone", index="0") is not None
 
 
 def test_failed_launch_is_not_reported_started(large_flow, make_tasks):
-    """A node whose process cannot be started is never reported started."""
+    """A node whose process cannot be started is never reported started, nor given a start
+    time."""
     proc = MagicMock()
     proc.start.side_effect = OSError("no more processes")
     listener = _launch_recorder(large_flow, make_tasks, proc)
@@ -1181,6 +1184,43 @@ def test_failed_launch_is_not_reported_started(large_flow, make_tasks):
         listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
 
     assert listener.started == []
+    assert large_flow.get("record", "starttime", step="stepone", index="0") is None
+
+
+def test_deprecated_pre_node_runs_before_launch(large_flow, make_tasks):
+    """pre_node still runs before the node's process starts, so what it changes reaches the
+    node."""
+    proc = MagicMock()
+    seen = []
+    with pytest.warns(DeprecationWarning):
+        TaskScheduler.register_callback(
+            "pre_node", lambda project, step, index: seen.append(proc.start.called))
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+
+    scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    assert seen == [False]
+    proc.start.assert_called_once()
+
+
+def test_failing_deprecated_pre_node_does_not_stop_launch(large_flow, make_tasks,
+                                                          project_logger, caplog):
+    """A pre_node that raises is logged, and the node is launched anyway."""
+    def pre_node(project, step, index):
+        raise ValueError("callback broke")
+
+    project_logger(large_flow)
+    with pytest.warns(DeprecationWarning):
+        TaskScheduler.register_callback("pre_node", pre_node)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    proc = MagicMock()
+    scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+
+    scheduler._TaskScheduler__start_node(("stepone", "0"))
+
+    proc.start.assert_called_once()
+    assert "pre_node callback failed: callback broke" in caplog.text
 
 
 def test_a_canceled_run_refuses_to_start_a_node(large_flow, make_tasks):
