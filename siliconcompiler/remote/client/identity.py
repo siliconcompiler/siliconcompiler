@@ -114,12 +114,11 @@ def local_subject() -> Tuple[str, Optional[str], str]:
 
 
 def display_name() -> str:
-    '''``user@host``, for display only: nothing is keyed on it.'''
+    '''The username, for display only: the subject is derived from the uid, so
+    nothing is keyed on it.'''
     import getpass
 
     try:
-        user = getpass.getuser()
+        return getpass.getuser()
     except Exception:                                            # noqa: BLE001
-        user = "unknown"
-
-    return f"{user}@{platform.node() or 'unknown'}"
+        return "unknown"

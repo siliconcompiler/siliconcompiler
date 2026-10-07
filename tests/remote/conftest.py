@@ -107,7 +107,7 @@ def client_credentials():
         "refresh_token": "refresh-token-one",
         "refresh_token_expires_in": 604800,
         "session_expires_in": 1036800,
-        "scope": ("jobs:read jobs:write artifacts:read devices:read "
+        "scope": ("jobs:read jobs:write jobs:delete artifacts:read devices:read "
                   "devices:write profile:read"),
     }
 

@@ -607,6 +607,26 @@ def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path
     assert fake_v1.calls[-1].request.headers["Content-Length"] == "20"
 
 
+@pytest.mark.parametrize("url,status", [
+    ("http://storage.test/put", None),
+    ("ftp://storage.test/put", None),
+    ("https://storage.test/put", 307),
+], ids=["downgrade", "ftp", "redirect"])
+def test_an_upload_lands_only_on_https_and_a_2xx(fake_v1, logged_in, url, status):
+    '''An https grant never sends the bytes to plain http or another scheme,
+    and a redirect is not the object stored.'''
+    with open("upload.tar.gz", "wb") as f:
+        f.write(b"x")
+    if status:
+        fake_v1.elsewhere(responses.PUT, url, "", status=status)
+
+    with pytest.raises(RemoteError):
+        logged_in.upload({"url": url, "headers": {}}, "upload.tar.gz")
+
+    puts = [c.request.url for c in fake_v1.calls if c.request.method == "PUT"]
+    assert puts == ([url] if status else [])
+
+
 #
 # The half the integration rig cannot reach: a working server cannot be
 # made to report a limit it does not have or refuse a feature it implements.
@@ -714,6 +734,61 @@ def test_a_keyed_create_refused_by_a_gateway_is_retried_then_rendered(fake_v1, l
     assert "502" in str(raised.value)
     creates = [c.request for c in fake_v1.calls if c.request.path_url == "/v1/jobs"]
     assert len(creates) == 3 and len({r.headers["Idempotency-Key"] for r in creates}) == 1
+
+
+def test_a_keyed_create_whose_connection_drops_is_sent_again_with_its_key(
+        fake_v1, logged_in, no_sleep):
+    '''A dropped connection may have lost only the answer, and the key makes
+    the resend a replay.'''
+    import requests
+
+    fake_v1._mock.add(responses.POST, fake_v1.url("jobs"),
+                      body=requests.ConnectionError("connection reset"))
+    _created(fake_v1)
+
+    assert logged_in.create_job("gcd", "job0")["id"] == "01J9-job"
+
+    creates = [c.request for c in fake_v1.calls if c.request.path_url == "/v1/jobs"]
+    assert len(creates) == 2 and len({r.headers["Idempotency-Key"] for r in creates}) == 1
+
+
+@pytest.mark.parametrize("method,path,headers", [
+    (responses.POST, "jobs", None),
+    (responses.GET, "jobs/01J9-job", {"Retry-After": "2"}),
+], ids=["keyed-create", "read-with-retry-after"])
+def test_feature_unsupported_is_never_retried(fake_v1, logged_in, no_sleep, method, path,
+                                              headers):
+    '''A typed 5xx is the server's answer, not a failure worth repeating.'''
+    _refused(fake_v1, method, path, "feature-unsupported", 501, headers=headers,
+             feature="python.env")
+
+    with pytest.raises(ServerProblem):
+        if method == responses.POST:
+            logged_in.create_job("gcd", "job0")
+        else:
+            logged_in.job("01J9-job")
+
+    assert len([c for c in fake_v1.calls if c.request.path_url == f"/v1/{path}"]) == 1
+    assert no_sleep == []
+
+
+@pytest.mark.parametrize("status,waited", [(429, True), (503, True), (404, False)])
+def test_an_intermediarys_html_is_acted_on_by_its_status(fake_v1, logged_in, no_sleep,
+                                                         status, waited):
+    '''Only an HTML 401 or 403 is the edge refusing: any other is an untyped
+    failure, and a `Retry-After` on it is waited out.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", "<html><body>later</body></html>",
+                  status=status, content_type="text/html",
+                  headers={"Retry-After": "2"} if waited else None)
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
+
+    if waited:
+        assert logged_in.job("01J9-job")[0]["state"] == "completed"
+        assert no_sleep == [2.0]
+    else:
+        with pytest.raises(ServerProblem) as raised:
+            logged_in.job("01J9-job")
+        assert raised.value.status == status and raised.value.slug is None
 
 
 def _failed_poll(fake_v1, run, caplog, level="INFO", **body):

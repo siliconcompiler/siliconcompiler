@@ -13,8 +13,7 @@ from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, clean, describe)
 from siliconcompiler.remote.client.identity import local_subject, display_name
 from siliconcompiler.remote.client.transport import (
-    EdgeRefused, LoginRequired, OAuthRefusal, Transport, _retry_after, normalize_server,
-    origin_of)
+    EdgeRefused, OAuthRefusal, Transport, _retry_after, normalize_server, origin_of)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
@@ -281,23 +280,25 @@ class Client:
         Only `unsupported_grant_type` switches grant: that one is dropped and
         `GET /v1` reread. A `401`, timeout or `503` means later, never switch.
         A CI key goes straight to token exchange and never prints a
-        `user_code`.
+        `user_code`. Over plaintext only a deployment that authenticates
+        nobody is logged in to, so there a refused grant stops the login.
         '''
         if self.credentials.ci_secret():
             return self._ci_login()
 
-        offered = self._grant_types()
-
         tried = set()
         while True:
+            offered = self._grant_types()
+            self.transport.check_plaintext(offered)
             mode = self._choose(offered, tried)
             try:
-                return self._login_with(mode)
+                body = self._login_with(mode)
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type":
                     raise self._refused(e, mode) from None
                 tried.add(mode)
-                offered = [grant for grant in self._grant_types() if grant not in tried]
+            else:
+                return self._granted(body)
 
     def _grant_types(self) -> List[str]:
         '''What `GET /v1` offers, reread for each login, which is rare.'''
@@ -307,13 +308,13 @@ class Client:
         '''Token exchange for a CI key, retried once if `GET /v1` offers it after
         `unsupported_grant_type`. Never falls back to another grant.'''
         try:
-            return self._login_with(GRANT_TOKEN_EXCHANGE)
+            return self._granted(self._login_with(GRANT_TOKEN_EXCHANGE))
         except OAuthRefusal as e:
             if e.error != "unsupported_grant_type":
                 raise self._refused(e, GRANT_TOKEN_EXCHANGE) from None
         if GRANT_TOKEN_EXCHANGE in self._grant_types():
             try:
-                return self._login_with(GRANT_TOKEN_EXCHANGE)
+                return self._granted(self._login_with(GRANT_TOKEN_EXCHANGE))
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type":
                     raise self._refused(e, GRANT_TOKEN_EXCHANGE) from None
@@ -375,9 +376,9 @@ class Client:
         and code are always printed, for a headless machine or a silent launch failure.'''
         import platform
 
-        form = {"scope": " ".join(SCOPES),
-                "requesting_host": platform.node() or "unknown",
-                "device_label": display_name(), **self._fingerprint()}
+        host = platform.node() or "unknown"
+        form = {"scope": " ".join(SCOPES), "requesting_host": host,
+                "device_label": f"{display_name()}@{host}", **self._fingerprint()}
 
         while True:
             started = self.transport.request(
@@ -438,19 +439,24 @@ class Client:
                               f"{self.transport.base_url} is not")
 
         credential_id, credential_key = parse_ci_secret(self.credentials.ci_secret())
-        issued = int(time.time())
-        assertion = jwt.encode(
-            {"iss": credential_id, "sub": credential_id,
-             "aud": origin_of(self.transport.base_url),
-             "jti": str(uuid.uuid4()), "iat": issued, "exp": issued + 300,
-             # Bound to this request's proof key, so it cannot be re-paired.
-             "cnf": {"jkt": self.credentials.thumbprint}},
-            credential_key, algorithm=dpop.ALGORITHM)
 
-        form = {"grant_type": GRANT_TOKEN_EXCHANGE,
-                "subject_token": assertion,
-                "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
-                "requested_token_type": "urn:ietf:params:oauth:token-type:access_token"}
+        def form():
+            # Minted per attempt, on the clock the proof uses: a retry with
+            # that clock corrected carries an assertion corrected with it.
+            issued = int(self.transport.now())
+            assertion = jwt.encode(
+                {"iss": credential_id, "sub": credential_id,
+                 "aud": origin_of(self.transport.base_url),
+                 "jti": str(uuid.uuid4()), "iat": issued, "exp": issued + 300,
+                 # Bound to this request's proof key, so it cannot be re-paired.
+                 "cnf": {"jkt": self.credentials.thumbprint}},
+                credential_key, algorithm=dpop.ALGORITHM)
+            return {"grant_type": GRANT_TOKEN_EXCHANGE,
+                    "subject_token": assertion,
+                    "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "scope": " ".join(SCOPES)}
+
         try:
             body = self.transport.login(form)
         except OAuthRefusal as e:
@@ -472,6 +478,21 @@ class Client:
             if os.environ.get("GITHUB_ACTIONS") == "true":
                 print(f"::warning::{message}", flush=True)
             self.logger.warning(message)
+        return body
+
+    def _granted(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        '''Name each scope asked for and not granted: a server narrows a request
+        silently, and only the answer's `scope` says so.'''
+        granted = body.get("scope")
+        if not isinstance(granted, str):
+            return body
+        missing = [scope for scope in SCOPES if scope not in granted.split()]
+        if missing:
+            # A CI credential holds what its minter chose, never a device scope,
+            # so less than asked for is expected there.
+            (self.logger.info if self.ci_session else self.logger.warning)(
+                f"This session was not granted {', '.join(missing)}: a command that "
+                "needs one is refused.")
         return body
 
     def _refused(self, refusal: OAuthRefusal, mode: str) -> RemoteError:
@@ -516,19 +537,10 @@ class Client:
         if self.transport.access_token is not None:
             return
         if self.credentials.ci_secret():
-            # No refresh token to spend.
-            self._mode = GRANT_TOKEN_EXCHANGE
-            self._trade_login()
-            return
-        try:
-            if self.transport.refresh():
-                return
-        except SessionEnded as e:
-            self._relogin(e.reason)
-            return
-        except LoginRequired:
-            self.logger.info("This machine must log in again.")
-        self.login()
+            # A CI key trades, whatever refresh token the store holds.
+            self._ci_login()
+        else:
+            self.transport.renew()
 
     def rotate_key(self) -> None:
         '''Replace this machine's DPoP key and enrol again as a new device; no
@@ -570,12 +582,13 @@ class Client:
 
     def logout(self) -> None:
         '''End this session on the server, then forget it here. Revoking needs
-        an access token, so the refresh token is spent for one.'''
+        an access token, so the refresh token is spent for one; never a login,
+        and a session the revoke finds ended or its token refused is gone already.'''
         try:
             if self.transport.access_token is None:
                 self.transport.refresh()
             if self.transport.access_token is not None:
-                self.transport.request("POST", "auth/revoke")
+                self.transport.request("POST", "auth/revoke", renew=False)
         except (SessionEnded, RemoteError) as e:
             # Over or unreachable: forgetting it locally must still happen.
             logger.debug(f"could not revoke on the server: {e}")

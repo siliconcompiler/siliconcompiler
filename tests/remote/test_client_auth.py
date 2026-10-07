@@ -12,11 +12,11 @@ import responses
 
 from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProblem
 from siliconcompiler.remote.client import (
-    GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE)
+    GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE, SCOPES)
 from siliconcompiler.remote.client.credentials import StoreError, parse_ci_secret
 from siliconcompiler.remote.client.transport import EdgeRefused
 
-from conftest import problem
+from conftest import FakeV1, problem
 
 
 posix_only = pytest.mark.skipif(sys.platform == "win32", reason="POSIX modes")
@@ -186,6 +186,18 @@ def test_an_access_layer_refusal_is_the_edge_not_the_api(logged_in, fake_v1, bod
 
     assert "not the API" in str(raised.value)
     assert not any("idp.example" in c.request.url for c in fake_v1.calls)
+
+
+@pytest.mark.parametrize("status", [301, 302, 307, 308])
+def test_only_a_303_hands_off_to_storage(logged_in, fake_v1, status):
+    '''Any other redirect on a `/v1` path is the edge, and is not followed.'''
+    fake_v1.route(responses.GET, "jobs/J/artifacts/A", "", status=status,
+                  headers={"Location": "https://storage.test/object"})
+
+    with pytest.raises(EdgeRefused):
+        logged_in.fetch_artifact("J", "A", "a.bin")
+
+    assert not any("storage.test" in c.request.url for c in fake_v1.calls)
 
 
 @pytest.mark.parametrize("location", [
@@ -377,6 +389,37 @@ def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
 
     assert [_form(r.body)["refresh_token"] for r in _posts(fake_v1)] == ["r1", "r2"]
     assert Credentials(tmp_credentials.path).refresh_token == "r3"
+
+
+def test_threads_sharing_a_client_refresh_once(fake_v1, tmp_credentials, client_credentials):
+    '''A thread that waited on another's refresh uses the token it got: no second
+    refresh and no login, as a remote run's tail threads share one client.'''
+    import threading
+    import time
+
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    client = Client(tmp_credentials)
+    inside = threading.Event()
+
+    def refreshed(request):
+        inside.set()
+        # The second thread asks while this refresh is still in flight.
+        time.sleep(0.5)
+        return 200, {}, json.dumps({**client_credentials, "refresh_token": "r2"})
+
+    fake_v1._mock.add_callback(responses.POST, fake_v1.url("auth/token"), callback=refreshed,
+                               content_type="application/json")
+
+    first = threading.Thread(target=client.ensure_session)
+    first.start()
+    assert inside.wait(5)
+    second = threading.Thread(target=client.ensure_session)
+    second.start()
+    first.join(10)
+    second.join(10)
+
+    assert _grants(fake_v1) == ["refresh_token"]
+    assert client.transport.access_token == "access-token-one"
 
 
 def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
@@ -684,6 +727,50 @@ def test_a_denied_device_login_says_why(fake_v1, tmp_credentials, device, no_sle
     assert said in str(raised.value)
 
 
+@pytest.mark.parametrize("grant", ["client_credentials", "device"])
+def test_the_display_name_is_the_username(request, fake_v1, tmp_credentials,
+                                          client_credentials, no_sleep, grant):
+    '''`display_name` is the bare username; a device's label also names its host.'''
+    import getpass
+    import platform
+
+    if grant == "device":
+        request.getfixturevalue("device")()
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    Client(tmp_credentials, open_browser=False).login()
+
+    if grant == "device":
+        form = _form(_posts(fake_v1, "auth/device")[0].body)
+        assert form["device_label"] == f"{getpass.getuser()}@{platform.node()}"
+    else:
+        assert _form(_posts(fake_v1)[0].body)["display_name"] == getpass.getuser()
+
+
+@pytest.mark.parametrize("ci,scope,level", [
+    (False, " ".join(SCOPES), None),
+    (False, "jobs:read profile:read", "WARNING"),
+    (True, "jobs:read jobs:write artifacts:read profile:read", "INFO"),
+], ids=["all", "narrowed", "ci"])
+def test_a_scope_not_granted_is_named_at_login(request, fake_v1, tmp_credentials,
+                                               client_credentials, caplog, ci, scope, level):
+    '''Every grant asks for every scope, and a server narrows silently, so the
+    answer's `scope` is read back. A CI credential is narrow by design.'''
+    if ci:
+        request.getfixturevalue("exchange")
+    fake_v1.route(responses.POST, "auth/token", {**client_credentials, "scope": scope})
+
+    with caplog.at_level("INFO"):
+        Client(tmp_credentials, open_browser=False).login()
+
+    assert _form(_posts(fake_v1)[0].body)["scope"] == " ".join(SCOPES)
+    said = [record for record in caplog.records if "not granted" in record.getMessage()]
+    assert [record.levelname for record in said] == ([level] if level else [])
+    if level == "WARNING":
+        assert "not granted jobs:write, jobs:delete, artifacts:read, devices:read, " \
+            "devices:write:" in said[0].getMessage()
+
+
 @pytest.fixture
 def exchange(fake_v1, capabilities, ci_secret):
     _offer(fake_v1, capabilities, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE,
@@ -750,17 +837,19 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
     assert "expires in 3 days" in caplog.text
 
 
+@pytest.mark.parametrize("entry", ["login", "ensure_session"])
 def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
-        fake_v1, capabilities, tmp_credentials, ci_secret, capsys):
-    '''Never falling back to `client_credentials` or the device grant,
-    though this deployment offers both.'''
+        fake_v1, capabilities, tmp_credentials, ci_secret, capsys, entry):
+    '''Never falling back to a refresh, `client_credentials` or the device grant,
+    though this machine and deployment have all three, whether a login or a command asked.'''
+    tmp_credentials.save_tokens({"refresh_token": "an-interactive-session"})
     _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE,
            "refresh_token")
     fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
                   status=400)
 
     with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
-        Client(tmp_credentials, open_browser=False).login()
+        getattr(Client(tmp_credentials, open_browser=False), entry)()
 
     assert _grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
     assert not _posts(fake_v1, "auth/device")
@@ -780,6 +869,28 @@ def test_a_ci_key_trades_after_the_grants_say_it_now_can(
     Client(tmp_credentials, open_browser=False).login()
 
     assert _grants(fake_v1) == [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
+
+
+def test_a_trade_refused_for_the_clock_is_minted_again_on_the_corrected_one(
+        fake_v1, tmp_credentials, exchange):
+    '''The assertion's time claims ride on the proof's clock, so the one retry
+    carries a fresh assertion, with a new `jti`.'''
+    import email.utils
+    import time
+
+    ahead = 600
+    fake_v1.route(responses.POST, "auth/token", {"error": "invalid_dpop_proof"}, status=400,
+                  headers={"Date": email.utils.formatdate(time.time() + ahead, usegmt=True)})
+    exchange()
+
+    Client(tmp_credentials, open_browser=False).login()
+
+    first, second = (_form(r.body)["subject_token"] for r in _posts(fake_v1))
+    first, second = _claims(first), _claims(second)
+    assert first["jti"] != second["jti"]
+    assert abs(second["iat"] - first["iat"] - ahead) <= 5
+    assert second["exp"] - second["iat"] == 300
+    assert abs(_claims(_posts(fake_v1)[1].headers["DPoP"])["iat"] - second["iat"]) <= 1
 
 
 def test_insecure_transport_stops_and_is_never_sent_again(logged_in, fake_v1):
@@ -805,6 +916,57 @@ def test_a_ci_credential_is_never_sent_over_plain_http(tmp_path, ci_secret):
         assert not mock.calls
 
     assert "https" in str(raised.value)
+
+
+@pytest.fixture
+def plain(capabilities, tmp_credentials):
+    '''A deployment served over plain http, as a local sc-server is, and a client for it.'''
+    tmp_credentials.set_server("http://sc-server.test")
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
+        server = FakeV1(mock, "http://sc-server.test/v1")
+        server.route(responses.GET, "", capabilities)
+        yield server, Client(tmp_credentials, open_browser=False)
+
+
+@pytest.mark.parametrize("offered,sent", [
+    ((GRANT_CLIENT_CREDENTIALS, "refresh_token"), True),
+    ((GRANT_DEVICE_CODE, "refresh_token"), False),
+    ((GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE), False),
+], ids=["sc-server", "device", "both"])
+@pytest.mark.parametrize("held", [False, True], ids=["login", "refresh"])
+def test_plain_http_carries_a_credential_only_where_nobody_is_authenticated(
+        plain, capabilities, client_credentials, offered, sent, held):
+    '''`GET /v1` decides before a login or a refresh token goes over http: a
+    deployment that authenticates gets neither.'''
+    server, client = plain
+    _offer(server, capabilities, *offered)
+    if held:
+        client.credentials.save_tokens({"refresh_token": "r1"})
+    server.route(responses.POST, "auth/token", client_credentials)
+
+    if sent:
+        client.ensure_session()
+        assert _grants(server) == ["refresh_token" if held else GRANT_CLIENT_CREDENTIALS]
+    else:
+        with pytest.raises(RemoteError, match="is not https"):
+            client.ensure_session()
+        assert not [call for call in server.calls if call.request.method == "POST"]
+
+
+def test_a_grant_refused_over_plain_http_stops_the_login(plain, capabilities):
+    '''No fallback to the device grant: a deployment offering it authenticates,
+    so no code is asked for over http.'''
+    server, client = plain
+    server.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
+                 status=400)
+    server.route(responses.GET, "", {**capabilities, "grant_types_supported":
+                                     [GRANT_DEVICE_CODE, "refresh_token"]})
+
+    with pytest.raises(RemoteError, match="is not https"):
+        client.login()
+
+    assert _grants(server) == [GRANT_CLIENT_CREDENTIALS]
+    assert not _posts(server, "auth/device")
 
 
 def test_a_project_bound_ci_credential_explains_a_404(fake_v1, tmp_credentials,

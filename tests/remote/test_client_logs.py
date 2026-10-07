@@ -180,6 +180,33 @@ def test_an_event_stream_is_utf8_with_no_charset_named(logged_in, fake_v1, no_wa
     assert follow(logged_in) == "5 \u00b5m\n"
 
 
+def test_a_stream_waits_out_the_edges_idle_timeout(logged_in, fake_v1, monkeypatch):
+    '''A keep-alive comes within the 100 seconds an edge allows, so a stream's
+    read waits longer; storage keeps the ordinary timeout.'''
+    from siliconcompiler.remote.client.transport import TIMEOUT_SECONDS
+
+    asked = {}
+    real = logged_in.transport._session.get
+
+    def get(url, **kwargs):
+        asked[url] = kwargs["timeout"]
+        return real(url, **kwargs)
+
+    monkeypatch.setattr(logged_in.transport._session, "get", get)
+    target = stream(fake_v1, 1, sse(end("terminal")))
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/A", "", status=303,
+                  headers={"Location": f"{ORIGIN}/storage/A"})
+    fake_v1.elsewhere(responses.GET, f"{ORIGIN}/storage/A", "bytes",
+                      content_type="application/octet-stream")
+
+    follow(logged_in)
+    logged_in.fetch_artifact("j1", "A", "a.bin")
+
+    connect, read = asked[target]
+    assert connect == TIMEOUT_SECONDS and read > 100
+    assert asked[f"{ORIGIN}/storage/A"] == TIMEOUT_SECONDS
+
+
 def test_the_stream_url_is_opaque_to_the_client(logged_in, fake_v1, no_wait):
     '''Followed exactly as given, nonce and `ended=1` included. A last event
     with no closing blank line is still read.'''
@@ -199,9 +226,11 @@ def job(state):
     return {"id": "j1", "state": state, "terminal": state == "completed", "nodes": []}
 
 
-@pytest.mark.parametrize("header,waited", [("1", 1), ("0", 1), ("0.25", 1), ("3", 3)])
+@pytest.mark.parametrize("header,waited", [("1", 1), ("0", 1), ("0.25", 1), ("3", 3),
+                                           ("600", 600)])
 def test_a_retry_after_is_honoured_down_to_one_second(logged_in, fake_v1, header, waited):
-    '''Whole seconds, never below 1, and no longer floor of the client's own.'''
+    '''Whole seconds, never below 1 and never cut short, and no longer floor
+    of the client's own.'''
     fake_v1.route(responses.GET, "jobs/j1", job("running"), headers={"Retry-After": header})
     _, retry_after = logged_in.job("j1")
     assert retry_after == waited

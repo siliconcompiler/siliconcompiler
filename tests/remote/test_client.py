@@ -460,6 +460,34 @@ def test_an_expired_token_is_refreshed_silently(logged_in, fake_v1, tmp_credenti
     assert "access_token" not in json.loads(tmp_credentials.path.read_text())
 
 
+def test_a_token_refused_again_after_a_refresh_is_the_answer(logged_in, fake_v1,
+                                                             client_credentials):
+    '''One refresh per request: a second `invalid-token` fails rather than
+    refreshing again.'''
+    for _ in range(3):
+        _refused(fake_v1, "me", "invalid-token", 401,
+                 headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+    fake_v1.route(responses.POST, "auth/token",
+                  {**client_credentials, "access_token": "access-token-two"})
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug == "invalid-token"
+    assert _grants(fake_v1) == ["client_credentials", "refresh_token"]
+
+
+def test_an_unknown_challenge_fails_and_is_named(logged_in, fake_v1):
+    _refused(fake_v1, "me", "a-type-from-later", 401,
+             headers={"WWW-Authenticate": 'DPoP error="a_challenge_from_later"'})
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert 'error="a_challenge_from_later"' in str(raised.value)
+    assert _grants(fake_v1) == ["client_credentials"]
+
+
 def test_a_dead_session_is_logged_into_again_never_refreshed(logged_in, fake_v1):
     '''The refresh token is the session that ended.'''
     _refused(fake_v1, "me", "session-ended", 401, reason="revoked")
@@ -556,6 +584,28 @@ def test_a_non_problem_error_body_renders_rather_than_throwing(logged_in, fake_v
         assert "502" in str(raised.value)
 
 
+@pytest.mark.parametrize("content_type,body,said", [
+    ("application/json", problem("archive-rejected", 422), ["(422)"]),
+    ("application/problem+json",
+     {"title": "Refused here", "detail": "by the gateway", "trace_id": "a" * 32,
+      "instance": "/v1/me"},
+     ["Refused here (422): by the gateway", "trace " + "a" * 32]),
+], ids=["json-with-a-type", "problem-without-one"])
+def test_only_problem_json_names_a_condition(logged_in, fake_v1, content_type, body, said):
+    '''A `type` counts only under its own content type; a problem without one
+    keeps everything it said.'''
+    fake_v1.route(responses.GET, "me", body, status=422, content_type=content_type)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug is None and raised.value.status == 422
+    for fragment in said:
+        assert fragment in str(raised.value)
+    if "instance" in body:
+        assert raised.value.member("instance") == "/v1/me"
+
+
 def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
     '''A 4xx from a later registry is still not worth repeating.'''
     _refused(fake_v1, "me", "a-type-from-later", 422)
@@ -595,14 +645,19 @@ def test_devices_are_listed_across_pages_and_revoked(fake_v1, logged_in):
     {"body": "", "status": 204},
     {"body": problem("session-ended", 401, reason="revoked"), "status": 401,
      "content_type": "application/problem+json"},
-], ids=["live", "already-dead"])
+    {"body": problem("invalid-token", 401), "status": 401,
+     "content_type": "application/problem+json",
+     "headers": {"WWW-Authenticate": 'DPoP error="invalid_token"'}},
+], ids=["live", "already-dead", "token-refused"])
 def test_logout_forgets_the_session(fake_v1, logged_in, tmp_credentials, answer):
-    '''Even one already gone: the remaining job is local.'''
+    '''Even one already gone: the remaining job is local, and leaving never
+    starts a refresh or a login.'''
     fake_v1.route(responses.POST, "auth/revoke", **answer)
 
     logged_in.logout()
 
     assert tmp_credentials.refresh_token is None
+    assert len([c for c in fake_v1.calls if c.request.url.endswith("/auth/token")]) == 1
 
 
 @pytest.mark.parametrize("software,said,unsaid", [
@@ -643,13 +698,3 @@ def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
                                 "refresh_token": "whatever"})
 
     assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1
-
-
-def test_a_refresh_cannot_start_inside_a_refresh(fake_v1, tmp_credentials):
-    '''Impossible by construction: that loop costs the server.'''
-    tmp_credentials.save_tokens({"refresh_token": "a-token"})
-    client = Client(tmp_credentials)
-
-    client.transport._refreshing = True
-    assert client.transport.refresh() is False
-    assert not fake_v1.calls[1:]        # nothing beyond discovery
