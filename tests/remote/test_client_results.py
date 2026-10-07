@@ -6,6 +6,7 @@ import tarfile
 import pytest
 import responses
 
+from siliconcompiler.remote import RemoteError
 from siliconcompiler.remote.client.results import Results
 from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -200,10 +201,10 @@ def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
 
 
 @pytest.mark.parametrize("terminal", [False, True])
-def test_an_approval_is_asked_for_and_opened_only_on_a_terminal_yes(
+def test_an_agreement_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
         fake_v1, results, monkeypatch, caplog, terminal):
-    '''*Ask* names no URL. On a terminal: one question, then endpoint 6's page
-    for each askable object by id -- none for one already requested.'''
+    '''*Sign* and *ask* name no URL. On a terminal: a question each, then endpoint
+    6's page for each document and each askable object -- none for one already requested.'''
     from siliconcompiler.remote import client as client_module
 
     if terminal:
@@ -218,7 +219,9 @@ def test_an_approval_is_asked_for_and_opened_only_on_a_terminal_yes(
     serve(fake_v1, [
         artifact("final", "stepone", "0", fetchable=False, can_request_access=True),
         artifact("final", "steptwo", "0", fetchable=False, can_request_access=True,
-                 access_requested_at="2026-09-21T10:00:00.000Z")])
+                 access_requested_at="2026-09-21T10:00:00.000Z"),
+        artifact("outputs", "stepone", "0", fetchable=False, blocked_by=["gf22-nda"]),
+        artifact("outputs", "steptwo", "0", fetchable=False, blocked_by=["gf22-nda"])])
 
     caplog.set_level("WARNING")
     results.fetch("j1")
@@ -227,9 +230,10 @@ def test_an_approval_is_asked_for_and_opened_only_on_a_terminal_yes(
     assert "requested on 2026-09-21" in caplog.text
     pages = [json.loads(c.request.body) for c in fake_v1.calls
              if c.request.url.endswith("/v1/auth/browser")]
-    assert pages == ([{"artifact_id": "art-final-stepone-0"}] if terminal else [])
-    assert opened == (["https://portal.test/enter?token=a"] if terminal else [])
-    assert len(asked) == int(terminal)
+    assert pages == ([{"terms_id": "gf22-nda"}, {"artifact_id": "art-final-stepone-0"}]
+                     if terminal else [])
+    assert len(opened) == 2 * int(terminal)
+    assert len(asked) == 2 * int(terminal)
 
 
 def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
@@ -370,6 +374,31 @@ def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in, t
     assert not any("/logs" in call.request.path_url for call in fake_v1.calls)
 
 
+def test_an_archived_log_that_does_not_match_its_listing_is_discarded(fake_v1, logged_in):
+    serve(fake_v1, [artifact("logs", "stepone", "0", size_bytes=3,
+                             digest="sha256:" + "0" * 64)],
+          {"logs-stepone-0": "ran\n"})
+    with pytest.raises(RemoteError, match="did not match"):
+        logged_in.node_log("j1", "stepone", "0", "node.log")
+    assert not os.path.exists("node.log")
+
+
+def test_an_artifact_still_being_described_is_waited_for(fake_v1, logged_in, monkeypatch):
+    '''`not-ready` is transient: wait its `Retry-After`, then ask again.'''
+    slept = []
+    monkeypatch.setattr("siliconcompiler.remote.client.time.sleep", slept.append)
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/a1",
+                  problem("not-ready", 409, artifact_kind="node"), status=409,
+                  content_type="application/problem+json", headers={"Retry-After": "4"})
+    fake_v1.route(responses.GET, "jobs/j1/artifacts/a1", "bytes")
+
+    logged_in.fetch_artifact("j1", "a1", "a1.bin")
+
+    assert slept == [4]
+    with open("a1.bin") as f:
+        assert f.read() == "bytes"
+
+
 def test_a_nodes_results_are_taken_when_it_finishes_and_not_again_by_the_sweep(
         fake_v1, results, nop_project):
     '''As each node finishes, so the local record stays current; the final
@@ -462,7 +491,8 @@ def test_a_nodes_manifest_log_and_reports_are_taken_where_its_archive_is_withhel
     (None, ["node"]),
     # An archive too large to fetch covers nothing, or the node's record is
     # lost to the size of its outputs.
-    (10, ["manifest", "logs", "reports"])], ids=["fetched", "too-large"])
+    (10, ["manifest", "logs", "reports"]),
+    (0, ["manifest", "logs", "reports"])], ids=["fetched", "too-large", "none-allowed"])
 def test_a_nodes_archive_displaces_its_manifest_log_and_reports_only_if_fetched(
         fake_v1, results, limit, taken):
     results._ceiling = limit
@@ -506,6 +536,25 @@ def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
     assert len(lines) == 2
     assert "6 objects (logs x2, reports x2, node x2): you may not have these" in lines[0]
     assert lines[1] == "outputs for stepone/0: deleted on 2026-09-20."
+
+
+def test_a_manifest_inside_a_node_archive_is_one_kept(fake_v1, results, caplog):
+    '''Only a listing with no manifest at all means the server keeps none.'''
+    serve(fake_v1, [artifact("node", "stepone", "0"), artifact("manifest", "stepone", "0")],
+          {"node-stepone-0": tarball(["outputs/gcd.pkg.json"])})
+    with caplog.at_level("INFO"):
+        assert results.fetch("j1") == 1
+    assert "No manifest was kept" not in caplog.text
+
+
+def test_what_the_server_wrote_is_cleaned_before_it_is_printed(results):
+    '''A kind, a date or a reason never carries a control character to the terminal.'''
+    said = [results._name(artifact("final\x1b]0;x\x07")) + results._why(artifact(
+        fetchable=False, deleted_at="2026-09-20\x1b[2J", deleted_cause="removed",
+        deleted_reason="gone\x07")),
+        results._why(artifact(fetchable=False, can_request_access=True,
+                              access_requested_at="\x1b[2J2026-09-21"))]
+    assert not [line for line in said if "\x1b" in line or "\x07" in line]
 
 
 def test_a_row_for_a_node_the_flow_does_not_have_writes_nothing(fake_v1, results):

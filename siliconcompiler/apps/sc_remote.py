@@ -1,9 +1,10 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import os
 import sys
+import time
 
 from siliconcompiler import Project, Design
-from siliconcompiler.remote import Client, Credentials, RemoteError
+from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProblem
 from siliconcompiler.remote.client import read_secret
 from siliconcompiler.remote.client.results import recorded_job
 from siliconcompiler.scheduler.error import SCRuntimeError
@@ -266,10 +267,29 @@ def _act_on_job(remote, client, project_cfg):
             remote.logger.error("-tail takes <step>/<index>, for example place/0")
             return 1
         # The separator is required: "place10" could be place/10 or place1/0.
-        client.tail_log(job_id, step, index or "0",
-                        write=lambda text: (sys.stdout.write(text),
-                                            sys.stdout.flush()))
-        return 0
+        index = index or "0"
+
+        def write(text):
+            sys.stdout.write(text)
+            sys.stdout.flush()
+
+        waiting = False
+        while True:
+            try:
+                client.tail_log(job_id, step, index, write=write)
+                return 0
+            except ServerProblem as e:
+                if e.slug == "feature-unsupported" and e.member("feature") == "logs.stream":
+                    remote.logger.info("This server serves no live log, so only a finished "
+                                       "node's log can be read")
+                    write(client.archived_log(job_id, step, index))
+                    return 0
+                if e.slug != "not-ready" or not e.retry_after:
+                    raise
+                if not waiting:
+                    waiting = True
+                    remote.logger.info(f"{step}/{index} has not started; waiting for it")
+                time.sleep(e.retry_after)
 
     if remote.get("cmdarg", 'reconnect'):
         from siliconcompiler.remote.client.run import RemoteRun

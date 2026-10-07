@@ -62,3 +62,43 @@ def test_a_manifest_that_names_no_job_is_refused(monkeypatch, caplog, manifest, 
     assert main(monkeypatch, '-credentials', 'sc-auth/remote.json', '-cancel',
                 '-cfg', 'nowhere.json') == 1
     assert said in caplog.text
+
+
+@pytest.mark.parametrize("refusal,status,members,printed,waited", [
+    ("not-ready", 409, {"artifact_kind": "logs"}, "live\n", [3]),
+    ("feature-unsupported", 501, {"feature": "logs.stream"}, "archived\n", []),
+], ids=["not-started", "no-live-log"])
+def test_tail_waits_for_its_node_and_reads_the_archive_where_nothing_is_live(
+        monkeypatch, capsys, refusal, status, members, printed, waited):
+    '''`not-ready` is waited out; where no live log is served, the finished
+    node's archived log is read instead.'''
+    from siliconcompiler import Design, Project
+    from siliconcompiler.remote import ServerProblem
+    from siliconcompiler.remote.client.results import record_job
+
+    class Answers:
+        base_url = "https://sc-server.test"
+
+        def __init__(self):
+            self.refused = [ServerProblem(
+                {"type": f"https://siliconcompiler.com/server-errors/{refusal}", **members},
+                status, retry_after=3)]
+
+        def tail_log(self, job_id, step, index, write):
+            if self.refused:
+                raise self.refused.pop()
+            write("live\n")
+
+        def archived_log(self, job_id, step, index):
+            return "archived\n"
+
+    Project(Design("job")).write_manifest("job.pkg.json")
+    record_job(".", "j1")
+    slept = []
+    monkeypatch.setattr(sc_remote, "Client", lambda *args, **kwargs: Answers())
+    monkeypatch.setattr(sc_remote.time, "sleep", slept.append)
+
+    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json', '-tail', 'place/0',
+                '-cfg', 'job.pkg.json') == 0
+    assert capsys.readouterr().out.endswith(f"\n{printed}")
+    assert slept == waited

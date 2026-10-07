@@ -1477,9 +1477,10 @@ class _Tails:
 
         self._enabled, self._ceiling, self._whole_job = self._decide()
 
-    def _decide(self) -> Tuple[bool, int, bool]:
-        '''``(tail at all, how many at once, as one job stream)``. Off when the
-        caller asked for quiet, `GET /v1` is unreadable, or no live tail is served.'''
+    def _decide(self) -> Tuple[bool, Optional[int], bool]:
+        '''``(tail at all, how many at once or None for no limit, as one job
+        stream)``. Off when the caller asked for quiet, `GET /v1` is unreadable,
+        no live tail is served, or none may be open.'''
         if self._run.project.option.get_quiet():
             return False, 0, False
 
@@ -1494,8 +1495,12 @@ class _Tails:
             # Absent means unsupported; the archived log still comes with the results.
             return False, 0, False
 
+        # null, or absent, is no limit; 0 is none allowed.
         ceiling = (capabilities.get("limits") or {}).get("concurrent_log_streams")
-        return True, max(1, int(ceiling or 1)), "logs.stream.job" in features
+        if ceiling == 0:
+            return False, 0, False
+        return (True, None if ceiling is None else int(ceiling),
+                "logs.stream.job" in features)
 
     def follow(self, job_id: str, job: Dict[str, Any]) -> None:
         '''Start a tail for anything newly running.'''
@@ -1521,7 +1526,7 @@ class _Tails:
             if None in key or key in self._started:
                 continue
 
-            if len(self._threads) >= self._ceiling:
+            if self._ceiling is not None and len(self._threads) >= self._ceiling:
                 if key not in self._over_ceiling:
                     self._over_ceiling.add(key)
                     self._logger.info(
@@ -1566,6 +1571,10 @@ class _Tails:
             if refusal.slug == "not-ready":
                 # Transient: the next poll asks again.
                 self._started.discard((step, index))
+            elif refusal.slug == "feature-unsupported" and \
+                    refusal.member("feature") == "logs.stream":
+                # Not available now: no other node is tailed this run either.
+                self._enabled = False
             else:
                 logger.debug(f"stopped tailing {step}/{index}: {refusal}")
         except Exception as e:                                   # noqa: BLE001

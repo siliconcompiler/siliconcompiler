@@ -887,51 +887,71 @@ class Client:
         '''A listing's `items`, following `Link` to the end.
 
         Each next page is the `rel="next"` target as given, never a rebuilt
-        cursor, and only on the API's origin: it carries the session.
+        cursor, and only on the API's origin: it carries the session. A cursor
+        the server no longer takes restarts the listing from its first page, once.
         '''
-        response = self.transport.request("GET", path, params=params or None)
-        items = []
-        while True:
-            items.extend(response.json().get("items") or [])
-            target = _next_link(response.headers.get("Link"), response.url)
-            if not target:
-                return items
-            if origin_of(target) != self.transport.api_origin:
-                raise RemoteError("the server's next page is on another origin, and "
-                                  "this client sends its session only to its own")
-            response = self.transport.request("GET", target, absolute=True)
+        for restarted in (False, True):
+            items = []
+            try:
+                response = self.transport.request("GET", path, params=params or None)
+                while True:
+                    items.extend(response.json().get("items") or [])
+                    target = _next_link(response.headers.get("Link"), response.url)
+                    if not target:
+                        return items
+                    if origin_of(target) != self.transport.api_origin:
+                        raise RemoteError("the server's next page is on another origin, "
+                                          "and this client sends its session only to its own")
+                    response = self.transport.request("GET", target, absolute=True)
+            except ServerProblem as e:
+                if e.slug != "invalid-cursor" or restarted:
+                    raise
 
     def fetch_artifact(self, job_id: str, artifact_id: str, dest) -> str:
         '''``GET /v1/jobs/{id}/artifacts/{artifact_id}``, followed to the bytes.
-        The API redirects: the bytes may be on another origin.'''
+        The API redirects: the bytes may be on another origin. One still being
+        described is waited for as its `Retry-After` says, a bounded number of times.'''
+        from siliconcompiler.remote.client.transport import MAX_WAITS
+
         self.ensure_session()
 
-        response = self.transport.request(
-            "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
-            expect_redirect=True)
+        waits = 0
+        while True:
+            try:
+                response = self.transport.request(
+                    "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
+                    expect_redirect=True)
+                break
+            except ServerProblem as e:
+                if e.slug != "not-ready" or not e.retry_after or waits == MAX_WAITS:
+                    raise
+                waits += 1
+                time.sleep(e.retry_after)
         return self.transport.save(self.transport.follow(response), dest)
 
     def node_log(self, job_id: str, step: str, index: str, dest) -> str:
-        '''A finished node's log, from its `logs` artifact -- `/logs` is live
-        output only.'''
-        items = [item for item in self.artifacts(job_id, kind="logs", step=step, index=index)
-                 if item.get("fetchable")]
-        if not items:
-            raise RemoteError(f"no log of {step}/{index} can be fetched")
-        text = self.archived_log(job_id, items[0]["id"], step, index)
+        '''A finished node's log, from its `logs` artifact, written to ``dest``
+        -- `/logs` is live output only.'''
+        text = self.archived_log(job_id, step, index)
         with open(dest, "w") as f:
             f.write(text)
         return str(dest)
 
-    def archived_log(self, job_id: str, artifact_id: str, step: str, index: str) -> str:
-        '''A node's `logs` artifact -- a gzip tar of its log files -- as the
-        text of its SiliconCompiler log.'''
+    def archived_log(self, job_id: str, step: str, index: str) -> str:
+        '''A finished node's `logs` artifact -- a gzip tar of its log files -- as
+        the text of its SiliconCompiler log, checked against its listing first.'''
         import tarfile
         import tempfile
 
+        from siliconcompiler.remote.client.results import _download
+
+        items = [item for item in self.artifacts(job_id, kind="logs", step=step, index=index)
+                 if item.get("fetchable")]
+        if not items:
+            raise RemoteError(f"no log of {step}/{index} can be fetched")
+
         with tempfile.TemporaryDirectory(prefix="sc-log-") as tmpdir:
-            path = os.path.join(tmpdir, "logs.tar.gz")
-            self.fetch_artifact(job_id, artifact_id, path)
+            path = _download(self, job_id, items[0], os.path.join(tmpdir, "logs.tar.gz"))
             with tarfile.open(path, "r:*") as tar:
                 members = [member for member in tar.getmembers() if member.isfile()]
                 own = f"sc_{step}_{index}.log"
@@ -952,9 +972,15 @@ class Client:
 
         # Both or neither: one alone is a 400.
         params = {"step": step, "index": index} if step is not None else {}
-        response = self.transport.request(
-            "GET", f"jobs/{job_id}/logs", params=params,
-            stream=True, expect_redirect=True)
+        try:
+            response = self.transport.request(
+                "GET", f"jobs/{job_id}/logs", params=params,
+                stream=True, expect_redirect=True)
+        except ServerProblem as e:
+            if e.slug == "terms-not-accepted":
+                # A live log is gated like its archive.
+                raise self._to_sign(e) from None
+            raise
 
         headers = {}
         if last_event_id:

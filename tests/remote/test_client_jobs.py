@@ -488,6 +488,25 @@ def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
     assert pages[-1] == "https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1"
 
 
+@pytest.mark.parametrize("again", [False, True], ids=["restarted", "twice"])
+def test_a_cursor_the_server_no_longer_takes_restarts_the_listing_once(
+        fake_v1, logged_in, again):
+    '''`invalid-cursor` starts the listing again from its first page, keeping
+    nothing from before; a second one is the answer.'''
+    first = {"headers": {"Link": '</v1/jobs?cursor=stale>; rel="next"'}}
+    stale = {"status": 400, "content_type": "application/problem+json"}
+    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]}, **first)
+    fake_v1.route(responses.GET, "jobs", problem("invalid-cursor", 400), **stale)
+    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]}, **first)
+    if again:
+        fake_v1.route(responses.GET, "jobs", problem("invalid-cursor", 400), **stale)
+        with pytest.raises(ServerProblem):
+            logged_in.jobs()
+    else:
+        fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
+        assert [job["state"] for job in logged_in.jobs()] == ["completed", "failed"]
+
+
 def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
     '''The request carries this session.'''
     fake_v1.route(responses.GET, "jobs", {"items": []},
@@ -874,6 +893,27 @@ def tails(run, monkeypatch):
     return _Tails, opened
 
 
+@pytest.mark.parametrize("limit,followed", [
+    ({"concurrent_log_streams": 1}, ["stepone"]),
+    ({"concurrent_log_streams": 0}, []),
+    ({"concurrent_log_streams": None}, ["stepone", "steptwo"]),
+    ({}, ["stepone", "steptwo"])], ids=["one", "none-allowed", "unlimited", "absent"])
+def test_the_stream_limit_is_a_count_and_0_opens_none(fake_v1, run, capabilities, tails,
+                                                      limit, followed):
+    '''0 is none allowed; null is no limit, and so is absent: no bound is invented.'''
+    _Tails, opened = tails
+    limits = {name: value for name, value in capabilities["limits"].items()
+              if name != "concurrent_log_streams"}
+    fake_v1.replace(responses.GET, "", dict(capabilities, features=["logs.stream"],
+                                            limits={**limits, **limit}))
+
+    tail = _Tails(run)
+    tail.follow("j1", _running_nodes("stepone", "steptwo"))
+    tail.finish()
+
+    assert sorted(opened) == followed
+
+
 def test_with_a_job_stream_one_connection_follows_every_node(fake_v1, run, tails,
                                                              monkeypatch):
     '''One stream however wide the flow.'''
@@ -938,6 +978,23 @@ def test_a_log_asked_too_early_is_asked_again(fake_v1, run):
     tails._started.add(("stepone", "0"))
     tails._tail("j1", "stepone", "0")
     assert ("stepone", "0") in tails._started
+
+
+def test_no_live_log_on_a_nodes_tail_stops_tailing_for_the_run(fake_v1, run, capabilities):
+    '''`feature-unsupported` naming `logs.stream` is not asked again, for any node.'''
+    from siliconcompiler.remote.client.run import _Tails
+
+    run.project.option.set_quiet(False)
+    fake_v1.replace(responses.GET, "", dict(capabilities, features=["logs.stream"]))
+    _refused(fake_v1, responses.GET, "jobs/j1/logs", "feature-unsupported", 501,
+             feature="logs.stream")
+
+    tails = _Tails(run)
+    tails._tail("j1", "stepone", "0")
+    tails.follow("j1", _running_nodes("stepone", "steptwo"))
+    tails.finish()
+
+    assert len([c for c in fake_v1.calls if "/logs" in c.request.path_url]) == 1
 
 
 def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabilities,

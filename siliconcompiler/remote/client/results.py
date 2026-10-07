@@ -137,7 +137,8 @@ class Results:
 
     def _oversized(self, item: Dict[str, Any]) -> bool:
         ceiling = self.ceiling
-        if not ceiling or not item.get("fetchable"):
+        # 0 is a ceiling: none allowed.
+        if ceiling is None or not item.get("fetchable"):
             return False
         return (item.get("size_bytes") or 0) > ceiling
 
@@ -219,9 +220,9 @@ class Results:
 
     def fetch(self, job_id: str) -> int:
         '''Retrieve everything fetchable and say what was not; returns how many landed.'''
-        items = self._ours(self.client.artifacts(job_id))
+        listed = self._ours(self.client.artifacts(job_id))
 
-        if not items:
+        if not listed:
             self.logger.warning(
                 "This server kept nothing from this run. The job's own record "
                 "is all there is, and it is not an error.")
@@ -229,8 +230,8 @@ class Results:
 
         # BEFORE `_worth_fetching`: an archive not being fetched must not
         # displace the node's log and reports inside it.
-        oversized = [item for item in items if self._oversized(item)]
-        items = _worth_fetching([item for item in items if not self._oversized(item)])
+        oversized = [item for item in listed if self._oversized(item)]
+        items = _worth_fetching([item for item in listed if not self._oversized(item)])
 
         landed = 0
         withheld = []
@@ -252,8 +253,9 @@ class Results:
         self._report_withheld(withheld)
         self._report_oversized(oversized)
         # An unlisted kind is not kept here: no error, no retry. Said only
-        # for the manifest, the one a user looks for.
-        if not any(item.get("kind") == "manifest" for item in items):
+        # for the manifest, the one a user looks for, and from the whole
+        # listing: one inside a node archive was kept.
+        if not any(item.get("kind") == "manifest" for item in listed):
             self.logger.info(
                 "No manifest was kept for this run, so the metrics and the "
                 "per-node record are not available. This server does not keep "
@@ -277,7 +279,7 @@ class Results:
 
             counts: Dict[str, int] = {}
             for item in same:
-                kind = item.get("kind", "artifact")
+                kind = clean(str(item.get("kind", "artifact")))
                 counts[kind] = counts.get(kind, 0) + 1
             kinds = ", ".join(f"{kind} x{count}" for kind, count in counts.items())
             self.logger.warning(f"{len(same)} objects ({kinds}): {why}")
@@ -285,19 +287,32 @@ class Results:
         self._offer_requests(items)
 
     def _offer_requests(self, items: List[Dict[str, Any]]) -> None:
-        '''*Ask*, at a terminal: open each approval request's page on a yes.'''
+        '''*Sign* and *ask*, at a terminal: on a yes, open each blocking
+        document's page, and each approval request's.'''
         from siliconcompiler.remote.client import _ask
 
+        sign = []
+        for item in items:
+            blocked = item.get("blocked_by")
+            for terms_id in blocked if isinstance(blocked, list) else []:
+                if isinstance(terms_id, str) and terms_id and terms_id not in sign:
+                    sign.append(terms_id)
         ask = [item for item in items if item.get("can_request_access") is True
                and not item.get("access_requested_at") and item.get("id")]
-        if not ask or not sys.stdin.isatty() or not self.client.may_open():
+        if not (sign or ask) or not sys.stdin.isatty() or not self.client.may_open():
             return
-        if _ask(f"Open the approval request for {len(ask)} of them in a browser? "
-                "[y/N] ").strip().lower() not in ("y", "yes"):
-            return
-        for item in ask:
-            self.client.open_page(f"the approval request for {self._name(item)}",
-                                  artifact_id=item["id"])
+
+        if sign and _ask(f"Open the {len(sign)} agreement(s) to sign in a browser? "
+                         "[y/N] ").strip().lower() in ("y", "yes"):
+            for terms_id in sign:
+                title = clean(self._terms_titles().get(terms_id) or terms_id)
+                self.client.open_page(f"{title}'s page", terms_id=terms_id)
+
+        if ask and _ask(f"Open the approval request for {len(ask)} of them in a browser? "
+                        "[y/N] ").strip().lower() in ("y", "yes"):
+            for item in ask:
+                self.client.open_page(f"the approval request for {self._name(item)}",
+                                      artifact_id=item["id"])
 
     def _why(self, item: Dict[str, Any], many: bool = False) -> str:
         '''The reason alone, for one object or for several with the same one.'''
@@ -315,7 +330,7 @@ class Results:
             # Prose a person wrote: repeated, never interpreted.
             reason = item.get("deleted_reason")
             if reason:
-                return f"deleted on {day} -- {reason}."
+                return f"deleted on {day} -- {clean(reason)}."
             return f"deleted on {day}."
 
         # *Sign*: granted, but agreements stand in the way.
@@ -385,29 +400,13 @@ class Results:
         record_job(into, job_id)
         return 1
 
-    def _download(self, job_id: str, item: Dict[str, Any], tmpdir: str) -> str:
-        '''The bytes, checked against the listing's `size_bytes` and `digest`
-        before anything uses them; a mismatch is discarded.'''
-        from siliconcompiler.utils import file_digest
-
-        path = os.path.join(tmpdir, "artifact")
-        self.client.fetch_artifact(job_id, item["id"], path)
-
-        expected = item.get("digest")
-        if (item.get("size_bytes") is not None and os.path.getsize(path) != item["size_bytes"]) \
-                or (expected and f"sha256:{file_digest(path).hexdigest()}" != expected):
-            os.remove(path)
-            raise RemoteError(f"{self._name(item)} did not match its listed size and "
-                              "digest, and was discarded")
-        return path
-
     def _gunzip(self, job_id: str, item: Dict[str, Any], dest: str) -> None:
         '''Download and gunzip a single-file artifact to ``dest``.'''
         import gzip
         import shutil
 
         with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
-            path = self._download(job_id, item, tmpdir)
+            path = _download(self.client, job_id, item, os.path.join(tmpdir, "artifact"))
             os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
             partial = f"{dest}.part"
             with gzip.open(path, "rb") as source, open(partial, "wb") as out:
@@ -423,7 +422,7 @@ class Results:
         root = jobdir(self.project)
         prefix = os.path.relpath(into, root).replace(os.sep, "/")
         with tempfile.TemporaryDirectory(prefix="sc-artifact-") as tmpdir:
-            path = self._download(job_id, item, tmpdir)
+            path = _download(self.client, job_id, item, os.path.join(tmpdir, "artifact"))
             with utils.tarfile_module().open(path, "r:*") as tar:
                 members = []
                 for member in tar.getmembers():
@@ -526,9 +525,23 @@ class Results:
     def _name(item: Dict[str, Any]) -> str:
         kind = item.get("kind", "artifact")
         step, index = item.get("step"), item.get("index")
-        if step is None:
-            return kind
-        return f"{kind} for {step}/{index}"
+        return clean(str(kind) if step is None else f"{kind} for {step}/{index}")
+
+
+def _download(client, job_id: str, item: Dict[str, Any], path: str) -> str:
+    '''A listed artifact's bytes at ``path``, checked against the listing's
+    `size_bytes` and `digest` before anything uses them; a mismatch is discarded.'''
+    from siliconcompiler.utils import file_digest
+
+    client.fetch_artifact(job_id, item["id"], path)
+
+    expected = item.get("digest")
+    if (item.get("size_bytes") is not None and os.path.getsize(path) != item["size_bytes"]) \
+            or (expected and f"sha256:{file_digest(path).hexdigest()}" != expected):
+        os.remove(path)
+        raise RemoteError(f"{Results._name(item)} did not match its listed size and "
+                          "digest, and was discarded")
+    return path
 
 
 def _worth_fetching(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -560,4 +573,4 @@ def _folded(key, step, index, ran) -> bool:
 
 def _day(timestamp: str) -> str:
     '''The date out of an RFC 3339 instant.'''
-    return (timestamp or "")[:10] or "an unknown date"
+    return clean(timestamp)[:10] or "an unknown date"

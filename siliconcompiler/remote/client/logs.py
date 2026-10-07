@@ -9,8 +9,10 @@ An expired capability or a dropped connection is ordinary, not a failure:
 ask again with the last id.
 '''
 
+import codecs
 import json
 import logging
+import re
 import time
 
 from typing import Optional
@@ -25,6 +27,12 @@ logger = logging.getLogger(__name__)
 
 # Used where the server's SSE `retry` field says nothing.
 RECONNECT_SECONDS = 2
+
+# What ends a line of an event stream: CRLF, LF or a lone CR.
+_EOL = re.compile(r"\r\n|\r|\n")
+
+# Before an archived log printed in full, where the live text could not be placed in it.
+_IN_FULL = "(the live log could not be lined up with the archived one, so here is all of it)\n"
 
 
 class LogTail:
@@ -48,7 +56,8 @@ class LogTail:
         '''Read until the node, or the job, is done; returns everything emitted.
 
         Reconnects on any `end` but `terminal`, however long: a quiet node is
-        not broken. A finished node's stream names its archived log, then fetched.
+        not broken. A node's stream that ends at once replays nothing, so what
+        it did not show comes from the archived log it names.
         '''
         collected = []
 
@@ -65,23 +74,38 @@ class LogTail:
 
             if not _is_stream(response):
                 # Anything but an event stream is a refusal, never log text.
-                from siliconcompiler.remote.client.transport import _problem_body
+                from siliconcompiler.remote.client.transport import _problem_body, _retry_after
 
                 with response:
-                    raise ServerProblem(_problem_body(response), response.status_code
-                                        if response.status_code >= 400 else 502)
+                    refusal = ServerProblem(_problem_body(response), response.status_code
+                                            if response.status_code >= 400 else 502,
+                                            retry_after=_retry_after(response))
+                if refusal.status != 429 or not refusal.retry_after:
+                    raise refusal
+                # A slot frees as another stream closes: wait, then a fresh `/logs`.
+                time.sleep(refusal.retry_after)
+                continue
 
             with response:
                 produced, finished = self._consume(response, emit)
 
             if finished:
-                if not produced and self.step and self.artifact_id \
-                        and self.last_event_id is None:
-                    emit(self.client.archived_log(self.job_id, self.artifact_id,
-                                                  self.step, self.index))
+                if not produced and self.step and self.artifact_id:
+                    rest = self._unread("".join(collected))
+                    if rest:
+                        emit(rest)
                 return "".join(collected)
 
             time.sleep(self.retry or RECONNECT_SECONDS)
+
+    def _unread(self, shown: str) -> str:
+        '''What of the node's archived log follows ``shown``, or all of it, said
+        so, where what was read cannot be placed in it.'''
+        archived = self.client.archived_log(self.job_id, self.step, self.index)
+        # Nothing shown places nothing, unless nothing was read at all.
+        if archived.startswith(shown) and (shown or self.last_event_id is None):
+            return archived[len(shown):]
+        return _IN_FULL + archived
 
     def _consume(self, response, emit):
         '''Read one stream to its end. Returns (produced anything, finished).'''
@@ -125,13 +149,29 @@ def _is_stream(response) -> bool:
     return response.headers.get("Content-Type", "").startswith("text/event-stream")
 
 
+def _lines(chunks):
+    '''An event stream's lines, decoded as UTF-8 whatever the header says. A
+    CR last in a read is held: it ends a line alone or as half of a CRLF.'''
+    decoder = codecs.getincrementaldecoder("utf-8-sig")(errors="replace")
+    rest = ""
+    for chunk in chunks:
+        text = rest + decoder.decode(chunk)
+        held = "\r" if text.endswith("\r") else ""
+        *lines, rest = _EOL.split(text[:len(text) - len(held)])
+        rest += held
+        yield from lines
+
+    *lines, last = _EOL.split(rest + decoder.decode(b"", final=True))
+    yield from lines
+    if last:
+        yield last
+
+
 def _frames(response, tail):
     '''Parse ``text/event-stream`` into (event, id, data); here, not a new dependency.'''
     event, identifier, payload = "message", None, []
 
-    for raw in response.iter_lines(decode_unicode=True):
-        line = raw.rstrip("\r")
-
+    for line in _lines(response.iter_content(chunk_size=512)):
         if not line:
             if payload:
                 yield event, identifier, _data("\n".join(payload))
