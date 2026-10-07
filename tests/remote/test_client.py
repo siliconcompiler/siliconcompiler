@@ -447,10 +447,16 @@ def test_a_dead_refresh_token_falls_back_to_enrolling_once(
         assert "used elsewhere" in caplog.text
 
 
+@pytest.mark.parametrize("typed", [True, False], ids=["typed", "header-only"])
 def test_an_expired_token_is_refreshed_silently(logged_in, fake_v1, tmp_credentials,
-                                                client_credentials):
-    _refused(fake_v1, "me", "invalid-token", 401,
-             headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+                                                client_credentials, typed):
+    '''The challenge alone says `invalid_token` where no handler typed the body.'''
+    challenge = {"WWW-Authenticate": 'DPoP error="invalid_token"'}
+    if typed:
+        _refused(fake_v1, "me", "invalid-token", 401, headers=challenge)
+    else:
+        fake_v1.route(responses.GET, "me", "", status=401, headers=challenge,
+                      content_type="text/plain")
     fake_v1.route(responses.POST, "auth/token",
                   {**client_credentials, "access_token": "access-token-two"})
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})

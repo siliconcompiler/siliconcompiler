@@ -13,7 +13,8 @@ from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, clean, describe)
 from siliconcompiler.remote.client.identity import local_subject, display_name
 from siliconcompiler.remote.client.transport import (
-    EdgeRefused, OAuthRefusal, Transport, _retry_after, normalize_server, origin_of)
+    EdgeRefused, OAuthRefusal, Transport, _retry_after, authenticates, normalize_server,
+    origin_of)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
@@ -660,7 +661,7 @@ class Client:
             offered = self.capabilities(notices=False).get("grant_types_supported") or []
         except RemoteError:
             return False
-        return GRANT_CLIENT_CREDENTIALS in offered
+        return not authenticates(offered)
 
     def open_url(self, url: str, what: str, require_tty: bool = True) -> bool:
         '''Open a URL a person must act on: `https`, or `http` where nobody is authenticated.'''

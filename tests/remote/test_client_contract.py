@@ -128,14 +128,18 @@ def test_the_deployment_account_and_refusal_lines_lose_control_characters(
         assert "\x07" not in text and "\x1b]" not in text
 
 
+@pytest.mark.parametrize("offered", [
+    ["urn:ietf:params:oauth:grant-type:device_code"],
+    ["client_credentials", "urn:ietf:params:oauth:grant-type:device_code"],
+], ids=["device-grant", "and-client-credentials"])
 def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
-        logged_in, fake_v1, capabilities, monkeypatch, caplog):
+        logged_in, fake_v1, capabilities, monkeypatch, caplog, offered):
+    '''Offering `client_credentials` beside a grant that authenticates is still a
+    deployment that authenticates.'''
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("sys.stdout.isatty", lambda: True)
-    fake_v1.replace(responses.GET, "", {
-        **capabilities,
-        "grant_types_supported": ["urn:ietf:params:oauth:grant-type:device_code"]})
+    fake_v1.replace(responses.GET, "", {**capabilities, "grant_types_supported": offered})
 
     assert logged_in.open_url("http://portal.test/approve", "the page") is False
 

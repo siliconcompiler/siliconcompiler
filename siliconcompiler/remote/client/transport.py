@@ -330,8 +330,11 @@ class Transport:
 
             # Once per request, and only an AUTHENTICATED one: an unauthenticated
             # refresh renewing on its own 401 would loop.
+            # The header alone says `invalid_token` where no handler typed the body.
+            expired = slug == "invalid-token" or (
+                slug is None and _challenge(response) == "invalid_token")
             if again["authenticated"] and again["renew"] and (
-                    slug == "invalid-token" or (slug == "session-ended" and self.relogin)):
+                    expired or (slug == "session-ended" and self.relogin)):
                 self.renew(refused=token, ended=(problem.get("reason") or "revoked")
                            if slug == "session-ended" else None)
                 return self.request(**{**again, "renew": False},
@@ -685,12 +688,18 @@ def _problem_body(response: requests.Response) -> Dict[str, Any]:
     }
 
 
+def _challenge(response) -> Optional[str]:
+    '''The `error=` of a response's `WWW-Authenticate`, if it has one.'''
+    found = re.search(r'\berror="?([^",\s]+)', response.headers.get("WWW-Authenticate") or "")
+    return found.group(1) if found else None
+
+
 def _unknown_challenge(response) -> Optional[str]:
     '''A 401's `WWW-Authenticate` `error=` this client does not know, said as it is.'''
-    found = re.search(r'\berror="?([^",\s]+)', response.headers.get("WWW-Authenticate") or "")
-    if response.status_code != 401 or not found or found.group(1) in _CHALLENGES:
+    error = _challenge(response)
+    if response.status_code != 401 or not error or error in _CHALLENGES:
         return None
-    return (f"The server refused it with WWW-Authenticate error=\"{clean(found.group(1))}\", "
+    return (f"The server refused it with WWW-Authenticate error=\"{clean(error)}\", "
             "which this client does not know.")
 
 
