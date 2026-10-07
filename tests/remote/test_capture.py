@@ -502,6 +502,20 @@ def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run
     assert member["requirements"] == ["scfakeumi==0.3.1"]
 
 
+def test_a_setup_pass_that_fails_whole_still_stops_a_node_running_the_users_python(
+        gcd_design, logged_in, monkeypatch):
+    '''No node was worked out, so none is sent without its Python packages.'''
+    from siliconcompiler.remote import owners
+
+    def cannot(project):
+        raise RuntimeError("the flow cannot be prepared here")
+
+    monkeypatch.setattr(owners, "work_out", cannot)
+    with pytest.raises(RemoteError, match="sim/0 runs your own Python.*cannot be prepared"):
+        RemoteRun(tb_project(gcd_design, sim=RunsATestbench(), other=NOPTask()),
+                  logged_in)._python()
+
+
 def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_in,
                                                           tmp_path):
     '''Repacked from the install here. Asked at create, in the first

@@ -107,6 +107,7 @@ class RemoteRun:
         self._needed = None
         self._environments = {}
         self._tasks = {}
+        self._inputs = {}
         self._failed = {}
         self._upstream_sources = None
         self._last_state: Optional[str] = None
@@ -384,44 +385,41 @@ class RemoteRun:
             + ". Ask the deployment for the grant, or accept the agreement")
 
     def _check_upstream_files(self) -> None:
-        '''Stop a `-from` run whose local upstream outputs lack a file it reads.'''
+        '''Stop a `-from` run whose upstream outputs packed here lack a file it
+        reads: a dangling link, or an input a node's setup declares. A node
+        reading any results not packed here is not checked.'''
         from siliconcompiler.flowgraph import RuntimeFlowgraph
-
-        from siliconcompiler.remote import links
 
         root = jobdir(self.project)
         packed = self._upstream()[0]
         if not packed:
             return
-        have = set()
+        held = {}
         for outputs in packed:
-            where = os.path.join(root, outputs)
-            for here, dirs, files in os.walk(where):
+            have = held[outputs] = set()
+            for here, dirs, files in os.walk(os.path.join(root, outputs)):
                 have.update(files)
                 # A dangling link is a missing file, usually into a node never fetched.
                 for name in sorted(dirs + files):
                     full = os.path.join(here, name)
-                    if os.path.islink(full) and \
-                            links.follow(root, full)[1] == links.DANGLING:
+                    if os.path.islink(full) and not os.path.exists(full):
                         raise RemoteError(
                             f"{os.path.relpath(full, root)} is a link to "
                             f"{os.readlink(full)}, which is not on this machine: fetch "
                             "the node it belongs to, or the whole job, or run from an "
                             "earlier step")
 
+        # Inputs are declared by setup, so read from the worked-out copy.
+        self._needs()
         runtime = RuntimeFlowgraph.from_project(self.project)
-        flow = self.project.get_flow()
-        for step, index in runtime.get_nodes():
-            node = flow.get_graph_node(step, index)
-            try:
-                reads = self.project.get("tool", node.get_tool(), "task", node.get_task(),
-                                         "input", step=step, index=index) or []
-            except Exception:                                    # noqa: BLE001
+        for (step, index), reads in sorted(self._inputs.items()):
+            upstream = runtime.get_node_inputs(step, index)
+            sources = [os.path.relpath(os.path.join(
+                workdir(self.project, step=source, index=at), "outputs"), root)
+                for source, at in upstream]
+            if not sources or any(source not in held for source in sources):
                 continue
-            upstream = [source for source in runtime.get_node_inputs(step, index)
-                        if source not in runtime.get_nodes()]
-            if not upstream:
-                continue
+            have = set().union(*(held[source] for source in sources))
             lacking = sorted(name for name in reads if name not in have)
             if lacking:
                 raise RemoteError(
@@ -591,9 +589,11 @@ class RemoteRun:
 
         The owner table says whether a value MAY go up; this says whether the
         flow NEEDS it, carried in the manifest for the server to read.
-        Where a setup cannot run here the set is None: every file goes up by owner.
+        Where a running node's setup cannot run here the set is None: every
+        file goes up by owner.
         '''
         from siliconcompiler.remote import owners
+        from siliconcompiler.remote.runflow import runtime_nodes
 
         if self._needed is None:
             try:
@@ -602,22 +602,27 @@ class RemoteRun:
                 self.logger.warning(
                     f"Could not work out which files the flow reads ({e}); "
                     "uploading every file this machine may send")
+                # No node worked out, so a node running the user's Python stops the run.
+                try:
+                    self._failed = dict.fromkeys(runtime_nodes(self.project),
+                                                 str(e) or type(e).__name__)
+                except Exception:                                # noqa: BLE001
+                    pass                    # with no flow to run, no node is one
                 self._needed = (self.project, None)
                 return self._needed
 
-            # Per node: one setup failing here drops no other node's Python.
+            # Per node: one setup failing here drops no other node's Python or `require`.
             self._environments = worked.environments
             self._tasks = worked.tasks
+            self._inputs = worked.inputs
             self._failed = worked.failed
-            if worked.failed:
+            carried = owners.with_required(self.project, worked.required)
+            self._needed = (carried, owners.required(carried))
+            if worked.failed and self._needed[1] is None:
                 named = ", ".join(f"{step}/{index}" for step, index in sorted(worked.failed))
                 self.logger.warning(
                     f"Could not work out which files {named} read; uploading every "
                     "file this machine may send")
-                self._needed = (self.project, None)
-            else:
-                carried = owners.with_required(self.project, worked.required)
-                self._needed = (carried, owners.required(carried))
         return self._needed
 
     def _requested_interpreter(self) -> Dict[str, Dict[str, List[str]]]:
@@ -688,11 +693,14 @@ class RemoteRun:
             self._python_pins = pins
         return self._python_pins
 
-    def _supplied(self, distribution: str) -> bool:
+    def _supplied(self, distribution: Optional[str]) -> bool:
         '''Whether the server lists ``distribution`` at the version installed
-        here, so it can supply that package's dataroots itself.'''
+        here, so it can supply that package's dataroots itself. None, a module
+        no distribution provides, never is.'''
         from packaging.version import InvalidVersion, Version
 
+        if not distribution:
+            return False
         if self._software is None:
             try:
                 self._software = self.client.capabilities().get("software") or {}
@@ -810,25 +818,15 @@ class RemoteRun:
     def _check_worked_out(self) -> None:
         '''Stop where an executed node runs the user's Python and its setup failed
         here: its imports cannot be worked out.'''
-        from siliconcompiler.flowgraph import RuntimeFlowgraph
-        from siliconcompiler.tool import Task
+        from siliconcompiler.remote.runflow import python_nodes, runtime_nodes
 
         if not self._failed:
             return
-        flow = self.project.get_flow()
-        executed = set(RuntimeFlowgraph.from_project(self.project).get_nodes())
-        for (step, index), why in sorted(self._failed.items()):
-            if (step, index) not in executed:
-                continue
-            try:
-                task = flow.get_task_module(step, index)
-            except Exception:                                    # noqa: BLE001
-                continue
-            if getattr(task, "get_python_environment", None) is not \
-                    Task.get_python_environment:
-                raise RemoteError(
-                    f"{step}/{index} runs your own Python, and what it needs cannot be "
-                    f"worked out here, because its setup failed: {why}")
+        failed = [node for node in runtime_nodes(self.project) if node in self._failed]
+        for step, index in sorted(python_nodes(self.project.get_flow(), failed)):
+            raise RemoteError(
+                f"{step}/{index} runs your own Python, and what it needs cannot be "
+                f"worked out here, because its setup failed: {self._failed[(step, index)]}")
 
     def _check_python_env(self) -> None:
         '''Stop before create where the job has Python packages to install and
@@ -936,8 +934,9 @@ class RemoteRun:
 
             with tarfile.open(upload, mode="w:gz") as tar:
                 tar.add(sent, arcname=manifest)
-                outputs = _LinkPacker(tar, root, packed, self.logger, replaced=replaced)
-                for name in self._needed_from(root):
+                needed = self._needed_from(root)
+                outputs = _LinkPacker(tar, root, needed, self.logger, replaced=replaced)
+                for name in needed:
                     if name in packed:
                         outputs.add(name)
                     else:
@@ -954,8 +953,9 @@ class RemoteRun:
 
     def _upstream_manifests(self, root: str, packed, scratch: str) -> Dict[str, str]:
         '''Each packed upstream manifest holding a credential, as ``{real path:
-        masked copy under scratch}`` for `_LinkPacker` to send instead.'''
-        from siliconcompiler import Project
+        masked copy under scratch}`` for `_LinkPacker` to send instead. Read
+        importing nothing it names: it is a result, and may be a fetched one.'''
+        from siliconcompiler.remote import manifests
 
         replaced = {}
         for n, name in enumerate(packed):
@@ -963,7 +963,7 @@ class RemoteRun:
             if not os.path.isfile(path):
                 continue
             try:
-                held = Project.from_manifest(filepath=path)
+                held = manifests.read(path)
             except Exception as e:                               # noqa: BLE001
                 # Fails closed.
                 raise RemoteError(
@@ -1737,28 +1737,34 @@ def _pack_reproducibly(upload: Path, directory: Path) -> None:
 class _LinkPacker:
     '''Pack upstream ``outputs/`` with links as links and each file once.
 
-    A link into the archive stays one link; one into the build directory but
-    not the archive stores its target once; a hard link stays a tar hard link;
-    one leaving the build directory, or dangling, is left out and named. A
-    link's target is never copied in its place: that could upload terabytes.
+    A link to a file whose home is in the archive, the collection included,
+    stays a link to that home. Any other linked file, in the build directory or
+    out of it, is stored once, at its first appearance, and every later name for
+    it points at that copy; a hard link stays a tar hard link. A dangling link
+    is left out and named.
     '''
 
-    def __init__(self, tar, root: str, packed, logger, replaced=None):
+    def __init__(self, tar, root: str, tops, logger, replaced=None):
         from siliconcompiler.remote import links
 
         self.tar, self.root, self.logger = tar, root, logger
         # Masked upstream manifests to send instead (`RemoteRun._upstream_manifests`).
         self.replaced: Dict[str, str] = dict(replaced or {})
-        self.real_root = os.path.realpath(root)
         # So a link to a node's `inputs/x` points at the upstream `outputs/x`,
         # whatever order the nodes are packed in.
         self.homes = links.Homes(root)
-        self.packed = [os.path.realpath(os.path.join(root, name)) for name in packed]
+        # What the archive holds whole, by real path: its name there.
+        self.tops = {os.path.realpath(os.path.join(root, name)): name.replace(os.sep, "/")
+                     for name in tops}
         self.stored: Dict[str, str] = {}
-        self.inodes: Dict[Tuple[int, int], str] = {}
 
-    def holds(self, real: str) -> bool:
-        return any(real == top or real.startswith(top + os.sep) for top in self.packed)
+    def home(self, real: str) -> Optional[str]:
+        '''The archive name of ``real`` where it lies in what the archive holds whole.'''
+        for top, name in self.tops.items():
+            if real == top or real.startswith(top + os.sep):
+                return posixpath.normpath(posixpath.join(
+                    name, os.path.relpath(real, top).replace(os.sep, "/")))
+        return None
 
     def add(self, name: str) -> None:
         self._add_dir(os.path.join(self.root, name), name)
@@ -1783,7 +1789,8 @@ class _LinkPacker:
     def _add_file(self, path: str, arcname: str, held) -> None:
         import stat
 
-        instead = self.replaced.get(os.path.realpath(path))
+        real = os.path.realpath(path)
+        instead = self.replaced.get(real)
         if instead is not None:
             # Its own bytes, never a hard link: that would send the unmasked file.
             info = tarfile.TarInfo(arcname)
@@ -1791,13 +1798,16 @@ class _LinkPacker:
             info.mode = stat.S_IMODE(held.st_mode)
             with open(instead, "rb") as handle:
                 self.tar.addfile(info, handle)
-            self.stored.setdefault(os.path.realpath(path), arcname)
+            self.stored.setdefault(real, arcname)
             return
 
-        key = (held.st_dev, held.st_ino)
-        if held.st_nlink > 1 and key in self.inodes:
+        # The tar's own record of each file it holds, as `tar.add` keeps it.
+        key = (held.st_ino, held.st_dev)
+        first = self.stored.get(real) or \
+            (self.tar.inodes.get(key) if held.st_nlink > 1 else None)
+        if first is not None:
             info = tarfile.TarInfo(arcname)
-            info.type, info.linkname = tarfile.LNKTYPE, self.inodes[key]
+            info.type, info.linkname = tarfile.LNKTYPE, first
             self.tar.addfile(info)
             return
         info = tarfile.TarInfo(arcname)
@@ -1805,32 +1815,32 @@ class _LinkPacker:
         info.mode = stat.S_IMODE(held.st_mode)
         with open(path, "rb") as handle:
             self.tar.addfile(info, handle)
-        self.inodes[key] = arcname
-        self.stored.setdefault(os.path.realpath(path), arcname)
+        self.tar.inodes[key] = arcname
+        self.stored[real] = arcname
 
     def _add_link(self, path: str, arcname: str) -> None:
         from siliconcompiler.remote import links
 
         end, why = links.follow(self.root, path)
+        if why == links.OUTSIDE:
+            # Its home is not in the archive, so it is stored like any other.
+            end = os.path.realpath(path)
+            if not (os.path.isfile(end) or os.path.isdir(end)):
+                end = None
         if end is None:
-            if why == links.DANGLING:
-                self.logger.warning(f"{arcname} is a link to nothing, and is not sent")
-            else:
-                self.logger.warning(f"{arcname} is a link out of the build directory, "
-                                    "and is not sent")
+            self.logger.warning(f"{arcname} links to no file or directory, and is not sent")
             return
         held = os.lstat(end)
         if os.path.isfile(end) and held.st_nlink > 1:
             end = self.homes.home(held) or end
-        if self.holds(end):
-            self._write_link(arcname, links.relative(end, os.path.realpath(
-                os.path.dirname(path))))
-            return
-        first = self.stored.get(end) or self.inodes.get((held.st_dev, held.st_ino))
+        # Relative to where the link is in the archive, which need not be where it is here.
+        first = self.home(end) or self.stored.get(end) or \
+            self.tar.inodes.get((held.st_ino, held.st_dev))
         if first is not None:
-            self._write_link(arcname, os.path.relpath(first, os.path.dirname(arcname))
-                             .replace(os.sep, "/"))
+            self._write_link(arcname, posixpath.relpath(first, posixpath.dirname(arcname)))
             return
+        if why == links.OUTSIDE:
+            self.logger.info(f"Sending {end} as {arcname}, a link out of the build directory")
         if os.path.isdir(end):
             self.stored[end] = arcname
             self._add_dir(end, arcname)

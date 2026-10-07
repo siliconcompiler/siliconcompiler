@@ -7,6 +7,7 @@ import responses
 
 from siliconcompiler.remote import RemoteError, ServerProblem
 from siliconcompiler.remote.client.run import RemoteRun, node_status
+from siliconcompiler.tools.builtin.nop import NOPTask
 
 from conftest import problem
 
@@ -150,7 +151,7 @@ def test_submit_is_four_calls_and_the_upload_carries_no_session(fake_v1, run, ca
                      "digest": f"sha256:{hashlib.sha256(sent).hexdigest()}"}
 
     assert "Uploading" in caplog.text
-    assert "design gcd (gcd-pytest-example):" in caplog.text
+    assert "design gcd (library,gcd,dataroot,gcd-pytest-example):" in caplog.text
 
 
 def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
@@ -196,16 +197,19 @@ def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     assert version("lambdapdk")          # there to be left out
 
 
-@pytest.mark.parametrize("listed,named", [("1.0.0", True), ("0.9.0", False)])
+@pytest.mark.parametrize("distribution,listed,named", [
+    ("scfakedata", "1.0.0", True), ("scfakedata", "0.9.0", False), (None, "1.0.0", False)],
+    ids=["listed", "another-version", "no-distribution"])
 def test_an_installed_data_package_is_named_only_where_the_server_lists_it(
-        fake_v1, logged_in, nop_project, capabilities, monkeypatch, listed, named):
+        fake_v1, logged_in, nop_project, capabilities, monkeypatch, distribution, listed,
+        named):
     '''Listed at this version, it is named exactly and its dataroots do not
-    upload; otherwise its files go up with the job.'''
+    upload; otherwise, or with no distribution to name, its files go up with the job.'''
     from siliconcompiler.remote import owners
 
     entry = ("library", "scfakelib", "scfakedata")
     monkeypatch.setattr(owners, "installed_dataroots",
-                        lambda project, required=None: [(entry, "scfakedata")])
+                        lambda project, required=None: [(entry, distribution)])
     monkeypatch.setattr("siliconcompiler.remote.client.run.metadata.version",
                         lambda name: "1.0.0" if name == "scfakedata"
                         else __import__("importlib.metadata").metadata.version(name))
@@ -796,7 +800,6 @@ def test_without_a_dashboard_the_whole_table_is_printed(fake_v1, run, caplog):
 def floorplan(logged_in, nop_project):
     '''A flow whose order is not its names' order, as a floorplan's is.'''
     from siliconcompiler import Flowgraph
-    from siliconcompiler.tools.builtin.nop import NOPTask
 
     flow = Flowgraph("fp")
     for step in ("tapcell", "power_grid", "pin_placement"):
@@ -980,7 +983,6 @@ def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_n
     SiliconCompiler's own nodes name none, or an operator would register a tool no image can claim.
     '''
     from siliconcompiler import Flowgraph
-    from siliconcompiler.tools.builtin.nop import NOPTask
     from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
 
     flow = Flowgraph("withtools")
@@ -1191,17 +1193,30 @@ def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path)
 
 
 def test_an_upstream_nodes_manifest_goes_up_without_its_credential(
-        run, nop_project, tmp_path):
-    '''A `-from` run carries each upstream node's own manifest too.'''
+        run, nop_project, tmp_path, monkeypatch):
+    '''A `-from` run carries each upstream node's own manifest too, read
+    importing nothing it names.'''
+    import sys
+
     _registered_with_credentials(nop_project)
     _leftovers(nop_project)
     outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
-    nop_project.write_manifest(os.path.join(outputs, "gcd.pkg.json"))
+    manifest = os.path.join(outputs, "gcd.pkg.json")
+    nop_project.write_manifest(manifest)
+    with open(manifest) as f:
+        written = json.load(f)
+    written["library"]["gcd"]["__meta__"]["class"] = "scfake_untrusted/Design"
+    with open(manifest, "w") as f:
+        json.dump(written, f)
+    with open("scfake_untrusted.py", "w") as f:
+        f.write("raise SystemExit('imported')\n")
+    monkeypatch.syspath_prepend(os.getcwd())
     nop_project.option.add_from("steptwo")
 
     _, blobs = _members(run, tmp_path)
     upstream = _read_manifest(blobs["stepone/0/outputs/gcd.pkg.json"], tmp_path)
 
+    assert "scfake_untrusted" not in sys.modules
     assert upstream.get("library", "gcd", "dataroot", "ip", "path") == \
         "git+https://example.com/ip.git"
     assert blobs["stepone/0/outputs/gcd.vg"] == b"module gcd; endmodule\n"
@@ -1331,7 +1346,7 @@ def test_a_source_the_server_asked_for_at_create_goes_up_with_the_job(
         run._start()
 
     assert "The server asked for the dataroot library,acme,dataroot,acme" in caplog.text
-    assert "pdk acme (acme):" in caplog.text
+    assert "pdk acme (library,acme,dataroot,acme):" in caplog.text
 
 
 def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
@@ -1705,15 +1720,14 @@ def test_a_task_class_no_package_provides_stops_before_create(fake_v1, run, monk
         run._preflight()
 
 
-def _three_nodes(project, both=False):
-    '''stepone -> steptwo -> stepthree, run from stepthree; with ``both``,
-    stepthree reads stepone too.'''
+def _three_nodes(project, both=False, last=NOPTask):
+    '''stepone -> steptwo -> stepthree, run from stepthree, which runs ``last``;
+    with ``both``, stepthree reads stepone too.'''
     from siliconcompiler import Flowgraph
-    from siliconcompiler.tools.builtin.nop import NOPTask
 
     flow = Flowgraph("passflow")
     for step in ("stepone", "steptwo", "stepthree"):
-        flow.node(step, NOPTask())
+        flow.node(step, (last if step == "stepthree" else NOPTask)())
     flow.edge("stepone", "steptwo")
     flow.edge("steptwo", "stepthree")
     if both:
@@ -1767,37 +1781,93 @@ def test_a_chain_into_a_node_not_packed_is_the_file_once(run, nop_project, tmp_p
     assert members[first].issym() and members[first].linkname == "again.vg"
 
 
-def test_a_link_out_of_the_build_directory_is_left_out_and_named(
-        run, nop_project, tmp_path, caplog):
-    '''To a file or a directory: never followed, never sent.'''
-    import logging
-
+def test_a_link_out_of_the_build_directory_is_stored_once_where_it_first_appears(
+        run, nop_project, tmp_path):
+    '''To a file or a directory: its home is not in the archive, so the first
+    name holds the bytes and a later one points at it.'''
     outside = tmp_path / "elsewhere"
     outside.mkdir()
-    (outside / "secret.lib").write_text("the foundry's own\n")
+    (outside / "cells.lib").write_text("the foundry's own\n")
     outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
-    os.symlink(str(outside / "secret.lib"), os.path.join(outputs, "lib"))
+    os.symlink(str(outside / "cells.lib"), os.path.join(outputs, "lib"))
     os.symlink(str(outside), os.path.join(outputs, "libs"))
     nop_project.option.add_from("steptwo")
-    caplog.set_level(logging.WARNING)
+
+    members, contents = _members(run, tmp_path)
+
+    assert contents["stepone/0/outputs/lib"] == b"the foundry's own\n"
+    assert members["stepone/0/outputs/libs"].isdir()
+    again = members["stepone/0/outputs/libs/cells.lib"]
+    assert again.islnk() and again.linkname == "stepone/0/outputs/lib"
+
+
+def test_a_link_into_the_archive_points_at_its_home_from_its_place_in_the_archive(
+        run, nop_project, tmp_path):
+    '''A collected file is not stored again; a link inside a directory stored at
+    a link's place is relative to that place, not to where the directory is here.'''
+    from siliconcompiler.utils.paths import collectiondir, jobdir
+
+    _leftovers(nop_project)
+    outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
+    nop_project.option.add_from("steptwo")
+    os.symlink(os.path.relpath(os.path.join(collectiondir(nop_project), "gcd.v"), outputs),
+               os.path.join(outputs, "top.v"))
+    deep = os.path.join(jobdir(nop_project), "elsewhere", "in", "the", "job")
+    os.makedirs(deep)
+    os.symlink(os.path.relpath(os.path.join(outputs, "gcd.vg"), deep),
+               os.path.join(deep, "back.vg"))
+    os.symlink(os.path.relpath(deep, outputs), os.path.join(outputs, "d"))
 
     members, _ = _members(run, tmp_path)
 
-    assert "stepone/0/outputs/lib" not in members
-    assert not any(name.startswith("stepone/0/outputs/libs") for name in members)
-    assert "stepone/0/outputs/lib is a link out of the build directory" in caplog.text
+    assert members["stepone/0/outputs/top.v"].linkname == \
+        "../../../sc_collected_files/gcd.v"
+    assert members["stepone/0/outputs/d/back.vg"].linkname == "../gcd.vg"
 
 
-def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project):
+@pytest.mark.parametrize("target", ["../../../stepone/0/outputs/gcd.vg", "/nowhere/gcd.vg"],
+                         ids=["into-a-node", "out-of-the-build"])
+def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project, target):
     '''A link to a node this machine never fetched is a missing file.'''
     from siliconcompiler.utils.paths import workdir
 
     _three_nodes(nop_project)
     two = workdir(nop_project, step="steptwo", index="0")
     _upstream_node(nop_project, "steptwo", output="own.vg")
-    os.symlink("../../../stepone/0/outputs/gcd.vg", os.path.join(two, "outputs", "gcd.vg"))
+    os.symlink(target, os.path.join(two, "outputs", "gcd.vg"))
 
     with pytest.raises(RemoteError, match="steptwo/0/outputs/gcd.vg is a link to"):
+        run._check_upstream_files()
+
+
+class ReadsTheNetlist(NOPTask):
+    '''A task whose setup declares the input it reads.'''
+
+    def task(self):
+        return "readsthenetlist"
+
+    def setup(self):
+        super().setup()
+        self.add_input_file("gcd.vg")
+
+
+@pytest.mark.parametrize("steptwo,refused", [
+    ({"output": "own.vg"}, True),
+    ({"output": "gcd.vg"}, False),
+    ({"fetched_from": "01a0e000-0000-7000-8000-000000000001"}, False),
+], ids=["lacking", "holding", "continued"])
+def test_an_input_the_outputs_packed_here_lack_stops_the_run_before_create(
+        run, nop_project, steptwo, refused):
+    '''Read from the setup worked out here; a node reading results continued
+    from another job is not checked, since they are not here.'''
+    _three_nodes(nop_project, both=True, last=ReadsTheNetlist)
+    _upstream_node(nop_project, "stepone", output="own.vg")
+    _upstream_node(nop_project, "steptwo", **steptwo)
+
+    if refused:
+        with pytest.raises(RemoteError, match="stepthree/0 reads gcd.vg"):
+            run._check_upstream_files()
+    else:
         run._check_upstream_files()
 
 

@@ -364,7 +364,7 @@ def collected_paths(project, paths) -> Dict[str, str]:
 
 def sources(project, required=None) -> List[Dict[str, Any]]:
     '''The descriptor's `sources`: each dataroot the flow reads that the server
-    should supply, by ``keypath``. Raises :class:`Unnamed`.
+    should supply, by ``keypath``, so none whose values go up. Raises :class:`Unnamed`.
 
     Every URL is `safe_source`: enough to say what it is, not to fetch it. A
     private one carries its remote source and ref; a local
@@ -374,7 +374,8 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
     for one in _values(project):
         if one.origin not in (INSTALLED, REMOTE, PRIVATE) or not one.dataroot:
             continue
-        if not needed(one.key, required):
+        if not needed(one.key, required) or \
+                uploads(project, one.key, one.dataroot, one.resolvers):
             continue
         if one.keypath is None or not is_dataroot_keypath(one.keypath):
             raise Unnamed(one.key, one.keypath or (*one.key[:-1], "dataroot", one.dataroot))
@@ -402,10 +403,12 @@ def _distribution_of(module: Optional[str]) -> Optional[str]:
 
 
 def installed_dataroots(project, required=None) \
-        -> List[Tuple[Tuple[str, ...], str]]:
+        -> List[Tuple[Tuple[str, ...], Optional[str]]]:
     '''``(keypath, distribution)`` for each dataroot the flow reads from a
-    normally installed package, which a server may supply by version.'''
-    found: Dict[Tuple[str, ...], str] = {}
+    normally installed package, which a server may supply by version. The
+    distribution is None where none provides the module: no server can supply
+    it by version, so its files go up.'''
+    found: Dict[Tuple[str, ...], Optional[str]] = {}
     for one in _values(project):
         if one.origin != INSTALLED or one.keypath is None or \
                 not needed(one.key, required):
@@ -413,9 +416,7 @@ def installed_dataroots(project, required=None) \
         if one.keypath in found:
             continue
         resolver = one.resolvers.get(one.dataroot)
-        distribution = _distribution_of(getattr(resolver, "urlpath", None))
-        if distribution:
-            found[one.keypath] = distribution
+        found[one.keypath] = _distribution_of(getattr(resolver, "urlpath", None))
     return sorted(found.items())
 
 
@@ -662,8 +663,9 @@ def confined(root, path) -> Optional[str]:
 
 def upload_report(project, collection_dir) \
         -> List[Tuple[str, Optional[str], Optional[str], int, int]]:
-    '''Bytes and files in an archive's collection by (kind, name, dataroot),
-    shown before anything moves. Each stored file counts once.'''
+    '''Bytes and files in an archive's collection as (kind, name, dataroot),
+    shown before anything moves; the dataroot by its keypath, since two owners
+    may each have a `root`. Each stored file counts once.'''
     totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
     counted: Set[Tuple[int, int]] = set()
     for one in _values(project):
@@ -673,7 +675,7 @@ def upload_report(project, collection_dir) \
         size, files = _weigh(path, counted)
         if not files:
             continue
-        group = (one.kind, one.name, one.dataroot)
+        group = (one.kind, one.name, shown(one.keypath) if one.keypath else one.dataroot)
         have = totals.get(group, (0, 0))
         totals[group] = (have[0] + size, have[1] + files)
     return [(kind, name, dataroot, size, files)
@@ -713,6 +715,8 @@ def required(project) -> Optional[Set[Tuple[str, ...]]]:
 
     The one definition, read by both ends from the same manifest.
     None means not worked out, so nothing is filtered; never the empty set.
+    A node whose `require` is absent, not empty, was not worked out, so
+    neither is the set.
     '''
     from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -721,6 +725,8 @@ def required(project) -> Optional[Set[Tuple[str, ...]]]:
     declared = False
     for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
         prefix = ("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"))
+        if not project.get(*prefix, "require", field=None).is_set(step, index):
+            return None
         for item in project.get(*prefix, "require", step=step, index=index) or []:
             keys.add(tuple(item.split(",")))
             declared = True
@@ -737,11 +743,12 @@ def needed(key, required) -> bool:
 
 class WorkedOut(NamedTuple):
     '''One setup pass, per node: `require`, Python environment, the set-up task
-    with its declared versions, and why a setup failed.'''
+    with its declared versions, why a setup failed, and the input files.'''
     required: Dict[Tuple[str, str], List[str]]
     environments: Dict[Tuple[str, str], Any]
     tasks: Dict[Tuple[str, str], Any]
     failed: Dict[Tuple[str, str], str]
+    inputs: Dict[Tuple[str, str], List[str]]
 
 
 def work_out(project) -> WorkedOut:
@@ -771,27 +778,32 @@ def work_out(project) -> WorkedOut:
         environments: Dict[Tuple[str, str], Any] = {}
         tasks: Dict[Tuple[str, str], Any] = {}
         failed: Dict[Tuple[str, str], str] = {}
+        inputs: Dict[Tuple[str, str], List[str]] = {}
         for layer in flow.get_execution_order():
             for step, index in layer:
                 node = SchedulerNode(work, step, index)
                 try:
                     with node.runtime():
                         if not node.setup():
+                            # Skipped: it reads nothing, which is known.
+                            declared[(step, index)] = []
                             continue
                         environment = node.task.get_python_environment()
                         versions = list(node.task.get("version") or [])
+                        reads = list(node.task.get("input") or [])
                 except Exception as e:                           # noqa: BLE001
                     failed[(step, index)] = str(e) or type(e).__name__
                     continue
                 if (step, index) in executed:
                     tasks[(step, index)] = (node.task, versions)
+                    inputs[(step, index)] = reads
                     if environment is not None:
                         environments[(step, index)] = environment
                 values = work.get("tool", flow.get(step, index, "tool"),
                                   "task", flow.get(step, index, "task"), "require",
                                   step=step, index=index) or []
                 declared[(step, index)] = list(dict.fromkeys(values))
-        return WorkedOut(declared, environments, tasks, failed)
+        return WorkedOut(declared, environments, tasks, failed, inputs)
     finally:
         logger.setLevel(level)
 

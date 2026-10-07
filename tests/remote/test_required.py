@@ -137,31 +137,49 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
     assert "lambda" not in names and "mylib" in names
 
 
-@pytest.mark.parametrize("setup_runs", [True, False])
-def test_only_what_the_flow_reads_goes_up_unless_its_setup_cannot_run_here(
-        gcd_design, tmp_path, logged_in, monkeypatch, setup_runs):
-    '''A library's views for ten tools used to all go up. A setup needing
-    its image (cocotb's) leaves the set unknown: by owner alone, not failed.'''
+class NeedsItsImage(NOPTask):
+    def task(self):
+        return "needsitsimage"
+
+    def setup(self):
+        raise RuntimeError("Cocotb is not installed; cannot run test.")
+
+
+@pytest.mark.parametrize("fails", [None, "a node", "the pass"])
+def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
+        gcd_design, tmp_path, logged_in, monkeypatch, fails):
+    '''A library's views for ten tools used to all go up. A setup needing its
+    image (cocotb's) leaves the set unknown, so by owner alone, not failed; a
+    node worked out still carries its own `require`.'''
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
 
     def cannot(project):
         raise RuntimeError("Cocotb is not installed; cannot run test.")
 
-    if not setup_runs:
+    if fails == "the pass":
         monkeypatch.setattr(owners, "work_out", cannot)
     project = reading_mylib(gcd_design, tmp_path)
+    if fails == "a node":
+        flow = project.get_flow()
+        flow.node("steptwo", NeedsItsImage())
+        flow.edge("stepone", "steptwo")
+        project.set_flow(flow)
 
     run = RemoteRun(project, logged_in)
-    if not setup_runs:
-        assert run._needs() == (project, None)
+    manifest, required = run._needs()
+    if fails:
+        assert required is None and owners.required(manifest) is None
+    if fails == "a node":
+        assert manifest.get("tool", "builtin", "task", "nop", "require",
+                            step="stepone", index="0") == ["library,mylib,package,doc,datasheet"]
     run._collect()
 
     def sent(key):
         return os.path.exists(os.path.join(collectiondir(project), collected_path(
             project, ("library", "mylib", *key))))
     assert sent(DATASHEET)
-    assert sent(QUICKSTART) is not setup_runs
+    assert sent(QUICKSTART) is bool(fails)
 
 
 def test_a_private_file_beside_a_sent_one_stays_on_this_machine(

@@ -125,6 +125,10 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
     project.set_pdk(pdk)
 
     assert decide(project, ("library", "mypdk", *DATASHEET)) == (origin, uploads)
+    # No distribution provides the module, so no server supplies it by version.
+    assert owners.installed_dataroots(project) == \
+        ([(("library", "mypdk", "dataroot", "mypdk"), None)] if origin == owners.INSTALLED
+         else [])
 
 
 @pytest.mark.parametrize("scheme", [
@@ -170,11 +174,16 @@ def test_the_marker_is_tested_in_one_place():
 def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_credential(
         project, tmp_path):
     '''`safe_source` (#5454): no userinfo, every query value masked -- one
-    string in the client's `sources` and the server's `value_records`.'''
+    string in the client's `sources` and the server's `value_records`. A
+    design's own remote dataroot goes up, so it is not listed.'''
     project.set_pdk(resource(
         PDK, "lambda", "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
         "?access_token=SECRET&lfs=true", create=False))
     project.add_asiclib(private(StdCellLibrary, "secretlib", tmp_path))
+    design = project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", GITHUB, "v1")
+    with design.active_dataroot("ip"):
+        design.add_file("ip.v", fileset="rtl")
 
     listed = {tuple(item["keypath"]): item for item in owners.sources(project)}
     record, = [one for one in owners.value_records(mask_credentials(project), "none")
@@ -686,9 +695,10 @@ def test_the_keypath_is_where_the_dataroot_is_defined(gcd_design):
 def test_two_tasks_of_one_tool_and_a_library_of_its_name_are_three_dataroots(
         gcd_design, tmp_path):
     '''A task's dataroot was once named by its tool, so two tasks' `scripts`
-    were one entry: each is listed, accounted, collected and pointed apart.'''
+    were one entry: each is listed, accounted, collected, pointed and reported apart.'''
     from pytasks import AcmeCheck, AcmeRun
     from siliconcompiler.remote.server.running import runspec
+    from siliconcompiler.utils.paths import collectiondir
 
     project = acme_project(gcd_design)
     acme = "https://github.com/siliconcompiler/acme/"
@@ -713,6 +723,15 @@ def test_two_tasks_of_one_tool_and_a_library_of_its_name_are_three_dataroots(
     assert runspec.point_dataroots(project, targets) == 2
     assert project.get(*RUN, "path") == str(tmp_path / "run")
     assert project.get(*CHECK, "path") == str(tmp_path / "check")
+
+    # Local now, so uploaded, and reported apart.
+    for task in ("run", "check"):
+        os.makedirs(tmp_path / task / "tcl" / task)
+        (tmp_path / task / "tcl" / task / "main.tcl").write_text(f"{task}\n")
+    collect_by_owner(project)
+    report = owners.upload_report(project, collectiondir(project))
+    assert sorted(row[2] for row in report if row[0] == "tool") == \
+        [owners.shown(CHECK), owners.shown(RUN)]
 
 
 def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
