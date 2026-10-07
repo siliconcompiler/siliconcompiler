@@ -2444,6 +2444,16 @@ def test_openroad_power_grid_parameter_pdn_enable():
     assert task.get("var", "pdn_enable") is True
 
 
+def test_openroad_power_grid_parameter_pdn_dont_add_pins():
+    task = power_grid.PowerGridTask()
+    assert task.get("var", "pdn_dont_add_pins") is False
+    task.set_openroad_pdndontaddpins(True)
+    assert task.get("var", "pdn_dont_add_pins") is True
+    task.set_openroad_pdndontaddpins(False, step='power_grid', index='1')
+    assert task.get("var", "pdn_dont_add_pins", step='power_grid', index='1') is False
+    assert task.get("var", "pdn_dont_add_pins") is True
+
+
 def test_openroad_rcx_bench_parameter_max_layer():
     task = pex.ORXBenchTask()
     task.set_openroad_benchmaxlayer('m1')

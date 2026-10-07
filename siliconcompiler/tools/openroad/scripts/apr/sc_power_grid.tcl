@@ -82,7 +82,12 @@ foreach pdnconfig_set [sc_cfg_tool_task_get var pdn_fileset] {
     }
 }
 tee -quiet -file reports/setup/power_grid_configuration.rpt {pdngen -report_only}
-pdngen -failed_via_report "reports/checks/${sc_topmodule}.pdngen_failed_vias.rpt"
+set pdngen_args [list -failed_via_report "reports/checks/${sc_topmodule}.pdngen_failed_vias.rpt"]
+if { [sc_cfg_tool_task_get var pdn_dont_add_pins] } {
+    lappend pdngen_args -dont_add_pins
+}
+sc_report_args -command pdngen -args $pdngen_args
+pdngen {*}$pdngen_args
 
 ###############################
 # Remove blockages
