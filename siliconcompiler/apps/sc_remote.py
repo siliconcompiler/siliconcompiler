@@ -6,6 +6,7 @@ import time
 from siliconcompiler import Project, Design
 from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProblem
 from siliconcompiler.remote.client import read_secret
+from siliconcompiler.remote.client.errors import clean
 from siliconcompiler.remote.client.results import recorded_job
 from siliconcompiler.scheduler.error import SCRuntimeError
 
@@ -252,12 +253,12 @@ def _act_on_job(remote, client, project_cfg):
 
     if remote.get("cmdarg", 'cancel'):
         job = client.cancel_job(job_id, reason=remote.get("cmdarg", 'reason'))
-        remote.logger.info(f"Job {job_id} is {job['state']}")
+        remote.logger.info(f"Job {clean(job_id)} is {clean(job['state'])}")
         return 0
 
     if remote.get("cmdarg", 'delete'):
         client.delete_job(job_id)
-        remote.logger.info(f"Job {job_id} deleted")
+        remote.logger.info(f"Job {clean(job_id)} deleted")
         return 0
 
     node = remote.get("cmdarg", 'tail')
@@ -309,9 +310,21 @@ def _act_on_job(remote, client, project_cfg):
 
 
 def _print_status(logger, job) -> None:
-    logger.info(f"Job {job['id']}: {job['state']}")
-    logger.info(f"  design:  {job['design']}/{job['jobname']}")
-    logger.info(f"  created: {job['created_at']}")
+    from siliconcompiler.remote.client.run import _reason
+
+    logger.info(clean(f"Job {job['id']}: {job['state']}"))
+    logger.info(clean(f"  design:  {job['design']}/{job['jobname']}"))
+    logger.info(f"  created: {clean(job['created_at'])}")
+
+    # A failed job's error already says why.
+    reason = None if job.get('error') else _reason(job)
+    if reason:
+        logger.info(f"  reason:  {reason}")
+    if job.get('deleted_at'):
+        logger.info(f"  deleted: {clean(job['deleted_at'])}"
+                    + (f" ({clean(job['deleted_reason'])})" if job.get('deleted_reason') else ""))
+    if job.get('archived_at'):
+        logger.info(f"  archived: {clean(job['archived_at'])}")
 
     progress = job.get('progress') or {}
     if progress.get('total_count'):
@@ -319,8 +332,10 @@ def _print_status(logger, job) -> None:
                     f"{progress.get('failed_count', 0)} failed, "
                     f"of {progress['total_count']}")
 
-    if job.get('error'):
-        logger.error(f"  error:   {job['error'].get('title')}")
+    error = job.get('error')
+    if error:
+        logger.error(f"  error:   {clean(error.get('title'))}"
+                     + (f": {clean(error['detail'])}" if error.get('detail') else ""))
 
 
 if __name__ == "__main__":

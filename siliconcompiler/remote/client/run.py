@@ -1300,7 +1300,7 @@ class RemoteRun:
             versions = held.get(canonical(name))
             if versions and not any(same(listed, str(version)) for version in versions):
                 self.logger.warning(
-                    f"This job runs {name} {', '.join(str(one) for one in versions)}, "
+                    f"This job runs {name} {', '.join(clean(one) for one in versions)}, "
                     f"in place of {listed} as installed here")
 
     def _record(self, job: Dict[str, Any], seen) -> list:
@@ -1356,7 +1356,7 @@ class RemoteRun:
                 details = _node_details(job)
                 for step, index, state in changed or []:
                     said = details.get((step, index)) if state == "failed" else None
-                    self.logger.info(f"  {step}/{index} -> {state}"
+                    self.logger.info(clean(f"  {step}/{index} -> {state}")
                                      + (f": {said}" if said else ""))
                 return
 
@@ -1380,14 +1380,14 @@ class RemoteRun:
         names = []
         length = 0
         for node in nodes:
-            name = f"{node.get('step')}/{node.get('index')}"
+            name = clean(f"{node.get('step')}/{node.get('index')}")
             if length + len(name) + 2 < MAX_LINE:
                 names.append(name)
                 length += len(name) + 2
             else:
                 names.append("...")
                 break
-        self.logger.info(f"  {state.title()} ({len(nodes)}): {', '.join(names)}")
+        self.logger.info(f"  {clean(state).title()} ({len(nodes)}): {', '.join(names)}")
 
     def _tell(self, job: Dict[str, Any], changed) -> None:
         '''Report each node that moved as started or finished, once each.
@@ -1425,35 +1425,46 @@ class RemoteRun:
         if state == "completed":
             self.logger.info("Remote job completed")
         elif job.get("error"):
-            self.logger.error(f"Remote job {state}: "
+            self.logger.error(f"Remote job {clean(state)}: "
                               f"{_why_it_failed(job, self.client.transport.help_pages)}")
         else:
-            self.logger.error(f"Remote job {state}")
+            reason = _reason(job)
+            self.logger.error(f"Remote job {clean(state)}" + (f": {reason}" if reason else ""))
+
+        if job.get("deleted_at"):
+            self.logger.warning(
+                f"It was deleted at {clean(job['deleted_at'])}"
+                + (f" ({clean(job['deleted_reason'])})" if job.get("deleted_reason") else "")
+                + ", so none of its results can be fetched")
+        if job.get("archived_at"):
+            self.logger.info(f"It was archived at {clean(job['archived_at'])}")
 
         # Each failed node and why, in flow order.
         order = self._flow_order()
         for (step, index), said in sorted(
                 _node_details(job).items(),
                 key=lambda item: order.get(item[0], len(order))):
-            self.logger.error(f"  {step}/{index} failed: {said}")
+            self.logger.error(clean(f"  {step}/{index} failed: ") + said)
 
-        # On EVERY terminal state: a failed run's log is the one most wanted.
-        try:
-            results.fetch(job["id"])
-            # The local job directory is the whole job: fetch each node this
-            # run continued from, from the job that ran it.
-            for entry in self._upstream()[1]:
-                results.fetch_node(entry["job_id"], entry["step"], entry["index"])
-        except ServerProblem as e:
-            self.logger.error(str(e))
-        except RemoteError as e:
-            self.logger.error(f"Could not retrieve results: {e}")
+        # On every terminal state, since a failed run's log is the one most
+        # wanted; but nothing of a deleted job is readable beyond its object.
+        if not job.get("deleted_at"):
+            try:
+                results.fetch(job["id"])
+                # The local job directory is the whole job: fetch each node this
+                # run continued from, from the job that ran it.
+                for entry in self._upstream()[1]:
+                    results.fetch_node(entry["job_id"], entry["step"], entry["index"])
+            except ServerProblem as e:
+                self.logger.error(str(e))
+            except RemoteError as e:
+                self.logger.error(f"Could not retrieve results: {e}")
 
         # So a later summary() or show() is not narrowed by a finished run.
         self.project.option.unset('remote')
 
         if state != "completed":
-            raise RemoteError(f"the remote job ended {state}")
+            raise RemoteError(f"the remote job ended {clean(state)}")
 
 
 class _Tails:
@@ -1621,14 +1632,25 @@ JOB = (None, None)
 def _state_line(job: Dict[str, Any]) -> str:
     '''The job's state as a person reads it: for how long (from `transitions`),
     and why.'''
-    state = str(job.get("state"))
+    state = clean(job.get("state"))
     last = (job.get("transitions") or [{}])[-1]
     entered = _epoch(last.get("at")) if last.get("state") == job.get("state") else None
     if entered is not None:
         state += f" for {format_duration(max(0, time.time() - entered))}"
+    reason = _reason(job)
+    return state + (f", {reason}" if reason else "")
+
+
+def _reason(job: Dict[str, Any]) -> Optional[str]:
+    '''Why the job is in its state, display only: its live phase, the reason
+    recorded on entering it, or, for a cancel, the reason on a node it stopped.'''
+    last = (job.get("transitions") or [{}])[-1]
     reason = job.get("state_reason") or (last.get("reason")
                                          if last.get("state") == job.get("state") else None)
-    return state + (f", {clean(str(reason))}" if reason else "")
+    if not reason and job.get("state") in ("cancelling", "cancelled"):
+        reason = next((node["state_reason"] for node in job.get("nodes") or []
+                       if isinstance(node, dict) and node.get("state_reason")), None)
+    return clean(reason) if reason else None
 
 
 def _epoch(timestamp: str) -> Optional[float]:
@@ -1674,7 +1696,7 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
     return describe(error,
                     next_step=NO_NODE_FAILED if slug == "run-failed" and failed == 0
                     else None,
-                    help_url=f"{help_pages}{slug}" if help_pages else None,
+                    help_url=f"{help_pages}{slug}" if help_pages and slug else None,
                     job_id=job.get("id"))
 
 
@@ -2000,7 +2022,7 @@ def _moved_at(node: Dict[str, Any]) -> Optional[float]:
 
 def _named(asked) -> str:
     '''`upload_sources` as a person reads it.'''
-    return ", ".join(f"the dataroot {','.join(item.get('keypath') or ())}"
+    return ", ".join(f"the dataroot {clean(','.join(item.get('keypath') or ()))}"
                      if item.get("kind") == "dataroot" else
-                     f"the Python package {item.get('name')}"
+                     f"the Python package {clean(item.get('name'))}"
                      for item in asked)

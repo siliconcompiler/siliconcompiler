@@ -163,15 +163,13 @@ class Client:
 
         Unauthenticated, so it works before enrolment and says the same to everybody.
         '''
-        from siliconcompiler.utils.units import format_binary, format_duration
-
         health = self.health()
         published = self.capabilities(notices=False)
 
-        self.logger.info(f"Health: {health.get('status', 'unknown')}")
-        self.logger.info(f"API: {published.get('api_version', 'unknown')}")
+        self.logger.info(f"Health: {clean(health.get('status', 'unknown'))}")
+        self.logger.info(f"API: {clean(published.get('api_version', 'unknown'))}")
         self.logger.info(
-            f"Identity assurance: {published.get('identity_assurance', 'unknown')}")
+            f"Identity assurance: {clean(published.get('identity_assurance', 'unknown'))}")
 
         self._show_notices(published, always=True)
 
@@ -182,17 +180,27 @@ class Client:
             held = software.get(bucket) or {}
             self.logger.info(f"{label} it can run:")
             for name, versions in sorted(held.items()):
-                self.logger.info(f"  {name}: {', '.join(versions)}")
+                self.logger.info(f"  {clean(name)}: {_listed(versions)}")
             if not held:
                 self.logger.info("  (none advertised)")
 
-        self.logger.info(
-            f"Sign-in: {', '.join(published.get('grant_types_supported') or []) or 'none'}")
-        self.logger.info(
-            f"Features: {', '.join(published.get('features') or []) or 'none'}")
+        self.logger.info(f"Sign-in: {_listed(published.get('grant_types_supported'))}")
+        self.logger.info(f"Features: {_listed(published.get('features'))}")
 
-        self.logger.info("Limits:")
-        for name, value in (published.get("limits") or {}).items():
+        # Defaults only: an account's own are in `GET /v1/me`.
+        self._print_limits("Default limits:", published.get("limits"))
+
+        if published.get("terms_url"):
+            self.logger.info(f"Terms: {clean(published['terms_url'])}")
+
+    def _print_limits(self, heading: str, limits) -> None:
+        '''Each limit under ``heading``, in readable units.'''
+        from siliconcompiler.utils.units import format_binary, format_duration
+
+        if not limits:
+            return
+        self.logger.info(heading)
+        for name, value in limits.items():
             # null is unlimited, not zero.
             if value is None:
                 shown = "unlimited"
@@ -202,43 +210,70 @@ class Client:
             elif name.endswith("_seconds"):
                 shown = format_duration(value)
             else:
-                shown = str(value)
-            self.logger.info(f"  {name}: {shown}")
-
-        if published.get("terms_url"):
-            self.logger.info(f"Terms: {published['terms_url']}")
+                shown = clean(value)
+            self.logger.info(f"  {clean(name)}: {shown}")
 
     def print_identity(self, identity: Dict[str, Any]) -> None:
-        '''Who the server says you are, this machine's session and your usage,
-        from one `GET /v1/me`.'''
+        '''Who the server says you are, this machine's session, your limits,
+        usage and terms, from one `GET /v1/me`.'''
         from siliconcompiler.utils.units import format_binary, format_duration
 
-        self.logger.info(f"Server reports you as {identity['id']} "
-                         f"(issuer {identity['issuer']})")
+        self.logger.info(f"Server reports you as {clean(identity['id'])} "
+                         f"(issuer {clean(identity['issuer'])})")
 
         session = identity.get("session") or {}
         if session:
-            where = f" on device {session['device_id']}" if session.get("device_id") else ""
-            self.logger.info(f"Session: {session.get('kind', 'unknown')}{where}")
-            self.logger.info(f"  scope: {session.get('scope') or '(none)'}")
-            self.logger.info(f"  access token until {session.get('access_expires_at')}")
-            self.logger.info("  refresh token until "
-                             f"{session.get('refresh_expires_at') or '(none: it cannot refresh)'}")
-            self.logger.info(f"  ends at {session.get('session_expires_at')}, "
+            where = f" on device {clean(session['device_id'])}" \
+                if session.get("device_id") else ""
+            self.logger.info(f"Session: {clean(session.get('kind', 'unknown'))}{where}")
+            self.logger.info(f"  scope: {clean(session.get('scope') or '(none)')}")
+            self.logger.info(f"  access token until {clean(session.get('access_expires_at'))}")
+            self.logger.info("  refresh token until " + clean(
+                session.get('refresh_expires_at') or '(none: it cannot refresh)'))
+            self.logger.info(f"  ends at {clean(session.get('session_expires_at'))}, "
                              "and is never extended")
 
+        if identity.get("can_submit") is False:
+            self.logger.warning(describe({"title": "You cannot submit jobs here",
+                                          "type": identity.get("blocked_type")}))
+
+        self._print_limits("Your limits:", identity.get("limits"))
+
         usage = identity.get("usage") or {}
-        self.logger.info(f"Jobs running: {usage.get('concurrent_jobs', 0)}")
+        self.logger.info(f"Unfinished jobs (staging, queued, running or cancelling): "
+                         f"{clean(usage.get('concurrent_jobs', 0))}")
         compute = usage.get("compute_seconds") or {}
         if compute:
             total = compute.get("total")
-            self.logger.info(f"Compute: {format_duration(compute.get('used') or 0)} this month"
+            window = compute.get("window")
+            # `used` is this window's; with no window, it is the whole.
+            period = (_WINDOWS.get(window) or f"in this {clean(window)} window") \
+                if window else "in all"
+            self.logger.info(f"Compute: {format_duration(compute.get('used') or 0)} {period}"
                              + (f", {format_duration(total)} in all" if total is not None else ""))
         stored = usage.get("storage_bytes") or {}
         if stored:
             used = format_binary(stored.get("used") or 0, "B", digits=1, show_unit=True,
                                  compact=True, default="—")
             self.logger.info(f"Storage: {used}")
+
+        terms = [entry for entry in identity.get("terms") or [] if isinstance(entry, dict)]
+        if terms:
+            self.logger.info("Terms:")
+        for entry in terms:
+            title = clean(entry.get("title") or entry.get("id") or "A terms document")
+            decided = "accepted" if entry.get("accepted_at") else \
+                "declined" if entry.get("declined_at") else "undecided"
+            self.logger.info(f"  {title}, version {clean(entry.get('version') or '?')}: "
+                             f"{decided}")
+            # Not after a decline, which drops the prompt; nor where the reminder of
+            # its upcoming version has just offered the same page.
+            upcoming = entry.get("upcoming") if isinstance(entry.get("upcoming"), dict) else {}
+            if entry.get("can_decide") is True and entry.get("declined_at") is None \
+                    and entry.get("id") and \
+                    (entry["id"], upcoming.get("version")) not in self._terms_reminded:
+                self.logger.info("    It may be decided on its page in this server's portal.")
+                self._offer_terms_page(entry["id"], title)
 
     def login(self) -> Dict[str, Any]:
         '''Obtain a session, the way this deployment offers one.
@@ -680,9 +715,13 @@ class Client:
                 continue
             self.logger.warning("  It may be accepted early, on its page in this "
                                 "server's portal.")
-            if sys.stdin.isatty() and self.may_open():
-                if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
-                    self.open_page(f"{title}'s page", terms_id=entry["id"])
+            self._offer_terms_page(entry["id"], title)
+
+    def _offer_terms_page(self, terms_id: str, title: str) -> None:
+        '''Open a document's page if a person here says so. Never accepted here.'''
+        if sys.stdin.isatty() and self.may_open():
+            if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
+                self.open_page(f"{title}'s page", terms_id=terms_id)
 
     def devices(self) -> list:
         '''The machines that can act as me, following ``Link`` to the end.'''
@@ -725,8 +764,9 @@ class Client:
         body: Dict[str, Any] = {"design": design, "jobname": jobname}
         if descriptor:
             body["descriptor"] = descriptor
-        if os.environ.get(PROJECT_VARIABLE):
-            body["project"] = os.environ[PROJECT_VARIABLE]
+        project = os.environ.get(PROJECT_VARIABLE)
+        if project:
+            body["project"] = project
         if continues_from:
             body["continues_from"] = continues_from
         if python_packages:
@@ -734,8 +774,19 @@ class Client:
 
         headers = {"Idempotency-Key": _fresh_key()}
 
-        return self._waiting_for_a_slot(lambda: self.transport.request(
-            "POST", "jobs", json_body=body, headers=headers).json())
+        try:
+            return self._waiting_for_a_slot(lambda: self.transport.request(
+                "POST", "jobs", json_body=body, headers=headers).json())
+        except ServerProblem as e:
+            # At create these two are about the project named, never a job.
+            why = {"not-found": "is not one you are a member of: check its name",
+                   "not-permitted": "is archived: name another"}.get(e.slug)
+            if not project or not why:
+                raise
+            raise ServerProblem(
+                e.problem, e.status, help_url=e.help_url, retry_after=e.retry_after,
+                next_step=f"The project {project}, which {PROJECT_VARIABLE} names, {why}.") \
+                from None
 
     def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
@@ -872,7 +923,15 @@ class Client:
     def delete_job(self, job_id: str) -> None:
         '''``DELETE /v1/jobs/{id}``. Idempotent; the job stays readable.'''
         self.ensure_session()
-        self.transport.request("DELETE", f"jobs/{job_id}")
+        try:
+            self.transport.request("DELETE", f"jobs/{job_id}")
+        except ServerProblem as e:
+            if e.slug != "job-state-conflict":
+                raise
+            raise ServerProblem(
+                e.problem, e.status, help_url=e.help_url, retry_after=e.retry_after,
+                next_step="Only a finished job can be deleted: cancel it with sc-remote "
+                          "-cancel, or let it finish, then delete it.") from None
 
     def artifacts(self, job_id: str, **filters) -> list:
         '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
@@ -1063,7 +1122,7 @@ class Client:
             # Required on the wire: an older or broken server, not worth refusing over.
             return
 
-        self.logger.info(f"This server runs siliconcompiler {', '.join(runs)}")
+        self.logger.info(f"This server runs siliconcompiler {_listed(runs)}")
 
         if sc_version not in runs:
             self.logger.warning(
@@ -1180,6 +1239,15 @@ def _fresh_key() -> str:
     import uuid
 
     return str(uuid.uuid4())
+
+
+# A metered usage key's `window`, as the period its `used` covers.
+_WINDOWS = {"calendar_month": "this month"}
+
+
+def _listed(values) -> str:
+    '''Server-supplied names, one line, made safe to print.'''
+    return ", ".join(clean(value) for value in values or []) or "none"
 
 
 def _notice(notice) -> tuple:

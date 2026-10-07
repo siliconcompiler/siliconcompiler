@@ -100,6 +100,8 @@ _NEXT_STEP = {
     "run-interrupted": "The environment ended the run, not the job: resubmitting "
                        "unchanged may work.",
     "staging-failed": "The server could not get the job ready; submit again later.",
+    "staging-timed-out": "Resubmitting unchanged times out again: send a smaller set of "
+                         "Python packages, or ask the server's operator.",
     # Seen only when the transport's retry with the nonce was refused too.
     "dpop-nonce-required": "The server wanted a fresh proof and refused the retry; "
                            "try again.",
@@ -138,9 +140,6 @@ _NEXT_STEP_BY_REASON = {
     "interactive_task": "Remove the task that opens a window: nobody is at a "
                         "remote run.",
 }
-
-# A time or memory limit named in a run's `detail`.
-_LIMIT_IN_DETAIL = re.compile(r"\b(time|memory|wall[- ]?clock|oom)\b", re.IGNORECASE)
 
 # For a run that failed with no failed NODE (common: dying in setup leaves every
 # node `cancelled`), where *the failing node's log* does not exist.
@@ -213,13 +212,13 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
 
     trailer = []
     if job_id:
-        trailer.append(f"job {job_id}")
+        trailer.append(f"job {clean(job_id)}")
     elif problem.get("trace_id"):
-        trailer.append(f"trace {clean(str(problem['trace_id']))}")
+        trailer.append(f"trace {clean(problem['trace_id'])}")
     if help_url:
-        trailer.append(help_url)
+        trailer.append(clean(help_url))
     elif isinstance(problem.get("type"), str):
-        trailer.append(problem["type"])
+        trailer.append(clean(problem["type"]))
     if trailer:
         lines.append("  " + "  ".join(trailer))
 
@@ -243,11 +242,6 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
         return _by_status(status)
     if slug == "archive-rejected":
         return _NEXT_STEP_BY_REASON.get(problem.get("reason")) or _NEXT_STEP[slug]
-    if slug == "run-failed":
-        detail = str(problem.get("detail") or "")
-        if _LIMIT_IN_DETAIL.search(detail):
-            return ("It hit a limit the server sets, and will fail the same way: "
-                    "change what the detail names before you resubmit.")
     if slug == "software-unavailable" and any(
             isinstance(entry, dict) and entry.get("kind") == "interpreter"
             for entry in problem.get("unresolved") or []):
@@ -286,9 +280,14 @@ def clean(text: Optional[str]) -> str:
     return _CONTROL.sub("", text)
 
 
+# Every registered `type` is this and a slug, the same on every deployment.
+_TYPE_BASE = "https://siliconcompiler.com/server-errors/"
+
+
 def _slug(problem: Dict[str, Any]) -> Optional[str]:
-    '''The condition a problem names: the last segment of its `type`.'''
+    '''The condition a problem names, or None for a `type` outside the
+    registry, which is acted on by its status.'''
     uri = problem.get("type")
-    if not isinstance(uri, str):
+    if not isinstance(uri, str) or not uri.startswith(_TYPE_BASE):
         return None
-    return uri.rstrip("/").rsplit("/", 1)[-1]
+    return uri[len(_TYPE_BASE):] or None

@@ -102,6 +102,32 @@ def test_a_notice_loses_its_control_characters(logged_in, fake_v1, capabilities,
     assert "\x07" not in line and "\x1b]" not in line
 
 
+def test_the_deployment_account_and_refusal_lines_lose_control_characters(
+        logged_in, fake_v1, capabilities, caplog):
+    evil = "\x1b]0;owned\x07"
+    fake_v1.replace(responses.GET, "", dict(
+        capabilities, api_version=f"v1{evil}", identity_assurance=evil,
+        grant_types_supported=[evil], features=[evil], limits={evil: 1},
+        software={"python": {evil: [evil]}, "tools": {}}, terms_url=evil))
+    fake_v1.route(responses.GET, "healthz", {"status": evil})
+    caplog.set_level(logging.INFO)
+
+    logged_in.print_deployment()
+    logged_in._report_software({"software": {"python": {"siliconcompiler": [evil]}}})
+    logged_in.print_identity({
+        "id": evil, "issuer": evil, "can_submit": False, "blocked_type": evil,
+        "session": {"kind": evil, "scope": evil, "device_id": evil,
+                    "access_expires_at": evil, "refresh_expires_at": evil,
+                    "session_expires_at": evil},
+        "limits": {evil: evil}, "usage": {"concurrent_jobs": evil},
+        "terms": [{"id": "tos", "title": evil, "version": evil, "can_decide": False}]})
+    rendered = [describe(problem("not-found", 404, trace_id=evil), help_url=evil),
+                describe(dict(problem("not-found", 404), type=evil), job_id=evil)]
+
+    for text in (caplog.text, *rendered):
+        assert "\x07" not in text and "\x1b]" not in text
+
+
 def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
         logged_in, fake_v1, capabilities, monkeypatch, caplog):
     opened = []

@@ -318,6 +318,45 @@ def test_an_upcoming_version_is_only_reported_where_no_page_is_offered(
         assert "accepted early" not in caplog.text
 
 
+def test_the_account_view_shows_its_own_limits_usage_and_every_terms_decision(
+        logged_in, fake_v1, monkeypatch, caplog):
+    '''The account's limits, not the defaults; each document's decision, with its page
+    offered once where it can still be decided and was not declined.'''
+    asked = []
+    _asked(monkeypatch, lambda question: asked.append(question) or "n", tty=True)
+    body = me_body(
+        terms_entry(),
+        dict(terms_entry(), id="gf12-nda", title="gf12 NDA", accepted_at=None,
+             declined_at="2026-06-20T14:30:00Z", upcoming=None),
+        dict(terms_entry(can_decide=False), id="export", title="Export terms",
+             accepted_at=None, upcoming=None),
+        dict(terms_entry(), id="data", title="Data policy", accepted_at=None, upcoming=None))
+    body.update(
+        can_submit=False,
+        blocked_type="https://siliconcompiler.com/server-errors/account-not-provisioned",
+        limits={"max_job_nodes": 50, "concurrent_jobs": None},
+        usage={"concurrent_jobs": 3,
+               "compute_seconds": {"used": 60, "total": None, "limit": None,
+                                   "window": "calendar_week", "resets_at": None}})
+    fake_v1.route(responses.GET, "me", body)
+    caplog.set_level(logging.INFO)
+
+    logged_in.print_identity(logged_in.me())
+
+    for said in ("You cannot submit jobs here", "Ask an administrator to provision",
+                 "server-errors/account-not-provisioned",
+                 "Your limits:", "max_job_nodes: 50", "concurrent_jobs: unlimited",
+                 "Unfinished jobs (staging, queued, running or cancelling): 3",
+                 "Compute: 1m 00s in this calendar_week window",
+                 "Terms of Service, version 2026-09-01: accepted",
+                 "gf12 NDA, version 2026-09-01: declined",
+                 "Export terms, version 2026-09-01: undecided",
+                 "Data policy, version 2026-09-01: undecided"):
+        assert said in caplog.text, said
+    # The reminder's offer for the upcoming version, then the undecided policy's.
+    assert len(asked) == 2
+
+
 def test_login_needs_no_human_and_asserts_a_derived_subject(
         fake_v1, tmp_credentials, client_credentials):
     '''client_id=local:<derivation>, which RFC 6749 already registers.'''
@@ -481,7 +520,13 @@ def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
     (problem("archive-rejected", 422, reason="a-reason-from-later"), None,
      ["Fix what the reason names, in a new job."]),
     ({"title": "Bad Gateway"}, 502, ["try again later"]),
-], ids=["detail-and-trace", "feature", "reason", "unknown-reason", "untyped-5xx"])
+    # `detail` is prose: a limit it names changes nothing the client does.
+    (problem("run-failed", None, detail="place/0 exceeded its time limit"), None,
+     ["exceeded its time limit", "Read the failing node's log"]),
+    (problem("staging-timed-out", None, limit="max_staging_seconds"), None,
+     ["limit: max_staging_seconds", "times out again", "smaller set of Python packages"]),
+], ids=["detail-and-trace", "feature", "reason", "unknown-reason", "untyped-5xx",
+        "limit-in-detail", "staging-timed-out"])
 def test_a_refusal_renders_without_opening_a_url(body, status, said):
     '''The type pages are static, so the client holds the only copy of the
     specific failure: the discriminator, the next step and the trace.'''
@@ -520,6 +565,16 @@ def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
 
     assert raised.value.slug == "a-type-from-later"
     assert "retrying it unchanged will not help" in str(raised.value)
+
+
+@pytest.mark.parametrize("uri", ["https://elsewhere.test/server-errors/limit-exceeded",
+                                 "about:blank", "limit-exceeded"])
+def test_a_type_outside_the_registry_names_no_slug(uri):
+    '''Only the registry's own URIs name a condition; any other is acted on by its status.'''
+    refusal = ServerProblem({"type": uri, "title": "Refused"}, 429)
+
+    assert refusal.slug is None
+    assert "Wait and retry." in str(refusal) and "refills" not in str(refusal)
 
 
 def test_devices_are_listed_across_pages_and_revoked(fake_v1, logged_in):

@@ -102,3 +102,30 @@ def test_tail_waits_for_its_node_and_reads_the_archive_where_nothing_is_live(
                 '-cfg', 'job.pkg.json') == 0
     assert capsys.readouterr().out.endswith(f"\n{printed}")
     assert slept == waited
+
+
+@pytest.mark.parametrize("state,extra,said,unsaid", [
+    ("cancelled", {"deleted_at": "2026-09-23T10:00:00Z", "deleted_reason": "by A User",
+                   "archived_at": "2026-09-24T10:00:00Z"},
+     ["reason:  wrong corner", "deleted: 2026-09-23T10:00:00Z (by A User)",
+      "archived: 2026-09-24T10:00:00Z"], ["error:"]),
+    ("failed", {"error": {"title": "The run failed", "detail": "place/0 exited 1"}},
+     ["error:   The run failed: place/0 exited 1"], ["reason:", "deleted:", "archived:"]),
+], ids=["cancelled-deleted-archived", "failed"])
+def test_a_jobs_status_says_why_and_what_became_of_it(caplog, state, extra, said, unsaid):
+    '''A cancel's reason where no error says why; every server string loses its
+    control characters.'''
+    import logging
+
+    job = {"id": "01J9-job", "state": state, "design": "gcd\x1b]0;owned\x07",
+           "jobname": "job0", "created_at": "2026-09-22T10:00:00Z", "error": None,
+           "deleted_at": None, "archived_at": None, "progress": {},
+           "transitions": [{"state": state, "at": "2026-09-22T10:05:00Z",
+                            "reason": "wrong corner"}], **extra}
+    caplog.set_level(logging.INFO)
+
+    sc_remote._print_status(logging.getLogger("sc-remote-test"), job)
+
+    assert all(line in caplog.text for line in said)
+    assert not any(line in caplog.text for line in unsaid)
+    assert "\x07" not in caplog.text and "\x1b]" not in caplog.text

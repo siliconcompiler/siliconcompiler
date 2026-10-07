@@ -568,6 +568,32 @@ def test_delete_is_a_204_with_no_body(fake_v1, logged_in):
     assert logged_in.delete_job("01J9-job") is None
 
 
+def test_deleting_an_unfinished_job_says_to_cancel_it_first(fake_v1, logged_in):
+    _refused(fake_v1, responses.DELETE, "jobs/01J9-job", "job-state-conflict", 409)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.delete_job("01J9-job")
+
+    assert "cancel it with sc-remote -cancel" in str(raised.value)
+    assert "past the point" not in str(raised.value)
+
+
+@pytest.mark.parametrize("slug,status,said", [("not-found", 404, "not one you are a member of"),
+                                              ("not-permitted", 403, "is archived")])
+def test_a_create_refused_over_its_project_names_the_project(fake_v1, logged_in, monkeypatch,
+                                                             slug, status, said):
+    '''At create these refusals are about the project SC_REMOTE_PROJECT names, never a job.'''
+    monkeypatch.setenv("SC_REMOTE_PROJECT", "rocket-v2")
+    _refused(fake_v1, responses.POST, "jobs", slug, status)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.create_job("gcd", "job0")
+
+    rendered = str(raised.value)
+    assert "The project rocket-v2, which SC_REMOTE_PROJECT names" in rendered and said in rendered
+    assert "this job" not in rendered
+
+
 def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path):
     '''The file's own length: announcing a gigabyte over twenty bytes
     would leave the server waiting for ever.'''
@@ -1966,6 +1992,42 @@ def test_the_poll_line_reads_its_time_and_reason_from_transitions():
     assert _state_line({"state": "staging", "state_reason": "fetching sources",
                         "transitions": [{"state": "staging", "at": entered}]}) \
         .endswith(", fetching sources")
+    # A node a cancel stopped carries the cancel's reason.
+    assert _state_line({"state": "cancelled", "nodes": [{"state_reason": "superseded"}],
+                        "transitions": [{"state": "cancelled", "at": entered}]}) \
+        .endswith(", superseded")
+
+
+def test_the_runs_own_lines_print_server_text_without_control_characters(run, caplog):
+    from siliconcompiler.remote.client.run import _named
+
+    caplog.set_level("INFO")
+    run._report(job_body("running\x1b]0;owned\x07",
+                         nodes=[_node("step\x07one", "running\x1b[2J")]))
+    named = _named([{"kind": "dataroot", "keypath": ["library", "a\x1b]0;x\x07"]},
+                    {"kind": "python", "name": "pkg\x9b2J"}])
+
+    for text in (caplog.text, named):
+        assert not any(c in text for c in ("\x07", "\x1b]", "\x1b[2J", "\x9b")), text
+
+
+def test_a_deleted_job_says_why_it_stopped_and_fetches_nothing(fake_v1, run, caplog):
+    '''Nothing of a deleted job but its object is readable; the cancel's reason
+    is its last transition's.'''
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "cancelled", nodes=[],
+        transitions=[{"state": "cancelled", "at": "2026-09-22T10:05:00.000Z",
+                      "reason": "wrong corner"}],
+        deleted_at="2026-09-23T10:00:00.000Z", deleted_reason="deleted by A User",
+        archived_at="2026-09-22T11:00:00.000Z"))
+
+    with caplog.at_level("INFO"), pytest.raises(RemoteError):
+        run._poll("01J9-job")
+
+    assert "Remote job cancelled: wrong corner" in caplog.text
+    assert "deleted at 2026-09-23T10:00:00.000Z (deleted by A User)" in caplog.text
+    assert "archived at 2026-09-22T11:00:00.000Z" in caplog.text
+    assert not [c for c in fake_v1.calls if "/artifacts" in c.request.path_url]
 
 
 def test_the_session_is_shown_from_me_and_nothing_is_refreshed(logged_in, fake_v1, caplog):
