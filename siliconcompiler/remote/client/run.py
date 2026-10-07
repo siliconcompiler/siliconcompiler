@@ -6,7 +6,8 @@
     POST /v1/jobs/{id}/submit         no body: the grant bound the digest
     GET  /v1/jobs/{id}                until `terminal`
 
-The job is created before anything is packed, so a refusal comes before the bytes.
+The job is created before anything is collected or packed, so a refusal comes
+before the bytes.
 '''
 
 import logging
@@ -34,7 +35,7 @@ from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.remote.client.errors import (
-    NO_NODE_FAILED, RemoteError, ServerProblem, _slug, clean, describe)
+    NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, clean, describe)
 from siliconcompiler.remote.client import MAX_CANCEL_REASON, _UNPRINTABLE
 from siliconcompiler.remote.client.results import Results, record_job, recorded_job
 from siliconcompiler.remote.environment import canonical
@@ -112,6 +113,7 @@ class RemoteRun:
         self._owner: Optional[str] = None
         self._python_worked = None
         self._substituted_said = False
+        self._owner_said = False
         self._wheel_dir: Optional[str] = None
         self._asked_rows: list = []
         self._order: Optional[Dict[Tuple[str, str], int]] = None
@@ -140,14 +142,14 @@ class RemoteRun:
 
     def _start(self) -> str:
         self._preflight()
-        self._collect()
 
         design = self.project.name
         jobname = self.project.option.get_jobname()
 
         from siliconcompiler.remote import owners
 
-        # Created before packing: the job names what else the archive must hold.
+        # Created before collecting or packing: the job names what else the
+        # archive must hold.
         flow, node_count = self._flow_descriptor()
         job = self.client.create_job(
             design=design, jobname=jobname,
@@ -172,9 +174,10 @@ class RemoteRun:
 
         self._open_portal(job_id)
 
-        self.project.write_manifest(os.path.join(jobdir(self.project), REMOTE_MANIFEST))
+        self.project.write_manifest(self._manifest())
 
         try:
+            self._collect()
             with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
                 asked = job.get("upload_sources") or []
                 if asked:
@@ -184,12 +187,10 @@ class RemoteRun:
 
                 upload = Path(tmpdir) / "upload.tar.gz"
                 digest, size = self._pack(upload)
-
-                grant = self.client.upload_grant(job_id, size, digest)
-                self._report_upload(size)
-                self.client.upload(grant, upload)
-
-                self.client.submit_job(job_id)
+                self._deliver(job_id, upload, size, digest)
+        except _Held:
+            # Kept, with its upload: a reconnect submits it.
+            raise
         except BaseException as e:
             self._abandon(job_id, e)
             raise
@@ -199,6 +200,53 @@ class RemoteRun:
         self.logger.info("Job submitted")
         return job_id
 
+    def _deliver(self, job_id: str, upload: Path, size: int, digest: str,
+                 report=None) -> None:
+        '''Grant, PUT and submit one archive, keeping the job through what a retry
+        fixes: a failed PUT starts over under a re-issued grant for the same size
+        and digest, and an upload that does not match its digest goes up again.'''
+        retried = False
+        while True:
+            grant = self.client.upload_grant(job_id, size, digest)
+            if not retried:
+                self._report_upload(size, report)
+            try:
+                self.client.upload(grant, upload)
+            except RemoteError as e:
+                if retried:
+                    raise
+                retried = True
+                self.logger.warning(f"The upload failed, so it starts over: {e}")
+                continue
+            try:
+                self._submit(job_id)
+                return
+            except ServerProblem as e:
+                if e.slug != "upload-digest-mismatch" or retried:
+                    raise
+                retried = True
+                self.logger.warning("The upload did not match its digest, so it goes up again")
+
+    def _submit(self, job_id: str) -> None:
+        '''Submit the upload the job holds, with a fresh key.
+
+        A refusal that leaves the job waiting with its upload until a person acts,
+        or a server failure, raises `_Held`. A state conflict is read again: a job
+        that left `awaiting_input` was submitted, or ended, and the watch says which.
+        '''
+        try:
+            self.client.submit_job(job_id)
+        except ServerProblem as e:
+            if e.slug in _SUBMIT_LATER or e.status >= 500:
+                raise _Held(job_id, e, self._manifest()) from None
+            if e.slug != "job-state-conflict" or \
+                    self.client.job(job_id)[0].get("state") in _WAITING:
+                raise
+
+    def _manifest(self) -> str:
+        '''What a reconnect or a cancel is given: the job's own manifest.'''
+        return os.path.join(jobdir(self.project), REMOTE_MANIFEST)
+
     def _abandon(self, job_id: str, error: BaseException) -> None:
         '''Cancel a job that will not be submitted, so it holds no slot until abandoned.'''
         if isinstance(error, _CannotSupply):
@@ -207,7 +255,8 @@ class RemoteRun:
                              error.failures)
         else:
             why = "interrupted before it was submitted" \
-                if isinstance(error, KeyboardInterrupt) else "its upload or submit failed"
+                if isinstance(error, KeyboardInterrupt) \
+                else "it could not be collected, packed, uploaded or submitted"
             reason = _fitted("cancelled from sc-remote: ", [why])
         try:
             self.client.cancel_job(job_id, reason=reason)
@@ -268,12 +317,34 @@ class RemoteRun:
 
     def _check_account(self) -> None:
         '''Check the account (`GET /v1/me`) before create: unaccepted terms are
-        named, and a missing capability stops the run.'''
+        named, and an account that cannot submit or lacks a capability stops the run.'''
         try:
             me = self.client.me()
         except RemoteError:
             return
+        self._check_can_submit(me)
         self._check_capabilities(me)
+
+    def _check_can_submit(self, me: Dict[str, Any]) -> None:
+        '''Stop where `can_submit` is false, with what create would refuse:
+        `blocked_type` is that refusal's `type`. Absent, nothing is known.'''
+        if not isinstance(me, dict) or me.get("can_submit") is not False:
+            return
+        blocked = me.get("blocked_type")
+        problem = {"type": blocked if isinstance(blocked, str) else None,
+                   "title": "This account cannot submit jobs on this server"}
+        titles = {}
+        if _slug(problem) == "terms-not-accepted":
+            # The service documents not yet accepted, each by its title.
+            unaccepted = [entry for entry in me.get("terms") or []
+                          if isinstance(entry, dict) and entry.get("id")
+                          and isinstance(entry.get("scope"), dict)
+                          and entry["scope"].get("applies_to") == "service"
+                          and entry.get("accepted_at") is None]
+            problem["blocked_by"] = [entry["id"] for entry in unaccepted]
+            titles = {entry["id"]: entry.get("title") for entry in unaccepted}
+            self.client.open_terms(problem["blocked_by"], titles)
+        raise RemoteError(describe(problem, titles=titles))
 
     def _check_capabilities(self, me: Dict[str, Any]) -> None:
         '''Stop where the job's Python needs `python-packages` or `python-wheels`
@@ -469,9 +540,11 @@ class RemoteRun:
         seen = tuple(sorted((item.get("kind"), ",".join(item.get("keypath") or ()),
                              item.get("name") or "") for item in asked))
         if seen in self._sent:
-            raise RemoteError(f"the server asked again for {_named(asked)}, which "
-                              "this client has already sent")
-        self._sent.add(seen)
+            # Sent, and still missing: this machine has nothing else to send.
+            error = _CannotSupply([f"{_named([item])}: it was sent, and asked for again"
+                                   for item in asked])
+            self._abandon(job_id, error)
+            raise error
 
         self.logger.info(f"The server could not supply {_named(asked)}; sending it")
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
@@ -483,15 +556,11 @@ class RemoteRun:
                 raise
 
             upload = Path(tmpdir) / "follow-up.tar.gz"
-            with tarfile.open(upload, mode="w:gz") as tar:
-                tar.add(str(collection), arcname="sc_collected_files")
-
-            grant = self.client.upload_grant(job_id, os.path.getsize(upload),
-                                             f"sha256:{file_digest(upload).hexdigest()}")
-            self._report_upload(os.path.getsize(upload),
-                                owners.upload_report(self.project, collection) + report)
-            self.client.upload(grant, upload)
-            self.client.submit_job(job_id)
+            _pack_reproducibly(upload, collection)
+            self._deliver(job_id, upload, os.path.getsize(upload),
+                          f"sha256:{file_digest(upload).hexdigest()}",
+                          owners.upload_report(self.project, collection) + report)
+        self._sent.add(seen)
 
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page where a person is plainly watching.
@@ -571,14 +640,22 @@ class RemoteRun:
             from siliconcompiler.flowgraph import RuntimeFlowgraph
 
             project, required = self._needs()
-            pins = {"siliconcompiler": [_pin(sc_version)]}
+
+            def alternatives(name, spec) -> List[str]:
+                # Sent, one that does not normalise would match nothing.
+                if spec is None:
+                    self.logger.warning(f"Dropping the version requirement on {name}, which "
+                                        "is not PEP 440: this job takes any version of it")
+                return [spec] if spec else []
+
+            pins = {"siliconcompiler": alternatives("siliconcompiler", _pin(sc_version))}
 
             def exact(distribution):
                 name = canonical(distribution)
                 if name in pins:
                     return
                 try:
-                    pins[name] = [_pin(metadata.version(distribution))]
+                    pins[name] = alternatives(name, _pin(metadata.version(distribution)))
                 except metadata.PackageNotFoundError:
                     return
 
@@ -599,8 +676,7 @@ class RemoteRun:
                     pass
 
             for name in sorted(framework):
-                declared = _framework_range(name)
-                pins[canonical(name)] = [declared] if declared else []
+                pins[canonical(name)] = alternatives(name, _framework_range(name))
 
             for _, distribution in owners.installed_dataroots(project, required):
                 if self._supplied(distribution):
@@ -1077,7 +1153,7 @@ class RemoteRun:
         return found
 
     def reconnect(self, job_id: str) -> None:
-        '''Re-enter the wait for a job that is already running.
+        '''Re-enter the wait for a job, submitting one a refused submit left waiting.
 
         The only way back after Ctrl-C, so the job id is recorded before the upload.
         '''
@@ -1100,7 +1176,7 @@ class RemoteRun:
                         "source and nobody is here to send it, the job waits until it "
                         "is abandoned. Press Ctrl-C again to leave anyway.")
                     continue
-                manifest = os.path.join(jobdir(self.project), REMOTE_MANIFEST)
+                manifest = self._manifest()
                 self.logger.info("Disconnecting from remote job")
                 self.logger.info(
                     f"To reconnect to this job use: sc-remote -cfg {manifest} -reconnect")
@@ -1124,10 +1200,7 @@ class RemoteRun:
                 owner = job.get("owner")
                 self._owner = owner.get("id") if isinstance(owner, dict) else None
             except ServerProblem as refusal:
-                # The `type` slug decides, never the status: a slugless 5xx
-                # is transient, a named condition will not change.
-                if refusal.slug is not None and \
-                        refusal.slug not in ("not-ready", "rate-limited"):
+                if not _later(refusal):
                     # AS A FAILURE: falling through would announce an empty finished job.
                     self.logger.error(str(refusal))
                     raise RemoteError(
@@ -1139,12 +1212,12 @@ class RemoteRun:
                         f"the server has been failing for {transient} polls; "
                         f"job {job_id} may still be running") from None
                 self.logger.warning(str(refusal))
-                time.sleep(DEFAULT_POLL_SECONDS)
+                time.sleep(refusal.retry_after or DEFAULT_POLL_SECONDS)
                 continue
 
-            if job.get("state") == "awaiting_input" and job.get("upload_sources"):
-                # Sent back for a source; not terminal, so the wait goes on.
-                self._send_asked(job_id, job["upload_sources"])
+            if job.get("state") in _WAITING and self._act_on_waiting(job_id, job):
+                # Not terminal, so the wait goes on, at the server's pace.
+                time.sleep(retry_after or DEFAULT_POLL_SECONDS)
                 continue
 
             changed = self._record(job, seen)
@@ -1161,6 +1234,44 @@ class RemoteRun:
 
         tails.finish()
         self._finish(job, results)
+
+    def _act_on_waiting(self, job_id: str, job: Dict[str, Any]) -> bool:
+        '''Act on a job not yet submitted: send what the server asked for, or,
+        on a reconnect, submit the upload it holds. Whether it acted.
+
+        Only its owner may, so anybody else is told the owner must, once.
+        '''
+        asked = job.get("upload_sources") if job.get("state") == "awaiting_input" else None
+        me = self.client.credentials.user_id
+        if me is None:
+            # Never told who this is, as where `GET /v1/me` failed before create.
+            try:
+                me = self.client.me(remind=False).get("id")
+            except RemoteError:
+                pass
+        if not (self._owner and me and self._owner == me):
+            if not self._owner_said:
+                self._owner_said = True
+                self.logger.warning(
+                    f"Job {job_id} waits for its owner to "
+                    + (f"send {_named(asked)}" if asked else "submit it"))
+            return False
+        if asked:
+            self._send_asked(job_id, asked)
+            return True
+
+        self.logger.info(f"Job {job_id} is not submitted yet; submitting the upload it holds")
+        try:
+            self._submit(job_id)
+        except ServerProblem as e:
+            if e.slug != "job-state-conflict":
+                raise
+            raise RemoteError(
+                f"job {job_id} holds no upload, and this machine has none to send it: it "
+                "waits until it is abandoned. Run the flow again, and cancel this job "
+                f"with: sc-remote -cfg {self._manifest()} -cancel") from None
+        self.logger.info("Job submitted")
+        return True
 
     def _say_substituted(self, job: Dict[str, Any]) -> None:
         '''Once staged, warn of each listed Python package the job runs at another
@@ -1605,6 +1716,24 @@ def _satisfied(versions, spec: str) -> bool:
         return True
 
 
+def _pack_reproducibly(upload: Path, directory: Path) -> None:
+    '''Tar and gzip ``directory`` so that packing the same files again gives the
+    same bytes: a retry must repeat the size and digest its first grant fixed.'''
+    import gzip
+
+    def normalised(info: tarfile.TarInfo) -> tarfile.TarInfo:
+        info.mtime, info.uid, info.gid, info.uname, info.gname = 0, 0, 0, "", ""
+        # The server keeps only the executable bit.
+        info.mode = 0o755 if info.isdir() or info.mode & 0o100 else 0o644
+        return info
+
+    with open(upload, "wb") as raw, \
+            gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as zipped, \
+            tarfile.open(fileobj=zipped, mode="w") as tar:
+        # `add` recurses in sorted order.
+        tar.add(str(directory), arcname=directory.name, filter=normalised)
+
+
 class _LinkPacker:
     '''Pack upstream ``outputs/`` with links as links and each file once.
 
@@ -1717,14 +1846,33 @@ class _LinkPacker:
 # A job the server may still need this machine for.
 _NOT_YET_SUBMITTED = ("created", "awaiting_input", "staging")
 
+# A job that takes an upload grant and a submit.
+_WAITING = ("created", "awaiting_input")
 
-def _framework_range(name: str) -> str:
+# Submit refusals a person clears, after which the upload the job kept is submitted.
+_SUBMIT_LATER = ("terms-not-accepted", "account-not-provisioned")
+
+# The registered types that mean *later*; any other registered type is final.
+_LATER = ("not-ready", "rate-limited", "limit-exceeded")
+
+
+def _later(refusal: ServerProblem) -> bool:
+    '''Whether a refusal means *ask again later*: by its `type` where this client
+    knows it, else by its status class, as an untyped failure.'''
+    if refusal.slug in _NEXT_STEP:
+        return refusal.slug in _LATER
+    return refusal.status >= 500 or refusal.status == 429
+
+
+def _framework_range(name: str) -> Optional[str]:
     """SiliconCompiler's declared range for a framework distribution (cocotb's,
-    in its `cocotb` extra), else the version installed here.
+    in its `cocotb` extra), else the version installed here, normalised; ""
+    where there is neither, and None where the one found is not PEP 440.
 
     A range, not a pin: the simulator and SiliconCompiler load the image's one copy.
     """
     from packaging.requirements import InvalidRequirement, Requirement
+    from packaging.version import InvalidVersion, Version
 
     for line in metadata.requires("siliconcompiler") or []:
         try:
@@ -1732,15 +1880,24 @@ def _framework_range(name: str) -> str:
         except InvalidRequirement:
             continue
         if canonical(requirement.name) == canonical(name) and str(requirement.specifier):
-            return str(requirement.specifier)
+            parts = []
+            for one in requirement.specifier:
+                prefix = one.version.endswith(".*")
+                try:
+                    version = Version(one.version[:-2] if prefix else one.version)
+                except InvalidVersion:
+                    return None
+                parts.append(f"{one.operator}{version}{'.*' if prefix else ''}")
+            return ",".join(sorted(parts))
     try:
         return _pin(metadata.version(name))
     except metadata.PackageNotFoundError:
         return ""
 
 
-def _pin(version: str) -> str:
-    """One installed version as the specifier the server resolves to an image.
+def _pin(version: str) -> Optional[str]:
+    """One installed version as the specifier the server resolves to an image,
+    normalised; None where it is not PEP 440.
 
     `==`, deliberately not `>=`: manifests read only backwards, and a newer
     image writes every returned manifest in the direction this one cannot read.
@@ -1752,11 +1909,11 @@ def _pin(version: str) -> str:
     try:
         parsed = Version(version)
     except InvalidVersion:
-        return f"=={version}"
+        return None
 
     if parsed.is_devrelease:
         return f"=={parsed.base_version}.*"
-    return f"=={version}"
+    return f"=={parsed}"
 
 
 # A URL's `user:secret@`, wherever it sits in a message.
@@ -1784,6 +1941,15 @@ class _CannotSupply(RemoteError):
         self.reason = self.LEAD + "; ".join(failures)
         super().__init__("the server asked for what this machine cannot supply, so the "
                          "job is cancelled:\n" + "\n".join(f"  {one}" for one in failures))
+
+
+class _Held(RemoteError):
+    '''A submit refused for now: the job waits, keeping its upload, for a
+    reconnect to submit it, and is not cancelled.'''
+
+    def __init__(self, job_id: str, refusal: ServerProblem, manifest: str):
+        super().__init__(f"{refusal}\nJob {job_id} waits, keeping its upload. Once that is "
+                         f"resolved, submit it with: sc-remote -cfg {manifest} -reconnect")
 
 
 def _fitted(lead: str, items: List[str]) -> str:

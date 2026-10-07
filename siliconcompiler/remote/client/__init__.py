@@ -769,31 +769,34 @@ class Client:
             "POST", f"jobs/{job_id}/submit", json_body={}, headers=headers).json())
 
     def _waiting_for_a_slot(self, send):
-        '''A create or submit, waiting out a `limit-exceeded` that only means
-        *later* per `Retry-After`, and retrying with the same key.'''
-        told = None
+        '''A create or submit, waiting out a `limit-exceeded` per its
+        `Retry-After`, whichever limit it names, and retrying with the same key.'''
+        told = []
         while True:
             try:
                 return send()
             except ServerProblem as e:
                 if e.slug == "terms-not-accepted":
                     raise self._to_sign(e) from None
-                limit = e.member("limit")
-                if e.slug != "limit-exceeded" or not e.retry_after or \
-                        limit not in ("concurrent_jobs", "pending_uploads"):
+                if e.slug != "limit-exceeded" or not e.retry_after:
                     raise
-                if told != limit:
-                    told = limit
+                limit = e.member("limit")
+                if limit not in told:
+                    told.append(limit)
                     if limit == "pending_uploads":
                         held = ", ".join(clean(str(job)) for job in e.member("job_ids") or [])
                         self.logger.warning(
                             "Waiting: this server's limit of jobs waiting for an upload is "
                             f"reached, held by {held or 'your other jobs'}. Cancel any of "
                             "them you abandoned.")
-                    else:
+                    elif limit == "concurrent_jobs":
                         self.logger.warning(
                             "Waiting: this server's limit of running jobs is reached; "
                             "this one goes as soon as one of yours finishes.")
+                    else:
+                        named = f"{clean(str(limit))} " if limit else ""
+                        self.logger.warning(f"Waiting: this server's {named}limit is "
+                                            "reached, and it refills.")
                 time.sleep(e.retry_after)
 
     def _to_sign(self, refusal: ServerProblem) -> ServerProblem:
@@ -810,16 +813,22 @@ class Client:
         titles = {entry.get("id"): entry.get("title") for entry in terms
                   if isinstance(entry, dict) and entry.get("title")}
 
-        if self.may_open():
-            for terms_id in blocked:
-                if isinstance(terms_id, str) and terms_id:
-                    title = clean(titles.get(terms_id) or terms_id)
-                    self.open_page(f"{title}'s page", terms_id=terms_id)
+        self.open_terms(blocked, titles)
 
         if not titles:
             return refusal
         return ServerProblem(refusal.problem, refusal.status, help_url=refusal.help_url,
                              titles=titles, retry_after=refusal.retry_after)
+
+    def open_terms(self, blocked, titles: Dict[str, str]) -> None:
+        '''Open each `terms` id's page, named by its title, where a person is
+        plausibly here to see it. Never accepted here.'''
+        if not self.may_open():
+            return
+        for terms_id in blocked:
+            if isinstance(terms_id, str) and terms_id:
+                title = clean(titles.get(terms_id) or terms_id)
+                self.open_page(f"{title}'s page", terms_id=terms_id)
 
     def job(self, job_id: str) -> tuple:
         '''``GET /v1/jobs/{id}``, and the `Retry-After` interval, read per response.'''

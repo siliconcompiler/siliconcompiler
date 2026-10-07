@@ -308,9 +308,12 @@ def test_node_states_are_recorded_and_unknown_nodes_ignored(fake_v1, run, nop_pr
     assert nop_project.get('record', 'status', step="steptwo", index="0") == "skipped"
 
 
-def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
-    '''Falling through would announce a finished job with nothing in it.'''
-    _refused(fake_v1, responses.GET, "jobs/01J9-job", "not-found", 404)
+@pytest.mark.parametrize("slug,status", [
+    ("not-found", 404), ("feature-unsupported", 501), ("brand-new-refusal", 400)])
+def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run, slug, status):
+    '''Falling through would announce a finished job with nothing in it. A type
+    this client does not know is acted on by its status class.'''
+    _refused(fake_v1, responses.GET, "jobs/01J9-job", slug, status)
 
     with pytest.raises(RemoteError) as raised:
         run._poll("01J9-job")
@@ -318,16 +321,22 @@ def test_a_refusal_ends_the_run_as_a_failure(fake_v1, run):
     assert "01J9-job" in str(raised.value)
 
 
-@pytest.mark.parametrize("body,status,content_type,warned", [
-    ("<html><body><h1>502 Bad Gateway</h1></body></html>", 502, "text/html",
-     "Bad Gateway"),
-    (problem("not-ready", 409), 409, "application/problem+json", None),
-], ids=["proxy-502", "not-ready"])
+@pytest.mark.parametrize("body,status,content_type,headers,warned,paced", [
+    ("<html><body><h1>502 Bad Gateway</h1></body></html>", 502, "text/html", None,
+     "Bad Gateway", 5),
+    (problem("not-ready", 409), 409, "application/problem+json", None, None, 5),
+    (problem("brand-new-outage", 503), 503, "application/problem+json", None,
+     "Brand new outage", 5),
+    (problem("brand-new-limit", 429), 429, "application/problem+json",
+     {"Retry-After": "11"}, None, 11),
+], ids=["proxy-502", "not-ready", "unknown-5xx", "unknown-429"])
 def test_a_server_error_or_not_ready_is_waited_through(fake_v1, run, no_sleep, caplog,
-                                                       body, status, content_type, warned):
-    '''A proxy's HTML is rendered, never thrown on.'''
+                                                       body, status, content_type, headers,
+                                                       warned, paced):
+    '''A proxy's HTML is rendered, never thrown on, and the refusal's own
+    `Retry-After` sets the wait.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", body, status=status,
-                  content_type=content_type)
+                  content_type=content_type, headers=headers)
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
 
     with caplog.at_level("WARNING"):
@@ -335,6 +344,7 @@ def test_a_server_error_or_not_ready_is_waited_through(fake_v1, run, no_sleep, c
 
     if warned:
         assert warned in caplog.text
+    assert paced in no_sleep
 
 
 def test_a_server_that_never_comes_back_is_bounded(fake_v1, run, no_sleep):
@@ -1018,10 +1028,52 @@ def test_a_development_client_asks_by_prefix_rather_than_exactly():
     assert Version("0.38.10.dev7") in matches
     assert Version("0.38.10") in matches
     assert Version("0.38.9") not in matches
-    assert _pin("0.38.9") == "==0.38.9"
 
     with pytest.raises(InvalidSpecifier):
         SpecifierSet("==0.38.10.dev*")
+
+
+@pytest.mark.parametrize("version,pin", [
+    ("0.38.9", "==0.38.9"), ("1.0.0-RC1", "==1.0.0rc1"), ("v2.1", "==2.1"),
+    ("a-local-build", None)])
+def test_an_installed_version_is_pinned_in_pep_440_or_not_at_all(version, pin):
+    from siliconcompiler.remote.client.run import _pin
+
+    assert _pin(version) == pin
+
+
+@pytest.mark.parametrize("declared,sent", [
+    ("scfakebits>=1.0.0-RC1,<2.0", "<2.0,>=1.0.0rc1"),
+    ("scfakebits==1.0.*", "==1.0.*"),
+    ("scfakebits===a-local-build", None)])
+def test_a_framework_range_is_sent_in_pep_440_or_not_at_all(monkeypatch, declared, sent):
+    from siliconcompiler.remote.client.run import _framework_range
+
+    monkeypatch.setattr("siliconcompiler.remote.client.run.metadata.requires",
+                        lambda name: [declared])
+
+    assert _framework_range("scfakebits") == sent
+
+
+def test_a_version_that_is_not_pep_440_is_dropped_with_a_warning(
+        fake_v1, logged_in, gcd_design, monkeypatch, caplog):
+    '''Sent, it would match nothing; the name stays, at any version.'''
+    from importlib import metadata
+
+    from test_capture import RunsATestbench
+
+    installed = metadata.version
+    monkeypatch.setattr("siliconcompiler.remote.client.run.metadata.version",
+                        lambda name: "a-local-build" if name == "scfakebits"
+                        else installed(name))
+    open("tb.py", "w").write("")
+    run = RemoteRun(_one_node_project(gcd_design, RunsATestbench()), logged_in)
+
+    with caplog.at_level("WARNING"):
+        pins = run._requested_python()
+
+    assert pins["scfakebits"] == []
+    assert "Dropping the version requirement on scfakebits" in caplog.text
 
 
 def _members(run, tmp_path):
@@ -1305,6 +1357,9 @@ def test_a_source_this_machine_cannot_reach_either_fails_before_upload(
     assert said in json.loads(cancel.body)["reason"]
 
 
+GCD_ROOT = {"kind": "dataroot", "keypath": ["library", "gcd", "dataroot", "gcd-pytest-example"]}
+
+
 def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run):
     '''A follow-up archive of the asked-for dataroots alone, its own grant,
     and submit again.'''
@@ -1314,8 +1369,7 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run):
     _granted(fake_v1)
     _submitted(fake_v1)
 
-    run._send_asked("01J9-job", [{"kind": "dataroot", "keypath": [
-        "library", "gcd", "dataroot", "gcd-pytest-example"]}])
+    run._send_asked("01J9-job", [GCD_ROOT])
 
     with tarfile.open(fileobj=io.BytesIO(_put_body(fake_v1))) as tar:
         names = tar.getnames()
@@ -1324,12 +1378,63 @@ def test_a_job_sent_back_is_answered_with_only_what_was_asked(fake_v1, run):
     assert not any(name.endswith(".pkg.json") for name in names)
 
 
-def test_asked_again_for_what_was_sent_is_a_failure_not_a_loop(fake_v1, run):
-    run._sent.add((("dataroot", "library,gcd,dataroot,gcd-pytest-example", ""),))
+def test_a_follow_up_packed_again_repeats_its_size_and_digest(fake_v1, logged_in,
+                                                              nop_project):
+    '''A retry must repeat what its first grant fixed, so the archive carries no
+    time or owner of its own.'''
+    _granted(fake_v1)
+    _submitted(fake_v1)
 
-    with pytest.raises(RemoteError, match="asked again"):
-        run._send_asked("01J9-job", [{"kind": "dataroot", "keypath": [
-            "library", "gcd", "dataroot", "gcd-pytest-example"]}])
+    for _ in range(2):
+        RemoteRun(nop_project, logged_in)._send_asked("01J9-job", [GCD_ROOT])
+
+    grants = [json.loads(c.request.body) for c in fake_v1.calls
+              if c.request.path_url.endswith("/upload-grant")]
+    assert len(grants) == 2 and grants[0] == grants[1]
+
+
+@pytest.mark.parametrize("put,cancelled", [(200, True), (403, False)],
+                         ids=["sent", "not-sent"])
+def test_asked_again_for_what_was_sent_cancels_the_job(fake_v1, run, put, cancelled):
+    '''Sent, this machine has nothing else to send, so the job is never left
+    waiting; an answer whose upload failed was not sent, and goes again.'''
+    _granted(fake_v1, put_status=put)
+    _submitted(fake_v1)
+    _cancelled(fake_v1)
+
+    for _ in range(2):
+        try:
+            run._send_asked("01J9-job", [GCD_ROOT])
+        except RemoteError as e:
+            error = e
+
+    said = "the dataroot library,gcd,dataroot,gcd-pytest-example: it was sent, and " \
+        "asked for again"
+    assert (said in str(error)) == cancelled
+    reasons = [json.loads(cancel.body)["reason"] for cancel in _cancels(fake_v1)]
+    assert len(reasons) == cancelled and all(said in reason for reason in reasons)
+
+
+@pytest.mark.parametrize("owner", ["01J9-user", "01J9-teammate"])
+def test_only_its_owner_answers_a_job_sent_back(fake_v1, run, no_sleep, caplog, owner):
+    '''Anybody else is told the owner must, and never cancels it. An answer
+    waits out the job's `Retry-After` before it is read again.'''
+    run.client.credentials.set_user_id("01J9-user")
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "awaiting_input", nodes=[], owner={"id": owner, "name": "Someone"},
+        upload_sources=[GCD_ROOT]), headers={"Retry-After": "9"})
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
+    _granted(fake_v1)
+    _submitted(fake_v1)
+
+    with caplog.at_level("WARNING"):
+        run._poll("01J9-job")
+
+    mine = owner == "01J9-user"
+    assert bool([c for c in fake_v1.calls if c.request.path_url.endswith("/submit")]) == mine
+    assert ("waits for its owner to send the dataroot" in caplog.text) != mine
+    assert not _cancels(fake_v1)
+    assert 9 in no_sleep
 
 
 @pytest.mark.parametrize("state,polls", [("staging", 2), ("queued", 1)])
@@ -1373,7 +1478,9 @@ def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state
      ["reason: unavailable"]),
 ], ids=["private-root", "keypath-shape", "software"])
 def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, said):
-    '''Created before anything is packed, so a refusal there costs nothing.'''
+    '''Created before anything is collected or packed, so a refusal there costs nothing.'''
+    monkeypatch.setattr(RemoteRun, "_collect", lambda self, *args, **kwargs:
+                        pytest.fail("collected"))
     monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: pytest.fail("packed"))
     fake_v1.route(responses.POST, "jobs", refusal, status=refusal["status"],
                   content_type="application/problem+json")
@@ -1413,10 +1520,13 @@ def test_a_202_then_a_rejected_job_reads_the_refusal_from_the_poll(
 
 def test_in_progress_and_a_slot_limit_are_waited_out_with_the_same_key(
         fake_v1, run, no_sleep, caplog):
+    '''Any `limit` that refills is waited out, not only the two named slots.'''
     _refused(fake_v1, responses.POST, "jobs", "job-state-conflict", 409,
              headers={"Retry-After": "2"}, reason="in_progress")
     _refused(fake_v1, responses.POST, "jobs", "limit-exceeded", 429,
              headers={"Retry-After": "3"}, limit="pending_uploads", job_ids=["01J9-old"])
+    _refused(fake_v1, responses.POST, "jobs", "limit-exceeded", 429,
+             headers={"Retry-After": "4"}, limit="compute_seconds")
     _routes_for_a_submit(fake_v1)
 
     with caplog.at_level("WARNING"):
@@ -1424,24 +1534,109 @@ def test_in_progress_and_a_slot_limit_are_waited_out_with_the_same_key(
 
     creates = [call.request for call in fake_v1.calls
                if call.request.method == "POST" and call.request.path_url == "/v1/jobs"]
-    assert len(creates) == 3
+    assert len(creates) == 4
     assert len({request.headers["Idempotency-Key"] for request in creates}) == 1
-    assert 2.0 in no_sleep and 3.0 in no_sleep
+    assert {2.0, 3.0, 4.0} <= set(no_sleep)
     assert "01J9-old" in caplog.text
+    assert "compute_seconds limit is reached" in caplog.text
 
 
-def test_a_failed_upload_cancels_the_job(fake_v1, run):
-    '''It will not be submitted, so it must not hold a slot until abandoned.'''
+@pytest.mark.parametrize("second,cancelled", [(200, False), (403, True)],
+                         ids=["retried", "failed-twice"])
+def test_a_failed_upload_starts_over_under_a_reissued_grant(fake_v1, run, second,
+                                                            cancelled):
+    '''Once, for the same size and digest. Only an upload that fails again
+    cancels the job, which would otherwise hold a slot until abandoned.'''
     _created(fake_v1)
     _granted(fake_v1, put_status=403)
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "", status=second,
+                      content_type="text/plain")
+    _submitted(fake_v1)
     _cancelled(fake_v1)
 
-    with pytest.raises(RemoteError):
-        run._start()
+    if cancelled:
+        with pytest.raises(RemoteError):
+            run._start()
+    else:
+        assert run._start() == "01J9-job"
 
-    cancel, = _cancels(fake_v1)
-    assert json.loads(cancel.body)["reason"].startswith("cancelled from sc-remote")
-    assert not run.project.get('record', 'remoteid')
+    grants = [json.loads(c.request.body) for c in fake_v1.calls
+              if c.request.path_url.endswith("/upload-grant")]
+    assert len(grants) == 2 and grants[0] == grants[1]
+    assert len(_cancels(fake_v1)) == cancelled
+    assert bool(run.project.get('record', 'remoteid')) != cancelled
+    if cancelled:
+        assert json.loads(_cancels(fake_v1)[0].body)["reason"].startswith(
+            "cancelled from sc-remote")
+
+
+def test_an_upload_that_does_not_match_its_digest_goes_up_again(fake_v1, run):
+    '''The archive whose digest the grant bound, then a second submit with a
+    fresh key; the job is kept.'''
+    _created(fake_v1)
+    _granted(fake_v1)
+    _refused(fake_v1, responses.POST, "jobs/01J9-job/submit", "upload-digest-mismatch", 422)
+    _submitted(fake_v1)
+
+    run._start()
+
+    puts = [c for c in fake_v1.calls if c.request.path_url == "/put"]
+    submits = [c.request for c in fake_v1.calls if c.request.path_url.endswith("/submit")]
+    assert len(puts) == 2 and len(submits) == 2
+    assert submits[0].headers["Idempotency-Key"] != submits[1].headers["Idempotency-Key"]
+    assert not _cancels(fake_v1)
+
+
+@pytest.mark.parametrize("slug,status,state,outcome", [
+    ("terms-not-accepted", 403, None, "kept"),
+    ("account-not-provisioned", 403, None, "kept"),
+    ("brand-new-outage", 503, None, "kept"),
+    ("job-state-conflict", 409, "staging", "submitted"),
+    ("job-state-conflict", 409, "awaiting_input", "cancelled"),
+])
+def test_a_refused_submit_cancels_only_what_cannot_be_submitted_again(
+        fake_v1, run, no_sleep, slug, status, state, outcome):
+    '''A refusal a person clears, or a server failure, leaves the job waiting with
+    its upload for a reconnect; a state conflict is read again, and only a job
+    holding no upload is cancelled.'''
+    _created(fake_v1)
+    _granted(fake_v1)
+    _refused(fake_v1, responses.POST, "jobs/01J9-job/submit", slug, status)
+    if state:
+        fake_v1.route(responses.GET, "jobs/01J9-job", job_body(state, nodes=[]))
+    _cancelled(fake_v1)
+
+    if outcome == "submitted":
+        assert run._start() == "01J9-job"
+    else:
+        with pytest.raises(RemoteError) as raised:
+            run._start()
+    if outcome == "kept":
+        assert "sc_remote.pkg.json -reconnect" in str(raised.value)
+
+    assert len(_cancels(fake_v1)) == (outcome == "cancelled")
+    assert bool(run.project.get('record', 'remoteid')) == (outcome != "cancelled")
+
+
+@pytest.mark.parametrize("answer,said", [(202, "Job submitted"), (409, "holds no upload")])
+def test_a_reconnect_submits_the_upload_a_waiting_job_holds(fake_v1, run, no_sleep, caplog,
+                                                            answer, said):
+    '''Left `awaiting_input` by a refused submit, it is submitted again by its
+    owner; a 409 means it holds none, and it is not cancelled from here.'''
+    run.client.credentials.set_user_id("01J9-user")
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("awaiting_input", nodes=[]))
+    if answer == 202:
+        _submitted(fake_v1)
+        fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
+        with caplog.at_level("INFO"):
+            run.reconnect("01J9-job")
+        assert said in caplog.text
+    else:
+        _refused(fake_v1, responses.POST, "jobs/01J9-job/submit", "job-state-conflict", 409)
+        with pytest.raises(RemoteError, match=said):
+            run.reconnect("01J9-job")
+
+    assert not _cancels(fake_v1)
 
 
 def test_an_interrupt_before_submit_cancels_the_job(fake_v1, run, monkeypatch):
@@ -1457,6 +1652,36 @@ def test_an_interrupt_before_submit_cancels_the_job(fake_v1, run, monkeypatch):
         run._start()
 
     assert "interrupted" in json.loads(_cancels(fake_v1)[0].body)["reason"]
+
+
+TYPES = "https://siliconcompiler.com/server-errors/"
+
+
+@pytest.mark.parametrize("me,said", [
+    ({"can_submit": False, "blocked_type": f"{TYPES}terms-not-accepted", "terms": [
+        {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
+         "accepted_at": None},
+        {"id": "nda", "title": "A foundry NDA",
+         "scope": {"applies_to": "resource", "resources": []}, "accepted_at": None}]},
+     ["sign Terms of Service", "Sign each document below"]),
+    ({"can_submit": False, "blocked_type": f"{TYPES}account-not-provisioned"},
+     ["Ask an administrator to provision"]),
+    ({"can_submit": False}, ["cannot submit jobs on this server"]),
+    ({"can_submit": True}, None),
+    ({}, None),
+], ids=["terms", "unprovisioned", "no-type", "can-submit", "not-said"])
+def test_an_account_that_cannot_submit_stops_before_create(fake_v1, run, me, said):
+    '''`blocked_type` is the refusal create would give, so its advice is given
+    here; where `GET /v1/me` says nothing of it, nothing stops.'''
+    fake_v1.route(responses.GET, "me", {"id": "01J9-user", "terms": [], **me})
+
+    if said is None:
+        run._check_account()
+        return
+    with pytest.raises(RemoteError) as raised:
+        run._check_account()
+    assert all(line in str(raised.value) for line in said), str(raised.value)
+    assert "foundry NDA" not in str(raised.value)
 
 
 def test_an_asic_project_with_no_pdk_stops_before_create(fake_v1, logged_in, gcd_design):

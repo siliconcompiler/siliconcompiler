@@ -395,6 +395,10 @@ Interrupting a run with ``Ctrl-C`` disconnects from it without stopping it, and
 prints the first two of those commands with the path filled in. The job keeps
 running on the server.
 
+A job whose submit is refused until you act -- a terms document to accept, or
+an account to be provisioned -- is not cancelled: it keeps its upload, and
+``-reconnect`` submits it once that is done.
+
 ``-cancel`` and ``-delete`` are both safe to repeat: cancelling a job that has
 already stopped, or deleting one that is already deleted, is the same answer
 again. A job cannot be deleted while it is still running -- cancel it first.
