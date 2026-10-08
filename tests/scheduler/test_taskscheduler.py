@@ -423,9 +423,8 @@ def test_process_completed_nodes_uses_nonblocking_poll(large_flow, make_tasks):
 
 
 def test_process_completed_nodes_signal_killed_is_error(large_flow, make_tasks):
-    '''A child terminated by a signal reports a negative exitcode. The status
-    record has not been updated by such a child, so the scheduler must
-    classify the node as ERROR rather than trusting the stale record.'''
+    '''A child terminated by a signal is an ERROR whatever its stale record says, and the
+    manifest it may have died writing is not replayed.'''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     node = ("stepone", "0")
     # Force a stale "SUCCESS" status that a real SIGKILLed child could not
@@ -433,6 +432,9 @@ def test_process_completed_nodes_signal_killed_is_error(large_flow, make_tasks):
     large_flow.set("record", "status", NodeStatus.SUCCESS,
                    step=node[0], index=node[1])
     _setup_completed_node(scheduler, node, exitcode=-9)
+    manifest = scheduler._TaskScheduler__nodes[node]["manifest"]
+    os.makedirs(os.path.dirname(manifest))
+    open(manifest, "w").close()
 
     scheduler._TaskScheduler__process_completed_nodes()
 
@@ -1146,28 +1148,30 @@ def test_halt_ends_nodes_even_when_a_cancel_fails(large_flow, make_tasks, projec
 
 class _LaunchRecorder(RunListener):
     """Notes, for each node reported started, whether its process had been started."""
-    def __init__(self):
-        self.scheduler = None
+    def __init__(self, proc):
+        # The process, not the scheduler: a scheduler and its listener holding
+        # each other outlive the test, and a mock process always looks alive, so
+        # halt_all() in a later test would find it running.
+        self.proc = proc
         self.started = []
 
     def node_started(self, project, step, index):
-        info = self.scheduler._TaskScheduler__nodes[(step, index)]
-        self.started.append(info["proc"].start.called)
+        self.started.append(self.proc.start.called)
 
 
 def _launch_recorder(large_flow, make_tasks, proc):
-    listener = _LaunchRecorder()
-    listener.scheduler = TaskScheduler(large_flow, make_tasks(large_flow), listener)
-    listener.scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
-    return listener
+    listener = _LaunchRecorder(proc)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow), listener)
+    scheduler._TaskScheduler__nodes[("stepone", "0")]["proc"] = proc
+    return scheduler, listener
 
 
 def test_node_started_follows_its_launch(large_flow, make_tasks):
     """A node is reported started, with its start time recorded, only once its process has
     been."""
-    listener = _launch_recorder(large_flow, make_tasks, MagicMock())
+    scheduler, listener = _launch_recorder(large_flow, make_tasks, MagicMock())
 
-    listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
+    scheduler._TaskScheduler__start_node(("stepone", "0"))
 
     assert listener.started == [True]
     assert large_flow.get("record", "starttime", step="stepone", index="0") is not None
@@ -1176,12 +1180,17 @@ def test_node_started_follows_its_launch(large_flow, make_tasks):
 def test_failed_launch_is_not_reported_started(large_flow, make_tasks):
     """A node whose process cannot be started is never reported started, nor given a start
     time."""
+    def start():
+        # Raised fresh: an instance kept on the mock would keep its traceback,
+        # and with it the scheduler, alive after the test.
+        raise OSError("no more processes")
+
     proc = MagicMock()
-    proc.start.side_effect = OSError("no more processes")
-    listener = _launch_recorder(large_flow, make_tasks, proc)
+    proc.start.side_effect = start
+    scheduler, listener = _launch_recorder(large_flow, make_tasks, proc)
 
     with pytest.raises(OSError, match="no more processes"):
-        listener.scheduler._TaskScheduler__start_node(("stepone", "0"))
+        scheduler._TaskScheduler__start_node(("stepone", "0"))
 
     assert listener.started == []
     assert large_flow.get("record", "starttime", step="stepone", index="0") is None

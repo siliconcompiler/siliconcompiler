@@ -569,7 +569,9 @@ class TaskScheduler:
 
                 self.__logger.debug(f'{info["name"]} is complete merging: {manifest}')
 
-                if os.path.exists(manifest):
+                # A node ended by a signal may have died part way through writing
+                # its manifest; on Windows, terminate() always ends a node that way.
+                if info["proc"].exitcode >= 0 and os.path.exists(manifest):
                     Journal.replay_file(self.__schema, manifest)
 
                 # The child either sent the package cache before exiting or

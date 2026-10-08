@@ -21,6 +21,10 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self.add_parameter("pdn_enable", "bool", "enable power grid generation", defvalue=True)
         self.add_parameter("pdn_fileset", "[(str,str)]", "power grid definition filesets")
+        self.add_parameter("pdn_dont_add_pins", "bool",
+                           "do not add power grid pins; pdngen still removes any existing "
+                           "power grid pins that are not fixed, and a net left without pins "
+                           "must be listed in psm_allow_missing_terminal_nets", defvalue=False)
 
     def add_openroad_powergridfileset(self, library, fileset, clobber=False):
         if clobber:
@@ -69,6 +73,21 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         """
         self.set("var", "pdn_enable", enable, step=step, index=index)
 
+    def set_openroad_pdndontaddpins(self, enable: bool,
+                                    step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Prevents the power grid from adding pins.
+
+        A net left without pins fails the power grid check unless it is also added
+        with :meth:`add_openroad_missingterminalnets`.
+
+        Args:
+            enable (bool): True to skip adding pins.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "pdn_dont_add_pins", enable, step=step, index=index)
+
     def task(self):
         return "power_grid"
 
@@ -94,6 +113,7 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             self.add_required_key("var", "psm_allow_missing_terminal_nets")
 
         self.add_required_key("var", "pdn_enable")
+        self.add_required_key("var", "pdn_dont_add_pins")
         if not self.get("var", "pdn_fileset"):
             self.__import_pdn_filesets()
 
