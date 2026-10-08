@@ -423,9 +423,8 @@ def test_process_completed_nodes_uses_nonblocking_poll(large_flow, make_tasks):
 
 
 def test_process_completed_nodes_signal_killed_is_error(large_flow, make_tasks):
-    '''A child terminated by a signal reports a negative exitcode. The status
-    record has not been updated by such a child, so the scheduler must
-    classify the node as ERROR rather than trusting the stale record.'''
+    '''A child terminated by a signal is an ERROR whatever its stale record says, and the
+    manifest it may have died writing is not replayed.'''
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     node = ("stepone", "0")
     # Force a stale "SUCCESS" status that a real SIGKILLed child could not
@@ -433,6 +432,9 @@ def test_process_completed_nodes_signal_killed_is_error(large_flow, make_tasks):
     large_flow.set("record", "status", NodeStatus.SUCCESS,
                    step=node[0], index=node[1])
     _setup_completed_node(scheduler, node, exitcode=-9)
+    manifest = scheduler._TaskScheduler__nodes[node]["manifest"]
+    os.makedirs(os.path.dirname(manifest))
+    open(manifest, "w").close()
 
     scheduler._TaskScheduler__process_completed_nodes()
 

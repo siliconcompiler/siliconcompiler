@@ -90,9 +90,10 @@ def test_report_job_status_unparsable_message(gcd_nop_project, caplog):
     assert 'Job is still running: Job is being scheduled' in caplog.text
 
 
-def test_report_job_status_running_nodes(gcd_nop_project):
+def test_report_job_status_running_nodes(gcd_nop_project, monkeypatch):
     '''Node statuses are recorded, and a running node's elapsed time becomes its recorded start
     time as it is reported started'''
+    monkeypatch.setattr('siliconcompiler.remote.client.time.time', lambda: 1700000000.25)
     listener = _Recorder()
     client = _client(gcd_nop_project, listener=listener)
 
@@ -102,7 +103,6 @@ def test_report_job_status_running_nodes(gcd_nop_project):
         'steptwo0': {'status': NodeStatus.RUNNING, 'elapsed_time': '0:01:05'}
     }
 
-    before = time.time()
     completed, running = client._report_job_status(
         _status(True, json.dumps(payload)))
 
@@ -112,7 +112,7 @@ def test_report_job_status_running_nodes(gcd_nop_project):
 
     # 65s of elapsed time means the node started 65s ago. A finished node's
     # times come from its own manifest.
-    assert before - 66 <= _starttime(gcd_nop_project, 'steptwo', '0') <= before - 64
+    assert _starttime(gcd_nop_project, 'steptwo', '0') == 1700000000.25 - 65
     assert _starttime(gcd_nop_project, 'stepone', '0') is None
     assert listener.events == [("node_started", "steptwo", "0")]
 
@@ -138,9 +138,10 @@ def test_report_job_status_uploaded_is_pending(gcd_nop_project):
         NodeStatus.PENDING
 
 
-def test_report_job_status_without_elapsed_time(gcd_nop_project):
+def test_report_job_status_without_elapsed_time(gcd_nop_project, monkeypatch):
     '''A server that reports no timing still drives the loop, and a running node starts when
     it is first seen'''
+    monkeypatch.setattr('siliconcompiler.remote.client.time.time', lambda: 1700000000.25)
     client = _client(gcd_nop_project)
 
     payload = {
@@ -148,14 +149,12 @@ def test_report_job_status_without_elapsed_time(gcd_nop_project):
         'steptwo0': {'status': NodeStatus.PENDING}
     }
 
-    before = time.time()
     completed, running = client._report_job_status(
         _status(True, json.dumps(payload)))
 
     assert running is True
     assert completed == []
-    # The record keeps microseconds, so the time read back can fall just short.
-    assert before - 0.001 <= _starttime(gcd_nop_project, 'stepone', '0') <= time.time()
+    assert _starttime(gcd_nop_project, 'stepone', '0') == 1700000000.25
     assert _starttime(gcd_nop_project, 'steptwo', '0') is None
 
 
