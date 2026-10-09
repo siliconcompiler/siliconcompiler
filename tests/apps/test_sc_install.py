@@ -422,7 +422,8 @@ def test_install_group(call, monkeypatch):
             "yosys-slang": "yosys-slang.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
-            "klayout": "klayout.sh"
+            "klayout": "klayout.sh",
+            "opensta": "opensta.sh"
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
@@ -430,7 +431,7 @@ def test_install_group(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic'])
     assert sc_install.main() == 0
-    assert call.call_count == 4
+    assert call.call_count == 5
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -742,7 +743,7 @@ def test_groups(monkeypatch, fake_plugins):
         return "<os>"
     monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
 
-    tools_asic = ("sv2v", "yosys", "openroad", "klayout")
+    tools_asic = ("sv2v", "yosys", "openroad", "klayout", "opensta")
     tools_fpga = ("sv2v", "yosys", "vpr", "wildebeest", "opensta")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
@@ -751,7 +752,7 @@ def test_groups(monkeypatch, fake_plugins):
 
     assert 'fpga' in recommend
     assert recommend["fpga"] == "fpga group is not available for "\
-        "<os> due to lack of support for the following tools: opensta, vpr"\
+        "<os> due to lack of support for the following tools: vpr"\
         ", wildebeest"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
@@ -1241,7 +1242,8 @@ def test_jobs_with_group(call, monkeypatch):
             "yosys": "yosys.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
-            "klayout": "klayout.sh"
+            "klayout": "klayout.sh",
+            "opensta": "opensta.sh"
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
@@ -1251,7 +1253,7 @@ def test_jobs_with_group(call, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', '-jobs', str(jobs_count)])
     assert sc_install.main() == 0
 
-    assert call.call_count == 4
+    assert call.call_count == 5
     # Check that NPROC was set in all calls
     for call_arg in call.call_args_list:
         call_kwargs = call_arg.kwargs

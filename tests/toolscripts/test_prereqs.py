@@ -100,10 +100,12 @@ echo "${SC_TEST_UID:-1000}"
 }
 
 DEB_STUBS = {
-    # dpkg-query -W -f='${Status}' <pkg>. Only "install ok installed" means the
-    # package is there; "deinstall ok config-files" is the removed-but-not-purged
-    # state that `dpkg -s` would wrongly accept, and an unknown name exits 1 with
-    # no output, exactly as the real dpkg-query does.
+    # dpkg-query -W -f='${Architecture} ${Status}\n' <pkg>. Only "install ok
+    # installed" means the package is there; "deinstall ok config-files" is the
+    # removed-but-not-purged state that `dpkg -s` would wrongly accept, and an
+    # unknown name exits 1 with no output, exactly as the real dpkg-query does.
+    # multiarch-* and foreign-* are a Multi-Arch: same package with an i386 copy
+    # beside the native one, and with only the i386 copy.
     "dpkg-query": """#!/bin/sh
 # With no package argument this is the "list the whole database" form that
 # sc_remove_build_only walks. SC_TEST_DB holds "name|depends" lines.
@@ -137,20 +139,26 @@ case "$2" in
         exit 0 ;;
 esac
 case "$3" in
-    present-*) echo "install ok installed"; exit 0 ;;
-    configfiles-*) echo "deinstall ok config-files"; exit 0 ;;
+    present-*) echo "amd64 install ok installed"; exit 0 ;;
+    indep-*) echo "all install ok installed"; exit 0 ;;
+    configfiles-*) echo "amd64 deinstall ok config-files"; exit 0 ;;
+    multiarch-*) printf 'amd64 install ok installed\ni386 install ok installed\n'; exit 0 ;;
+    foreign-*) echo "i386 install ok installed"; exit 0 ;;
 esac
 # Anything named in SC_TEST_DB counts as installed.
 if [ -f "$SC_TEST_DB" ] && sed 's/|.*//' "$SC_TEST_DB" | grep -qx "$3"; then
-    echo "install ok installed"; exit 0
+    echo "amd64 install ok installed"; exit 0
 fi
 # Anything this run installed also reads as installed. Without it the stub
 # cannot represent "was missing, now present", which makes an
 # install-then-remove sequence untestable.
 if [ -f "$SC_TEST_STATE" ] && grep -qx "$3" "$SC_TEST_STATE"; then
-    echo "install ok installed"; exit 0
+    echo "amd64 install ok installed"; exit 0
 fi
 exit 1
+""",
+    "dpkg": """#!/bin/sh
+[ "$1" = --print-architecture ] && echo amd64
 """,
     "apt-get": """#!/bin/sh
 echo "apt-get $*" >> "$SC_TEST_LOG"
@@ -286,11 +294,18 @@ def test_missing_package_is_installed(run_prereqs):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-def test_config_files_state_counts_as_missing(run_prereqs):
-    """A removed-but-not-purged package is reinstalled, not skipped."""
-    log = run_prereqs("install_prereqs configfiles-tcl-dev")
+@pytest.mark.parametrize("pkg,missing", [
+    ("configfiles-tcl-dev", True),
+    ("multiarch-zlib1g-dev", False),
+    ("foreign-zlib1g-dev", True),
+    ("indep-autotools-dev", False),
+])
+def test_only_a_native_install_counts(run_prereqs, pkg, missing):
+    """Only a fully installed native or architecture-independent copy skips the
+    install, so an i386 copy beside it no longer forces a reinstall every run."""
+    log = run_prereqs(f"install_prereqs {pkg}")
 
-    assert "apt-get install -y configfiles-tcl-dev" in log
+    assert (f"apt-get install -y {pkg}" in log) == missing
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
