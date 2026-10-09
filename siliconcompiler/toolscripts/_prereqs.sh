@@ -77,16 +77,26 @@ apt_update() {
     _sc_apt_updated="yes"
 }
 
+# True when dpkg reports PKG fully installed for this machine's architecture.
+_sc_deb_installed() {
+    # Test the status string rather than using `dpkg -s`, which also succeeds
+    # for a removed-but-not-purged package whose config files are all that is
+    # left. "install ok installed" is the state that means the package is
+    # actually there.
+    #
+    # A Multi-Arch: same package such as zlib1g-dev gets a line per installed
+    # architecture once a foreign one is enabled, and only a native or
+    # architecture-independent copy builds a native tool. An i386 copy alone
+    # therefore reads as missing.
+    dpkg-query -W -f='${Architecture} ${Status}\n' "$1" 2>/dev/null |
+        grep -Eq "^($(dpkg --print-architecture)|all) install ok installed$"
+}
+
 # Echo the subset of "$@" that dpkg does not report as fully installed.
 _sc_missing_deb() {
     _sc_missing=""
     for _sc_pkg in "$@"; do
-        # Test the status string rather than using `dpkg -s`, which also
-        # succeeds for a removed-but-not-purged package whose config files are
-        # all that is left. "install ok installed" is the state that means the
-        # package is actually there.
-        if ! dpkg-query -W -f='${Status}' "$_sc_pkg" 2>/dev/null |
-                grep -q '^install ok installed$'; then
+        if ! _sc_deb_installed "$_sc_pkg"; then
             _sc_missing="$_sc_missing $_sc_pkg"
         fi
     done
@@ -261,8 +271,7 @@ install_prereq_group() {
 _sc_installed_deb() {
     _sc_installed=""
     for _sc_pkg in "$@"; do
-        if dpkg-query -W -f='${Status}' "$_sc_pkg" 2>/dev/null |
-                grep -q '^install ok installed$'; then
+        if _sc_deb_installed "$_sc_pkg"; then
             _sc_installed="$_sc_installed $_sc_pkg"
         fi
     done
