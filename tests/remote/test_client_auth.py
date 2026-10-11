@@ -171,6 +171,31 @@ def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
     assert "grant_types_supported" not in tmp_credentials.path.read_text()
 
 
+def test_the_login_prompt_shows_what_the_approval_page_shows(
+        fake_v1, tmp_credentials, capabilities, no_sleep, monkeypatch, caplog):
+    '''Beside the code, the machine key the server computes from this machine's
+    proof, and the host it was told.'''
+    import logging
+
+    monkeypatch.setattr("platform.node", lambda: "fabric-ws-3")
+    _offer(fake_v1, capabilities, GRANT_DEVICE_CODE, "refresh_token")
+    fake_v1.route(responses.POST, "auth/device",
+                  {"device_code": "dc", "user_code": "ABCD-EFGH",
+                   "verification_uri": "https://sc-server.test/device",
+                   "interval": 1, "expires_in": 600})
+    fake_v1.route(responses.POST, "auth/token",
+                  {"access_token": "a", "token_type": "DPoP", "expires_in": 900,
+                   "refresh_token": "r"})
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).login()
+
+    assert "enter the code ABCD-EFGH" in caplog.text
+    assert f"Machine key: {tmp_credentials.thumbprint} " in caplog.text
+    assert "This machine: fabric-ws-3" in caplog.text
+    assert _form(_posts(fake_v1, "auth/device")[0].body)["requesting_host"] == "fabric-ws-3"
+
+
 @pytest.mark.parametrize("body,status,headers", [
     ("<html><body>Forbidden</body></html>", 403, None),
     ("", 302, {"Location": "https://idp.example/login"}),

@@ -389,6 +389,11 @@ class Client:
             uri = started.get("verification_uri") or ""
             code = started.get("user_code") or ""
             self.logger.info(f"To log in, open {clean(uri)} and enter the code {clean(code)}")
+            # What the approval page shows beside the code. The server computes the key
+            # from this machine's proof, so a code somebody else started shows another.
+            self.logger.info(f"Machine key: {clean(self.credentials.thumbprint)} "
+                             "(the approval page shows the same)")
+            self.logger.info(f"This machine: {clean(host)}")
             self.open_url(uri, "the login page")
 
             interval = max(1, int(started.get("interval") or 5))

@@ -41,8 +41,15 @@ The command reaches the server, logs in, and reports what it found:
   You are 01a0cac7-2bb6-75ae-bdfd-59ff615f6dc1 on this server
   Saved to /home/user/.sc/auth/remote.json
 
+Where the server has a person approve the login, the command prints the page
+to open and the code to enter, with this machine's key and name. The approval
+page shows the key too: check that the two match before you approve, since a
+code somebody else started shows a key that is not yours.
+
 There is no default server, so the address is required: leaving it out is an
-error rather than a redirect somewhere you did not choose.
+error rather than a redirect somewhere you did not choose. A server the command
+cannot reach or log in to is not saved. Each server you configure keeps its own
+session, so switching back to one needs no new login.
 
 What is written, and where
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
