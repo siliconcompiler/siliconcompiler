@@ -1067,22 +1067,10 @@ class Client:
 
         return LogTail(self, job_id, step, index).follow(write=write)
 
-    def configure_server(self, server: Optional[str] = None,
-                         clobber: bool = False,
-                         prompt: bool = True) -> None:
-        '''Point this machine at a server and prove it can reach it. An
-        unanswerable prompt writes nothing: a half-written store fails later.'''
-        if self.credentials.server and not clobber:
-            if not prompt:
-                raise RemoteError(
-                    f"{self.credentials.path} already configures "
-                    f"{self.credentials.server}; pass clobber=True instead")
-            answer = _ask(f"Overwrite the configuration for "
-                          f"{self.credentials.server}? [y/N] ")
-            if answer.strip().lower() not in ("y", "yes"):
-                self.logger.info("Left unchanged.")
-                return
-
+    def configure_server(self, server: Optional[str] = None, prompt: bool = True) -> None:
+        '''Make a server this machine's default, once it is reached and logged in
+        to. Each server keeps its own entry, so switching overwrites nothing;
+        one that cannot be used leaves the store as it was.'''
         if not server and prompt:
             server = _ask("Remote server address: ",
                           hint="choose a server address with -server")
@@ -1101,14 +1089,20 @@ class Client:
                 "server authenticates with a key held on this machine, which "
                 "is generated for you.")
 
-        # Each server has its own entry; configuring one again starts afresh.
-        self.credentials.set_server(normalize_server(address, port))
-        self._transport = self._make_transport(self.credentials.server)
-        self.credentials.forget_tokens()
-
-        capabilities = self.capabilities()
-        self.login()
-        identity = self.me()
+        previous = self.credentials.server
+        candidate = normalize_server(address, port)
+        added = not self.credentials.knows(candidate)
+        # Selected for the login, which saves the session in this server's entry.
+        self.credentials.set_server(candidate)
+        self._transport = self._make_transport(candidate)
+        try:
+            capabilities = self.capabilities()
+            self.ensure_session()
+            identity = self.me()
+        except BaseException:
+            self.credentials.restore_server(previous, drop=candidate if added else None)
+            self._transport = self._make_transport(previous) if previous else None
+            raise
 
         self.logger.info(f"Configured {self.base_url}")
         self.logger.info(f"This machine's key: {self.credentials.thumbprint}")

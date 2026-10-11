@@ -165,6 +165,21 @@ class Credentials:
         with self.transaction():
             self._store.set(_STORE, "server", normalize_server(server))
 
+    def knows(self, server: str) -> bool:
+        '''Whether ``server`` already has an entry here.'''
+        return bool(self._store.get(_SERVERS, server))
+
+    def restore_server(self, server: Optional[str], drop: Optional[str] = None) -> None:
+        '''Make ``server`` the default again (None for none), removing the entry
+        ``drop``: what a configure that failed leaves.'''
+        with self.transaction():
+            if server:
+                self._store.set(_STORE, "server", server)
+            else:
+                self._store.delete(_STORE, "server")
+            if drop:
+                self._store.delete(_SERVERS, drop)
+
     def set_directory_whitelist(self, entries) -> None:
         with self.transaction():
             self._store.set(_STORE, "directory_whitelist", list(entries))

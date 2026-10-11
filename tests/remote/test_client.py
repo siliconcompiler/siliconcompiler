@@ -685,12 +685,63 @@ def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credenti
     fake_v1.route(responses.GET, "me", {"id": "u-new", "issuer": "local"})
 
     caplog.set_level(logging.INFO)
-    Client(tmp_credentials).configure_server(
-        server=V1_URL.rsplit("/v1", 1)[0], clobber=True, prompt=False)
+    Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0], prompt=False)
 
     assert tmp_credentials.user_id == "u-new"
     assert all(line in caplog.text for line in said)
     assert not any(line in caplog.text for line in unsaid)
+
+
+OTHER_URL = "https://other.test/v1"
+
+
+def test_switching_servers_asks_nothing_and_keeps_each_session(
+        fake_v1, capabilities, tmp_credentials, client_credentials, monkeypatch):
+    '''Each server keeps its own entry, so a switch overwrites nothing; switching
+    back refreshes the session that server already has.'''
+    from conftest import FakeV1
+
+    monkeypatch.setattr("siliconcompiler.remote.client._ask",
+                        lambda *args, **kwargs: pytest.fail("asked a question"))
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-first"})
+    other = FakeV1(fake_v1._mock, OTHER_URL)
+    other.route(responses.GET, "", capabilities)
+    other.route(responses.POST, "auth/token",
+                {**client_credentials, "refresh_token": "refresh-for-the-other"})
+    other.route(responses.GET, "me", {"id": "u-other", "issuer": "local"})
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    Client(tmp_credentials).configure_server(server=OTHER_URL.rsplit("/v1", 1)[0])
+    assert tmp_credentials.server == OTHER_URL
+    assert tmp_credentials.refresh_token == "refresh-for-the-other"
+
+    Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0])
+    assert tmp_credentials.server == V1_URL
+    assert _grants(fake_v1)[-1] == "refresh_token"
+
+
+@pytest.mark.parametrize("configured", [True, False], ids=["switching", "first"])
+@pytest.mark.parametrize("failure", ["unreachable", "login-refused"])
+def test_a_server_that_cannot_be_used_is_not_saved(fake_v1, capabilities, configured,
+                                                   failure):
+    '''Configuring either works or changes nothing: the default stays what it was,
+    and the new server gets no entry.'''
+    from conftest import FakeV1
+
+    credentials = Credentials(Path("sc-home/auth/remote.json"))
+    if configured:
+        credentials.set_server(V1_URL.rsplit("/v1", 1)[0])
+    if failure == "login-refused":
+        other = FakeV1(fake_v1._mock, OTHER_URL)
+        other.route(responses.GET, "", capabilities)
+        other.route(responses.POST, "auth/token", {"error": "invalid_client"}, status=401)
+
+    with pytest.raises(RemoteError):
+        Client(credentials).configure_server(server=OTHER_URL.rsplit("/v1", 1)[0])
+
+    assert credentials.server == (V1_URL if configured else None)
+    assert not credentials.knows(OTHER_URL)
 
 
 def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
