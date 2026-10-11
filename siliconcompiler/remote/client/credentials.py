@@ -18,11 +18,12 @@ import contextlib
 import json
 import logging
 import os
+import re
 import stat
 import sys
 
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import RemoteError
@@ -36,6 +37,8 @@ AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
 
 STORE_FILENAME = "remote.json"
 KEY_FILENAME = "dpop-key.pem"
+# Certificate authorities a person imported, to verify a server with.
+CERTS_DIRNAME = "certs"
 
 CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
 
@@ -180,6 +183,62 @@ class Credentials:
             if drop:
                 self._store.delete(_SERVERS, drop)
 
+    @property
+    def certs_dir(self) -> Path:
+        return self.auth_dir / CERTS_DIRNAME
+
+    @property
+    def certificate(self) -> Optional[str]:
+        '''The imported certificate this server is verified with, if any.'''
+        return self._entry().get("certificate")
+
+    def set_certificate(self, name: Optional[str]) -> None:
+        self._update_entry(certificate=name)
+
+    def certificates(self) -> List[str]:
+        '''The names of the certificates imported here.'''
+        if not self.certs_dir.is_dir():
+            return []
+        return sorted(path.stem for path in self.certs_dir.glob("*.pem"))
+
+    def certificate_path(self, name: str) -> Path:
+        return self.certs_dir / f"{name}.pem"
+
+    def import_certificate(self, path) -> Tuple[str, List[Tuple[str, str]]]:
+        '''Keep a PEM certificate, or a bundle of them, as an authority to trust;
+        returns its name and each certificate's subject and SHA-256 fingerprint.'''
+        source = Path(path)
+        try:
+            payload = source.read_bytes()
+        except OSError as e:
+            raise StoreError(f"{source} cannot be read: {e.strerror or e}") from None
+        found = describe_certificates(payload)
+        name = re.sub(r"[^A-Za-z0-9._-]", "_", source.stem).strip(".") or "certificate"
+        target = self.certificate_path(name)
+        if target.exists() and target.read_bytes() != payload:
+            raise StoreError(f"a different certificate is already imported as {name}: "
+                             "rename the file to import this one beside it")
+        self._ensure_dir()
+        if not self.certs_dir.exists():
+            # Private: a certificate added here is one the client trusts.
+            os.mkdir(self.certs_dir, _PRIVATE_DIR)
+        _write_atomic(target, payload)
+        return name, found
+
+    def trust_bundle(self, name: str) -> Path:
+        '''What requests trusts by default, plus the certificate ``name``: added
+        to, never in place of, so storage on a public host still verifies.'''
+        from requests.utils import DEFAULT_CA_BUNDLE_PATH
+
+        sources = [Path(DEFAULT_CA_BUNDLE_PATH), self.certificate_path(name)]
+        bundle = self.certs_dir / f".{name}.trust"
+        newest = max(source.stat().st_mtime for source in sources)
+        if not bundle.exists() or bundle.stat().st_mtime < newest:
+            payload = b"".join(
+                source.read_bytes().rstrip(b"\n") + b"\n" for source in sources)
+            _write_atomic(bundle, payload)
+        return bundle
+
     def set_directory_whitelist(self, entries) -> None:
         with self.transaction():
             self._store.set(_STORE, "directory_whitelist", list(entries))
@@ -285,6 +344,11 @@ class Credentials:
                 continue
             if stat.S_IMODE(os.lstat(entry).st_mode) & 0o077 or entry.is_symlink():
                 wrong.append(str(entry))
+        if self.certs_dir.is_dir():
+            # One others could change is an authority they chose.
+            for entry in (self.certs_dir, *self.certs_dir.iterdir()):
+                if stat.S_IMODE(os.lstat(entry).st_mode) & 0o077 or entry.is_symlink():
+                    wrong.append(str(entry))
         if wrong:
             raise StoreError(
                 f"the session store is readable by others: {', '.join(wrong)}. "
@@ -404,6 +468,23 @@ def parse_ci_secret(secret: str):
     except Exception:                                           # noqa: BLE001
         raise RemoteError(f"the key in {CI_SECRET_VARIABLE} does not decode") from None
     return credential_id, key
+
+
+def describe_certificates(payload: bytes) -> List[Tuple[str, str]]:
+    '''Each PEM certificate in ``payload``, as its subject and SHA-256 fingerprint;
+    a StoreError where there is none.'''
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes
+
+    try:
+        found = x509.load_pem_x509_certificates(payload)
+    except ValueError:
+        found = []
+    if not found:
+        raise StoreError("it holds no PEM certificate")
+    return [(certificate.subject.rfc4514_string(),
+             certificate.fingerprint(hashes.SHA256()).hex(":").upper())
+            for certificate in found]
 
 
 def _write_atomic(path, payload: bytes, mode: int = _PRIVATE_FILE) -> None:

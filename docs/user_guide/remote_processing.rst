@@ -56,7 +56,7 @@ What is written, and where
 
 Everything is in one private directory, ``$HOME/.sc/auth/``
 (``C:\Users\<USERNAME>\.sc\auth\`` on Windows) -- or wherever ``SC_AUTH_DIR``
-points -- in two files:
+points -- in two files, and a directory once you import a certificate:
 
 ``dpop-key.pem``
   Your machine's private key. **This is the credential.**
@@ -71,6 +71,10 @@ points -- in two files:
   session this machine holds -- its scope, the device it is bound to, and when
   its tokens and the session itself end -- as the server reports it.
 
+``certs/``
+  The certificate authorities you imported with ``sc-remote -import_cert``;
+  ``remote.json`` records which one each server is verified with.
+
 The headers are configured once, for the server, and sent to its address and
 nowhere else: a live log or a download arrives through the server's own
 address, or from somewhere that needs none. A ``$HOME/.sc/credentials`` file an
@@ -83,6 +87,26 @@ Nothing else goes with a request. The client never sends a credential it did
 not put there itself, so an entry for the server in ``~/.netrc``, a credential
 helper or a keychain is not used, while ``HTTPS_PROXY``, ``NO_PROXY`` and
 ``REQUESTS_CA_BUNDLE`` still apply.
+
+A server signed by your own authority
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Where the server's certificate is signed by a certificate authority of your
+organisation's, import that authority's certificate once:
+
+.. code-block:: bash
+
+  sc-remote -import_cert ./our-ca.pem
+
+It prints each certificate's subject and SHA-256 fingerprint: check them with
+whoever runs the server. Then, when ``sc-remote -configure`` cannot verify a
+server's certificate, it lists the certificates you imported and asks which
+one signs it, and the server is verified with that one from then on. Only
+``-configure`` asks; any other command fails and says to run it. An imported
+certificate is trusted in addition to the usual authorities, never in place
+of them, so an upload to public storage still verifies. A
+``REQUESTS_CA_BUNDLE`` in the environment still takes precedence. The client
+never trusts a certificate the server presents: only one you imported.
 
 .. warning::
 

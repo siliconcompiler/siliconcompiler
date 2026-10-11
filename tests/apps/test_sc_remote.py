@@ -129,3 +129,27 @@ def test_a_jobs_status_says_why_and_what_became_of_it(caplog, state, extra, said
     assert all(line in caplog.text for line in said)
     assert not any(line in caplog.text for line in unsaid)
     assert "\x07" not in caplog.text and "\x1b]" not in caplog.text
+
+
+def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
+    '''The certificate lands in the store's own directory, its fingerprint said.'''
+    import datetime
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Our CA")])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    authority = (x509.CertificateBuilder().subject_name(name).issuer_name(name)
+                 .public_key(key.public_key()).serial_number(1).not_valid_before(now)
+                 .not_valid_after(now + datetime.timedelta(days=1)).sign(key, hashes.SHA256()))
+    Path("our-ca.pem").write_bytes(authority.public_bytes(serialization.Encoding.PEM))
+
+    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json',
+                '-import_cert', 'our-ca.pem') == 0
+
+    assert Path("sc-auth/certs/our-ca.pem").read_bytes() == Path("our-ca.pem").read_bytes()
+    assert authority.fingerprint(hashes.SHA256()).hex(":").upper() in caplog.text

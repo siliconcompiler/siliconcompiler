@@ -14,6 +14,7 @@ redirect on a ``/v1`` path is the edge refusing.
 import email.utils
 import logging
 import re
+import ssl
 import threading
 import time
 
@@ -31,7 +32,7 @@ from siliconcompiler.remote.client.errors import (
 from siliconcompiler.utils.units import format_duration
 
 __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
-           "OAuthRefusal", "LoginRequired", "USER_AGENT"]
+           "CertificateRefused", "OAuthRefusal", "LoginRequired", "USER_AGENT"]
 
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,16 @@ class EdgeRefused(RemoteError):
             f"the edge refused this request: check the Cloudflare credentials -- the "
             f"operator-configured headers for {origin} (sc-remote -header). This is an "
             "intermediary in front of the server, not the API")
+
+
+class CertificateRefused(RemoteError):
+    '''The server's TLS certificate could not be verified.'''
+
+    def __init__(self, origin: str, why: str):
+        super().__init__(
+            f"{origin}'s certificate could not be verified ({why}). If an authority of "
+            "your own signs it, import that authority's certificate with sc-remote "
+            "-import_cert <file>, then run sc-remote -configure again to choose it")
 
 
 class OAuthRefusal(RemoteError):
@@ -144,13 +155,16 @@ class Transport:
     '''Signs, sends, retries and renders. Holds the key and the tokens; knows
     nothing about jobs.'''
 
-    def __init__(self, base_url: str, key, credentials):
+    def __init__(self, base_url: str, key, credentials, verify: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
         self._key = key
         self._credentials = credentials
         self._session = requests.Session()
         # Never netrc, never a credential from the environment.
         self._session.auth = _NoEnvironmentCredential()
+        if verify:
+            # A REQUESTS_CA_BUNDLE in the environment still wins: requests applies it first.
+            self._session.verify = verify
 
         self._access_token: Optional[str] = None
         self._access_expires: Optional[float] = None
@@ -262,6 +276,9 @@ class Transport:
                 params=params, headers=sent, timeout=TIMEOUT_SECONDS,
                 allow_redirects=False, stream=stream)
         except (requests.Timeout, requests.ConnectionError) as e:
+            if _unverified(e):
+                # Never retried: the same certificate is refused the same way.
+                raise CertificateRefused(self.api_origin, _why(e)) from None
             # A lost answer: safe to resend, since a refresh in the grace window
             # gets the same pair and a keyed create or submit replays.
             if _attempt < MAX_RETRIES and (isinstance(e, requests.Timeout) or oauth
@@ -631,6 +648,21 @@ def _skew(response) -> Optional[float]:
     if theirs.tzinfo is None:
         theirs = theirs.replace(tzinfo=timezone.utc)
     return (datetime.now(timezone.utc) - theirs).total_seconds()
+
+
+def _unverified(exc: BaseException) -> bool:
+    '''Whether a failure to connect was the server's certificate failing verification.'''
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        if isinstance(exc, ssl.SSLCertVerificationError):
+            return True
+        inner = getattr(exc, "reason", None)
+        if not isinstance(inner, BaseException) and exc.args \
+                and isinstance(exc.args[0], BaseException):
+            inner = exc.args[0]
+        exc = inner if isinstance(inner, BaseException) else exc.__context__
+    return False
 
 
 def _why(exc: Exception) -> str:

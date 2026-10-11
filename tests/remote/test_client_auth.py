@@ -1098,3 +1098,230 @@ def test_a_rotation_the_server_cannot_hear_still_rotates(
 
     assert tmp_credentials.thumbprint != old
     assert "releases the binding" in caplog.text
+
+
+def _authority(directory, name="Our CA"):
+    '''An authority of our own, and a certificate for 127.0.0.1 it signs; returns
+    the authority's file and the server's certificate and key files.'''
+    import datetime
+    import ipaddress
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def issue(subject, issuer, key, signer, extensions):
+        builder = (x509.CertificateBuilder().subject_name(subject).issuer_name(issuer)
+                   .public_key(key.public_key()).serial_number(x509.random_serial_number())
+                   .not_valid_before(now - datetime.timedelta(minutes=5))
+                   .not_valid_after(now + datetime.timedelta(days=1)))
+        for extension, critical in extensions:
+            builder = builder.add_extension(extension, critical)
+        return builder.sign(signer, hashes.SHA256())
+
+    def usage(**granted):
+        flags = dict.fromkeys(("digital_signature", "content_commitment", "key_encipherment",
+                               "data_encipherment", "key_agreement", "key_cert_sign",
+                               "crl_sign", "encipher_only", "decipher_only"), False)
+        return x509.KeyUsage(**{**flags, **granted})
+
+    ca_key = ec.generate_private_key(ec.SECP256R1())
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
+    ca = issue(ca_name, ca_name, ca_key, ca_key, [
+        (x509.BasicConstraints(ca=True, path_length=None), True),
+        (usage(key_cert_sign=True, crl_sign=True), True),
+        (x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), False)])
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    leaf = issue(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "127.0.0.1")]),
+                 ca_name, key, ca_key, [
+                     (x509.BasicConstraints(ca=False, path_length=None), True),
+                     (usage(digital_signature=True), True),
+                     (x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), False),
+                     (x509.SubjectAlternativeName(
+                         [x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), False),
+                     (x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                         ca_key.public_key()), False)])
+
+    files = [directory / "our-ca.pem", directory / "server.pem", directory / "server.key"]
+    files[0].write_bytes(ca.public_bytes(serialization.Encoding.PEM))
+    files[1].write_bytes(leaf.public_bytes(serialization.Encoding.PEM))
+    files[2].write_bytes(key.private_bytes(serialization.Encoding.PEM,
+                                           serialization.PrivateFormat.PKCS8,
+                                           serialization.NoEncryption()))
+    return files
+
+
+@pytest.fixture
+def tls_server(capabilities, client_credentials, monkeypatch):
+    '''A v1 server over real TLS on this machine, its certificate signed by an
+    authority of its own; yields its address and that authority's file.'''
+    import http.server
+    import ssl
+    import threading
+    from pathlib import Path
+
+    for name in ("REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE", "HTTPS_PROXY", "https_proxy"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+
+    directory = Path("tls")
+    directory.mkdir()
+    authority, certificate, key = _authority(directory)
+    answers = {("GET", "/v1"): capabilities, ("POST", "/v1/auth/token"): client_credentials,
+               ("GET", "/v1/me"): {"id": "u1", "issuer": "local"}}
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def answer(self):
+            self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            body = answers.get((self.command, self.path.split("?")[0]))
+            payload = json.dumps(body or {}).encode()
+            self.send_response(200 if body is not None else 404)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        do_GET = do_POST = answer
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(str(certificate), str(key))
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        yield f"https://127.0.0.1:{server.server_address[1]}", authority
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def _store():
+    from pathlib import Path
+
+    return Credentials(Path("sc-home/auth/remote.json"))
+
+
+def test_an_imported_authority_is_kept_privately_and_its_fingerprint_said(tmp_path):
+    '''Re-importing the same file is harmless; another under its name, or a file
+    with no certificate, is refused.'''
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes
+
+    authority, certificate, _ = _authority(tmp_path)
+    store = _store()
+
+    name, found = store.import_certificate(authority)
+
+    expected = x509.load_pem_x509_certificate(authority.read_bytes())
+    assert (name, store.certificates()) == ("our-ca", ["our-ca"])
+    assert found == [("CN=Our CA", expected.fingerprint(hashes.SHA256()).hex(":").upper())]
+    assert store.import_certificate(authority)[0] == "our-ca"
+    if sys.platform != "win32":
+        assert _mode(store.certs_dir) == 0o700
+        assert _mode(store.certificate_path("our-ca")) == 0o600
+    renamed = tmp_path / "elsewhere" / "our-ca.pem"
+    renamed.parent.mkdir()
+    renamed.write_bytes(certificate.read_bytes())
+    with pytest.raises(StoreError, match="already imported as our-ca"):
+        store.import_certificate(renamed)
+    (tmp_path / "notes.pem").write_text("not a certificate")
+    with pytest.raises(StoreError, match="no PEM certificate"):
+        store.import_certificate(tmp_path / "notes.pem")
+
+
+def test_configure_offers_an_imported_authority_and_keeps_the_choice(tls_server, monkeypatch):
+    '''Asked once, in -configure; every later command verifies with the choice.'''
+    url, authority = tls_server
+    store = _store()
+    store.import_certificate(authority)
+    asked = []
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("siliconcompiler.remote.client._ask",
+                        lambda question, hint=None: asked.append(question) or "1")
+
+    Client(store).configure_server(server=url)
+
+    assert (store.server, store.certificate) == (f"{url}/v1", "our-ca")
+    assert len(asked) == 1
+    monkeypatch.setattr("siliconcompiler.remote.client._ask",
+                        lambda *args, **kwargs: pytest.fail("asked again"))
+    assert Client(store).me()["id"] == "u1"
+
+
+@pytest.mark.parametrize("imported,terminal,answer", [
+    (False, True, "1"), (True, False, "1"), (True, True, ""),
+], ids=["nothing-imported", "no-terminal", "declined"])
+def test_an_unverified_certificate_is_said_and_nothing_saved(tls_server, monkeypatch,
+                                                             imported, terminal, answer):
+    '''The failure names -import_cert; the client never trusts what the server
+    presents, and a server it could not verify is not saved.'''
+    from siliconcompiler.remote.client.transport import CertificateRefused
+
+    url, authority = tls_server
+    store = _store()
+    if imported:
+        store.import_certificate(authority)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: terminal)
+    monkeypatch.setattr("siliconcompiler.remote.client._ask", lambda *args, **kwargs: answer)
+
+    with pytest.raises(CertificateRefused, match="sc-remote -import_cert"):
+        Client(store).configure_server(server=url)
+
+    assert (store.server, store.certificate) == (None, None)
+
+
+def test_only_configure_asks_which_authority(tls_server, monkeypatch):
+    '''Any other command fails and says to configure; a submit never stops for a question.'''
+    from siliconcompiler.remote.client.transport import CertificateRefused
+
+    url, authority = tls_server
+    store = _store()
+    store.import_certificate(authority)
+    store.set_server(url)
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("siliconcompiler.remote.client._ask",
+                        lambda *args, **kwargs: pytest.fail("asked outside -configure"))
+
+    with pytest.raises(CertificateRefused, match="sc-remote -configure"):
+        Client(store).capabilities()
+
+
+def test_an_imported_authority_is_trusted_beside_the_usual_ones(tmp_path, monkeypatch):
+    '''Added to, never in place of, so public storage still verifies; a
+    REQUESTS_CA_BUNDLE in the environment still wins.'''
+    from requests.utils import DEFAULT_CA_BUNDLE_PATH
+
+    authority, _, _ = _authority(tmp_path)
+    store = _store()
+    store.import_certificate(authority)
+    store.set_server("https://ours.test")
+    store.set_certificate("our-ca")
+
+    client = Client(store)
+    bundle = store.trust_bundle("our-ca").read_bytes()
+    session = client.transport._session
+
+    assert open(DEFAULT_CA_BUNDLE_PATH, "rb").read().strip() in bundle
+    assert authority.read_bytes().strip() in bundle
+    assert session.verify == str(store.trust_bundle("our-ca"))
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(authority))
+    assert session.merge_environment_settings(
+        client.base_url, {}, None, None, None)["verify"] == str(authority)
+
+
+@posix_only
+def test_an_authority_others_can_change_stops_the_client(tmp_path):
+    authority, _, _ = _authority(tmp_path)
+    store = _store()
+    store.import_certificate(authority)
+    os.chmod(store.certificate_path("our-ca"), 0o666)
+
+    with pytest.raises(StoreError):
+        Credentials(store.path)

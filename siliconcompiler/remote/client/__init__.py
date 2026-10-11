@@ -8,13 +8,14 @@ import time
 
 from typing import Any, Dict, List, Optional
 
-from siliconcompiler.remote.client.credentials import Credentials, parse_ci_secret
+from siliconcompiler.remote.client.credentials import (
+    Credentials, describe_certificates, parse_ci_secret)
 from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, clean, describe)
 from siliconcompiler.remote.client.identity import local_subject, display_name
 from siliconcompiler.remote.client.transport import (
-    EdgeRefused, OAuthRefusal, Transport, _retry_after, authenticates, normalize_server,
-    origin_of)
+    CertificateRefused, EdgeRefused, OAuthRefusal, Transport, _retry_after, authenticates,
+    normalize_server, origin_of)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
@@ -72,12 +73,26 @@ class Client:
 
         self._transport = self._make_transport(credentials.server)
 
-    def _make_transport(self, base_url: str) -> Transport:
-        transport = Transport(base_url, self.credentials.key(), self.credentials)
+    def _make_transport(self, base_url: str, certificate: Optional[str] = None) -> Transport:
+        '''A transport for the selected server, verified with ``certificate`` or the
+        one recorded for it.'''
+        transport = Transport(base_url, self.credentials.key(), self.credentials,
+                              verify=self._trust(certificate or self.credentials.certificate))
         transport.relogin = self._relogin
         transport.fingerprint = self._fingerprint
         transport.warn = self.logger.warning
         return transport
+
+    def _trust(self, name: Optional[str]) -> Optional[str]:
+        '''The CA bundle for an imported certificate; None for the default.'''
+        if not name:
+            return None
+        if not self.credentials.certificate_path(name).is_file():
+            self.logger.warning(
+                f"The certificate {name} chosen for this server is not in "
+                f"{self.credentials.certs_dir}: import it again with sc-remote -import_cert")
+            return None
+        return str(self.credentials.trust_bundle(name))
 
     @property
     def transport(self) -> Transport:
@@ -100,6 +115,9 @@ class Client:
 
         self.logger.info(f"Machine key: {self.credentials.thumbprint}")
         self.logger.info(f"Session store: {self.credentials.auth_dir}")
+        if self.credentials.certificate:
+            self.logger.info(f"Verified with: {self.credentials.certificate} "
+                             f"({self.credentials.certs_dir})")
         if self.credentials.user_id:
             self.logger.info(f"Identity on this server: {self.credentials.user_id}")
 
@@ -1101,13 +1119,15 @@ class Client:
         self.credentials.set_server(candidate)
         self._transport = self._make_transport(candidate)
         try:
-            capabilities = self.capabilities()
+            capabilities, chosen = self._reach(prompt)
             self.ensure_session()
             identity = self.me()
         except BaseException:
             self.credentials.restore_server(previous, drop=candidate if added else None)
             self._transport = self._make_transport(previous) if previous else None
             raise
+        if chosen:
+            self.credentials.set_certificate(chosen)
 
         self.logger.info(f"Configured {self.base_url}")
         self.logger.info(f"This machine's key: {self.credentials.thumbprint}")
@@ -1120,6 +1140,49 @@ class Client:
                 "separated from other users', but that separation is not a "
                 "security boundary.")
         self.logger.info(f"Saved to {self.credentials.path}")
+
+    def _reach(self, prompt: bool):
+        '''GET /v1, and where the server's certificate cannot be verified, the
+        imported one chosen to verify it: asked here, in no other command.'''
+        try:
+            return self.capabilities(), None
+        except CertificateRefused:
+            names = self.credentials.certificates()
+            if not (prompt and names and sys.stdin.isatty()):
+                raise
+            name = self._choose_certificate(names)
+            if name is None:
+                raise
+        self._transport = self._make_transport(self.credentials.server, certificate=name)
+        return self.capabilities(), name
+
+    def _choose_certificate(self, names) -> Optional[str]:
+        self.logger.info("This server's certificate could not be verified. Certificates "
+                         "imported here:")
+        for number, name in enumerate(names, 1):
+            self.logger.info(f"  {number}. {name}")
+            payload = self.credentials.certificate_path(name).read_bytes()
+            for subject, fingerprint in describe_certificates(payload):
+                self.logger.info(f"     {subject}, SHA-256 {fingerprint}")
+        answer = _ask(f"Which signs this server's certificate? "
+                      f"[1-{len(names)}, blank for none] ").strip()
+        if not answer:
+            return None
+        if answer.isdigit() and 1 <= int(answer) <= len(names):
+            return names[int(answer) - 1]
+        raise RemoteError(f"{answer} is not one of 1 to {len(names)}")
+
+    def import_certificate(self, path) -> str:
+        '''Keep a certificate authority's certificate for -configure to offer
+        where a server's certificate cannot be verified.'''
+        name, found = self.credentials.import_certificate(path)
+        for subject, fingerprint in found:
+            self.logger.info(f"  {subject}")
+            self.logger.info(f"    SHA-256 {fingerprint}")
+        self.logger.info(f"Imported {name}. Check the fingerprint with whoever runs the "
+                         "server; sc-remote -configure offers it where a server's "
+                         "certificate cannot be verified.")
+        return name
 
     def _report_software(self, capabilities) -> None:
         '''What siliconcompiler this server runs, and whether this machine's is one.

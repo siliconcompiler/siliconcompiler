@@ -30,6 +30,10 @@ To configure a server, use:
     to display the full configuration of the store, ~/.sc/auth/remote.json
     sc-remote -configure -list
 
+To trust a certificate authority of your own, import its certificate; then
+-configure offers it where a server's certificate cannot be verified:
+    sc-remote -import_cert ./our-ca.pem
+
 To check an ongoing job's progress, use:
     sc-remote -cfg <stepdir>/outputs/<design>.pkg.json
 
@@ -105,6 +109,9 @@ To set a header the operator's access layer requires, use:
                                            "server; the value is read from standard input")
             self._add_commandline_argument("remove_header", "str",
                                            "remove an operator-required header")
+            self._add_commandline_argument("import_cert", "str",
+                                           "import a certificate authority's PEM "
+                                           "certificate for -configure to offer")
             self._add_commandline_argument("logout", "bool",
                                            "end this machine's session on the server")
             self._add_commandline_argument("no_browser", "bool",
@@ -128,6 +135,7 @@ To set a header the operator's access layer requires, use:
                   '-header',
                   '-remove_header',
                   '-logout',
+                  '-import_cert',
                   '-no_browser']
 
     remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
@@ -143,7 +151,8 @@ To set a header the operator's access layer requires, use:
 
 def _dispatch(remote):
     exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal',
-                 'rotate_key', 'ci_setup', 'header', 'remove_header', 'logout']
+                 'rotate_key', 'ci_setup', 'header', 'remove_header', 'logout',
+                 'import_cert']
     cfg_only = ['reconnect', 'cancel', 'delete', 'tail']
 
     exclusive_count = sum([1 for arg in exclusive if remote.get("cmdarg", arg)])
@@ -169,6 +178,10 @@ def _dispatch(remote):
 
     if remote.get("cmdarg", 'rotate_key'):
         client.rotate_key()
+        return 0
+
+    if remote.get("cmdarg", 'import_cert'):
+        client.import_certificate(remote.get("cmdarg", 'import_cert'))
         return 0
 
     if remote.get("cmdarg", 'logout'):
