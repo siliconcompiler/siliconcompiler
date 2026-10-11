@@ -30,6 +30,9 @@ To configure a server, use:
     to display the full configuration of the store, ~/.sc/auth/remote.json
     sc-remote -configure -list
 
+To switch to another server already configured on this machine, use:
+    sc-remote -use_server https://other.example.com
+
 To trust a certificate authority of your own, import its certificate; then
 -configure offers it where a server's certificate cannot be verified:
     sc-remote -import_cert ./our-ca.pem
@@ -109,6 +112,9 @@ To set a header the operator's access layer requires, use:
                                            "server; the value is read from standard input")
             self._add_commandline_argument("remove_header", "str",
                                            "remove an operator-required header")
+            self._add_commandline_argument("use_server", "str",
+                                           "make a server already configured here "
+                                           "the default")
             self._add_commandline_argument("import_cert", "str",
                                            "import a certificate authority's PEM "
                                            "certificate for -configure to offer")
@@ -135,6 +141,7 @@ To set a header the operator's access layer requires, use:
                   '-header',
                   '-remove_header',
                   '-logout',
+                  '-use_server',
                   '-import_cert',
                   '-no_browser']
 
@@ -152,7 +159,7 @@ To set a header the operator's access layer requires, use:
 def _dispatch(remote):
     exclusive = ['configure', 'reconnect', 'cancel', 'delete', 'tail', 'portal',
                  'rotate_key', 'ci_setup', 'header', 'remove_header', 'logout',
-                 'import_cert']
+                 'import_cert', 'use_server']
     cfg_only = ['reconnect', 'cancel', 'delete', 'tail']
 
     exclusive_count = sum([1 for arg in exclusive if remote.get("cmdarg", arg)])
@@ -178,6 +185,10 @@ def _dispatch(remote):
 
     if remote.get("cmdarg", 'rotate_key'):
         client.rotate_key()
+        return 0
+
+    if remote.get("cmdarg", 'use_server'):
+        client.use_server(remote.get("cmdarg", 'use_server'))
         return 0
 
     if remote.get("cmdarg", 'import_cert'):

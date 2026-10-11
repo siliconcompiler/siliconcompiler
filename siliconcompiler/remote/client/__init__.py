@@ -120,6 +120,10 @@ class Client:
                              f"({self.credentials.certs_dir})")
         if self.credentials.user_id:
             self.logger.info(f"Identity on this server: {self.credentials.user_id}")
+        others = [server for server in self.credentials.servers()
+                  if server != self.credentials.server]
+        if others:
+            self.logger.info(f"Also configured (sc-remote -use_server): {', '.join(others)}")
 
         # Names only: a header's value is a secret.
         if self._transport is not None:
@@ -1140,6 +1144,20 @@ class Client:
                 "separated from other users', but that separation is not a "
                 "security boundary.")
         self.logger.info(f"Saved to {self.credentials.path}")
+
+    def use_server(self, server: str) -> None:
+        '''Make a server configured here the default. Nothing is sent: it was
+        reached when configured, and its session and certificate are its own.'''
+        address, port, _ = _split_address(server.strip())
+        chosen = normalize_server(address, port)
+        if not self.credentials.knows(chosen):
+            configured = ", ".join(self.credentials.servers()) or "none"
+            raise RemoteError(
+                f"{chosen} is not configured here (configured: {configured}): "
+                f"add it with sc-remote -configure -server {server.strip()}")
+        self.credentials.set_server(chosen)
+        self._transport = self._make_transport(chosen)
+        self.logger.info(f"Using {chosen}")
 
     def _reach(self, prompt: bool):
         '''GET /v1, and where the server's certificate cannot be verified, the

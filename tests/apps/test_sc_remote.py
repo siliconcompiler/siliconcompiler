@@ -131,6 +131,22 @@ def test_a_jobs_status_says_why_and_what_became_of_it(caplog, state, extra, said
     assert "\x07" not in caplog.text and "\x1b]" not in caplog.text
 
 
+def test_use_server_makes_a_configured_server_the_default(monkeypatch):
+    from siliconcompiler.remote import Credentials
+
+    store = Credentials(Path("sc-auth/remote.json"))
+    for server in ("https://one.test", "https://two.test"):
+        store.set_server(server)
+        store.set_user_id(f"me-on-{server}")
+
+    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json',
+                '-use_server', 'https://one.test') == 0
+    assert Credentials(Path("sc-auth/remote.json")).server == "https://one.test/v1"
+    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json',
+                '-use_server', 'https://three.test') != 0
+    assert Credentials(Path("sc-auth/remote.json")).server == "https://one.test/v1"
+
+
 def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
     '''The certificate lands in the store's own directory, its fingerprint said.'''
     import datetime

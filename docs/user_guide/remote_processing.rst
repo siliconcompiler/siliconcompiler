@@ -49,7 +49,15 @@ code somebody else started shows a key that is not yours.
 There is no default server, so the address is required: leaving it out is an
 error rather than a redirect somewhere you did not choose. A server the command
 cannot reach or log in to is not saved. Each server you configure keeps its own
-session, so switching back to one needs no new login.
+session, so switching back to one needs no new login:
+
+.. code-block:: bash
+
+  sc-remote -use_server https://other-server.example.com
+
+makes a server already configured on this machine the default, without
+contacting it. ``sc-remote -configure -list`` lists the servers configured
+here.
 
 What is written, and where
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

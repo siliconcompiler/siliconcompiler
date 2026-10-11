@@ -744,6 +744,29 @@ def test_a_server_that_cannot_be_used_is_not_saved(fake_v1, capabilities, config
     assert not credentials.knows(OTHER_URL)
 
 
+def test_use_server_switches_among_the_servers_configured_here(fake_v1, tmp_credentials,
+                                                               caplog):
+    '''Nothing is sent, and each server's session comes back with it; a server not
+    configured here is refused, naming -configure.'''
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-first"})
+    tmp_credentials.set_server(OTHER_URL.rsplit("/v1", 1)[0])
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-other"})
+    client = Client(tmp_credentials)
+
+    caplog.set_level(logging.INFO)
+    client.print_configuration()
+    assert f"Also configured (sc-remote -use_server): {V1_URL}" in caplog.text
+
+    client.use_server(V1_URL.rsplit("/v1", 1)[0])
+    assert (tmp_credentials.server, client.base_url) == (V1_URL, V1_URL)
+    assert tmp_credentials.refresh_token == "refresh-for-the-first"
+
+    with pytest.raises(RemoteError, match="sc-remote -configure -server https://new.test"):
+        client.use_server("https://new.test")
+    assert tmp_credentials.server == V1_URL
+    assert not fake_v1.calls
+
+
 def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
     '''It has no access token for a refresh to repair.'''
     tmp_credentials.save_tokens({"refresh_token": "whatever"})

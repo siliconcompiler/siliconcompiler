@@ -172,6 +172,11 @@ class Credentials:
         '''Whether ``server`` already has an entry here.'''
         return bool(self._store.get(_SERVERS, server))
 
+    def servers(self) -> List[str]:
+        '''Every server configured here.'''
+        return sorted(server for server, entry in
+                      (self._store.get_category(_SERVERS) or {}).items() if entry)
+
     def restore_server(self, server: Optional[str], drop: Optional[str] = None) -> None:
         '''Make ``server`` the default again (None for none), removing the entry
         ``drop``: what a configure that failed leaves.'''
