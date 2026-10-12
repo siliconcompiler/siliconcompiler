@@ -218,6 +218,9 @@ class InitFloorplanTask(APRTask,
                 if fs_lib.has_file(fileset=fs, filetype="tcl"):
                     self.add_required_key(fs_lib, "fileset", fs, "file", "tcl")
 
+        if f"{self.design_topmodule}.bmap" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="bmap")
+
         if self.get("var", "bumpmapfileset"):
             self.add_required_key("var", "bumpmapfileset")
 
