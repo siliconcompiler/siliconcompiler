@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "755f5778c466d0249c371fd22eb5f2f8151d9429",
+    "git-commit": "f765d56d7a4be72fa4b5676f50ad9530bba85a4b",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
@@ -52,7 +52,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "b7d866ff69e618c025510423ffb65a202796b4f9",
+    "git-commit": "f861c6278db5c68198701da9c08a328830751829",
     "auto-update": true,
     "_comment-prune-dirs": [
       "The archive globs are measured against a build of this image. They",
@@ -659,7 +659,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "91e00fda45648918b51c3cc7bcf967b3541fbbb8",
+    "git-commit": "0e3019d4fa5d365771ba783a8c4f34f58e2e19f6",
     "auto-update": true,
     "docker-drop-pkgs": [
       "clang",

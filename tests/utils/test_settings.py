@@ -857,6 +857,8 @@ def test_transaction_keeps_another_managers_write(settings_file):
         assert json.load(f) == {"a": {"first": 1, "second": 2}}
 
 
+# 40 serialized fsync'd saves, which Windows runners have taken past 15s
+@pytest.mark.timeout(60)
 def test_transaction_threads_on_two_managers(settings_file):
     """
     Read-modify-write from many threads over two managers loses nothing, which

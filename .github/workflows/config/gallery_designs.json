@@ -386,8 +386,11 @@
         "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
     },
     {
+        "cache": false,
         "design": "dynamic_node",
         "remote": false,
+        "skip": "Task ran out of memory",
+        "skip_class": "resource",
         "target": "gt2n_6t_w31"
     },
     {
@@ -966,8 +969,10 @@
         "target": "ihp130_sg13g2_stdcell"
     },
     {
+        "cache": false,
         "design": "tiny_rocket",
         "remote": false,
+        "skip": "route.global/0: [ERROR GRT-0116] Global routing finished with congestion. Check the congestion regions in the DRC Viewer.",
         "target": "skywater130_sky130hd"
     },
     {
