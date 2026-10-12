@@ -105,8 +105,20 @@ if { $sc_openroad_tracks != "" } {
 # Bump Creation
 ###############################
 
+set bmapfiles []
+if { [file exists "inputs/${sc_topmodule}.bmap"] } {
+    lappend bmapfiles "inputs/${sc_topmodule}.bmap"
+}
+set bumpmapfileset [sc_cfg_tool_task_get var bumpmapfileset]
+if { [llength $bumpmapfileset] > 0 } {
+    foreach fs [sc_get_filesets -library $sc_designlib -filesets $bumpmapfileset] {
+        lassign $fs fs_lib fs_name
+        lappend bmapfiles {*}[sc_cfg_get_fileset $fs_lib $fs_name bmap]
+    }
+}
+
 set do_automatic_pins 1
-if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
+if { [llength $bmapfiles] > 0 } {
     if { [sc_check_version 24 3 10567] == 0 } {
         utl::error FLW 1 "bmaps are not supported in this version of openroad"
     }
@@ -114,12 +126,6 @@ if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
     set do_automatic_pins 0
 
     set bmaps_read []
-    set bumpmapfileset [sc_cfg_tool_task_get var bumpmapfileset]
-    set bmapfiles []
-    foreach fs [sc_get_filesets -library $sc_designlib -filesets $bumpmapfileset] {
-        lassign $fs fs_lib fs_name
-        lappend bmapfiles {*}[sc_cfg_get_fileset $fs_lib $fs_name bmap]
-    }
     foreach bmap_file $bmapfiles {
         if { [lsearch -exact $bmaps_read $bmap_file] != -1 } {
             continue
