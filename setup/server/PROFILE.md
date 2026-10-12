@@ -92,7 +92,7 @@ routed and refused.
 | 19 | `DELETE /v1/jobs/{id}` | deletes the job's data; the job object stays readable |
 | 20 | `GET /v1/jobs/{id}/logs` | `logs.stream` and `logs.stream.job` are advertised, so a node or job gets a `303` to a stream on this host: live while it runs, and for a finished one a stream that ends at once, naming its archived `logs` artifact |
 | 21 | `GET /v1/jobs/{id}/artifacts` | [the kinds this profile produces](#what-it-produces) |
-| 22 | `GET /v1/jobs/{id}/artifacts/{artifact_id}` | a `303` to a signed route on this host. `max_download_bytes` refuses, as `download-too-large`; a test mode may withhold kinds ([README](README.md#test-modes-serving-less-on-purpose)) |
+| 22 | `GET /v1/jobs/{id}/artifacts/{artifact_id}` | a `303` to a signed route on this host. `max_download_bytes` refuses, as `download-too-large` |
 
 ### What `GET /v1` publishes
 
@@ -366,12 +366,12 @@ None of these is new vocabulary.
 | `POST /v1/auth/device` | `400 unsupported_grant_type`, OAuth-shaped |
 | sends `POST /v1/auth/token` or `POST /v1/auth/device` a request refused before any OAuth processing | `problem+json`, as on every deployment: `405 method-not-allowed`, `415 unsupported-media-type` or `429 rate-limited`. Only the OAuth answers are OAuth-shaped |
 | names a `project` anywhere | `501 feature-unsupported`, `feature: "projects"` |
-| `…/logs` | never `feature-unsupported`, outside a test mode that withholds streams |
+| `…/logs` | never `feature-unsupported`, unless `features` in `config.json` leaves `logs.stream` out |
 | presents a known subject with a different key | `invalid_client` at the token endpoint, OAuth-shaped, wherever the request comes from, saying the subject is bound to a different key ([§7](#7-the-key-binding)) |
+| uses any PDK, library or tool | never `entitlement-denied`: there are no grants here to refuse one |
 | reads `GET /v1/me` | `authorized` absent; `terms: []`; `projects: []`; `can_submit: true` |
 | asks for a job or an artifact it does not own | `404`, not `403` |
 | reads an artifact's `can_request_access` | always `false`: nothing here needs an approval, and a deployment without grants has nothing to request, so endpoint 6 has no approval page and answers `403 not-permitted` |
-| fetches a kind a test mode withholds | `403 artifact-not-approved`, and `fetchable: false` in the listing, with `can_request_access: false`, since this server offers no way to ask. Off by default |
 | uploads a member with any extension | accepted: there is no extension allowlist, so `archive-rejected` never carries `reason: "extension"` here |
 | exceeds a published ceiling | `limit-exceeded` naming the key as `limits` spells it, or a static one's own `type`: `node-limit-exceeded`, `upload-too-large`, `download-too-large` |
 | stages past `max_staging_seconds` | the job `failed`, `staging-timed-out`, `limit: "max_staging_seconds"` |

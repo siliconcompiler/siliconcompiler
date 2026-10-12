@@ -226,9 +226,6 @@ def _notice(**members):
     ({"storage_uri_base": "s3://bucket/artifacts/",
       "limits": {"max_upload_bytes": 6 * 1024 ** 3}}, "one PUT"),
     ({"fetch_allowlist": ["https://*/"]}, "leftmost label"),
-    ({"api_fetchable_kinds": ["manifest", "gds"]}, "unknown kinds: gds"),
-    ({"denied_resources": {"pdks": ["x"]}}, "unknown resource kinds: pdks"),
-    ({"denied_resources": {"pdk": "GF180*"}}, "must be a list"),
     (_notice(level="urgent"), "level"),
     (_notice(message=""), "1 to 500"),
     (_notice(message="x" * 501), "1 to 500"),
@@ -396,10 +393,9 @@ def test_three_flags_and_their_defaults():
 
     args = entry._parser().parse_args([])
 
-    assert (args.port, args.cluster, args.datadir, args.test_mode) == \
-        (8080, "local", "./sc_server", None)
+    assert (args.port, args.cluster, args.datadir) == (8080, "local", "./sc_server")
     assert {action.dest for action in entry._parser()._actions} == {
-        "help", "port", "datadir", "cluster", "test_mode", "version"}
+        "help", "port", "datadir", "cluster", "version"}
 
 
 def test_a_broken_config_is_reported_and_exits_non_zero():

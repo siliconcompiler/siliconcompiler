@@ -4,7 +4,6 @@ run, from the archive or the job that ran it.
 '''
 
 import gzip
-import json
 import os
 import shutil
 
@@ -198,25 +197,13 @@ class ContinuationsMixin:
             'ORDER BY step, "index"', (job_id,))]
 
     def _check_continuations(self, user_id: str, continuations) -> None:
-        '''Every entry's results are usable and built from nothing denied here;
-        checked at create, and again at submit.'''
+        '''Every entry's results are usable; checked at create, and again at submit.'''
         for step, index, from_job in continuations:
             refused = self._continuation_refused(user_id, step, index, from_job)
             if refused:
                 reason, detail = refused
                 raise ProblemError("prior-results-unavailable", step=step, index=index,
                                    job_id=from_job, reason=reason, detail=detail)
-
-        # The job's resource set includes what it copies, or results built
-        # on a denied PDK could be continued from.
-        for step, index, from_job in continuations:
-            for kind, name in self._resources_of(from_job):
-                if self._config.denied(kind, name):
-                    raise ProblemError(
-                        "entitlement-denied", resource_kind=kind, resource=name,
-                        detail=f"the results of {step}/{index} this job would continue "
-                               f"from were built from a {kind} this deployment does not "
-                               "allow")
 
     def _continuation_refused(self, user_id, step, index, from_job):
         '''Why one entry's results cannot be used, as (reason, detail), or None.'''
@@ -249,12 +236,3 @@ class ContinuationsMixin:
             if held[kind]["withheld_at"]:
                 return "withheld", f"the {kind} artifact of {where} is withheld"
         return None
-
-    def _resources_of(self, job_id: str) -> List[Tuple[str, str]]:
-        '''What one job's results were built from: its PDK, libraries and tools.'''
-        row = self._store.one("SELECT manifest_resources, manifest_tools "
-                              "FROM jobs WHERE id = ?", (job_id,))
-        if row is None:
-            return []
-        return [tuple(pair) for pair in json.loads(row["manifest_resources"] or "[]")] + \
-            [("tool", name) for name in json.loads(row["manifest_tools"] or "[]")]

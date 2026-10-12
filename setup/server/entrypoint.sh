@@ -221,19 +221,10 @@ ctld)
     # the same policy file is how a mount list and the bundles staged against
     # it drift apart.
 
-    # SC_SERVER_TEST_MODE=1|2|3|4 serves one of the server's preset test
-    # deployments -- see TEST_MODES in remote/server/config.py. Unset is the
-    # ordinary server.
-    test_mode=()
-    if [ -n "${SC_SERVER_TEST_MODE:-}" ]; then
-        test_mode=(-test-mode "$SC_SERVER_TEST_MODE")
-    fi
-
     python3 -m siliconcompiler.remote.server \
         -cluster slurm \
         -port 8080 \
-        -datadir /sc_server \
-        "${test_mode[@]}" &
+        -datadir /sc_server &
     server_pid=$!
 
     # Supervise rather than exec, so this shell stays PID 1 and all three

@@ -447,8 +447,7 @@ def worst(refusals) -> Optional[str]:
 NEVER_OVER_THE_API = ("issue", "diagnostics")
 
 
-def ladder(row, surface_allows: bool = True,
-           members: Optional[str] = None, admin: bool = False) -> Optional[str]:
+def ladder(row, members: Optional[str] = None, admin: bool = False) -> Optional[str]:
     '''The refusal an artifact gets from the first ladder row that matches, or None.
 
     ``admin`` is the portal asking, where row 3's kinds are read. The ladder is
@@ -462,15 +461,12 @@ def ladder(row, surface_allows: bool = True,
     4    a ``node`` archive with a member that is    its WORST member's --
          not fetchable                               ``artifact-not-approved``,
                                                      then ``not-ready``
-    --   this surface does not hand the kind over    ``artifact-not-approved``
-         (``api_fetchable_kinds``)
     5    ``provenance = 'pending'``                  ``not-ready`` -- transient
     ===  ==========================================  ======================
 
     Rows 6-8 (grants) do not exist here: there is no approval machinery.
     `pending` is `not-ready`, never a `403` that would make a client abandon
-    it; the surface row sits above so a kind never handed over is not *try
-    again*. Retention passing is deliberately not a row: the reaper's
+    it. Retention passing is deliberately not a row: the reaper's
     ``deleted_at`` is row 1. Per caller, so computed, never stored.
     '''
     if row["deleted_at"]:
@@ -480,17 +476,14 @@ def ladder(row, surface_allows: bool = True,
     if row["kind"] == "node" and members:
         # Held back only by a pending member is `not-ready`.
         return members
-    if not surface_allows:
-        return "artifact-not-approved"
     if row["provenance"] == "pending":
         return "not-ready"
     return None
 
 
-def fetchable(row, surface_allows: bool = True,
-              members: Optional[str] = None, admin: bool = False) -> bool:
+def fetchable(row, members: Optional[str] = None, admin: bool = False) -> bool:
     '''Whether THIS caller may have the bytes: the ladder, with no refusal.'''
-    return ladder(row, surface_allows, members, admin) is None
+    return ladder(row, members, admin) is None
 
 
 def cause(row) -> Optional[str]:
@@ -503,8 +496,7 @@ def cause(row) -> Optional[str]:
     return "removed" if row["deleted_by"] else "expired"
 
 
-def wire(row, surface_allows: bool = True,
-         members: Optional[str] = None, admin: bool = False) -> Dict[str, Any]:
+def wire(row, members: Optional[str] = None, admin: bool = False) -> Dict[str, Any]:
     '''One artifact, as the API publishes it.'''
     return {
         "id": row["id"],
@@ -522,7 +514,7 @@ def wire(row, surface_allows: bool = True,
         # `deleted_at` alone cannot tell expiry from removal.
         "deleted_cause": cause(row),
         "deleted_reason": row["deleted_reason"],
-        "fetchable": fetchable(row, surface_allows, members, admin),
+        "fetchable": fetchable(row, members, admin),
         # Required, though this profile takes no access requests.
         "access_requested_at": None,
         # Always false: an unauthenticated deployment offers no way to ask.

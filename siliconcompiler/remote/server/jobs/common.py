@@ -42,10 +42,6 @@ _WITHOUT = {
                        "stream; follow each running node instead",
 }
 
-# The two surfaces a caller reaches a job through; they differ only in
-# `max_download_bytes` and `api_fetchable_kinds`.
-SURFACES = ("api", "portal")
-
 MAX_NAME = 100
 
 # A cancel's `reason`, at most: refused above it, never cut.
@@ -106,9 +102,6 @@ class _Supply:
             or ((mapped.get("tool") or {}).get(tool) or {}).get(root)
 
     def held(self, source, ref) -> Optional[str]:
-        # A leftover copy would skip the path a fetch-nothing server tests.
-        if self._config["fetch_fails"]:
-            return None
         return self._sources.held(source, ref)
 
     def allowlisted(self, source, ref) -> bool:

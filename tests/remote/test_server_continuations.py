@@ -17,16 +17,15 @@ from test_server_sources_flow import wait_for                          # noqa: E
 NO_JOB = "01a0e000-0000-7000-8000-000000000001"
 
 
-def earlier(server, user_id, resources=()):
+def earlier(server, user_id):
     '''A completed job's row, and the root its tree goes under.'''
     import uuid
 
     store = server.config["SC_STORE"]
     job_id = str(uuid.uuid4())
     store.execute(
-        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, manifest_pdk, "
-        "  manifest_resources) VALUES (?, ?, 'completed', 'gcd', 'earlier', '{}', 'none', ?)",
-        (job_id, user_id, json.dumps([list(pair) for pair in resources])))
+        "INSERT INTO jobs (id, user_id, state, design, jobname, descriptor, manifest_pdk) "
+        "VALUES (?, ?, 'completed', 'gcd', 'earlier', '{}', 'none')", (job_id, user_id))
     return (store.one("SELECT * FROM jobs WHERE id = ?", (job_id,)),
             server.config["SC_JOBS"].job_root(user_id, job_id))
 
@@ -41,13 +40,13 @@ def collect(server, job, root, step, index="0"):
                            server.config["SC_CONFIG"], job, root, step, index)
 
 
-def ran(server, user_id, nodes=(("stepone", "0"),), resources=(), passing=False,
+def ran(server, user_id, nodes=(("stepone", "0"),), passing=False,
         copied_from=None):
     '''An earlier job that ran ``nodes``. With ``passing``, its `steptwo`
     passed `stepone`'s output through as a link, and `stepone` left no log;
     with ``copied_from`` as well, it took `stepone` from that job, so holds no
     archive of it.'''
-    job, root = earlier(server, user_id, resources)
+    job, root = earlier(server, user_id)
     if passing:
         nodes = (("stepone", "0"), ("steptwo", "0"))
     for step, index in nodes:
@@ -165,19 +164,6 @@ def test_results_gone_or_withheld_cannot_be_used(server, server_client, key, tok
 
     assert refused(create(server_client, key, token,
                           continues_from=[entry(earlier_id)])) == value
-
-
-def test_results_built_on_what_nobody_may_use_are_refused(server, server_client, key,
-                                                          token, me):
-    '''The job's resource set includes what it copies, or it could continue
-    from results built on a PDK the caller may not use.'''
-    earlier_id = ran(server, me, resources=[("pdk", "secret130")])
-    server.config["SC_CONFIG"]._values["denied_resources"] = {"pdk": ["secret*"]}
-
-    response = create(server_client, key, token, continues_from=[entry(earlier_id)])
-
-    assert (response.status_code, slug(response)) == (403, "entitlement-denied")
-    assert response.get_json()["resource"] == "secret130"
 
 
 def test_the_results_are_copied_in_while_staging(server, server_client, key, token, me,

@@ -326,20 +326,6 @@ class CreateMixin:
                     detail=f"{count} nodes, and this server runs at most "
                            f"{limits['max_job_nodes']}")
 
-        # The early entitlement check, re-derived at submit. A task's dataroot
-        # needs its tool; a library's owner may be any resource kind.
-        wanted = []
-        for item in descriptor.get("sources") or []:
-            keypath, name = item["keypath"], owners.keypath_owner(item["keypath"])
-            wanted += [("tool", name)] if keypath[0] == "tool" else \
-                [(kind, name) for kind in owners.RESOURCE_KINDS]
-        wanted += [("tool", name) for name in sorted(requires["tools"])]
-        for kind, name in wanted:
-            if self._config.denied(kind, name):
-                raise ProblemError(
-                    "entitlement-denied", resource_kind=kind, resource=name,
-                    detail=f"this job names a {kind} this deployment does not allow")
-
         self._check_versions(requires)
 
     def _check_versions(self, requires: Dict[str, Dict[str, Any]]) -> None:

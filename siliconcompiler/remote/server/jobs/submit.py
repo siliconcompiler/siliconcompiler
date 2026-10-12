@@ -242,7 +242,6 @@ class SubmitMixin:
         if not follow_up:
             self._check_members(job, summary, unpacked)
         self._check_wheels(job, unpacked, tally)
-        self._check_denied(job, summary)
         entries = self._account(job, summary, unpacked)
         asked = [entry for entry in entries if entry.status == owners.ASK]
         self._check_owed(job, summary, asked)

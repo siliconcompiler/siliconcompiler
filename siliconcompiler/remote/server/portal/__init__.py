@@ -622,8 +622,8 @@ def fetch(session, job_id, artifact_id):
     '''Hand the browser a signed URL for the bytes, after the API's own refusals.
 
     The signature is the credential; a cookie never authorises a download.
-    The one difference, explicit as `surface="portal"`: `max_download_bytes`
-    and `api_fetchable_kinds` are lifted for a person clicking one object.
+    The one difference, explicit as `surface="portal"`: `max_download_bytes` is
+    lifted for a person clicking one object.
     '''
     row = _jobs().artifact(session, job_id, artifact_id, surface="portal")
     storage = flask.current_app.config["SC_STORAGE"]

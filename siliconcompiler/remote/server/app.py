@@ -49,14 +49,12 @@ def _keep_off_path(datadir: Path) -> None:
 
 
 def create_app(datadir: Union[str, Path], cluster: str = "local",
-               bind_keys: bool = True, test_mode: Optional[int] = None,
-               public_origins: Optional[List[str]] = None):
+               bind_keys: bool = True, public_origins: Optional[List[str]] = None):
     '''Build the application for one deployment.
 
     ``bind_keys`` off declares the deployment a single trust domain, which a
-    container fleet has to do (see `TokenIssuer`). ``test_mode`` is one of
-    ``config.TEST_MODES``; ``public_origins`` applies where config.json names
-    none.
+    container fleet has to do (see `TokenIssuer`). ``public_origins`` applies
+    where config.json names none.
     '''
     # The install command, not a traceback: the entry point imports without
     # the ``server`` extra, so ``--help`` works.
@@ -73,7 +71,7 @@ def create_app(datadir: Union[str, Path], cluster: str = "local",
     # archive is there. No manifest is read in this process.
     _keep_off_path(datadir)
 
-    config = Config.load(datadir, test_mode=test_mode)
+    config = Config.load(datadir)
     if cluster == "slurm" and not config["containers"] and "python.env" in config["features"]:
         # Without a builder the install runs while staging, on this host, and
         # a Slurm node elsewhere would run what this host's platform chose.

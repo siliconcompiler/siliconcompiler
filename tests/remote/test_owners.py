@@ -218,7 +218,7 @@ def test_a_masked_source_is_never_fetched(project, tmp_path):
     from siliconcompiler.remote.server.jobs.common import _Supply
 
     def supply(private=None, held=None):
-        return _Supply({"private_dataroots": private or {}, "fetch_fails": False},
+        return _Supply({"private_dataroots": private or {}},
                        Supply(held=held, allowed=[""]))
 
     project.set_pdk(resource(PDK, "lambda", f"{GITHUB}?token=SECRET", create=False))

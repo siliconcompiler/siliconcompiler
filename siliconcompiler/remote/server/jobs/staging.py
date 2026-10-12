@@ -13,7 +13,7 @@ from siliconcompiler.remote import owners
 from siliconcompiler.remote.server.errors import ERRORS, ProblemError
 from siliconcompiler.remote.server.jobs.common import (
     _NoLongerStaging, _ServerFailure, _StagingTimedOut, _bounded, _members_json,
-    _problem_from, _resources, logger, requirements)
+    _problem_from, logger, requirements)
 from siliconcompiler.remote.server.outputs import artifacts, record
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.running.dispatch import DispatchError
@@ -89,7 +89,7 @@ class StagingMixin:
                 # Watched, not waited on: a cancel or the staging limit stops it.
                 pool = ThreadPoolExecutor(max_workers=4)
                 each = max(1, int(min(timeout, self._staging_left(job_id))))
-                tried = {key: pool.submit(self._fetch, key[0], key[1], each)
+                tried = {key: pool.submit(self._sources.fetch, key[0], key[1], each)
                          for key in wanted}
                 while not all(future.done() for future in tried.values()):
                     futures_wait(list(tried.values()), timeout=1)
@@ -276,16 +276,6 @@ class StagingMixin:
         except OSError as e:
             logger.warning(f"{job_id}: could not keep the staging record: {e}")
 
-    def _fetch(self, source: str, ref: str, timeout: int) -> str:
-        '''One source into this server's copy, or a permanent failure under
-        `fetch_fails`.'''
-        from siliconcompiler.remote.server.staging.sources import Permanent
-
-        if self._config["fetch_fails"]:
-            raise Permanent("this server fetches nothing (fetch_fails is set, as in "
-                            "test mode 4)")
-        return self._sources.fetch(source, ref, timeout)
-
     def _send_back(self, job, failed, python=()) -> None:
         '''`staging` back to `awaiting_input`, the one backwards edge, asking
         for what failed and saying why for each.
@@ -334,29 +324,6 @@ class StagingMixin:
                              + (f" ({said})" if said else "")
                              + (f": {problem.detail}" if problem.detail else "")])
         return self._refuse(current, problem)
-
-    def _check_denied(self, job, summary) -> None:
-        '''Refuse a run that uses a PDK, library or tool nobody may use.
-
-        After the manifest's read and before image resolution: a denial is
-        the answer that does not change when an image is added.
-
-        The first found is named (one `resource`), the detail counting the
-        rest. A lying summary can evade it, which widens nothing on this profile.
-        '''
-        wanted = _resources(summary) + [("tool", name) for name in summary["tools"]]
-
-        denied = [(kind, name) for kind, name in wanted
-                  if self._config.denied(kind, name)]
-        if not denied:
-            return
-
-        kind, name = denied[0]
-        more = len(denied) - 1
-        raise self._refuse(job, ProblemError(
-            "entitlement-denied", resource_kind=kind, resource=name,
-            detail=f"this flow uses a {kind} this deployment does not allow"
-                   + (f", and {more} more" if more else "")))
 
     def _read(self, job, root: Path) -> Dict[str, Any]:
         '''Read the uploaded manifest in a process of its own and act on what

@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs.common import (
-    SURFACES, _ALERTED, _WITHOUT, _decode_cursor, _encode_cursor, _limit, logger)
+    _ALERTED, _WITHOUT, _decode_cursor, _encode_cursor, _limit, logger)
 from siliconcompiler.remote.server.outputs import artifacts, confine
 from siliconcompiler.remote.server.state.store import TERMINAL_NODE_STATES, TERMINAL_STATES
 
@@ -24,13 +24,6 @@ _NOT_STARTED = ("pending", "queued", "preparing")
 class ResultsMixin:
     '''What a run left, as a caller reaches it.'''
 
-    def _surface_allows(self, surface: str, kind: str) -> bool:
-        '''Whether ``surface`` hands over artifacts of ``kind``;
-        `api_fetchable_kinds` binds the API only (see `artifact`).'''
-        if surface not in SURFACES:
-            raise ValueError(f"{surface} is not a surface")
-        return surface == "portal" or self._config.api_fetchable(kind)
-
     def _members_refusal(self, row, surface: str) -> Optional[str]:
         '''Ladder row 4: a `node` archive holds every artifact at its
         coordinates, so it is fetchable only when they all are. Returns the
@@ -40,8 +33,7 @@ class ResultsMixin:
         members = self._store.all(
             'SELECT * FROM artifacts WHERE job_id = ? AND step = ? AND "index" = ? '
             f"AND {_NOT_A_MEMBER}", (row["job_id"], row["step"], row["index"], *_NOT_MEMBERS))
-        refusals = [artifacts.ladder(member, self._surface_allows(surface, member["kind"]),
-                                     admin=surface == "portal")
+        refusals = [artifacts.ladder(member, admin=surface == "portal")
                     for member in members]
         if "not-found" in refusals and not row["deleted_at"]:
             # A member deleted on its own: handing the archive over would undo
@@ -57,8 +49,7 @@ class ResultsMixin:
 
     def _refuse_by_ladder(self, row, surface: str) -> None:
         '''Raise the refusal the ladder's deciding row names, if any.'''
-        refusal = artifacts.ladder(row, self._surface_allows(surface, row["kind"]),
-                                   self._members_refusal(row, surface),
+        refusal = artifacts.ladder(row, self._members_refusal(row, surface),
                                    admin=surface == "portal")
         if refusal is None:
             return
@@ -70,11 +61,8 @@ class ResultsMixin:
                 "not-ready", artifact_kind=row["kind"],
                 detail="this artifact is still being described",
                 headers={"Retry-After": str(self._config["poll_interval_seconds"])})
-        raise ProblemError(
-            "artifact-not-approved",
-            detail="this artifact is not handed over here; the web portal has it"
-            if not self._surface_allows(surface, row["kind"])
-            else "this artifact is held back from download")
+        raise ProblemError("artifact-not-approved",
+                           detail="this artifact is held back from download")
 
     def artifacts(self, session, job_id: str, args, surface: str = "api"):
         '''Endpoint 21: what this run produced, for this caller.'''
@@ -121,8 +109,7 @@ class ResultsMixin:
         more = len(rows) > limit
         rows = rows[:limit]
 
-        items = [artifacts.wire(row, self._surface_allows(surface, row["kind"]),
-                                self._members_refusal(row, surface),
+        items = [artifacts.wire(row, self._members_refusal(row, surface),
                                 admin=surface == "portal")
                  for row in rows]
         return items, (_encode_cursor(rows[-1]) if more and rows else None)
@@ -131,8 +118,8 @@ class ResultsMixin:
                  surface: str = "api"):
         '''Endpoint 22's row, with the refusals it can make.
 
-        `max_download_bytes` and `api_fetchable_kinds` bind the API, not the
-        portal, and nothing on the API overrides them: the portal is a person
+        `max_download_bytes` binds the API, not the portal, and nothing on the
+        API overrides it: the portal is a person
         clicking one object, and the ceiling stops an automated sweep.
         '''
         job = self.owned(session, job_id)

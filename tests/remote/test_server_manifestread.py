@@ -465,3 +465,22 @@ def test_with_containers_on_docker_the_read_runs_with_no_network(  # noqa: F811
     assert [mount["mode"] for mount in ran["volumes"].values()] == ["ro"]
     assert ran["image"].endswith("@sha256:" + "a" * 64)
     assert ran["removed"]
+
+
+def test_the_libraries_are_the_main_library_and_the_rest():
+    '''`asic,asiclib` is filled from the main library when a run starts, so a
+    manifest that never ran may carry only `asic,mainlib`.'''
+    from siliconcompiler.remote.server.staging.manifestread import _libraries
+
+    class Manifest:
+        def __init__(self, **values):
+            self.values = values
+
+        def get(self, *keypath):
+            if keypath[-1] not in self.values:
+                raise KeyError(keypath)
+            return self.values[keypath[-1]]
+
+    assert _libraries(Manifest(mainlib="nangate45", asiclib=[])) == ["nangate45"]
+    assert _libraries(Manifest(mainlib="a", asiclib=["a", "b"])) == ["a", "b"]
+    assert _libraries(Manifest()) == []

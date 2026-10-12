@@ -15,7 +15,6 @@ from typing import List, Optional
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler.remote import banner
-from siliconcompiler.remote.server.config import TEST_MODES
 
 
 __all__ = ["main"]
@@ -47,12 +46,6 @@ def _parser() -> argparse.ArgumentParser:
         "-cluster", choices=CLUSTERS, default="local", metavar="<name>",
         help=f"how a job is handed over to run: {', '.join(CLUSTERS)} "
              "(default: %(default)s)")
-    parser.add_argument(
-        "-test-mode", type=int, choices=sorted(TEST_MODES), default=None,
-        metavar="<n>",
-        help="FOR TESTING: serve one of the preset deployments: what this "
-             "server does by default (1), up to the most it withholds (3), or "
-             "one that can fetch nothing (4). config.json still applies on top")
     parser.add_argument(
         "-version", action="version", version=sc_version)
 
@@ -97,8 +90,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     origins = [f"http://{name}:{args.port}" for name in here_names]
 
     try:
-        app = create_app(datadir, cluster=args.cluster, test_mode=args.test_mode,
-                         public_origins=origins)
+        app = create_app(datadir, cluster=args.cluster, public_origins=origins)
     except Exception as e:                                       # noqa: BLE001
         # A setup problem: a traceback would bury the one line that says which.
         logger.error(str(e))
@@ -116,14 +108,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     logger.info(f"reached at: {', '.join(app.config['SC_PUBLIC_ORIGINS'])} "
                 "-- a client addressing it any other way is refused; set "
                 "public_origins in config.json behind a proxy")
-    if args.test_mode is not None:
-        # Loud: a deployment left in it serves less than its operator thinks.
-        config = app.config["SC_CONFIG"]
-        logger.warning(f"TEST MODE {args.test_mode}: features "
-                       f"{config['features'] or 'none'}, API hands over "
-                       f"{config['api_fetchable_kinds'] or 'every kind'}, "
-                       f"denied {config['denied_resources'] or 'nothing'}"
-                       + (", every fetch fails" if config["fetch_fails"] else ""))
     # Nothing here verifies who a caller is, and an operator should hear so at
     # startup.
     logger.info(f"identity assurance: {app.config['SC_CONFIG']['identity_assurance']} "

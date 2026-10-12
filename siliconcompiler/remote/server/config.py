@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 from siliconcompiler.remote.server.errors import FEATURES
 from siliconcompiler.remote.server.staging import allowlist
 
-__all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME", "TEST_MODES"]
+__all__ = ["Config", "DEFAULTS", "CONFIG_FILENAME"]
 
 
 CONFIG_FILENAME = "config.json"
@@ -147,22 +147,6 @@ DEFAULTS: Dict[str, Any] = {
     # <datadir>/images and re-stage.
     "container_mounts": [],
 
-    # Which artifact kinds the API hands over, or None for all. A test knob.
-    # The API's answer, not the portal's: a kind left out stays listed with
-    # `fetchable: false` and `can_request_access: false`, and fetching it is
-    # `403 artifact-not-approved` (ladder row 7). Leaving it out of the listing
-    # would claim this server does not keep it while the portal shows it.
-    "api_fetchable_kinds": None,
-
-    # PDKs, libraries and tools no caller may use, as globs per resource kind:
-    # `{"pdk": ["GF180*"], "library": [...], "tool": [...]}`.
-    # A deny-list stand-in for grants, which this profile does not serve, so a
-    # client can see a grant's refusal: `entitlement-denied` at submit naming
-    # `resource_kind` and `resource`, and the job `rejected`.
-    # `GET /v1/me` still omits `authorized`, an allow list a deny list cannot
-    # be written as, so a client learns of a denial at submit.
-    "denied_resources": {},
-
     # Where this server fetches a job's remote sources from, as
     # globs (see `allowlist`).
     # Decides who fetches, not whether the data arrives: a source not on it
@@ -220,10 +204,6 @@ DEFAULTS: Dict[str, Any] = {
     "manifest_read_cpu_seconds": 300,
     "manifest_read_memory_bytes": 4 * 1024 ** 3,
 
-    # Every fetch fails and no held copy is used, so every job needing a source
-    # takes the follow-up path after submit. For test mode 4.
-    "fetch_fails": False,
-
     # Out-of-tree task-driver modules software may name. The probe imports
     # them on the server, so this is what an operator allows it to import.
     "software_drivers": [],
@@ -234,61 +214,11 @@ NOTICE_LEVELS = ("info", "warning")
 NOTICE_MEMBERS = ("level", "message", "starts_at", "ends_at")
 MAX_NOTICE_CHARS = 500
 
-# `denied_resources` keys: the API's closed `resource_kinds` set.
+# The API's closed `resource_kinds` set.
 RESOURCE_KINDS = ("pdk", "library", "fpga", "tool")
 
 # Limits this server enforces and does not publish.
 _NOT_PUBLISHED = ("max_detail_chars",)
-
-
-# Presets for testing a client against deployments that serve less; mode 4
-# fetches nothing, so every job takes the follow-up path.
-# Each is a legal v1 deployment that `GET /v1` describes, so a client passes
-# by reading what was published.
-# Applied over the defaults and under `config.json`.
-# Mode 3's denials are each tripped by a different demo target while the
-# skywater130 demo still runs: `gf180_demo`, `freepdk45_demo`, verilator.
-TEST_MODES: Dict[int, Dict[str, Any]] = {
-    # What this server does by default.
-    1: {},
-
-    # Per-node live logs only; manifest, logs and reports over the API, node
-    # archives only through the portal.
-    2: {
-        "features": ["logs.stream"],
-        "api_fetchable_kinds": ["manifest", "logs", "staging", "reports"],
-        "limits": {
-            "concurrent_jobs": 2,
-            "pending_uploads": 4,
-            "max_download_bytes": 52428800,             # 50 MiB
-        },
-    },
-
-    # Manifests only over the API, no logs, one job at a time, and a PDK, a
-    # library and a tool nobody may use.
-    3: {
-        "features": [],
-        "api_fetchable_kinds": ["manifest"],
-        "denied_resources": {
-            "pdk": ["GF180*"],
-            "library": ["nangate45"],
-            "tool": ["verilator"],
-        },
-        "limits": {
-            "concurrent_jobs": 1,
-            "pending_uploads": 2,
-            "max_job_nodes": 200,
-            "max_upload_bytes": 104857600,              # 100 MiB
-            "max_download_bytes": 20971520,             # 20 MiB
-        },
-    },
-
-    # Mode 1 with nothing fetchable: a remote PDK sends the job to
-    # `awaiting_input`, so it carries two uploads.
-    4: {
-        "fetch_fails": True,
-    },
-}
 
 
 # The largest object S3 takes in one PUT.
@@ -301,9 +231,7 @@ UNLIMITED_ALLOWED = ("pending_uploads", "concurrent_jobs", "max_download_bytes")
 
 def _check_policy(values: Dict[str, Any]) -> None:
     '''Refuse a policy value that would silently mean nothing, such as a
-    misspelled kind the operator believes restricts something.'''
-    from siliconcompiler.remote.server.outputs.artifacts import KINDS
-
+    misspelled feature the operator believes is served.'''
     # A limit is a non-negative number, or null where this server treats it
     # as unlimited. `-1` is only the store's spelling, in `user_limits`.
     for name, value in (values["limits"] or {}).items():
@@ -320,14 +248,6 @@ def _check_policy(values: Dict[str, Any]) -> None:
         value = values[name]
         if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
             raise ValueError(f"{name} is a whole number above zero; not {value!r}")
-
-    kinds = values["api_fetchable_kinds"]
-    if kinds is not None:
-        unknown = set(kinds) - set(KINDS)
-        if unknown:
-            raise ValueError(
-                f"api_fetchable_kinds names unknown kinds: "
-                f"{', '.join(sorted(unknown))}")
 
     features = values["features"]
     # A registry: an unknown string would be advertised for something nothing
@@ -388,18 +308,6 @@ def _check_policy(values: Dict[str, Any]) -> None:
                          "jobs.reuse out")
 
     _check_private_dataroots(values["private_dataroots"] or {})
-
-    denied = values["denied_resources"] or {}
-    unknown = set(denied) - set(RESOURCE_KINDS)
-    if unknown:
-        raise ValueError(
-            f"denied_resources names unknown resource kinds: "
-            f"{', '.join(sorted(unknown))}; the kinds are "
-            f"{', '.join(RESOURCE_KINDS)}")
-    for kind, names in denied.items():
-        if not isinstance(names, list) or \
-                not all(isinstance(name, str) for name in names):
-            raise ValueError(f"denied_resources.{kind} must be a list of names")
 
     values["notices"] = [_notice(entry) for entry in values["notices"] or []]
 
@@ -501,21 +409,10 @@ class Config:
         self._values = values
 
     @classmethod
-    def load(cls, datadir: Union[str, Path],
-             test_mode: Optional[int] = None) -> "Config":
-        '''Defaults, then ``test_mode``'s preset, then ``<datadir>/config.json``
-        if it is there.'''
+    def load(cls, datadir: Union[str, Path]) -> "Config":
+        '''Defaults, then ``<datadir>/config.json`` if it is there.'''
         values = dict(DEFAULTS)
         values["limits"] = dict(DEFAULT_LIMITS)
-
-        if test_mode is not None:
-            if test_mode not in TEST_MODES:
-                raise ValueError(
-                    f"test mode {test_mode} is not one of "
-                    f"{', '.join(map(str, TEST_MODES))}")
-            preset = dict(TEST_MODES[test_mode])
-            values["limits"].update(preset.pop("limits", {}))
-            values.update(preset)
 
         path = Path(datadir) / CONFIG_FILENAME
         if path.exists():
@@ -565,18 +462,6 @@ class Config:
     @property
     def limits(self) -> Dict[str, int]:
         return self._values["limits"]
-
-    def api_fetchable(self, kind: str) -> bool:
-        '''Whether the API hands over artifacts of this kind.'''
-        kinds = self._values["api_fetchable_kinds"]
-        return kinds is None or kind in kinds
-
-    def denied(self, resource_kind: str, name: str) -> bool:
-        '''Whether no caller may use this PDK, library or tool.'''
-        from fnmatch import fnmatchcase
-
-        patterns = (self._values["denied_resources"] or {}).get(resource_kind, [])
-        return any(fnmatchcase(name, pattern) for pattern in patterns)
 
     def notices(self, at: Optional[float] = None) -> list:
         '''The notices published now: from server start until `ends_at` passes.'''

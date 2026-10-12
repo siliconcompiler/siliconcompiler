@@ -77,10 +77,17 @@ def the_job(app, client):
     ({}, "create"),
     # Allowlisted, so not asked for at create; the server's fetch fails, and
     # the job comes back asking.
-    ({"fetch_fails": True, "fetch_allowlist": ["https://127.0.0.1:9/acme/"]}, "after"),
+    ({"fetch_allowlist": ["https://127.0.0.1:9/acme/"]}, "after"),
 ], indirect=["rig"], ids=["at-create", "after-submit"])
-def test_a_source_asked_for_that_cannot_be_fetched_here_cancels(rig, nop_project, when):
+def test_a_source_asked_for_that_cannot_be_fetched_here_cancels(rig, nop_project, when,
+                                                                monkeypatch):
+    from siliconcompiler.remote.server.staging.sources import Permanent
+
+    def unfetchable(source, ref, timeout):
+        raise Permanent("this source cannot be fetched")
+
     url, app, client = rig
+    monkeypatch.setattr(app.config["SC_JOBS"]._sources, "fetch", unfetchable)
     nop_project.add_dep(acme(f"v1-{when}"))
     # The first node reads its datasheet, so the create names it.
     nop_project.add("tool", "builtin", "task", "nop", "require",
