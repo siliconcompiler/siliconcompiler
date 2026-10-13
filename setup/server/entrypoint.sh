@@ -228,8 +228,8 @@ ctld)
     server_pid=$!
 
     # Supervise rather than exec, so this shell stays PID 1 and all three
-    # daemons are watched. Under an "exec" of the server the container reports
-    # healthy for as long as that process lives, even with slurmctld dead
+    # daemons are watched. Under "exec" the container reports healthy
+    # for as long as the server process lives, even with slurmctld dead
     # underneath it -- which surfaces later and far away, as jobs that never
     # dispatch. Exiting on the first child to die makes the container's status
     # say what actually happened.

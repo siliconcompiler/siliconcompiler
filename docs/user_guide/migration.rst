@@ -217,8 +217,8 @@ Configuring and running
        failures on a correct configuration
    * - ``chip.dashboard()``
      - The CLI dashboard now runs during ``run()`` automatically; disable it with
-       ``project.option.set_nodashboard(True)``. For the web dashboard, use the
-       ``sc-dashboard`` command
+       ``project.option.set_nodashboard(True)``. For the web dashboard, use
+       ``python3 -m siliconcompiler.apps.utils.dashboard``
    * - ``chip.check_checklist()``
      - ``Checklist.check()`` -- see :ref:`Checklists and signoff <checklists>`
    * - ``chip.create_cmdline()``
@@ -258,7 +258,7 @@ Reading results and paths
    * - ``<design>.cfg``
      - ``<design>.pkg.json``. Manifests have been JSON with a ``.pkg.json``
        extension since well before the ``Chip`` removal; a ``.cfg`` path in a
-       script or a ``sc-dashboard -cfg`` invocation is stale
+       script or a dashboard ``-cfg`` invocation is stale
 
 Building flows, tools and libraries
 ===================================
@@ -315,8 +315,8 @@ The command line
 ================
 
 There is **no** ``sc`` command, and there never was one after v0.35.0. The
-entry points are ``sc-dashboard``, ``sc-issue``, ``sc-remote``,
-``sc-show``, ``sc-install`` and ``smake``.
+entry points are ``sc-issue``, ``sc-remote``, ``sc-show``, ``sc-install`` and
+``smake``.
 
 .. list-table::
    :header-rows: 1
@@ -331,6 +331,12 @@ entry points are ``sc-dashboard``, ``sc-issue``, ``sc-remote``,
      - ``python3 -m siliconcompiler.demos.asic_demo``
    * - ``sc -target asic_demo -remote``
      - ``python3 -m siliconcompiler.demos.asic_demo -remote``
+   * - ``sc-dashboard``
+     - ``python3 -m siliconcompiler.apps.utils.dashboard``, same arguments
+   * - ``sc-server``
+     - ``python3 -m siliconcompiler.remote.server``, which serves the ``v1``
+       API: ``-nfsmount`` is now ``-datadir``, and ``-auth``,
+       ``-maxuploadsize``, ``-checkinterval`` and ``-schemaversion`` are gone
 
 Everything else -- ``sc-show``, ``sc-issue``, ``sc-remote`` and the rest --
 kept its name and its arguments.

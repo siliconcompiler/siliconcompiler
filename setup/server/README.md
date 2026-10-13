@@ -1,8 +1,9 @@
 # Local sc-server on a real Slurm cluster
 
-A throwaway cluster for testing `-cluster slurm` end to end: `slurmctld`,
-`slurmdbd` with a MariaDB accounting store, `slurmrestd`, and a compute node
-running `slurmd`.
+A throwaway cluster for testing
+`python3 -m siliconcompiler.remote.server -cluster slurm` end to end:
+`slurmctld`, `slurmdbd` with a MariaDB accounting store, `slurmrestd`, and a
+compute node running `slurmd`.
 
 ```sh
 docker compose up                  # that is the whole procedure

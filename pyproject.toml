@@ -77,7 +77,6 @@ Issues = "https://github.com/siliconcompiler/siliconcompiler/issues"
 Discussion = "https://github.com/siliconcompiler/siliconcompiler/discussions"
 
 [project.scripts]
-sc-dashboard = "siliconcompiler.apps.sc_dashboard:main"
 sc-issue = "siliconcompiler.apps.sc_issue:main"
 sc-remote = "siliconcompiler.apps.sc_remote:main"
 sc-show = "siliconcompiler.apps.sc_show:main"
