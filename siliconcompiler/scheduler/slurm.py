@@ -18,6 +18,13 @@ from siliconcompiler.utils.paths import jobdir, cachedir as cachedir_path
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.settings import Setting, SettingsCategory
+
+
+SHAREDPATHS = Setting("scheduler-slurm", "sharedpaths", "[str]", [],
+                      "path prefixes every Slurm node can read, so files under them "
+                      "are not copied")
+SLURM_SETTINGS = SettingsCategory(SHAREDPATHS.category, SHAREDPATHS)
 
 
 class SlurmSchedulerNode(SchedulerNode):
@@ -28,7 +35,7 @@ class SlurmSchedulerNode(SchedulerNode):
     It prepares a run script, a manifest, and uses the 'srun' command
     to execute the step on a compute node.
     """
-    __OPTIONS: Final[str] = "scheduler-slurm"
+    __OPTIONS: Final[str] = SLURM_SETTINGS.name
 
     _MAX_FS_DELAY = 2
     _FS_DWELL = 0.1
@@ -353,8 +360,7 @@ class SlurmSchedulerNode(SchedulerNode):
         A file an earlier run collected counts as outside them, even when the
         collection is on a shared path: a collection is rebuilt from the keys
         it is given, so it only keeps that file if its key is named again."""
-        sharedprefix: List[str] = MPManager.get_settings().get(
-            SlurmSchedulerNode.__OPTIONS, "sharedpaths", default=[])
+        sharedprefix: List[str] = SHAREDPATHS.get()
 
         if "/" in sharedprefix:
             # Entire filesystem is shared so no need to check

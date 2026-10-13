@@ -348,6 +348,8 @@ class AppGen(SphinxDirective):
         'app': str,
         'title': str
     }
+    # The app's subcommands, as scapp directives of their own, nested in its section.
+    has_content = True
 
     def run(self):
         from siliconcompiler import apps
@@ -358,7 +360,7 @@ class AppGen(SphinxDirective):
 
         # Mark dependencies
         try:
-            app_mod = importlib.import_module(f"{apps.__name__}.{app.replace('-', '_')}")
+            app_mod = importlib.import_module(f"{apps.__name__}.{app.split()[0].replace('-', '_')}")
         except ModuleNotFoundError:
             app_mod = importlib.import_module(app.split()[-1])
         if not app_mod:
@@ -375,6 +377,7 @@ class AppGen(SphinxDirective):
         if title != app:
             section += literalblock(app)
         section += literalblock(output)
+        self.state.nested_parse(self.content, self.content_offset, section)
 
         return [section]
 

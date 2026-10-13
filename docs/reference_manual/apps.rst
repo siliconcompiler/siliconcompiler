@@ -2,6 +2,21 @@ CLI apps
 --------
 
 .. scapp::
+  :app: sc-config
+
+  .. scapp::
+    :app: sc-config settings
+
+  .. scapp::
+    :app: sc-config email
+
+  .. scapp::
+    :app: sc-config cache
+
+  .. scapp::
+    :app: sc-config paths
+
+.. scapp::
   :app: sc-install
 
 .. scapp::
@@ -34,10 +49,6 @@ Support apps
 .. scapp::
   :app: python3 -m siliconcompiler.apps.utils.replay
   :title: replay
-
-.. scapp::
-  :app: python3 -m siliconcompiler.apps.utils.cleanup
-  :title: cleanup
 
 .. scapp::
   :app: python3 -m siliconcompiler.tools.openroad.utils.rcx_merge

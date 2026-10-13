@@ -508,6 +508,15 @@ Execution and settings
 .. autoclass:: siliconcompiler.utils.settings.SettingsManager
     :members:
 
+.. autoclass:: siliconcompiler.utils.settings.Setting
+    :members:
+
+.. autoclass:: siliconcompiler.utils.settings.SettingsCategory
+    :members:
+
+.. autoclass:: siliconcompiler.utils.settings.KeyedSettingsCategory
+    :members:
+
 Inheritance
 ===========
 

@@ -5,7 +5,14 @@ Job Status Emails
 
 SiliconCompiler supports sending job status updates to your email.
 To get started you will need to get the `SMTP <https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol>`_ login information.
-Using this information create a file at ``$HOME/.sc/email.json`` and fill it in with the login information as shown below.
+Then run :ref:`sc-config email set <app-sc-config-email>`, which asks for each setting without echoing the password, and check them by sending yourself one message:
+
+.. code-block:: bash
+
+    sc-config email set
+    sc-config email test you@xyz.com
+
+The settings are kept in ``$HOME/.sc/email.json``, readable only by you, which looks like this:
 
 .. code-block:: json
 
