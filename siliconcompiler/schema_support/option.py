@@ -3,6 +3,7 @@ from typing import Union, List, Tuple, Callable, Dict, Optional, Final
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.settings import KeyedSettingsCategory, Setting
 
 
 class SchedulerSchema(BaseSchema):
@@ -420,6 +421,30 @@ class SchedulerSchema(BaseSchema):
         return self.set('maxthreads', value)
 
 
+def _option_setting(key: str) -> Setting:
+    '''The saved default of the option at ``key``, a keypath such as ``scheduler,name``.'''
+    options = OptionSchema()
+    keypath = tuple(key.split(","))
+    if keypath not in options.allkeys():
+        raise ValueError(f"{key} is not an option")
+    if keypath in OptionSchema._TRANSIENT_KEYS:
+        raise ValueError(f"{key} describes one run, so it is not saved as a default")
+    param: Parameter = options.get(*keypath, field=None)
+
+    def normalize(value):
+        # The schema checks it, and returns a set as the list a project reads.
+        options.set(*keypath, value)
+        return options.get(*keypath)
+
+    return Setting(OPTION_SETTINGS.name, key, param.get(field="type"), param.default.get(),
+                   normalize=normalize)
+
+
+OPTION_SETTINGS = KeyedSettingsCategory(
+    "schema-options", "<keypath>",
+    "the default of an option for every project, such as scheduler,name", _option_setting)
+
+
 class OptionSchema(BaseSchema):
     """
     Schema for top-level configuration options.
@@ -428,7 +453,22 @@ class OptionSchema(BaseSchema):
     compiler's behavior, such as flow control, logging, build settings, and
     remote execution. It provides getter and setter methods for each parameter.
     """
-    __OPTIONS: Final[str] = "schema-options"
+    __OPTIONS: Final[str] = OPTION_SETTINGS.name
+
+    #: Options that describe one run rather than a preference, so they are never
+    #: saved as defaults.
+    _TRANSIENT_KEYS: Final[frozenset] = frozenset({
+        # Flow information
+        ("flow",),
+        ("from",),
+        ("to",),
+        ("prune",),
+
+        # Design information
+        ("design",),
+        ("alias",),
+        ("fileset",),
+    })
 
     def __init__(self):
         """Initializes the options schema and defines all its parameters."""
@@ -926,22 +966,9 @@ class OptionSchema(BaseSchema):
             ValueError: if the settings file is malformed; it is left as it is,
                 and has to be fixed or deleted.
         """
-        transientkeys = {
-            # Flow information
-            ("flow",),
-            ("from",),
-            ("to",),
-            ("prune",),
-
-            # Design information
-            ("design",),
-            ("alias",),
-            ("fileset",),
-        }
-
         options = {}
         for key in self.allkeys():
-            if key in transientkeys:
+            if key in OptionSchema._TRANSIENT_KEYS:
                 continue
 
             param: Parameter = self.get(*key, field=None)

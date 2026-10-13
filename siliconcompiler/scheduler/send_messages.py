@@ -9,30 +9,37 @@ and sends them to specified recipients.
 """
 import json
 import os
+import sys
 import uuid
 
 import os.path
 
 from siliconcompiler import NodeStatus, sc_open
-from siliconcompiler.utils import default_email_credentials_file, get_file_template
+from siliconcompiler.utils import ConfigCommand, default_email_credentials_file, \
+    get_file_template
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.utils.paths import workdir
+from siliconcompiler.utils.settings import replace_file
 
 
-# Every field the email credentials file may carry, and the type it takes.
+# Every field the email credentials file may carry, and the type it takes, in
+# the order sc-config asks for them.
 CREDENTIAL_TYPES = {
-    "username": str,     # Username on the email server
-    "password": str,     # Password on the email server
-    "from": str,         # Source address; defaults to the first recipient
     "server": str,       # Address of the SMTP server
     "port": int,         # Port number of the SMTP server
     "ssl": bool,         # Whether to connect over SSL
+    "username": str,     # Username on the email server
+    "password": str,     # Password on the email server
+    "from": str,         # Source address; defaults to the first recipient
     "max_file_size": int  # Maximum number of log lines to attach
 }
 
 # Fields a usable credentials file cannot leave out.
 REQUIRED_CREDENTIALS = ("username", "password", "server", "port")
+
+# Fields never echoed or printed.
+SECRET_CREDENTIALS = ("password",)
 
 # Fields the sender reads unconditionally, so an absent one gets a value here.
 CREDENTIAL_DEFAULTS = {
@@ -77,6 +84,81 @@ def __validate_config(creds):
     return {**CREDENTIAL_DEFAULTS, **creds}
 
 
+def read_credentials():
+    """
+    Reads the email credentials file, and checks it.
+
+    Raises:
+        FileNotFoundError: If there is no credentials file.
+        ValueError: If it is not JSON, or a field is missing, unrecognized, or
+            of the wrong type.
+
+    Returns:
+        dict: The credentials, with :data:`CREDENTIAL_DEFAULTS` applied to
+        whatever the file did not set.
+    """
+    with open(default_email_credentials_file()) as f:
+        # JSONDecodeError is a ValueError, so malformed JSON is reported the
+        # same way as a malformed field.
+        return __validate_config(json.load(f))
+
+
+def write_credentials(creds):
+    """
+    Checks email credentials and saves them, readable only by the user. The
+    file is replaced as one step, so it is never left half written.
+
+    Args:
+        creds (dict): The credentials.
+
+    Raises:
+        ValueError: If a field is missing, unrecognized, or of the wrong type.
+
+    Returns:
+        str: The credentials file.
+    """
+    __validate_config(creds)
+    path = default_email_credentials_file()
+    # Created first, so the private mode the file gets is not the directory's.
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    replace_file(path, json.dumps(creds, indent=4), 0o600)
+    return path
+
+
+def send_test_message(cred, to):
+    """
+    Sends one short message, to check email credentials.
+
+    Args:
+        cred (dict): The credentials, as :func:`read_credentials` returns them.
+        to (str): The address to send it to.
+
+    Raises:
+        OSError: If the server cannot be reached, or it refuses the login or
+            the message; :class:`smtplib.SMTPException` is an OSError.
+    """
+    from email.mime.text import MIMEText
+
+    msg = MIMEText("SiliconCompiler can send job emails with these settings.")
+    msg['Subject'] = 'SiliconCompiler : test message'
+    msg['From'] = cred.get("from", to)
+    msg['To'] = to
+    _deliver(cred, [to], msg)
+
+
+def _deliver(cred, to, msg):
+    """
+    Sends ``msg`` to ``to`` through the SMTP server ``cred`` names, raising
+    what :mod:`smtplib` raises.
+    """
+    import smtplib
+
+    smtp_use = smtplib.SMTP_SSL if cred['ssl'] else smtplib.SMTP
+    with smtp_use(cred["server"], cred["port"]) as smtp_server:
+        smtp_server.login(cred["username"], cred["password"])
+        smtp_server.sendmail(msg['From'], to, msg.as_string())
+
+
 def __load_config(project):
     """
     Loads and validates email credentials from the default configuration file.
@@ -88,19 +170,15 @@ def __load_config(project):
         dict: A dictionary containing the validated email credentials. Returns
         an empty dictionary if the file is not found or is invalid.
     """
-    path = default_email_credentials_file()
-    if not os.path.exists(path):
-        project.logger.warning(f'Email credentials are not available: {path}')
-        return {}
-
     try:
-        with open(path) as f:
-            # JSONDecodeError is a ValueError, so malformed JSON is reported
-            # the same way as a malformed field rather than ending the run.
-            return __validate_config(json.load(f))
+        return read_credentials()
+    except FileNotFoundError:
+        project.logger.warning('Email credentials are not available: '
+                               f'{default_email_credentials_file()}')
     except ValueError as e:
+        # Reported rather than ending the run.
         project.logger.error(f'Email credentials failed to validate: {e}')
-        return {}
+    return {}
 
 
 def send(project, msg_type, step, index):
@@ -249,28 +327,12 @@ def send(project, msg_type, step, index):
     body = MIMEText(text_msg, 'html')
     msg.attach(body)
 
-    # Determine whether to use SSL for the SMTP connection
-    if cred['ssl']:
-        smtp_use = smtplib.SMTP_SSL
-    else:
-        smtp_use = smtplib.SMTP
-
-    # Connect to the SMTP server and send the email
-    with smtp_use(cred["server"], cred["port"]) as smtp_server:
-        do_send = False
-        try:
-            smtp_server.login(cred["username"], cred["password"])
-            do_send = True
-        except smtplib.SMTPAuthenticationError as e:
-            project.logger.error(f'Unable to authenticate to email server: {e}')
-        except Exception as e:
-            project.logger.error(f'An error occurred during login to email server: {e}')
-
-        if do_send:
-            try:
-                smtp_server.sendmail(msg['From'], to, msg.as_string())
-            except Exception as e:
-                project.logger.error(f'An error occurred while sending email: {e}')
+    try:
+        _deliver(cred, to, msg)
+    except smtplib.SMTPAuthenticationError as e:
+        project.logger.error(f'Unable to authenticate to email server: {e}')
+    except Exception as e:
+        project.logger.error(f'An error occurred while sending email: {e}')
 
 
 class SummaryEmailListener(RunListener):
@@ -317,3 +379,114 @@ if __name__ == "__main__":
     # To test, uncomment the following line and fill in a valid email address
     # project.option.scheduler.add_msgcontact('your.email@example.com')
     send(project, "BEGIN", "import", "0")
+
+
+def _add_parser(commands):
+    """
+    Add the ``email`` command: it sets, shows and tests the email credentials.
+    """
+    parser = commands.add_parser(
+        "email",
+        help="the SMTP server job emails are sent through",
+        description="Set the SMTP server job emails are sent through. The settings are "
+                    "kept in ~/.sc/email.json, readable only by you.")
+    actions = parser.add_subparsers(dest="action", metavar="<action>", required=True)
+    actions.add_parser(
+        "set",
+        help="ask for each setting; Enter keeps the value shown, and the password is "
+             "never echoed").set_defaults(func=_cli_set)
+    actions.add_parser(
+        "show", help="print the settings, the password hidden").set_defaults(func=_cli_show)
+    action = actions.add_parser("test", help="send one message, to check the settings")
+    action.add_argument("address", help="where to send it")
+    action.set_defaults(func=_cli_test)
+
+
+def _shown(field, value):
+    if field in SECRET_CREDENTIALS:
+        return "********"
+    return value if isinstance(value, str) else json.dumps(value)
+
+
+def _cli_ask(field, kind, current):
+    """One field, asked for until it is valid; Enter keeps ``current``."""
+    import getpass
+    from siliconcompiler.schema.parametertype import NodeType
+
+    shown = "" if current is None else f" [{_shown(field, current)}]"
+    while True:
+        if field in SECRET_CREDENTIALS:
+            answer = getpass.getpass(f"{field}{shown}: ")
+        else:
+            answer = input(f"{field}{shown}: ").strip()
+        if not answer:
+            if current is not None or field not in REQUIRED_CREDENTIALS:
+                return current
+            print(f"Error: {field} is required", file=sys.stderr)
+            continue
+        try:
+            return NodeType.normalize(answer, NodeType.parse(kind.__name__))
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+
+
+def _cli_credentials():
+    path = default_email_credentials_file()
+    try:
+        return read_credentials()
+    except FileNotFoundError:
+        raise ValueError(f"there are no email settings in {path}; "
+                         "sc-config email set writes them") from None
+    except ValueError as e:
+        raise ValueError(f"{path}: {e}") from e
+
+
+def _cli_set(args):
+    try:
+        current = read_credentials()
+    except FileNotFoundError:
+        current = {}
+    except ValueError as e:
+        print(f"Replacing {default_email_credentials_file()}: {e}", file=sys.stderr)
+        current = {}
+
+    creds = {}
+    try:
+        for field, kind in CREDENTIAL_TYPES.items():
+            value = _cli_ask(field, kind, current.get(field, CREDENTIAL_DEFAULTS.get(field)))
+            if value is not None:
+                creds[field] = value
+    except EOFError:
+        raise ValueError("the input ended before every setting was given; "
+                         "nothing was saved") from None
+
+    print(f"Saved {write_credentials(creds)}")
+    return 0
+
+
+def _cli_show(args):
+    creds = _cli_credentials()
+    width = max(len(field) for field in creds)
+    for field in CREDENTIAL_TYPES:
+        if field in creds:
+            print(f"{field:<{width}}  {_shown(field, creds[field])}")
+    return 0
+
+
+def _cli_test(args):
+    creds = _cli_credentials()
+    try:
+        send_test_message(creds, args.address)
+    except OSError as e:
+        raise ValueError(f"sending through {creds['server']}:{creds['port']} "
+                         f"failed: {e}") from e
+    print(f"Sent a test message to {args.address}")
+    return 0
+
+
+EMAIL_COMMAND = ConfigCommand(
+    examples="""\
+To set the server job emails are sent through, and check it:
+    sc-config email set
+    sc-config email test you@example.com""",
+    add_parser=_add_parser)

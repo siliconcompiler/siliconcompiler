@@ -14,7 +14,7 @@ from collections.abc import Container
 from pathlib import Path
 
 from siliconcompiler.schema_support.record import RecordSchema
-from siliconcompiler.utils import get_plugins, toolimages
+from siliconcompiler.utils import default_tool_build_dir, get_plugins, toolimages
 from siliconcompiler.utils.toolimages import get_install_tools
 
 
@@ -543,7 +543,7 @@ Tool groups:
 
     parser.add_argument(
         "-build_dir",
-        default=Path.home() / ".sc" / "tool_build",
+        default=default_tool_build_dir(),
         help="Directory to build the tool in",
         metavar="<path>")
 

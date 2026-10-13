@@ -50,12 +50,12 @@ and `chip.load_target(...)` were removed in **v0.35.0** (October 2025) in favor
 of `Design` + `Project`. The old-to-new table is in
 [Migrating from the Chip API](docs/user_guide/migration.rst).
 
-**2. There is no `sc` command.** The entry points are `sc-issue`, `sc-remote`,
-`sc-show`, `sc-install` and `smake` -- the whole list. To run from the shell, use
-a Python script, `smake`, or `python3 -m siliconcompiler.demos.asic_demo`
-(`fpga_demo` for FPGA). The web dashboard is
-`python3 -m siliconcompiler.apps.utils.dashboard`, and the remote job server is
-`python3 -m siliconcompiler.remote.server`.
+**2. There is no `sc` command.** The entry points are `sc-config`, `sc-issue`,
+`sc-remote`, `sc-show`, `sc-install` and `smake` -- the whole list. To run from
+the shell, use a Python script, `smake`, or
+`python3 -m siliconcompiler.demos.asic_demo` (`fpga_demo` for FPGA). The web
+dashboard is `python3 -m siliconcompiler.apps.utils.dashboard`, and the remote
+job server is `python3 -m siliconcompiler.remote.server`.
 
 **3. Use typed accessors, not raw keypaths.** Write
 `project.option.add_fileset('rtl')`, not `project.add('option', 'fileset', 'rtl')`.

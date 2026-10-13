@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import json
 import os
 import logging
@@ -10,10 +11,12 @@ import weakref
 
 import os.path
 
-from typing import Generator, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple
 
 from siliconcompiler import sc_open
-from siliconcompiler.utils.multiprocessing import FileLockTimeout, get_file_lock
+from siliconcompiler.schema.parametertype import NodeType
+from siliconcompiler.utils import ConfigCommand, default_sc_system_path
+from siliconcompiler.utils.multiprocessing import FileLockTimeout, MPManager, get_file_lock
 
 
 #: Every live SettingsManager, so a forked child can rebuild their locks.
@@ -113,6 +116,47 @@ def _sync_directory(directory: str) -> None:
         pass
     finally:
         os.close(fd)
+
+
+def replace_file(path: str, content: str, mode: Optional[int] = None) -> None:
+    """
+    Replace a file's content as one step: it is written to a temporary file
+    beside it, flushed to disk and renamed over it, so a crash or an error at
+    any point leaves either the old file or the new one, whole. On POSIX the
+    directory is synced after the rename too. A symlink is followed, and its
+    target replaced.
+
+    Args:
+        path (str): The file.
+        content (str): What it is to hold.
+        mode (int): POSIX permission bits, such as ``0o600``, the new file is
+            created with, so it is never readable more widely, even for a
+            moment; a missing directory gets them too, plus search permission.
+            If None, the file keeps the permissions it has, and a new one gets
+            the umask's.
+    """
+    target = os.path.realpath(path)
+    _make_directory(os.path.dirname(target), mode)
+
+    if mode is None:
+        # What open("w") would have kept, or given a new file.
+        try:
+            mode = stat.S_IMODE(os.stat(target).st_mode) & 0o777
+        except FileNotFoundError:
+            mode = 0o666
+
+    fd, temp = _create_temp(target, mode)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        _replace(temp, target)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(temp)
+        raise
+    _sync_directory(os.path.dirname(target))
 
 
 def _reset_locks_after_fork() -> None:
@@ -511,29 +555,7 @@ class SettingsManager:
         """
         Replace the user file with ``content``; the caller holds its lock.
         """
-        target = os.path.realpath(self.__filepath)
-        _make_directory(os.path.dirname(target), self.__mode)
-
-        mode = self.__mode
-        if mode is None:
-            # What open("w") would have kept, or given a new file.
-            try:
-                mode = stat.S_IMODE(os.stat(target).st_mode) & 0o777
-            except FileNotFoundError:
-                mode = 0o666
-
-        fd, temp = _create_temp(target, mode)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(content)
-                f.flush()
-                os.fsync(f.fileno())
-            _replace(temp, target)
-        except BaseException:
-            with contextlib.suppress(OSError):
-                os.unlink(temp)
-            raise
-        _sync_directory(os.path.dirname(target))
+        replace_file(self.__filepath, content, self.__mode)
 
     @contextlib.contextmanager
     def transaction(self, timeout: Optional[float] = None) -> Generator[None, None, None]:
@@ -726,6 +748,13 @@ class SettingsManager:
             with self.__settings_lock:
                 return self._merge_category(category)
 
+    def categories(self) -> List[str]:
+        """
+        The categories either the user or the system file holds, sorted.
+        """
+        with self.__settings_lock:
+            return sorted(set(self.__settings) | set(self.__system_settings))
+
     def _merge_category(self, category: str):
         """
         Build the effective view of a category. Assumes ``__settings_lock`` is
@@ -769,3 +798,367 @@ class SettingsManager:
                                 del self.__settings[category]
                     else:
                         del self.__settings[category]
+
+
+class Setting:
+    """
+    One key of the user settings file: what it holds, and what it falls back to.
+
+    The module that reads a setting declares it once, at module level, and reads
+    it through :meth:`get`, so its default is written in one place. Declaring it
+    reads nothing. An app such as ``sc-config`` changes it through :meth:`set`
+    and :meth:`unset`.
+    """
+
+    def __init__(self, category: str, key: str, sctype: Optional[str], default: Any = None,
+                 help: str = "", normalize: Optional[Callable[[Any], Any]] = None):
+        """
+        Args:
+            category (str): The category in the settings file.
+            key (str): The key in that category.
+            sctype (str): The schema type of the value, such as ``int`` or
+                ``[str]``. None where ``normalize`` does all the checking.
+            default: What :meth:`get` returns where the setting is not set.
+            help (str): What the setting does, in one line.
+            normalize (callable): Turns a value into the one stored, and raises
+                :class:`ValueError` where it is not valid. By default the value
+                is checked against ``sctype``.
+        """
+        self.category = category
+        self.key = key
+        self.sctype = sctype
+        self.default = default
+        self.help = help
+        self.__normalize = normalize
+
+    def normalize(self, value: Any) -> Any:
+        """
+        The value as it is stored.
+
+        Raises:
+            ValueError: if the value is not valid for this setting.
+        """
+        if self.__normalize:
+            return self.__normalize(value)
+        try:
+            return NodeType.normalize(value, NodeType.parse(self.sctype))
+        except ValueError as e:
+            raise ValueError(f"{self.category} {self.key}: {e}") from e
+
+    def get(self) -> Any:
+        """
+        The value the user or the system file set, or else the default.
+        """
+        return MPManager.get_settings().get(self.category, self.key,
+                                            copy.deepcopy(self.default))
+
+    def set(self, value: Any) -> None:
+        """
+        Check a value and save it, in a transaction of its own.
+
+        Raises:
+            ValueError: if the value is not valid, if the system file fixes the
+                setting, or if the settings file is malformed.
+            TimeoutError: if the settings file's lock is not had in time.
+        """
+        value = self.normalize(value)
+        self.__change(lambda settings: settings.set(self.category, self.key, value))
+
+    @property
+    def is_list(self) -> bool:
+        """
+        Whether the setting holds a list of values (its schema type is a list or a set).
+        """
+        return bool(self.sctype) and self.sctype.startswith(("[", "{"))
+
+    def add(self, values: List[Any]) -> None:
+        """
+        Check values and add them to the end of a list setting, in a transaction
+        of its own. The list it starts from is the one in effect, so a system
+        default is kept; a value it holds already is not added twice.
+
+        Raises:
+            ValueError: if the setting is not a list, a value is not valid, the
+                system file fixes the setting, or the settings file is malformed.
+            TimeoutError: if the settings file's lock is not had in time.
+        """
+        values = self.__list_values(values)
+
+        def change(settings: SettingsManager) -> None:
+            current = settings.get(self.category, self.key, copy.deepcopy(self.default))
+            settings.set(self.category, self.key,
+                         current + [value for value in values if value not in current])
+        self.__change(change)
+
+    def remove(self, values: List[Any]) -> None:
+        """
+        Remove values from a list setting, in a transaction of its own.
+
+        Raises:
+            ValueError: if the setting is not a list, it does not hold one of the
+                values, the system file fixes the setting, or the settings file
+                is malformed. Nothing is removed.
+            TimeoutError: if the settings file's lock is not had in time.
+        """
+        values = self.__list_values(values)
+
+        def change(settings: SettingsManager) -> None:
+            current = settings.get(self.category, self.key, copy.deepcopy(self.default))
+            missing = [value for value in values if value not in current]
+            if missing:
+                raise ValueError(f"{self.category} {self.key} does not hold "
+                                 f"{', '.join(str(value) for value in missing)}")
+            settings.set(self.category, self.key,
+                         [value for value in current if value not in values])
+        self.__change(change)
+
+    def __list_values(self, values: List[Any]) -> List[Any]:
+        if not self.is_list:
+            raise ValueError(f"{self.category} {self.key} is not a list; set changes it")
+        return self.normalize(values)
+
+    def unset(self) -> None:
+        """
+        Remove the user's value, so the setting falls back to its default.
+
+        Raises:
+            ValueError: if the system file fixes the setting, or if the settings
+                file is malformed.
+            TimeoutError: if the settings file's lock is not had in time.
+        """
+        self.__change(lambda settings: settings.delete(self.category, self.key))
+
+    def __change(self, change: Callable[[SettingsManager], None]) -> None:
+        settings = MPManager.get_settings()
+        # The manager only warns, and a change asked for and not made has failed.
+        if settings._has_priority(self.category, self.key):
+            raise ValueError(f"{self.category} {self.key} is fixed by the system settings "
+                             f"file, {default_sc_system_path()}")
+        with settings.transaction():
+            change(settings)
+
+
+class SettingsCategory:
+    """
+    A category of the user settings file with a fixed set of keys, declared by
+    the module that reads them. A category whose keys the user names is a
+    :class:`KeyedSettingsCategory`.
+    """
+
+    def __init__(self, name: str, *settings: Setting):
+        """
+        Args:
+            name (str): The category.
+            settings (Setting): Every setting in it.
+        """
+        self.name = name
+        self.settings: Tuple[Setting, ...] = settings
+
+    def setting(self, key: str) -> Setting:
+        """
+        The setting at ``key``.
+
+        Raises:
+            ValueError: if the category has no such setting.
+        """
+        for setting in self.settings:
+            if setting.key == key:
+                return setting
+        raise ValueError(f"{self.name} has no setting {key}; it has "
+                         f"{', '.join(setting.key for setting in self.settings)}")
+
+
+class KeyedSettingsCategory(SettingsCategory):
+    """
+    A category of the user settings file whose keys the user names, such as a
+    file extension; each key is checked when it is used.
+    """
+
+    def __init__(self, name: str, key: str, help: str, setting: Callable[[str], Setting]):
+        """
+        Args:
+            name (str): The category.
+            key (str): What a key is, as a placeholder such as ``<extension>``.
+            help (str): What a key's value sets, in one line.
+            setting (callable): The :class:`Setting` at a key. Raises
+                :class:`ValueError` for a key that names nothing.
+        """
+        super().__init__(name)
+        self.key = key
+        self.help = help
+        self.__setting = setting
+
+    def setting(self, key: str) -> Setting:
+        return self.__setting(key)
+
+
+def _add_parser(commands) -> None:
+    """
+    Add the ``settings`` command: it lists, reads and changes the user settings
+    file. It knows the categories imported here, each declared by the module
+    that reads it; any other is reached with ``-raw``.
+    """
+    import argparse
+
+    # Imported here rather than at module scope: each of them imports this module.
+    from siliconcompiler.package.cleanup import CACHE_SETTINGS
+    from siliconcompiler.scheduler.slurm import SLURM_SETTINGS
+    from siliconcompiler.schema_support.option import OPTION_SETTINGS
+    from siliconcompiler.schema_support.record import RECORD_SETTINGS
+    from siliconcompiler.tool import OPENTASK_SETTINGS, SHOWTASK_SETTINGS
+
+    categories = {category.name: category for category in (
+        CACHE_SETTINGS, RECORD_SETTINGS, SLURM_SETTINGS, OPTION_SETTINGS,
+        SHOWTASK_SETTINGS, OPENTASK_SETTINGS)}
+    parser = commands.add_parser(
+        "settings",
+        help="settings kept in ~/.sc/settings.json",
+        description="View and change the settings kept in ~/.sc/settings.json. An "
+                    "administrator's system settings file supplies defaults, and can "
+                    "fix a setting so it cannot be changed here.",
+        epilog=_known_settings(categories.values()),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.set_defaults(categories=categories)
+    actions = parser.add_subparsers(dest="action", metavar="<action>", required=True)
+
+    actions.add_parser("list", help="print every setting and its value").set_defaults(
+        func=_cli_list)
+    for name, func, what in (("get", _cli_get, "print a setting's value"),
+                             ("set", _cli_set, "change a setting"),
+                             ("add", _cli_add, "add entries to a list setting"),
+                             ("remove", _cli_remove, "remove entries from a list setting"),
+                             ("unset", _cli_unset, "put a setting back to its default")):
+        action = actions.add_parser(name, help=what, description=what)
+        if name in ("get", "set", "unset"):
+            action.add_argument("-raw", action="store_true",
+                                help="allow a setting this app does not know; its value "
+                                     "is read as JSON, or as a string where it is not JSON")
+        action.add_argument("category")
+        action.add_argument("key")
+        if name == "set":
+            action.add_argument("value", nargs="+",
+                                help="the value; a list takes one or more")
+        elif name in ("add", "remove"):
+            action.add_argument("value", nargs="+", help="the entries")
+        action.set_defaults(func=func)
+
+
+def _known_settings(categories: Iterable[SettingsCategory]) -> str:
+    rows = []
+    for category in categories:
+        rows.extend((f"{category.name} {setting.key}",
+                     f"{setting.help} (default {_text(setting.default)})")
+                    for setting in category.settings)
+        if isinstance(category, KeyedSettingsCategory):
+            rows.append((f"{category.name} {category.key}", category.help))
+
+    width = max(len(name) for name, _ in rows)
+    return "Settings:\n" + "\n".join(f"  {name:<{width}}  {what}" for name, what in rows)
+
+
+def _text(value: Any) -> str:
+    return value if isinstance(value, str) else json.dumps(value)
+
+
+def _raw_value(value: str) -> Any:
+    """A -raw value: JSON where it parses as JSON, and a string where not."""
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value
+
+
+def _cli_setting(categories: Dict[str, SettingsCategory], category: str, key: str,
+                 raw: bool) -> Setting:
+    """The setting at ``category`` and ``key``; under -raw, any key, its value as given."""
+    if raw:
+        return Setting(category, key, None, normalize=_raw_value)
+    if category not in categories:
+        raise ValueError(f"{category} is not a settings category; -raw uses it anyway")
+    return categories[category].setting(key)
+
+
+def _cli_list(args) -> int:
+    settings = MPManager.get_settings()
+
+    def known(name: str, key: str) -> bool:
+        try:
+            _cli_setting(args.categories, name, key, raw=False)
+        except ValueError:
+            return False
+        return True
+
+    rows = []
+    for name in sorted(set(args.categories) | set(settings.categories())):
+        values = settings.get_category(name)
+        fixed = args.categories[name].settings if name in args.categories else ()
+        defaults = {setting.key: setting.default for setting in fixed}
+        for key in [*defaults, *(key for key in values if key not in defaults)]:
+            if key in values:
+                value, note = values[key], None if known(name, key) else "unknown"
+            else:
+                value, note = defaults[key], "default"
+            if settings._has_priority(name, key):
+                note = "fixed by the system"
+            rows.append((name, key, _text(value), note))
+
+    widths = [max((len(row[n]) for row in rows), default=0) for n in (0, 1)]
+    for name, key, text, note in rows:
+        line = f"{name:<{widths[0]}}  {key:<{widths[1]}}  {text}"
+        print(f"{line}  ({note})" if note else line)
+    return 0
+
+
+def _cli_get(args) -> int:
+    setting = _cli_setting(args.categories, args.category, args.key, args.raw)
+    # A stored null is a value; only an absent key with no default is unset.
+    if setting.default is None and \
+            args.key not in MPManager.get_settings().get_category(args.category):
+        raise ValueError(f"{args.category} {args.key} is not set")
+    print(_text(setting.get()))
+    return 0
+
+
+def _cli_set(args) -> int:
+    setting = _cli_setting(args.categories, args.category, args.key, args.raw)
+    value = args.value
+    if not setting.is_list:
+        if len(value) != 1:
+            raise ValueError(f"{args.category} {args.key} takes one value"
+                             + ("; give a list as JSON" if args.raw else ""))
+        value = value[0]
+    setting.set(value)
+    return 0
+
+
+def _cli_add(args) -> int:
+    _cli_setting(args.categories, args.category, args.key, raw=False).add(args.value)
+    return 0
+
+
+def _cli_remove(args) -> int:
+    _cli_setting(args.categories, args.category, args.key, raw=False).remove(args.value)
+    return 0
+
+
+def _cli_unset(args) -> int:
+    _cli_setting(args.categories, args.category, args.key, args.raw).unset()
+    return 0
+
+
+SETTINGS_COMMAND = ConfigCommand(
+    examples="""\
+To list every setting and its value:
+    sc-config settings list
+
+To change a setting, or put it back to its default:
+    sc-config settings set cache cleanupdays 30
+    sc-config settings unset cache cleanupdays
+
+To add entries to a list, or remove them:
+    sc-config settings add scheduler-slurm sharedpaths /nfs/tools
+    sc-config settings remove scheduler-slurm sharedpaths /nfs/tools
+
+To make an option a default for every project:
+    sc-config settings set schema-options scheduler,name slurm""",
+    add_parser=_add_parser)

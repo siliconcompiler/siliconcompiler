@@ -15,8 +15,8 @@ from io import StringIO
 from pathlib import Path
 from types import ModuleType
 
-from typing import IO, Dict, Optional, Tuple, Type, TypeVar, Union, Callable, List, cast, \
-    TYPE_CHECKING
+from typing import IO, Any, Dict, NamedTuple, Optional, Tuple, Type, TypeVar, Union, Callable, \
+    List, cast, TYPE_CHECKING
 
 import importlib.util
 
@@ -499,6 +499,19 @@ def get_default_iomap() -> Dict[str, str]:
     return default_iomap
 
 
+class ConfigCommand(NamedTuple):
+    """
+    One command of the ``sc-config`` app, declared by the module that owns what
+    it configures.
+    """
+
+    #: Examples of the command, for the app's description.
+    examples: str
+    #: Adds the command to the app's subcommands, the object
+    #: :meth:`argparse.ArgumentParser.add_subparsers` returns.
+    add_parser: Callable[[Any], None]
+
+
 def default_sc_dir() -> str:
     """
     Returns the default SiliconCompiler configuration directory.
@@ -584,6 +597,62 @@ def default_email_credentials_file() -> str:
         str: The absolute path to the email.json file.
     """
     return default_sc_path('email.json')
+
+
+def default_settings_file() -> str:
+    """
+    Returns the default path for the user settings file.
+
+    Returns:
+        str: The absolute path to the settings.json file.
+    """
+    return default_sc_path('settings.json')
+
+
+def default_tool_build_dir() -> str:
+    """
+    Returns the default directory ``sc-install`` builds tools in.
+
+    Returns:
+        str: The absolute path to the tool build directory.
+    """
+    return default_sc_path('tool_build')
+
+
+def _add_paths_parser(commands) -> None:
+    """
+    Add the ``paths`` command: it prints where SiliconCompiler keeps its files.
+    """
+    commands.add_parser(
+        "paths",
+        help="print where SiliconCompiler keeps its settings, credentials and cache",
+        description="Print where SiliconCompiler keeps its settings, credentials and "
+                    "cache by default, and which of them exist. A project's "
+                    "[option,cachedir] or [option,credentials] can point elsewhere.").set_defaults(
+        func=_cli_paths)
+
+
+def _cli_paths(args) -> int:
+    rows = (("home", default_sc_dir()),
+            ("settings", default_settings_file()),
+            ("system settings", default_sc_system_path()),
+            ("email", default_email_credentials_file()),
+            ("remote", default_credentials_file()),
+            ("cache", default_cache_dir()),
+            ("tool builds", default_tool_build_dir()))
+
+    width = max(len(name) for name, _ in rows)
+    for name, path in rows:
+        line = f"{name:<{width}}  {path}"
+        print(line if os.path.exists(path) else f"{line}  (missing)")
+    return 0
+
+
+PATHS_COMMAND = ConfigCommand(
+    examples="""\
+To print where SiliconCompiler keeps its settings, credentials and cache:
+    sc-config paths""",
+    add_parser=_add_paths_parser)
 
 
 @contextlib.contextmanager

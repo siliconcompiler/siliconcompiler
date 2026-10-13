@@ -16,7 +16,7 @@ from datetime import datetime
 from fasteners import InterProcessLock
 from logging.handlers import QueueHandler
 
-from siliconcompiler.utils import default_sc_path, default_sc_system_path
+from siliconcompiler.utils import default_settings_file, default_sc_system_path
 
 
 if TYPE_CHECKING:
@@ -551,7 +551,7 @@ class MPManager(metaclass=_ManagerSingleton):
         # module takes its file lock from this one.
         from siliconcompiler.utils.settings import SettingsManager
         self.__settings = SettingsManager(
-            default_sc_path("settings.json"), self.__logger,
+            default_settings_file(), self.__logger,
             system_filepath=default_sc_system_path())
         self.__transient_settings = SettingsManager(None, self.__logger)
 

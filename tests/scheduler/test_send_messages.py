@@ -1,4 +1,5 @@
 import pytest
+import smtplib
 from siliconcompiler import Design, NodeStatus, Project
 from siliconcompiler.scheduler import send_messages
 from unittest.mock import call, patch
@@ -336,6 +337,25 @@ def test_load_config_reports_bad_field(asic_gcd, email_creds, caplog):
         mock_smtp.assert_not_called()
 
     assert "Email credentials failed to validate: missing field(s): port" in caplog.text
+
+
+@pytest.mark.parametrize("error,said", [
+    (ConnectionRefusedError("refused"), "An error occurred while sending email: refused"),
+    (smtplib.SMTPAuthenticationError(535, b"no"), "Unable to authenticate to email server"),
+])
+def test_email_failure_is_logged_not_raised(asic_gcd, email_creds, caplog, error, said):
+    """A server that cannot be reached, or refuses the login, is reported in the run's log."""
+    asic_gcd.set('option', 'scheduler', 'msgevent', 'all')
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+
+    with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
+        if isinstance(error, ConnectionRefusedError):
+            mock_smtp.side_effect = error
+        else:
+            mock_smtp.return_value.__enter__.return_value.login.side_effect = error
+        send_messages.send(asic_gcd, "begin", "import", "0")
+
+    assert said in caplog.text
 
 
 @pytest.mark.parametrize("status,msg_type", [
