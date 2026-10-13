@@ -16,20 +16,20 @@ Then, run the command:
 
 .. code-block:: bash
 
-    sc-dashboard -cfg <path to manifest>
+    python3 -m siliconcompiler.apps.utils.dashboard -cfg <path to manifest>
 
 
 You can specify the port by adding a port flag:
 
 .. code-block:: bash
 
-    sc-dashboard -cfg <path to manifest> -port <port number>
+    python3 -m siliconcompiler.apps.utils.dashboard -cfg <path to manifest> -port <port number>
 
 And/or you can include extra projects by adding a ``-graph_cfg`` flag:
 
 .. code-block:: bash
 
-    sc-dashboard -cfg <path to manifest> -graph_cfg <manifest name> <path to manifest> -graph_cfg <manifest name> <path to manifest>
+    python3 -m siliconcompiler.apps.utils.dashboard -cfg <path to manifest> -graph_cfg <manifest name> <path to manifest> -graph_cfg <manifest name> <path to manifest>
 
 
 
@@ -45,7 +45,7 @@ In the header, you can select any of the projects that are part of the history o
 Metrics Tab
 ===========
 
-You will load into the metrics tab similar to the one below upon running :ref:`sc-dashboard <app-sc-dashboard>`.
+You will load into the metrics tab similar to the one below upon running :ref:`dashboard <app-dashboard>`.
 
 
 .. image::  /_screenshots/dashboard/dashboard_metrics.png

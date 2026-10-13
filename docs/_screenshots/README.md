@@ -15,7 +15,7 @@ images need a human to look at them periodically, and which do not.
 
 | Path | Shows | Refresh when |
 |---|---|---|
-| `dashboard/` | `sc-dashboard` panels | the dashboard UI changes |
+| `dashboard/` | web dashboard panels | the dashboard UI changes |
 | `email/` | node and summary notification emails | the email templates change |
 | `hardened/` | `mod_and` and `top` layouts from `examples/macro_reuse` | the example or the PDK changes enough to look different |
 | `padring/` | the finished die from `examples/padring` | the pad count, the memory or the die size changes |

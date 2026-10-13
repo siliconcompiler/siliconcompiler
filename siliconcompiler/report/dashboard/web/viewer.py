@@ -19,7 +19,7 @@ import streamlit_autorefresh
 
 
 if __name__ == "__main__":
-    # This script is executed by the `sc-dashboard` command.
+    # This script is executed by the web dashboard app.
     # Initialize the Streamlit session state. This must be the first
     # Streamlit command used in the app.
     state.init()

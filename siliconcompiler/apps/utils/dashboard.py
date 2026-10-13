@@ -12,26 +12,27 @@ from siliconcompiler.report.dashboard.web import WebDashboard
 
 
 def main():
-    progname = "sc-dashboard"
+    progname = "dashboard"
     description = """
 -----------------------------------------------------------
 SC app to open a dashboard for a given manifest.
 
-To open and allow sc-dashboard to autoload manifest:
-    sc-dashboard
+To open and allow the dashboard to autoload manifest:
+    python3 -m siliconcompiler.apps.utils.dashboard
 
 To open by specifying manifest:
-    sc-dashboard -cfg <path to manifest>
+    python3 -m siliconcompiler.apps.utils.dashboard -cfg <path to manifest>
 
 To open by specifying design and optionally jobname:
-    sc-dashboard -design <name>
-    sc-dashboard -design <name> -jobname <jobname>
+    python3 -m siliconcompiler.apps.utils.dashboard -design <name>
+    python3 -m siliconcompiler.apps.utils.dashboard -design <name> -jobname <jobname>
 
 To specify a different port than the default:
-    sc-dashboard -cfg <path to manifest> -port 10000
+    python3 -m siliconcompiler.apps.utils.dashboard -cfg <path to manifest> -port 10000
 
 To include another project object to compare to:
-    sc-dashboard -cfg <path to manifest> -graph_cfg <name of manifest> <path to other manifest>
+    python3 -m siliconcompiler.apps.utils.dashboard -cfg <path to manifest>
+        -graph_cfg <name of manifest> <path to other manifest>
         -graph_cfg <path to other manifest> ...
 -----------------------------------------------------------
 """
