@@ -1110,10 +1110,12 @@ def _cli_list(args) -> int:
 
 
 def _cli_get(args) -> int:
-    value = _cli_setting(args.categories, args.category, args.key, args.raw).get()
-    if value is None:
+    setting = _cli_setting(args.categories, args.category, args.key, args.raw)
+    # A stored null is a value; only an absent key with no default is unset.
+    if setting.default is None and \
+            args.key not in MPManager.get_settings().get_category(args.category):
         raise ValueError(f"{args.category} {args.key} is not set")
-    print(_text(value))
+    print(_text(setting.get()))
     return 0
 
 

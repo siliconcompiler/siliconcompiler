@@ -500,6 +500,18 @@ def cleanup_cache(cachedir: Union[str, Path],
     return stats
 
 
+def _sweep_settings(logger: logging.Logger) -> Tuple[int, int]:
+    """
+    The automatic sweep's ``cleanupdays`` and ``cleanupinterval``, or the
+    defaults if either is not a number.
+    """
+    try:
+        return int(CLEANUP_DAYS.get()), int(CLEANUP_INTERVAL.get())
+    except (TypeError, ValueError):
+        logger.warning("Invalid cache cleanup settings, using defaults")
+        return DEFAULT_DAYS, DEFAULT_INTERVAL
+
+
 def auto_cleanup(project) -> None:
     """
     Sweeps the data source cache at the start of a run.
@@ -526,13 +538,7 @@ def auto_cleanup(project) -> None:
     logger = project.logger.getChild("cache")
 
     try:
-        try:
-            days = int(CLEANUP_DAYS.get())
-            interval = int(CLEANUP_INTERVAL.get())
-        except (TypeError, ValueError):
-            logger.warning("Invalid cache cleanup settings, using defaults")
-            days, interval = DEFAULT_DAYS, DEFAULT_INTERVAL
-
+        days, interval = _sweep_settings(logger)
         if days <= 0:
             return
 
@@ -634,10 +640,10 @@ def _cli_show(args) -> int:
     else:
         rows.append(("size", "nothing is cached yet"))
 
-    days = int(CLEANUP_DAYS.get())
+    days, interval = _sweep_settings(logger)
     rows.append(("automatic sweep",
-                 f"every {int(CLEANUP_INTERVAL.get())} days, of what has gone unused for "
-                 f"{days} days" if days > 0 else "off"))
+                 f"every {interval} days, of what has gone unused for {days} days"
+                 if days > 0 else "off"))
 
     width = max(len(name) for name, _ in rows)
     for name, value in rows:

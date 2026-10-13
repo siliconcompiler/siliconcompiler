@@ -122,6 +122,13 @@ def test_add_and_remove_change_a_list(monkeypatch, capsys):
     assert written() == {"scheduler-slurm": {"sharedpaths": ["/a", "/b"]}}
 
 
+def test_get_prints_a_stored_null(monkeypatch, capsys):
+    """A null written with -raw reads back as null, not as an unset key."""
+    assert run(monkeypatch, "settings", "set", "-raw", "mine", "key", "null") == 0
+    assert run(monkeypatch, "settings", "get", "-raw", "mine", "key") == 0
+    assert capsys.readouterr().out == "null\n"
+
+
 def test_list_marks_defaults_and_unknown_keys(monkeypatch, capsys):
     with open("settings.json", "w") as f:
         json.dump({"cache": {"cleanupdays": 30}, "mycache": {"cleanupdays": 1}}, f)
@@ -215,7 +222,7 @@ def test_email_test_sends_one_message(monkeypatch, capsys, email_home):
 
 
 def test_cache_show_reports_size_and_sweeps(monkeypatch, capsys):
-    """show gives the size and the last sweep, and says when the automatic sweep is off."""
+    """show gives the size and last sweep, and the sweep settings: off, or defaults if invalid."""
     os.makedirs("cache")
     with open(os.path.join("cache", "data"), "w") as f:
         f.write("x" * 2048)
@@ -231,6 +238,10 @@ def test_cache_show_reports_size_and_sweeps(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "nothing is cached yet" in out
     assert "automatic sweep  off" in out
+
+    assert run(monkeypatch, "settings", "set", "-raw", "cache", "cleanupdays", "null") == 0
+    assert run(monkeypatch, "cache", "show", "-cachedir", "nocache") == 0
+    assert "every 7 days, of what has gone unused for 90 days" in capsys.readouterr().out
 
 
 def test_paths_marks_what_is_missing(monkeypatch, capsys, email_home):

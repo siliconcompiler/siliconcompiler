@@ -336,7 +336,8 @@ entry points are ``sc-config``, ``sc-issue``, ``sc-remote``, ``sc-show``,
    * - ``sc-server``
      - ``python3 -m siliconcompiler.remote.server``, same arguments
    * - ``python3 -m siliconcompiler.apps.utils.cleanup``
-     - ``sc-config cache clean``, same arguments
+     - ``sc-config cache clean``, same arguments, except that ``-dryrun`` takes no
+       value: drop a ``true`` after it
 
 Everything else -- ``sc-show``, ``sc-issue``, ``sc-remote`` and the rest --
 kept its name and its arguments.
