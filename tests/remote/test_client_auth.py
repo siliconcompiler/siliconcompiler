@@ -385,7 +385,7 @@ def test_a_header_value_is_checked_and_never_printed(tmp_credentials, fake_v1, c
 
 
 def test_a_header_value_is_read_from_a_pipe(monkeypatch):
-    '''`echo "$SECRET" | sc-remote -header NAME`.'''
+    '''`echo "$SECRET" | sc-config remote header set NAME`.'''
     import io
 
     from siliconcompiler.remote.client import read_secret
@@ -476,7 +476,7 @@ def test_a_store_others_can_read_stops_the_client(tmp_credentials, which):
     with pytest.raises(StoreError) as raised:
         Credentials(tmp_credentials.path)
 
-    assert "sc-remote -rotate_key" in str(raised.value)
+    assert "sc-config remote rotate-key" in str(raised.value)
 
 
 @posix_only
@@ -1271,7 +1271,7 @@ def test_an_unverified_certificate_is_said_and_nothing_saved(tls_server, monkeyp
     monkeypatch.setattr("sys.stdin.isatty", lambda: terminal)
     monkeypatch.setattr("siliconcompiler.remote.client._ask", lambda *args, **kwargs: answer)
 
-    with pytest.raises(CertificateRefused, match="sc-remote -import_cert"):
+    with pytest.raises(CertificateRefused, match="sc-config remote import-cert"):
         Client(store).configure_server(server=url)
 
     assert (store.server, store.certificate) == (None, None)
@@ -1289,7 +1289,7 @@ def test_only_configure_asks_which_authority(tls_server, monkeypatch):
     monkeypatch.setattr("siliconcompiler.remote.client._ask",
                         lambda *args, **kwargs: pytest.fail("asked outside -configure"))
 
-    with pytest.raises(CertificateRefused, match="sc-remote -configure"):
+    with pytest.raises(CertificateRefused, match="sc-config remote configure"):
         Client(store).capabilities()
 
 

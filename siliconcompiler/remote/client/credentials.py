@@ -286,7 +286,7 @@ class Credentials:
         if value is not None and any(c in value for c in "\r\n\0"):
             raise StoreError(f"the value for {name} contains a line break")
         if not self.server:
-            raise StoreError("no server is configured: run sc-remote -configure first")
+            raise StoreError("no server is configured: run sc-config remote configure first")
         headers = self.headers()
         if value is None:
             headers.pop(name, None)
@@ -358,7 +358,7 @@ class Credentials:
             raise StoreError(
                 f"the session store is readable by others: {', '.join(wrong)}. "
                 f"Fix it -- chmod 700 {self.auth_dir}; chmod 600 on every file in "
-                "it -- and then rotate this machine's key with sc-remote -rotate_key, "
+                "it -- and then rotate this machine's key with sc-config remote rotate-key, "
                 "because a key others could read may already be copied")
 
     def _owns(self, name: str) -> bool:

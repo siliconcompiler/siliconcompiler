@@ -159,7 +159,7 @@ class Results:
             f"{len(items)} object(s) were left on the server ({left}), "
             f"each larger than the {ceiling} this account may "
             f"download over the API: {names}. The web portal is the way to "
-            "get them -- sc-remote -portal opens it.")
+            "get them -- sc-config remote portal opens it.")
 
     def take(self, job_id: str, job: Dict[str, Any]) -> int:
         '''Fetch what each node left as it finishes, one listing per poll.

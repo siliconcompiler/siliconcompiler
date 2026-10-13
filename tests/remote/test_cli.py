@@ -1,14 +1,16 @@
-import itertools
+import io
 import os
 import pytest
 
 from pathlib import Path
 
-from siliconcompiler.apps import sc_remote
+from siliconcompiler.apps import sc_config
+from siliconcompiler.remote import Credentials
+from siliconcompiler.remote.client import cli
 
 
-# The app wrapper's argument shape; the client itself is tested in tests/remote
-# (the pre-v1 CLI behaviour is in tests/remote/BEHAVIOUR.md, section F).
+# The command's argument shape; the client itself is tested beside it (the
+# pre-v1 CLI behaviour is in tests/remote/BEHAVIOUR.md, section F).
 
 
 @pytest.fixture(autouse=True)
@@ -17,36 +19,18 @@ def patch_home(monkeypatch):
 
 
 def main(monkeypatch, *args):
-    monkeypatch.setattr('sys.argv', ['sc-remote', *args])
-    return sc_remote.main()
+    monkeypatch.setattr('sys.argv', ['sc-config', 'remote', *args])
+    return sc_config.main()
 
 
-@pytest.mark.parametrize("args", list(itertools.permutations(
-        ['configure', 'reconnect', 'cancel', 'delete'], r=2)))
-def test_exclusive_args(args, monkeypatch):
-    assert main(monkeypatch, f'-{args[0]}', f'-{args[1]}') == 1
-
-
-@pytest.mark.parametrize("arg", ['reconnect', 'cancel', 'delete'])
-def test_require_cfg(arg, monkeypatch):
-    assert main(monkeypatch, f'-{arg}') == 2
-
-
-@pytest.mark.parametrize("arg", ['reconnect', 'cancel', 'delete'])
-def test_server_beside_a_job_command_stops_there(arg, monkeypatch):
-    '''Refused before any client is made: the job's manifest names its server.'''
-    def reached(*args, **kwargs):
-        raise AssertionError("a client was made after the refusal")
-
-    monkeypatch.setattr(sc_remote, "Client", reached)
-    assert main(monkeypatch, f'-{arg}', '-cfg', 'job.pkg.json',
-                '-server', 'https://sc-server.test') == 2
+def store():
+    return Credentials(Path("sc-auth/remote.json"))
 
 
 def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
     '''A refusal is a message and an exit code, never a traceback.'''
-    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json', '-configure',
-                '-server', 'https://127.0.0.1:1/') != 0
+    assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/',
+                '-credentials', 'sc-auth/remote.json') != 0
     assert caplog.text
 
 
@@ -59,8 +43,8 @@ def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
 def test_a_manifest_that_names_no_job_is_refused(monkeypatch, caplog, manifest, said):
     if manifest is not None:
         Path('nowhere.json').write_text(manifest)
-    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json', '-cancel',
-                '-cfg', 'nowhere.json') == 1
+    assert main(monkeypatch, 'cancel', 'nowhere.json',
+                '-credentials', 'sc-auth/remote.json') == 1
     assert said in caplog.text
 
 
@@ -95,11 +79,11 @@ def test_tail_waits_for_its_node_and_reads_the_archive_where_nothing_is_live(
     Project(Design("job")).write_manifest("job.pkg.json")
     record_job(".", "j1")
     slept = []
-    monkeypatch.setattr(sc_remote, "Client", lambda *args, **kwargs: Answers())
-    monkeypatch.setattr(sc_remote.time, "sleep", slept.append)
+    monkeypatch.setattr(cli, "Client", lambda *args, **kwargs: Answers())
+    monkeypatch.setattr(cli.time, "sleep", slept.append)
 
-    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json', '-tail', 'place/0',
-                '-cfg', 'job.pkg.json') == 0
+    assert main(monkeypatch, 'tail', 'job.pkg.json', 'place/0',
+                '-credentials', 'sc-auth/remote.json') == 0
     assert capsys.readouterr().out.endswith(f"\n{printed}")
     assert slept == waited
 
@@ -124,27 +108,43 @@ def test_a_jobs_status_says_why_and_what_became_of_it(caplog, state, extra, said
                             "reason": "wrong corner"}], **extra}
     caplog.set_level(logging.INFO)
 
-    sc_remote._print_status(logging.getLogger("sc-remote-test"), job)
+    cli._print_status(logging.getLogger("sc-config-remote-test"), job)
 
     assert all(line in caplog.text for line in said)
     assert not any(line in caplog.text for line in unsaid)
     assert "\x07" not in caplog.text and "\x1b]" not in caplog.text
 
 
-def test_use_server_makes_a_configured_server_the_default(monkeypatch):
-    from siliconcompiler.remote import Credentials
-
-    store = Credentials(Path("sc-auth/remote.json"))
+def test_use_makes_a_configured_server_the_default(monkeypatch):
     for server in ("https://one.test", "https://two.test"):
-        store.set_server(server)
-        store.set_user_id(f"me-on-{server}")
+        store().set_server(server)
+        store().set_user_id(f"me-on-{server}")
 
-    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json',
-                '-use_server', 'https://one.test') == 0
-    assert Credentials(Path("sc-auth/remote.json")).server == "https://one.test/v1"
-    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json',
-                '-use_server', 'https://three.test') != 0
-    assert Credentials(Path("sc-auth/remote.json")).server == "https://one.test/v1"
+    assert main(monkeypatch, 'use', 'https://one.test',
+                '-credentials', 'sc-auth/remote.json') == 0
+    assert store().server == "https://one.test/v1"
+    assert main(monkeypatch, 'use', 'https://three.test',
+                '-credentials', 'sc-auth/remote.json') != 0
+    assert store().server == "https://one.test/v1"
+
+
+def test_uploads_and_headers_are_added_and_removed(monkeypatch):
+    '''A header's value comes from standard input, never the command line.'''
+    store().set_server("https://one.test")
+
+    assert main(monkeypatch, 'uploads', 'add', 'a', 'b',
+                '-credentials', 'sc-auth/remote.json') == 0
+    assert main(monkeypatch, 'uploads', 'remove', 'a',
+                '-credentials', 'sc-auth/remote.json') == 0
+    assert store().directory_whitelist == [os.path.abspath('b')]
+
+    monkeypatch.setattr('sys.stdin', io.StringIO("secret\n"))
+    assert main(monkeypatch, 'header', 'set', 'CF-Access-Client-Id',
+                '-credentials', 'sc-auth/remote.json') == 0
+    assert store().headers() == {"CF-Access-Client-Id": "secret"}
+    assert main(monkeypatch, 'header', 'remove', 'CF-Access-Client-Id',
+                '-credentials', 'sc-auth/remote.json') == 0
+    assert store().headers() == {}
 
 
 def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
@@ -164,8 +164,8 @@ def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
                  .not_valid_after(now + datetime.timedelta(days=1)).sign(key, hashes.SHA256()))
     Path("our-ca.pem").write_bytes(authority.public_bytes(serialization.Encoding.PEM))
 
-    assert main(monkeypatch, '-credentials', 'sc-auth/remote.json',
-                '-import_cert', 'our-ca.pem') == 0
+    assert main(monkeypatch, 'import-cert', 'our-ca.pem',
+                '-credentials', 'sc-auth/remote.json') == 0
 
     assert Path("sc-auth/certs/our-ca.pem").read_bytes() == Path("our-ca.pem").read_bytes()
     assert authority.fingerprint(hashes.SHA256()).hex(":").upper() in caplog.text

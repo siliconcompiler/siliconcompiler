@@ -1,4 +1,5 @@
-'''The ``v1`` remote client: ``Client`` is the library, ``sc-remote`` a thin wrapper over it.'''
+'''The ``v1`` remote client: ``Client`` is the library, and ``sc-config remote``
+(`cli`) a thin wrapper over it.'''
 
 import logging
 import os
@@ -37,7 +38,7 @@ GRANT_TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 
 CI_EXPIRY_WARNING_SECONDS = 7 * 86400
 
-ROTATE_COMMAND = "sc-remote -rotate_key"
+ROTATE_COMMAND = "sc-config remote rotate-key"
 
 # Named on every create by a CI credential bound to a project.
 PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
@@ -67,7 +68,7 @@ class Client:
         self._terms_reminded = set()
 
         if not credentials.server:
-            # Raised on use, not here, so `sc-remote -configure` can build a client to fix it.
+            # Raised on use, not here, so `sc-config remote configure` can build a client to fix it.
             self._transport = None
             return
 
@@ -90,7 +91,7 @@ class Client:
         if not self.credentials.certificate_path(name).is_file():
             self.logger.warning(
                 f"The certificate {name} chosen for this server is not in "
-                f"{self.credentials.certs_dir}: import it again with sc-remote -import_cert")
+                f"{self.credentials.certs_dir}: import it again with sc-config remote import-cert")
             return None
         return str(self.credentials.trust_bundle(name))
 
@@ -99,7 +100,7 @@ class Client:
         if self._transport is None:
             raise RemoteError(
                 "No remote server address is configured. "
-                "Run: sc-remote -configure -server https://<host>")
+                "Run: sc-config remote configure https://<host>")
         return self._transport
 
     @property
@@ -123,7 +124,7 @@ class Client:
         others = [server for server in self.credentials.servers()
                   if server != self.credentials.server]
         if others:
-            self.logger.info(f"Also configured (sc-remote -use_server): {', '.join(others)}")
+            self.logger.info(f"Also configured (sc-config remote use): {', '.join(others)}")
 
         # Names only: a header's value is a secret.
         if self._transport is not None:
@@ -667,7 +668,7 @@ class Client:
         hidden value, until a blank name. Nothing is asked without a terminal.'''
         if not sys.stdin.isatty():
             self.logger.info("Set any header the server's access layer requires with "
-                             "`sc-remote -header <name>`, the value on standard input.")
+                             "`sc-config remote header set <name>`, the value on standard input.")
             return
         while True:
             name = input("Header the server's access layer requires (blank when done): ")
@@ -957,7 +958,7 @@ class Client:
                               "character, and this one has one")
         self.ensure_session()
 
-        body = {"reason": reason or "cancelled from sc-remote"}
+        body = {"reason": reason or "cancelled from SiliconCompiler"}
         return self.transport.request(
             "POST", f"jobs/{job_id}/cancel", json_body=body).json()
 
@@ -971,8 +972,8 @@ class Client:
                 raise
             raise ServerProblem(
                 e.problem, e.status, help_url=e.help_url, retry_after=e.retry_after,
-                next_step="Only a finished job can be deleted: cancel it with sc-remote "
-                          "-cancel, or let it finish, then delete it.") from None
+                next_step="Only a finished job can be deleted: cancel it with sc-config "
+                          "remote cancel, or let it finish, then delete it.") from None
 
     def artifacts(self, job_id: str, **filters) -> list:
         '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
@@ -1154,7 +1155,7 @@ class Client:
             configured = ", ".join(self.credentials.servers()) or "none"
             raise RemoteError(
                 f"{chosen} is not configured here (configured: {configured}): "
-                f"add it with sc-remote -configure -server {server.strip()}")
+                f"add it with sc-config remote configure {server.strip()}")
         self.credentials.set_server(chosen)
         self._transport = self._make_transport(chosen)
         self.logger.info(f"Using {chosen}")
@@ -1198,7 +1199,7 @@ class Client:
             self.logger.info(f"  {subject}")
             self.logger.info(f"    SHA-256 {fingerprint}")
         self.logger.info(f"Imported {name}. Check the fingerprint with whoever runs the "
-                         "server; sc-remote -configure offers it where a server's "
+                         "server; sc-config remote configure offers it where a server's "
                          "certificate cannot be verified.")
         return name
 
@@ -1278,7 +1279,7 @@ class Client:
             not (self.ci_session or os.environ.get("CI"))
 
     def portal(self) -> bool:
-        '''`sc-remote -portal`: the portal's home, signed in as this machine.
+        '''`sc-config remote portal`: the portal's home, signed in as this machine.
 
         A cold browser cannot present this machine's key-bound identity, so
         endpoint 6 answers a sign-in. Asked for on purpose: a refusal fails.

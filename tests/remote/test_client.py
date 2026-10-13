@@ -68,7 +68,7 @@ def test_a_server_address_is_normalized(given, port, expected):
 
 
 def test_configuring_an_ipv6_server_keeps_its_port():
-    '''As `sc-remote -configure -server` splits it.'''
+    '''As `sc-config remote configure` splits it.'''
     from siliconcompiler.remote.client import _split_address
 
     address, port, had_credentials = _split_address("https://[::1]:8000")
@@ -79,7 +79,7 @@ def test_configuring_an_ipv6_server_keeps_its_port():
 
 
 def test_a_client_without_a_server_builds_and_says_so(caplog):
-    '''Constructing must not raise, or `sc-remote -configure` could not fix it.'''
+    '''Constructing must not raise, or `sc-config remote configure` could not fix it.'''
     caplog.set_level(logging.INFO)
     client = Client(Credentials(Path("sc-home/auth/remote.json")))
     client.print_configuration()
@@ -88,7 +88,7 @@ def test_a_client_without_a_server_builds_and_says_so(caplog):
     assert "Server: not configured" in caplog.text
     with pytest.raises(RemoteError, match="No remote server address is configured"):
         client.capabilities()
-    with pytest.raises(RemoteError, match="sc-remote -configure"):
+    with pytest.raises(RemoteError, match="sc-config remote configure"):
         client.me()
 
 
@@ -443,7 +443,7 @@ def test_a_dead_refresh_token_falls_back_to_enrolling_once(
     assert _grants(fake_v1) == ["refresh_token", "client_credentials"]
     assert tmp_credentials.refresh_token == "refresh-token-one"
     if reason == "reused":
-        assert "sc-remote -rotate_key" in caplog.text
+        assert "sc-config remote rotate-key" in caplog.text
         assert "used elsewhere" in caplog.text
 
 
@@ -755,13 +755,13 @@ def test_use_server_switches_among_the_servers_configured_here(fake_v1, tmp_cred
 
     caplog.set_level(logging.INFO)
     client.print_configuration()
-    assert f"Also configured (sc-remote -use_server): {V1_URL}" in caplog.text
+    assert f"Also configured (sc-config remote use): {V1_URL}" in caplog.text
 
     client.use_server(V1_URL.rsplit("/v1", 1)[0])
     assert (tmp_credentials.server, client.base_url) == (V1_URL, V1_URL)
     assert tmp_credentials.refresh_token == "refresh-for-the-first"
 
-    with pytest.raises(RemoteError, match="sc-remote -configure -server https://new.test"):
+    with pytest.raises(RemoteError, match="sc-config remote configure https://new.test"):
         client.use_server("https://new.test")
     assert tmp_credentials.server == V1_URL
     assert not fake_v1.calls

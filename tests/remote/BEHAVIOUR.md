@@ -187,11 +187,13 @@ that is now **the normal one**, so they are the behaviour to carry forward rathe
 
 **`apps/sc_remote.py` is not being rewritten** — 176 lines of argument shape over a 1,139-line
 client. Two tests stayed with it; the rest tested the client through it and are captured above.
+It later became `sc-config remote` (`remote/client/cli.py`), one action per flag, tested in
+`tests/remote/test_cli.py`.
 
 | | Behaviour | `v1` equivalent |
 |---|---|---|
-| F1 | ✅ **`-configure`, `-reconnect`, `-cancel` and `-delete` are mutually exclusive**, exit `1` | **kept in `tests/apps/test_sc_remote.py`** |
-| F2 | ✅ **`-reconnect`, `-cancel` and `-delete` require `-cfg`**, exit `2` | **kept in `tests/apps/test_sc_remote.py`** |
+| F1 | ✅ **`-configure`, `-reconnect`, `-cancel` and `-delete` are mutually exclusive**, exit `1` | **by construction**: each is its own `sc-config remote` action |
+| F2 | ✅ **`-reconnect`, `-cancel` and `-delete` require `-cfg`**, exit `2` | **by construction**: the manifest is each job action's required argument |
 | F3 | **A blank address at the `-configure` prompt exits `3`** and writes no file | the app maps the client's `ValueError` to an exit code; keep both halves |
 | F4 | **`-configure -list` prints the configuration and exits `0`** | keep |
 | F5 | **`-cancel` / `-delete` call `check()` first**, then the verb | keep the order: the client confirms the server before acting on it |

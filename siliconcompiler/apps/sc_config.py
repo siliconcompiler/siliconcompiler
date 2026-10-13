@@ -3,13 +3,14 @@ import argparse
 import sys
 
 from siliconcompiler.package.cleanup import CACHE_COMMAND
+from siliconcompiler.remote.client.cli import REMOTE_COMMAND
 from siliconcompiler.scheduler.send_messages import EMAIL_COMMAND
 from siliconcompiler.utils import PATHS_COMMAND
 from siliconcompiler.utils.settings import SETTINGS_COMMAND
 
 
 #: The app's commands, each declared by the module that owns what it configures.
-_COMMANDS = (SETTINGS_COMMAND, EMAIL_COMMAND, CACHE_COMMAND, PATHS_COMMAND)
+_COMMANDS = (SETTINGS_COMMAND, EMAIL_COMMAND, REMOTE_COMMAND, CACHE_COMMAND, PATHS_COMMAND)
 
 
 def _parser() -> argparse.ArgumentParser:

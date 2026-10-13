@@ -315,8 +315,8 @@ The command line
 ================
 
 There is **no** ``sc`` command, and there never was one after v0.35.0. The
-entry points are ``sc-config``, ``sc-issue``, ``sc-remote``, ``sc-show``,
-``sc-install`` and ``smake``.
+entry points are ``sc-config``, ``sc-issue``, ``sc-show``, ``sc-install`` and
+``smake``.
 
 .. list-table::
    :header-rows: 1
@@ -337,12 +337,20 @@ entry points are ``sc-config``, ``sc-issue``, ``sc-remote``, ``sc-show``,
      - ``python3 -m siliconcompiler.remote.server``, which serves the ``v1``
        API: ``-nfsmount`` is now ``-datadir``, and ``-auth``,
        ``-maxuploadsize``, ``-checkinterval`` and ``-schemaversion`` are gone
+   * - ``sc-remote -configure -server <url>``
+     - ``sc-config remote configure <url>``. ``-configure -list`` is
+       ``sc-config remote show``, and ``-configure -add <dir>`` is
+       ``sc-config remote uploads add <dir>``
+   * - ``sc-remote -cfg <manifest> -cancel``
+     - ``sc-config remote cancel <manifest>``. ``-reconnect``, ``-delete`` and
+       ``-tail`` became actions the same way, and ``-cfg <manifest>`` alone is
+       ``status``
    * - ``python3 -m siliconcompiler.apps.utils.cleanup``
      - ``sc-config cache clean``, same arguments, except that ``-dryrun`` takes no
        value: drop a ``true`` after it
 
-Everything else -- ``sc-show``, ``sc-issue``, ``sc-remote`` and the rest --
-kept its name and its arguments.
+Everything else -- ``sc-show``, ``sc-issue`` and the rest -- kept its name and
+its arguments.
 
 Still stuck?
 ============

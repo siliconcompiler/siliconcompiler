@@ -85,10 +85,10 @@ _NEXT_STEP = {
     "not-ready": "Not available yet; retry.",
     "feature-unsupported": "This deployment does not offer that now.",
     "insufficient-scope": "This credential may not do that.",
-    "session-ended": "Log in again with sc-remote -configure.",
+    "session-ended": "Log in again with sc-config remote configure.",
     "invalid-dpop-proof": "The server did not accept this machine's key.",
     "insecure-transport": "This server's address must be https: change it with "
-                          "sc-remote -configure. The request is not sent again.",
+                          "sc-config remote configure. The request is not sent again.",
     "idempotency-key-reuse": "A retry changed the request; start a new job.",
     "invalid-cursor": "Start the listing again.",
     "prior-results-unavailable": "Run from an earlier step, or name a job of your "
@@ -117,7 +117,7 @@ def _by_status(status: Optional[int]) -> Optional[str]:
     if status == 429:
         return "Wait and retry."
     if status == 401:
-        return "Log in again with sc-remote -configure."
+        return "Log in again with sc-config remote configure."
     if status == 404:
         return "Check the id, or it may have been deleted."
     if status >= 400:
@@ -254,7 +254,7 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
             "Ask the deployment for that grant; waiting will not help."
     if slug == "session-ended" and problem.get("reason") == "reused":
         return ("Your credentials were used elsewhere. Rotate this machine's key "
-                "with `sc-remote -rotate_key`, then log in again.")
+                "with `sc-config remote rotate-key`, then log in again.")
     return _NEXT_STEP[slug]
 
 

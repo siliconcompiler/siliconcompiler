@@ -511,7 +511,7 @@ class OptionSchema(BaseSchema):
                 server's session. If the credentials parameter is empty, the
                 remote processing client uses ".sc/auth/remote.json" in the
                 user's home directory, beside the machine's key,
-                "dpop-key.pem". It is written by "sc-remote -configure". A
+                "dpop-key.pem". It is written by "sc-config remote configure". A
                 credentials file an older client wrote, such as
                 ".sc/credentials", is moved into the "auth" directory beside it
                 the first time it is read."""))

@@ -100,7 +100,7 @@ def test_a_source_asked_for_that_cannot_be_fetched_here_cancels(rig, nop_project
     detail, row = the_job(app, client)
     if when == "create":
         assert row["state_reason"].startswith(
-            "cancelled from sc-remote: it cannot supply what the server asked for: "
+            "cancelled from SiliconCompiler: it cannot supply what the server asked for: "
             "the dataroot library,acme,dataroot,acme")
         # Nothing moved: no upload was ever granted.
         assert app.config["SC_STORE"].one("SELECT count(*) AS n FROM artifacts")["n"] == 0
@@ -213,7 +213,7 @@ def test_a_long_reason_is_fitted_to_what_the_server_takes(fake_v1, cancels, logg
 
     reason = _cancel_reason(fake_v1)
     assert len(reason) <= 300 and "\n" not in reason
-    assert reason.startswith("cancelled from sc-remote: it cannot supply what the server "
+    assert reason.startswith("cancelled from SiliconCompiler: it cannot supply what the server "
                              "asked for: lib0 (lib0)")
     named = reason.count("it cannot be fetched here either")
     assert 0 < named < 20

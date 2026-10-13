@@ -85,7 +85,7 @@ The stack carries the EDA tools, so a full ASIC flow works, not just the
 scheduler path.
 
 ```sh
-sc-remote -configure -server http://localhost:8080
+sc-config remote configure http://localhost:8080
 cd ../../examples/heartbeat && python3 heartbeat.py -remote
 ```
 
@@ -104,7 +104,8 @@ The private key sits beside that file as `credentials.key`, both `0600`.
 
 ⚠️ There is no default server, so a client that has not been configured says so
 twice: *"No remote server address is configured"* when it is asked to do
-anything, and the same again from `sc-remote` with the command that fixes it.
+anything, and the same again from `sc-config remote` with the command that fixes
+it.
 
 When the run ends the client pulls the results back and merges them into its own
 build directory, so `project.summary()` works exactly as it does after a local
@@ -145,7 +146,7 @@ Ctrl-C on a running job prints those first two lines with the path filled in.
 ## The portal
 
 ```sh
-sc-remote -portal
+sc-config remote portal
 ```
 
 Six screens over the same decisions the API makes: jobs and their nodes, logs
@@ -160,7 +161,7 @@ hands the browser for bytes is a *signed* storage URL whose signature is the
 whole credential.
 
 Browser sessions live in the server process and in no table, so restarting it
-signs everyone out. Running `sc-remote -portal` again is the whole recovery.
+signs everyone out. Running `sc-config remote portal` again is the whole recovery.
 
 The portal is served wherever the API is. Its session cookie is a bearer
 secret, so where that is plain http beyond this machine the server warns at
@@ -317,7 +318,7 @@ Every refusal's `type` is a page, and this server serves all of them at
 `https://siliconcompiler.com/server-errors/<slug>`, which is what a client
 compares against; beside it, every refusal &mdash; and every job read whose job
 carries an `error` &mdash; sends `Link: </server-errors/<slug>>; rel="help"`, and
-`sc-remote` prints that page on this server instead of the public one.
+the client prints that page on this server instead of the public one.
 
 ## The base image
 
@@ -798,7 +799,7 @@ reverse proxy with https wherever it is reached from elsewhere.
 
 An edge in front of this server that requires headers of its own, Cloudflare
 Access's service token for one, is configured on the client once, for the
-server, with `sc-remote -header <name>`. The stream a log's `303` leads to and
+server, with `sc-config remote header set <name>`. The stream a log's `303` leads to and
 the signed storage routes are on this host too, so they reach the edge with
 those headers, and a live log works through it. A client sends them to the
 server's origin and nowhere else (surface D304).

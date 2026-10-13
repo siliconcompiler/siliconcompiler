@@ -388,7 +388,7 @@ def _pages(fake_v1):
 
 @pytest.mark.parametrize("which,asked", [("job", {"job_id": "01J9-job"}), ("home", {})])
 def test_a_page_is_asked_for_never_built(fake_v1, run, opened, which, asked):
-    '''After a submit, the job's page by its id; `sc-remote -portal`, the
+    '''After a submit, the job's page by its id; `sc-config remote portal`, the
     home page. The client opens what comes back.'''
     fake_v1.route(responses.POST, "auth/browser", SIGN_IN)
 
@@ -534,7 +534,7 @@ def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
 
 
 @pytest.mark.parametrize("reason,sent", [
-    (None, "cancelled from sc-remote"),
+    (None, "cancelled from SiliconCompiler"),
     ("wrong constraints", "wrong constraints"),
     ("é" * 300, "é" * 300),
 ], ids=["default", "own", "300-code-points"])
@@ -574,7 +574,7 @@ def test_deleting_an_unfinished_job_says_to_cancel_it_first(fake_v1, logged_in):
     with pytest.raises(ServerProblem) as raised:
         logged_in.delete_job("01J9-job")
 
-    assert "cancel it with sc-remote -cancel" in str(raised.value)
+    assert "cancel it with sc-config remote cancel" in str(raised.value)
     assert "past the point" not in str(raised.value)
 
 
@@ -1740,7 +1740,7 @@ def test_a_failed_upload_starts_over_under_a_reissued_grant(fake_v1, run, second
     assert bool(run.project.get('record', 'remoteid')) != cancelled
     if cancelled:
         assert json.loads(_cancels(fake_v1)[0].body)["reason"].startswith(
-            "cancelled from sc-remote")
+            "cancelled from SiliconCompiler")
 
 
 def test_an_upload_that_does_not_match_its_digest_goes_up_again(fake_v1, run):
@@ -1785,7 +1785,8 @@ def test_a_refused_submit_cancels_only_what_cannot_be_submitted_again(
         with pytest.raises(RemoteError) as raised:
             run._start()
     if outcome == "kept":
-        assert "sc_remote.pkg.json -reconnect" in str(raised.value)
+        assert str(raised.value).endswith("sc-config remote reconnect "
+                                          f"{run._manifest()}")
 
     assert len(_cancels(fake_v1)) == (outcome == "cancelled")
     assert bool(run.project.get('record', 'remoteid')) == (outcome != "cancelled")

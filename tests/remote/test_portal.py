@@ -181,7 +181,7 @@ def test_a_browser_with_no_session_is_told_how_to_get_one(server_client, path):
     response = server_client.get(path)
 
     assert response.status_code == 401
-    assert "sc-remote -portal" in response.get_data(as_text=True)
+    assert "sc-config remote portal" in response.get_data(as_text=True)
 
 
 def test_a_handover_works_once_before_it_expires_and_only_if_minted(
@@ -811,7 +811,7 @@ def test_a_cold_link_to_a_job_comes_back_to_that_job(server_client, key, token,
 
     turned_away = server_client.get(job_page)
     assert turned_away.status_code == 401
-    assert "sc-remote -portal" in turned_away.get_data(as_text=True)
+    assert "sc-config remote portal" in turned_away.get_data(as_text=True)
 
     entered = enter(server_client, browser(server_client, key, token))
     assert entered.status_code == 302

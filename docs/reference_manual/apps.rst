@@ -11,6 +11,9 @@ CLI apps
     :app: sc-config email
 
   .. scapp::
+    :app: sc-config remote
+
+  .. scapp::
     :app: sc-config cache
 
   .. scapp::
@@ -21,9 +24,6 @@ CLI apps
 
 .. scapp::
   :app: sc-issue
-
-.. scapp::
-  :app: sc-remote
 
 .. scapp::
   :app: python3 -m siliconcompiler.remote.server

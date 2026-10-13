@@ -20,11 +20,11 @@ SiliconCompiler does not host a server for you -- see
 Step 1: Configure Your Remote Server
 ------------------------------------
 
-Run ``sc-remote -configure`` and give it the server's address:
+Run ``sc-config remote configure`` and give it the server's address:
 
 .. code-block:: bash
 
-  sc-remote -configure -server https://your-server.example.com
+  sc-config remote configure https://your-server.example.com
 
 There is no username and no password. On first use the client generates a
 **key pair** for this machine, keeps the private half locally, and proves it
@@ -53,11 +53,10 @@ session, so switching back to one needs no new login:
 
 .. code-block:: bash
 
-  sc-remote -use_server https://other-server.example.com
+  sc-config remote use https://other-server.example.com
 
 makes a server already configured on this machine the default, without
-contacting it. ``sc-remote -configure -list`` lists the servers configured
-here.
+contacting it. ``sc-config remote show`` lists the servers configured here.
 
 What is written, and where
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,14 +72,14 @@ points -- in two files, and a directory once you import a certificate:
   The store: which server, the upload whitelist, and for each server you have
   configured, your session with it -- the id it knows you by, its refresh
   token, or a CI credential in place of one -- and any headers an operator's
-  access layer requires (``sc-remote -header``). ``-credentials`` names this
-  file. No access token is written down, so a command, ``sc-remote`` on its own
-  included, spends the refresh token once. ``sc-remote`` on its own shows the
-  session this machine holds -- its scope, the device it is bound to, and when
+  access layer requires (``sc-config remote header``). ``-credentials`` names
+  this file. No access token is written down, so every command,
+  ``sc-config remote show`` included, spends the refresh token once.
+  ``sc-config remote show`` reports the session this machine holds -- its scope, the device it is bound to, and when
   its tokens and the session itself end -- as the server reports it.
 
 ``certs/``
-  The certificate authorities you imported with ``sc-remote -import_cert``;
+  The certificate authorities you imported with ``sc-config remote import-cert``;
   ``remote.json`` records which one each server is verified with.
 
 The headers are configured once, for the server, and sent to its address and
@@ -104,13 +103,13 @@ organisation's, import that authority's certificate once:
 
 .. code-block:: bash
 
-  sc-remote -import_cert ./our-ca.pem
+  sc-config remote import-cert ./our-ca.pem
 
 It prints each certificate's subject and SHA-256 fingerprint: check them with
-whoever runs the server. Then, when ``sc-remote -configure`` cannot verify a
+whoever runs the server. Then, when ``sc-config remote configure`` cannot verify a
 server's certificate, it lists the certificates you imported and asks which
 one signs it, and the server is verified with that one from then on. Only
-``-configure`` asks; any other command fails and says to run it. An imported
+``configure`` asks; any other command fails and says to run it. An imported
 certificate is trusted in addition to the usual authorities, never in place
 of them, so an upload to public storage still verifies. A
 ``REQUESTS_CA_BUNDLE`` in the environment still takes precedence. The client
@@ -125,26 +124,26 @@ never trusts a certificate the server presents: only one you imported.
      run** if something widened it -- it does not repair it, because a key
      others could read may already be copied. Restore the modes
      (``chmod 700`` on the directory, ``chmod 600`` on each file), then replace
-     the key with ``sc-remote -rotate_key``.
+     the key with ``sc-config remote rotate-key``.
    * **Never commit the store**, and do not paste its contents into an
      issue, a pull request or a build log.
    * Do not copy the key between machines. Each machine generates its own.
-     ``sc-remote -rotate_key`` replaces it deliberately; nothing else does.
+     ``sc-config remote rotate-key`` replaces it deliberately; nothing else does.
 
 .. note::
 
    A server that does not verify who you are -- which the bundled
    ``sc-server`` does not -- separates your jobs from other users' but is not a
-   security boundary. ``sc-remote -configure`` says so when it connects.
+   security boundary. ``sc-config remote configure`` says so when it connects.
 
 Step 2: Verify the Connection
 -----------------------------
 
-After configuration, run ``sc-remote`` without any arguments to test the connection to your server.
+After configuration, run ``sc-config remote show`` to test the connection to your server.
 
 .. code-block:: bash
 
-  sc-remote
+  sc-config remote show
 
 A successful connection will typically display a status message or an empty list of your remote jobs, confirming that your configuration and credentials are correct.
 
@@ -381,7 +380,7 @@ Versions, and being told before you upload
 
 A server publishes the versions it runs, and the client checks its own against
 that list at the first call of every session -- before a job exists, before a
-byte moves. ``sc-remote -configure`` prints them:
+byte moves. ``sc-config remote configure`` prints them:
 
 .. code-block:: text
 
@@ -425,33 +424,33 @@ uploads anything**, and every command that acts on a job takes that path:
 
 .. code-block:: bash
 
-  sc-remote -cfg build/<design>/<job>/sc_remote.pkg.json              # status
-  sc-remote -cfg build/<design>/<job>/sc_remote.pkg.json -reconnect   # re-enter the wait
-  sc-remote -cfg build/<design>/<job>/sc_remote.pkg.json -cancel
-  sc-remote -cfg build/<design>/<job>/sc_remote.pkg.json -delete
+  sc-config remote status build/<design>/<job>/sc_remote.pkg.json
+  sc-config remote reconnect build/<design>/<job>/sc_remote.pkg.json   # re-enter the wait
+  sc-config remote cancel build/<design>/<job>/sc_remote.pkg.json
+  sc-config remote delete build/<design>/<job>/sc_remote.pkg.json
 
 Interrupting a run with ``Ctrl-C`` disconnects from it without stopping it, and
-prints the first two of those commands with the path filled in. The job keeps
+prints the reconnect and cancel commands with the path filled in. The job keeps
 running on the server.
 
 A job whose submit is refused until you act -- a terms document to accept, or
 an account to be provisioned -- is not cancelled: it keeps its upload, and
-``-reconnect`` submits it once that is done.
+``reconnect`` submits it once that is done.
 
-``-cancel`` and ``-delete`` are both safe to repeat: cancelling a job that has
+``cancel`` and ``delete`` are both safe to repeat: cancelling a job that has
 already stopped, or deleting one that is already deleted, is the same answer
 again. A job cannot be deleted while it is still running -- cancel it first.
 
-``-cancel -reason "<why>"`` records why, for everyone who reads the job, in at
+``cancel -reason "<why>"`` records why, for everyone who reads the job, in at
 most 300 characters on one line; a longer one is refused before anything is
-sent. Without it the reason is *cancelled from sc-remote*.
+sent. Without it the reason is *cancelled from SiliconCompiler*.
 
 Looking at it in a browser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-  sc-remote -portal
+  sc-config remote portal
 
 A server carries a portal: your jobs and their nodes, each node's log live or
 archived, the artifacts a run produced, the machines that may act as you, your
@@ -487,7 +486,7 @@ Reading one node's log
 
 .. code-block:: bash
 
-  sc-remote -cfg build/<design>/<job>/sc_remote.pkg.json -tail place/0
+  sc-config remote tail build/<design>/<job>/sc_remote.pkg.json place/0
 
 **If the node is still running this follows the log live**, and if it has
 finished it prints the archived one. The same call covers both, because a node
@@ -525,17 +524,17 @@ as the pipeline secret ``SC_CI_CREDENTIAL``. Then, before the build:
 
 .. code-block:: bash
 
-  sc-remote -ci_setup -server https://your-server.example.com
+  sc-config remote ci-setup https://your-server.example.com
 
 On GitHub Actions the session store goes in the job's own temporary directory
 and ``SC_AUTH_DIR`` is exported to later steps. Where the server sits behind an
-access layer such as Cloudflare Access, ``-ci_setup`` asks for the headers it
+access layer such as Cloudflare Access, ``ci-setup`` asks for the headers it
 requires when run at a terminal. A pipeline sets each in a later step, the value
 on standard input so it never appears on a command line:
 
 .. code-block:: bash
 
-  echo "$CF_CLIENT_SECRET" | sc-remote -header CF-Access-Client-Secret
+  echo "$CF_CLIENT_SECRET" | sc-config remote header set CF-Access-Client-Secret
 
 A credential bound to one project needs that project named on every
 job: set ``SC_REMOTE_PROJECT``. The client warns, as a GitHub annotation, when
@@ -546,12 +545,12 @@ Troubleshooting
 
 * **"The edge refused this request":** Something in front of the server --
   an access layer such as Cloudflare Access -- answered instead of the API.
-  Check the headers the operator asked you to set: ``sc-remote -configure -list``
-  shows their names, and ``sc-remote -header <name>`` sets one, reading the
+  Check the headers the operator asked you to set: ``sc-config remote show``
+  shows their names, and ``sc-config remote header set <name>`` sets one, reading the
   value from standard input.
 * **"Your credentials were used elsewhere":** A session token was spent twice,
   so the server ended the session. Replace this machine's key with
-  ``sc-remote -rotate_key``. It revokes the device the old key is bound to
+  ``sc-config remote rotate-key``. It revokes the device the old key is bound to
   first, with that key, which ends every session it holds, and then enrols this
   machine again as a new device.
 * **Local Changes Not Reflected:** Any modifications you make to local, built-in tool scripts, PDKs, or libraries will not be used in a remote job. The remote server uses its own pre-configured environment.
@@ -582,7 +581,7 @@ The server is then reachable on ``http://localhost:8080``, so :ref:`Step 1 <priv
 
 .. code-block:: bash
 
-   sc-remote -configure -server http://localhost:8080
+   sc-config remote configure http://localhost:8080
 
 Add compute nodes with ``docker compose up -d --scale scrunner=4``; they register themselves, so no configuration changes. ``setup/server/README.md`` covers the rest, including how to build the stack from a git worktree.
 
@@ -680,7 +679,7 @@ every one satisfiable, and nothing to run them in. What is stored is still
 exact; only the wire carries ranges.
 
 **The job's ``requested_versions`` is keyed the same two ways, and names every Python
-distribution the job imports.** ``sc-remote`` pins each exactly, as installed
+distribution the job imports.** The client pins each exactly, as installed
 on your machine -- SiliconCompiler itself, and the distribution every class in
 the manifest comes from, such as ``lambdapdk`` for its PDKs -- because a name
 left out is not required, and the job could land in an image without it. A
@@ -695,7 +694,7 @@ both once. An empty list means *any version of this*, which is not the same as
 not naming the tool: naming it is what lets the server refuse before the
 upload.
 
-⚠️ **`sc-remote` normalises those specifiers before sending them**, with the
+⚠️ **The client normalises those specifiers before sending them**, with the
 task's own ``normalize_version``. ``>=24Q3-2011`` is not a PEP 440 specifier at
 all, and only the driver knows how to turn it into ``>=24.3.2011``; sent raw it
 would be refused against an image that plainly satisfies it.

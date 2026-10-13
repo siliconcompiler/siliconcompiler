@@ -80,7 +80,7 @@ class EdgeRefused(RemoteError):
     def __init__(self, origin: str):
         super().__init__(
             f"the edge refused this request: check the Cloudflare credentials -- the "
-            f"operator-configured headers for {origin} (sc-remote -header). This is an "
+            f"operator-configured headers for {origin} (sc-config remote header set). This is an "
             "intermediary in front of the server, not the API")
 
 
@@ -90,8 +90,9 @@ class CertificateRefused(RemoteError):
     def __init__(self, origin: str, why: str):
         super().__init__(
             f"{origin}'s certificate could not be verified ({why}). If an authority of "
-            "your own signs it, import that authority's certificate with sc-remote "
-            "-import_cert <file>, then run sc-remote -configure again to choose it")
+            "your own signs it, import that authority's certificate with sc-config "
+            "remote import-cert <file>, then run sc-config remote configure again to "
+            "choose it")
 
 
 class OAuthRefusal(RemoteError):
@@ -256,7 +257,7 @@ class Transport:
         if authenticated:
             if token is None:
                 raise RemoteError(
-                    "not logged in to this server: run sc-remote -configure")
+                    "not logged in to this server: run sc-config remote configure")
             sent["Authorization"] = f"DPoP {token}"
 
         # A fresh proof per request, retries included: the server remembers its `jti`.
@@ -559,7 +560,7 @@ class Transport:
             raise RemoteError(
                 f"{self.base_url} is not https, and this deployment authenticates (it "
                 f"offers {', '.join(grants) or 'no login'}): a credential goes to it only "
-                "over https. Configure its https address with sc-remote -configure")
+                "over https. Configure its https address with sc-config remote configure")
 
     def token(self, form) -> Dict[str, Any]:
         '''`POST /v1/auth/token`: a grant for a session. A proof and no token.

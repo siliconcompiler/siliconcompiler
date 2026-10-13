@@ -183,25 +183,25 @@ When your job starts on a remote server, it will log a job ID which you can use 
 
     | INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
 
-The job ID is recorded in the job's manifest, which is how the
-:ref:`sc-remote <app-sc-remote>` CLI app identifies the job -- point it at that
+The job ID is recorded in the job's manifest, which is how
+:ref:`sc-config remote <app-sc-config-remote>` identifies the job -- point it at that
 manifest to interact with a running job:
 
 .. code-block:: bash
 
     # Check on a job's progress.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json
+    sc-config remote status build/<design>/<jobname>/<design>.pkg.json
 
     # Cancel a running job.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -cancel
+    sc-config remote cancel build/<design>/<jobname>/<design>.pkg.json
 
     # Ask the server to delete a job from its active records.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -delete
+    sc-config remote delete build/<design>/<jobname>/<design>.pkg.json
 
     # Reconnect to an active job.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -reconnect
+    sc-config remote reconnect build/<design>/<jobname>/<design>.pkg.json
 
-The :ref:`sc-remote <app-sc-remote>` app also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` parameter.
+Each of these also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` parameter.
 
 .. seealso::
    :ref:`Directory structures <directory_structures>` explains the build tree

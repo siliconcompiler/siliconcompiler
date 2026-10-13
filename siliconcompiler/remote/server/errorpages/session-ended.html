@@ -8,11 +8,11 @@
 
 <div class="do">
 <ol>
-  <li>Sign in again (<code>sc-remote -configure</code>).</li>
+  <li>Sign in again (<code>sc-config remote configure</code>).</li>
   <li>Do not refresh: the refresh token belongs to the same ended session.</li>
   <li>On <code>reason: "reused"</code>, reuse detection ended the session: somebody else spent a
       refresh token of yours. Your credentials were used elsewhere. Rotate this machine&rsquo;s key
-      with <code>sc-remote -rotate_key</code> &mdash; the machine enrols again as a new device &mdash;
+      with <code>sc-config remote rotate-key</code> &mdash; the machine enrols again as a new device &mdash;
       and then sign in.</li>
 </ol>
 </div>

@@ -58,7 +58,7 @@ SESSION_SECONDS = 43200
 class Sessions:
     '''Browser sessions, in memory and nowhere else.
 
-    Deliberately not a table: losing one on restart costs ``sc-remote -portal``.
+    Deliberately not a table: losing one on restart costs ``sc-config remote portal``.
     '''
 
     def __init__(self):
@@ -286,7 +286,7 @@ def enter():
     if redeemed is None:
         return flask.render_template(
             "problem.html", title="That link has been used or has expired",
-            detail="Run sc-remote -portal again to get a new one."), 403
+            detail="Run sc-config remote portal again to get a new one."), 403
 
     cookie, _csrf, landing = redeemed
 

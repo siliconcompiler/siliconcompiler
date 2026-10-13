@@ -172,9 +172,10 @@ def test_an_unconfigured_client_refuses_before_it_packs_anything(gcd_design, mon
 
 
 def run_cli(monkeypatch, *args):
-    from siliconcompiler.apps import sc_remote
-    monkeypatch.setattr("sys.argv", ["sc-remote", "-credentials", credentials(), *args])
-    return sc_remote.main()
+    from siliconcompiler.apps import sc_config
+    monkeypatch.setattr("sys.argv", ["sc-config", "remote", *args, "-credentials",
+                                     credentials()])
+    return sc_config.main()
 
 
 @pytest.fixture
@@ -184,41 +185,40 @@ def submitted(ran):
 
 
 def test_status_reconnect_and_tail_through_the_cli(monkeypatch, capsys, caplog, submitted):
-    '''The manifest naming the job is written before the upload. `-tail`
+    '''The manifest naming the job is written before the upload. `tail`
     reaches a finished node's archive; the index defaults to 0, a step is needed.'''
     assert Project.from_manifest(filepath=submitted).get('record', 'remoteid')
 
     with caplog.at_level("INFO"):
-        assert run_cli(monkeypatch, "-cfg", submitted) == 0
+        assert run_cli(monkeypatch, "status", submitted) == 0
         assert "completed" in caplog.text
-        assert run_cli(monkeypatch, "-cfg", submitted, "-reconnect") == 0
+        assert run_cli(monkeypatch, "reconnect", submitted) == 0
 
     for node in ("stepone/0", "stepone"):
-        assert run_cli(monkeypatch, "-cfg", submitted, "-tail", node) == 0
+        assert run_cli(monkeypatch, "tail", submitted, node) == 0
         assert "stepone" in capsys.readouterr().out
     caplog.clear()
     with caplog.at_level("ERROR"):
-        assert run_cli(monkeypatch, "-cfg", submitted, "-tail", "/0") == 1
+        assert run_cli(monkeypatch, "tail", submitted, "/0") == 1
     assert "step" in caplog.text
 
 
 def test_delete_through_the_cli(monkeypatch, caplog, submitted):
     with caplog.at_level("INFO"):
-        assert run_cli(monkeypatch, "-cfg", submitted, "-delete") == 0
+        assert run_cli(monkeypatch, "delete", submitted) == 0
     assert Client(Credentials(credentials())).jobs() == []
 
 
 def test_cancel_through_the_cli_is_an_answer_and_its_reason_is_held_to_300(
         monkeypatch, caplog, submitted):
     '''Cancelling a finished job is a 202 with the current object. `-reason` is
-    for `-cancel`, refused here at 300 characters as the server would.'''
+    refused here at 300 characters, as the server would.'''
     with caplog.at_level("INFO"):
-        assert run_cli(monkeypatch, "-cfg", submitted, "-cancel") == 0
+        assert run_cli(monkeypatch, "cancel", submitted) == 0
     assert "completed" in caplog.text
-    assert run_cli(monkeypatch, "-cfg", submitted, "-cancel", "-reason", "x" * 301) == 1
+    assert run_cli(monkeypatch, "cancel", submitted, "-reason", "x" * 301) == 1
     assert "at most 300 characters" in caplog.text
-    assert run_cli(monkeypatch, "-cfg", submitted, "-cancel", "-reason", "wrong corner") == 0
-    assert run_cli(monkeypatch, "-cfg", submitted, "-reason", "wrong corner") == 1
+    assert run_cli(monkeypatch, "cancel", submitted, "-reason", "wrong corner") == 0
 
 
 def test_a_rotated_key_logs_in_again_as_a_new_device(live_server, tmp_path):

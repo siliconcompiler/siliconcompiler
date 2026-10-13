@@ -252,13 +252,13 @@ class RemoteRun:
         '''Cancel a job that will not be submitted, so it holds no slot until abandoned.'''
         if isinstance(error, _CannotSupply):
             why = error.reason
-            reason = _fitted(f"cancelled from sc-remote: {_CannotSupply.LEAD}",
+            reason = _fitted(f"cancelled from SiliconCompiler: {_CannotSupply.LEAD}",
                              error.failures)
         else:
             why = "interrupted before it was submitted" \
                 if isinstance(error, KeyboardInterrupt) \
                 else "it could not be collected, packed, uploaded or submitted"
-            reason = _fitted("cancelled from sc-remote: ", [why])
+            reason = _fitted("cancelled from SiliconCompiler: ", [why])
         try:
             self.client.cancel_job(job_id, reason=reason)
             self.logger.info(f"Cancelled job {job_id}: {why}")
@@ -1179,11 +1179,11 @@ class RemoteRun:
                 manifest = self._manifest()
                 self.logger.info("Disconnecting from remote job")
                 self.logger.info(
-                    f"To reconnect to this job use: sc-remote -cfg {manifest} -reconnect")
+                    f"To reconnect to this job use: sc-config remote reconnect {manifest}")
                 # A job read through a project can be somebody else's.
                 me = self.client.credentials.user_id
                 if not (self._owner and me and self._owner != me):
-                    self.logger.info(f"To cancel this job use: sc-remote -cfg {manifest} -cancel")
+                    self.logger.info(f"To cancel this job use: sc-config remote cancel {manifest}")
                 raise
 
     def _poll(self, job_id: str) -> None:
@@ -1269,7 +1269,7 @@ class RemoteRun:
             raise RemoteError(
                 f"job {job_id} holds no upload, and this machine has none to send it: it "
                 "waits until it is abandoned. Run the flow again, and cancel this job "
-                f"with: sc-remote -cfg {self._manifest()} -cancel") from None
+                f"with: sc-config remote cancel {self._manifest()}") from None
         self.logger.info("Job submitted")
         return True
 
@@ -1990,7 +1990,7 @@ class _Held(RemoteError):
 
     def __init__(self, job_id: str, refusal: ServerProblem, manifest: str):
         super().__init__(f"{refusal}\nJob {job_id} waits, keeping its upload. Once that is "
-                         f"resolved, submit it with: sc-remote -cfg {manifest} -reconnect")
+                         f"resolved, submit it with: sc-config remote reconnect {manifest}")
 
 
 def _fitted(lead: str, items: List[str]) -> str:
