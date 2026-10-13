@@ -30,7 +30,7 @@ from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
     get_process_context, forking
-from siliconcompiler.apps import sc_server
+from siliconcompiler.remote.server import __main__ as server_entry
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.schema import BaseSchema
 
@@ -560,7 +560,7 @@ def _shutdown_server(proc, timeout=10):
     Stop an sc-server process and everything it started.
 
     SIGTERM rather than SIGKILL: aiohttp installs a SIGTERM handler that turns it
-    into a graceful exit of web.run_app(), so sc_server.main() returns and the
+    into a graceful exit of web.run_app(), so server_entry.main() returns and the
     server process runs its own teardown -- releasing its handles on the session
     manager and joining the node workers it forked. Under SIGKILL none of that
     happens, and whatever the server started is orphaned rather than collected.
@@ -621,7 +621,7 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
         if extra_args:
             args.extend(extra_args)
 
-        monkeypatch.setattr(sys, "argv", ["sc-server", *args])
+        monkeypatch.setattr(sys, "argv", ["server", *args])
 
         # Launch with the start method the scheduler pins (fork on Linux), not
         # the interpreter default. Under the 3.14 default, forkserver, the server
@@ -629,7 +629,7 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
         # session's state -- in particular no shared_manager_server address, so
         # it starts an MPManager server process of its own, which then has to be
         # cleaned up along with it.
-        srv_proc = get_process_context().Process(target=sc_server.main)
+        srv_proc = get_process_context().Process(target=server_entry.main)
         with forking():
             srv_proc.start()
         srv_procs.append(srv_proc)

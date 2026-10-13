@@ -48,7 +48,7 @@ else:
 
 
 # Validation for the API request bodies.
-api_dir = Path(__file__).parent / 'server_schema' / 'requests'
+api_dir = Path(__file__).parent.parent / 'server_schema' / 'requests'
 
 
 class _RequestSchema:

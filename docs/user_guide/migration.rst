@@ -315,8 +315,8 @@ The command line
 ================
 
 There is **no** ``sc`` command, and there never was one after v0.35.0. The
-entry points are ``sc-issue``, ``sc-remote``, ``sc-server``, ``sc-show``,
-``sc-install`` and ``smake``.
+entry points are ``sc-issue``, ``sc-remote``, ``sc-show``, ``sc-install`` and
+``smake``.
 
 .. list-table::
    :header-rows: 1
@@ -333,6 +333,8 @@ entry points are ``sc-issue``, ``sc-remote``, ``sc-server``, ``sc-show``,
      - ``python3 -m siliconcompiler.demos.asic_demo -remote``
    * - ``sc-dashboard``
      - ``python3 -m siliconcompiler.apps.utils.dashboard``, same arguments
+   * - ``sc-server``
+     - ``python3 -m siliconcompiler.remote.server``, same arguments
 
 Everything else -- ``sc-show``, ``sc-issue``, ``sc-remote`` and the rest --
 kept its name and its arguments.

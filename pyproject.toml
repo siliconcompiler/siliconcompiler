@@ -76,7 +76,6 @@ Discussion = "https://github.com/siliconcompiler/siliconcompiler/discussions"
 [project.scripts]
 sc-issue = "siliconcompiler.apps.sc_issue:main"
 sc-remote = "siliconcompiler.apps.sc_remote:main"
-sc-server = "siliconcompiler.apps.sc_server:main"
 sc-show = "siliconcompiler.apps.sc_show:main"
 sc-install = "siliconcompiler.apps.sc_install:main"
 smake = "siliconcompiler.apps.smake:main"
