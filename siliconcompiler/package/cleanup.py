@@ -57,9 +57,11 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from siliconcompiler.package import RemoteResolver
-from siliconcompiler.utils.multiprocessing import MPManager, FileLockTimeout, get_file_lock
+from siliconcompiler.utils import ConfigCommand
+from siliconcompiler.utils.multiprocessing import FileLockTimeout, get_file_lock
 from siliconcompiler.utils.paths import cachedir as cachedir_path, \
     datarootdir, toolcachedir
+from siliconcompiler.utils.settings import Setting, SettingsCategory
 
 
 #: Settings category (in ``~/.sc/settings.json``) holding the automatic sweep's knobs.
@@ -72,6 +74,13 @@ DEFAULT_DAYS = 90
 #: Minimum days between two automatic sweeps of the same cache directory. The
 #: automatic sweep is unasked-for housekeeping, so it stays out of the way.
 DEFAULT_INTERVAL = 7
+
+CLEANUP_DAYS = Setting(SETTINGS_CATEGORY, "cleanupdays", "int", DEFAULT_DAYS,
+                       "days a cache entry goes unused before the automatic sweep "
+                       "collects it; 0 turns the sweep off")
+CLEANUP_INTERVAL = Setting(SETTINGS_CATEGORY, "cleanupinterval", "int", DEFAULT_INTERVAL,
+                           "fewest days between two automatic sweeps of a cache")
+CACHE_SETTINGS = SettingsCategory(SETTINGS_CATEGORY, CLEANUP_DAYS, CLEANUP_INTERVAL)
 
 #: Records when a cache directory was last swept automatically.
 STAMP_FILE = ".sc_cleanup"
@@ -491,6 +500,18 @@ def cleanup_cache(cachedir: Union[str, Path],
     return stats
 
 
+def _sweep_settings(logger: logging.Logger) -> Tuple[int, int]:
+    """
+    The automatic sweep's ``cleanupdays`` and ``cleanupinterval``, or the
+    defaults if either is not a number.
+    """
+    try:
+        return int(CLEANUP_DAYS.get()), int(CLEANUP_INTERVAL.get())
+    except (TypeError, ValueError):
+        logger.warning("Invalid cache cleanup settings, using defaults")
+        return DEFAULT_DAYS, DEFAULT_INTERVAL
+
+
 def auto_cleanup(project) -> None:
     """
     Sweeps the data source cache at the start of a run.
@@ -517,16 +538,7 @@ def auto_cleanup(project) -> None:
     logger = project.logger.getChild("cache")
 
     try:
-        settings = MPManager.get_settings()
-        try:
-            days = int(settings.get(SETTINGS_CATEGORY, "cleanupdays",
-                                    default=DEFAULT_DAYS))
-            interval = int(settings.get(SETTINGS_CATEGORY, "cleanupinterval",
-                                        default=DEFAULT_INTERVAL))
-        except (TypeError, ValueError):
-            logger.warning("Invalid cache cleanup settings, using defaults")
-            days, interval = DEFAULT_DAYS, DEFAULT_INTERVAL
-
+        days, interval = _sweep_settings(logger)
         if days <= 0:
             return
 
@@ -573,3 +585,98 @@ def auto_cleanup(project) -> None:
     except Exception as e:
         # Housekeeping is never worth failing a run over.
         logger.debug(f"Cache cleanup skipped: {e} ({e.__class__.__name__})")
+
+
+def _add_parser(commands) -> None:
+    """
+    Add the ``cache`` command: it shows the cache, and collects it on demand.
+    """
+    parser = commands.add_parser(
+        "cache",
+        help="the cache of downloaded data sources and of tool data",
+        description="Show the cache of downloaded data sources and of tool data, and "
+                    "collect what has gone unused. A sweep also runs on its own; "
+                    "sc-config settings changes how often, and what it takes.")
+    actions = parser.add_subparsers(dest="action", metavar="<action>", required=True)
+    for name, func, what in (
+            ("show", _cli_show, "print where the cache is, how big, and when it was swept"),
+            ("clean", _cli_clean, "remove the data sources unused for a number of days, "
+                                  "and lock files left behind")):
+        action = actions.add_parser(name, help=what, description=what)
+        action.add_argument("-cachedir", metavar="<dir>",
+                            help="the cache, if not the one a project uses by default")
+        if name == "clean":
+            action.add_argument("-days", type=int, default=DEFAULT_DAYS, metavar="<days>",
+                                help="remove what has gone unused for this many days "
+                                     f"(default {DEFAULT_DAYS})")
+            action.add_argument("-dryrun", action="store_true",
+                                help="print what would be removed, and remove nothing")
+        action.set_defaults(func=func)
+
+
+def _cli_cache(args) -> Tuple[Path, logging.Logger]:
+    """
+    The cache ``-cachedir`` names, or else the one a project gets, a default saved
+    for ``[option,cachedir]`` included; and a logger to report on it.
+    """
+    from siliconcompiler import Project
+
+    project = Project()
+    path = args.cachedir or project.option.get_cachedir()
+    if path:
+        return Path(path).expanduser().resolve(), project.logger
+    return Path(cachedir_path(project)), project.logger
+
+
+def _cli_show(args) -> int:
+    cachedir, logger = _cli_cache(args)
+
+    rows = [("location", str(cachedir))]
+    if cachedir.is_dir():
+        rows.append(("size", format_size(_directory_size(cachedir, logger))))
+        stamp = cachedir / STAMP_FILE
+        rows.append(("last sweep", datetime.fromtimestamp(stamp.stat().st_mtime).strftime(
+            "%Y-%m-%d %H:%M") if stamp.exists() else "never"))
+    else:
+        rows.append(("size", "nothing is cached yet"))
+
+    days, interval = _sweep_settings(logger)
+    rows.append(("automatic sweep",
+                 f"every {interval} days, of what has gone unused for {days} days"
+                 if days > 0 else "off"))
+
+    width = max(len(name) for name, _ in rows)
+    for name, value in rows:
+        print(f"{name:<{width}}  {value}")
+    return 0
+
+
+def _cli_clean(args) -> int:
+    cachedir, logger = _cli_cache(args)
+
+    if not cachedir.exists():
+        raise ValueError(f"Cache directory does not exist: {cachedir}")
+    if not cachedir.is_dir():
+        raise ValueError(f"Cache path is not a directory: {cachedir}")
+
+    logger.info(f"Scanning cache directory: {cachedir}")
+    logger.info(f"Removing entries not accessed in {args.days} days")
+    if args.dryrun:
+        logger.info("DRY RUN MODE - no files will be deleted")
+
+    stats = cleanup_cache(cachedir, args.days, dryrun=args.dryrun, logger=logger)
+
+    logger.info(f"Cleanup complete: {stats.entries} entries removed "
+                f"({format_size(stats.size)}), "
+                f"{stats.locks} orphaned lock files removed")
+    if stats.errors > 0:
+        logger.warning(f"{stats.errors} errors occurred during cleanup")
+    return 0
+
+
+CACHE_COMMAND = ConfigCommand(
+    examples="""\
+To see where the cache is and how big, or collect what has gone unused:
+    sc-config cache show
+    sc-config cache clean -days 30 -dryrun""",
+    add_parser=_add_parser)

@@ -4,7 +4,7 @@ import os
 
 from datetime import datetime, timedelta
 
-from siliconcompiler.apps.utils import cleanup
+from siliconcompiler.apps import sc_config
 
 
 @pytest.fixture
@@ -77,12 +77,12 @@ def cache_with_dataroot_entries(temp_cache_dir):
 def test_cleanup_collects_dataroot_entries(monkeypatch, cache_with_dataroot_entries):
     '''The app is pointed at the cache root and reaches the data sources inside it.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(cache_with_dataroot_entries)
     ])
 
-    assert cleanup.main() == 0
+    assert sc_config.main() == 0
 
     dataroot = cache_with_dataroot_entries / "dataroot"
     assert not (dataroot / "old-entry-1234567890ab").exists()
@@ -92,12 +92,12 @@ def test_cleanup_collects_dataroot_entries(monkeypatch, cache_with_dataroot_entr
 def test_cleanup_leaves_the_tool_cache_alone(monkeypatch, cache_with_dataroot_entries):
     '''A tool caps its own cache; nothing here collects it, however old it is.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(cache_with_dataroot_entries)
     ])
 
-    assert cleanup.main() == 0
+    assert sc_config.main() == 0
 
     assert (cache_with_dataroot_entries / "tools" / "verilator" / "stats").exists()
 
@@ -105,13 +105,13 @@ def test_cleanup_leaves_the_tool_cache_alone(monkeypatch, cache_with_dataroot_en
 def test_cleanup_dry_run(monkeypatch, cache_with_old_entries, capsys):
     '''Test cleanup in dry-run mode does not delete anything.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-dryrun',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
 
     # Verify old entry still exists
@@ -131,12 +131,12 @@ def test_cleanup_actual_deletion(monkeypatch, cache_with_old_entries):
     recent_entry = cache_with_old_entries / "recent-entry-abcdef123456"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
 
     # Verify old entry is deleted
@@ -153,12 +153,12 @@ def test_cleanup_preserves_recent_entries(monkeypatch, cache_with_old_entries):
     recent_entry = cache_with_old_entries / "recent-entry-abcdef123456"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Verify recent entries still exist
     assert recent_entry.exists()
@@ -171,12 +171,12 @@ def test_cleanup_different_threshold(monkeypatch, cache_with_old_entries):
     recent_entry = cache_with_old_entries / "recent-entry-abcdef123456"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '20',  # Only delete entries older than 20 days
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Old entry should be deleted
     assert not old_entry.exists()
@@ -190,22 +190,22 @@ def test_cleanup_nonexistent_cache_dir(monkeypatch, tmp_path):
     nonexistent = tmp_path / "nonexistent_cache"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(nonexistent)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 1
 
 
 def test_cleanup_empty_cache_dir(monkeypatch, temp_cache_dir):
     '''Test cleanup handles empty cache directory.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
 
 
@@ -216,12 +216,12 @@ def test_cleanup_entry_without_lock_file(monkeypatch, temp_cache_dir):
     (orphan_entry / "data.txt").write_text("orphan data")
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '0',  # Delete everything
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Orphan entry should still exist (no lock file to check)
     assert orphan_entry.exists()
@@ -240,12 +240,12 @@ def test_cleanup_with_sc_lock_file(monkeypatch, temp_cache_dir):
     os.utime(sc_lock, (old_time, old_time))
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Entry should be deleted using sc_lock as reference
     assert not entry.exists()
@@ -263,12 +263,12 @@ def test_cleanup_stat_error_handling(monkeypatch, temp_cache_dir, capsys):
     os.utime(lock_file, (old_time, old_time))
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
     assert not entry.exists()
 
@@ -279,11 +279,11 @@ def test_cleanup_cache_dir_is_file(monkeypatch, tmp_path):
     cache_file.write_text("not a directory")
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(cache_file)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 1
 
 
@@ -303,12 +303,12 @@ def test_cleanup_removes_both_lock_types(monkeypatch, temp_cache_dir):
     os.utime(sc_lock_file, (old_time, old_time))
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     assert not entry.exists()
     assert not lock_file.exists()
@@ -328,12 +328,12 @@ def test_cleanup_lock_file_time_is_used(monkeypatch, temp_cache_dir):
     os.utime(lock_file, (recent_time, recent_time))
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Entry should NOT be deleted because lock file is recent
     assert entry.exists()
@@ -342,13 +342,13 @@ def test_cleanup_lock_file_time_is_used(monkeypatch, temp_cache_dir):
 def test_cleanup_calculates_size(monkeypatch, cache_with_old_entries, capsys):
     '''Test cleanup correctly calculates directory sizes.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-dryrun',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     output = capsys.readouterr().out
     # Should show size in output
@@ -367,12 +367,12 @@ def test_cleanup_removes_orphaned_locks(monkeypatch, temp_cache_dir, capsys):
     recent_orphan.touch()
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    assert cleanup.main() == 0
+    assert sc_config.main() == 0
 
     assert not orphan.exists()
     assert recent_orphan.exists()
@@ -385,13 +385,13 @@ def test_cleanup_removes_orphaned_locks(monkeypatch, temp_cache_dir, capsys):
 def test_cleanup_summary_shows_total_size(monkeypatch, cache_with_old_entries, capsys):
     '''Test cleanup summary shows total size removed.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-dryrun',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     output = capsys.readouterr().out
     assert "Cleanup complete:" in output
@@ -404,11 +404,11 @@ def test_cleanup_default_days(monkeypatch, cache_with_old_entries):
     old_entry = cache_with_old_entries / "old-entry-1234567890ab"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Should be deleted with default 90 days
     assert not old_entry.exists()
@@ -419,31 +419,15 @@ def test_cleanup_default_dryrun_false(monkeypatch, cache_with_old_entries):
     old_entry = cache_with_old_entries / "old-entry-1234567890ab"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Should actually delete
     assert not old_entry.exists()
-
-
-def test_cleanup_dryrun_true_prevents_deletion(monkeypatch, cache_with_old_entries):
-    '''Test cleanup with -dryrun true does not delete.'''
-    old_entry = cache_with_old_entries / "old-entry-1234567890ab"
-
-    monkeypatch.setattr('sys.argv', [
-        'cleanup',
-        '-days', '90',
-        '-dryrun', 'true',
-        '-cachedir', str(cache_with_old_entries)
-    ])
-
-    cleanup.main()
-
-    assert old_entry.exists()
 
 
 def test_cleanup_handles_readonly_entries(monkeypatch, cache_with_old_entries):
@@ -457,12 +441,12 @@ def test_cleanup_handles_readonly_entries(monkeypatch, cache_with_old_entries):
     os.chmod(old_entry, 0o555)
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
 
     # Should be able to delete read-only files
@@ -472,11 +456,11 @@ def test_cleanup_handles_readonly_entries(monkeypatch, cache_with_old_entries):
 def test_cleanup_logs_cache_directory(monkeypatch, temp_cache_dir, capsys):
     '''Test cleanup logs the cache directory being scanned.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     output = capsys.readouterr().out
     assert "Scanning cache directory:" in output
@@ -486,13 +470,13 @@ def test_cleanup_logs_cache_directory(monkeypatch, temp_cache_dir, capsys):
 def test_cleanup_logs_deletion_plan(monkeypatch, cache_with_old_entries, capsys):
     '''Test cleanup logs what entries it will remove.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-dryrun',
         '-cachedir', str(cache_with_old_entries)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     output = capsys.readouterr().out
     assert "Removing" in output
@@ -502,12 +486,12 @@ def test_cleanup_logs_deletion_plan(monkeypatch, cache_with_old_entries, capsys)
 def test_cleanup_logs_days_threshold(monkeypatch, temp_cache_dir, capsys):
     '''Test cleanup logs the age threshold.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '42',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     output = capsys.readouterr().out
     assert "Removing entries not accessed in 42 days" in output
@@ -537,12 +521,12 @@ def test_cleanup_mixed_old_recent_and_no_lock(monkeypatch, temp_cache_dir):
     (no_lock_entry / "data.txt").write_text("no lock")
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     # Old should be deleted
     assert not old_entry.exists()
@@ -568,12 +552,12 @@ def test_cleanup_multiple_old_entries(monkeypatch, temp_cache_dir):
         os.utime(lock, (old_time, old_time))
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
 
     # All old entries should be deleted
@@ -602,12 +586,12 @@ def test_cleanup_with_nested_directories(monkeypatch, temp_cache_dir):
     os.utime(lock, (old_time, old_time))
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-days', '90',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    cleanup.main()
+    sc_config.main()
 
     assert not entry.exists()
     assert not lock.exists()
@@ -616,11 +600,11 @@ def test_cleanup_with_nested_directories(monkeypatch, temp_cache_dir):
 def test_cleanup_returns_zero_on_success(monkeypatch, temp_cache_dir):
     '''Test cleanup returns 0 on success.'''
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(temp_cache_dir)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 0
 
 
@@ -629,11 +613,11 @@ def test_cleanup_returns_one_on_nonexistent_cachedir(monkeypatch, tmp_path):
     nonexistent = tmp_path / "nonexistent"
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(nonexistent)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 1
 
 
@@ -643,9 +627,9 @@ def test_cleanup_returns_one_when_cachedir_is_file(monkeypatch, tmp_path):
     cache_file.write_text("not a dir")
 
     monkeypatch.setattr('sys.argv', [
-        'cleanup',
+        'sc-config', 'cache', 'clean',
         '-cachedir', str(cache_file)
     ])
 
-    result = cleanup.main()
+    result = sc_config.main()
     assert result == 1

@@ -1,5 +1,6 @@
 import pytest
 import errno
+import functools
 import os
 import json
 import logging
@@ -12,8 +13,9 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler.utils import settings as settings_module
-from siliconcompiler.utils.multiprocessing import forking
-from siliconcompiler.utils.settings import SettingsManager
+from siliconcompiler.utils.multiprocessing import MPManager, forking
+from siliconcompiler.utils.settings import KeyedSettingsCategory, Setting, SettingsCategory, \
+    SettingsManager
 
 
 @pytest.fixture
@@ -411,6 +413,16 @@ def test_get_category_merges_layers(settings_file, system_file):
         "def": "innovus",     # user override
         "vcd": "gtkwave",     # user only
     }
+
+
+def test_categories_come_from_both_layers(settings_file, system_file):
+    """categories() names every category either file holds, once each, sorted."""
+    _write_json(system_file, {"record": {"region": "eu"}, "cache": {"cleanupdays": 1}})
+    manager = SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+    manager.set("showtask", "gds", "klayout")
+    manager.set("cache", "cleanupinterval", 2)
+
+    assert manager.categories() == ["cache", "record", "showtask"]
 
 
 def test_delete_system_priority_key_ignored(settings_file, system_file, caplog):
@@ -1288,3 +1300,63 @@ def test_save_where_the_directory_cannot_be_synced(settings_file, monkeypatch):
 
     with open(settings_file) as f:
         assert json.load(f) == {"a": {"b": "c"}}
+
+
+@pytest.fixture
+def shared_settings(monkeypatch, settings_file, system_file):
+    """The manager a Setting reads and writes: the test's own files, opened on first use."""
+    @functools.cache
+    def manager():
+        return SettingsManager(settings_file, logging.getLogger(), system_filepath=system_file)
+
+    monkeypatch.setattr(MPManager, "get_settings", staticmethod(manager))
+
+
+def test_setting_reads_its_default_until_set(shared_settings, settings_file):
+    """get() falls back to the declared default, and set() checks a value against its type."""
+    setting = Setting("cache", "cleanupdays", "int", 90)
+    assert setting.get() == 90
+
+    setting.set("30")
+    assert setting.get() == 30
+    with open(settings_file) as f:
+        assert json.load(f) == {"cache": {"cleanupdays": 30}}
+
+    with pytest.raises(ValueError, match="cache cleanupdays: .* unable to convert to int"):
+        setting.set("abc")
+
+    setting.unset()
+    assert setting.get() == 90
+
+
+def test_setting_default_is_copied(shared_settings):
+    """A caller changing the list get() returned does not change the declared default."""
+    setting = Setting("scheduler-slurm", "sharedpaths", "[str]", [])
+    setting.get().append("/nfs")
+    assert setting.get() == []
+
+
+def test_setting_fixed_by_the_system_is_refused(shared_settings, settings_file, system_file):
+    """set() and unset() raise, rather than only warn, on a key the system file fixes."""
+    _write_json(system_file, {"record": {"region": {"value": "eu", "system_priority": True}}})
+    setting = Setting("record", "region", "str", "local")
+
+    for change in (lambda: setting.set("us"), setting.unset):
+        with pytest.raises(ValueError, match="record region is fixed by the system settings"):
+            change()
+    assert setting.get() == "eu"
+    assert not os.path.exists(settings_file)
+
+
+def test_settings_category_finds_its_settings():
+    """A category finds a setting by key, and a keyed category makes one for any key."""
+    days = Setting("cache", "cleanupdays", "int", 90)
+    category = SettingsCategory("cache", days)
+    assert category.setting("cleanupdays") is days
+    with pytest.raises(ValueError, match="cache has no setting cleanupday; it has cleanupdays"):
+        category.setting("cleanupday")
+
+    keyed = KeyedSettingsCategory("showtask", "<extension>", "the viewer",
+                                  lambda ext: Setting("showtask", ext, "str"))
+    assert keyed.setting("gds").key == "gds"
+    assert keyed.settings == ()

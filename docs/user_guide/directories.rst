@@ -152,6 +152,8 @@ by one:
    └── tool_build/      <- scratch space for sc-install
 
 On Windows the same directory is ``C:\Users\<username>\.sc\``.
+:ref:`sc-config paths <app-sc-config-paths>` prints where each of these is on
+your machine, and which exist.
 
 The cache
 ---------
@@ -212,7 +214,7 @@ with a threshold of your own:
 
 .. code-block:: bash
 
-   python3 -m siliconcompiler.apps.utils.cleanup -days 30 -dryrun
+   sc-config cache clean -days 30 -dryrun
 
 Upgrading from a release before the cache was split, the old entries sit loose in
 ``~/.sc/cache`` rather than in ``dataroot/``. Nothing moves them: they are swept
@@ -283,6 +285,7 @@ Settings and credentials
 
 ``settings.json`` holds defaults applied to every new :class:`.Project` -- your
 preferred scheduler, log verbosity, and so on -- written by
+:ref:`sc-config settings <app-sc-config-settings>` or
 :meth:`.OptionSchema.write_defaults`. An administrator can also supply
 machine-wide defaults from outside your home directory, at
 ``/etc/siliconcompiler/settings.json`` on Linux and macOS or

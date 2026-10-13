@@ -8,7 +8,7 @@ This system allows you to define default behaviors—such as your preferred sche
 
 The settings are managed by a centralized :class:`.SettingsManager` which ensures thread-safe and process-safe access to the configuration file using file locking.
 This is particularly important in environments where multiple SiliconCompiler processes (e.g., parallel build steps) might attempt to read or write settings simultaneously.
-The user is not expected to directly interact with the :class:`.SettingsManager`, but instead should set and save the settings via the associated classes.
+The user is not expected to directly interact with the :class:`.SettingsManager`: the ``sc-config settings`` app changes settings from the command line, and the associated classes change them from Python.
 
 Storage Format
 --------------
@@ -35,6 +35,51 @@ The JSON structure generally looks like this:
 .. note::
    The settings manager uses a "last-write-wins" policy per key and protects file integrity with strict error handling.
    If the settings file becomes malformed, the manager will log an error and start with an empty configuration to prevent crashes.
+
+Changing Settings
+-----------------
+
+The :ref:`sc-config settings <app-sc-config-settings>` app lists, reads and changes settings, so ``settings.json`` need not be edited by hand:
+
+.. code-block:: bash
+
+    # Every setting and its value, defaults included
+    sc-config settings list
+
+    # Change a setting, or put it back to its default
+    sc-config settings set cache cleanupdays 30
+    sc-config settings unset cache cleanupdays
+
+    # Add entries to a list, or remove them
+    sc-config settings add scheduler-slurm sharedpaths /nfs/tools
+    sc-config settings remove scheduler-slurm sharedpaths /nfs/tools
+
+    # Make an option the default for every project
+    sc-config settings set schema-options scheduler,name slurm
+
+A value is checked before it is written: a key the app does not know, or a value of the wrong type, is refused rather than saved.
+``set`` replaces a whole list; ``add`` and ``remove`` change one in place, starting from the list in effect, a system default included.
+``-raw`` writes any category and key, reading the value as JSON.
+A setting the system file fixes (see below) cannot be changed, and the app says so.
+
+Declaring a Setting
+-------------------
+
+A module that reads a setting declares it once, as a :class:`.Setting`, and reads it through :meth:`.Setting.get`, so its default is written in one place:
+
+.. code-block:: python
+
+    from siliconcompiler.utils.settings import Setting, SettingsCategory
+
+    REGION = Setting("record", "region", "str", "local",
+                     "the region recorded in every run's manifest")
+    RECORD_SETTINGS = SettingsCategory("record", REGION)
+
+    region = REGION.get()
+
+Declaring a setting reads nothing.
+``sc-config`` lists and changes the categories its ``settings`` command imports, in ``siliconcompiler/utils/settings.py``, so a new category is added there too.
+A category whose keys the user names, such as a file extension, is a :class:`.KeyedSettingsCategory`.
 
 System-Wide Defaults
 --------------------
@@ -154,6 +199,9 @@ Workflow: Schema Defaults
    Only the ``schema-options`` category is replaced; the rest of the file is kept.
    With every option back at its default, :meth:`.OptionSchema.write_defaults` removes the category, which resets your defaults.
 
+   From the command line, ``sc-config settings set schema-options <keypath> <value>`` saves one default at a time and leaves the others alone.
+   Options that describe one run, such as :keypath:`option,flow` and :keypath:`option,fileset`, are not saved by either.
+
 Slurm Scheduler Settings (The 'scheduler-slurm' Category)
 ---------------------------------------------------------
 
@@ -180,15 +228,11 @@ Workflow: Slurm Settings
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Unlike standard schema options, scheduler-specific settings (like ``sharedpaths``) are stored in their own category.
-The :class:`.SlurmSchedulerNode` provides static helper methods to manage these configurations safely without needing to manually interact with the settings manager.
 
-.. code-block:: python
+.. code-block:: bash
 
-    from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
-
-    # Set the shared paths; they are saved to ~/.sc/settings.json as they are set.
     # These paths must be visible on all compute nodes.
-    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs/tools", "/work/project"])
+    sc-config settings set scheduler-slurm sharedpaths /nfs/tools /work/project
 
 Show Task Preferences (The 'showtask' Category)
 -----------------------------------------------
@@ -217,6 +261,9 @@ In this example:
 * ``.vcd`` files will always open with GTKWave.
 
 If the preferred tool is not found or not registered, SiliconCompiler will fall back to its default discovery mechanism.
+
+``sc-config settings set showtask gds klayout`` sets one, and refuses a tool that cannot open that extension.
+The ``opentask`` category works the same way for the interactive tool a file is opened in.
 
 Cache Cleanup Settings (The 'cache' Category)
 ---------------------------------------------
@@ -259,12 +306,14 @@ which is how the interval is enforced across independent runs.
 An entry's last-use time is the modification time of its ``.lock`` file, which
 every resolve stamps -- including one that hits the cache and downloads nothing.
 
-To sweep on demand, or with a different threshold, run the ``cleanup`` support
-app:
+To sweep on demand, or with a different threshold, use
+:ref:`sc-config cache <app-sc-config-cache>`, which also shows the cache's size
+and when it was last swept:
 
 .. code-block:: bash
 
-    python3 -m siliconcompiler.apps.utils.cleanup -days 30 -dryrun
+    sc-config cache clean -days 30 -dryrun
+    sc-config cache show
 
 Record Settings (The 'record' Category)
 ---------------------------------------
