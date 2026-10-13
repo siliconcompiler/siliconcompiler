@@ -2691,6 +2691,20 @@ def test_openroad_init_floorplan_density_sizing(asic_gcd):
     assert "constraint,area,diearea" not in require
 
 
+@pytest.mark.parametrize("upstream_bmap", [True, False])
+def test_openroad_init_floorplan_bmap_input(asic_gcd, upstream_bmap):
+    """init_floorplan takes <topmodule>.bmap as an input only when an upstream node makes one."""
+    cleanup = synth_cleanup.CleanupSynthTask.find_task(asic_gcd)
+    cleanup.add_output_file("gcd.odb", step="cleanup.clean", index="0")
+    if upstream_bmap:
+        cleanup.add_output_file("gcd.bmap", step="cleanup.clean", index="0")
+
+    inputs = _setup_node(asic_gcd, "floorplan.init").get("input")
+
+    assert "gcd.odb" in inputs
+    assert ("gcd.bmap" in inputs) is upstream_bmap
+
+
 @pytest.mark.parametrize("task_cls", [
     pex.PEXBenchTask,
     pex.PEXBenchExtractTask,
