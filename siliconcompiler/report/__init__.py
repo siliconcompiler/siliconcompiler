@@ -24,7 +24,7 @@ def __getattr__(name):
     Binding them eagerly meant that reaching any module under
     ``siliconcompiler.report`` -- the CLI dashboard and the email templates both
     do -- loaded Pillow and the web dashboard as a side effect of the parent
-    package. Both are only needed by the summary image and ``sc-dashboard``.
+    package. Both are only needed by the summary image and the web dashboard.
     """
     module = _LAZY_EXPORTS.get(name)
     if module is None:

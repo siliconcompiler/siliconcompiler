@@ -5,7 +5,7 @@ from siliconcompiler.remote import Server
 
 
 def main():
-    progname = "sc-server"
+    progname = "python3 -m siliconcompiler.remote.server"
     description = """
 ---------------------------------------------------------
 Silicon Compiler Collection Remote Job Server (sc-server)
@@ -23,7 +23,7 @@ Silicon Compiler Collection Remote Job Server (sc-server)
     except ModuleNotFoundError as e:
         # A missing optional dependency is a setup problem rather than a
         # crash, so it gets a message instead of a traceback.
-        print(f"{progname} is unavailable: {e}", file=sys.stderr)
+        print(f"the server is unavailable: {e}", file=sys.stderr)
         return 1
     except Exception as e:
         server.logger.exception(e)

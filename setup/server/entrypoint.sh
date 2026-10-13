@@ -174,7 +174,7 @@ ctld)
     # sc-server creates builds/ and cache/ under the mount itself.
     mkdir -p /sc_server
     cd /sc_server
-    sc-server \
+    python3 -m siliconcompiler.remote.server \
         -cluster slurm \
         -port 8080 \
         -nfsmount /sc_server \
@@ -182,7 +182,7 @@ ctld)
     server_pid=$!
 
     # Supervise rather than exec, so this shell stays PID 1 and all three
-    # daemons are watched. Under "exec sc-server" the container reports healthy
+    # daemons are watched. Under "exec" the container reports healthy
     # for as long as the server process lives, even with slurmctld dead
     # underneath it -- which surfaces later and far away, as jobs that never
     # dispatch. Exiting on the first child to die makes the container's status
