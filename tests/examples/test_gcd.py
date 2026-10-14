@@ -36,9 +36,9 @@ def test_py_gcd():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -109,9 +109,9 @@ def test_py_gcd_skywater():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 9 multi-output cells (for example, "sky130_fd_sc_hd__fa_1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -220,10 +220,10 @@ def test_py_gcd_gf180():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 4 multi-output cells
     #    (for example, "gf180mcu_fd_sc_mcu9t5v0__addf_2")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -307,10 +307,10 @@ def test_py_gcd_ihp130():
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
     # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # Unlike the other PDKs there is no multi-output cell warning here, because
     # ABC does not map any full adders for this library.
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 6
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -384,9 +384,9 @@ def test_py_gcd_hls():
 
     # 4x Replacing memory with list of registers, for genblk1.in1_sign,
     #    genblk1.xdenom_arr, genblk1.temp and genblk1.quot
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 9x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 14
 
     # 1x [STA-0441] gcd_hls.sdc:3 set_input_delay relative to a clock defined on
     #    the same port/pin not allowed
@@ -454,9 +454,9 @@ def test_py_gcd_chisel(sbt_download_guard):
     # The Chisel convert task defines no warning regex, so it records no metrics.
     assert project.get('metric', 'warnings', step='convert', index='0') is None
 
-    # 2x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 3x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 3
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     # 1x [STA-0441] gcd_chisel.sdc:3 set_input_delay relative to a clock defined
     #    on the same port/pin not allowed

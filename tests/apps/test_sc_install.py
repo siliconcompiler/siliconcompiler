@@ -877,14 +877,14 @@ def test_get_tools_manifest_adds_and_overrides(fake_plugins):
     """A new tool is added whole; an override changes only the fields it names."""
     root = _make_package("pkg", manifest={
         "mytool": {"git-url": "https://example.com/mytool.git", "git-commit": "v1"},
-        "yosys": {"git-commit": "v0.70"}})
+        "yosys": {"git-commit": "v9.9.9"}})
     fake_plugins("install", "toolscripts", lambda: root)
 
     builtin = _builtin_manifest()
     manifest = toolimages.get_tools_manifest("ubuntu24")
     assert manifest["mytool"] == {"git-url": "https://example.com/mytool.git",
                                   "git-commit": "v1"}
-    assert manifest["yosys"] == {**builtin["yosys"], "git-commit": "v0.70"}
+    assert manifest["yosys"] == {**builtin["yosys"], "git-commit": "v9.9.9"}
     assert manifest["openroad"] == builtin["openroad"]
 
 
@@ -902,7 +902,7 @@ def test_get_package_tools_rejects_pin_in_two_packages(monkeypatch, fake_plugins
 
 def test_get_package_tools_rejects_script_in_two_packages(fake_plugins):
     """A script supplies a tool as much as a pin does."""
-    first = _make_package("first", manifest={"yosys": {"git-commit": "v0.70"}})
+    first = _make_package("first", manifest={"yosys": {"git-commit": "v9.9.9"}})
     second = _make_package("second", scripts={"ubuntu24/install-yosys.sh": ""})
     fake_plugins("install", "toolscripts", lambda: first)
     fake_plugins("install", "toolscripts", lambda: second)
@@ -988,7 +988,7 @@ def test_install_sets_sc_toolscripts(call, monkeypatch, fake_plugins):
     import json as _json
     monkeypatch.setattr(sc_install, '_get_tools_list', lambda: {"yosys": "yosys.sh"})
 
-    root = _make_package("pkg", manifest={"yosys": {"git-commit": "v0.70"}})
+    root = _make_package("pkg", manifest={"yosys": {"git-commit": "v9.9.9"}})
     fake_plugins("install", "toolscripts", lambda: root)
 
     call.return_value = 0
@@ -1003,7 +1003,7 @@ def test_install_sets_sc_toolscripts(call, monkeypatch, fake_plugins):
     assert (path / "_prereqs.sh").is_file()
     assert (path / "_tools.py").is_file()
     with open(path / "_tools.json") as f:
-        assert _json.load(f)["yosys"]["git-commit"] == "v0.70"
+        assert _json.load(f)["yosys"]["git-commit"] == "v9.9.9"
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
