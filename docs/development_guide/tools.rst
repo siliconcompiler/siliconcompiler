@@ -176,6 +176,7 @@ To ensure reproducible builds, SiliconCompiler has a robust version-checking sys
 
 * :meth:`.Task.parse_version()`: The output of exe --version can be messy. This function parses the raw stdout string and returns a clean version number (e.g., "2.1.3").
 * :meth:`.Task.normalize_version()`: SC's version checker uses the Python PEP-440 standard. If your tool uses a non-standard versioning scheme (e.g., 2.1+a4b8c1), this function should convert it to a compatible format (e.g., 2.1.post0.dev-a4b8c1).
+* :meth:`.Task.get_exe_version()`: A pure-Python tool has no executable to ask, so override this to return the version of the package it runs (e.g., ``pyslang``). The version is recorded with the run and checked against :meth:`.Task.add_version()` like any other.
 
 Interface for TCL-Based Tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

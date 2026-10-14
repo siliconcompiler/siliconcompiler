@@ -2688,7 +2688,7 @@ def test_get_exe_path(project):
 def test_check_version_pass(project):
     project.option.set_novercheck(False, step="stepone", index="0")
 
-    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+    with patch.object(NOPTask, "get_exe_version") as get_exe_version, \
             patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
         get_exe_version.return_value = "thisversion"
@@ -2704,7 +2704,7 @@ def test_check_version_pass(project):
 def test_check_version_fail(project):
     project.option.set_novercheck(False, step="stepone", index="0")
 
-    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+    with patch.object(NOPTask, "get_exe_version") as get_exe_version, \
             patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
         get_exe_version.return_value = "thisversion"
@@ -2720,7 +2720,7 @@ def test_check_version_fail(project):
 def test_check_version_with_version(project):
     project.option.set_novercheck(False, step="stepone", index="0")
 
-    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+    with patch.object(NOPTask, "get_exe_version") as get_exe_version, \
             patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
         check_exe_version.return_value = False
@@ -2735,7 +2735,7 @@ def test_check_version_with_version(project):
 def test_check_version_nocheck(project):
     project.option.set_novercheck(True, step="stepone", index="0")
 
-    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+    with patch.object(NOPTask, "get_exe_version") as get_exe_version, \
             patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
         get_exe_version.return_value = "thisversion"
