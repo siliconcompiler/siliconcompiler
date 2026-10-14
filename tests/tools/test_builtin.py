@@ -20,6 +20,12 @@ from siliconcompiler.tools.builtin.filter import FilterTask
 from siliconcompiler.tools.builtin.wait import Wait
 
 
+ALL_TASKS = [
+    NOPTask, JoinTask, MinimumTask, MaximumTask,
+    MuxTask, VerifyTask, ImportFilesTask, FilterTask, Wait
+]
+
+
 @pytest.fixture
 def minmax_project(project_logger):
     def minmax(cls, parallel: int = 10):
@@ -55,20 +61,15 @@ def minmax_project(project_logger):
     return minmax
 
 
-@pytest.mark.parametrize("tool", [
-    NOPTask, JoinTask, MinimumTask, MaximumTask,
-    MuxTask, VerifyTask, ImportFilesTask, FilterTask, Wait
-])
+@pytest.mark.parametrize("tool", ALL_TASKS)
 def test_tool_name(tool):
     assert tool().tool() == "builtin"
 
 
-@pytest.mark.parametrize("tool", [
-    NOPTask, JoinTask, MinimumTask, MaximumTask,
-    MuxTask, VerifyTask, ImportFilesTask, FilterTask, Wait
-])
+@pytest.mark.parametrize("tool", ALL_TASKS)
 def test_remote_toolname_is_none(tool):
     assert tool()._remote_toolname is None
+
 
 
 def test_nop_name():
