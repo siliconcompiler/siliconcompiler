@@ -1,7 +1,7 @@
 SiliconCompiler test case
 
 To run this testcase:
-{% if has_run %}./run.sh
+{% if has_run %}./run.sh   (./run.sh --help lists its options)
 -- or --
 {% endif %}sc-issue -run -file {{ archive_name }}
 

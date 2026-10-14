@@ -1458,7 +1458,26 @@ def test_generate_replay_script(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "c1fdb6d027f5b5ebeea9ec476eefbb0c"
+    assert replay_hash == "b4e13e1ecfa28df58e7b634a9f8157a8"
+
+
+def test_generate_replay_script_modes(running_node, monkeypatch):
+    """replay.sh offers each of replay_modes() as --<mode>, running that mode's arguments."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option',
+                                    ['--arg0', '-exit'])
+
+    with running_node.task.runtime(running_node) as runtool:
+        monkeypatch.setattr(runtool, "replay_modes",
+                            lambda args: {"gui": [*args[:-1], "-gui"]})
+        runtool.generate_replay_script('replay.sh', './')
+
+    with open('replay.sh') as f:
+        replay = f.read()
+    assert '--gui)\n            MODE="gui"' in replay
+    assert 'echo "testexe --arg0 -gui"' in replay
+    assert 'elif [ "$MODE" == "gui" ]; then\n$CMDPREFIX \\\ntestexe \\\n  --arg0 \\\n  -gui \\\n' \
+        in replay
 
 
 def test_run_task_terminate_called_on_timeout(running_node, monkeypatch, patch_psutil, caplog):
@@ -1536,7 +1555,7 @@ def test_generate_replay_script_no_path(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-        assert replay_hash == "8af55a245c848918283428109071a0a5"
+        assert replay_hash == "36da29326f110831138bcc631a695f50"
 
 
 def test_setup_work_directory():

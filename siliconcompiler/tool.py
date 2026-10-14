@@ -1072,7 +1072,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             workdir (str): The path to the run's working directory.
             include_path (bool): If True, includes PATH information.
         """
-        replay_opts: Dict[str, Optional[Union[Dict[str, str], str, int]]] = {}
+        replay_opts: Dict[str, Any] = {}
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
@@ -1090,26 +1090,32 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         arg_test = re.compile(r'^[-+]')
         file_test = re.compile(r'^[/\.]')
 
-        if replay_opts["executable"]:
-            format_cmd: List[str] = [replay_opts["executable"]]
+        def format_cmd(args: List[str]) -> List[str]:
+            cmd: List[str] = [replay_opts["executable"]]
 
-            for cmdarg in self.get_runtime_arguments():
-                add_new_line = len(format_cmd) == 1
+            for cmdarg in args:
+                add_new_line = len(cmd) == 1
 
                 if arg_test.match(cmdarg) or file_test.match(cmdarg):
                     add_new_line = True
                 else:
-                    if not arg_test.match(format_cmd[-1]):
+                    if not arg_test.match(cmd[-1]):
                         add_new_line = True
 
                 cmdarg = shlex.quote(cmdarg)
                 if add_new_line:
-                    format_cmd.append(cmdarg)
+                    cmd.append(cmdarg)
                 else:
-                    format_cmd[-1] += f' {cmdarg}'
-        else:
-            format_cmd = []
-        replay_opts["cmds"] = format_cmd
+                    cmd[-1] += f' {cmdarg}'
+            return cmd
+
+        replay_opts["cmds"] = []
+        replay_opts["modes"] = {}
+        if replay_opts["executable"]:
+            args = self.get_runtime_arguments()
+            replay_opts["cmds"] = format_cmd(args)
+            for mode, mode_args in self.replay_modes(args).items():
+                replay_opts["modes"][mode] = format_cmd(mode_args)
 
         # Create replay file from template
         with open(filepath, 'w') as f:
@@ -3006,6 +3012,20 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if script:
             cmdargs.extend(script)
         return cmdargs
+
+    def replay_modes(self, args: List[str]) -> Dict[str, List[str]]:
+        """
+        Alternative commands the node's ``replay.sh`` offers, each selected with
+        ``--<mode>``, such as rerunning the step in the tool's GUI. Can be overridden.
+
+        Args:
+            args (list): the arguments the node runs with, from
+                :meth:`get_runtime_arguments`.
+
+        Returns:
+            dict: mode name to the full argument list for that mode.
+        """
+        return {}
 
     def run(self) -> int:
         """

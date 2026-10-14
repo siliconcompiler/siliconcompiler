@@ -1,5 +1,7 @@
 import json
 import pytest
+import subprocess
+import sys
 import tarfile
 
 import os.path
@@ -10,6 +12,7 @@ from siliconcompiler import Design, Flowgraph, PDK, Project
 from siliconcompiler.package.https import HTTPResolver
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.yosys import YosysStdCellLibrary
+from siliconcompiler.utils import get_file_template
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.issue import generate_testcase
 
@@ -355,3 +358,15 @@ def test_testcase_carries_no_credential(tokened_project):
         "library", "heartbeat", "fileset", "rtl", "file", "verilog")
     assert os.path.commonpath((os.path.abspath(COLLECT_DIR.removeprefix("testcase/")), rtl)) \
         == os.path.abspath(COLLECT_DIR.removeprefix("testcase/"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="run.sh is a bash script")
+def test_run_script_passes_arguments_to_replay():
+    '''run.sh hands its arguments to replay.sh unchanged, so ./run.sh --gui works.'''
+    os.makedirs("node")
+    os.chmod(_write("node/replay.sh", '#!/usr/bin/env bash\nprintf "%s\\n" "$@"\n'), 0o755)
+    _write("run.sh", get_file_template("issue/run.sh").render(title="case", exec_dir="node"))
+
+    out = subprocess.run(["bash", "run.sh", "--cmdarg", "-a b"],
+                         capture_output=True, text=True, check=True).stdout
+    assert out.splitlines()[-2:] == ["--cmdarg", "-a b"]

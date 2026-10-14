@@ -372,6 +372,10 @@ class YosysTask(Task):
         self.add_regex("warnings", "Warning:")
         self.add_regex("errors", "^ERROR")
 
+    def replay_modes(self, args):
+        # -C enters yosys's Tcl shell once the script ends
+        return {"shell": args if "-C" in args else ["-C", *args]}
+
     def parse_version(self, stdout):
         # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
         return stdout.split()[1]
