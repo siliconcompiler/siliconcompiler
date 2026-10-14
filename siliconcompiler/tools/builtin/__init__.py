@@ -10,7 +10,6 @@ from siliconcompiler import Task
 from siliconcompiler import utils
 
 
-
 class BuiltinBaseTask(Task):
     def __init__(self):
         super().__init__()
