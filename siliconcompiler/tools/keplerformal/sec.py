@@ -2,11 +2,12 @@ import os.path
 
 from typing import List, Optional, Tuple
 
-from siliconcompiler import Design, Task
+from siliconcompiler import Design
+from siliconcompiler.tools.keplerformal import KeplerFormalTask
 from siliconcompiler.utils import sc_open
 
 
-class SECTask(Task):
+class SECTask(KeplerFormalTask):
     """SEC task using Kepler-formal to check a netlist against the RTL it came from."""
 
     # kepler-formal reports a found difference by exit status as well as in the
@@ -76,20 +77,11 @@ class SECTask(Task):
             ports.append((name, value))
         return ports
 
-    def tool(self) -> str:
-        return "kepler-formal"
-
     def task(self) -> str:
         return "sec"
 
     def setup(self) -> None:
         super().setup()
-
-        self.set_exe("kepler-formal")
-
-        # Log file handled by kepler-formal config
-        self.set_logdestination("stdout", "none")
-        self.set_logdestination("stderr", "none")
 
         self.add_input_file(self.__rtl_file())
         self.add_input_file(ext="vg")
