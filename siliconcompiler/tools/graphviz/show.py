@@ -15,6 +15,10 @@ class ShowTask(ShowTask):
     def tool(self):
         return "graphviz"
 
+    def get_exe_version(self, workdir=None):
+        # The version of Graphviz itself, from dot -V, not of the Python package
+        return ".".join(str(v) for v in graphviz.version())
+
     def get_supported_task_extentions(self):
         return ["dot", "xdot"]
 
