@@ -3,11 +3,11 @@ import shutil
 
 from typing import Optional, List, Union
 
-from siliconcompiler import Task
 from siliconcompiler import utils
+from siliconcompiler.tools.builtin import BuiltinBaseTask
 
 
-class FilterTask(Task):
+class FilterTask(BuiltinBaseTask):
     '''
     A task for filtering files based on specified glob patterns.
 
@@ -41,20 +41,11 @@ class FilterTask(Task):
         else:
             self.add("var", "keep", keep, step=step, index=index)
 
-    def tool(self):
-        return "builtin"
-
     def task(self):
         return "filter"
 
-    @property
-    def _remote_toolname(self) -> Optional[str]:
-        return None
-
     def setup(self):
         super().setup()
-
-        self.set_threads(1)
 
         flow = self.project.get_flow()
         graph_node = flow.get_graph_node(self.step, self.index)

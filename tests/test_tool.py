@@ -848,13 +848,13 @@ def test_get_exe_found(running_node, monkeypatch):
 def test_get_exe_version_no_vswitch(running_node):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() is None
+        assert Task.get_exe_version(runtool) is None
 
 
 def test_get_exe_version_no_exe(running_node):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() is None
+        assert Task.get_exe_version(runtool) is None
 
 
 def test_get_exe_version(running_node, monkeypatch, caplog):
@@ -881,7 +881,7 @@ def test_get_exe_version(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() == "1.0.0"
+        assert Task.get_exe_version(runtool) == "1.0.0"
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
@@ -910,7 +910,7 @@ def test_get_exe_version_workdir(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version(workdir="thisdir") == "1.0.0"
+        assert Task.get_exe_version(runtool, workdir="thisdir") == "1.0.0"
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
@@ -935,7 +935,7 @@ def test_get_exe_version_not_implemented(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(RuntimeError,
                            match=r"^builtin/nop does not implement parse_version\(\)$"):
-            runtool.get_exe_version()
+            Task.get_exe_version(runtool)
 
 
 def test_get_exe_version_non_zero_return(running_node, monkeypatch, caplog):
@@ -962,7 +962,7 @@ def test_get_exe_version_non_zero_return(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() == "1.0.0"
+        assert Task.get_exe_version(runtool) == "1.0.0"
 
     assert "Version check on 'exe' ended with code 1" in caplog.text
 
@@ -990,7 +990,7 @@ def test_get_exe_version_internal_error(running_node, monkeypatch, caplog):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match=r"^look for this match$"):
-            runtool.get_exe_version()
+            Task.get_exe_version(runtool)
 
     assert "builtin/nop failed to parse version string: myversion" in caplog.text
 

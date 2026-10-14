@@ -6,11 +6,11 @@ from pathlib import Path
 
 from typing import Union, List, Optional
 
-from siliconcompiler import Task
 from siliconcompiler.utils import link_copy
+from siliconcompiler.tools.builtin import BuiltinBaseTask
 
 
-class ImportFilesTask(Task):
+class ImportFilesTask(BuiltinBaseTask):
     '''A built-in task to import (copy) files and directories.
 
     This task provides a mechanism to copy specified files and directories
@@ -73,15 +73,8 @@ class ImportFilesTask(Task):
             else:
                 self.add("var", "dir", directory, step=step, index=index)
 
-    def tool(self) -> str:
-        return "builtin"
-
     def task(self) -> str:
         return "importfiles"
-
-    @property
-    def _remote_toolname(self) -> Optional[str]:
-        return None
 
     def setup(self) -> None:
         """Prepares the task for execution by setting up dependencies and requirements.
@@ -95,8 +88,6 @@ class ImportFilesTask(Task):
                 files or directories are specified for import.
         """
         super().setup()
-
-        self.set_threads(1)
 
         if (self.step, self.index) not in self.schema_flow.get_entry_nodes():
             raise ValueError("task must be an entry node")

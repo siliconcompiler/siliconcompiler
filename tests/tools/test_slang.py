@@ -12,6 +12,7 @@ from siliconcompiler import Design
 from siliconcompiler import Flowgraph
 from siliconcompiler import Project
 from siliconcompiler import StdCellLibrary
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.slang import lint
 from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.utils.paths import workdir
@@ -29,7 +30,21 @@ from siliconcompiler.tools.slang.utils.uniquify import (
 
 
 @pytest.mark.parametrize("task", [elaborate.Elaborate, lint.Lint])
-def test_version_fail(task, monkeypatch):
+def test_version(task, heartbeat_design):
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", task())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
+
+
+def test_version_fail(heartbeat_design, monkeypatch):
     class Version(pyslang.VersionInfo):
         @staticmethod
         def getMajor():
@@ -44,13 +59,19 @@ def test_version_fail(task, monkeypatch):
             return 10
 
     monkeypatch.setattr(pyslang, "VersionInfo", Version)
-    with pytest.raises(RuntimeError, match=r"^incorrect pyslang version: 8.9.10$"):
-        task()
 
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
 
-@pytest.mark.parametrize("task", [elaborate.Elaborate, lint.Lint])
-def test_version_pass(task):
-    assert task()
+    flow = Flowgraph("testflow")
+    flow.node("version", lint.Lint())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_exe_version() == "8.9.10"
+        assert node.task.check_exe_version("8.9.10") is False
 
 
 def test_lint(heartbeat_design):
@@ -65,6 +86,8 @@ def test_lint(heartbeat_design):
 
     assert proj.history("job0").get('metric', 'errors', step='lint', index='0') == 0
     assert proj.history("job0").get('metric', 'warnings', step='lint', index='0') == 0
+    assert proj.history("job0").get('record', 'toolversion', step='lint', index='0') == \
+        lint.Lint().get_exe_version()
 
 
 def test_elaborate(heartbeat_design):
