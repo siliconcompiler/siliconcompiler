@@ -649,3 +649,9 @@ def test_opensta_open(datadir):
     assert not os.path.exists(os.path.join(workdir, "reports", "timing"))
     # the node manifest and nothing else -- no design artifacts
     assert os.listdir(os.path.join(workdir, "outputs")) == ["testdesign.pkg.json"]
+
+
+def test_opensta_replay_modes():
+    """replay.sh --shell drops -exit, leaving sta at its prompt once the step ends."""
+    assert timing.TimingTask().replay_modes(["-no_init", "sc_timing.tcl", "-exit"]) == {
+        "shell": ["-no_init", "sc_timing.tcl"]}

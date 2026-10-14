@@ -96,6 +96,10 @@ test case::
 
     sc-issue -cfg build/<design>/<jobname>/<step>/<index>/inputs/<design>.pkg.json
 
+``replay.sh --help`` lists its options. Some tools add modes of their own, such
+as ``--gui``, ``--web`` or ``--shell``, which rerun the step in the tool's GUI,
+web viewer or interactive prompt and leave it open when the step ends.
+
 .. note::
    The exported tool manifest is named ``sc_manifest.<suffix>``, where the
    suffix depends on what the tool reads -- ``.tcl`` for OpenROAD and Yosys,

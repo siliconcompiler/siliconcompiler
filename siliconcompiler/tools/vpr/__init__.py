@@ -376,6 +376,10 @@ class VPRTask(Task):
 
         return options
 
+    def replay_modes(self, args):
+        # VPR's graphics pause after each stage until the user lets it proceed
+        return {"gui": args if "--disp" in args else [*args, "--disp", "on"]}
+
     def _get_common_graphics(self):
         graphics_commands = []
 

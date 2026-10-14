@@ -47,6 +47,11 @@ class VivadoTask(Task):
         self.add_regex("warnings", r'^(CRITICAL )?WARNING:')
         self.add_regex("errors", r'^ERROR:')
 
+    def replay_modes(self, args):
+        # the scripts do not exit, so outside batch mode vivado stays open once they end
+        return {"gui": ["gui" if arg == "batch" else arg for arg in args],
+                "shell": ["tcl" if arg == "batch" else arg for arg in args]}
+
     def post_process(self):
         super().post_process()
         self._parse_qor_summary()

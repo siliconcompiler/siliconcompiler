@@ -601,6 +601,11 @@ class OpenROADTask(ASICTask):
 
         return options
 
+    def replay_modes(self, args):
+        # -exit would close the window, web server or prompt as soon as the step ends
+        args = [arg for arg in args if arg not in ("-exit", "-gui", "-web")]
+        return {"gui": [*args, "-gui"], "web": [*args, "-web"], "shell": args}
+
     @classmethod
     def make_docs(cls):
         from siliconcompiler import Flowgraph, Design, ASIC
