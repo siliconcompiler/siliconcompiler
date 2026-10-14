@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "7fe5e68daf6c8502ba7b838982e72c7754bc1a9c",
+    "git-commit": "eb14e40b7b9527a642a07548ed1dc39c4c611cb3",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
@@ -52,7 +52,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "6f37a1d892a933b25b70580bee0620bfdc418c74",
+    "git-commit": "71c15909eb648e137557f833e1cd5a1afb01713f",
     "auto-update": true,
     "_comment-prune-dirs": [
       "The archive globs are measured against a build of this image. They",
