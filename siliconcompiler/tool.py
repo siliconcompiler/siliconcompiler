@@ -1073,6 +1073,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             include_path (bool): If True, includes PATH information.
         """
         replay_opts: Dict[str, Any] = {}
+        replay_opts["quote"] = shlex.quote
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 

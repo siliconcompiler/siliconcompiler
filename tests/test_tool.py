@@ -7,6 +7,7 @@ import json
 import logging
 import pathlib
 import re
+import subprocess
 import sys
 import pytest
 import os
@@ -1458,7 +1459,7 @@ def test_generate_replay_script(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "b4e13e1ecfa28df58e7b634a9f8157a8"
+    assert replay_hash == "daf9a9a78ef03687c42083b6386bdec7"
 
 
 def test_generate_replay_script_modes(running_node, monkeypatch):
@@ -1475,9 +1476,26 @@ def test_generate_replay_script_modes(running_node, monkeypatch):
     with open('replay.sh') as f:
         replay = f.read()
     assert '--gui)\n            MODE="gui"' in replay
-    assert 'echo "testexe --arg0 -gui"' in replay
+    assert "echo 'testexe --arg0 -gui'" in replay
     assert 'elif [ "$MODE" == "gui" ]; then\n$CMDPREFIX \\\ntestexe \\\n  --arg0 \\\n  -gui \\\n' \
         in replay
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="replay.sh is a bash script")
+@pytest.mark.parametrize("mode", [[], ["--gui"]])
+def test_generate_replay_script_prints_command_literally(running_node, monkeypatch, mode):
+    """replay.sh --command prints arguments holding $, quotes or backticks as written."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option',
+                                    ['$HOME', 'a"b', '`echo hi`'])
+
+    with running_node.task.runtime(running_node) as runtool:
+        monkeypatch.setattr(runtool, "replay_modes", lambda args: {"gui": args})
+        runtool.generate_replay_script('replay.sh', './')
+
+    out = subprocess.run(["bash", "replay.sh", *mode, "--command"],
+                         capture_output=True, text=True, check=True).stdout
+    assert out == "testexe '$HOME' 'a\"b' '`echo hi`'\n"
 
 
 def test_run_task_terminate_called_on_timeout(running_node, monkeypatch, patch_psutil, caplog):
@@ -1555,7 +1573,7 @@ def test_generate_replay_script_no_path(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-        assert replay_hash == "36da29326f110831138bcc631a695f50"
+        assert replay_hash == "57c8961463849e5a452587c6d056beec"
 
 
 def test_setup_work_directory():

@@ -107,8 +107,8 @@ case $PRINT in
         exit 0
         ;;
     "command")
-        {% for mode, mode_cmds in modes.items() %}[ "$MODE" == "{{ mode }}" ] && echo "{{ mode_cmds|join(' ') }}" && exit 0
-        {% endfor %}echo "{{ cmds|join(' ') }}"
+        {% for mode, mode_cmds in modes.items() %}[ "$MODE" == "{{ mode }}" ] && echo {{ quote(mode_cmds|join(' ')) }} && exit 0
+        {% endfor %}echo {{ quote(cmds|join(' ')) }}
         exit 0
         ;;
 esac
