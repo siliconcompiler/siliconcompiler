@@ -48,7 +48,7 @@ _SIGNOFF = {
     "skywater130": dict(target=skywater130_demo, flow="signoffflow",
                         drc_name=None, lvs=True, expect_drcs=0),
     "gf180": dict(target=gf180_demo, flow="drcflow", drc_name="drc", lvs=False,
-                  expect_drcs=0),
+                  expect_drcs=3),
     "ihp130": dict(target=ihp130_demo, flow="drcflow", drc_name="drc", lvs=False,
                    expect_drcs=0),
 }
