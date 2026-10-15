@@ -8,6 +8,24 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.11 (2026-10-15)
+=========================================
+
+**Major:**
+
+ * Removed the `sc-dashboard` and `sc-server` commands in favor of `python3 -m siliconcompiler.apps.utils.dashboard` and `python3 -m siliconcompiler.remote.server`, and the `cleanup` support app in favor of `sc-config cache clean`.
+
+**Minor:**
+
+ * Added `sc-config`, which lists and changes settings, sets up and tests job status email, shows and sweeps the cache, and prints where SiliconCompiler keeps its files.
+ * Added `--gui`, `--web` and `--shell` to a node's `replay.sh`, where the tool supports them, to rerun the step in its GUI, web viewer or interactive prompt and leave it open; an `sc-issue` testcase's `run.sh` passes them through.
+ * Added `RunListener`, registered with `Scheduler.add_listener`, to hear a run start, each node start and finish, and the run end, and deprecated `TaskScheduler.register_callback` in its favor.
+ * Added opensta to the `asic`, `asic-hls` and `asic-soda` groups of `sc-install`.
+
+ * Tools:
+
+  * openroad: added `pdn_dont_add_pins` to `power_grid`, and made `init_floorplan` read a bump map produced by an earlier step.
+
 SiliconCompiler 0.38.10 (2026-10-06)
 =========================================
 
