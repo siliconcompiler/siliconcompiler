@@ -1751,6 +1751,8 @@ def bare_tcl_interp():
         gc.collect()
 
 
+# A worker's first tkinter.Tcl() has stalled for ~30s on Windows runners.
+@pytest.mark.timeout(60)
 @pytest.mark.parametrize("sysencoding", ("utf-8", "iso8859-1"))
 def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding, bare_tcl_interp):
     """Tcl reads a non-ASCII value back as the string SC wrote, under any locale.
