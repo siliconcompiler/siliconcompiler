@@ -1209,8 +1209,8 @@ def _store():
 
 
 def test_an_imported_authority_is_kept_privately_and_its_fingerprint_said(tmp_path):
-    '''Re-importing the same file is harmless; another under its name, or a file
-    with no certificate, is refused.'''
+    '''Re-importing the same file is harmless; another under its name is refused
+    unless overwritten, which also rebuilds its trust bundle.'''
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes
 
@@ -1229,8 +1229,12 @@ def test_an_imported_authority_is_kept_privately_and_its_fingerprint_said(tmp_pa
     renamed = tmp_path / "elsewhere" / "our-ca.pem"
     renamed.parent.mkdir()
     renamed.write_bytes(certificate.read_bytes())
+    store.trust_bundle("our-ca")
     with pytest.raises(StoreError, match="already imported as our-ca"):
         store.import_certificate(renamed)
+    assert store.import_certificate(renamed, overwrite=True)[0] == "our-ca"
+    assert store.certificate_path("our-ca").read_bytes() == certificate.read_bytes()
+    assert store.trust_bundle("our-ca").read_bytes().endswith(certificate.read_bytes())
     (tmp_path / "notes.pem").write_text("not a certificate")
     with pytest.raises(StoreError, match="no PEM certificate"):
         store.import_certificate(tmp_path / "notes.pem")

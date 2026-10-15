@@ -48,8 +48,12 @@ def _add_parser(commands) -> None:
     uploads = action("uploads", _cli_uploads, "change which directories may be uploaded from")
     uploads.add_argument("change", choices=("add", "remove"))
     uploads.add_argument("path", nargs="+", help="each directory; globs are allowed")
-    action("import-cert", _cli_import_cert, "keep a certificate authority's PEM certificate, "
-                                            "for configure to offer").add_argument("file")
+    import_cert = action("import-cert", _cli_import_cert,
+                         "keep a certificate authority's PEM certificate, for configure to offer")
+    import_cert.add_argument("file")
+    import_cert.add_argument("-overwrite", action="store_true",
+                             help="replace a different certificate already imported under "
+                                  "this file's name")
     header = action("header", _cli_header, "set or remove a header the server's operator "
                                            "requires; a value is read from standard input")
     header.add_argument("change", choices=("set", "remove"))
@@ -116,7 +120,7 @@ def _cli_uploads(args, client, logger):
 
 
 def _cli_import_cert(args, client, logger):
-    client.import_certificate(args.file)
+    client.import_certificate(args.file, overwrite=args.overwrite)
 
 
 def _cli_header(args, client, logger):

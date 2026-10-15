@@ -106,7 +106,9 @@ organisation's, import that authority's certificate once:
   sc-config remote import-cert ./our-ca.pem
 
 It prints each certificate's subject and SHA-256 fingerprint: check them with
-whoever runs the server. Then, when ``sc-config remote configure`` cannot verify a
+whoever runs the server. A certificate is kept under its file's name, and a
+different one under the same name is refused; ``-overwrite`` replaces it, and
+every server verified with it uses the replacement from then on. Then, when ``sc-config remote configure`` cannot verify a
 server's certificate, it lists the certificates you imported and asks which
 one signs it, and the server is verified with that one from then on. Only
 ``configure`` asks; any other command fails and says to run it. An imported

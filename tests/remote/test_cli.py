@@ -148,7 +148,8 @@ def test_uploads_and_headers_are_added_and_removed(monkeypatch):
 
 
 def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
-    '''The certificate lands in the store's own directory, its fingerprint said.'''
+    '''The certificate lands in the store's own directory, its fingerprint said; a
+    different one under the same name needs -overwrite.'''
     import datetime
 
     from cryptography import x509
@@ -159,13 +160,22 @@ def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Our CA")])
     now = datetime.datetime.now(datetime.timezone.utc)
-    authority = (x509.CertificateBuilder().subject_name(name).issuer_name(name)
-                 .public_key(key.public_key()).serial_number(1).not_valid_before(now)
-                 .not_valid_after(now + datetime.timedelta(days=1)).sign(key, hashes.SHA256()))
-    Path("our-ca.pem").write_bytes(authority.public_bytes(serialization.Encoding.PEM))
+    first, second = (
+        x509.CertificateBuilder().subject_name(name).issuer_name(name)
+        .public_key(key.public_key()).serial_number(serial).not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=1)).sign(key, hashes.SHA256())
+        for serial in (1, 2))
+    Path("our-ca.pem").write_bytes(first.public_bytes(serialization.Encoding.PEM))
 
     assert main(monkeypatch, 'import-cert', 'our-ca.pem',
                 '-credentials', 'sc-auth/remote.json') == 0
 
     assert Path("sc-auth/certs/our-ca.pem").read_bytes() == Path("our-ca.pem").read_bytes()
-    assert authority.fingerprint(hashes.SHA256()).hex(":").upper() in caplog.text
+    assert first.fingerprint(hashes.SHA256()).hex(":").upper() in caplog.text
+
+    Path("our-ca.pem").write_bytes(second.public_bytes(serialization.Encoding.PEM))
+    assert main(monkeypatch, 'import-cert', 'our-ca.pem',
+                '-credentials', 'sc-auth/remote.json') == 1
+    assert main(monkeypatch, 'import-cert', 'our-ca.pem', '-overwrite',
+                '-credentials', 'sc-auth/remote.json') == 0
+    assert Path("sc-auth/certs/our-ca.pem").read_bytes() == Path("our-ca.pem").read_bytes()

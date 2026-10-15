@@ -209,9 +209,11 @@ class Credentials:
     def certificate_path(self, name: str) -> Path:
         return self.certs_dir / f"{name}.pem"
 
-    def import_certificate(self, path) -> Tuple[str, List[Tuple[str, str]]]:
+    def import_certificate(self, path, overwrite: bool = False) \
+            -> Tuple[str, List[Tuple[str, str]]]:
         '''Keep a PEM certificate, or a bundle of them, as an authority to trust;
-        returns its name and each certificate's subject and SHA-256 fingerprint.'''
+        returns its name and each certificate's subject and SHA-256 fingerprint.
+        ``overwrite`` replaces a different one already imported under that name.'''
         source = Path(path)
         try:
             payload = source.read_bytes()
@@ -220,15 +222,21 @@ class Credentials:
         found = describe_certificates(payload)
         name = re.sub(r"[^A-Za-z0-9._-]", "_", source.stem).strip(".") or "certificate"
         target = self.certificate_path(name)
-        if target.exists() and target.read_bytes() != payload:
+        if not overwrite and target.exists() and target.read_bytes() != payload:
             raise StoreError(f"a different certificate is already imported as {name}: "
-                             "rename the file to import this one beside it")
+                             "rename the file to import this one beside it, or replace "
+                             "it with sc-config remote import-cert -overwrite")
         self._ensure_dir()
         if not self.certs_dir.exists():
             # Private: a certificate added here is one the client trusts.
             os.mkdir(self.certs_dir, _PRIVATE_DIR)
         _write_atomic(target, payload)
+        # Not left to the mtime check: a stale bundle would go on trusting the old one.
+        self._trust_path(name).unlink(missing_ok=True)
         return name, found
+
+    def _trust_path(self, name: str) -> Path:
+        return self.certs_dir / f".{name}.trust"
 
     def trust_bundle(self, name: str) -> Path:
         '''What requests trusts by default, plus the certificate ``name``: added
@@ -236,7 +244,7 @@ class Credentials:
         from requests.utils import DEFAULT_CA_BUNDLE_PATH
 
         sources = [Path(DEFAULT_CA_BUNDLE_PATH), self.certificate_path(name)]
-        bundle = self.certs_dir / f".{name}.trust"
+        bundle = self._trust_path(name)
         newest = max(source.stat().st_mtime for source in sources)
         if not bundle.exists() or bundle.stat().st_mtime < newest:
             payload = b"".join(

@@ -1191,10 +1191,10 @@ class Client:
             return names[int(answer) - 1]
         raise RemoteError(f"{answer} is not one of 1 to {len(names)}")
 
-    def import_certificate(self, path) -> str:
+    def import_certificate(self, path, overwrite: bool = False) -> str:
         '''Keep a certificate authority's certificate for -configure to offer
         where a server's certificate cannot be verified.'''
-        name, found = self.credentials.import_certificate(path)
+        name, found = self.credentials.import_certificate(path, overwrite=overwrite)
         for subject, fingerprint in found:
             self.logger.info(f"  {subject}")
             self.logger.info(f"    SHA-256 {fingerprint}")
