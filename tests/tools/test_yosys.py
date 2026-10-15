@@ -468,3 +468,9 @@ def test_hier_opt_keys_required_only_when_read(heartbeat_design):
         assert prefix + "var,hier_opt" in require
         assert prefix + "var,hier_opt_uniquify" not in require
         assert prefix + "var,hier_opt_max_rounds" not in require
+
+
+@pytest.mark.parametrize("args", [["-c", "sc_synth_asic.tcl"], ["-C", "-c", "sc_synth_asic.tcl"]])
+def test_yosys_replay_modes(args):
+    """replay.sh --shell adds -C once, so yosys enters its Tcl shell when the script ends."""
+    assert ASICSynthesis().replay_modes(args) == {"shell": ["-C", "-c", "sc_synth_asic.tcl"]}

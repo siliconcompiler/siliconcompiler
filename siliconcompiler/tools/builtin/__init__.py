@@ -10,7 +10,7 @@ from siliconcompiler import Task
 from siliconcompiler import utils
 
 
-class BuiltinTask(Task):
+class BuiltinBaseTask(Task):
     def __init__(self):
         super().__init__()
 
@@ -24,9 +24,18 @@ class BuiltinTask(Task):
     def setup(self):
         super().setup()
 
-        self._set_io_files()
-
         self.set_threads(1)
+
+    def run(self):
+        # Do nothing
+        return 0
+
+
+class BuiltinTask(BuiltinBaseTask):
+    def setup(self):
+        super().setup()
+
+        self._set_io_files()
 
     def _set_io_files(self):
         files = sorted(list(self.get_files_from_input_nodes().keys()))
@@ -68,10 +77,6 @@ class BuiltinTask(Task):
                     f'not receive required input {requirement}.')
                 error = True
         return not error
-
-    def run(self):
-        # Do nothing
-        return 0
 
     def post_process(self):
         super().post_process()

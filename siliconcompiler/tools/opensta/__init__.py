@@ -49,6 +49,10 @@ class OpenSTATask(Task):
 
         return options
 
+    def replay_modes(self, args):
+        # without -exit, sta stays at its prompt once the script ends
+        return {"shell": [arg for arg in args if arg != "-exit"]}
+
     @classmethod
     def make_docs(cls):
         from siliconcompiler import Flowgraph, Design, ASIC

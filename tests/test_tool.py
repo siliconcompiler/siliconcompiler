@@ -7,6 +7,7 @@ import json
 import logging
 import pathlib
 import re
+import subprocess
 import sys
 import pytest
 import os
@@ -847,13 +848,13 @@ def test_get_exe_found(running_node, monkeypatch):
 def test_get_exe_version_no_vswitch(running_node):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() is None
+        assert Task.get_exe_version(runtool) is None
 
 
 def test_get_exe_version_no_exe(running_node):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() is None
+        assert Task.get_exe_version(runtool) is None
 
 
 def test_get_exe_version(running_node, monkeypatch, caplog):
@@ -880,7 +881,7 @@ def test_get_exe_version(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() == "1.0.0"
+        assert Task.get_exe_version(runtool) == "1.0.0"
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
@@ -909,7 +910,7 @@ def test_get_exe_version_workdir(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version(workdir="thisdir") == "1.0.0"
+        assert Task.get_exe_version(runtool, workdir="thisdir") == "1.0.0"
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
@@ -934,7 +935,7 @@ def test_get_exe_version_not_implemented(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(RuntimeError,
                            match=r"^builtin/nop does not implement parse_version\(\)$"):
-            runtool.get_exe_version()
+            Task.get_exe_version(runtool)
 
 
 def test_get_exe_version_non_zero_return(running_node, monkeypatch, caplog):
@@ -961,7 +962,7 @@ def test_get_exe_version_non_zero_return(running_node, monkeypatch, caplog):
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_exe_version() == "1.0.0"
+        assert Task.get_exe_version(runtool) == "1.0.0"
 
     assert "Version check on 'exe' ended with code 1" in caplog.text
 
@@ -989,7 +990,7 @@ def test_get_exe_version_internal_error(running_node, monkeypatch, caplog):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match=r"^look for this match$"):
-            runtool.get_exe_version()
+            Task.get_exe_version(runtool)
 
     assert "builtin/nop failed to parse version string: myversion" in caplog.text
 
@@ -1458,7 +1459,43 @@ def test_generate_replay_script(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "c1fdb6d027f5b5ebeea9ec476eefbb0c"
+    assert replay_hash == "daf9a9a78ef03687c42083b6386bdec7"
+
+
+def test_generate_replay_script_modes(running_node, monkeypatch):
+    """replay.sh offers each of replay_modes() as --<mode>, running that mode's arguments."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option',
+                                    ['--arg0', '-exit'])
+
+    with running_node.task.runtime(running_node) as runtool:
+        monkeypatch.setattr(runtool, "replay_modes",
+                            lambda args: {"gui": [*args[:-1], "-gui"]})
+        runtool.generate_replay_script('replay.sh', './')
+
+    with open('replay.sh') as f:
+        replay = f.read()
+    assert '--gui)\n            MODE="gui"' in replay
+    assert "echo 'testexe --arg0 -gui'" in replay
+    assert 'elif [ "$MODE" == "gui" ]; then\n$CMDPREFIX \\\ntestexe \\\n  --arg0 \\\n  -gui \\\n' \
+        in replay
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="replay.sh is a bash script")
+@pytest.mark.parametrize("mode", [[], ["--gui"]])
+def test_generate_replay_script_prints_command_literally(running_node, monkeypatch, mode):
+    """replay.sh --command prints arguments holding $, quotes or backticks as written."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option',
+                                    ['$HOME', 'a"b', '`echo hi`'])
+
+    with running_node.task.runtime(running_node) as runtool:
+        monkeypatch.setattr(runtool, "replay_modes", lambda args: {"gui": args})
+        runtool.generate_replay_script('replay.sh', './')
+
+    out = subprocess.run(["bash", "replay.sh", *mode, "--command"],
+                         capture_output=True, text=True, check=True).stdout
+    assert out == "testexe '$HOME' 'a\"b' '`echo hi`'\n"
 
 
 def test_run_task_terminate_called_on_timeout(running_node, monkeypatch, patch_psutil, caplog):
@@ -1536,7 +1573,7 @@ def test_generate_replay_script_no_path(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-        assert replay_hash == "8af55a245c848918283428109071a0a5"
+        assert replay_hash == "57c8961463849e5a452587c6d056beec"
 
 
 def test_setup_work_directory():
@@ -1714,6 +1751,8 @@ def bare_tcl_interp():
         gc.collect()
 
 
+# A worker's first tkinter.Tcl() has stalled for ~30s on Windows runners.
+@pytest.mark.timeout(60)
 @pytest.mark.parametrize("sysencoding", ("utf-8", "iso8859-1"))
 def test_write_task_manifest_tcl_non_ascii_roundtrip(running_node, sysencoding, bare_tcl_interp):
     """Tcl reads a non-ASCII value back as the string SC wrote, under any locale.

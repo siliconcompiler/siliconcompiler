@@ -99,3 +99,11 @@ def test_vivado_parameter_synth_mode():
     task.set_vivado_synthmode('flow', step='syn_fpga', index='1')
     assert task.get("var", "synth_mode", step='syn_fpga', index='1') == 'flow'
     assert task.get("var", "synth_mode") == 'out_of_context'
+
+
+def test_vivado_replay_modes():
+    """replay.sh --gui and --shell run vivado in gui or tcl mode instead of batch."""
+    args = ["-nolog", "-nojournal", "-mode", "batch", "-source", "sc_run.tcl"]
+    assert syn_fpga.SynthesisTask().replay_modes(args) == {
+        "gui": ["-nolog", "-nojournal", "-mode", "gui", "-source", "sc_run.tcl"],
+        "shell": ["-nolog", "-nojournal", "-mode", "tcl", "-source", "sc_run.tcl"]}

@@ -3367,6 +3367,16 @@ def test_openroad_web_enablehier_default_true():
     assert openroad_show.WebTask().get("var", "enablehier") is True
 
 
+@pytest.mark.parametrize("last", ["-exit", "-gui", "-web"])
+def test_openroad_replay_modes(last):
+    """replay.sh's gui, web and shell modes drop -exit, which would end the session early."""
+    task = global_placement.GlobalPlacementTask()
+    assert task.replay_modes(["-no_init", "sc_apr.tcl", last]) == {
+        "gui": ["-no_init", "sc_apr.tcl", "-gui"],
+        "web": ["-no_init", "sc_apr.tcl", "-web"],
+        "shell": ["-no_init", "sc_apr.tcl"]}
+
+
 def test_openroad_show_supports_def():
     """ShowTask inherits the open task's def/odb/vg extension support."""
     task = openroad_show.ShowTask()

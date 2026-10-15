@@ -6,6 +6,9 @@ import pytest
 # a synthetic configuration. Skip when tkinter / Tk is unavailable.
 tkinter = pytest.importorskip("tkinter")
 
+# A worker's first tkinter.Tcl() has stalled for ~30s on Windows runners.
+pytestmark = pytest.mark.timeout(60)
+
 
 @pytest.fixture
 def cfg(tcl_interp):

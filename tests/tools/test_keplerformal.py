@@ -33,6 +33,12 @@ def test_version(gcd_design):
         assert node.task.check_exe_version(node.task.get_exe_version()) is True
 
 
+def test_parse_version():
+    assert LECTask().parse_version(
+        "kepler-formal version: 0.5.0\n"
+        "kepler-formal git hash: b9918a32ea28227de2475941a54f16b06efb315a\n") == "0.5.0"
+
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)

@@ -573,3 +573,9 @@ def test_vpr_screenshot_runtime_args_invalid_filetype(gcd_design, faux_fpga, wri
         assert node.setup() is True
         with pytest.raises(ValueError, match="Incorrect file type bogus"):
             node.task.get_runtime_arguments()
+
+
+@pytest.mark.parametrize("args", [["--route"], ["--route", "--disp", "on"]])
+def test_vpr_replay_modes(args):
+    """replay.sh --gui turns VPR's graphics on, once."""
+    assert RouteTask().replay_modes(args) == {"gui": ["--route", "--disp", "on"]}

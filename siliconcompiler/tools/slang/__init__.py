@@ -49,27 +49,20 @@ class SlangTask(Task):
     def __init__(self):
         super().__init__()
 
-        check_version = self.__test_version()
-        if check_version:
-            raise RuntimeError(check_version)
-
-    def __test_version(self):
         if pyslang is None:
-            return "pyslang is not installed"
-
-        version = pyslang.VersionInfo
-        if version.getMajor() >= 9 and version.getMinor() >= 0:
-            return None
-
-        ver = f"{version.getMajor()}.{version.getMinor()}.{version.getPatch()}"
-
-        return f"incorrect pyslang version: {ver}"
+            raise RuntimeError("pyslang is not installed")
 
     def tool(self):
         return "slang"
 
+    def get_exe_version(self, workdir=None):
+        version = pyslang.VersionInfo
+        return f"{version.getMajor()}.{version.getMinor()}.{version.getPatch()}"
+
     def setup(self):
         super().setup()
+
+        self.add_version(">=9.0")
 
         self.set_threads()
 

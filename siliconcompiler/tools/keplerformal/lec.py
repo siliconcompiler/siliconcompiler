@@ -1,25 +1,16 @@
 import os.path
 
-from siliconcompiler import Task
+from siliconcompiler.tools.keplerformal import KeplerFormalTask
 from siliconcompiler.utils import sc_open
 
 
-class LECTask(Task):
+class LECTask(KeplerFormalTask):
     """LEC task using Kepler-formal for logical equivalence checking."""
-    def tool(self) -> str:
-        return "kepler-formal"
-
     def task(self) -> str:
         return "lec"
 
     def setup(self) -> None:
         super().setup()
-
-        self.set_exe("kepler-formal")
-
-        # Log file handled by kepler-formal config
-        self.set_logdestination("stdout", "none")
-        self.set_logdestination("stderr", "none")
 
         if f"{self.design_topmodule}.lec.vg" in self.get_files_from_input_nodes():
             inputnodes = self.get_files_from_input_nodes()[f"{self.design_topmodule}.lec.vg"]

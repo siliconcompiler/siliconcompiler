@@ -99,17 +99,17 @@ def test_package_registry(fake_plugins, registry, expect):
 def test_override_rebuilds_dependents(fake_plugins):
     """Moving a pin rebuilds that tool and everything built against it, and nothing else."""
     sc = toolimages.get_tool_images()
-    images = _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
+    images = _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v9.9.9"}})
 
     assert _built(images) == {"yosys", "sby", "yosys-moosic", "wildebeest"}
-    assert images.tool_image("yosys", False) == "ghcr.io/myorg/mylib_yosys:v0.70"
+    assert images.tool_image("yosys", False) == "ghcr.io/myorg/mylib_yosys:v9.9.9"
     assert images.tool_image("openroad", True) == sc.tool_image("openroad", True)
 
     images.make_tool_docker("wildebeest", "out")
     dockerfile = (Path("out") / "mylib_wildebeest" / "Dockerfile").read_text()
     assert f"COPY --from={images.tool_image('yosys', True)} $SC_PREFIX" in dockerfile
     with open(Path("out") / "mylib_wildebeest" / "_tools.json") as f:
-        assert json.load(f)["yosys"]["git-commit"] == "v0.70"
+        assert json.load(f)["yosys"]["git-commit"] == "v9.9.9"
 
 
 def test_replaced_recipe_rebuilds(fake_plugins):
@@ -184,7 +184,7 @@ def test_tools_image_assembled_on_override(fake_plugins):
     replaces survives underneath.
     """
     sc = toolimages.get_tool_images()
-    images = _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
+    images = _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v9.9.9"}})
 
     assert images.overrides_sc_tool()
     images.make_tools_docker("out")
@@ -196,7 +196,7 @@ def test_tools_image_assembled_on_override(fake_plugins):
         assert f"COPY --from={sc.tool_image(tool, True)} " not in dockerfile
     assert f"COPY --from={sc.tool_image('openroad', True)} $SC_PREFIX" in dockerfile
     with open(Path("out") / "mylib_tools" / "_tools.json") as f:
-        assert json.load(f)["yosys"]["git-commit"] == "v0.70"
+        assert json.load(f)["yosys"]["git-commit"] == "v9.9.9"
 
 
 def test_replaced_recipe_is_an_override(fake_plugins):
@@ -267,7 +267,7 @@ def test_build_stages(fake_plugins):
 
     images = _package_images(
         fake_plugins,
-        manifest={"yosys": {"git-commit": "v0.70"},
+        manifest={"yosys": {"git-commit": "v9.9.9"},
                   "newtool": {"git-commit": "v1", "docker-depends": "wildebeest"},
                   "addon": {"git-commit": "v1", "docker-depends": "icepack"}},
         scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n",
@@ -286,7 +286,7 @@ def test_build_stages(fake_plugins):
 def test_main_json_tools_by_stage(monkeypatch, fake_plugins, capsys):
     _package_images(
         fake_plugins,
-        manifest={"yosys": {"git-commit": "v0.70"},
+        manifest={"yosys": {"git-commit": "v9.9.9"},
                   "newtool": {"git-commit": "v1", "docker-depends": "wildebeest"}},
         scripts={"ubuntu24/install-newtool.sh": "#!/bin/bash\n"})
 
@@ -342,7 +342,7 @@ def test_main_plan(monkeypatch, fake_plugins, capsys):
 
 
 def test_main_json_tools_lists_only_built(monkeypatch, fake_plugins, capsys):
-    _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
+    _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v9.9.9"}})
 
     assert _main(monkeypatch, "--image_prefix", _PREFIX, "--json_tools", "--reportall") == 0
     assert [entry["tool"] for entry in json.loads(capsys.readouterr().out)["include"]] == \
@@ -355,7 +355,7 @@ def test_main_json_tools_lists_only_built(monkeypatch, fake_plugins, capsys):
 
 
 def test_main_generate_files_only_built(monkeypatch, fake_plugins):
-    _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
+    _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v9.9.9"}})
 
     assert _main(monkeypatch, "--image_prefix", _PREFIX, "--generate_files",
                  "--output_dir", "out") == 0
@@ -373,7 +373,7 @@ def test_main_no_sc_runner_for_package(monkeypatch, fake_plugins, capsys):
 def test_main_ignores_packages_without_prefix(monkeypatch, fake_plugins, capsys):
     """SiliconCompiler's own images do not move because a package is installed."""
     sc = toolimages.get_tool_images()
-    _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v0.70"}})
+    _package_images(fake_plugins, manifest={"yosys": {"git-commit": "v9.9.9"}})
 
     assert _main(monkeypatch, "--tool", "yosys", "--tool_as_hash_name") == 0
     assert capsys.readouterr().out.strip() == sc.tool_image("yosys", True)

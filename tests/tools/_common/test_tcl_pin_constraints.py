@@ -6,6 +6,9 @@ import pytest
 # Python's embedded Tcl interpreter (tkinter.Tcl()). Skip when Tk is missing.
 tkinter = pytest.importorskip("tkinter")
 
+# A worker's first tkinter.Tcl() has stalled for ~30s on Windows runners.
+pytestmark = pytest.mark.timeout(60)
+
 
 @pytest.fixture
 def collect(tcl_interp):
