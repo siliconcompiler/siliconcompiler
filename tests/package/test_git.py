@@ -609,7 +609,7 @@ def test_git_sends_token_as_password_on_the_wire(auth_probe, monkeypatch):
     assert seen[-1] == "Basic " + base64.b64encode(b"x-access-token:tok123").decode()
     # Reached the server and was refused, rather than dying for want of a prompt.
     assert "Authentication failed" in stderr
-    assert "could not read Password" not in stderr
+    assert "terminal prompts disabled" not in stderr
 
 
 @pytest.mark.timeout(60)
@@ -617,7 +617,7 @@ def test_git_sends_token_as_password_on_the_wire(auth_probe, monkeypatch):
 def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
     """
     An unrecognised host gets 'tok123:@', which sends the same bytes as 'tok123@' but, once
-    refused, fails instead of falling through to a password prompt.
+    refused, fails instead of falling through to a credential prompt.
     """
     port, seen = auth_probe
     monkeypatch.setenv("GIT_TOKEN", "tok123")
@@ -630,7 +630,7 @@ def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
 
     assert seen[-1] == "Basic " + base64.b64encode(b"tok123:").decode()
     assert "Authentication failed" in stderr
-    assert "could not read Password" not in stderr
+    assert "terminal prompts disabled" not in stderr
 
 
 @pytest.mark.timeout(60)
@@ -638,14 +638,16 @@ def test_git_empty_password_form_does_not_prompt(auth_probe, monkeypatch):
 def test_git_bare_username_form_is_the_defect(auth_probe):
     """
     The old bare 'tok123@' form sends the same bytes but, once refused, falls through to a
-    password prompt; this pins the defect the empty-password form avoids.
+    credential prompt; this pins the defect the empty-password form avoids.
     """
     port, seen = auth_probe
 
     stderr = _probe_git(port, "tok123")
 
     assert seen[-1] == "Basic " + base64.b64encode(b"tok123:").decode()
-    assert "could not read Password" in stderr
+    # Which field git asks for depends on libcurl: Password with Ubuntu 24.04's
+    # 8.5.0-2ubuntu10.15, Username again with 10.16.
+    assert "terminal prompts disabled" in stderr
 
 
 def test_git_resolver_resolve_remote_success(monkeypatch):
