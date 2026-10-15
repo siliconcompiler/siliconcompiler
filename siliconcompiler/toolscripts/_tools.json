@@ -659,7 +659,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "b9918a32ea28227de2475941a54f16b06efb315a",
+    "git-commit": "ed74bf52ea24a34ad6056963c06b29d4a70fb414",
     "auto-update": true,
     "docker-drop-pkgs": [
       "clang",
