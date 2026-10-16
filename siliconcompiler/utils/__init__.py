@@ -404,6 +404,7 @@ def get_default_iomap() -> Dict[str, str]:
 
     # Timing libraries
     timing_liberty = ('lib', 'ccs')
+    timing_liberty_binary = ('blib',)
 
     # Layout
     layout_def = ('def',)
@@ -462,6 +463,7 @@ def get_default_iomap() -> Dict[str, str]:
     default_iomap.update({ext: "vhdl" for ext in rtl_vhdl})
 
     default_iomap.update({ext: "liberty" for ext in timing_liberty})
+    default_iomap.update({ext: "liberty-binary" for ext in timing_liberty_binary})
 
     default_iomap.update({ext: "def" for ext in layout_def})
     default_iomap.update({ext: "lef" for ext in layout_lef})
