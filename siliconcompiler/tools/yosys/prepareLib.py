@@ -7,7 +7,7 @@ import gzip
 import argparse  # argument parsing
 
 
-def process_liberty_file(input_file, logger=None, output_file=None):
+def process_liberty_file(input_file, logger=None, output_file=None, verbose=False):
     # Read input file
     if logger:
         logger.info(f"Opening file for replace: {input_file}")
@@ -27,21 +27,21 @@ def process_liberty_file(input_file, logger=None, output_file=None):
     pattern = r"(.*original_pin.*)"
     replace = r"/* \1 */;"
     content, count = re.subn(pattern, replace, content)
-    if logger:
+    if logger and verbose:
         logger.info(f"Commented {count} lines containing \"original_pin\"")
 
     # Yosys, does not like properties that start with : !, without quotes
     pattern = r":\s+(!.*)\s+;"
     replace = r': "\1" ;'
     content, count = re.subn(pattern, replace, content)
-    if logger:
+    if logger and verbose:
         logger.info(f"Replaced malformed functions {count}")
 
     # Yosys-abc throws an error if the units are specified in 0.001pf, instead of 1ff
     pattern = r"capacitive_load_unit\s+\(0.001,pf\);"
     replace = "capacitive_load_unit (1,ff);"
     content, count = re.subn(pattern, replace, content)
-    if logger:
+    if logger and verbose:
         logger.info(f"Replaced capacitive load {count}")
 
     if output_file:
