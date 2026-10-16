@@ -7,7 +7,7 @@ import gzip
 import argparse  # argument parsing
 
 
-def process_liberty_file(input_file, logger=None):
+def process_liberty_file(input_file, logger=None, output_file=None):
     # Read input file
     if logger:
         logger.info(f"Opening file for replace: {input_file}")
@@ -44,6 +44,10 @@ def process_liberty_file(input_file, logger=None):
     if logger:
         logger.info(f"Replaced capacitive load {count}")
 
+    if output_file:
+        with open(output_file, 'w') as f:
+            f.write(content)
+
     # Return new text
     return content
 
@@ -51,13 +55,11 @@ def process_liberty_file(input_file, logger=None):
 if __name__ == "__main__":
     # Parse and validate arguments
     parser = argparse.ArgumentParser(
-        description='Replaces occurrences of cells in def or verilog files')
-    parser.add_argument('--patterns', '-p', required=True,
-                        help='List of search patterns')
+        description='Prepares liberty files for Yosys and ABC')
     parser.add_argument('--inputFile', '-i', required=True,
                         help='Input File')
     parser.add_argument('--outputFile', '-o', required=True,
                         help='Output File')
     args = parser.parse_args()
 
-    process_liberty_file(args.inputFile, args.outputFile, args.patterns)
+    process_liberty_file(args.inputFile, output_file=args.outputFile)
