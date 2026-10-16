@@ -7,7 +7,7 @@ import gzip
 import argparse  # argument parsing
 
 
-def process_liberty_file(input_file, logger=None):
+def process_liberty_file(input_file, logger=None, output_file=None, verbose=False):
     # Read input file
     if logger:
         logger.info(f"Opening file for replace: {input_file}")
@@ -27,22 +27,26 @@ def process_liberty_file(input_file, logger=None):
     pattern = r"(.*original_pin.*)"
     replace = r"/* \1 */;"
     content, count = re.subn(pattern, replace, content)
-    if logger:
+    if logger and verbose:
         logger.info(f"Commented {count} lines containing \"original_pin\"")
 
     # Yosys, does not like properties that start with : !, without quotes
     pattern = r":\s+(!.*)\s+;"
     replace = r': "\1" ;'
     content, count = re.subn(pattern, replace, content)
-    if logger:
+    if logger and verbose:
         logger.info(f"Replaced malformed functions {count}")
 
     # Yosys-abc throws an error if the units are specified in 0.001pf, instead of 1ff
     pattern = r"capacitive_load_unit\s+\(0.001,pf\);"
     replace = "capacitive_load_unit (1,ff);"
     content, count = re.subn(pattern, replace, content)
-    if logger:
+    if logger and verbose:
         logger.info(f"Replaced capacitive load {count}")
+
+    if output_file:
+        with open(output_file, 'w') as f:
+            f.write(content)
 
     # Return new text
     return content
@@ -51,13 +55,11 @@ def process_liberty_file(input_file, logger=None):
 if __name__ == "__main__":
     # Parse and validate arguments
     parser = argparse.ArgumentParser(
-        description='Replaces occurrences of cells in def or verilog files')
-    parser.add_argument('--patterns', '-p', required=True,
-                        help='List of search patterns')
+        description='Prepares liberty files for Yosys and ABC')
     parser.add_argument('--inputFile', '-i', required=True,
                         help='Input File')
     parser.add_argument('--outputFile', '-o', required=True,
                         help='Output File')
     args = parser.parse_args()
 
-    process_liberty_file(args.inputFile, args.outputFile, args.patterns)
+    process_liberty_file(args.inputFile, output_file=args.outputFile)

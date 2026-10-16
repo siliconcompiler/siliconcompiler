@@ -1,13 +1,15 @@
+import gzip
 import pytest
 
 import os.path
 
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler import ASIC, Design, Flowgraph, FPGA
+from siliconcompiler import ASIC, Design, Flowgraph, FPGA, StdCellLibrary, utils
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
 from siliconcompiler.tools.yosys.open import OpenTask as YosysOpen
+from siliconcompiler.tools.yosys.prepareLib import process_liberty_file
 from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.tools.yosys import YosysFPGA
 from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
@@ -474,3 +476,161 @@ def test_hier_opt_keys_required_only_when_read(heartbeat_design):
 def test_yosys_replay_modes(args):
     """replay.sh --shell adds -C once, so yosys enters its Tcl shell when the script ends."""
     assert ASICSynthesis().replay_modes(args) == {"shell": ["-C", "-c", "sc_synth_asic.tcl"]}
+
+
+def test_yosys_lib_prep_threads_honor_task(heartbeat_design):
+    """Explicit task threads are honored for lib prep even when maxthreads differs."""
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        node.task.set("threads", 3)
+        node.task.project.option.scheduler.set_maxthreads(8)
+        assert node.setup() is True
+        assert node.task.get_threads() == 3
+
+
+def test_yosys_lib_prep_threads_fallback_maxthreads(heartbeat_design):
+    """Scheduler maxthreads is used when task threads is unset."""
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        node.task.project.option.scheduler.set_maxthreads(4)
+        assert node.setup() is True
+        assert node.task.get_threads() == 4
+
+
+def test_yosys_lib_prep_threads_fallback_cores(heartbeat_design):
+    """Hardware cores are used when neither task threads nor maxthreads is set."""
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_threads() == utils.get_cores()
+
+
+def test_process_liberty_file_output_file():
+    """process_liberty_file writes output to output_file when provided."""
+    raw = (
+        "library (demo) {\n"
+        "  capacitive_load_unit (0.001,pf);\n"
+        "  cell (inv) {\n"
+        "    pin (A) {\n"
+        "      original_pin : true;\n"
+        "    }\n"
+        "    pin (Y) {\n"
+        "      function : !A ;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    with open("input.lib", "w") as f:
+        f.write(raw)
+
+    content = process_liberty_file("input.lib", output_file="output.lib")
+    assert os.path.exists("output.lib")
+    with open("output.lib") as f:
+        saved = f.read()
+    assert saved == content
+    assert "capacitive_load_unit (1,ff);" in saved
+    assert "/*       original_pin : true; */;" in saved
+    assert ': "!A" ;' in saved
+
+
+def _create_multi_lib_project():
+    design = Design("top")
+    design.set_dataroot("top", ".")
+    with design.active_fileset("rtl"), design.active_dataroot("top"):
+        design.set_topmodule("top")
+
+    raw1 = (
+        "library (lib1) {\n"
+        "  capacitive_load_unit (0.001,pf);\n"
+        "  cell (c1) {\n"
+        "    pin (A) {\n"
+        "      original_pin : true;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    raw2 = (
+        "library (lib2) {\n"
+        "  cell (c2) {\n"
+        "    pin (Y) {\n"
+        "      function : !A ;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+
+    with open("c1.lib", "w") as f:
+        f.write(raw1)
+    with gzip.open("c2.lib.gz", "wt") as f:
+        f.write(raw2)
+
+    l1 = StdCellLibrary("lib1")
+    l1.set_dataroot("lib1", ".")
+    l1.add_file("c1.lib", dataroot="lib1", fileset="typical")
+    l1.add("asic", "libcornerfileset", "typical", "nldm", "typical")
+
+    l2 = StdCellLibrary("lib2")
+    l2.set_dataroot("lib2", ".")
+    l2.add_file("c2.lib.gz", dataroot="lib2", fileset="typical")
+    l2.add("asic", "libcornerfileset", "typical", "nldm", "typical")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    proj.add_asiclib(l1)
+    proj.add_asiclib(l2)
+    proj.set("asic", "delaymodel", "nldm")
+
+    flow = Flowgraph("synthflow")
+    flow.node("synthesis", ASICSynthesis())
+    proj.set_flow(flow)
+    return proj
+
+
+def test_yosys_prepare_synthesis_libraries_parallel():
+    """Libraries are processed in parallel honoring task threads count."""
+    proj = _create_multi_lib_project()
+    node = SchedulerNode(proj, "synthesis", "0")
+    with node.runtime():
+        node.task.set("threads", 4)
+        node.task.set("var", "synthesis_corner", "typical")
+        node.task._prepare_synthesis_libraries()
+
+        libs = node.task.get("var", "synthesis_libraries")
+        assert len(libs) == 2
+        assert libs[0].endswith("sc_lib1_c1.lib")
+        assert libs[1].endswith("sc_lib2_c2.lib")
+
+        for fpath in libs:
+            assert os.path.exists(fpath)
+
+        with open(libs[0]) as f:
+            assert "capacitive_load_unit (1,ff);" in f.read()
+        with open(libs[1]) as f:
+            assert ': "!A" ;' in f.read()
+
+
+def test_yosys_prepare_synthesis_libraries_serial():
+    """Libraries are processed serially when threads is 1."""
+    proj = _create_multi_lib_project()
+    node = SchedulerNode(proj, "synthesis", "0")
+    with node.runtime():
+        node.task.set("threads", 1)
+        node.task.set("var", "synthesis_corner", "typical")
+        node.task._prepare_synthesis_libraries()
+
+        libs = node.task.get("var", "synthesis_libraries")
+        assert len(libs) == 2
+        assert libs[0].endswith("sc_lib1_c1.lib")
+        assert libs[1].endswith("sc_lib2_c2.lib")
+
+
+def test_yosys_prepare_synthesis_libraries_exception():
+    """Worker exceptions during lib prep are raised to the caller."""
+    proj = _create_multi_lib_project()
+    os.remove("c1.lib")
+    node = SchedulerNode(proj, "synthesis", "0")
+    with node.runtime():
+        node.task.set("threads", 2)
+        node.task.set("var", "synthesis_corner", "typical")
+        with pytest.raises(FileNotFoundError):
+            node.task._prepare_synthesis_libraries()
