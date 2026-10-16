@@ -24,7 +24,7 @@ def collect(tcl_interp):
       warnings       -> list of emitted warning strings
     '''
     # sc_collect_pin_constraints relies on sc_cfg_get from sc_schema_access.
-    interp = tcl_interp("sc_schema_access.tcl", "sc_pin_constraints.tcl")
+    interp = tcl_interp("_common/tcl/sc_schema_access.tcl", "_common/tcl/sc_pin_constraints.tcl")
 
     # Capturing warning sink and a wrapper that surfaces the upvar outputs.
     interp.eval(

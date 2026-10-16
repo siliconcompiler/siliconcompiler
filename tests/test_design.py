@@ -579,6 +579,18 @@ def test_add_file_default_to_ext():
     assert d.get("fileset", "testbench", "file", "ver") == ["tb.ver"]
 
 
+@pytest.mark.parametrize("filename,filetype", [
+    ("cells.lib.gz", "liberty"),
+    ("cells.blib", "liberty-binary"),
+    ("cells.blib.gz", "liberty-binary")])
+def test_add_file_liberty_filetype(filename, filetype):
+    """add_file infers text and binary liberty from the extension, gzipped or not."""
+    d = Design("test")
+
+    assert d.add_file(filename, "timing")
+    assert d.get("fileset", "timing", "file", filetype) == [filename]
+
+
 def test_add_file_invalid_fileset():
     d = Design("test")
 

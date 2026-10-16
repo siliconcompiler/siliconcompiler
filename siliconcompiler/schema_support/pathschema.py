@@ -366,15 +366,20 @@ class PathSchema(PathSchemaBase):
         BaseSchema.set(schema, "dataroot", name, "path", path)
         BaseSchema.set(schema, "dataroot", name, "tag", tag)
 
-    def get_dataroot(self, name: str) -> str:
+    def get_dataroot(self, name: str, missing_ok: bool = False) -> str:
         """
         Returns absolute path to the data directory.
 
         Raises:
-            ValueError: is data directory is not found
+            ValueError: if the data directory is not defined, or if ``missing_ok``
+                is True and its path uses an environment variable that is not set.
+            FileNotFoundError: if the data directory does not exist and
+                ``missing_ok`` is False.
 
         Args:
             name (str): name of the data directory to find.
+            missing_ok (bool, optional): If True, return the path even when the
+                directory does not exist. A remote data directory is still fetched.
 
         Returns:
             Path to the directory root.
@@ -393,7 +398,7 @@ class PathSchema(PathSchemaBase):
         tag: Optional[str] = BaseSchema.get(schema, "dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
-        return resolver(name, self, path, tag).get_path()
+        return resolver(name, self, path, tag).get_path(missing_ok=missing_ok)
 
     def _find_files_dataroot_resolvers(self, resolvers: bool = False) \
             -> Dict[str, Union[str, Callable]]:

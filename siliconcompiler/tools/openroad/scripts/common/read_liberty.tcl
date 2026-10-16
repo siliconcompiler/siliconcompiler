@@ -17,7 +17,7 @@ if { [sc_has_sta_mcmm_support] && [sc_cfg_tool_task_get var load_sdcs] } {
                         {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
                 }
             }
-            set files [sc_cfg_get_fileset $lib $lib_filesets liberty]
+            set files [sc_get_liberty_files $lib $lib_filesets]
             foreach file $files {
                 if { [lsearch -exact $liberty_files $file] == -1 } {
                     lappend liberty_files $file
@@ -55,7 +55,7 @@ if { [sc_has_sta_mcmm_support] && [sc_cfg_tool_task_get var load_sdcs] } {
                         {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
                 }
             }
-            foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
+            foreach lib_file [sc_get_liberty_files $lib $lib_filesets] {
                 puts "Reading liberty file for ${corner}: ${lib_file}"
                 read_liberty -corner $corner $lib_file
             }

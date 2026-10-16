@@ -17,7 +17,7 @@ def parse(tcl_interp):
     The helper returns the result as a Python dict (all values are strings;
     list-valued entries can be split further with ``split_list``).
     '''
-    interp = tcl_interp("sc_proc_args.tcl")
+    interp = tcl_interp("_common/tcl/sc_proc_args.tcl")
     interp.eval(
         """
         proc _sc_parse_test { spec args } {

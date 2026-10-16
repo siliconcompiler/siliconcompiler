@@ -2,6 +2,7 @@ import json
 
 import os.path
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Union, List
 
 from siliconcompiler.tools.yosys.prepareLib import process_liberty_file
@@ -30,6 +31,8 @@ class _ASICTask(ASICTask, YosysTask):
 
     def setup(self):
         super().setup()
+
+        self.set_threads()
 
         self.add_required_key("var", "synthesis_corner")
         self._determine_synthesis_corner()
@@ -83,6 +86,9 @@ class _ASICTask(ASICTask, YosysTask):
         super().pre_process()
         self._prepare_synthesis_libraries()
 
+    def _prepare_liberty_file(self, lib_file: str, output_file: str):
+        process_liberty_file(lib_file, logger=self.logger, output_file=output_file)
+
     def _prepare_synthesis_libraries(self):
         """
         mark cells dont use and format liberty files for yosys and abc
@@ -99,17 +105,16 @@ class _ASICTask(ASICTask, YosysTask):
                 for fileset in lib_obj.get("asic", "libcornerfileset", corner, delaymodel):
                     fileset_map.append((lib_obj, fileset))
 
-        lib_file_map = {}
+        files_to_process = []
+        output_files = []
         processed = set()
+        used_output_files = set()
         for lib, fileset in fileset_map:
             if (lib, fileset) in processed:
                 continue
             processed.add((lib, fileset))
-            lib_content = {}
-            lib_map = {}
-            # Mark dont use
+
             for lib_file in lib.find_files("fileset", fileset, "file", "liberty"):
-                # Ensure a unique name is used for library
                 lib_file_name_base = os.path.basename(lib_file)
                 if lib_file_name_base.lower().endswith('.gz'):
                     lib_file_name_base = lib_file_name_base[0:-3]
@@ -117,32 +122,53 @@ class _ASICTask(ASICTask, YosysTask):
                     lib_file_name_base = lib_file_name_base[0:-4]
 
                 lib_file_name = lib_file_name_base
-                unique_ident = 0
-                while lib_file_name in lib_content:
-                    lib_file_name = f'{lib_file_name_base}_{unique_ident}'
-                    unique_ident += 1
-
-                lib_content[lib_file_name] = process_liberty_file(
-                    lib_file,
-                    logger=self.logger
-                )
-                lib_map[lib_file_name] = lib_file
-
-            if not lib_content:
-                continue
-
-            for file, content in lib_content.items():
                 output_file = os.path.join(
                     self.nodeworkdir,
                     'inputs',
-                    f'sc_{lib.name}_{file}.lib'
+                    f'sc_{lib.name}_{lib_file_name}.lib'
                 )
-                lib_file_map[lib_map[file]] = output_file
+                unique_ident = 0
+                while output_file in used_output_files:
+                    lib_file_name = f'{lib_file_name_base}_{unique_ident}'
+                    unique_ident += 1
+                    output_file = os.path.join(
+                        self.nodeworkdir,
+                        'inputs',
+                        f'sc_{lib.name}_{lib_file_name}.lib'
+                    )
 
-                with open(output_file, 'w') as f:
-                    f.write(content)
+                used_output_files.add(output_file)
+                files_to_process.append((lib_file, output_file))
+                output_files.append(output_file)
 
-                self.add("var", 'synthesis_libraries', output_file)
+        if not files_to_process:
+            return
+
+        os.makedirs(os.path.join(self.nodeworkdir, 'inputs'), exist_ok=True)
+
+        threads = self.get_threads()
+        if not threads:
+            if self.project:
+                threads = self.project.option.scheduler.get("maxthreads")
+            if not threads:
+                threads = utils.get_cores()
+        threads = max(1, int(threads))
+
+        max_workers = min(threads, len(files_to_process))
+        if max_workers <= 1:
+            for lib_file, output_file in files_to_process:
+                self._prepare_liberty_file(lib_file, output_file)
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(self._prepare_liberty_file, lib_file, output_file)
+                    for lib_file, output_file in files_to_process
+                ]
+                for future in futures:
+                    future.result()
+
+        for output_file in output_files:
+            self.add("var", 'synthesis_libraries', output_file)
 
     def add_synthesis_corner(self, corner, step=None, index=None, clobber=True):
         """Deprecated"""

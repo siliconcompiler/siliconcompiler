@@ -17,7 +17,7 @@ def cfg(tcl_interp):
     sc_proc_args.tcl is sourced first since sc_get_filesets parses its keyword
     arguments through sc::parse_args.
     '''
-    interp = tcl_interp("sc_proc_args.tcl", "sc_schema_access.tcl")
+    interp = tcl_interp("_common/tcl/sc_proc_args.tcl", "_common/tcl/sc_schema_access.tcl")
     interp.eval("set sc_cfg [dict create]")
     return interp
 

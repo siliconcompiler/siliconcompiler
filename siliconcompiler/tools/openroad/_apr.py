@@ -1839,26 +1839,6 @@ class APRTask(OpenROADTask):
         else:
             self.add("var", "global_connect_fileset", (library, fileset), step=step, index=index)
 
-    def _get_delaymodel(self) -> Optional[str]:
-        """Return :keypath:`ASIC,asic,delaymodel`, rejecting what OpenSTA cannot read.
-
-        The ``(corner, delaymodel)`` key a library groups its timing filesets under
-        is free-form, so a target can name a model that is not a flavor of Liberty
-        at all (a compiled binary model, ECSM, ...). Reading such a fileset would
-        hand OpenSTA files it cannot parse, so reject the model here instead.
-
-        An unset delay model is passed through untouched; :meth:`.ASIC._check_manifest`
-        is what reports that, and with a better message than this can give.
-
-        Raises:
-            ValueError: if the delay model is set to anything but ``nldm`` or ``ccs``.
-        """
-        delaymodel = self.project.get("asic", "delaymodel")
-        if delaymodel is not None and delaymodel not in ("nldm", "ccs"):
-            raise ValueError(f"{delaymodel} is not a supported delay model, "
-                             "supported delay models are: nldm, ccs")
-        return delaymodel
-
     def setup(self):
         """
         Configure APRTask prerequisites and required project keys for an OpenROAD run.
@@ -1950,7 +1930,11 @@ class APRTask(OpenROADTask):
                     continue
                 self.add_required_key(lib, "asic", "libcornerfileset", corner, delay_model)
                 for fileset in lib.get("asic", "libcornerfileset", corner, delay_model):
-                    self.add_required_key(lib, "fileset", fileset, "file", "liberty")
+                    # read_liberty.tcl reads the binary liberty in place of the text
+                    if lib.has_file(fileset=fileset, filetype="liberty-binary"):
+                        self.add_required_key(lib, "fileset", fileset, "file", "liberty-binary")
+                    else:
+                        self.add_required_key(lib, "fileset", fileset, "file", "liberty")
 
     def pre_process(self):
         super().pre_process()

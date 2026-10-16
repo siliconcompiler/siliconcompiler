@@ -1,4 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import gzip
 import os
 import pathlib
 import re
@@ -38,6 +39,7 @@ from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.openroad import global_placement
 from siliconcompiler.tools.openroad import global_route
 from siliconcompiler.tools.openroad import init_floorplan
+from siliconcompiler.tools.openroad import liberty_binary
 from siliconcompiler.tools.openroad import macro_placement
 from siliconcompiler.tools.openroad import power_grid_analysis
 from siliconcompiler.tools.openroad import power_grid
@@ -53,6 +55,7 @@ from siliconcompiler.tools.openroad.utils.rcx_merge import (
     RCXMergeError,
 )
 from siliconcompiler.tools.openroad.utils import pex_calibrate as pc
+from siliconcompiler.tools.openroad.utils import liberty_binary as liberty_binary_util
 
 
 @pytest.mark.eda
@@ -4640,6 +4643,167 @@ def test_openroad_unsupported_delaymodel(asic_gcd):
                        match=r"^ecsm is not a supported delay model, "
                              r"supported delay models are: nldm, ccs$"):
         _setup_node(asic_gcd, "floorplan.init")
+
+
+def _liberty_binary_project(project):
+    flow = Flowgraph("libflow")
+    flow.node("convert", liberty_binary.LibertyBinaryTask())
+    project.set_flow(flow)
+    return project
+
+
+@pytest.mark.parametrize("compress,output", [
+    (None, "NangateOpenCellLibrary_typical.blib.gz"),
+    (False, "NangateOpenCellLibrary_typical.blib")])
+def test_openroad_liberty_binary_setup(asic_gcd, compress, output):
+    """liberty_binary writes one .blib per mainlib liberty file, gzipped by default."""
+    _liberty_binary_project(asic_gcd)
+    if compress is not None:
+        liberty_binary.LibertyBinaryTask.find_task(asic_gcd).set_openroad_compress(compress)
+
+    task = _setup_node(asic_gcd, "convert")
+
+    assert [str(s) for s in task.get("script")] == ["sc_liberty_binary.tcl"]
+    assert task.get("version") == [">=26Q4-509"]
+    assert task.get("output") == [output]
+    require = task.get("require")
+    assert "library,nangate45,asic,libcornerfileset,typical,nldm" in require
+    assert "library,nangate45,fileset,models.timing.nldm,file,liberty" in require
+
+
+def test_openroad_liberty_binary_no_files_for_delaymodel(asic_gcd):
+    """A library with no liberty files for the delay model fails setup."""
+    _liberty_binary_project(asic_gcd)
+    asic_gcd.set_asic_delaymodel("ccs")
+
+    with pytest.raises(ValueError, match=r"^nangate45 has no ccs liberty files to convert$"):
+        _setup_node(asic_gcd, "convert")
+
+
+def test_openroad_liberty_binary_output_collision(asic_gcd):
+    """Two liberty files that map to the same output name fail setup."""
+    _liberty_binary_project(asic_gcd)
+    lib = asic_gcd.get_library("nangate45")
+    with lib.active_fileset("models.timing.nldm"):
+        lib.add_file(os.path.abspath("NangateOpenCellLibrary_typical.ccs"))
+
+    with pytest.raises(ValueError, match=r"would both be converted to "
+                                         r"NangateOpenCellLibrary_typical\.blib\.gz$"):
+        _setup_node(asic_gcd, "convert")
+
+
+def test_openroad_liberty_binary_relative_installpath(asic_gcd):
+    """A relative installpath fails setup rather than installing into the node directory."""
+    _liberty_binary_project(asic_gcd)
+    liberty_binary.LibertyBinaryTask.find_task(asic_gcd).set_openroad_installpath("install")
+
+    with pytest.raises(ValueError, match=r"^installpath must be an absolute path: install$"):
+        _setup_node(asic_gcd, "convert")
+
+
+@pytest.mark.parametrize("compress", [True, False])
+def test_openroad_liberty_binary_post_process(asic_gcd, compress):
+    """post_process gzips the converted files unless disabled and copies them to installpath."""
+    _liberty_binary_project(asic_gcd)
+    task = liberty_binary.LibertyBinaryTask.find_task(asic_gcd)
+    task.set_openroad_compress(compress)
+    task.set_openroad_installpath(os.path.abspath("install"))
+
+    pathlib.Path("outputs").mkdir()
+    pathlib.Path("outputs/NangateOpenCellLibrary_typical.blib").write_bytes(b"blib")
+
+    node = SchedulerNode(asic_gcd, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.task.post_process()
+
+    output = "NangateOpenCellLibrary_typical.blib" + (".gz" if compress else "")
+    assert os.listdir("outputs") == [output]
+    for directory in ("outputs", "install"):
+        data = pathlib.Path(directory, output).read_bytes()
+        assert (gzip.decompress(data) if compress else data) == b"blib"
+
+
+@pytest.mark.parametrize("delaymodel,output", [
+    ("nldm", "NangateOpenCellLibrary_typical.blib"),
+    ("ccs", "NangateOpenCellLibrary_typical_ccs.blib")])
+def test_openroad_build_liberty_binary(asic_gcd, monkeypatch, delaymodel, output):
+    """build_liberty_binary converts the library's files for the delay model in a valid project."""
+    monkeypatch.setattr(ASIC, "run", lambda project: project)
+    lib = asic_gcd.get_library("nangate45")
+    with lib.active_fileset("models.timing.ccs"):
+        lib.add_file(os.path.abspath("NangateOpenCellLibrary_typical_ccs.lib"))
+    lib.add_asic_libcornerfileset("typical", "ccs", "models.timing.ccs")
+
+    project = liberty_binary_util.build_liberty_binary(
+        lib, delaymodel=delaymodel, installpath="install", compress=False)
+
+    assert project.get("asic", "mainlib") == "nangate45"
+    assert project.get("asic", "pdk") == "freepdk45"
+    assert project.get("asic", "delaymodel") == delaymodel
+    project._init_run()
+    assert project._check_manifest()
+
+    task = _setup_node(project, "convert")
+    assert task.get("var", "installpath") == os.path.abspath("install")
+    assert task.get("output") == [output]
+
+
+@pytest.mark.parametrize("spec", [
+    "lambdapdk.freepdk45.libs.nangate45:Nangate45",
+    "lambdapdk.freepdk45.libs.nangate45.Nangate45"])
+def test_openroad_liberty_binary_main(monkeypatch, spec):
+    """The liberty_binary CLI loads the named library and passes every flag through."""
+    seen = {}
+    monkeypatch.setattr(liberty_binary_util, "build_liberty_binary",
+                        lambda library, **kwargs: seen.update(library=library, **kwargs))
+
+    assert liberty_binary_util.main(
+        [spec, "--delaymodel", "ccs", "-o", "install", "--no-compress"]) == 0
+    assert seen["library"].name == "nangate45"
+    assert seen["delaymodel"] == "ccs"
+    assert seen["installpath"] == "install"
+    assert seen["compress"] is False
+
+
+@pytest.mark.parametrize("spec,error", [
+    ("no_such_module:Library", "could not resolve library 'no_such_module:Library'"),
+    ("siliconcompiler:PDK", "'siliconcompiler:PDK' is not a standard cell library class")])
+def test_openroad_liberty_binary_main_bad_library(capsys, spec, error):
+    """A library path that does not name a library class is a CLI usage error."""
+    with pytest.raises(SystemExit, match=r"^2$"):
+        liberty_binary_util.main([spec])
+    assert error in capsys.readouterr().err
+
+
+def test_openroad_liberty_binary_files_required(asic_gcd):
+    """APR tasks require a fileset's binary liberty in place of its text liberty."""
+    lib = asic_gcd.get_library("nangate45")
+    with lib.active_fileset("models.timing.nldm"):
+        lib.add_file(os.path.abspath("NangateOpenCellLibrary_typical.blib.gz"))
+    asic_gcd._init_run()
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    assert "library,nangate45,fileset,models.timing.nldm,file,liberty-binary" in require
+    assert "library,nangate45,fileset,models.timing.nldm,file,liberty" not in require
+
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize("supported,binary,expect", [
+    (True, True, ["typ.blib.gz"]),
+    (False, True, ["typ.lib"]),
+    (True, False, ["typ.lib"])])
+def test_openroad_get_liberty_files(tcl_interp, supported, binary, expect):
+    """sc_get_liberty_files picks a fileset's binary liberty only when OpenROAD can read it."""
+    interp = tcl_interp("_common/tcl/sc_schema_access.tcl",
+                        "openroad/scripts/common/procs.tcl")
+    interp.eval(f"proc sc_check_version {{ args }} {{ return {int(supported)} }}")
+    interp.eval("dict set sc_cfg library lib fileset fs file liberty typ.lib")
+    if binary:
+        interp.eval("dict set sc_cfg library lib fileset fs file liberty-binary typ.blib.gz")
+
+    assert list(interp.splitlist(interp.eval("sc_get_liberty_files lib fs"))) == expect
 
 
 @pytest.mark.eda
