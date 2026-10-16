@@ -1199,6 +1199,27 @@ proc sc_has_sta_mcmm_support { } {
     return [sc_check_version 26 1 1133]
 }
 
+# Returns the liberty files to read from the given filesets of a library. A
+# fileset that also carries binary liberty (.blib) is read from that instead,
+# when this OpenROAD can read it.
+proc sc_get_liberty_files { lib filesets } {
+    set use_binary [sc_check_version 26 4 509]
+
+    set files []
+    foreach fileset $filesets {
+        set binary_files []
+        if { $use_binary } {
+            set binary_files [sc_cfg_get_fileset $lib $fileset liberty-binary]
+        }
+        if { [llength $binary_files] > 0 } {
+            lappend files {*}$binary_files
+        } else {
+            lappend files {*}[sc_cfg_get_fileset $lib $fileset liberty]
+        }
+    }
+    return $files
+}
+
 proc sc_set_gui_title { } {
     if { ![sc_check_version 24 3 2063] } {
         return
