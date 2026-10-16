@@ -113,6 +113,8 @@ class LibertyBinaryTask(OpenROADTask):
 
         installpath = self.get("var", "installpath")
         if installpath:
+            installpath = os.path.abspath(installpath)
+            self.logger.info(f"Installing into {installpath}")
             os.makedirs(installpath, exist_ok=True)
 
         for output in self.get("output"):
