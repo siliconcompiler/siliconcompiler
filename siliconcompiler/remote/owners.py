@@ -37,6 +37,7 @@ The table says whether a value MAY go up; the flow says whether it is NEEDED
 (:func:`required`). Each value goes up on its own (:func:`collection`).
 '''
 
+import functools
 import os
 import re
 
@@ -392,13 +393,21 @@ def sources(project, required=None) -> List[Dict[str, Any]]:
     return list(found.values())
 
 
-def _distribution_of(module: Optional[str]) -> Optional[str]:
-    '''The installed distribution that provides a top-level module.'''
+@functools.lru_cache(maxsize=1)
+def _packages_distributions() -> Dict[str, List[str]]:
+    '''Every installed top-level module and the distributions providing it.
+    Read once: it walks every installed distribution's file list, and a submit
+    asks it for each dataroot of each node.'''
     from importlib import metadata
 
+    return metadata.packages_distributions()
+
+
+def _distribution_of(module: Optional[str]) -> Optional[str]:
+    '''The installed distribution that provides a top-level module.'''
     if not module:
         return None
-    owners = metadata.packages_distributions().get(module.split(".", 1)[0]) or []
+    owners = _packages_distributions().get(module.split(".", 1)[0]) or []
     return owners[0] if owners else None
 
 
