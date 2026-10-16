@@ -256,6 +256,36 @@ def test_get_dataroot_not_found():
         schema.get_dataroot("testsource")
 
 
+@pytest.mark.parametrize("name,expect", [
+    ("base", "missing"),
+    ("sub", os.path.join("missing", "lib")),
+])
+def test_get_dataroot_missing_ok(name, expect):
+    """missing_ok returns where a missing dataroot would be, also through a
+    dataroot://, without caching it."""
+    schema = PathSchema()
+    schema.set_dataroot("base", "file://missing")
+    schema.set_dataroot("sub", "dataroot://base/lib")
+
+    assert schema.get_dataroot(name, missing_ok=True) == os.path.abspath(expect)
+    with pytest.raises(FileNotFoundError, match=rf"^Unable to locate '{name}' at "):
+        schema.get_dataroot(name)
+
+
+@pytest.mark.parametrize("path", ["$SC_TEST_UNSET/pdk", "/opt/${SC_TEST_UNSET}/pdk"])
+@pytest.mark.parametrize("name", ["base", "sub"])
+def test_get_dataroot_missing_ok_unset_env(monkeypatch, path, name):
+    """missing_ok still raises for a dataroot whose environment variable is not set."""
+    monkeypatch.delenv("SC_TEST_UNSET", raising=False)
+    schema = PathSchema()
+    schema.set_dataroot("base", path)
+    schema.set_dataroot("sub", "dataroot://base/lib")
+
+    with pytest.raises(ValueError, match=rf"^Unable to resolve '{name}', environment "
+                                         r"variable not set: SC_TEST_UNSET$"):
+        schema.get_dataroot(name, missing_ok=True)
+
+
 def test_get_dataroot_keypath():
     class Test(PathSchema):
         def __init__(self):

@@ -557,7 +557,7 @@ class Resolver:
                 f"{cache.attempts(self.cache_id)} attempt(s), giving up. "
                 f"Last error: {cache.failure(self.cache_id)}")
 
-    def get_path(self) -> str:
+    def get_path(self, missing_ok: bool = False) -> str:
         """
         Resolves the data source and returns its local path.
 
@@ -572,11 +572,19 @@ class Resolver:
         :meth:`is_permanent_failure`) spends the whole budget at once. Once the
         budget is spent, later calls fail immediately without touching the network.
 
+        Args:
+            missing_ok (bool, optional): If True, return the path even when nothing
+                exists there. Such a path is not cached, so a later call checks
+                again. A remote source is still fetched.
+
         Returns:
             str: The absolute path to the resolved data on the local filesystem.
 
         Raises:
-            FileNotFoundError: If the resolved path does not exist.
+            FileNotFoundError: If the resolved path does not exist and
+                ``missing_ok`` is False.
+            ValueError: If ``missing_ok`` is True and the path does not exist
+                because it uses an environment variable that is not set.
             DataRootResolutionError: If the source has already failed to resolve
                 :attr:`PathCache.max_attempts` times, or has failed permanently.
         """
@@ -598,7 +606,8 @@ class Resolver:
 
         try:
             path = self.resolve()
-            if not os.path.exists(path):
+            found = os.path.exists(path)
+            if not found and not missing_ok:
                 raise FileNotFoundError(f"Unable to locate '{self.display_name}' at {path}")
         except Exception as e:
             # Deliberately narrower than BaseException: a KeyboardInterrupt or
@@ -614,6 +623,15 @@ class Resolver:
 
         if self.is_retryable:
             cache.clear_failure(self.cache_id)
+
+        if not found:
+            # expandvars leaves an unset variable in the path, which then names
+            # no location at all
+            unset = [var.strip("{}") for var in re.findall(r"\$(\w+|\{[^}]*\})", str(path))]
+            if unset:
+                raise ValueError(f"Unable to resolve '{self.display_name}', environment "
+                                 f"variable not set: {', '.join(unset)}")
+            return str(path)
 
         if self.is_indirect:
             # An indirection owns no location: the resolver it delegated to has
@@ -1360,6 +1378,7 @@ class DatarootResolver(Resolver):
         super().__init__(name, schema, source, None)
         # Track visited dataroots passed from parent resolver for cycle detection
         self._parent_visited: Optional[set] = None
+        self.__missing_ok = False
 
     def __target(self) -> Resolver:
         """
@@ -1418,6 +1437,11 @@ class DatarootResolver(Resolver):
         subpath = self.source.partition("://")[2].partition("/")[2]
         return f"dataroot://{target.collection_id}/{subpath}"
 
+    def get_path(self, missing_ok: bool = False) -> str:
+        # resolve() takes no arguments, so the flag reaches the target through self
+        self.__missing_ok = missing_ok
+        return super().get_path(missing_ok=missing_ok)
+
     def resolve(self) -> str:
         """
         Resolves a dataroot by looking up its configured path and resolving it.
@@ -1435,7 +1459,7 @@ class DatarootResolver(Resolver):
                 dataroot is not defined in the registry, or if a circular
                 dataroot reference is detected during resolution.
         """
-        base_path = self.__target().get_path()
+        base_path = self.__target().get_path(missing_ok=self.__missing_ok)
         # Strip leading '/' from urlparse.path to avoid os.path.join treating it as absolute
         subpath = self.urlparse.path.lstrip('/')
         return os.path.join(base_path, subpath) if subpath else base_path
