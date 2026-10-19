@@ -52,7 +52,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "274b2e8e7027e71566a2eee4f2cdda08460fdd06",
+    "git-commit": "d66ee62d580326afc32227437fda2152751c36d8",
     "auto-update": true,
     "_comment-prune-dirs": [
       "The archive globs are measured against a build of this image. They",
