@@ -373,10 +373,7 @@ def test_run_script_passes_arguments_to_replay():
 
 
 def test_testcase_carries_toolversion_from_output_manifest():
-    """A testcase made from an input manifest fills toolversion from outputs.
-
-    Guarantees yosys sc_manifest.tcl carries the tool version.
-    """
+    """A testcase made from an input manifest fills toolversion from outputs."""
     from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
     from siliconcompiler.utils.paths import workdir
 

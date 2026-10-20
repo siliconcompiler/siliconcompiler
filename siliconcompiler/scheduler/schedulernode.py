@@ -273,8 +273,8 @@ class SchedulerNode:
         self.__jobworkdir = jobdir(self.__project)
         self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
         self.__manifests = {
-            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
-            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
+            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json"),
+            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json")
         }
         self.__logs = {
             "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
