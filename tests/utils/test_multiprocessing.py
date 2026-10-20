@@ -1,9 +1,13 @@
 import contextlib
 import gc
+import json
 import logging
+import multiprocessing
 import os
 import re
 import stat
+import subprocess
+import sys
 import threading
 import time
 import warnings
@@ -13,9 +17,13 @@ from unittest.mock import patch
 
 import pytest
 
+from siliconcompiler.utils import default_manager_dir
+from siliconcompiler.utils import multiprocessing as multiprocessing_utils
 from siliconcompiler.utils.multiprocessing import MPManager, MPQueueHandler, \
     _ManagerSingleton, get_process_context, forking, get_file_lock, FileLock, \
-    FileLockTimeout
+    FileLockTimeout, SharedGroup, get_shared_group, _sync_manager_class, \
+    MANAGER_ENVIRONMENT, _ManagerClients, _process_alive, _process_created, \
+    _terminal_rendezvous
 from siliconcompiler.report.dashboard.cli.board import Board
 from siliconcompiler.utils.settings import SettingsManager
 
@@ -238,6 +246,38 @@ def test_stop_stop_dashboard():
         MPManager().stop()
         assert MPManager()._MPManager__board is None
         stop.assert_called_once()
+
+
+def test_stop_dashboard_without_the_manager():
+    '''The terminal is given back even when the manager's server, which holds
+    the board lock, cannot be reached -- a pool worker exiting after its proxies
+    were dropped, or a server that has gone.'''
+    MPManager().get_dashboard()
+
+    class Unreachable:
+        def __enter__(self):
+            raise ConnectionRefusedError("server gone")
+
+        def __exit__(self, *args):
+            return False
+
+    manager = MPManager()
+    with patch.object(manager, "_MPManager__board_lock", Unreachable()), \
+            patch("siliconcompiler.report.dashboard.cli.board.Board.stop") as stop:
+        MPManager.stop()
+        stop.assert_called_once_with(force=True, dump_log=False)
+
+
+def test_stop_runs_from_multiprocessing_exit():
+    '''stop() is also a multiprocessing exit hook, which is how a pool worker
+    leaves; atexit is not run there on every Python. It goes once stop() has run.'''
+    manager = MPManager()
+    hook = manager._MPManager__exit_hook
+    assert hook.still_active()
+
+    hook()
+    assert not _ManagerSingleton.has_cls(MPManager)
+    assert not hook.still_active()
 
 
 def test_stop_repeat():
@@ -804,3 +844,552 @@ def test_file_lock_inherited_hold_stays_with_the_parent(guarded, flock, other_pr
     assert held, "the child released the parent's lock"
     if not flock:
         assert not os.path.exists(lock.fallback_path), "the parent did not release its marker"
+
+
+# SharedGroup: the named rendezvous one manager server holds for every process
+# sharing it.
+@pytest.fixture
+def group():
+    return SharedGroup("test")
+
+
+def test_claim_is_exclusive(group):
+    assert group.claim(100) is True
+    assert group.claim(200) is False
+    # Idempotent for the holder, so a member that re-enters the group (a second
+    # run in the same process) does not lose the role it already has.
+    assert group.claim(100) is True
+    assert group.owner() == 100
+
+
+def test_release_frees_the_role(group):
+    assert group.claim(100) is True
+    group.release(100)
+    assert group.owner() is None
+    assert group.claim(200) is True
+
+
+def test_release_by_a_non_holder_is_ignored(group):
+    assert group.claim(100) is True
+    group.release(200)
+    assert group.owner() == 100
+
+
+def test_stale_owner_loses_the_role(group, monkeypatch):
+    """An owner's process can die without releasing. The role must lapse.
+
+    Otherwise whichever member claimed the group first takes the shared
+    resource down with it for everyone else still running.
+    """
+    monkeypatch.setattr(SharedGroup, "OWNER_TIMEOUT", 0.05)
+    assert group.claim(100) is True
+    assert group.owner() == 100
+
+    time.sleep(0.1)
+    assert group.owner() is None
+    assert group.claim(200) is True
+    assert group.owner() == 200
+
+
+def test_publish_and_collect_round_trip(group):
+    assert group.claim(1) is True
+
+    assert group.publish(2, {"key2": "snap2"}, ["a", "b"]) is True
+    assert group.publish(3, {"key3": "snap3"}, ["c"]) is True
+
+    state, stream, orphaned = group.collect(1)
+    assert state == {"key2": "snap2", "key3": "snap3"}
+    assert stream == ["a", "b", "c"]
+    assert orphaned == []
+
+    # Everything already handed over is gone; only new publishes come back.
+    assert group.collect(1) == ({}, [], [])
+
+    assert group.publish(2, {"key2": "snap2-updated"}, []) is True
+    state, stream, _ = group.collect(1)
+    assert state == {"key2": "snap2-updated"}
+    assert stream == []
+
+
+def test_collect_by_a_non_owner_returns_none(group):
+    assert group.claim(1) is True
+    group.publish(2, {"key2": "snap"}, [])
+
+    # Signals "you are not the owner, step down" rather than handing state to
+    # a member that is not acting on it.
+    assert group.collect(2) is None
+    # ... and it is still there for the real owner.
+    assert group.collect(1)[0] == {"key2": "snap"}
+
+
+def test_collect_is_the_owner_heartbeat(group, monkeypatch):
+    assert group.claim(1) is True
+    monkeypatch.setattr(SharedGroup, "OWNER_TIMEOUT", 0.05)
+
+    for _ in range(4):
+        time.sleep(0.02)
+        assert group.collect(1) is not None, "heartbeat should keep the role alive"
+        assert group.owner() == 1
+
+    time.sleep(0.1)
+    assert group.owner() is None
+
+
+def test_publish_reports_whether_an_owner_is_live(group):
+    # Nobody owns it yet: the member needs to know so it can take over.
+    assert group.publish(2, {}, []) is False
+
+    assert group.claim(1) is True
+    assert group.publish(2, {}, []) is True
+
+    group.release(1)
+    assert group.publish(2, {}, []) is False
+
+
+def test_owner_own_state_is_not_echoed_back(group):
+    """A leftover entry published by the current owner must not be replayed.
+
+    The owner keeps its own state in local memory; taking it back off the group
+    would overwrite something fresher with a stale snapshot.
+    """
+    assert group.claim(1) is True
+    group.publish(1, {"mine": "stale"}, [])
+    group.publish(2, {"theirs": "fresh"}, [])
+
+    state, _, _ = group.collect(1)
+    assert state == {"theirs": "fresh"}
+
+
+def test_silent_member_is_reported_orphaned(group, monkeypatch):
+    """A member whose process died must stop looking like it is still working.
+
+    Its last value stays -- what a departed member said is usually still worth
+    showing -- but the owner is told to stop treating it as in flight.
+    """
+    assert group.claim(1) is True
+    group.publish(2, {"gone": "snap"}, [])
+    assert group.collect(1)[2] == []
+
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 0.0)
+    assert group.collect(1)[2] == ["gone"]
+
+    # Reported once, not on every collect from then on.
+    assert group.collect(1)[2] == []
+
+    # A member that comes back is live again.
+    group.publish(2, {"gone": "snap2"}, [])
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 30.0)
+    state, _, orphaned = group.collect(1)
+    assert state == {"gone": "snap2"}
+    assert orphaned == []
+
+
+def test_owner_is_never_reported_orphaned(group, monkeypatch):
+    assert group.claim(1) is True
+    group.publish(1, {"mine": "snap"}, [])
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 0.0)
+    assert group.collect(1)[2] == []
+
+
+def test_stream_is_bounded(group, monkeypatch):
+    monkeypatch.setattr(SharedGroup, "MAX_STREAM", 10)
+
+    group.publish(2, {}, [f"entry{i}" for i in range(25)])
+    group.claim(1)
+    _, stream, _ = group.collect(1)
+
+    # Oldest dropped, newest kept in order: an owner that attaches late must
+    # not be handed an unbounded backlog.
+    assert stream == [f"entry{i}" for i in range(15, 25)]
+
+
+def test_state_is_bounded(group, monkeypatch):
+    monkeypatch.setattr(SharedGroup, "MAX_KEYS", 4)
+
+    for i in range(10):
+        group.publish(2, {f"key{i}": f"snap{i}"}, [])
+
+    group.claim(1)
+    state, _, _ = group.collect(1)
+    assert len(state) == 4
+    assert sorted(state) == ["key6", "key7", "key8", "key9"]
+
+
+def test_groups_are_per_name_singletons():
+    """The manager server hands every process a proxy to one object per name.
+
+    That is the whole point of the registration -- and distinct names must not
+    collide, so the dashboard and (eventually) the scheduler can share a
+    manager without sharing state.
+    """
+    assert get_shared_group("dashboard") is get_shared_group("dashboard")
+    assert get_shared_group("dashboard") is not get_shared_group("scheduler")
+    assert isinstance(get_shared_group("dashboard"), SharedGroup)
+    assert get_shared_group("scheduler").name() == "scheduler"
+
+
+def test_manager_registers_the_shared_group():
+    """The typeid must exist on the manager, or nothing below can work."""
+    assert "shared_group" in _sync_manager_class()._registry
+    # Registered on the subclass only: an unrelated SyncManager built by user
+    # code must not grow SiliconCompiler's types.
+    from multiprocessing.managers import SyncManager
+    assert "shared_group" not in SyncManager._registry
+
+
+def _publisher(address, tag, count):
+    MPManager._set_manager_address(address)
+    group = MPManager.get_shared_group("dashboard")
+    for i in range(count):
+        group.publish(os.getpid(), {f"design{tag}/job0": f"snap-{tag}-{i}"}, [f"[{tag}] {i}"])
+        time.sleep(0.02)
+
+
+def test_group_spans_spawned_processes():
+    """Members publish, one owner collects -- over a real manager proxy.
+
+    Spawn, not fork: this is the shape a ProcessPoolExecutor sweep has, and the
+    path that carries no inherited state beyond the manager address that
+    Project.__getstate__ pickles along.
+    """
+    group = MPManager.get_shared_group("dashboard")
+    assert group is not None, "manager must provide a shared group"
+    # Cached per name and process, so a loop does not build a proxy per tick.
+    assert MPManager.get_shared_group("dashboard") is group
+
+    assert group.claim(os.getpid()) is True
+
+    ctx = multiprocessing.get_context("spawn")
+    address = MPManager._get_manager_address()
+    procs = [ctx.Process(target=_publisher, args=(address, tag, 5)) for tag in ("A", "B")]
+    for proc in procs:
+        proc.start()
+
+    state, stream = {}, []
+    deadline = time.time() + 60
+    while time.time() < deadline and len(state) < 2:
+        collected = group.collect(os.getpid())
+        assert collected is not None
+        state.update(collected[0])
+        stream.extend(collected[1])
+        time.sleep(0.02)
+
+    for proc in procs:
+        proc.join(timeout=60)
+        assert proc.exitcode == 0
+
+    collected = group.collect(os.getpid())
+    state.update(collected[0])
+    stream.extend(collected[1])
+
+    assert sorted(state) == ["designA/job0", "designB/job0"]
+    assert len(stream) == 10
+    assert sorted(stream) == [f"[{tag}] {i}" for tag in ("A", "B") for i in range(5)]
+
+    group.release(os.getpid())
+
+
+# How processes find a manager server, and how long that server lives. A server
+# is started by whichever process first needs one and advertised in the
+# environment, so every SiliconCompiler process launched from there joins it,
+# and through the terminal, so unrelated runs printing to one terminal join it
+# too. It stays up while any of them is attached -- not just while the one that
+# started it is -- which is what lets a dashboard survive its first run
+# finishing. conftest switches the terminal rendezvous off for every test; the
+# tests here that need it point it at a file of their own.
+def _dead_pid() -> int:
+    proc = subprocess.Popen([sys.executable, "-c", "pass"])
+    proc.wait()
+    return proc.pid
+
+
+def _wait_for_exit(process, timeout: float = 15) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if not process.is_alive():
+            return True
+        time.sleep(0.1)
+    return False
+
+
+# ----------------------------------------------------------------------------
+# The registry, as the server holds it
+# ----------------------------------------------------------------------------
+def test_clients_not_closing_before_first_attach():
+    """A server that has not been joined yet is starting up, not abandoned."""
+    clients = _ManagerClients()
+    assert clients.sweep() is False
+    assert clients.attach("first", os.getpid()) is True
+
+
+def test_clients_close_with_the_last_detach():
+    clients = _ManagerClients()
+    assert clients.attach("a", os.getpid())
+    # Same pid, separate token: one process holds several managers in turn,
+    # and the detach of one must not drop the other.
+    assert clients.attach("b", os.getpid())
+
+    assert clients.detach("a") == 1
+    assert clients.sweep() is False
+
+    assert clients.detach("b") == 0
+    assert clients.sweep() is True
+
+
+def test_clients_refuse_attach_once_closing():
+    """A late arrival starts its own server instead of joining a dying one."""
+    clients = _ManagerClients()
+    clients.attach("a", os.getpid())
+    clients.detach("a")
+
+    assert clients.attach("late", os.getpid()) is False
+
+
+def test_clients_sweep_drops_the_dead():
+    clients = _ManagerClients()
+    clients.attach("dead", _dead_pid())
+    assert clients.sweep() is True, "a server whose only client died must close"
+
+    clients = _ManagerClients()
+    clients.attach("dead", _dead_pid())
+    clients.attach("live", os.getpid())
+    assert clients.sweep() is False
+    assert clients.detach("live") == 0
+
+
+def test_process_alive_rejects_reused_pid():
+    created = _process_created(os.getpid())
+    assert created is not None
+    assert _process_alive(os.getpid(), created)
+    assert not _process_alive(os.getpid(), created - 1000)
+    assert not _process_alive(_dead_pid(), None)
+
+
+# ----------------------------------------------------------------------------
+# The environment value
+# ----------------------------------------------------------------------------
+def test_environment_round_trip(monkeypatch):
+    value = MPManager._MPManager__environment_value("/tmp/socket")
+    monkeypatch.setenv(MANAGER_ENVIRONMENT, value)
+    assert MPManager._address_from_environment() == "/tmp/socket"
+
+
+def test_environment_tcp_address_is_a_tuple(monkeypatch):
+    value = MPManager._MPManager__environment_value(("localhost", 1234))
+    monkeypatch.setenv(MANAGER_ENVIRONMENT, value)
+    assert MPManager._address_from_environment() == ("localhost", 1234)
+
+
+@pytest.mark.parametrize("value", [
+    "",
+    "not json",
+    json.dumps({"address": "/tmp/socket"}),
+    json.dumps({"compatibility": []}),
+    json.dumps(["/tmp/socket"]),
+])
+def test_environment_unreadable_is_ignored(monkeypatch, value):
+    monkeypatch.setenv(MANAGER_ENVIRONMENT, value)
+    assert MPManager._address_from_environment() is None
+
+
+@pytest.mark.parametrize("field", [0, 1, 2], ids=["host", "siliconcompiler", "python"])
+def test_environment_incompatible_is_ignored(monkeypatch, field):
+    """An address that travelled to another host or install is not tried."""
+    entry = json.loads(MPManager._MPManager__environment_value("/tmp/socket"))
+    entry["compatibility"][field] = "something else"
+    monkeypatch.setenv(MANAGER_ENVIRONMENT, json.dumps(entry))
+    assert MPManager._address_from_environment() is None
+
+
+# ----------------------------------------------------------------------------
+# The terminal rendezvous
+# ----------------------------------------------------------------------------
+def test_terminal_rendezvous_names_host_and_terminal(monkeypatch):
+    monkeypatch.setattr(os, "ttyname", lambda fd: "/dev/pts/7", raising=False)
+    host = multiprocessing_utils.socket.gethostname()
+    assert _terminal_rendezvous() == os.path.join(default_manager_dir(), f"{host}-pts-7.json")
+
+
+def test_terminal_rendezvous_needs_a_terminal(monkeypatch):
+    def not_a_terminal(fd):
+        raise OSError("Inappropriate ioctl for device")
+
+    monkeypatch.setattr(os, "ttyname", not_a_terminal, raising=False)
+    assert _terminal_rendezvous() is None
+
+
+@pytest.mark.isolated_manager
+def test_stale_terminal_rendezvous_is_replaced(monkeypatch):
+    """A file naming a server that has gone is overwritten, not obeyed, and the
+    server that replaced it takes it back out when it shuts down."""
+    path = os.path.abspath("rendezvous.json")
+    monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: path)
+    with open(path, "w") as f:
+        f.write(MPManager._MPManager__environment_value(os.path.abspath("gone.sock")))
+
+    manager = MPManager()
+    assert manager._MPManager__manager_server
+    with open(path) as f:
+        assert MPManager._MPManager__address_from_value(f.read()) == \
+            MPManager._get_manager_address()
+
+    MPManager.stop()
+    assert not os.path.exists(path)
+
+
+# Joins through the terminal alone: no environment, no address handed over.
+_SIBLING = """
+import sys
+import siliconcompiler.utils.multiprocessing as mp
+mp._terminal_rendezvous = lambda: sys.argv[1]
+mp.MPManager._MPManager__ENABLE_LOGGER = False
+manager = mp.MPManager()
+print("server" if manager._MPManager__manager_server else "client", flush=True)
+print(repr(mp.MPManager._get_manager_address()), flush=True)
+sys.stdin.readline()
+"""
+
+
+def test_siblings_meet_through_terminal():
+    """The workers of a pool whose parent never started a manager -- each
+    building its own Project -- share one server, so they share one dashboard.
+    Started together, so the rendezvous lock is what keeps them to one."""
+    path = os.path.abspath("rendezvous.json")
+    env = {key: value for key, value in os.environ.items() if key != MANAGER_ENVIRONMENT}
+
+    siblings = [subprocess.Popen([sys.executable, "-c", _SIBLING, path], env=env,
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+                for _ in range(3)]
+    try:
+        reports = [(sibling.stdout.readline().strip(), sibling.stdout.readline().strip())
+                   for sibling in siblings]
+        roles = sorted(role for role, _ in reports)
+        assert roles == ["client", "client", "server"]
+        assert len(set(address for _, address in reports)) == 1
+
+        for sibling in siblings:
+            sibling.stdin.write("\n")
+            sibling.stdin.flush()
+            sibling.wait(timeout=60)
+    finally:
+        for sibling in siblings:
+            if sibling.poll() is None:
+                sibling.kill()
+                sibling.wait()
+
+
+# ----------------------------------------------------------------------------
+# Real processes
+# ----------------------------------------------------------------------------
+# Joins through the environment alone -- no Project, no address handed over --
+# then waits to be told to use the server, and again to exit.
+_CHILD = """
+import sys
+from siliconcompiler.utils.multiprocessing import MPManager
+MPManager._MPManager__ENABLE_LOGGER = False
+manager = MPManager()
+print("server" if manager._MPManager__manager_server else "client", flush=True)
+print(repr(MPManager._get_manager_address()), flush=True)
+sys.stdin.readline()
+group = MPManager.get_shared_group("lifetime")
+print(group is not None and group.claim("child"), flush=True)
+sys.stdin.readline()
+"""
+
+
+def _start_child():
+    return subprocess.Popen([sys.executable, "-c", _CHILD],
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+
+
+def _end_child(child, how: str) -> None:
+    if how == "kill":
+        child.kill()
+    else:
+        child.stdin.write("\n")
+        child.stdin.flush()
+    child.wait(timeout=60)
+
+
+@pytest.mark.isolated_manager
+def test_server_advertises_itself_until_stopped():
+    MPManager()
+    process = MPManager.get_manager()._process
+
+    assert MPManager._address_from_environment() == MPManager._get_manager_address()
+
+    MPManager.stop()
+    assert MANAGER_ENVIRONMENT not in os.environ
+    assert not process.is_alive(), "with nobody else attached, stop() shuts the server down"
+
+
+@pytest.mark.isolated_manager
+def test_subprocess_joins_through_environment():
+    MPManager()
+    address = MPManager._get_manager_address()
+
+    child = _start_child()
+    try:
+        assert child.stdout.readline().strip() == "client"
+        assert child.stdout.readline().strip() == repr(address)
+        child.stdin.write("\n")
+        child.stdin.flush()
+        assert child.stdout.readline().strip() == "True"
+        _end_child(child, "exit")
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()
+
+
+@pytest.mark.isolated_manager
+@pytest.mark.parametrize("how", ["exit", "kill"])
+def test_server_outlives_its_starter(how):
+    """The starter finishes first; the server stays for the run still going,
+    then stops by itself once that run is gone -- detached or killed."""
+    MPManager()
+    process = MPManager.get_manager()._process
+
+    child = _start_child()
+    try:
+        assert child.stdout.readline().strip() == "client"
+        child.stdout.readline()
+
+        MPManager.stop()
+        time.sleep(2 * _ManagerClients.POLL)
+        assert process.is_alive(), "the server must stay up while a client is attached"
+
+        # And still serves it.
+        child.stdin.write("\n")
+        child.stdin.flush()
+        assert child.stdout.readline().strip() == "True"
+
+        _end_child(child, how)
+        assert _wait_for_exit(process), "the server must stop once its last client is gone"
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()
+        if process.is_alive():
+            process.kill()
+            process.join()
+
+
+@pytest.mark.isolated_manager
+def test_forked_child_stop_leaves_parent_manager():
+    """A child that inherited the instance must not detach or shut down its
+    parent's server on the way out."""
+    MPManager()
+    manager = MPManager.get_manager()
+    process = manager._process
+
+    try:
+        real_pid = os.getpid()
+        with patch("os.getpid", return_value=real_pid + 1):
+            MPManager.stop()
+        assert process.is_alive()
+        # The parent is still attached.
+        assert manager.manager_clients().detach("not-attached") == 1
+    finally:
+        manager.shutdown()
+        os.environ.pop(MANAGER_ENVIRONMENT, None)

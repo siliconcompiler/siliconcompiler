@@ -621,6 +621,17 @@ def default_tool_build_dir() -> str:
     return default_sc_path('tool_build')
 
 
+def default_manager_dir() -> str:
+    """
+    Returns the default directory where runs printing to one terminal find the
+    manager they share, and so draw one dashboard.
+
+    Returns:
+        str: The absolute path to the manager rendezvous directory.
+    """
+    return default_sc_path('managers')
+
+
 def _add_paths_parser(commands) -> None:
     """
     Add the ``paths`` command: it prints where SiliconCompiler keeps its files.
@@ -641,6 +652,7 @@ def _cli_paths(args) -> int:
             ("email", default_email_credentials_file()),
             ("remote", default_credentials_file()),
             ("cache", default_cache_dir()),
+            ("managers", default_manager_dir()),
             ("tool builds", default_tool_build_dir()))
 
     width = max(len(name) for name, _ in rows)

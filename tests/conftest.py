@@ -28,8 +28,9 @@ from siliconcompiler import utils, ASIC, Design, Project, OpenTask
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.utils import multiprocessing as multiprocessing_utils
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
-    get_process_context, forking
+    MANAGER_ENVIRONMENT, get_process_context, forking
 from siliconcompiler.remote.server import __main__ as server_entry
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.schema import BaseSchema
@@ -161,7 +162,13 @@ class _SharedManagerServer:
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
             monkeypatch.setattr(MPManager, "_MPManager__address", None)
+            monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
+            monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
             MPManager()
+        # Tests reach this server through the address patched in below. Left
+        # in the environment it would also be joined by every SiliconCompiler
+        # subprocess a test launches, which then share state across tests.
+        os.environ.pop(MANAGER_ENVIRONMENT, None)
 
         self.__manager = MPManager.get_manager()
         self.address = self.__manager.address
@@ -255,6 +262,11 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address",
                         None if isolated else shared_manager_server.address)
+    # With no address of its own, an isolated test would otherwise join any
+    # server the environment still names, or -- run from a terminal with
+    # capture off -- the one that terminal's other runs use.
+    monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
+    monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
 
     BaseSchema._BaseSchema__get_child_classes.cache_clear()
     BaseSchema._BaseSchema__load_schema_class.cache_clear()
