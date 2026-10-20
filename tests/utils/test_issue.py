@@ -370,3 +370,58 @@ def test_run_script_passes_arguments_to_replay():
     out = subprocess.run(["bash", "run.sh", "--cmdarg", "-a b"],
                          capture_output=True, text=True, check=True).stdout
     assert out.splitlines()[-2:] == ["--cmdarg", "-a b"]
+
+
+def test_testcase_carries_toolversion_from_output_manifest():
+    """A testcase made from an input manifest fills toolversion from outputs.
+
+    Guarantees yosys sc_manifest.tcl carries the tool version.
+    """
+    from siliconcompiler.tools.yosys.syn_asic import ASICSynthesis
+    from siliconcompiler.utils.paths import workdir
+
+    design = Design("heartbeat")
+    design.set_topmodule("heartbeat", fileset="rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("syn", ASICSynthesis())
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    proj.set("tool", "yosys", "task", "syn_asic", "format", "tcl")
+
+    work_dir = workdir(proj, step="syn", index="0")
+    inputs_dir = os.path.join(work_dir, "inputs")
+    outputs_dir = os.path.join(work_dir, "outputs")
+    os.makedirs(inputs_dir, exist_ok=True)
+    os.makedirs(outputs_dir, exist_ok=True)
+
+    input_manifest = os.path.join(inputs_dir, "heartbeat.pkg.json")
+    output_manifest = os.path.join(outputs_dir, "heartbeat.pkg.json")
+
+    proj.write_manifest(input_manifest)
+
+    out_proj = proj.copy()
+    out_proj.set("record", "toolversion", "0.69", step="syn", index="0")
+    out_proj.write_manifest(output_manifest)
+
+    test_proj = Project.from_manifest(filepath=input_manifest)
+    assert test_proj.get("record", "toolversion", step="syn", index="0") is None
+
+    generate_testcase(test_proj, "syn", "0",
+                      archive_name="testcase.tar.gz",
+                      archive_directory=os.getcwd(),
+                      verbose_collect=False)
+
+    with tarfile.open("testcase.tar.gz") as tar:
+        issue = json.load(tar.extractfile("testcase/issue.json"))
+        assert issue["run"]["toolversion"] == "0.69"
+
+        manifest_content = tar.extractfile(
+            "testcase/build/heartbeat/job0/syn/0/sc_manifest.tcl"
+        ).read().decode("utf-8")
+        assert any(
+            "toolversion" in line and "0.69" in line
+            for line in manifest_content.splitlines()
+        )
