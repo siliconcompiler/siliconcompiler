@@ -45,6 +45,12 @@ def project(heartbeat_design):
      'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json'],
      'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz'),
+    (['-cfg', 'build/heartbeat/job0/stepone/0'],
+     'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
+    (['build/heartbeat/job0/stepone/0'],
+     'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
+    (['build/heartbeat/job0/steptwo/0'],
+     'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz'),
 ])
 def test_sc_issue_generate_success(flags,
                                    outputfile,
@@ -328,3 +334,32 @@ def test_sc_issue_run_with_git_installed_version(monkeypatch, project):
 
     # Cleanup
     shutil.rmtree(test_dir, ignore_errors=True)
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_node_dir_fallback_inputs(monkeypatch, project, caplog):
+    '''Test sc-issue with a node directory falling back to inputs when outputs is absent.'''
+    import shutil
+
+    # Remove outputs directory so only inputs exists
+    shutil.rmtree('build/heartbeat/job0/stepone/0/outputs')
+
+    monkeypatch.setattr('sys.argv', ['sc-issue', 'build/heartbeat/job0/stepone/0'])
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
+        assert sc_issue.main() == 0
+
+    assert "falling back to input manifest" in caplog.text
+    assert os.path.isfile('sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz')
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_dir_no_manifest_error(monkeypatch, tmp_path, caplog):
+    '''Test sc-issue fails when a directory has no manifest.'''
+    empty_dir = tmp_path / 'empty'
+    empty_dir.mkdir()
+
+    monkeypatch.setattr('sys.argv', ['sc-issue', str(empty_dir)])
+    assert sc_issue.main() == 1
+    assert "No manifest (.pkg.json) found" in caplog.text

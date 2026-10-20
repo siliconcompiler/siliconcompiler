@@ -46,6 +46,20 @@ def generate_testcase(project: "Project",
     # Save original schema since it will be modified
     project = project.copy()
 
+    work_dir = workdir(project, step=step, index=index)
+    toolkeys = ['toolversion', 'toolpath']
+    if any(not project.get('record', key, step=step, index=index) for key in toolkeys):
+        output_manifest = os.path.join(work_dir, 'outputs', f'{project.name}.pkg.json')
+        if os.path.isfile(output_manifest):
+            try:
+                out_proj = Project.from_manifest(filepath=output_manifest)
+                for rec_key in toolkeys:
+                    val = out_proj.get('record', rec_key, step=step, index=index)
+                    if val and not project.get('record', rec_key, step=step, index=index):
+                        project.set('record', rec_key, val, step=step, index=index)
+            except Exception:
+                pass
+
     issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
 
     project.option.set_continue(True)
