@@ -1017,15 +1017,18 @@ def test_stream_is_bounded(group, monkeypatch):
 
 
 def test_state_is_bounded(group, monkeypatch):
+    """Retained state is capped, evicting the key published least recently: one
+    that keeps publishing, like a run still going, outlasts later ones."""
     monkeypatch.setattr(SharedGroup, "MAX_KEYS", 4)
 
     for i in range(10):
         group.publish(2, {f"key{i}": f"snap{i}"}, [])
+    group.publish(2, {"key6": "snap6-again"}, [])
+    group.publish(2, {"key10": "snap10"}, [])
 
     group.claim(1)
     state, _, _ = group.collect(1)
-    assert len(state) == 4
-    assert sorted(state) == ["key6", "key7", "key8", "key9"]
+    assert sorted(state) == ["key10", "key6", "key8", "key9"]
 
 
 def test_new_owner_is_handed_what_the_last_one_collected(group, monkeypatch):

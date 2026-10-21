@@ -73,7 +73,7 @@ class SharedGroup:
         # retained rather than only what changes from then on.
         self.__replay = False
 
-        # key -> value, ordered so __trim can drop the oldest.
+        # key -> value, least recently published first, which __trim drops.
         self.__state: "OrderedDict[str, Any]" = OrderedDict()
         # key -> its publisher, for every key ever published: kept apart from
         # the bounded state so an evicted key's publisher can still be retired.
@@ -158,6 +158,7 @@ class SharedGroup:
                 if key not in self.__state:
                     self.__trim()
                 self.__state[key] = value
+                self.__state.move_to_end(key)
                 self.__publisher[key] = member
                 self.__dirty.add(key)
                 self.__orphaned.discard(key)
@@ -237,7 +238,10 @@ class SharedGroup:
         return keys
 
     def __trim(self) -> None:
-        """Evict the oldest key once :attr:`MAX_KEYS` are held. Called with the lock held."""
+        """
+        Evict the least recently published key once :attr:`MAX_KEYS` are held.
+        Called with the lock held.
+        """
         while len(self.__state) >= self.MAX_KEYS:
             key, _ = self.__state.popitem(last=False)
             self.__dirty.discard(key)
