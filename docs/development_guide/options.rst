@@ -39,7 +39,7 @@ The JSON structure generally looks like this:
 Changing Settings
 -----------------
 
-The :ref:`sc-config settings <app-sc-config-settings>` app lists, reads and changes settings, so ``settings.json`` need not be edited by hand:
+The :ref:`sc-config settings <app-sc-config>` app lists, reads and changes settings, so ``settings.json`` need not be edited by hand:
 
 .. code-block:: bash
 
@@ -307,7 +307,7 @@ An entry's last-use time is the modification time of its ``.lock`` file, which
 every resolve stamps -- including one that hits the cache and downloads nothing.
 
 To sweep on demand, or with a different threshold, use
-:ref:`sc-config cache <app-sc-config-cache>`, which also shows the cache's size
+:ref:`sc-config cache <app-sc-config>`, which also shows the cache's size
 and when it was last swept:
 
 .. code-block:: bash

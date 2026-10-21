@@ -2,6 +2,7 @@ import functools
 import json
 import logging
 import os
+import re
 import smtplib
 import stat
 import sys
@@ -256,3 +257,19 @@ def test_paths_marks_what_is_missing(monkeypatch, capsys, email_home):
     assert lines["email"].endswith("(missing)")
     assert lines["managers"].endswith("(missing)")
     assert lines["tool"].endswith("(missing)")
+
+
+@pytest.mark.parametrize("args,helps", [
+    (["-h"], ["sc-config"]),
+    (["settings", "-h"], ["sc-config settings"]),
+    (["settings", "-helpall"], ["sc-config settings", *(
+        f"sc-config settings {action}"
+        for action in ("list", "get", "set", "add", "remove", "unset"))]),
+])
+def test_helpall_prints_every_help_below(monkeypatch, capsys, args, helps):
+    """-h prints one level, and -helpall that level and every command below it."""
+    with pytest.raises(SystemExit) as exit:
+        run(monkeypatch, *args)
+    assert exit.value.code == 0
+    out = capsys.readouterr().out
+    assert re.findall(r"^usage: (.+?) \[-h\]", out, re.MULTILINE) == helps
