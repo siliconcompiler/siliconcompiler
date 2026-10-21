@@ -165,9 +165,8 @@ class _SharedManagerServer:
             monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
             monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
             MPManager()
-        # Tests reach this server through the address patched in below. Left
-        # in the environment it would also be joined by every SiliconCompiler
-        # subprocess a test launches, which then share state across tests.
+        # Tests reach it through the patched address; in the environment, every
+        # subprocess a test launches would join it too.
         os.environ.pop(MANAGER_ENVIRONMENT, None)
 
         self.__manager = MPManager.get_manager()
@@ -262,9 +261,7 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address",
                         None if isolated else shared_manager_server.address)
-    # With no address of its own, an isolated test would otherwise join any
-    # server the environment still names, or -- run from a terminal with
-    # capture off -- the one that terminal's other runs use.
+    # Or an isolated test joins a server the environment or the terminal names.
     monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
     monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
 

@@ -1,4 +1,3 @@
-import os
 import queue
 import threading
 import types
@@ -46,14 +45,8 @@ def test_board_sync_primitives_are_expected_plain_types():
 
 
 def test_board_holds_no_reference_to_a_manager_proxy():
-    """The cross-process group is a manager proxy, so a Board must not keep one.
-
-    Boards are inherited by every forked node worker. The proxy that lets
-    concurrent runs share one dashboard therefore lives in
-    :class:`SharedGroupMember`, built lazily in ``open_dashboard()`` and backed
-    by a per-process cache in ``MPManager.get_shared_group()``. A freshly
-    constructed Board holds nothing at all.
-    """
+    """A new Board holds no manager proxy, which every forked node worker would
+    inherit; the group member that holds one is built in open_dashboard()."""
     board = Board(MPManager.get_manager())
     assert board._active
 
@@ -64,23 +57,3 @@ def test_board_holds_no_reference_to_a_manager_proxy():
 
     assert board._group is None, \
         "the group member must be built in open_dashboard(), not inherited"
-
-
-def test_shared_group_proxy_is_rebuilt_after_fork(monkeypatch):
-    """An inherited proxy must never be reused from a child process.
-
-    Both ends would then drive the same inherited socket and corrupt the
-    manager's framed protocol. The cache is keyed on pid so a child
-    transparently builds its own connection.
-    """
-    first = MPManager.get_shared_group("dashboard")
-    assert first is not None
-    # Same process and name: cached, so a loop does not pay for a new proxy
-    # (and a new connection) on every tick.
-    assert MPManager.get_shared_group("dashboard") is first
-
-    real_getpid = os.getpid
-    monkeypatch.setattr(os, "getpid", lambda: real_getpid() + 1)
-    second = MPManager.get_shared_group("dashboard")
-    assert second is not None
-    assert second is not first

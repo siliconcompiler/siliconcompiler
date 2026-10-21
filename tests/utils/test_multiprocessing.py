@@ -810,6 +810,29 @@ def test_file_locks_reset_after_fork(guarded, wait_for_child):
 
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
+def test_shared_group_proxy_rebuilt_after_fork(wait_for_child):
+    """A forked child builds its own group proxy, even when a parent thread
+    held the group lock across the fork."""
+    first = MPManager.get_shared_group("dashboard")
+    assert first is not None
+    assert MPManager.get_shared_group("dashboard") is first
+
+    with MPManager()._MPManager__group_lock:
+        with forking():
+            pid = os.fork()
+        if pid == 0:
+            try:
+                group = MPManager.get_shared_group("dashboard")
+                os._exit(0 if group is not None and group is not first else 2)
+            except BaseException:
+                os._exit(1)
+
+    exited, rebuilt = wait_for_child(pid)
+    assert exited, "forked child hung on the inherited group lock"
+    assert rebuilt
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")
 @pytest.mark.parametrize("flock", (True, False), ids=("flock", "no_flock"))
 def test_file_lock_inherited_hold_stays_with_the_parent(guarded, flock, other_process_lock,
                                                         wait_for_child):
@@ -846,8 +869,6 @@ def test_file_lock_inherited_hold_stays_with_the_parent(guarded, flock, other_pr
         assert not os.path.exists(lock.fallback_path), "the parent did not release its marker"
 
 
-# SharedGroup: the named rendezvous one manager server holds for every process
-# sharing it.
 @pytest.fixture
 def group():
     return SharedGroup("test")
@@ -875,20 +896,17 @@ def test_release_by_a_non_holder_is_ignored(group):
     assert group.owner() == 100
 
 
-def test_stale_owner_loses_the_role(group, monkeypatch):
-    """An owner's process can die without releasing. The role must lapse.
-
-    Otherwise whichever member claimed the group first takes the shared
-    resource down with it for everyone else still running.
-    """
+@pytest.mark.parametrize("alive", (False, True), ids=("dead", "stalled"))
+def test_stale_owner_loses_the_role_only_once_gone(group, monkeypatch, alive):
+    """An owner whose process died lapses after its heartbeat goes stale; one
+    still alive keeps the role, or it would paint beside its successor."""
     monkeypatch.setattr(SharedGroup, "OWNER_TIMEOUT", 0.05)
-    assert group.claim(100) is True
-    assert group.owner() == 100
+    owner = os.getpid() if alive else _dead_pid()
+    assert group.claim(owner) is True
 
     time.sleep(0.1)
-    assert group.owner() is None
-    assert group.claim(200) is True
-    assert group.owner() == 200
+    assert group.owner() == (owner if alive else None)
+    assert group.claim(_dead_pid()) is not alive
 
 
 def test_publish_and_collect_round_trip(group):
@@ -923,13 +941,14 @@ def test_collect_by_a_non_owner_returns_none(group):
 
 
 def test_collect_is_the_owner_heartbeat(group, monkeypatch):
-    assert group.claim(1) is True
+    owner = _dead_pid()
+    assert group.claim(owner) is True
     monkeypatch.setattr(SharedGroup, "OWNER_TIMEOUT", 0.05)
 
     for _ in range(4):
         time.sleep(0.02)
-        assert group.collect(1) is not None, "heartbeat should keep the role alive"
-        assert group.owner() == 1
+        assert group.collect(owner) is not None, "heartbeat should keep the role alive"
+        assert group.owner() == owner
 
     time.sleep(0.1)
     assert group.owner() is None
@@ -947,11 +966,8 @@ def test_publish_reports_whether_an_owner_is_live(group):
 
 
 def test_owner_own_state_is_not_echoed_back(group):
-    """A leftover entry published by the current owner must not be replayed.
-
-    The owner keeps its own state in local memory; taking it back off the group
-    would overwrite something fresher with a stale snapshot.
-    """
+    """The owner is not handed back what it published itself, which would overwrite
+    its fresher local state."""
     assert group.claim(1) is True
     group.publish(1, {"mine": "stale"}, [])
     group.publish(2, {"theirs": "fresh"}, [])
@@ -961,11 +977,8 @@ def test_owner_own_state_is_not_echoed_back(group):
 
 
 def test_silent_member_is_reported_orphaned(group, monkeypatch):
-    """A member whose process died must stop looking like it is still working.
-
-    Its last value stays -- what a departed member said is usually still worth
-    showing -- but the owner is told to stop treating it as in flight.
-    """
+    """A silent member's keys are reported orphaned once, keeping their last value,
+    and are live again when it publishes."""
     assert group.claim(1) is True
     group.publish(2, {"gone": "snap"}, [])
     assert group.collect(1)[2] == []
@@ -1015,13 +1028,39 @@ def test_state_is_bounded(group, monkeypatch):
     assert sorted(state) == ["key6", "key7", "key8", "key9"]
 
 
-def test_groups_are_per_name_singletons():
-    """The manager server hands every process a proxy to one object per name.
+def test_new_owner_is_handed_what_the_last_one_collected(group, monkeypatch):
+    """A new owner gets every retained snapshot and every orphan, not only what
+    changes after it takes over."""
+    group.claim(1)
+    group.publish(2, {"live": "running"}, [])
+    group.publish(3, {"gone": "running"}, [])
+    group.collect(1)
+    group.publish(2, {}, [])
+    monkeypatch.setattr(group, "_SharedGroup__seen", {2: time.time(), 3: 0.0})
+    assert group.collect(1)[2] == ["gone"]
+    group.release(1)
 
-    That is the whole point of the registration -- and distinct names must not
-    collide, so the dashboard and (eventually) the scheduler can share a
-    manager without sharing state.
-    """
+    assert group.claim(4) is True
+    state, _, orphaned = group.collect(4)
+    assert state == {"live": "running", "gone": "running"}
+    assert orphaned == ["gone"]
+    assert group.collect(4) == ({}, [], [])
+
+
+def test_evicted_key_is_still_retired(group, monkeypatch):
+    """A member whose snapshot was evicted is still reported once it goes silent."""
+    monkeypatch.setattr(SharedGroup, "MAX_KEYS", 1)
+    group.claim(1)
+    group.publish(2, {"old": "running"}, [])
+    group.publish(3, {"new": "running"}, [])
+    group.collect(1)
+
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 0.0)
+    assert sorted(group.collect(1)[2]) == ["new", "old"]
+
+
+def test_groups_are_per_name_singletons():
+    """Every process gets the same group for a name, and different names never share one."""
     assert get_shared_group("dashboard") is get_shared_group("dashboard")
     assert get_shared_group("dashboard") is not get_shared_group("scheduler")
     assert isinstance(get_shared_group("dashboard"), SharedGroup)
@@ -1039,23 +1078,21 @@ def test_manager_registers_the_shared_group():
 
 def _publisher(address, tag, count):
     MPManager._set_manager_address(address)
-    group = MPManager.get_shared_group("dashboard")
+    group = MPManager.get_shared_group("spawned")
     for i in range(count):
         group.publish(os.getpid(), {f"design{tag}/job0": f"snap-{tag}-{i}"}, [f"[{tag}] {i}"])
         time.sleep(0.02)
 
 
 def test_group_spans_spawned_processes():
-    """Members publish, one owner collects -- over a real manager proxy.
-
-    Spawn, not fork: this is the shape a ProcessPoolExecutor sweep has, and the
-    path that carries no inherited state beyond the manager address that
-    Project.__getstate__ pickles along.
-    """
-    group = MPManager.get_shared_group("dashboard")
+    """Spawned members publish and one owner collects, over a real manager proxy:
+    the shape of a ProcessPoolExecutor sweep."""
+    # Not "dashboard": the session's server keeps a group for the whole run,
+    # and a later test's renderer would be handed these keys.
+    group = MPManager.get_shared_group("spawned")
     assert group is not None, "manager must provide a shared group"
     # Cached per name and process, so a loop does not build a proxy per tick.
-    assert MPManager.get_shared_group("dashboard") is group
+    assert MPManager.get_shared_group("spawned") is group
 
     assert group.claim(os.getpid()) is True
 
@@ -1089,14 +1126,6 @@ def test_group_spans_spawned_processes():
     group.release(os.getpid())
 
 
-# How processes find a manager server, and how long that server lives. A server
-# is started by whichever process first needs one and advertised in the
-# environment, so every SiliconCompiler process launched from there joins it,
-# and through the terminal, so unrelated runs printing to one terminal join it
-# too. It stays up while any of them is attached -- not just while the one that
-# started it is -- which is what lets a dashboard survive its first run
-# finishing. conftest switches the terminal rendezvous off for every test; the
-# tests here that need it point it at a file of their own.
 def _dead_pid() -> int:
     proc = subprocess.Popen([sys.executable, "-c", "pass"])
     proc.wait()
@@ -1112,9 +1141,6 @@ def _wait_for_exit(process, timeout: float = 15) -> bool:
     return False
 
 
-# ----------------------------------------------------------------------------
-# The registry, as the server holds it
-# ----------------------------------------------------------------------------
 def test_clients_not_closing_before_first_attach():
     """A server that has not been joined yet is starting up, not abandoned."""
     clients = _ManagerClients()
@@ -1165,9 +1191,6 @@ def test_process_alive_rejects_reused_pid():
     assert not _process_alive(_dead_pid(), None)
 
 
-# ----------------------------------------------------------------------------
-# The environment value
-# ----------------------------------------------------------------------------
 def test_environment_round_trip(monkeypatch):
     value = MPManager._MPManager__environment_value("/tmp/socket")
     monkeypatch.setenv(MANAGER_ENVIRONMENT, value)
@@ -1201,9 +1224,6 @@ def test_environment_incompatible_is_ignored(monkeypatch, field):
     assert MPManager._address_from_environment() is None
 
 
-# ----------------------------------------------------------------------------
-# The terminal rendezvous
-# ----------------------------------------------------------------------------
 def test_terminal_rendezvous_names_host_and_terminal(monkeypatch):
     monkeypatch.setattr(os, "ttyname", lambda fd: "/dev/pts/7", raising=False)
     host = multiprocessing_utils.socket.gethostname()
@@ -1278,12 +1298,10 @@ def test_siblings_meet_through_terminal():
                 sibling.wait()
 
 
-# ----------------------------------------------------------------------------
-# Real processes
-# ----------------------------------------------------------------------------
 # Joins through the environment alone -- no Project, no address handed over --
 # then waits to be told to use the server, and again to exit.
 _CHILD = """
+import os
 import sys
 from siliconcompiler.utils.multiprocessing import MPManager
 MPManager._MPManager__ENABLE_LOGGER = False
@@ -1292,7 +1310,7 @@ print("server" if manager._MPManager__manager_server else "client", flush=True)
 print(repr(MPManager._get_manager_address()), flush=True)
 sys.stdin.readline()
 group = MPManager.get_shared_group("lifetime")
-print(group is not None and group.claim("child"), flush=True)
+print(group is not None and group.claim(os.getpid()), flush=True)
 sys.stdin.readline()
 """
 

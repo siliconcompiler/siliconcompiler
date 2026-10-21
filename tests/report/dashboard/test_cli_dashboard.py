@@ -30,6 +30,7 @@ from siliconcompiler import Project, Design, Flowgraph, Task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.tools.builtin import BuiltinTask
 from siliconcompiler.utils.multiprocessing import MPManager, SharedGroup, SharedGroupMember
+from siliconcompiler.utils.paths import builddir
 
 
 class FauxTask(Task):
@@ -1834,12 +1835,12 @@ def test_get_job_with_status(mock_project, fake_console):
 
 @pytest.mark.timeout(30)
 def test_get_job_topology_cached(mock_project, fake_console):
-    """_get_job reuses the topology cached under design/jobname across status changes that do
+    """_get_job reuses the topology cached for a job across status changes that do
     not add or remove SKIPPED nodes."""
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
-    project_id = "test_design/test_job"
+    project_id = os.path.join(builddir(mock_project), "test_design", "test_job")
     assert project_id in dashboard._topology_cache
     cached = dashboard._topology_cache[project_id]
 
@@ -1862,7 +1863,7 @@ def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
-    project_id = "test_design/test_job"
+    project_id = os.path.join(builddir(mock_project), "test_design", "test_job")
     first = dashboard._topology_cache[project_id]
 
     mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
@@ -1893,7 +1894,8 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
     dashboard._get_job(mock_project)
     after_seed = len(exec_calls)
     assert after_seed >= 1
-    seeded = dashboard._topology_cache["test_design/test_job"]
+    project_id = os.path.join(builddir(mock_project), "test_design", "test_job")
+    seeded = dashboard._topology_cache[project_id]
 
     # Status-only refreshes: cache hits -- must reuse the same _FlowTopology
     # object and must not invoke get_execution_order again.
@@ -1909,7 +1911,7 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
         f"get_execution_order called {len(exec_calls)} times, expected "
         f"{after_seed} (one per real topology rebuild)"
     )
-    assert dashboard._topology_cache["test_design/test_job"] is seeded, (
+    assert dashboard._topology_cache[project_id] is seeded, (
         "Topology object identity changed despite no structural change"
     )
 
@@ -1971,17 +1973,16 @@ def test_get_job_priority_reflects_status_changes(mock_project, fake_console):
 @pytest.mark.timeout(30)
 def test_get_job_separate_projects_use_separate_cache_entries(
         mock_project, fake_console):
-    """The cache key is design/jobname; two distinct projects must each
-    get their own cached topology."""
+    """Two jobs of one design each get their own cached topology."""
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
-    assert "test_design/test_job" in dashboard._topology_cache
-
     mock_project.set('option', 'jobname', 'other_job')
     dashboard._get_job(mock_project)
-    assert "test_design/other_job" in dashboard._topology_cache
-    assert "test_design/test_job" in dashboard._topology_cache
+
+    root = os.path.join(builddir(mock_project), "test_design")
+    assert os.path.join(root, "test_job") in dashboard._topology_cache
+    assert os.path.join(root, "other_job") in dashboard._topology_cache
 
 
 @pytest.mark.timeout(30)
@@ -2846,8 +2847,6 @@ def test_nodashboard_after_construction_releases_hook(mock_project, fake_console
     assert dash._CliDashboard__atexit_func is None
 
 
-# Boards in different processes sharing one dashboard through the manager's
-# "dashboard" SharedGroup: one renders, the rest publish to it.
 @pytest.fixture
 def local_group(monkeypatch, fake_console):
     """Swap the manager proxy for an in-process group.
@@ -2892,11 +2891,8 @@ def _job(design, jobname, complete=False):
 
 
 def test_only_one_member_owns_the_group(local_group, monkeypatch):
-    """First in takes the terminal; the rest publish to it.
-
-    Members in different processes are distinguished by pid, so another
-    process's claim is stood in for here by claiming on its behalf.
-    """
+    """The first board to open owns the group and the rest publish to it; another
+    process's claim is made on its behalf."""
     monkeypatch.setattr(SharedGroupMember, "_collect_loop", lambda self: None)
     monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: None)
     other_process = 999
@@ -2916,11 +2912,8 @@ def test_only_one_member_owns_the_group(local_group, monkeypatch):
 
 
 def test_board_acts_alone_when_there_is_no_group(monkeypatch, fake_console):
-    """No manager, an older manager server, or a broken connection.
-
-    The dashboard must degrade to exactly its pre-group behaviour -- render
-    here -- not vanish.
-    """
+    """Without a group -- no manager, or a broken one -- a board renders by itself
+    and never retries the group."""
     monkeypatch.setattr(MPManager, "get_shared_group", staticmethod(lambda name: None))
 
     board = _board()
@@ -2962,11 +2955,8 @@ def test_snapshot_reports_changed_jobs_and_new_log_lines(local_group):
 
 
 def test_published_log_lines_stay_in_the_local_buffer(local_group):
-    """Draining for publication must not empty the local pane.
-
-    A member can be promoted to owner at any moment; if forwarding a line also
-    consumed it, the handover would paint a blank log.
-    """
+    """Draining log lines for publication leaves the local pane intact, so a member
+    promoted to owner does not paint a blank log."""
     board = _board()
     for i in range(5):
         board._log_handler.add_line(f"line{i}")
@@ -2989,11 +2979,8 @@ def test_owner_ingests_remote_jobs(local_group):
 
 
 def test_orphaned_remote_job_is_retired(local_group):
-    """A member that died must not hold the completeness guard open forever.
-
-    stop() refuses to tear the board down while any job is incomplete, and a
-    job whose process is gone will never report itself finished.
-    """
+    """A job whose process has gone is marked complete, so it cannot hold stop()
+    open forever, and stays on screen."""
     board = _board()
     board._job_data["d/gone"] = _job("d", "gone", complete=False)
 
@@ -3030,11 +3017,8 @@ def test_member_promotes_when_the_owner_disappears(local_group, monkeypatch):
 
 
 def test_promoted_member_starts_collecting(local_group, monkeypatch):
-    """Promotion has to swap the loop, not just start painting.
-
-    A member that took the group over but kept publishing would render only its
-    own runs -- every other process in the sweep would go dark on it.
-    """
+    """A promoted member swaps its publish loop for the collect loop, or the other
+    processes' runs would go dark."""
     monkeypatch.setattr(Board, "_start_rendering", lambda self: None)
     monkeypatch.setattr(SharedGroupMember, "PROMOTE_INTERVAL", 0.0)
     loops = []
@@ -3072,11 +3056,8 @@ def test_promotion_is_rate_limited(local_group, monkeypatch):
 
 
 def test_board_declines_promotion_during_teardown(local_group, monkeypatch):
-    """Starting a live display mid-teardown would strand the alternate screen.
-
-    stop() has already decided this board is publishing, so nothing would come
-    back to restore the terminal.
-    """
+    """A board being torn down declines a promotion, which would leave the terminal
+    in the alternate screen with nobody to restore it."""
     monkeypatch.setattr(Board, "_start_rendering",
                         lambda self: pytest.fail("must not start rendering"))
 
@@ -3182,12 +3163,11 @@ def test_publisher_teardown_leaves_the_terminal_alone(local_group, monkeypatch):
     assert member.claimed is False
 
 
-def test_completeness_guard_spans_processes(local_group):
-    """A board stays up for other processes' runs that are still going.
-
-    This is what makes one dashboard survive a whole sweep: the owner's own run
-    finishing is not the end of the session.
-    """
+@pytest.mark.parametrize("late_run", (False, True), ids=("finish", "late_run"))
+def test_held_back_stop_runs_once_the_rest_finish(local_group, monkeypatch, late_run):
+    """A board stays up while other processes' runs go on, and gives the terminal
+    back once they finish -- later, if another run starts inside the grace."""
+    monkeypatch.setattr(Board, "STOP_GRACE", 0.3)
     board = _board()
 
     class FakeThread:
@@ -3198,26 +3178,36 @@ def test_completeness_guard_spans_processes(local_group):
             pass
 
     board._render_thread = FakeThread()
-
-    board._job_data["d/mine"] = _job("d", "mine", complete=True)
-    board._ingest_remote({"d/theirs": _job("d", "theirs", complete=False)}, [], [])
-
     stopped = []
     board.live.stop = lambda: stopped.append(True)
 
+    board._job_data["d/mine"] = _job("d", "mine", complete=True)
+    board._ingest_remote({"d/theirs": _job("d", "theirs")}, [], [])
     board.stop()
     assert stopped == [], "board must stay up while another process is still running"
 
     board._ingest_remote({"d/theirs": _job("d", "theirs", complete=True)}, [], [])
-    board.stop()
+    if late_run:
+        board._ingest_remote({"d/late": _job("d", "late")}, [], [])
+        board._stop_timer.join(5)
+        assert stopped == []
+        board._ingest_remote({"d/late": _job("d", "late", complete=True)}, [], [])
+    board._stop_timer.join(5)
     assert stopped == [True]
 
 
-# One dashboard over a parameter sweep: N Project.run() calls, one per process,
-# launched from a ProcessPoolExecutor. Every worker inherits the parent's stdout
-# (so its console really is a terminal and the dashboard activates) but is
-# handed /dev/null on stdin, which is what used to abort every worker inside
-# Keyboard.start().
+def test_same_job_in_two_build_directories_gets_two_rows(fake_console, mock_running_job_lg):
+    """Runs sharing a dashboard are told apart by build directory, not design and jobname."""
+    board = _board()
+    with patch.object(Board, "_get_job", return_value=mock_running_job_lg):
+        for directory in ("build_a", "build_b"):
+            project = _project_with_flow()
+            project.option.set_builddir(directory)
+            board._update_render_data(project)
+
+    assert len(board._job_data) == 2
+
+
 class SweepTask(BuiltinTask):
     """A no-op that lasts long enough for the sweep points to overlap."""
     def task(self):
@@ -3279,7 +3269,8 @@ def _point(project):
     def sample():
         while not stop.wait(0.05):
             peak["owner"] |= bool(board._group and board._group.is_owner)
-            peak["jobs"] |= set(board._job_data)
+            jobs = list(board._job_data.values())
+            peak["jobs"] |= {f"{job.design}/{job.jobname}" for job in jobs}
             peak["logs"] = max(peak["logs"], len(board._log_handler.buffer))
 
     sampler = threading.Thread(target=sample, daemon=True)
@@ -3313,18 +3304,15 @@ def test_concurrent_runs_share_one_dashboard():
     jobs = ["point0", "point1", "point2"]
     projects = [_make_project(builddir, datadir, job) for job in jobs]
 
-    # spawn, matching the shape a sweep actually has: nothing is inherited but
-    # the manager address that Project.__getstate__ pickles along, which is
-    # what lets the workers find each other's dashboard.
+    # spawn: nothing is inherited but the manager address Project pickles along.
     with ProcessPoolExecutor(max_workers=3, mp_context=get_context("spawn"),
                              initializer=_worker_init) as pool:
         results = list(pool.map(_point, projects))
 
     assert len(results) == len(jobs)
 
-    # The crash: stdin is not a terminal in any worker, and that used to end
-    # the run with "(25, 'Inappropriate ioctl for device')" out of
-    # Keyboard.start() before a single task ran.
+    # A worker's stdin is not a terminal, which used to fail Keyboard.start()
+    # with "(25, 'Inappropriate ioctl for device')".
     for result in results:
         assert result["stdin_is_tty"] is False
         assert result["active"] is True

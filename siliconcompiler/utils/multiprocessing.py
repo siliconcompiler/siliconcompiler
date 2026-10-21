@@ -37,50 +37,28 @@ if TYPE_CHECKING:
 class SharedGroup:
     """A named rendezvous shared by every SiliconCompiler process on a manager.
 
-    One instance lives inside the :class:`SyncManager` server process; every
-    process that shares that manager reaches it by proxy. It exists so peer
-    processes -- N concurrent ``Project.run()`` calls, one per point of a
-    parameter sweep -- can agree on which of them drives a process-wide
-    resource, and feed that one process the state it needs to drive it.
+    One instance lives in the manager's server process and every process
+    reaches it by proxy, so peer processes -- the runs of a parameter sweep --
+    can agree on which of them drives a shared resource and feed it what it
+    needs. The dashboard is the first user: the owner paints the terminal and
+    the other runs publish their jobs and log lines to it.
 
-    Nothing here knows what the resource is. A group provides four things:
-
-    * **Owner arbitration.** Exactly one member holds the group at a time,
-      taken with :meth:`claim` and given back with :meth:`release`. An owner
-      that stops heartbeating loses it after :attr:`OWNER_TIMEOUT`, so a member
-      that dies mid-run does not take the group down with it.
-    * **Member liveness.** :meth:`publish` records a heartbeat, and
-      :meth:`collect` reports which members have gone silent.
-    * **Keyed state.** Members publish whole snapshots under their own keys,
-      last write wins; the owner collects only what changed since it last
-      looked.
-    * **A bounded stream.** Members append; the owner drains in order.
-
-    The dashboard is the first user: the owner paints the terminal while every
-    other run publishes its node status and log lines. The scheduler is the
-    intended second -- one process arbitrating a machine-wide core budget while
-    the others report what they are running -- which is why the vocabulary here
-    is deliberately about members and state rather than jobs and logs.
-
-    All state is guarded by a plain :class:`threading.Lock`: the manager server
-    dispatches each proxied call on its own thread, but they are all threads of
-    one process.
+    A group provides owner arbitration (:meth:`claim`, :meth:`release`), member
+    liveness, keyed whole-snapshot state, and a bounded stream. Members are
+    pids. Every proxied call runs on a thread of the server process, so one
+    :class:`threading.Lock` guards it all.
     """
 
-    #: Seconds without a heartbeat after which the owner is presumed gone and
-    #: the group may be claimed by another member. Generous relative to the
-    #: sub-second collect cadence, because an owner stalled on slow work must
-    #: not be displaced by an eager peer.
+    #: Seconds without a heartbeat before an owner whose process has gone may
+    #: be displaced. One that is alive keeps the group however long it stalls
+    #: -- stopped with Ctrl+Z, or busy -- since a displaced owner would go on
+    #: painting beside its successor.
     OWNER_TIMEOUT: float = 10.0
 
-    #: Seconds without a publish after which a member is presumed gone.
-    #: Members heartbeat every dwell even with nothing to say, so at the
-    #: default 0.2 s dwell this is ~150 missed ticks.
+    #: Seconds without a publish before a member is presumed gone.
     MEMBER_TIMEOUT: float = 30.0
 
-    #: Caps on retained state. A group can run with no owner ever attached
-    #: (nothing in the group can drive the resource), so the buffers must be
-    #: bounded or they would grow for the life of the manager.
+    #: Caps on retained state: a group may never get an owner to drain it.
     MAX_STREAM: int = 2000
     MAX_KEYS: int = 64
 
@@ -90,14 +68,21 @@ class SharedGroup:
 
         self.__owner: Optional[Any] = None
         self.__owner_seen: float = 0.0
+        self.__owner_created: Optional[float] = None
+        # Set when ownership passes, so the new owner is handed everything
+        # retained rather than only what changes from then on.
+        self.__replay = False
 
-        # key -> (publishing member, value). Ordered so the eviction in
-        # __trim can drop the oldest entry.
-        self.__state: "OrderedDict[str, Tuple[Any, Any]]" = OrderedDict()
-        # keys updated since the owner last collected.
+        # key -> value, ordered so __trim can drop the oldest.
+        self.__state: "OrderedDict[str, Any]" = OrderedDict()
+        # key -> its publisher, for every key ever published: kept apart from
+        # the bounded state so an evicted key's publisher can still be retired.
+        self.__publisher: Dict[str, Any] = {}
         self.__dirty: Set[str] = set()
-        # member -> last publish time.
+        # member -> last publish time
         self.__seen: Dict[Any, float] = {}
+        # Keys whose publisher has gone silent, until it publishes them again.
+        self.__orphaned: Set[str] = set()
 
         self.__stream: List[Any] = []
 
@@ -105,15 +90,13 @@ class SharedGroup:
         """Returns the name this group was registered under."""
         return self.__name
 
-    # ------------------------------------------------------------------
-    # Owner arbitration
-    # ------------------------------------------------------------------
     def claim(self, member: Any) -> bool:
         """
         Try to take ownership of the group for ``member``.
 
         Succeeds when the group is free, already held by ``member``, or held by
-        one that has not heartbeated within :attr:`OWNER_TIMEOUT`.
+        an owner that is gone: no heartbeat within :attr:`OWNER_TIMEOUT`, and
+        no process.
 
         Args:
             member: Identifier for the claiming process, usually its pid.
@@ -124,7 +107,10 @@ class SharedGroup:
         now = time.time()
         with self.__lock:
             if self.__owner is None or self.__owner == member or \
-                    (now - self.__owner_seen) > self.OWNER_TIMEOUT:
+                    self.__live_owner(now) is None:
+                if self.__owner != member:
+                    self.__replay = True
+                    self.__owner_created = _process_created(member)
                 self.__owner = member
                 self.__owner_seen = now
                 return True
@@ -132,10 +118,8 @@ class SharedGroup:
 
     def release(self, member: Any) -> None:
         """
-        Give up ownership, if ``member`` holds it.
-
-        Called when a member is done so the next one can take over immediately
-        rather than waiting out :attr:`OWNER_TIMEOUT`.
+        Give up ownership, if ``member`` holds it, so the next member can take
+        over without waiting out :attr:`OWNER_TIMEOUT`.
         """
         with self.__lock:
             if self.__owner == member:
@@ -150,26 +134,21 @@ class SharedGroup:
         with self.__lock:
             return self.__live_owner(time.time())
 
-    # ------------------------------------------------------------------
-    # Member side
-    # ------------------------------------------------------------------
     def publish(self, member: Any, state: Dict[str, Any], stream: List[Any]) -> bool:
         """
         Hand this member's state and stream entries to the owner.
 
         Also records ``member``'s heartbeat, so a member with nothing new must
-        still call this (with empty arguments) to stay live.
+        still call this, with empty arguments, to stay live.
 
         Args:
             member: Identifier for the publishing process, usually its pid.
-            state (dict): Whole snapshots keyed by member-chosen ids -- not
-                deltas. Last write wins, which keeps merge logic out of the
-                group entirely.
+            state (dict): Whole snapshots keyed by member-chosen ids, not
+                deltas; last write wins.
             stream (list): Entries to append to the shared stream, in order.
 
         Returns:
-            bool: True if an owner is currently live. A member uses this to
-            notice the owner went away so it can take over.
+            bool: True if an owner is live, so a member can notice it has gone.
         """
         now = time.time()
         with self.__lock:
@@ -178,8 +157,10 @@ class SharedGroup:
             for key, value in (state or {}).items():
                 if key not in self.__state:
                     self.__trim()
-                self.__state[key] = (member, value)
+                self.__state[key] = value
+                self.__publisher[key] = member
                 self.__dirty.add(key)
+                self.__orphaned.discard(key)
 
             if stream:
                 self.__stream.extend(stream)
@@ -189,9 +170,6 @@ class SharedGroup:
 
             return self.__live_owner(now) is not None
 
-    # ------------------------------------------------------------------
-    # Owner side
-    # ------------------------------------------------------------------
     def collect(self, member: Any) -> Optional[Tuple[Dict[str, Any], List[Any], List[str]]]:
         """
         Take everything published since the last call and heartbeat the owner.
@@ -200,11 +178,11 @@ class SharedGroup:
             member: Identifier for the process claiming to be the owner.
 
         Returns:
-            tuple or None: ``(state, stream, orphaned)`` where ``state`` maps
-            keys to the latest value published by *another* member, ``stream``
-            is the accumulated entries in order, and ``orphaned`` lists the keys
-            whose publisher has gone silent. Returns None if ``member`` is not
-            (or is no longer) the owner, which tells the caller to step down.
+            tuple or None: ``(state, stream, orphaned)``: the latest value of
+            each key another member changed, the stream entries in order, and
+            the keys whose publisher has gone silent. A new owner's first call
+            returns every retained key and every orphaned one. None if
+            ``member`` is not the owner, which tells it to step down.
         """
         now = time.time()
         with self.__lock:
@@ -212,35 +190,39 @@ class SharedGroup:
                 return None
             self.__owner_seen = now
 
-            state: Dict[str, Any] = {}
-            for key in self.__dirty:
-                entry = self.__state.get(key)
-                if entry is None:
-                    continue
-                publisher, value = entry
-                if publisher == member:
-                    # The owner's own state never travels through the group;
-                    # this can only be a leftover from a previous owner.
-                    continue
-                state[key] = value
+            keys = list(self.__state) if self.__replay else self.__dirty
+            # The owner keeps its own state; anything it published is a
+            # leftover from before it owned the group.
+            state = {key: self.__state[key] for key in keys
+                     if key in self.__state and self.__publisher.get(key) != member}
             self.__dirty.clear()
 
             stream, self.__stream = self.__stream, []
 
-            return state, stream, self.__expire(now, member)
+            orphaned = self.__expire(now, member)
+            if self.__replay:
+                orphaned = sorted(self.__orphaned)
+                self.__replay = False
 
-    # ------------------------------------------------------------------
-    # Internal helpers -- all called with the lock held.
-    # ------------------------------------------------------------------
+            return state, stream, orphaned
+
     def __live_owner(self, now: float) -> Optional[Any]:
+        """Called with the lock held."""
         if self.__owner is None:
             return None
-        if (now - self.__owner_seen) > self.OWNER_TIMEOUT:
+        if (now - self.__owner_seen) > self.OWNER_TIMEOUT and \
+                not _process_alive(self.__owner, self.__owner_created):
             return None
         return self.__owner
 
     def __expire(self, now: float, owner: Any) -> List[str]:
-        """Drop members that have gone silent and report their keys."""
+        """
+        Drop members that have gone silent and return the keys they published.
+        Called with the lock held.
+
+        Their values are kept, since what a departed member last said is still
+        worth showing; the owner is only told to stop treating them as live.
+        """
         departed = set(
             member for member, seen in self.__seen.items()
             if member != owner and (now - seen) > self.MEMBER_TIMEOUT)
@@ -250,24 +232,19 @@ class SharedGroup:
         for member in departed:
             del self.__seen[member]
 
-        # The values themselves are kept: what a departed member last said is
-        # usually still worth showing. Only its liveness is reported, so the
-        # owner can stop treating it as in flight. A member that comes back
-        # simply publishes again and is live again.
-        return [key for key, (member, _) in self.__state.items() if member in departed]
+        keys = [key for key, publisher in self.__publisher.items() if publisher in departed]
+        self.__orphaned.update(keys)
+        return keys
 
     def __trim(self) -> None:
-        """Evict the oldest key once :attr:`MAX_KEYS` distinct keys are held."""
+        """Evict the oldest key once :attr:`MAX_KEYS` are held. Called with the lock held."""
         while len(self.__state) >= self.MAX_KEYS:
             key, _ = self.__state.popitem(last=False)
             self.__dirty.discard(key)
 
 
-# Groups live in the manager's server process, one per name, so a caller asks
-# for "dashboard" and gets the same object every other process asked for. The
-# server keys its object table on id(obj), so returning the same instance for a
-# name also means every process shares one entry rather than accumulating one
-# per connection.
+# One group per name in the server process, so every process asking for a name
+# gets the same object and shares one entry in the server's object table.
 _SHARED_GROUPS: Dict[str, SharedGroup] = {}
 _SHARED_GROUPS_LOCK = threading.Lock()
 
@@ -319,22 +296,12 @@ def _process_alive(pid: int, created: Optional[float]) -> bool:
 class _ManagerClients:
     """The processes using one manager server, kept inside that server.
 
-    The server is started by whichever process first needed it, but others
-    join it: those handed its address, those that found it in the environment
-    (see ``MANAGER_ENVIRONMENT``), and those that found it through their
-    terminal (see ``_terminal_rendezvous``). Its groups hold state they
-    all rely on -- the dashboard is the reason it matters -- so the server must
-    outlive the process that happened to start it. It stays up while any
-    process is attached, and stops itself once the last has detached or died.
-
-    Each :class:`MPManager` attaches under a token of its own rather than under
-    its pid: one process can hold several in turn, and the detach of one must
-    not drop another still attached. The pid is kept to notice a process that
-    died without detaching.
-
-    Once the last client is gone the server is closing, and that is final:
-    an attach after that point fails, so a process arriving as the server
-    stops starts one of its own rather than joining one about to vanish.
+    Other processes join a server and rely on its groups, so it must outlive the
+    process that started it: it stays up while any client is attached, and
+    stops itself once the last has detached or died. Each :class:`MPManager`
+    attaches under its own token, since one process can hold several in turn;
+    the pid is kept to notice a client that died without detaching. Once the
+    last has gone the server is closing for good, and a late attach fails.
     """
 
     #: Seconds between sweeps for clients that died without detaching.
@@ -436,32 +403,30 @@ def _init_manager_server() -> None:
                      daemon=True).start()
 
 
-# The registered callable runs inside the manager's server process, so every
-# process sharing the manager -- the one that started it and anyone that
-# connects to its address -- gets a proxy to the *same* group. That is what
-# lets N concurrent runs share one dashboard. Registered on the manager class
-# so the typeid exists before either start() or connect().
 @functools.lru_cache(maxsize=None)
 def _sync_manager_class() -> "Type[SyncManager]":
     """Returns :class:`SyncManager` extended with SiliconCompiler's shared types.
 
-    Subclassed rather than registering onto ``SyncManager`` itself so the extra
-    typeids do not leak into unrelated managers created by user code.
-    Registration is class level and must be identical on both ends: the server
-    process builds the object, and every client that connects builds a proxy
-    for it, so both sides construct this same class.
-
-    Built on first use, not at import, so ``multiprocessing.managers`` stays out
-    of module import time.
+    A subclass, so the extra typeids do not leak into managers that user code
+    builds. Built on first use, so ``multiprocessing.managers`` stays out of
+    module import time; :func:`__getattr__` gives it the importable name that
+    spawn needs to pickle its server for the child.
     """
     from multiprocessing.managers import SyncManager
 
     class SCSyncManager(SyncManager):
         pass
 
+    SCSyncManager.__qualname__ = "SCSyncManager"
     SCSyncManager.register("shared_group", callable=get_shared_group)
     SCSyncManager.register("manager_clients", callable=get_manager_clients)
     return SCSyncManager
+
+
+def __getattr__(name: str):
+    if name == "SCSyncManager":
+        return _sync_manager_class()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def get_process_context() -> "BaseContext":
@@ -915,25 +880,20 @@ class _ManagerSingleton(type):
         return _ManagerSingleton._instances[cls]
 
 
-#: Where the process that starts a manager server leaves its address, so that
-#: every SiliconCompiler process it launches -- by fork, spawn or subprocess,
-#: handed a Project or not -- joins that server rather than starting its own.
-#: Joining is what puts concurrent runs on one dashboard. The value also names
-#: the host and the SiliconCompiler and Python versions, so an address that
-#: travelled somewhere it cannot work (a cluster node, another install) is
-#: ignored rather than tried.
+#: Where the process that starts a manager server leaves its address, so the
+#: SiliconCompiler processes it launches join that server and share its
+#: dashboard. The value also names the host and versions, so one that travels
+#: where it cannot work, such as a cluster node, is ignored.
 MANAGER_ENVIRONMENT = "SC_MANAGER"
 
 
 def _terminal_rendezvous() -> Optional[str]:
     """
     Returns the file through which unrelated runs printing to this terminal
-    find one manager, and so draw one dashboard; None if standard output is not
-    a terminal, where there is no dashboard to share.
+    find one manager, or None if standard output is not a terminal.
 
-    Kept under the user's own SiliconCompiler directory, never somewhere shared:
-    a client trusts the server a rendezvous names. Named for the host as well as
-    the terminal, since that directory may be one home shared across machines.
+    It is in the user's own directory, since a client trusts the server it
+    names, and named for the host, since that directory may be shared.
     """
     try:
         terminal = os.ttyname(1)
@@ -941,7 +901,7 @@ def _terminal_rendezvous() -> Optional[str]:
         # Not a terminal, or Windows, which has no ttyname()
         return None
 
-    terminal = terminal.removeprefix("/dev/").replace(os.sep, "-")
+    terminal = terminal.removeprefix("/dev/").replace("/", "-")
     return os.path.join(default_manager_dir(), f"{socket.gethostname()}-{terminal}.json")
 
 
@@ -989,11 +949,8 @@ class MPManager(metaclass=_ManagerSingleton):
                                       f"{now_file}_{id(self)}.log")
         self._init_logger()
 
-        # Manager to handle shared data between processes. Join the one this
-        # process was handed, else the one its environment names, else the one
-        # its terminal's other runs use, else start one. Whichever it is, this
-        # process attaches to it, which is what keeps a server up for as long
-        # as anyone still uses it.
+        # Join the manager this process was handed, else the one its environment
+        # or its terminal names, else start one. Attaching keeps it up while used.
         self.__pid = os.getpid()
         self.__token = f"{self.__pid}-{os.urandom(8).hex()}"
         self.__manager_server = False
@@ -1017,16 +974,9 @@ class MPManager(metaclass=_ManagerSingleton):
         self.__board_lock = self.__manager.Lock()
         self.__board = None
 
-        # Proxies to the manager server's SharedGroups, keyed by name, plus
-        # the pid they were built in. A proxy must never be used from a process
-        # other than the one that created it: under ``fork`` a child inherits
-        # the live socket, and driving it from both ends corrupts the manager's
-        # framed protocol. Keying on the pid makes inherited proxies inert --
-        # the child transparently builds its own on first use. A plain
-        # threading.Lock guards this (it is per-process state; a manager Lock
-        # would mean a proxy round trip just to read a cached proxy).
+        # Proxies to the manager server's SharedGroups, by name. Per process:
+        # see _reset_groups_after_fork().
         self.__groups: Dict[str, Optional[SharedGroup]] = {}
-        self.__group_pid = None
         self.__group_lock = threading.Lock()
 
         # Settings. Imported here rather than at module scope: the settings
@@ -1046,13 +996,10 @@ class MPManager(metaclass=_ManagerSingleton):
         # Register cleanup function to run at exit
         atexit.register(MPManager.stop)
 
-        # And from multiprocessing's own exit path, which is how a pool worker
-        # leaves -- often the very process drawing a sweep's dashboard. Python
-        # 3.12, for one, exits a fork or forkserver child without running
-        # atexit at all, and where atexit does run it comes after multiprocessing
-        # has dropped this process's proxies and shut down a manager it started,
-        # leaving the terminal in the dashboard's screen and other processes
-        # without their server. The priority puts it ahead of both of those.
+        # And from multiprocessing's exit path, which is how a pool worker leaves:
+        # Python 3.12 runs no atexit in a fork or forkserver child, and where
+        # atexit runs, the proxies and a server it started are already gone.
+        # The priority runs it ahead of both.
         from multiprocessing import util
         self.__exit_hook = util.Finalize(None, MPManager.stop, exitpriority=100)
 
@@ -1264,16 +1211,8 @@ class MPManager(metaclass=_ManagerSingleton):
     @staticmethod
     def get_shared_group(name: str) -> Optional[SharedGroup]:
         """
-        Returns a proxy to the manager server's :class:`SharedGroup` ``name``.
-
-        A group is how peer SiliconCompiler processes agree on which of them
-        drives a process-wide resource, and feed that one process what it needs
-        to drive it -- see :class:`SharedGroup`.
-
-        The proxy is cached per name *and* per process, and rebuilt after a
-        fork, so an inherited copy is never reused across a process boundary:
-        under ``fork`` a child inherits the live socket, and driving it from
-        both ends corrupts the manager's framed protocol.
+        Returns a proxy to the manager server's :class:`SharedGroup` ``name``,
+        cached per name; a forked child builds its own.
 
         Args:
             name (str): The group to join, e.g. ``"dashboard"``.
@@ -1285,14 +1224,7 @@ class MPManager(metaclass=_ManagerSingleton):
         """
         manager = MPManager()
 
-        pid = os.getpid()
         with manager.__group_lock:
-            if manager.__group_pid != pid:
-                # This process inherited the parent's proxies across a fork.
-                # Drop them; each is rebuilt below with its own connection.
-                manager.__groups = {}
-                manager.__group_pid = pid
-
             if name in manager.__groups:
                 return manager.__groups[name]
 
@@ -1331,6 +1263,20 @@ class MPManager(metaclass=_ManagerSingleton):
         Get the address of the manager
         """
         return MPManager.__address
+
+    @staticmethod
+    def _reset_groups_after_fork() -> None:
+        """
+        Drops the group proxies and their lock in a freshly forked child.
+
+        A proxy shares its socket with the parent's copy, and driving it from
+        both ends corrupts the manager's protocol; the lock may be held by a
+        parent thread that the child does not have.
+        """
+        manager = _ManagerSingleton._instances.get(MPManager)
+        if manager is not None:
+            manager.__groups = {}
+            manager.__group_lock = threading.Lock()
 
     @staticmethod
     def __compatibility() -> List[str]:
@@ -1397,10 +1343,10 @@ class MPManager(metaclass=_ManagerSingleton):
         try:
             manager.connect()
             if self.__attach(manager):
-                MPManager._set_manager_address(address)
+                MPManager.__address = address
                 return manager
             reason = "it is shutting down"
-        except (OSError, EOFError, AuthenticationError) as e:
+        except (OSError, EOFError, ValueError, AuthenticationError) as e:
             reason = str(e)
 
         log = self.__logger.debug if hint else self.__logger.warning
@@ -1431,15 +1377,10 @@ class MPManager(metaclass=_ManagerSingleton):
         Join the server the other runs printing to this terminal use, or start
         it for them.
 
-        Runs that share a terminal share its dashboard, but they need not be
-        related: the workers of a pool whose parent never started a manager are
-        siblings, and nothing reaches one from another through inheritance.
-        They meet at :func:`_terminal_rendezvous` instead, which the first to
-        arrive fills in and the rest join. The check and the start happen under
-        the file's lock, so N workers arriving at once start one server, not N.
-
-        Anywhere the file cannot be used, this process starts a server of its
-        own, as if there were no terminal.
+        This is how unrelated runs meet, such as the workers of a pool whose
+        parent never started a manager. The check and the start happen under
+        the file's lock, so workers arriving at once start one server. Where
+        the file cannot be used, this process starts a server of its own.
         """
         path = _terminal_rendezvous()
         if path is None:
@@ -1528,14 +1469,10 @@ class MPManager(metaclass=_ManagerSingleton):
 
     def __leave_server_running(self) -> None:
         """
-        Let this process exit without taking its manager server down.
-
-        Other processes are still attached to it, their dashboard among them,
-        and it stops itself once the last has gone (see ``_ManagerClients``).
-        Two things would otherwise end it here: the finalizer start() registered
-        to shut it down at exit, and multiprocessing's own exit handler, which
-        joins every child process and so would hold this one open until the
-        server's last client had finished.
+        Let this process exit without taking its manager server down, since
+        other clients are still attached; the server stops itself once they have
+        gone. That means cancelling the finalizer start() registered, and leaving
+        the server out of the children multiprocessing joins at exit.
         """
         import multiprocessing.process
 
@@ -1543,26 +1480,19 @@ class MPManager(metaclass=_ManagerSingleton):
         multiprocessing.process._children.discard(self.__manager._process)
 
 
+if hasattr(os, "register_at_fork"):  # absent on Windows, which has no fork
+    os.register_at_fork(after_in_child=MPManager._reset_groups_after_fork)
+
+
 class SharedGroupMember:
     """This process's participation in a named :class:`SharedGroup`.
 
-    Wraps the two things every group member has to do, so no caller has to
-    write them again:
-
-    * **Take the role, or don't.** :meth:`start` claims the group. Winning
-      makes this process the owner; losing makes it a publisher.
-    * **Run the matching loop.** The owner *collects* on a background thread,
-      folding in what the others published. Everyone else *publishes* on one,
-      shipping its own state and heartbeating so the owner knows it is alive.
-
-    Both loops pace themselves the same way: they wake immediately on ``wake``
-    (so real work is never delayed), and back off to ``idle_dwell`` after a
-    stretch with nothing to say, so a lone process is not paying for a proxy
-    round trip every tick to be told nothing happened.
-
-    If the manager cannot provide the group, :meth:`start` reports this process
-    as the owner and runs no loops at all -- callers degrade to acting alone
-    rather than losing the feature.
+    :meth:`start` claims the group and runs the matching loop on a background
+    thread: the owner collects what the others publish, and everyone else
+    publishes its own state, heartbeating so the owner knows it is alive. Both
+    loops wake at once on ``wake`` and back off to ``idle_dwell`` when idle.
+    Without a group, :meth:`start` reports this process as the owner and runs
+    no loop, so callers act alone.
 
     Args:
         name (str): Group to join, e.g. ``"dashboard"``.
@@ -1711,9 +1641,6 @@ class SharedGroupMember:
             # stale.
             self.__unavailable = True
 
-    # ------------------------------------------------------------------
-    # Loops
-    # ------------------------------------------------------------------
     def _collect_loop(self) -> None:
         """Owner side: fold in what the other members published."""
         idle = 0

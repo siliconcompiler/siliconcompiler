@@ -26,7 +26,7 @@ from rich.text import Text
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuietFilter, \
     SC_LOG, SC_LOGERROR
-from siliconcompiler.utils.paths import workdir
+from siliconcompiler.utils.paths import builddir, workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.utils.units import format_time
@@ -138,13 +138,9 @@ class LogBuffer:
     def drain(self) -> List[str]:
         """
         Moves every queued line into the buffer's history and returns just
-        those newly moved lines.
-
-        This is the publisher-side counterpart to :meth:`get_lines`: a board
-        that ships its log to another process's dashboard needs each line
-        exactly once, in emission order. The lines are still appended to the
-        local history, so a publisher that is later promoted to renderer paints
-        the backlog it forwarded rather than starting from a blank pane.
+        those newly moved lines, for a board publishing to another process's
+        dashboard. They stay in the history, so a publisher promoted to
+        renderer paints the backlog it forwarded.
 
         Returns:
             list[str]: The lines added since the last drain or get_lines call.
@@ -395,6 +391,11 @@ class Board:
 
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
+    #: Seconds a stop held back for other processes' runs waits, once they have
+    #: all finished, before giving the terminal back: long enough for a pool to
+    #: start its next point without the dashboard closing and reopening.
+    STOP_GRACE: float = 5.0
+
     def __init__(self, manager):
         """
         Initializes the Board.
@@ -421,26 +422,20 @@ class Board:
             auto_refresh=False
         )
 
-        # Boards in different processes that share an MPManager join the
-        # "dashboard" SharedGroup, so a parameter sweep -- N concurrent
-        # Project.run() calls, one per process -- gets one dashboard rather
-        # than N fighting over the terminal. Exactly one board renders; the
-        # rest publish their job data and log lines to it. Everything about
-        # spanning processes lives in the member (see
-        # siliconcompiler.utils.multiprocessing.SharedGroupMember); this class
-        # only supplies the three callbacks below and paints.
-        #
-        # Built lazily in open_dashboard(), not here: the member is what holds
-        # the manager proxy, and a Board is inherited by every forked node
-        # worker, which must never touch the parent's proxy.
-        #
-        # Set before the inactive-board return below so this is defined on
-        # every board, however it was constructed.
+        # This board's place in the "dashboard" SharedGroup, which boards in
+        # other processes join too: one renders and the rest publish to it.
+        # Built in open_dashboard(), since it holds a manager proxy that a
+        # forked node worker, inheriting this board, must not use.
         self._group = None
 
         # What gives the terminal back if this process exits while painting;
         # see _start_rendering().
         self._exit_hook = None
+
+        # A stop() that other processes' runs held back, and the timer that
+        # retries it once they finish.
+        self._stop_pending = False
+        self._stop_timer = None
 
         self._active = self._console.is_terminal
         if not self._active:
@@ -534,13 +529,9 @@ class Board:
         self.show_help()
 
         # Give the terminal back however this process ends. MPManager.stop()
-        # does that at exit, but this process need not be the one that
-        # registered it: a forked pool worker inherits its parent's MPManager,
-        # and multiprocessing drops every inherited exit hook in the child --
-        # where Python 3.12, for one, does not run atexit either. So the process
-        # that takes the terminal registers its own, with multiprocessing,
-        # whose exit path every process runs. still_active() is False for one
-        # inherited across a fork.
+        # cannot be relied on: a forked pool worker inherits its parent's, whose
+        # exit hooks multiprocessing drops in the child. An inherited hook reads
+        # as inactive.
         if self._exit_hook is None or not self._exit_hook.still_active():
             from multiprocessing import util
             self._exit_hook = util.Finalize(
@@ -610,6 +601,7 @@ class Board:
 
             self._render_event.clear()
             self._render_stop_event.clear()
+            self._stop_pending = False
 
             # Drop any render thread left by a previous run: stop() picks its
             # teardown from it, and a board that publishes this time round must
@@ -719,18 +711,19 @@ class Board:
             with self._job_data_lock:
                 incomplete = any([not job.complete for job in self._job_data.values()])
             if incomplete:
+                # Retried by _ingest_remote() once the rest have finished.
+                self._stop_pending = True
                 return
 
+        self._stop_pending = False
         self._render_stop_event.set()
         # Wake the render and publish loops so they observe the stop event
         # promptly.
         self._render_event.set()
 
         if self._render_thread is None:
-            # Publishing, not painting: no terminal state to restore. Let the
-            # publish loop make its final flush, then give the role up so the
-            # next run in any process can take it without waiting out the
-            # group's heartbeat timeout.
+            # Publishing, not painting: nothing to restore. Let the publish loop
+            # flush, then give the role up for the next run in any process.
             self.wait()
             if self._render_thread is None:
                 self._release_group()
@@ -1233,15 +1226,22 @@ class Board:
             for project_id in orphaned:
                 data = self._job_data.get(project_id)
                 if data is not None and not data.complete:
-                    # That process is gone and will never report this job
-                    # finished. Retire it so it stays on screen with its last
-                    # known state but stops holding the completeness guard in
-                    # stop() open forever.
+                    # Its process is gone: keep the row, but stop it holding
+                    # stop() open.
                     data.complete = True
 
             self._board_info.data_modified = True
+            finished = all(job.complete for job in self._job_data.values())
 
         self._render_event.set()
+
+        if self._stop_pending and finished and \
+                (self._stop_timer is None or not self._stop_timer.is_alive()):
+            # stop() checks again when the timer fires, so a run that starts
+            # in the meantime keeps the dashboard up.
+            self._stop_timer = threading.Timer(Board.STOP_GRACE, self.stop)
+            self._stop_timer.daemon = True
+            self._stop_timer.start()
 
     def _handle_keyboard(self):
         key = Keyboard.check_key()
@@ -1442,7 +1442,9 @@ class Board:
         if not job_data.nodes:
             return
 
-        project_id = f"{job_data.design}/{job_data.jobname}"
+        # The job's directory, not just design/jobname: runs that share a
+        # dashboard can build the same job under different build directories.
+        project_id = os.path.join(builddir(project), job_data.design, job_data.jobname)
         with self._job_data_lock:
             if complete and project_id in self._job_data and self._job_data[project_id].complete:
                 # Dont update again, requires a start of a new run
@@ -1583,7 +1585,7 @@ class Board:
 
         design = project.option.get_design()
         jobname = project.option.get_jobname()
-        project_id = f"{design}/{jobname}"
+        project_id = os.path.join(builddir(project), design, jobname)
 
         nodes = []
         nodestatus = {}

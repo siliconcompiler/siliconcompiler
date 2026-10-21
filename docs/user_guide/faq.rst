@@ -192,22 +192,12 @@ warnings, and are what the :keypath:`metric,errors` and
 Can I run several builds at once and still get the dashboard?
 -------------------------------------------------------------
 
-Yes. Run each point of a sweep in its own process -- a
-``concurrent.futures.ProcessPoolExecutor`` is the usual shape -- and call
-``run()`` normally in each. The dashboard coordinates itself across those
-processes: one of them takes the terminal and paints a row group and a progress
-bar per build, and the rest feed it their node status and log output instead of
-drawing anything themselves.
-
-.. code-block:: python
-
-   from concurrent.futures import ProcessPoolExecutor
-
-   def point(project):
-       return project.run()
-
-   with ProcessPoolExecutor(max_workers=4) as pool:
-       histories = list(pool.map(point, projects))
+Yes. Run each point of a sweep in its own process and call ``run()`` normally in
+each, as :ref:`process parallelism <parallel_execution>` does with a
+``concurrent.futures.ProcessPoolExecutor``. The dashboard coordinates itself
+across those processes: one of them takes the terminal and paints a row group and
+a progress bar per build, and the rest feed it their node status and log output
+instead of drawing anything themselves.
 
 Three things to know:
 
