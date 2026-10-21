@@ -36,6 +36,13 @@ with any of ``# $ & - = ! / .`` removed: a GitHub dataroot named ``my-pdk`` read
 ``GITHUB_MYPDK_TOKEN`` before ``GITHUB_TOKEN``. That lets dataroots on one host
 use different tokens.
 
+Any of these variables can be stored instead of exported, with
+:ref:`sc-config tokens set <app-sc-config>`, which asks for the token without
+echoing it and keeps it in ``~/.sc/auth/tokens.json``, readable only by you. Each
+name is looked up in the environment and then in that store before the next name
+is tried. So a stored ``GITHUB_MYPDK_TOKEN`` is used ahead of an exported
+``GITHUB_TOKEN``, and only an export of the same name overrides a stored token.
+
 A package can add a scheme of its own through the
 ``siliconcompiler.path_resolver`` :ref:`entry point <ext_lib_entry_points>`.
 
