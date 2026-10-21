@@ -7,12 +7,12 @@ import tarfile
 
 import docker.errors
 
-from pathlib import Path
-from typing import Set, Tuple
+from pathlib import Path, PurePosixPath
+from typing import Dict, Iterable, Set, Tuple
 
 import siliconcompiler
 
-from siliconcompiler.utils import default_email_credentials_file
+from siliconcompiler.utils import default_email_credentials_file, default_tokens_file
 from siliconcompiler.utils.paths import cachedir as cachedir_path
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
@@ -43,6 +43,32 @@ def get_image(project, step, index) -> str:
     return os.getenv(
         'SC_DOCKER_IMAGE',
         f'ghcr.io/siliconcompiler/sc_runner:v{__version__}')
+
+
+def _hide_token_store(mounts: Iterable[Tuple[str, str]]) -> Dict[str, str]:
+    """
+    An empty tmpfs over the token store's directory, inside each mount that
+    holds it -- a home directory an input sits in, say. The container runs as
+    the user, and a tool runs whatever its inputs make it, so none gets the
+    tokens.
+
+    Args:
+        mounts: each host directory a container is given, and where it appears
+            in the container.
+
+    Returns:
+        dict: tmpfs mounts, as ``containers.run`` takes them.
+    """
+    store = Path(os.path.realpath(os.path.dirname(default_tokens_file())))
+    if not store.is_dir():
+        return {}
+    hidden = {}
+    for host, container in mounts:
+        host = Path(os.path.realpath(host))
+        if host == store or host in store.parents:
+            hidden[str(PurePosixPath(container, *store.relative_to(host).parts))] = \
+                "size=64k,mode=0700"
+    return hidden
 
 
 def get_volumes_directories(project, cache_dir, workdir, step, index):
@@ -252,6 +278,8 @@ class DockerSchedulerNode(SchedulerNode):
                 f"{self.project_cwd}:{cwd}:rw",
                 f"{cachedir_path(self.project)}:{cache_dir}:rw"
             ]
+            tmpfs = _hide_token_store(((self.project_cwd, cwd),
+                                       (cachedir_path(self.project), cache_dir)))
             self.logger.debug(f'Volumes: {volumes}')
 
             env = {}
@@ -259,7 +287,9 @@ class DockerSchedulerNode(SchedulerNode):
             if os.path.exists(email_file):
                 env["HOME"] = "/sc_home"
 
-                volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
+                # The one file a node reads from ~/.sc, never the directory:
+                # nothing else there, the stored tokens included, is a task's to see.
+                volumes.append(f'{email_file}:/sc_home/.sc/email.json:ro')
         else:
             cache_dir = cachedir_path(self.project)
             cwd = self.project_cwd
@@ -289,18 +319,22 @@ class DockerSchedulerNode(SchedulerNode):
             ]
             self.logger.debug(f'Read write volumes: {rw_volumes}')
             self.logger.debug(f'Read only volumes: {ro_volumes}')
+            tmpfs = _hide_token_store((path, path) for path in (*rw_volumes, *ro_volumes))
 
             env = {}
             if os.path.exists(email_file):
                 env["HOME"] = "/sc_home"
 
-                volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
+                # The one file a node reads from ~/.sc, never the directory:
+                # nothing else there, the stored tokens included, is a task's to see.
+                volumes.append(f'{email_file}:/sc_home/.sc/email.json:ro')
 
         container = None
         try:
             container = client.containers.run(
                 image.id,
                 volumes=volumes,
+                tmpfs=tmpfs,
                 labels=[
                     "siliconcompiler",
                     f"sc_node:{self.name}:{self.step}:{self.index}"

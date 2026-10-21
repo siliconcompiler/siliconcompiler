@@ -601,6 +601,17 @@ def default_email_credentials_file() -> str:
     return default_sc_path('email.json')
 
 
+def default_tokens_file() -> str:
+    """
+    Returns the default path for the data-source token store, which
+    ``sc-config tokens`` writes.
+
+    Returns:
+        str: The absolute path to the tokens.json file.
+    """
+    return default_sc_path(os.path.join('auth', 'tokens.json'))
+
+
 def default_settings_file() -> str:
     """
     Returns the default path for the user settings file.
@@ -639,6 +650,7 @@ def _cli_paths(args) -> int:
             ("settings", default_settings_file()),
             ("system settings", default_sc_system_path()),
             ("email", default_email_credentials_file()),
+            ("tokens", default_tokens_file()),
             ("remote", default_credentials_file()),
             ("cache", default_cache_dir()),
             ("tool builds", default_tool_build_dir()))

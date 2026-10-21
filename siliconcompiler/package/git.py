@@ -87,8 +87,9 @@ class GitResolver(RemoteResolver):
         token sent over HTTPS is written into the cached clone's
         ``.git/config``.
 
-        Over HTTPS the token is read from the environment and sent as the
-        basic-auth password, under the username the host expects:
+        Over HTTPS the token is read from the environment, or from the
+        :ref:`stored tokens <resolver_tokens>`, and sent as the basic-auth
+        password, under the username the host expects:
 
         .. list-table::
            :header-rows: 1
@@ -237,7 +238,8 @@ class GitResolver(RemoteResolver):
 
     def _get_token(self, hostname: Optional[str]) -> Optional[str]:
         """
-        Finds an authentication token for ``hostname`` in the environment.
+        Finds an authentication token for ``hostname`` in the environment or
+        the token store.
 
         A forge's own variables are searched first, but only for a host that
         forge actually owns (:meth:`_saas_forge`) -- otherwise a URL naming a
@@ -248,7 +250,7 @@ class GitResolver(RemoteResolver):
             hostname (str or None): The host from the source URL.
 
         Returns:
-            str or None: The token, or None if the environment holds none.
+            str or None: The token, or None if neither holds one.
         """
         srvs = {
             "github": ["GITHUB", "GH"],
