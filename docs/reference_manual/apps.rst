@@ -3,18 +3,7 @@ CLI apps
 
 .. scapp::
   :app: sc-config
-
-  .. scapp::
-    :app: sc-config settings
-
-  .. scapp::
-    :app: sc-config email
-
-  .. scapp::
-    :app: sc-config cache
-
-  .. scapp::
-    :app: sc-config paths
+  :help: -helpall
 
 .. scapp::
   :app: sc-install

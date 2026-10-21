@@ -156,7 +156,7 @@ by one:
    └── tool_build/      <- scratch space for sc-install
 
 On Windows the same directory is ``C:\Users\<username>\.sc\``.
-:ref:`sc-config paths <app-sc-config-paths>` prints where each of these is on
+:ref:`sc-config paths <app-sc-config>` prints where each of these is on
 your machine, and which exist.
 
 The cache
@@ -289,7 +289,7 @@ Settings and credentials
 
 ``settings.json`` holds defaults applied to every new :class:`.Project` -- your
 preferred scheduler, log verbosity, and so on -- written by
-:ref:`sc-config settings <app-sc-config-settings>` or
+:ref:`sc-config settings <app-sc-config>` or
 :meth:`.OptionSchema.write_defaults`. An administrator can also supply
 machine-wide defaults from outside your home directory, at
 ``/etc/siliconcompiler/settings.json`` on Linux and macOS or

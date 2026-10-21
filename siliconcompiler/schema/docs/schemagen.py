@@ -346,10 +346,10 @@ class AppGen(SphinxDirective):
 
     option_spec = {
         'app': str,
-        'title': str
+        'title': str,
+        # The flag that prints the app's help, if not --help.
+        'help': str
     }
-    # The app's subcommands, as scapp directives of their own, nested in its section.
-    has_content = True
 
     def run(self):
         from siliconcompiler import apps
@@ -369,7 +369,8 @@ class AppGen(SphinxDirective):
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 
-        output = subprocess.check_output([*shlex.split(app), '--help']).decode('utf-8')
+        output = subprocess.check_output(
+            [*shlex.split(app), self.options.get('help', '--help')]).decode('utf-8')
 
         title = self.options.get("title", app)
 
@@ -377,7 +378,6 @@ class AppGen(SphinxDirective):
         if title != app:
             section += literalblock(app)
         section += literalblock(output)
-        self.state.nested_parse(self.content, self.content_offset, section)
 
         return [section]
 
