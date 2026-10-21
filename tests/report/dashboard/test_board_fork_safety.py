@@ -42,3 +42,18 @@ def test_board_sync_primitives_are_expected_plain_types():
     assert isinstance(board._board_info, types.SimpleNamespace)
     assert isinstance(board._job_data, dict)
     assert isinstance(board._log_handler_queue, queue.Queue)
+
+
+def test_board_holds_no_reference_to_a_manager_proxy():
+    """A new Board holds no manager proxy, which every forked node worker would
+    inherit; the group member that holds one is built in open_dashboard()."""
+    board = Board(MPManager.get_manager())
+    assert board._active
+
+    for name, value in vars(board).items():
+        assert type(value).__module__ != "multiprocessing.managers", (
+            f"Board.{name} is a SyncManager proxy ({type(value)!r}); it must not "
+            "be held on the Board or it will be reused across fork()")
+
+    assert board._group is None, \
+        "the group member must be built in open_dashboard(), not inherited"

@@ -154,6 +154,7 @@ by one:
    ├── cache/           <- everything kept between runs (see below)
    ├── settings.json    <- your persistent defaults
    ├── credentials      <- remote server address and login
+   ├── managers/        <- how runs in one terminal find each other's dashboard
    └── tool_build/      <- scratch space for sc-install
 
 On Windows the same directory is ``C:\Users\<username>\.sc\``.

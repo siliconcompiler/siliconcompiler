@@ -296,6 +296,7 @@ def test_paths_marks_what_is_missing(monkeypatch, capsys, email_home):
     assert lines["settings"].endswith(os.path.join(".sc", "settings.json"))
     assert lines["email"].endswith("(missing)")
     assert lines["tokens"].endswith("(missing)")
+    assert lines["managers"].endswith("(missing)")
     assert lines["tool"].endswith("(missing)")
 
 

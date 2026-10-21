@@ -187,6 +187,34 @@ warnings, and are what the :keypath:`metric,errors` and
 :keypath:`metric,warnings` metrics count. See
 :ref:`Inside a node directory <directory_structures>`.
 
+.. index:: ! parallel runs, ! parameter sweep, ! concurrent run, ! dashboard
+
+Can I run several builds at once and still get the dashboard?
+-------------------------------------------------------------
+
+Yes. Run each point of a sweep in its own process and call ``run()`` normally in
+each, as :ref:`process parallelism <parallel_execution>` does with a
+``concurrent.futures.ProcessPoolExecutor``. The dashboard coordinates itself
+across those processes: one of them takes the terminal and paints a row group and
+a progress bar per build, and the rest feed it their node status and log output
+instead of drawing anything themselves.
+
+Three things to know:
+
+* The processes find each other through SiliconCompiler's manager. The first
+  process to build a ``Project`` starts it, and every SiliconCompiler process
+  launched from that one joins it -- from a pool, ``multiprocessing`` or
+  ``subprocess``, whether it is handed a ``Project`` or builds its own. Runs
+  printing to the same terminal also find each other through it, so workers
+  whose parent never built a ``Project`` still share one dashboard, as do two
+  scripts started from one shell. Runs in different terminals each get their
+  own.
+* The dashboard outlives the run that drew it. If that run finishes while others
+  are still going, one of them takes the terminal over.
+* The dashboard only draws where standard output is a terminal. Under ``nohup``,
+  cron or a CI runner it stays out of the way and every build logs plainly, as
+  it always has.
+
 .. index:: ! bug report, ! testcase, ! reproducer
 
 How do I file a useful bug report?
