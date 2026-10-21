@@ -403,6 +403,18 @@ def _init_manager_server() -> None:
     # socket in it with it, while other clients may still need to connect.
     multiprocessing.current_process()._config.pop("tempdir", None)
 
+    # Let go of the starter's resource tracker, which a spawned server is handed
+    # and a forked one inherits. The starter waits at exit for its tracker, and
+    # the tracker lasts while any process holds its pipe, so the starter could
+    # not exit before the server did. The server tracks no resources.
+    from multiprocessing import resource_tracker
+    tracker = resource_tracker._resource_tracker
+    if tracker._fd is not None:
+        with contextlib.suppress(OSError):
+            os.close(tracker._fd)
+    tracker._fd = None
+    tracker._pid = None
+
     threading.Thread(target=_watch_manager_clients, name="sc-manager-clients",
                      daemon=True).start()
 

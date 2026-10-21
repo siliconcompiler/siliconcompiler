@@ -1327,8 +1327,8 @@ sys.stdin.readline()
 """
 
 
-def _start_child():
-    return subprocess.Popen([sys.executable, "-c", _CHILD],
+def _start_child(env=None):
+    return subprocess.Popen([sys.executable, "-c", _CHILD], env=env,
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 
 
@@ -1403,6 +1403,47 @@ def test_server_outlives_its_starter(how):
         if process.is_alive():
             process.kill()
             process.join()
+
+
+# Starts a server with a resource tracker already running, as a spawn or
+# forkserver pool leaves one, then waits to be told to exit.
+_STARTER = """
+import os
+import sys
+from multiprocessing import resource_tracker
+import siliconcompiler.utils.multiprocessing as mp
+mp.MPManager._MPManager__ENABLE_LOGGER = False
+resource_tracker.ensure_running()
+mp.MPManager()
+print(os.environ[mp.MANAGER_ENVIRONMENT], flush=True)
+sys.stdin.readline()
+"""
+
+
+@pytest.mark.timeout(60)
+def test_starter_exits_while_its_server_serves_others():
+    """The process that started a server exits at once while another still uses
+    it, rather than waiting on its resource tracker, which the server held open."""
+    starter = subprocess.Popen([sys.executable, "-c", _STARTER],
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    child = None
+    try:
+        value = starter.stdout.readline().strip()
+        child = _start_child(env={**os.environ, MANAGER_ENVIRONMENT: value})
+        assert child.stdout.readline().strip() == "client"
+
+        starter.stdin.write("\n")
+        starter.stdin.flush()
+        try:
+            starter.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            pytest.fail("the starter waited for its server to exit")
+        assert child.poll() is None
+    finally:
+        for process in (starter, child):
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.wait()
 
 
 @pytest.mark.isolated_manager
