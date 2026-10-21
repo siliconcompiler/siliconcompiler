@@ -1075,8 +1075,9 @@ def store_tokens(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
     def store(tokens):
-        os.makedirs(os.path.dirname(utils.default_tokens_file()))
-        with open(utils.default_tokens_file(), "w") as f:
+        os.makedirs(os.path.dirname(utils.default_tokens_file()), mode=0o700)
+        with open(os.open(utils.default_tokens_file(), os.O_WRONLY | os.O_CREAT, 0o600),
+                  "w") as f:
             f.write(tokens if isinstance(tokens, str) else json.dumps({"tokens": tokens}))
     return store
 
@@ -1099,17 +1100,38 @@ def test_remote_auth_token_reads_the_store_per_name(monkeypatch, store_tokens,
     assert resolver._get_auth_token(["GITHUB", "GIT"]) == token
 
 
+@pytest.mark.parametrize("store,said", [
+    ("{bad", "tokens.json is malformed"),
+    ('{"tokens": null}', "Settings category 'tokens'"),
+])
 def test_remote_auth_token_logs_a_malformed_store(monkeypatch, store_tokens, project_logger,
-                                                  caplog):
+                                                  caplog, store, said):
     """A malformed store is logged and skipped, since callers take a ValueError to mean no token."""
-    store_tokens("{bad")
+    store_tokens(store)
     monkeypatch.setenv("GIT_TOKEN", "env")
     proj = Project("testproj")
     project_logger(proj)
 
     resolver = RemoteResolver("mypdk", proj, "https://filepath", "ref")
     assert resolver._get_auth_token(["GIT"]) == "env"
-    assert "tokens.json is malformed" in caplog.text
+    assert said in caplog.text
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="posix permissions")
+@pytest.mark.parametrize("opened,mode", [("directory", 0o755), ("file", 0o644)])
+def test_remote_auth_token_refuses_a_store_others_can_read(monkeypatch, store_tokens,
+                                                           project_logger, caplog, opened, mode):
+    """A store others can read is refused, not repaired, and the environment used."""
+    store_tokens({"GIT_TOKEN": "stored"})
+    path = utils.default_tokens_file()
+    os.chmod(os.path.dirname(path) if opened == "directory" else path, mode)
+    monkeypatch.setenv("GIT_TOKEN", "env")
+    proj = Project("testproj")
+    project_logger(proj)
+
+    resolver = RemoteResolver("mypdk", proj, "https://filepath", "ref")
+    assert resolver._get_auth_token(["GIT"]) == "env"
+    assert "Not using the stored tokens: others can read" in caplog.text
 
 
 def test_remote_auth_token_missing_names_the_store(store_tokens):

@@ -1086,9 +1086,14 @@ class RemoteResolver(Resolver):
             search_env.append(f"{prf.upper()}_{token_name}_TOKEN")
             search_env.append(f"{prf.upper()}_TOKEN")
 
-        # A malformed store is logged and read as empty, never raised: every
-        # caller takes a ValueError to mean there is no token.
-        stored = _token_store(self.logger).get_category(_TOKENS_CATEGORY)
+        # A store that cannot be used is logged, never raised: every caller
+        # takes a ValueError to mean there is no token. A malformed one the
+        # manager logs itself, and reads as empty.
+        try:
+            stored = _token_store(self.logger).get_category(_TOKENS_CATEGORY)
+        except ValueError as e:
+            self.logger.warning(f"Not using the stored tokens: {e}")
+            stored = {}
         for env in search_env:
             token = os.environ.get(env) or stored.get(env)
             if token:
@@ -1486,10 +1491,24 @@ def _token_store(logger: logging.Logger) -> "SettingsManager":
     The data-source tokens ``sc-config tokens`` stores, kept readable only by
     the user, in a directory only the user can open. A fresh read each time, so
     a token stored after this process started is seen.
+
+    Raises:
+        ValueError: If others can open the directory or read the store. It is
+            refused rather than repaired, since what others could read may
+            already be copied.
     """
     from siliconcompiler.utils.settings import SettingsManager
 
-    return SettingsManager(default_tokens_file(), logger, mode=0o600)
+    path = default_tokens_file()
+    directory = os.path.dirname(path)
+    if os.name != "nt":
+        wrong = [each for each in (directory, path)
+                 if os.path.exists(each) and stat.S_IMODE(os.stat(each).st_mode) & 0o077]
+        if wrong:
+            raise ValueError(f"others can read {' and '.join(wrong)}. Fix it -- chmod 700 "
+                             f"{directory}; chmod 600 {path} -- and replace each token stored "
+                             "there with a new one, since others may already have copied it")
+    return SettingsManager(path, logger, mode=0o600)
 
 
 def _add_tokens_parser(commands) -> None:

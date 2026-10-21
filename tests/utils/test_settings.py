@@ -98,6 +98,18 @@ def test_valid_json_but_not_dict(settings_file, caplog):
     assert "did not contain a JSON object" in caplog.text
 
 
+def test_a_category_that_is_not_an_object_is_dropped(settings_file, caplog):
+    """A category every accessor would index as an object is dropped on load, as a
+    system file's is, and the rest kept."""
+    with open(settings_file, 'w') as f:
+        f.write('{"bad": null, "good": {"key": 1}}')
+
+    manager = SettingsManager(settings_file, logging.getLogger())
+    assert manager.get_category("bad") == {}
+    assert manager.get_category("good") == {"key": 1}
+    assert "Settings category 'bad'" in caplog.text
+
+
 def test_get_category(settings_file):
     """Test retrieving entire category."""
     manager = SettingsManager(settings_file, logging.getLogger())
@@ -1083,6 +1095,7 @@ def test_transaction_unserializable_saves_nothing(settings_file):
 @pytest.mark.parametrize("contents,message", [
     ("{ this is not json }", r"is malformed"),
     ("[1, 2, 3]", r"does not hold a JSON object"),
+    ('{"a": [1], "b": {}}', r"has categories that are not JSON objects \(a\)"),
 ])
 def test_transaction_refuses_unreadable_file(settings_file, contents, message):
     with open(settings_file, "w") as f:
