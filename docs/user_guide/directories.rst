@@ -150,6 +150,7 @@ by one:
 .. code-block:: text
 
    ~/.sc/
+   ├── auth/            <- tokens for private data sources, only yours to open
    ├── cache/           <- everything kept between runs (see below)
    ├── settings.json    <- your persistent defaults
    ├── credentials      <- remote server address and login
@@ -301,6 +302,11 @@ rules between the two.
 ``sc-remote -configure``. Note that it has no file extension, although its
 contents are JSON. Point :keypath:`option,credentials` at a different file to
 use more than one server. See :ref:`Remote Processing <remote_processing>`.
+
+``auth/tokens.json`` holds the tokens private data sources are fetched with,
+written by :ref:`sc-config tokens <app-sc-config>`. Only you can open ``auth/``
+or read the file, and a Docker task is never given it. See :ref:`stored tokens
+<resolver_tokens>`.
 
 ``tool_build/`` is where ``sc-install`` builds tools from source before
 installing them, by default into ``~/.local``. It is scratch space and can be

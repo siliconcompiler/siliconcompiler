@@ -158,6 +158,32 @@ def test_run_passes_uid_and_gid(project):
     assert kwargs['group_add'] == os.getgroups()
 
 
+def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, monkeypatch):
+    """A node reads one file from ~/.sc, so that file is all it is given: nothing
+    else there, the token store in ~/.sc/auth included, reaches a tool."""
+    home = os.path.abspath(".sc")
+    os.makedirs(os.path.join(home, "auth"))
+    email = os.path.join(home, "email.json")
+    with open(email, "w") as f:
+        f.write("{}")
+    monkeypatch.setattr("siliconcompiler.scheduler.docker.default_email_credentials_file",
+                        lambda: email)
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    volumes = client.containers.run.call_args.kwargs['volumes']
+    assert f"{email}:/sc_home/.sc/email.json:ro" in volumes
+    assert not any(volume.startswith(f"{home}:") for volume in volumes)
+
+
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
 def test_run_stops_container_without_grace_period(project):
     """Teardown stops the container with no grace period, as its shell PID 1 ignores SIGTERM."""

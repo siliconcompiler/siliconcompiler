@@ -259,7 +259,9 @@ class DockerSchedulerNode(SchedulerNode):
             if os.path.exists(email_file):
                 env["HOME"] = "/sc_home"
 
-                volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
+                # The one file a node reads from ~/.sc, never the directory:
+                # nothing else there, the stored tokens included, is a task's to see.
+                volumes.append(f'{email_file}:/sc_home/.sc/email.json:ro')
         else:
             cache_dir = cachedir_path(self.project)
             cwd = self.project_cwd
@@ -294,7 +296,9 @@ class DockerSchedulerNode(SchedulerNode):
             if os.path.exists(email_file):
                 env["HOME"] = "/sc_home"
 
-                volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
+                # The one file a node reads from ~/.sc, never the directory:
+                # nothing else there, the stored tokens included, is a task's to see.
+                volumes.append(f'{email_file}:/sc_home/.sc/email.json:ro')
 
         container = None
         try:

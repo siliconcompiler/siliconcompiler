@@ -1,4 +1,5 @@
 import contextlib
+import json
 import logging
 import os
 import pytest
@@ -1064,6 +1065,60 @@ def test_remote_child_impl():
 
     with pytest.raises(NotImplementedError, match=r"^child class must implement this$"):
         resolver.check_cache()
+
+
+@pytest.fixture
+def store_tokens(monkeypatch):
+    """A home of the test's own, so a token store of its own, and a writer for it."""
+    monkeypatch.setattr(Path, "home", lambda: Path(os.getcwd()))
+    for name in ("GITHUB_MYPDK_TOKEN", "GITHUB_TOKEN", "GIT_MYPDK_TOKEN", "GIT_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+    def store(tokens):
+        os.makedirs(os.path.dirname(utils.default_tokens_file()))
+        with open(utils.default_tokens_file(), "w") as f:
+            f.write(tokens if isinstance(tokens, str) else json.dumps({"tokens": tokens}))
+    return store
+
+
+@pytest.mark.parametrize("exported,stored,token", [
+    ({"GITHUB_TOKEN": "env"}, {"GITHUB_MYPDK_TOKEN": "stored"}, "stored"),
+    ({"GITHUB_TOKEN": "env"}, {"GITHUB_TOKEN": "stored"}, "env"),
+    ({"GIT_TOKEN": "env"}, {"GITHUB_TOKEN": "stored"}, "stored"),
+    ({}, {"GIT_TOKEN": "stored"}, "stored"),
+])
+def test_remote_auth_token_reads_the_store_per_name(monkeypatch, store_tokens,
+                                                    exported, stored, token):
+    """Each name is tried in the environment and then the store, so only an
+    export of the same name overrides a stored token."""
+    store_tokens(stored)
+    for name, value in exported.items():
+        monkeypatch.setenv(name, value)
+
+    resolver = RemoteResolver("my-pdk", Project("testproj"), "https://filepath", "ref")
+    assert resolver._get_auth_token(["GITHUB", "GIT"]) == token
+
+
+def test_remote_auth_token_logs_a_malformed_store(monkeypatch, store_tokens, project_logger,
+                                                  caplog):
+    """A malformed store is logged and skipped, since callers take a ValueError to mean no token."""
+    store_tokens("{bad")
+    monkeypatch.setenv("GIT_TOKEN", "env")
+    proj = Project("testproj")
+    project_logger(proj)
+
+    resolver = RemoteResolver("mypdk", proj, "https://filepath", "ref")
+    assert resolver._get_auth_token(["GIT"]) == "env"
+    assert "tokens.json is malformed" in caplog.text
+
+
+def test_remote_auth_token_missing_names_the_store(store_tokens):
+    """With no token anywhere, the error says how to store one, and the lookup creates nothing."""
+    resolver = RemoteResolver("mypdk", Project("testproj"), "https://filepath", "ref")
+    with pytest.raises(ValueError, match=r"or store it with sc-config tokens set: "
+                                         r"GIT_MYPDK_TOKEN, GIT_TOKEN$"):
+        resolver._get_auth_token(["GIT"])
+    assert not os.path.exists(".sc")
 
 
 @pytest.mark.nocache
