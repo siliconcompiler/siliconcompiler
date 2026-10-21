@@ -15,6 +15,7 @@ import warnings
 from multiprocessing.managers import RemoteError
 from unittest.mock import patch
 
+import psutil
 import pytest
 
 from siliconcompiler.utils import default_manager_dir
@@ -983,7 +984,7 @@ def test_silent_member_is_reported_orphaned(group, monkeypatch):
     group.publish(2, {"gone": "snap"}, [])
     assert group.collect(1)[2] == []
 
-    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 0.0)
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", -1.0)
     assert group.collect(1)[2] == ["gone"]
 
     # Reported once, not on every collect from then on.
@@ -1000,7 +1001,7 @@ def test_silent_member_is_reported_orphaned(group, monkeypatch):
 def test_owner_is_never_reported_orphaned(group, monkeypatch):
     assert group.claim(1) is True
     group.publish(1, {"mine": "snap"}, [])
-    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 0.0)
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", -1.0)
     assert group.collect(1)[2] == []
 
 
@@ -1058,7 +1059,7 @@ def test_evicted_key_is_still_retired(group, monkeypatch):
     group.publish(3, {"new": "running"}, [])
     group.collect(1)
 
-    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", 0.0)
+    monkeypatch.setattr(SharedGroup, "MEMBER_TIMEOUT", -1.0)
     assert sorted(group.collect(1)[2]) == ["new", "old"]
 
 
@@ -1132,7 +1133,14 @@ def test_group_spans_spawned_processes():
 def _dead_pid() -> int:
     proc = subprocess.Popen([sys.executable, "-c", "pass"])
     proc.wait()
-    return proc.pid
+    pid = proc.pid
+    del proc
+    # On Windows an exited process stays listed until the last handle to it
+    # closes, so wait for it to go, as psutil's own wait() does.
+    deadline = time.monotonic() + 10
+    while psutil.pid_exists(pid) and time.monotonic() < deadline:
+        time.sleep(0.01)
+    return pid
 
 
 def _wait_for_exit(process, timeout: float = 15) -> bool:
@@ -1273,6 +1281,7 @@ sys.stdin.readline()
 """
 
 
+@pytest.mark.timeout(60)
 def test_siblings_meet_through_terminal():
     """The workers of a pool whose parent never started a manager -- each
     building its own Project -- share one server, so they share one dashboard.

@@ -3312,9 +3312,11 @@ def test_concurrent_runs_share_one_dashboard():
     assert len(results) == len(jobs)
 
     # A worker's stdin is not a terminal, which used to fail Keyboard.start()
-    # with "(25, 'Inappropriate ioctl for device')".
+    # with "(25, 'Inappropriate ioctl for device')". Windows reports its NUL
+    # device as a terminal, and has no termios to fail.
     for result in results:
-        assert result["stdin_is_tty"] is False
+        if sys.platform != "win32":
+            assert result["stdin_is_tty"] is False
         assert result["active"] is True
 
     renderers = {result["pid"] for result in results if result["was_renderer"]}
