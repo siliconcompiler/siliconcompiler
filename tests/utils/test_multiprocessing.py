@@ -1420,6 +1420,7 @@ sys.stdin.readline()
 """
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no resource tracker")
 @pytest.mark.timeout(60)
 def test_starter_exits_while_its_server_serves_others():
     """The process that started a server exits at once while another still uses
