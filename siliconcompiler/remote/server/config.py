@@ -84,9 +84,6 @@ DEFAULTS: Dict[str, Any] = {
     # detail or internal host.
     "notices": [],
 
-    # OPTIONAL: absent unless the operator sets one. Absent is not empty.
-    "terms_url": None,
-
     "limits": DEFAULT_LIMITS,
 
     # Where bytes go, as a URI (see `state.storage`).
@@ -474,7 +471,7 @@ class Config:
     def capabilities(self, software: Dict[str, list]) -> Dict[str, Any]:
         '''The ``GET /v1`` body. ``software`` comes from the store: a version is
         advertised only where a live image holds it.'''
-        block = {
+        return {
             "api_version": "v1",
             "software": software,
             "grant_types_supported": list(self._values["grant_types_supported"]),
@@ -485,9 +482,3 @@ class Config:
             "identity_assurance": self._values["identity_assurance"],
             "notices": self.notices(),
         }
-
-        # OPTIONAL: absent means the operator set none, which null would not.
-        if self._values["terms_url"]:
-            block["terms_url"] = self._values["terms_url"]
-
-        return block

@@ -196,13 +196,13 @@ def test_a_config_file_overrides_what_it_names_and_keeps_the_rest():
               "starts_at": "2099-01-01T02:00:00Z", "ends_at": "2099-01-01T06:00:00.500Z"}
 
     body = create_app(write_config({
-        "limits": {"concurrent_jobs": 1}, "notices": [plain, over, coming],
-        "terms_url": "https://example.com/terms"})).test_client().get("/v1").get_json()
+        "limits": {"concurrent_jobs": 1}, "notices": [plain, over, coming]
+    })).test_client().get("/v1").get_json()
 
     assert body["limits"]["concurrent_jobs"] == 1
     assert body["limits"]["max_job_nodes"] == 1000
     assert body["notices"] == [dict(plain, starts_at=None, ends_at=None), coming]
-    assert body["terms_url"] == "https://example.com/terms"
+    assert "terms_url" not in body
 
 
 def _notice(**members):
@@ -212,6 +212,8 @@ def _notice(**members):
 @pytest.mark.parametrize("values,complaint", [
     # A key that silently does nothing is a ceiling the operator believes set.
     ({"limitz": {}}, "unknown keys: limitz"),
+    # No service document exists here, so a stale `terms_url` is refused, not published.
+    ({"terms_url": "https://example.com/terms"}, "unknown keys: terms_url"),
     ({"limits": {"concurrent_job": 1}}, "unknown limits: concurrent_job"),
     # `features` is a registry: a client would rely on what nothing serves.
     ({"features": ["logs.stream", "python-env"]}, "python-env, which is not a registered"),

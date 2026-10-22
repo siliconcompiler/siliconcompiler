@@ -108,7 +108,6 @@ routed and refused.
                "logs.stream.job"],      // + "python.env" only where configured (§3),
                                         //   "jobs.reuse" only where configured (§5)
   "identity_assurance": "self_asserted",
-  "terms_url": …,                       // absent unless the operator sets one
   "notices": []
 }
 ```
