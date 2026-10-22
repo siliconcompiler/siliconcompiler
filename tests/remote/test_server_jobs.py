@@ -241,6 +241,31 @@ def test_a_requirement_is_always_a_list(server_client, key, token):
     assert listed.status_code == 201
 
 
+def _versions(names=1, sets=1, chars=10):
+    return {"python": {}, "tools": {f"t{n}": [">=" + "1" * (chars - 2)] * sets
+                                    for n in range(names)}}
+
+
+@pytest.mark.parametrize("shape,status", [
+    # At each bound a create passes, and one past it is refused.
+    (dict(names=500), 201), (dict(names=501), 400),
+    (dict(names=1, sets=1000), 201), (dict(names=1, sets=1001), 400),
+    (dict(chars=200), 201), (dict(chars=201), 400),
+    # Names and sets are counted across the buckets, and an oversized body is a count.
+    (dict(names=2, sets=500), 201), (dict(names=2, sets=501), 400),
+    (dict(names=500, sets=2000), 400),
+])
+def test_requested_versions_is_bounded(server_client, key, token, shape, status):
+    '''Names, specifier sets and a set's length are each capped, so a create's cost does
+    not grow with its body.'''
+    response = create(server_client, key, token, requested_versions=_versions(**shape))
+
+    assert response.status_code == status
+    if status == 400:
+        assert slug(response) == "invalid-request"
+        assert "descriptor.requested_versions" in response.get_json()["detail"]
+
+
 @pytest.mark.parametrize("source", [
     "git+ssh://git@example.com/ip.git",
     "https://alice:ghp_TOKEN@example.com/ip.tar.gz",

@@ -112,6 +112,13 @@ class _Supply:
         return self._sources.allowlisted(source, ref)
 
 
+# The contract's bounds on `requested_versions`, which keep a create's cost from
+# growing with its body.
+REQUESTED_NAMES_MAX = 500
+REQUESTED_SETS_MAX = 1000
+REQUESTED_SET_CHARS = 200
+
+
 def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """What a job needs from its image, by bucket:
     `descriptor.requested_versions`.
@@ -144,6 +151,18 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             detail=f"requested_versions is keyed on {', '.join(buckets)}; "
                    f"{', '.join(sorted(unknown))} is none of them")
 
+    # Counted before any specifier is read, so a refusal costs a count and not
+    # the body.
+    inners = [inner for inner in given.values() if isinstance(inner, dict)]
+    sets = sum(len(wanted) for inner in inners for wanted in inner.values()
+               if isinstance(wanted, list))
+    if sum(len(inner) for inner in inners) > REQUESTED_NAMES_MAX or \
+            sets > REQUESTED_SETS_MAX:
+        raise ProblemError(
+            "invalid-request",
+            detail=f"descriptor.requested_versions holds at most {REQUESTED_NAMES_MAX} "
+                   f"names and {REQUESTED_SETS_MAX} specifier sets")
+
     for bucket in buckets:
         inner = given.get(bucket)
         if inner is None:
@@ -163,6 +182,11 @@ def requirements(descriptor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
                     "invalid-request",
                     detail=f"requested_versions.{bucket}.{name} is a list of specifier "
                            "sets, even with one entry; a bare string is not")
+            if any(len(one) > REQUESTED_SET_CHARS for one in wanted):
+                raise ProblemError(
+                    "invalid-request",
+                    detail=f"descriptor.requested_versions.{bucket}.{name} has a specifier "
+                           f"set over {REQUESTED_SET_CHARS} characters")
         found[bucket] = dict(inner)
 
     return found
