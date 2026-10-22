@@ -83,6 +83,19 @@ if { [sc_cfg_tool_task_get var write_spef] } {
     }
 }
 
+set sc_psm_scenes []
+if { [llength [sc_psm_check_nets]] > 0 } {
+    foreach scene $sc_scenarios {
+        if {
+            [sc_is_scene_enabled $scene power] ||
+            [sc_is_scene_enabled $scene leakagepower] ||
+            [sc_is_scene_enabled $scene dynamicpower]
+        } {
+            lappend sc_psm_scenes $scene
+        }
+    }
+}
+
 if { [sc_cfg_tool_task_get var write_spef] && [sc_cfg_tool_task_get var use_spef] } {
     set lib_pex [dict create]
     foreach scenario $sc_scenarios {
@@ -105,7 +118,7 @@ if { [sc_cfg_tool_task_get var write_spef] && [sc_cfg_tool_task_get var use_spef
     set sc_estimate_parasitics [expr {
         [sc_cfg_tool_task_get var write_liberty] ||
         [sc_cfg_tool_task_get var write_sdf] ||
-        [llength [sc_psm_check_nets]] > 0
+        [llength $sc_psm_scenes] > 0
     }]
     foreach report {setup hold unconstrained clock_skew power drv_violations fmax clock_trees} {
         if { [sc_cfg_tool_task_check_in_list $report var reports] } {
@@ -175,14 +188,7 @@ foreach scene $sc_scenarios {
 }
 
 foreach net [sc_psm_check_nets] {
-    foreach scene $sc_scenarios {
-        if {
-            ![sc_is_scene_enabled $scene power] &&
-            ![sc_is_scene_enabled $scene leakagepower] &&
-            ![sc_is_scene_enabled $scene dynamicpower]
-        } {
-            continue
-        }
+    foreach scene $sc_psm_scenes {
         puts "Analyzing supply net: $net on $scene"
         analyze_power_grid -net $net -corner $scene
     }
