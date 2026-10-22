@@ -375,6 +375,24 @@ def test_stop_dashboard(dashboard):
 
 
 @pytest.mark.timeout(30)
+def test_render_thread_owns_keyboard(dashboard, monkeypatch):
+    """The render thread starts and stops the keyboard, so stop() cannot close the terminal
+    under a check_key() in flight on that thread.
+    """
+    calls = []
+    for name in ("start", "stop"):
+        monkeypatch.setattr(Keyboard, name,
+                            lambda name=name: calls.append((name, threading.current_thread())))
+
+    dashboard = dashboard._dashboard
+    dashboard.open_dashboard()
+    render_thread = dashboard._render_thread
+    dashboard.stop()
+
+    assert calls == [("start", render_thread), ("stop", render_thread)]
+
+
+@pytest.mark.timeout(30)
 def test_set_logger_seeds_log_pane_from_history(dashboard):
     """When the dashboard attaches, the log pane should be seeded with the
     records retained by an SCHistoryLogHandler already on the logger, so it
