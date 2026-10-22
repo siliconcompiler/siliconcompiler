@@ -37,7 +37,7 @@
 <tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
     <td><code>pdk</code>, <code>library</code> or <code>fpga</code>.</td></tr>
 <tr><td><code>detected</code></td><td><span class="req">REQUIRED</span></td>
-    <td><code>attribution</code> or <code>content</code>: how the member was found to be controlled. <code>content</code> is found during extraction, the earliest the server can see it; <code>attribution</code> once the manifest&rsquo;s read reports what each member belongs to.</td></tr>
+    <td><code>attribution</code> or <code>content</code>: how the member was found to be controlled. <code>content</code> is found first, by the server&rsquo;s own reading of the upload before staging starts; <code>attribution</code> once staging&rsquo;s read of the manifest reports what each member belongs to.</td></tr>
 <tr><td><code>member</code></td><td><span class="req">REQUIRED</span></td>
     <td>The archive entry, bounded. Named only once the archive has passed its safety checks.</td></tr>
 <tr><td><code>resource</code></td><td><span class="req">OPTIONAL</span></td>
@@ -53,16 +53,18 @@
 
 <table>
 <tbody>
-<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
-    <td>While the archive is extracted &mdash; the earliest the server can see what it carries.</td></tr>
+<tr><td class="wrap">The job, while it stages</td>
+    <td>The job ends <code>rejected</code> and carries this as its <code>error</code>; read it with <code>GET /v1/jobs/{id}</code>. Submit itself accepts the archive on its digest alone.</td></tr>
 </tbody>
 </table>
+
+<p>The order is fixed: content is checked first, then attribution, and both before <a href="terms-not-accepted.html"><code>terms-not-accepted</code></a> and <a href="entitlement-denied.html"><code>entitlement-denied</code></a> on the job&rsquo;s resources. A caller who holds no grant on the resource therefore gets <code>upload-forbidden</code> with no <code>resource</code>, and never an <code>entitlement-denied</code> that names it.</p>
 
 {% include "_help.html" %}
 
 <h2>What this is not</h2>
 
-<p><a href="archive-rejected.html"><code>archive-rejected</code></a> is also raised during extraction, and is a safety failure of the archive itself, not a policy about its contents. The fix differs.</p>
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> is also raised while the upload is read, and is a safety failure of the archive itself, not a policy about its contents. The fix differs.</p>
 
 <p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the opposite case: a resource the server needed and could not get.</p>
 {% endblock %}
