@@ -201,6 +201,24 @@ def test_syn_fpga_marks_design_params_required(heartbeat_design):
         assert "library,heartbeat,fileset,rtl,param,N" in node.task.get("require")
 
 
+def test_yosys_max_threads_from_task_threads(heartbeat_design):
+    """Every yosys task, not only syn_asic, hands its thread count to yosys's environment."""
+    proj = FPGA(heartbeat_design)
+    proj.add_fileset("rtl")
+    proj.option.scheduler.set_maxthreads(3)
+
+    flow = Flowgraph("synthflow")
+    flow.node("synthesis", FPGASynthesis())
+    proj.set_flow(flow)
+    proj.set_fpga(DummyYosysFPGA())
+
+    node = SchedulerNode(proj, "synthesis", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_threads() == 3
+        assert node.task.get_runtime_environmental_variables()["YOSYS_MAX_THREADS"] == "3"
+
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
