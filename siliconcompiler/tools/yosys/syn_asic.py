@@ -32,8 +32,6 @@ class _ASICTask(ASICTask, YosysTask):
     def setup(self):
         super().setup()
 
-        self.set_threads()
-
         self.add_required_key("var", "synthesis_corner")
         self._determine_synthesis_corner()
 
