@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 import pytest
 import queue
 import sys
@@ -11,6 +12,8 @@ from rich.table import Table
 from rich.padding import Padding
 from rich.progress import Progress
 
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from unittest.mock import patch
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
@@ -25,7 +28,9 @@ from siliconcompiler.report.dashboard.cli.keyboard import Keyboard
 from siliconcompiler import NodeStatus
 from siliconcompiler import Project, Design, Flowgraph, Task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.tools.builtin import BuiltinTask
+from siliconcompiler.utils.multiprocessing import MPManager, SharedGroup, SharedGroupMember
+from siliconcompiler.utils.paths import builddir
 
 
 class FauxTask(Task):
@@ -1830,12 +1835,12 @@ def test_get_job_with_status(mock_project, fake_console):
 
 @pytest.mark.timeout(30)
 def test_get_job_topology_cached(mock_project, fake_console):
-    """_get_job reuses the topology cached under design/jobname across status changes that do
+    """_get_job reuses the topology cached for a job across status changes that do
     not add or remove SKIPPED nodes."""
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
-    project_id = "test_design/test_job"
+    project_id = os.path.join(builddir(mock_project), "test_design", "test_job")
     assert project_id in dashboard._topology_cache
     cached = dashboard._topology_cache[project_id]
 
@@ -1858,7 +1863,7 @@ def test_get_job_topology_invalidated_by_skipped(mock_project, fake_console):
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
-    project_id = "test_design/test_job"
+    project_id = os.path.join(builddir(mock_project), "test_design", "test_job")
     first = dashboard._topology_cache[project_id]
 
     mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
@@ -1889,7 +1894,8 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
     dashboard._get_job(mock_project)
     after_seed = len(exec_calls)
     assert after_seed >= 1
-    seeded = dashboard._topology_cache["test_design/test_job"]
+    project_id = os.path.join(builddir(mock_project), "test_design", "test_job")
+    seeded = dashboard._topology_cache[project_id]
 
     # Status-only refreshes: cache hits -- must reuse the same _FlowTopology
     # object and must not invoke get_execution_order again.
@@ -1905,7 +1911,7 @@ def test_get_job_topology_distance_walk_runs_once(mock_project, fake_console,
         f"get_execution_order called {len(exec_calls)} times, expected "
         f"{after_seed} (one per real topology rebuild)"
     )
-    assert dashboard._topology_cache["test_design/test_job"] is seeded, (
+    assert dashboard._topology_cache[project_id] is seeded, (
         "Topology object identity changed despite no structural change"
     )
 
@@ -1967,17 +1973,16 @@ def test_get_job_priority_reflects_status_changes(mock_project, fake_console):
 @pytest.mark.timeout(30)
 def test_get_job_separate_projects_use_separate_cache_entries(
         mock_project, fake_console):
-    """The cache key is design/jobname; two distinct projects must each
-    get their own cached topology."""
+    """Two jobs of one design each get their own cached topology."""
     dashboard = MPManager.get_dashboard()
 
     dashboard._get_job(mock_project)
-    assert "test_design/test_job" in dashboard._topology_cache
-
     mock_project.set('option', 'jobname', 'other_job')
     dashboard._get_job(mock_project)
-    assert "test_design/other_job" in dashboard._topology_cache
-    assert "test_design/test_job" in dashboard._topology_cache
+
+    root = os.path.join(builddir(mock_project), "test_design")
+    assert os.path.join(root, "test_job") in dashboard._topology_cache
+    assert os.path.join(root, "other_job") in dashboard._topology_cache
 
 
 @pytest.mark.timeout(30)
@@ -2840,3 +2845,498 @@ def test_nodashboard_after_construction_releases_hook(mock_project, fake_console
 
     assert mock_project._Project__dashboard is None
     assert dash._CliDashboard__atexit_func is None
+
+
+@pytest.fixture
+def local_group(monkeypatch, fake_console):
+    """Swap the manager proxy for an in-process group.
+
+    The protocol under test is the same either way, and this keeps the
+    assertions free of manager round trips. The real proxy path is covered by
+    test_group_spans_spawned_processes below.
+    """
+    group = SharedGroup("dashboard")
+    monkeypatch.setattr(MPManager, "get_shared_group", staticmethod(lambda name: group))
+    return group
+
+
+def _board():
+    board = Board(MPManager.get_manager())
+    assert board._active
+    # Never actually take the terminal in a test.
+    board._render_thread = None
+    return board
+
+
+def _member(board, **kwargs):
+    """The member a board would build in open_dashboard(), without the threads."""
+    kwargs.setdefault("publish", board._snapshot)
+    kwargs.setdefault("collect", board._ingest_remote)
+    kwargs.setdefault("on_promote", board._promote)
+    kwargs.setdefault("wake", board._render_event)
+    kwargs.setdefault("stop", board._render_stop_event)
+    member = SharedGroupMember("dashboard", **kwargs)
+    board._group = member
+    return member
+
+
+def _job(design, jobname, complete=False):
+    data = JobData()
+    data.design = design
+    data.jobname = jobname
+    data.total = 1
+    data.nodes = [{"step": "s", "index": "0"}]
+    data.complete = complete
+    return data
+
+
+def test_only_one_member_owns_the_group(local_group, monkeypatch):
+    """The first board to open owns the group and the rest publish to it; another
+    process's claim is made on its behalf."""
+    monkeypatch.setattr(SharedGroupMember, "_collect_loop", lambda self: None)
+    monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: None)
+    other_process = 999
+
+    board = _board()
+    assert _member(board).start() is True
+    assert local_group.claim(other_process) is False
+
+    # Now the other way round: the group is already taken when this board opens.
+    local_group.release(os.getpid())
+    assert local_group.claim(other_process) is True
+
+    late = _board()
+    member = _member(late)
+    assert member.start() is False
+    assert member.is_owner is False
+
+
+def test_board_acts_alone_when_there_is_no_group(monkeypatch, fake_console):
+    """Without a group -- no manager, or a broken one -- a board renders by itself
+    and never retries the group."""
+    monkeypatch.setattr(MPManager, "get_shared_group", staticmethod(lambda name: None))
+
+    board = _board()
+    member = _member(board)
+    assert member.start() is True
+    assert member.thread is None, "no loop should run without a group"
+    # An unavailable group is never retried, so a dead manager cannot cost a
+    # round trip per tick for the rest of the run.
+    assert member.group() is None
+
+
+def test_board_acts_alone_when_the_group_call_raises(monkeypatch, fake_console):
+    class Exploding:
+        def claim(self, member):
+            raise ConnectionResetError("manager went away")
+
+    monkeypatch.setattr(MPManager, "get_shared_group", staticmethod(lambda name: Exploding()))
+
+    board = _board()
+    member = _member(board)
+    assert member.start() is True
+    assert member.thread is None
+
+
+def test_snapshot_reports_changed_jobs_and_new_log_lines(local_group):
+    board = _board()
+
+    board._job_data["d/j0"] = _job("d", "j0")
+    board._board_info.data_modified = True
+    board._log_handler.add_line("hello")
+
+    jobs, logs = board._snapshot()
+    assert sorted(jobs) == ["d/j0"]
+    assert logs == ["hello"]
+
+    # Nothing new: an empty snapshot, which the member still sends as a
+    # heartbeat but uses to back its cadence off.
+    assert board._snapshot() == ({}, [])
+
+
+def test_published_log_lines_stay_in_the_local_buffer(local_group):
+    """Draining log lines for publication leaves the local pane intact, so a member
+    promoted to owner does not paint a blank log."""
+    board = _board()
+    for i in range(5):
+        board._log_handler.add_line(f"line{i}")
+
+    assert board._log_handler.drain() == [f"line{i}" for i in range(5)]
+    assert board._log_handler.drain() == []
+    assert board._log_handler.get_lines() == [f"line{i}" for i in range(5)]
+
+
+def test_owner_ingests_remote_jobs(local_group):
+    board = _board()
+    board._job_data["d/mine"] = _job("d", "mine")
+
+    board._ingest_remote({"d/theirs": _job("d", "theirs")}, ["a log line"], [])
+
+    assert sorted(board._job_data) == ["d/mine", "d/theirs"]
+    assert board._board_info.data_modified is True
+    assert board._render_event.is_set()
+    assert "a log line" in board._log_handler.get_lines()
+
+
+def test_orphaned_remote_job_is_retired(local_group):
+    """A job whose process has gone is marked complete, so it cannot hold stop()
+    open forever, and stays on screen."""
+    board = _board()
+    board._job_data["d/gone"] = _job("d", "gone", complete=False)
+
+    board._ingest_remote({}, [], ["d/gone"])
+
+    assert board._job_data["d/gone"].complete is True
+    # Still on screen: a retired job keeps its last known state.
+    assert "d/gone" in board._job_data
+
+
+def test_member_promotes_when_the_owner_disappears(local_group, monkeypatch):
+    started = []
+    monkeypatch.setattr(Board, "_start_rendering", lambda self: started.append(self))
+    monkeypatch.setattr(SharedGroupMember, "PROMOTE_INTERVAL", 0.0)
+    monkeypatch.setattr(SharedGroupMember, "_collect_loop", lambda self: None)
+
+    board = _board()
+    member = _member(board)
+
+    local_group.claim(999)
+    monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: None)
+    assert member.start() is False
+
+    promote = member._try_promote
+
+    # While the owner is live, a member must not steal the terminal.
+    assert promote() is False
+    assert started == []
+
+    # Owner gone.
+    local_group.release(999)
+    assert promote() is True
+    assert started == [board]
+
+
+def test_promoted_member_starts_collecting(local_group, monkeypatch):
+    """A promoted member swaps its publish loop for the collect loop, or the other
+    processes' runs would go dark."""
+    monkeypatch.setattr(Board, "_start_rendering", lambda self: None)
+    monkeypatch.setattr(SharedGroupMember, "PROMOTE_INTERVAL", 0.0)
+    loops = []
+    monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: loops.append("publish"))
+    monkeypatch.setattr(SharedGroupMember, "_collect_loop", lambda self: loops.append("collect"))
+
+    board = _board()
+    member = _member(board)
+    local_group.claim(999)
+    assert member.start() is False
+    assert member.is_owner is False
+
+    local_group.release(999)
+    assert member._try_promote() is True
+    assert member.is_owner is True
+
+    member.join()
+    assert loops == ["publish", "collect"]
+
+
+def test_promotion_is_rate_limited(local_group, monkeypatch):
+    monkeypatch.setattr(Board, "_start_rendering", lambda self: None)
+    monkeypatch.setattr(SharedGroupMember, "_collect_loop", lambda self: None)
+    monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: None)
+
+    board = _board()
+    member = _member(board)
+    member.start()
+
+    promote = member._try_promote
+    assert promote() is True
+    # A second attempt inside the window is refused, so N orphaned members
+    # cannot hammer the manager racing for a vacant group.
+    assert promote() is False
+
+
+def test_board_declines_promotion_during_teardown(local_group, monkeypatch):
+    """A board being torn down declines a promotion, which would leave the terminal
+    in the alternate screen with nobody to restore it."""
+    monkeypatch.setattr(Board, "_start_rendering",
+                        lambda self: pytest.fail("must not start rendering"))
+
+    board = _board()
+    board._render_stop_event.set()
+    assert board._promote() is False
+
+
+def test_declined_promotion_hands_the_group_straight_back(local_group, monkeypatch):
+    monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: None)
+    monkeypatch.setattr(SharedGroupMember, "PROMOTE_INTERVAL", 0.0)
+
+    board = _board()
+    member = _member(board)
+    local_group.claim(999)
+    member.start()
+
+    local_group.release(999)
+    board._render_stop_event.set()
+
+    assert member._try_promote() is False
+    assert local_group.owner() is None, "a declined role must not be left held"
+
+
+def test_render_thread_is_inert_once_stopped(local_group):
+    board = _board()
+    board._render_stop_event.set()
+
+    board._render()
+
+    assert not board.live.is_started
+
+
+@pytest.fixture
+def painting(monkeypatch, fake_console):
+    """A board that has taken the terminal, as far as its exit hook can tell.
+
+    The render loop only waits to be stopped, so nothing is drawn.
+    """
+    monkeypatch.setattr(Keyboard, "start", lambda: None)
+    monkeypatch.setattr(Board, "_render", lambda self: self._render_stop_event.wait(30))
+
+    board = _board()
+    board._start_rendering()
+    yield board
+    board.stop(force=True, dump_log=False)
+
+
+def test_painting_registers_an_exit_hook(painting):
+    """The process that takes the terminal registers its own way to give it
+    back. A pool worker may never run atexit, nor the hook its parent's
+    MPManager registered, which a fork drops."""
+    hook = painting._exit_hook
+    assert hook is not None and hook.still_active()
+
+    painting.stop(force=True, dump_log=False)
+    assert painting._exit_hook is None
+    assert not hook.still_active(), "a board that gave the terminal back needs no hook"
+
+
+def test_exit_hook_dropped_by_a_fork_is_replaced(painting):
+    """multiprocessing clears every inherited hook in a child; the board's copy
+    of one then reads as inactive, and painting again registers a live one."""
+    from multiprocessing import util
+
+    cleared = util.Finalize(None, lambda: None, exitpriority=1)
+    cleared.cancel()
+    painting._exit_hook = cleared
+
+    painting._start_rendering()
+    assert painting._exit_hook is not cleared
+    assert painting._exit_hook.still_active()
+
+
+def test_exit_hook_gives_the_terminal_back(painting, monkeypatch):
+    stopped = []
+    monkeypatch.setattr(painting.live, "stop", lambda: stopped.append(True))
+
+    painting._exit_hook()
+
+    assert stopped == [True]
+    assert not painting.is_running()
+    assert painting._exit_hook is None
+
+
+def test_publisher_teardown_leaves_the_terminal_alone(local_group, monkeypatch):
+    """A board that publishes must not run the owner's terminal restore."""
+    monkeypatch.setattr(SharedGroupMember, "_publish_loop", lambda self: None)
+
+    board = _board()
+    member = _member(board)
+    member.start()
+    assert member.claimed is True
+
+    monkeypatch.setattr(board.live, "stop",
+                        lambda: pytest.fail("a publishing board must not stop the live display"))
+
+    board.stop(force=True)
+
+    # Group handed back so the next run in any process can take it at once
+    # rather than waiting out the heartbeat timeout.
+    assert local_group.owner() is None
+    assert member.claimed is False
+
+
+@pytest.mark.parametrize("late_run", (False, True), ids=("finish", "late_run"))
+def test_held_back_stop_runs_once_the_rest_finish(local_group, monkeypatch, late_run):
+    """A board stays up while other processes' runs go on, and gives the terminal
+    back once they finish -- later, if another run starts inside the grace."""
+    monkeypatch.setattr(Board, "STOP_GRACE", 0.3)
+    board = _board()
+
+    class FakeThread:
+        def is_alive(self):
+            return True
+
+        def join(self, *args, **kwargs):
+            pass
+
+    board._render_thread = FakeThread()
+    stopped = []
+    board.live.stop = lambda: stopped.append(True)
+
+    board._job_data["d/mine"] = _job("d", "mine", complete=True)
+    board._ingest_remote({"d/theirs": _job("d", "theirs")}, [], [])
+    board.stop()
+    assert stopped == [], "board must stay up while another process is still running"
+
+    board._ingest_remote({"d/theirs": _job("d", "theirs", complete=True)}, [], [])
+    if late_run:
+        board._ingest_remote({"d/late": _job("d", "late")}, [], [])
+        board._stop_timer.join(5)
+        assert stopped == []
+        board._ingest_remote({"d/late": _job("d", "late", complete=True)}, [], [])
+    board._stop_timer.join(5)
+    assert stopped == [True]
+
+
+def test_same_job_in_two_build_directories_gets_two_rows(fake_console, mock_running_job_lg):
+    """Runs sharing a dashboard are told apart by build directory, not design and jobname."""
+    board = _board()
+    with patch.object(Board, "_get_job", return_value=mock_running_job_lg):
+        for directory in ("build_a", "build_b"):
+            project = _project_with_flow()
+            project.option.set_builddir(directory)
+            board._update_render_data(project)
+
+    assert len(board._job_data) == 2
+
+
+class SweepTask(BuiltinTask):
+    """A no-op that lasts long enough for the sweep points to overlap."""
+    def task(self):
+        return "sweep"
+
+    def _set_io_files(self):
+        return
+
+    def run(self):
+        time.sleep(0.6)
+        return 0
+
+
+def _make_project(builddir, datadir, jobname):
+    design = Design("sweepdesign")
+    design.set_dataroot("sweep-data", datadir)
+    with design.active_fileset("rtl"), design.active_dataroot("sweep-data"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    project = Project(design)
+    project.add_fileset("rtl")
+
+    flow = Flowgraph("sweepflow")
+    flow.node("stepone", SweepTask())
+    flow.node("steptwo", SweepTask())
+    flow.edge("stepone", "steptwo")
+    project.set_flow(flow)
+
+    project.set("option", "jobname", jobname)
+    project.set("option", "builddir", builddir)
+    return project
+
+
+def _worker_init():
+    """Runs in each pool worker before any task -- and so before a Project is
+    unpickled, which is when its Board is built and decides whether it has a
+    terminal.
+
+    A worker really does inherit the parent's stdout, so under a tty this is
+    the state it would find on its own; pytest just does not own one.
+    """
+    Console.is_terminal = property(lambda self: True)
+
+
+def _point(project):
+    """Body of one sweep point, running in a pool worker."""
+    stdin_is_tty = sys.stdin is not None and sys.stdin.isatty()
+
+    board = project._Project__dashboard._dashboard
+    assert board._active, "worker board should have activated on the inherited stdout"
+
+    # Sample the board while the run is in flight: by the time run() returns it
+    # has released the renderer role and the roles are no longer observable.
+    peak = {"owner": False, "jobs": set(), "logs": 0}
+    import threading
+    stop = threading.Event()
+
+    def sample():
+        while not stop.wait(0.05):
+            peak["owner"] |= bool(board._group and board._group.is_owner)
+            jobs = list(board._job_data.values())
+            peak["jobs"] |= {f"{job.design}/{job.jobname}" for job in jobs}
+            peak["logs"] = max(peak["logs"], len(board._log_handler.buffer))
+
+    sampler = threading.Thread(target=sample, daemon=True)
+    sampler.start()
+    try:
+        project.run()
+    finally:
+        # Let the renderer collect the points still finishing behind us.
+        time.sleep(1.0)
+        stop.set()
+        sampler.join()
+
+    return {
+        "pid": os.getpid(),
+        "stdin_is_tty": stdin_is_tty,
+        "active": board._active,
+        "was_renderer": peak["owner"],
+        "jobs": sorted(peak["jobs"]),
+        "log_lines": peak["logs"],
+    }
+
+
+@pytest.mark.timeout(180)
+def test_concurrent_runs_share_one_dashboard():
+    builddir = os.path.join(os.getcwd(), "sweepbuild")
+    datadir = os.path.join(os.getcwd(), "sweepdata")
+    os.makedirs(datadir, exist_ok=True)
+    with open(os.path.join(datadir, "top.v"), "w") as f:
+        f.write("module top(); endmodule\n")
+
+    jobs = ["point0", "point1", "point2"]
+    projects = [_make_project(builddir, datadir, job) for job in jobs]
+
+    # spawn: nothing is inherited but the manager address Project pickles along.
+    with ProcessPoolExecutor(max_workers=3, mp_context=get_context("spawn"),
+                             initializer=_worker_init) as pool:
+        results = list(pool.map(_point, projects))
+
+    assert len(results) == len(jobs)
+
+    # A worker's stdin is not a terminal, which used to fail Keyboard.start()
+    # with "(25, 'Inappropriate ioctl for device')". Windows reports its NUL
+    # device as a terminal, and has no termios to fail.
+    for result in results:
+        if sys.platform != "win32":
+            assert result["stdin_is_tty"] is False
+        assert result["active"] is True
+
+    renderers = {result["pid"] for result in results if result["was_renderer"]}
+    assert len(renderers) == 1, \
+        f"exactly one process must own the terminal, got {renderers}"
+
+    renderer = [r for r in results if r["was_renderer"]][0]
+    expected = sorted(f"sweepdesign/{job}" for job in jobs)
+    assert renderer["jobs"] == expected, \
+        "the renderer must show a row group for every concurrent run"
+
+    # And every publisher's log output reached the shared pane, not the
+    # terminal it does not own.
+    assert renderer["log_lines"] > max(
+        r["log_lines"] for r in results if not r["was_renderer"])
+
+    for result in results:
+        if result["was_renderer"]:
+            continue
+        # A publisher collects nothing: it only ever sees the runs it drives
+        # itself, which is what makes the renderer's table the complete one.
+        assert set(result["jobs"]) < set(expected), \
+            f"publisher {result['pid']} should track only its own jobs, got {result['jobs']}"

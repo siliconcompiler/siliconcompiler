@@ -378,6 +378,9 @@ def test_py_gcd_hls():
     # Warning counts pinned per node. This flow starts from gcd.c, so the design
     # is whatever Bambu generates rather than the hand-written gcd.v used by
     # test_py_gcd(), and the counts differ accordingly.
+    # Every OpenROAD node that reports power also warns once with [STA-2402]
+    # power activity propagation through registers did not converge after 50
+    # passes; the counts below include it.
 
     # The Bambu convert task defines no warning regex, so it records no metrics.
     assert project.get('metric', 'warnings', step='convert', index='0') is None
@@ -394,10 +397,12 @@ def test_py_gcd_hls():
 
     # 1x [STA-0441] same set_input_delay constraint, reported again when OpenROAD
     #    reads the SDC
-    assert project.get('metric', 'warnings', step='cleanup.clean', index='0') == 1
+    # 1x [STA-2402]
+    assert project.get('metric', 'warnings', step='cleanup.clean', index='0') == 2
 
     # 1x [IFP-0028] Core area lower left (1.000, 1.000) snapped to (1.140, 1.400)
-    assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 1
+    # 1x [STA-2402]
+    assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 2
 
     # Skipped ("no macros to place."), so no metrics are recorded for this node.
     assert project.get('metric', 'warnings', step='floorplan.macro_placement',
@@ -407,31 +412,32 @@ def test_py_gcd_hls():
     assert project.get('metric', 'warnings', step='floorplan.power_grid', index='0') == 0
     assert project.get('metric', 'warnings', step='floorplan.pin_placement', index='0') == 0
 
-    assert project.get('metric', 'warnings', step='place.global', index='0') == 0
-    assert project.get('metric', 'warnings', step='place.repair_design', index='0') == 0
-    assert project.get('metric', 'warnings', step='place.detailed', index='0') == 0
+    assert project.get('metric', 'warnings', step='place.global', index='0') == 1
+    assert project.get('metric', 'warnings', step='place.repair_design', index='0') == 1
+    assert project.get('metric', 'warnings', step='place.detailed', index='0') == 1
 
     # 1x [CTS-0132] -balance_levels is obsolete
     # 1x [CTS-0128] -obstruction_aware is obsolete
-    assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 2
+    # 1x [STA-2402]
+    assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 3
 
-    assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 0
-    assert project.get('metric', 'warnings', step='cts.fillcell', index='0') == 0
+    assert project.get('metric', 'warnings', step='cts.repair_timing', index='0') == 1
+    assert project.get('metric', 'warnings', step='cts.fillcell', index='0') == 1
 
-    assert project.get('metric', 'warnings', step='route.global', index='0') == 0
-    assert project.get('metric', 'warnings', step='route.antenna_repair', index='0') == 0
+    assert project.get('metric', 'warnings', step='route.global', index='0') == 1
+    assert project.get('metric', 'warnings', step='route.antenna_repair', index='0') == 1
 
-    # Currently 8, all [EST-0026] Missing route to pin, one per pin, spread
-    # across the Datapath temp array and assorted logic cells. Not asserted,
-    # see the note in test_py_gcd_gf180(); this was 14 on yosys 0.67.
-    # assert project.get('metric', 'warnings', step='route.detailed', index='0') == 8
+    # Currently 9: 1x [STA-2402] and 8x [EST-0026] Missing route to pin, one per
+    # pin, spread across the Datapath temp array and assorted logic cells. Not
+    # asserted, see the note in test_py_gcd_gf180(); this was 14 on yosys 0.67.
+    # assert project.get('metric', 'warnings', step='route.detailed', index='0') == 9
 
     # Skipped ("no metal fill rules are available" from freepdk45), so no metrics
     # are recorded for this node.
     assert project.get('metric', 'warnings', step='dfm.metal_fill', index='0') is None
 
     assert project.get('metric', 'warnings', step='write.gds', index='0') == 0
-    assert project.get('metric', 'warnings', step='write.views', index='0') == 0
+    assert project.get('metric', 'warnings', step='write.views', index='0') == 1
 
 
 @pytest.mark.eda

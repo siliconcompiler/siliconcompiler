@@ -150,13 +150,14 @@ by one:
 .. code-block:: text
 
    ~/.sc/
+   ├── auth/            <- remote sessions and key, and data-source tokens; only yours
    ├── cache/           <- everything kept between runs (see below)
    ├── settings.json    <- your persistent defaults
-   ├── auth/            <- remote server, key and sessions; private (SC_AUTH_DIR moves it)
+   ├── managers/        <- how runs in one terminal find each other's dashboard
    └── tool_build/      <- scratch space for sc-install
 
 On Windows the same directory is ``C:\Users\<username>\.sc\``.
-:ref:`sc-config paths <app-sc-config-paths>` prints where each of these is on
+:ref:`sc-config paths <app-sc-config>` prints where each of these is on
 your machine, and which exist.
 
 The cache
@@ -289,7 +290,7 @@ Settings and credentials
 
 ``settings.json`` holds defaults applied to every new :class:`.Project` -- your
 preferred scheduler, log verbosity, and so on -- written by
-:ref:`sc-config settings <app-sc-config-settings>` or
+:ref:`sc-config settings <app-sc-config>` or
 :meth:`.OptionSchema.write_defaults`. An administrator can also supply
 machine-wide defaults from outside your home directory, at
 ``/etc/siliconcompiler/settings.json`` on Linux and macOS or
@@ -304,6 +305,12 @@ it. Point :keypath:`option,credentials` at a different file to use more than
 one server. A ``credentials`` file an older client left in ``~/.sc`` is moved
 into it the first time it is read. See
 :ref:`Remote Processing <remote_processing>`.
+
+``auth/tokens.json`` holds the tokens private data sources are fetched with,
+written by :ref:`sc-config tokens <app-sc-config>`. Only you can open ``auth/``
+or read the file; if others can, the tokens are not used until that is fixed. A
+Docker task never sees it, even through a directory mounted for one of its
+inputs. See :ref:`stored tokens <resolver_tokens>`.
 
 ``tool_build/`` is where ``sc-install`` builds tools from source before
 installing them, by default into ``~/.local``. It is scratch space and can be

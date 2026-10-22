@@ -219,7 +219,11 @@ class MetricSchema(BaseSchema):
         if node_end is None:
             return False
 
-        node_times = sorted(node_times)
+        # A node still running has no end; order it after finished nodes
+        # with the same start.
+        node_times = sorted(
+            node_times,
+            key=lambda times: (times[0], float("inf") if times[1] is None else times[1]))
         if len(node_times) > 1:
             new_times = []
             for n in range(len(node_times)):

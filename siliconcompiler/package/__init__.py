@@ -29,7 +29,8 @@ from pathlib import Path, PureWindowsPath
 
 from siliconcompiler.package.cache import PathCache, DataRootResolutionError, \
     PermanentResolutionError
-from siliconcompiler.utils import get_plugins, tarfile_module
+from siliconcompiler.utils import ConfigCommand, default_tokens_file, get_plugins, \
+    tarfile_module
 from siliconcompiler.utils.paths import cwdirsafe, datarootdir
 from siliconcompiler.utils.multiprocessing import MPManager, FileLockTimeout, \
     get_file_lock
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
     from siliconcompiler.project import Project
     from siliconcompiler.schema_support.pathschema import PathSchema
     from siliconcompiler.schema import BaseSchema
+    from siliconcompiler.utils.settings import SettingsManager
 
 
 #: Registry key marking resolver population as *complete*, written only once
@@ -1056,7 +1058,12 @@ class RemoteResolver(Resolver):
 
     def _get_auth_token(self, prefix: List[str]) -> str:
         """
-        Retrieves an authentication token from environment variables.
+        Retrieves an authentication token from environment variables, or from
+        the tokens ``sc-config tokens`` stores under their names.
+
+        Each name is looked up in the environment, then in the store, before
+        the next name, so a stored token acts as an exported variable would,
+        and a variable exported under the same name overrides it.
 
         Args:
             prefix (List[str]): A list of prefixes to search for in environment variable names.
@@ -1067,7 +1074,7 @@ class RemoteResolver(Resolver):
             str: The found token.
 
         Raises:
-            ValueError: If no token can be found in the environment.
+            ValueError: If no token can be found in the environment or the store.
         """
         token_name = self.name.upper()
         # Sanitize package name for environment variable compatibility
@@ -1079,13 +1086,22 @@ class RemoteResolver(Resolver):
             search_env.append(f"{prf.upper()}_{token_name}_TOKEN")
             search_env.append(f"{prf.upper()}_TOKEN")
 
+        # A store that cannot be used is logged, never raised: every caller
+        # takes a ValueError to mean there is no token. A malformed one the
+        # manager logs itself, and reads as empty.
+        try:
+            stored = _token_store(self.logger).get_category(_TOKENS_CATEGORY)
+        except ValueError as e:
+            self.logger.warning(f"Not using the stored tokens: {e}")
+            stored = {}
         for env in search_env:
-            token = os.environ.get(env)
+            token = os.environ.get(env) or stored.get(env)
             if token:
                 return token
 
         raise ValueError('Unable to determine authorization token. Please set one of the '
-                         f'following environment variables: {", ".join(search_env)}')
+                         'following environment variables, or store it with '
+                         f'sc-config tokens set: {", ".join(search_env)}')
 
 
 class FileResolver(Resolver):
@@ -1463,3 +1479,114 @@ class DatarootResolver(Resolver):
         # Strip leading '/' from urlparse.path to avoid os.path.join treating it as absolute
         subpath = self.urlparse.path.lstrip('/')
         return os.path.join(base_path, subpath) if subpath else base_path
+
+
+#: The category of the token store that holds each token, by the variable it
+#: stands for.
+_TOKENS_CATEGORY = "tokens"
+
+
+def _token_store(logger: logging.Logger) -> "SettingsManager":
+    """
+    The data-source tokens ``sc-config tokens`` stores, kept readable only by
+    the user, in a directory only the user can open. A fresh read each time, so
+    a token stored after this process started is seen.
+
+    Raises:
+        ValueError: If others can open the directory or read the store. It is
+            refused rather than repaired, since what others could read may
+            already be copied.
+    """
+    from siliconcompiler.utils.settings import SettingsManager
+
+    path = default_tokens_file()
+    directory = os.path.dirname(path)
+    if os.name != "nt":
+        wrong = [each for each in (directory, path)
+                 if os.path.exists(each) and stat.S_IMODE(os.stat(each).st_mode) & 0o077]
+        if wrong:
+            raise ValueError(f"others can read {' and '.join(wrong)}. Fix it -- chmod 700 "
+                             f"{directory}; chmod 600 {path} -- and replace each token stored "
+                             "there with a new one, since others may already have copied it")
+    return SettingsManager(path, logger, mode=0o600)
+
+
+def _add_tokens_parser(commands) -> None:
+    """
+    Add the ``tokens`` command: it stores the tokens private data sources are
+    fetched with.
+    """
+    parser = commands.add_parser(
+        "tokens",
+        help="the tokens private data sources are fetched with",
+        description="Store the tokens private data sources are fetched with, each under "
+                    "the environment variable it would otherwise be read from, such as "
+                    "GITHUB_TOKEN. They are kept in ~/.sc/auth/tokens.json, readable only "
+                    "by you. A variable exported under the same name is used instead.")
+    actions = parser.add_subparsers(dest="action", metavar="<action>", required=True)
+    action = actions.add_parser("set", help="store a token")
+    action.add_argument("name", help="the variable it stands for, such as GITHUB_TOKEN")
+    action.add_argument("value", nargs="?",
+                        help="the token; if left out, it is asked for without echoing, "
+                             "which keeps it out of the shell's history")
+    action.set_defaults(func=_cli_set_token)
+    actions.add_parser(
+        "list", help="print the stored names, the tokens hidden").set_defaults(
+        func=_cli_list_tokens)
+    action = actions.add_parser("unset", help="remove a stored token")
+    action.add_argument("name", help="the variable it is stored under")
+    action.set_defaults(func=_cli_unset_token)
+
+
+def _cli_set_token(args) -> int:
+    import getpass
+
+    if not re.fullmatch(r"[A-Z0-9_]+_TOKEN", args.name):
+        raise ValueError(f"{args.name} is not a token variable: a token is stored under "
+                         "the upper-case name it is read from, which ends in _TOKEN, "
+                         "such as GITHUB_TOKEN or HTTPS_LAMBDAPDK_TOKEN")
+    token = args.value
+    if token is None:
+        try:
+            token = getpass.getpass(f"{args.name}: ")
+        except EOFError:
+            token = ""
+    token = token.strip()
+    if not token:
+        raise ValueError("no token was given; nothing was saved")
+
+    store = _token_store(logging.getLogger(__name__))
+    with store.transaction():
+        store.set(_TOKENS_CATEGORY, args.name, token)
+    print(f"Saved {args.name} in {default_tokens_file()}")
+    return 0
+
+
+def _cli_list_tokens(args) -> int:
+    tokens = _token_store(logging.getLogger(__name__)).get_category(_TOKENS_CATEGORY)
+    if not tokens:
+        print("No tokens are stored")
+        return 0
+    width = max(len(name) for name in tokens)
+    for name in sorted(tokens):
+        line = f"{name:<{width}}  ********"
+        print(f"{line}  (overridden by the environment)" if os.environ.get(name) else line)
+    return 0
+
+
+def _cli_unset_token(args) -> int:
+    store = _token_store(logging.getLogger(__name__))
+    with store.transaction():
+        if args.name not in store.get_category(_TOKENS_CATEGORY):
+            raise ValueError(f"{args.name} is not stored")
+        store.delete(_TOKENS_CATEGORY, args.name)
+    print(f"Removed {args.name} from {default_tokens_file()}")
+    return 0
+
+
+TOKENS_COMMAND = ConfigCommand(
+    examples="""\
+To store a token for private data sources, rather than export it:
+    sc-config tokens set GITHUB_TOKEN
+    sc-config tokens list""",
+    add_parser=_add_tokens_parser)

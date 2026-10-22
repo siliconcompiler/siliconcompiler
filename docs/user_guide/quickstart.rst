@@ -184,7 +184,7 @@ When your job starts on a remote server, it will log a job ID which you can use 
     | INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
 
 The job ID is recorded in the job's manifest, which is how
-:ref:`sc-config remote <app-sc-config-remote>` identifies the job -- point it at that
+:ref:`sc-config remote <app-sc-config>` identifies the job -- point it at that
 manifest to interact with a running job:
 
 .. code-block:: bash

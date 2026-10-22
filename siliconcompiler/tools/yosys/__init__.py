@@ -16,7 +16,7 @@ import json
 import os
 import re
 
-from typing import List, Union
+from typing import Dict, List, Union
 
 from siliconcompiler import sc_open
 
@@ -360,6 +360,8 @@ class YosysTask(Task):
         self.set_exe("yosys", vswitch="--version", format="tcl")
         self.add_version(">=0.48")
 
+        self.set_threads()
+
         if self.has_breakpoint():
             self.add_commandline_option("-C")
         self.add_commandline_option("-c")
@@ -371,6 +373,15 @@ class YosysTask(Task):
 
         self.add_regex("warnings", "Warning:")
         self.add_regex("errors", "^ERROR")
+
+    def get_runtime_environmental_variables(self, include_path: bool = True) -> Dict[str, str]:
+        envvars = super().get_runtime_environmental_variables(include_path=include_path)
+
+        # yosys has no thread-count flag, only this variable (read since 0.58);
+        # unset, it sizes its thread pools to every core on the machine.
+        envvars["YOSYS_MAX_THREADS"] = str(self.get_threads())
+
+        return envvars
 
     def replay_modes(self, args):
         # -C enters yosys's Tcl shell once the script ends

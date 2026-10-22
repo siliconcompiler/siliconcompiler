@@ -11,7 +11,7 @@ import os.path
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, List, Dict, Set, Tuple
+from typing import Any, List, Dict, Optional, Set, Tuple
 
 from rich import box
 from rich.theme import Theme
@@ -26,7 +26,7 @@ from rich.text import Text
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuietFilter, \
     SC_LOG, SC_LOGERROR
-from siliconcompiler.utils.paths import workdir
+from siliconcompiler.utils.paths import builddir, workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.utils.units import format_time
@@ -134,6 +134,29 @@ class LogBuffer:
             if lines is None or lines > len(buffer_list):
                 return buffer_list
             return buffer_list[-lines:]
+
+    def drain(self) -> List[str]:
+        """
+        Moves every queued line into the buffer's history and returns just
+        those newly moved lines, for a board publishing to another process's
+        dashboard. They stay in the history, so a publisher promoted to
+        renderer paints the backlog it forwarded.
+
+        Returns:
+            list[str]: The lines added since the last drain or get_lines call.
+        """
+        new_lines = []
+        try:
+            for _ in range(self.queue.qsize()):
+                new_lines.append(self.queue.get_nowait())
+        except queue.Empty:
+            pass
+
+        if new_lines:
+            with self.lock:
+                self.buffer.extend(new_lines)
+
+        return new_lines
 
 
 class LogBufferHandler(logging.Handler):
@@ -368,16 +391,24 @@ class Board:
 
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
+    #: Seconds a stop held back for other processes' runs waits, once they have
+    #: all finished, before giving the terminal back: long enough for a pool to
+    #: start its next point without the dashboard closing and reopening.
+    STOP_GRACE: float = 5.0
+
     def __init__(self, manager):
         """
         Initializes the Board.
 
         Args:
             manager: Unused, retained for call-site compatibility
-                (``MPManager.get_dashboard``). The board and its render thread
-                live entirely in the main process, so its state is held in
-                plain in-process primitives (see ``__init__`` below) rather than
-                SyncManager proxies; no manager is needed.
+                (``MPManager.get_dashboard``). A board's own state is held in
+                plain in-process primitives (see ``__init__`` below) rather
+                than SyncManager proxies, so it needs no manager handed to
+                it. Boards in *different* processes do share one dashboard, but
+                that is brokered by :class:`.SharedGroupMember`, which owns the
+                manager proxy and rebuilds it per process -- precisely so no
+                proxy is ever held on the board itself.
         """
         self._console = Console(theme=Board.__theme)
 
@@ -390,6 +421,21 @@ class Board:
             screen=True,
             auto_refresh=False
         )
+
+        # This board's place in the "dashboard" SharedGroup, which boards in
+        # other processes join too: one renders and the rest publish to it.
+        # Built in open_dashboard(), since it holds a manager proxy that a
+        # forked node worker, inheriting this board, must not use.
+        self._group = None
+
+        # What gives the terminal back if this process exits while painting;
+        # see _start_rendering().
+        self._exit_hook = None
+
+        # A stop() that other processes' runs held back, and the timer that
+        # retries it once they finish.
+        self._stop_pending = False
+        self._stop_timer = None
 
         self._active = self._console.is_terminal
         if not self._active:
@@ -477,25 +523,106 @@ class Board:
             Board._symbols.get("logging", None),
             formatter_source=formatter_source)
 
+    def _start_rendering(self):
+        """Takes the terminal and starts painting. Caller holds the lock."""
+        Keyboard.start()
+        self.show_help()
+
+        # Give the terminal back however this process ends. MPManager.stop()
+        # cannot be relied on: a forked pool worker inherits its parent's, whose
+        # exit hooks multiprocessing drops in the child. An inherited hook reads
+        # as inactive.
+        if self._exit_hook is None or not self._exit_hook.still_active():
+            from multiprocessing import util
+            self._exit_hook = util.Finalize(
+                None, self.stop, kwargs={"force": True, "dump_log": False}, exitpriority=100)
+
+        self._render_thread = threading.Thread(target=self._render, daemon=True)
+        self._render_thread.start()
+
+    def _snapshot(self):
+        """Group callback: what this board has to tell the renderer.
+
+        Returns:
+            tuple: ``({project_id: JobData}, [log line, ...])``. Job data is
+            sent only when it actually changed; log lines are drained every
+            time, since a long-running node emits output for minutes without
+            any manifest change behind it.
+        """
+        jobs = {}
+        with self._job_data_lock:
+            if self._board_info.data_modified:
+                self._board_info.data_modified = False
+                jobs = dict(self._job_data)
+
+        return jobs, self._log_handler.drain()
+
+    def _promote(self) -> bool:
+        """Group callback: this board has been handed a vacated renderer role.
+
+        Returns:
+            bool: False to decline, which happens only when a teardown is
+            already under way -- starting the live display then would leave the
+            terminal in its alternate screen with nobody left to restore it.
+        """
+        with self._job_data_lock:
+            if self._render_stop_event.is_set():
+                return False
+
+            # Everything this board published is still in _job_data, so nothing
+            # is lost in the handover; force a reload so the first frame paints
+            # it.
+            self._board_info.data_modified = True
+            self._start_rendering()
+
+        return True
+
     def open_dashboard(self):
-        """Starts the dashboard rendering thread if it is not already running."""
+        """Starts the dashboard for this process if it is not already running.
+
+        Across a group of processes sharing an :class:`.MPManager`, the first
+        board to get here takes the terminal and paints every job in the group;
+        the rest publish their job data and log output to it without drawing
+        anything themselves. See :class:`.SharedGroupMember`.
+        """
         if not self._active:
             return
 
-        if not self.is_running():
-            self._update_render_data(None)
+        if self.is_running():
+            return
 
-            with self._job_data_lock:
-                if not self._render_thread or not self._render_thread.is_alive():
-                    self._render_thread = threading.Thread(target=self._render, daemon=True)
-                    self._render_event.clear()
-                    self._render_stop_event.clear()
+        self._update_render_data(None)
 
-                    Keyboard.start()
+        with self._job_data_lock:
+            if self._render_thread and self._render_thread.is_alive():
+                return
+            if self._group and self._group.thread and self._group.thread.is_alive():
+                return
 
-                    self.show_help()
+            self._render_event.clear()
+            self._render_stop_event.clear()
+            self._stop_pending = False
 
-                    self._render_thread.start()
+            # Drop any render thread left by a previous run: stop() picks its
+            # teardown from it, and a board that publishes this time round must
+            # not try to restore a terminal it does not own.
+            self._render_thread = None
+
+            # Imported here, not at module scope: multiprocessing imports this
+            # module for Board, so a top-level import would close a cycle.
+            from siliconcompiler.utils.multiprocessing import SharedGroupMember
+
+            self._group = SharedGroupMember(
+                "dashboard",
+                publish=self._snapshot,
+                collect=self._ingest_remote,
+                on_promote=self._promote,
+                wake=self._render_event,
+                stop=self._render_stop_event,
+                dwell=self._dwell)
+
+            if self._group.start():
+                self._start_rendering()
 
     def update_manifest(self, project):
         """
@@ -511,7 +638,12 @@ class Board:
 
     def is_running(self) -> bool:
         """
-        Checks if the dashboard rendering thread is currently active.
+        Checks if the dashboard is active in this process.
+
+        True for both roles: a renderer with a live render thread, and a
+        publisher feeding another process's renderer. Callers use this to
+        decide whether the dashboard still needs opening, and both roles are
+        already open.
 
         Returns:
             bool: True if the dashboard is running, False otherwise.
@@ -519,17 +651,20 @@ class Board:
         if not self._active:
             return False
 
+        def alive():
+            threads = [self._render_thread]
+            if self._group:
+                threads.append(self._group.thread)
+            for thread in threads:
+                if thread and thread.is_alive():
+                    return True
+            return False
+
         try:
             with self._job_data_lock:
-                if not self._render_thread:
-                    return False
-
-                return self._render_thread.is_alive()
+                return alive()
         except BrokenPipeError:
-            if not self._render_thread:
-                return False
-
-            return self._render_thread.is_alive()
+            return alive()
 
     def end_of_run(self, project):
         """
@@ -543,26 +678,58 @@ class Board:
 
         self._update_render_data(project, complete=True)
 
-    def stop(self, force: bool = False):
+    def stop(self, force: bool = False, dump_log: Optional[bool] = None):
         """
-        Stops the dashboard rendering thread and cleans up the terminal display.
+        Stops the dashboard and cleans up the terminal display.
 
         Args:
             force (bool): When True, tear down even if some jobs are still
                 incomplete. The completeness guard exists so a stray stop()
                 does not kill the live view mid-run; a genuine failure teardown
-                passes force=True to bypass it.
+                passes force=True to bypass it. The guard spans processes: jobs
+                collected from other processes' runs sit in the same table, so
+                a board stays up for a sweep that is still going even after its
+                own run has finished.
+            dump_log (bool, optional): Whether to reprint the retained log
+                buffer to scrollback on the way out. Defaults to ``force``,
+                since that is the failure path the dump exists for. The
+                process-exit backstop in :meth:`.MPManager.stop` passes
+                ``force=True, dump_log=False`` to guarantee the terminal is
+                restored on the way out without turning a clean exit into a
+                log dump.
         """
         if not self.is_running():
             return
 
-        if not force and self._job_data:
-            if any([not job.complete for job in self._job_data.values()]):
+        if dump_log is None:
+            dump_log = force
+
+        if not force:
+            # Under the lock: the group's collect thread adds and retires jobs
+            # here as other processes' runs progress, so an unlocked walk can
+            # trip over a dict that changed size mid-iteration.
+            with self._job_data_lock:
+                incomplete = any([not job.complete for job in self._job_data.values()])
+            if incomplete:
+                # Retried by _ingest_remote() once the rest have finished.
+                self._stop_pending = True
                 return
 
+        self._stop_pending = False
         self._render_stop_event.set()
-        # Wake the render loop so it observes the stop event promptly.
+        # Wake the render and publish loops so they observe the stop event
+        # promptly.
         self._render_event.set()
+
+        if self._render_thread is None:
+            # Publishing, not painting: nothing to restore. Let the publish loop
+            # flush, then give the role up for the next run in any process.
+            self.wait()
+            if self._render_thread is None:
+                self._release_group()
+                return
+            # A promotion raced this teardown and won. Fall through and restore
+            # the terminal it just took over.
 
         Keyboard.stop()
 
@@ -584,15 +751,16 @@ class Board:
             except Exception:
                 pass
 
-        # On a failure teardown (force=True), dump the full retained log buffer
-        # to normal-terminal scrollback. The final frame above only shows the
-        # log lines that fit the visible pane; on an early failure the tail
-        # that explains it has usually scrolled past that window, so reprinting
-        # the entire buffer ensures it survives. This is deliberately skipped
-        # for a normal teardown or a Ctrl+C interrupt (force=False): those are
-        # not failures and the live view already served the log.
+        # On a failure teardown (dump_log, which defaults to force), dump the
+        # full retained log buffer to normal-terminal scrollback. The final
+        # frame above only shows the log lines that fit the visible pane; on an
+        # early failure the tail that explains it has usually scrolled past
+        # that window, so reprinting the entire buffer ensures it survives.
+        # This is deliberately skipped for a normal teardown or a Ctrl+C
+        # interrupt: those are not failures and the live view already served
+        # the log.
         try:
-            lines = self._log_handler.get_lines() if force else []
+            lines = self._log_handler.get_lines() if dump_log else []
             if lines:
                 self._console.rule("[bold]Full log")
                 for line in lines:
@@ -618,12 +786,26 @@ class Board:
         except Exception:
             pass
 
+        if self._exit_hook is not None:
+            self._exit_hook.cancel()
+            self._exit_hook = None
+
+        self._release_group()
+
     def wait(self):
-        """Waits for the dashboard rendering thread to finish."""
+        """Waits for the dashboard's worker threads to finish."""
         if not self.is_running():
             return
 
-        self._render_thread.join()
+        if self._render_thread and self._render_thread is not threading.current_thread():
+            self._render_thread.join()
+        if self._group:
+            self._group.join()
+
+    def _release_group(self):
+        """Leaves the shared group, so another process can take the terminal."""
+        if self._group:
+            self._group.release()
 
     @staticmethod
     def _has_parallelism(running_starts, done_intervals) -> bool:
@@ -935,6 +1117,11 @@ class Board:
         fetches the latest data, re-renders the components, and updates the
         live display.
         """
+        if self._render_stop_event.is_set():
+            # A promotion (_try_promote) raced a teardown. Starting the live
+            # display now would leave the terminal in its alternate screen with
+            # nobody left to restore it.
+            return
 
         def update_data():
             try:
@@ -1016,6 +1203,45 @@ class Board:
                 self.live.update(self._get_rendable(), refresh=True)
             else:
                 self._console.print(self._get_rendable())
+
+    def _ingest_remote(self, jobs, logs, orphaned):
+        """
+        Group callback: fold another process's runs into what this board paints.
+
+        Args:
+            jobs (dict): ``project_id`` to ``JobData`` from another process.
+            logs (list): Log lines from other processes, in emission order.
+            orphaned (list): ``project_id``s whose process has gone silent.
+        """
+        for line in logs:
+            self._log_handler.add_line(line)
+
+        if not jobs and not orphaned:
+            return
+
+        with self._job_data_lock:
+            for project_id, data in jobs.items():
+                self._job_data[project_id] = data
+
+            for project_id in orphaned:
+                data = self._job_data.get(project_id)
+                if data is not None and not data.complete:
+                    # Its process is gone: keep the row, but stop it holding
+                    # stop() open.
+                    data.complete = True
+
+            self._board_info.data_modified = True
+            finished = all(job.complete for job in self._job_data.values())
+
+        self._render_event.set()
+
+        if self._stop_pending and finished and \
+                (self._stop_timer is None or not self._stop_timer.is_alive()):
+            # stop() checks again when the timer fires, so a run that starts
+            # in the meantime keeps the dashboard up.
+            self._stop_timer = threading.Timer(Board.STOP_GRACE, self.stop)
+            self._stop_timer.daemon = True
+            self._stop_timer.start()
 
     def _handle_keyboard(self):
         key = Keyboard.check_key()
@@ -1216,7 +1442,9 @@ class Board:
         if not job_data.nodes:
             return
 
-        project_id = f"{job_data.design}/{job_data.jobname}"
+        # The job's directory, not just design/jobname: runs that share a
+        # dashboard can build the same job under different build directories.
+        project_id = os.path.join(builddir(project), job_data.design, job_data.jobname)
         with self._job_data_lock:
             if complete and project_id in self._job_data and self._job_data[project_id].complete:
                 # Dont update again, requires a start of a new run
@@ -1357,7 +1585,7 @@ class Board:
 
         design = project.option.get_design()
         jobname = project.option.get_jobname()
-        project_id = f"{design}/{jobname}"
+        project_id = os.path.join(builddir(project), design, jobname)
 
         nodes = []
         nodestatus = {}

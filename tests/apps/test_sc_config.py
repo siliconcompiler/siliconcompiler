@@ -2,6 +2,7 @@ import functools
 import json
 import logging
 import os
+import re
 import smtplib
 import stat
 import sys
@@ -13,7 +14,7 @@ from unittest.mock import patch
 
 from siliconcompiler import Project
 from siliconcompiler.apps import sc_config
-from siliconcompiler.utils import default_email_credentials_file
+from siliconcompiler.utils import default_email_credentials_file, default_tokens_file
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.settings import SettingsManager
 
@@ -31,7 +32,7 @@ def settings(monkeypatch):
 
 @pytest.fixture
 def email_home(monkeypatch):
-    """A home of the test's own: the session's is shared, and email.json lives there."""
+    """A home of the test's own: the session's is shared, and email.json and tokens live there."""
     monkeypatch.setattr(Path, "home", lambda: Path(os.getcwd()))
 
 
@@ -221,6 +222,46 @@ def test_email_test_sends_one_message(monkeypatch, capsys, email_home):
     assert "sending through smtp.example.com:465 failed" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("given,token", [([], "asked"), (["given"], "given")])
+def test_tokens_set_list_and_unset(monkeypatch, capsys, email_home, given, token):
+    """set stores the token given, or else the unechoed answer, privately; list hides
+    it and marks an export that overrides it, and unset removes it."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    answer(monkeypatch, password=" asked ")
+    assert run(monkeypatch, "tokens", "set", "GITHUB_TOKEN", *given) == 0
+    with open(default_tokens_file()) as f:
+        assert json.load(f) == {"tokens": {"GITHUB_TOKEN": token}}
+    if sys.platform != "win32":
+        assert stat.S_IMODE(os.stat(default_tokens_file()).st_mode) == 0o600
+        assert stat.S_IMODE(os.stat(os.path.dirname(default_tokens_file())).st_mode) == 0o700
+
+    monkeypatch.setenv("GITHUB_TOKEN", "exported")
+    assert run(monkeypatch, "tokens", "list") == 0
+    out = capsys.readouterr().out
+    assert "GITHUB_TOKEN  ********  (overridden by the environment)" in out
+    assert token not in out
+
+    assert run(monkeypatch, "tokens", "unset", "GITHUB_TOKEN") == 0
+    assert run(monkeypatch, "tokens", "unset", "GITHUB_TOKEN") == 1
+    assert "GITHUB_TOKEN is not stored" in capsys.readouterr().err
+    assert run(monkeypatch, "tokens", "list") == 0
+    assert capsys.readouterr().out == "No tokens are stored\n"
+
+
+@pytest.mark.parametrize("name,token,said", [
+    ("github_token", "secret", "github_token is not a token variable"),
+    ("GITHUB", "secret", "GITHUB is not a token variable"),
+    ("GITHUB_TOKEN", " ", "no token was given; nothing was saved"),
+])
+def test_tokens_set_refuses_a_bad_name_or_no_token(monkeypatch, capsys, email_home,
+                                                   name, token, said):
+    """set stores nothing under a name no data source reads, or for an empty answer."""
+    answer(monkeypatch, password=token)
+    assert run(monkeypatch, "tokens", "set", name) == 1
+    assert said in capsys.readouterr().err
+    assert not os.path.exists(default_tokens_file())
+
+
 def test_cache_show_reports_size_and_sweeps(monkeypatch, capsys):
     """show gives the size and last sweep, and the sweep settings: off, or defaults if invalid."""
     os.makedirs("cache")
@@ -254,4 +295,22 @@ def test_paths_marks_what_is_missing(monkeypatch, capsys, email_home):
     lines = {line.split()[0]: line for line in capsys.readouterr().out.splitlines()}
     assert lines["settings"].endswith(os.path.join(".sc", "settings.json"))
     assert lines["email"].endswith("(missing)")
+    assert lines["tokens"].endswith("(missing)")
+    assert lines["managers"].endswith("(missing)")
     assert lines["tool"].endswith("(missing)")
+
+
+@pytest.mark.parametrize("args,helps", [
+    (["-h"], ["sc-config"]),
+    (["settings", "-h"], ["sc-config settings"]),
+    (["settings", "-helpall"], ["sc-config settings", *(
+        f"sc-config settings {action}"
+        for action in ("list", "get", "set", "add", "remove", "unset"))]),
+])
+def test_helpall_prints_every_help_below(monkeypatch, capsys, args, helps):
+    """-h prints one level, and -helpall that level and every command below it."""
+    with pytest.raises(SystemExit) as exit:
+        run(monkeypatch, *args)
+    assert exit.value.code == 0
+    out = capsys.readouterr().out
+    assert re.findall(r"^usage: (.+?) \[-h\]", out, re.MULTILINE) == helps

@@ -9,6 +9,7 @@ import tarfile
 
 import os.path
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from siliconcompiler import Project, Flowgraph, Design
@@ -158,17 +159,17 @@ def test_run_passes_uid_and_gid(project):
     assert kwargs['group_add'] == os.getgroups()
 
 
-@pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
-def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, tmp_path,
-                                                                     monkeypatch):
-    """A node reads one file from ~/.sc, so that file is all it is given:
-    nothing else there -- a remote client's key and sessions in ~/.sc/auth,
-    say -- reaches a tool."""
-    home = tmp_path / ".sc"
-    (home / "auth").mkdir(parents=True)
-    (home / "email.json").write_text("{}")
+def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, monkeypatch):
+    """A node reads one file from ~/.sc, so that file is all it is given: nothing
+    else there, the token store and the remote client's key in ~/.sc/auth included,
+    reaches a tool."""
+    home = os.path.abspath(".sc")
+    os.makedirs(os.path.join(home, "auth"))
+    email = os.path.join(home, "email.json")
+    with open(email, "w") as f:
+        f.write("{}")
     monkeypatch.setattr("siliconcompiler.scheduler.docker.default_email_credentials_file",
-                        lambda: str(home / "email.json"))
+                        lambda: email)
 
     node = DockerSchedulerNode(project, "stepone", "0")
     client = MagicMock()
@@ -181,8 +182,34 @@ def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, tm
         node.run()
 
     volumes = client.containers.run.call_args.kwargs['volumes']
-    assert f"{home / 'email.json'}:/sc_home/.sc/email.json:ro" in volumes
+    assert f"{email}:/sc_home/.sc/email.json:ro" in volumes
     assert not any(volume.startswith(f"{home}:") for volume in volumes)
+
+
+@pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')
+def test_a_mount_holding_the_token_store_has_it_hidden(project, monkeypatch):
+    """A directory mounted for an input, here the home the token store is in, gets an
+    empty tmpfs over the store."""
+    home = os.getcwd()
+    monkeypatch.setattr(Path, "home", lambda: Path(home))
+    os.makedirs(os.path.join(".sc", "auth"))
+    with open("top.v", "w") as f:
+        f.write("module top(); endmodule\n")
+    project.design.add_file("top.v", fileset="rtl")
+
+    node = DockerSchedulerNode(project, "stepone", "0")
+    client = MagicMock()
+    client.images.get.return_value = MagicMock(id="image-id")
+    client.api.exec_create.return_value = {'Id': 'exec-id'}
+    client.api.exec_start.return_value = [b'running\n']
+    client.api.exec_inspect.return_value = {'ExitCode': 0}
+
+    with patch('siliconcompiler.scheduler.docker.docker.from_env', return_value=client):
+        node.run()
+
+    kwargs = client.containers.run.call_args.kwargs
+    assert f"{home}:{home}:rw" in kwargs["volumes"]
+    assert kwargs["tmpfs"] == {os.path.join(home, ".sc", "auth"): "size=64k,mode=0700"}
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='posix volume mapping')

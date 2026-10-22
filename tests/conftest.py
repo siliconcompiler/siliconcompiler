@@ -26,8 +26,9 @@ from siliconcompiler import utils, ASIC, Design, Project, OpenTask
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.utils import multiprocessing as multiprocessing_utils
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager, \
-    get_process_context
+    MANAGER_ENVIRONMENT, get_process_context
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.schema import BaseSchema
 
@@ -158,7 +159,12 @@ class _SharedManagerServer:
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
             monkeypatch.setattr(MPManager, "_MPManager__address", None)
+            monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
+            monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
             MPManager()
+        # Tests reach it through the patched address; in the environment, every
+        # subprocess a test launches would join it too.
+        os.environ.pop(MANAGER_ENVIRONMENT, None)
 
         self.__manager = MPManager.get_manager()
         self.address = self.__manager.address
@@ -252,6 +258,9 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address",
                         None if isolated else shared_manager_server.address)
+    # Or an isolated test joins a server the environment or the terminal names.
+    monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
+    monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
 
     BaseSchema._BaseSchema__get_child_classes.cache_clear()
     BaseSchema._BaseSchema__load_schema_class.cache_clear()

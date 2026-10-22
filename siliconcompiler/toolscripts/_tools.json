@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "56a272a3a6bfa8b9f23dc5ca67ae73e7b351ff50",
+    "git-commit": "79ce79ad2597c580a5c4037e0c2c3018f32582b7",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
@@ -52,7 +52,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "274b2e8e7027e71566a2eee4f2cdda08460fdd06",
+    "git-commit": "f7100b9276667aa5e51d6b7b152e457595991751",
     "auto-update": true,
     "_comment-prune-dirs": [
       "The archive globs are measured against a build of this image. They",
@@ -411,7 +411,7 @@
     ]
   },
   "chisel": {
-    "version": "2.0.10",
+    "version": "2.0.11",
     "git-url": "https://github.com/sbt/sbt.git",
     "auto-update": true,
     "docker-prune-dirs": [
@@ -659,7 +659,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "8170b6a4fc01b6793c3d6efeb70775704fca797e",
+    "git-commit": "0be915960379d4fdce02fa455184129aea868602",
     "auto-update": true,
     "docker-drop-pkgs": [
       "clang",
@@ -688,7 +688,7 @@
   },
   "vcd2fst": {
     "git-url": "https://github.com/Silimate/vcd2fst.git",
-    "git-commit": "7b9547fdefeb90249dddca2bbd89df85558c99db",
+    "git-commit": "eed4fee1066056887559ab60ac078b785bdc15b5",
     "auto-update": true,
     "docker-prune-dirs": [
       "include",

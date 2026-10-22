@@ -52,6 +52,14 @@ script:
    export GIT_TOKEN=<token>      # a git repository or GitLab instance on any other host
    export HTTPS_TOKEN=<token>    # an https:// archive on any other host
 
+Or store it once, rather than export it in every shell. :ref:`sc-config tokens
+<app-sc-config>` asks for it without echoing it, and keeps it under the same name
+where only you can read it. A variable exported under that name still wins:
+
+.. code-block:: bash
+
+   sc-config tokens set GITHUB_TOKEN
+
 A ``git+ssh://`` dataroot needs no token: it uses this machine's SSH keys, and is
 the better choice where you can use it. Each scheme's entry in :ref:`Data Sources
 <builtin_resolvers>` lists the variables it reads and how it sends the token, with

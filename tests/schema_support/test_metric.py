@@ -398,6 +398,23 @@ def test_record_totaltime_overlap_staggered_with_all_contained():
     assert schema.get("totaltime", step="testtwo", index="0") == 15.0
 
 
+def test_record_totaltime_same_start_as_running_node():
+    """A still-running node that started in the same clock tick does not break the
+    sort -- Windows' ~15ms clock makes parallel starts tie."""
+    flow = Flowgraph("testflow")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+
+    record = RecordSchema()
+    record.record_time("testone", "0", RecordTime.START, timestamp=100)
+    record.record_time("testone", "1", RecordTime.START, timestamp=100)
+    record.record_time("testone", "0", RecordTime.END, timestamp=110)
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record)
+    assert schema.get("totaltime", step="testone", index="0") == 10.0
+
+
 @requires_pandas
 def test_summary_table_all_nodes():
     schema = MetricSchema()

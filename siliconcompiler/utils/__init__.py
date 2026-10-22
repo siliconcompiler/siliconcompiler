@@ -602,6 +602,17 @@ def default_email_credentials_file() -> str:
     return default_sc_path('email.json')
 
 
+def default_tokens_file() -> str:
+    """
+    Returns the default path for the data-source token store, which
+    ``sc-config tokens`` writes.
+
+    Returns:
+        str: The absolute path to the tokens.json file.
+    """
+    return default_sc_path(os.path.join('auth', 'tokens.json'))
+
+
 def default_settings_file() -> str:
     """
     Returns the default path for the user settings file.
@@ -622,6 +633,17 @@ def default_tool_build_dir() -> str:
     return default_sc_path('tool_build')
 
 
+def default_manager_dir() -> str:
+    """
+    Returns the default directory where runs printing to one terminal find the
+    manager they share, and so draw one dashboard.
+
+    Returns:
+        str: The absolute path to the manager rendezvous directory.
+    """
+    return default_sc_path('managers')
+
+
 def _add_paths_parser(commands) -> None:
     """
     Add the ``paths`` command: it prints where SiliconCompiler keeps its files.
@@ -640,8 +662,10 @@ def _cli_paths(args) -> int:
             ("settings", default_settings_file()),
             ("system settings", default_sc_system_path()),
             ("email", default_email_credentials_file()),
+            ("tokens", default_tokens_file()),
             ("remote", default_credentials_file()),
             ("cache", default_cache_dir()),
+            ("managers", default_manager_dir()),
             ("tool builds", default_tool_build_dir()))
 
     width = max(len(name) for name, _ in rows)

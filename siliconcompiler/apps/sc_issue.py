@@ -20,16 +20,19 @@ Restricted SC app that generates a sharable testcase from a
 failed flow or runs an issue generated with this program.
 
 To generate a testcase, use:
+    sc-issue <stepdir>
+
+    or:
     sc-issue <design>.pkg.json
 
     or with explicit flag:
-    sc-issue -cfg <stepdir>/outputs/<design>.pkg.json
+    sc-issue -cfg <stepdir>
 
     or include a different step/index than what the cfg_file is pointing to:
-    sc-issue <design>.pkg.json -arg_step <step> -arg_index <index>
+    sc-issue <stepdir> -arg_step <step> -arg_index <index>
 
     or include specific libraries while excluding others:
-    sc-issue <design>.pkg.json -exclude_libraries -add_library sram -add_library gpio
+    sc-issue <stepdir> -exclude_libraries -add_library sram -add_library gpio
 
 To run a testcase, use:
     sc-issue -run sc_issue_<...>.tar.gz
@@ -43,7 +46,8 @@ To run a testcase, use:
         def __init__(self):
             super().__init__()
 
-            self._add_commandline_argument("cfg", "file", "configuration manifest")
+            self._add_commandline_argument("cfg", "file",
+                                           "configuration manifest or node directory")
             self._add_commandline_argument("run", "bool", "run a provided testcase")
             self._add_commandline_argument("hash_files", "bool",
                                            "flag to hash the files in the schema before "
@@ -85,6 +89,28 @@ To run a testcase, use:
         if not cfg_path:
             issue.logger.error('-cfg must be provided or pass manifest as positional argument')
             return 1
+
+        if os.path.isdir(cfg_path):
+            manifest_candidates = []
+            for subdir, warn_on_fallback in (("outputs", False), ("inputs", True)):
+                check_dir = os.path.join(cfg_path, subdir)
+                if os.path.isdir(check_dir):
+                    pkgs = [os.path.join(check_dir, f) for f in os.listdir(check_dir)
+                            if f.endswith(".pkg.json")]
+                    if pkgs:
+                        if warn_on_fallback:
+                            issue.logger.warning(
+                                f"Output manifest not found in {cfg_path}; falling back to "
+                                f"input manifest. Tool version information may be missing.")
+                        manifest_candidates = pkgs
+                        break
+
+            if not manifest_candidates:
+                issue.logger.error(f"No manifest (.pkg.json) found in {cfg_path}")
+                return 1
+
+            cfg_path = sorted(manifest_candidates)[0]
+
         try:
             project: Project = Project.from_manifest(filepath=cfg_path)
         except FileNotFoundError:

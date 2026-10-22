@@ -94,8 +94,8 @@ class GitlabResolver(HTTPResolver):
         if url.username is not None or url.password is not None:
             raise ValueError(
                 f"'{self._masked_uri(self.source)}' carries a credential: a gitlab:// "
-                "source takes its token from the environment instead, such as "
-                "GITLAB_TOKEN or GIT_TOKEN")
+                "source takes its token from a variable instead, such as GITLAB_TOKEN "
+                "or GIT_TOKEN, exported or stored with sc-config tokens set")
 
         segments = url.path.split("/")[1:]
         if not url.hostname or len(segments) < 4 or not all(segments[:-2]) \

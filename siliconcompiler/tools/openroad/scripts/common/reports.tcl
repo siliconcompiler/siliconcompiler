@@ -295,8 +295,7 @@ if { [sc_cfg_tool_task_check_in_list design_stats var reports] } {
     sc_report_banner "Design statistics" \
         reports/design/area.rpt \
         reports/design/registers.rpt \
-        reports/design/high_fanout.rpt \
-        reports/design/logic_depth.rpt
+        reports/design/high_fanout.rpt
 
     tee -quiet -file reports/design/area.rpt {report_design_area}
 
@@ -338,8 +337,6 @@ if { [sc_cfg_tool_task_check_in_list design_stats var reports] } {
         puts $fid [format "%-60s %8d" $net_name $net_fanout]
     }
     close $fid
-
-    sc_count_logic_depth -report reports/design/logic_depth.rpt
 }
 
 if { ![sc_check_version 26 2 219] } {
