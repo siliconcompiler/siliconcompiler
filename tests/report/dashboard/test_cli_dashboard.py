@@ -59,6 +59,9 @@ def _project_with_flow():
 @pytest.fixture
 def fake_console(monkeypatch):
     monkeypatch.setattr(Console, "is_terminal", True)
+    # Keys are read from the controlling terminal, which is the developer's own
+    # when pytest runs in one.
+    monkeypatch.setattr(Keyboard, "start", lambda: None)
 
 
 @pytest.fixture(autouse=True)
@@ -369,6 +372,24 @@ def test_stop_dashboard(dashboard):
     dashboard.stop()
     assert dashboard._render_thread is not None
     assert not dashboard.is_running()
+
+
+@pytest.mark.timeout(30)
+def test_render_thread_owns_keyboard(dashboard, monkeypatch):
+    """The render thread starts and stops the keyboard, so stop() cannot close the terminal
+    under a check_key() in flight on that thread.
+    """
+    calls = []
+    for name in ("start", "stop"):
+        monkeypatch.setattr(Keyboard, name,
+                            lambda name=name: calls.append((name, threading.current_thread())))
+
+    dashboard = dashboard._dashboard
+    dashboard.open_dashboard()
+    render_thread = dashboard._render_thread
+    dashboard.stop()
+
+    assert calls == [("start", render_thread), ("stop", render_thread)]
 
 
 @pytest.mark.timeout(30)
@@ -3097,7 +3118,6 @@ def painting(monkeypatch, fake_console):
 
     The render loop only waits to be stopped, so nothing is drawn.
     """
-    monkeypatch.setattr(Keyboard, "start", lambda: None)
     monkeypatch.setattr(Board, "_render", lambda self: self._render_stop_event.wait(30))
 
     board = _board()
@@ -3251,6 +3271,7 @@ def _worker_init():
     the state it would find on its own; pytest just does not own one.
     """
     Console.is_terminal = property(lambda self: True)
+    Keyboard.start = lambda: None
 
 
 def _point(project):

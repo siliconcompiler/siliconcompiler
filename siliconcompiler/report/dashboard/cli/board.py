@@ -525,7 +525,6 @@ class Board:
 
     def _start_rendering(self):
         """Takes the terminal and starts painting. Caller holds the lock."""
-        Keyboard.start()
         self.show_help()
 
         # Give the terminal back however this process ends. MPManager.stop()
@@ -730,8 +729,6 @@ class Board:
                 return
             # A promotion raced this teardown and won. Fall through and restore
             # the terminal it just took over.
-
-        Keyboard.stop()
 
         # Restore the help
         self.__last_help = 0.0
@@ -1128,12 +1125,12 @@ class Board:
                 self._update_rendable_data()
             except Exception:
                 # Broad on purpose. stop() tears the session down around this
-                # thread -- it sets the stop event, stops the keyboard and stops
-                # the live display while the loop may still be mid-pass, and the
-                # finally below calls this again on the way out. Whatever a
-                # half-torn-down session raises, a shutdown is not worth a cascade
-                # of errors on the way to the exit; stop() itself guards every
-                # console call the same way.
+                # thread -- it sets the stop event and stops the live display
+                # while the loop may still be mid-pass, and the finally below
+                # calls this again on the way out. Whatever a half-torn-down
+                # session raises, a shutdown is not worth a cascade of errors on
+                # the way to the exit; stop() itself guards every console call
+                # the same way.
                 pass
 
         def check_stop_event():
@@ -1157,6 +1154,9 @@ class Board:
                 # so a lost peek only skips one reload.
                 return False
 
+        # Only this thread touches the keyboard: stop() would otherwise close
+        # the terminal under a check_key() in flight.
+        Keyboard.start()
         try:
             update_data()
 
@@ -1198,6 +1198,7 @@ class Board:
                     time.sleep(dwell)
 
         finally:
+            Keyboard.stop()
             update_data()
             if self.live:
                 self.live.update(self._get_rendable(), refresh=True)

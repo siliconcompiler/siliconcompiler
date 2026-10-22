@@ -1,125 +1,144 @@
 import os
 import pytest
-import sys
+import select
+import types
 
 import siliconcompiler.report.dashboard.cli.keyboard as keyboard_mod
 
 
-# Platform-independent tests
-def test_check_key_none(monkeypatch):
-    # Simulate no key pressed
-    if os.name == 'nt':
-        monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: False)
-        assert keyboard_mod.check_key() is None
-    else:
-        monkeypatch.setattr(keyboard_mod.select, 'select', lambda x, y, z, w=None: ([], [], []))
-        assert keyboard_mod.check_key() is None
+@pytest.fixture
+def terminal(monkeypatch):
+    """A pseudo-terminal standing in for the controlling terminal, with this process in its
+    foreground job. Records the descriptors opened on it and closed.
+    """
+    term = types.SimpleNamespace(opened=[], closed=[])
+    term.typed, term.fd = os.openpty()
+    real_open, real_close = os.open, os.close
+
+    def fake_open(path, flags, *args, **kwargs):
+        if path != "/dev/tty":
+            return real_open(path, flags, *args, **kwargs)
+        fd = real_open(os.ttyname(term.fd), flags | os.O_NOCTTY)
+        term.opened.append(fd)
+        return fd
+
+    def fake_close(fd):
+        term.closed.append(fd)
+        real_close(fd)
+
+    monkeypatch.setattr(os, "open", fake_open)
+    monkeypatch.setattr(os, "close", fake_close)
+    monkeypatch.setattr(os, "tcgetpgrp", lambda fd: os.getpgrp())
+    yield term
+    keyboard_mod.Keyboard.stop()
+    real_close(term.typed)
+    real_close(term.fd)
 
 
-def test_check_key_pressed(monkeypatch):
-    # Simulate key pressed
-    if os.name == 'nt':
-        monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: True)
-        monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'a')
-        assert keyboard_mod.check_key() == 'a'
-    else:
-        monkeypatch.setattr(keyboard_mod.select, 'select',
-                            lambda x, y, z, w=None: ([sys.stdin], [], []))
-        monkeypatch.setattr(sys.stdin, 'read', lambda n: 'b')
-        assert keyboard_mod.check_key() == 'b'
+def _cbreak(term):
+    return not keyboard_mod.termios.tcgetattr(term.fd)[3] & keyboard_mod.termios.ICANON
 
 
-def test_keyboard_start_stop(monkeypatch):
-    if os.name != 'nt':
-        # Mock termios and tty
-        monkeypatch.setattr(keyboard_mod.termios, 'tcgetattr', lambda x: 'settings')
-        monkeypatch.setattr(keyboard_mod.tty, 'setcbreak', lambda x: None)
-        monkeypatch.setattr(keyboard_mod.sys.stdin, 'fileno', lambda: 0)
-        keyboard_mod.Keyboard.start()
-        assert hasattr(keyboard_mod.Keyboard, 'old_settings')
-        monkeypatch.setattr(keyboard_mod.termios, 'tcsetattr', lambda x, y, z: None)
-        keyboard_mod.Keyboard.stop()
-    else:
-        # Should not raise
-        keyboard_mod.Keyboard.start()
-        keyboard_mod.Keyboard.stop()
+@pytest.mark.skipif(os.name != 'nt', reason="msvcrt is Windows only")
+@pytest.mark.parametrize("hit,key", [(False, None), (True, 'a')])
+def test_check_key_windows(monkeypatch, hit, key):
+    monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: hit)
+    monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'a')
+    assert keyboard_mod.check_key(None) == key
+
+
+@pytest.mark.skipif(os.name != 'nt', reason="msvcrt is Windows only")
+def test_keyboard_check_key_with_start_windows(monkeypatch):
+    monkeypatch.setattr(keyboard_mod.Keyboard, 'enabled', True)
+    monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: True)
+    monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'x')
+    assert keyboard_mod.Keyboard.check_key() == 'x'
 
 
 def test_keyboard_check_key_without_start(monkeypatch):
-    # Should delegate to module-level check_key
     if os.name == 'nt':
         monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: True)
         monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'x')
-        assert keyboard_mod.Keyboard.check_key() is None
-        assert keyboard_mod.Keyboard.enabled is False
-    else:
-        monkeypatch.setattr(keyboard_mod.select, 'select',
-                            lambda x, y, z, w=None: ([sys.stdin], [], []))
-        monkeypatch.setattr(sys.stdin, 'read', lambda n: 'y')
-        assert keyboard_mod.Keyboard.check_key() is None
-        assert keyboard_mod.Keyboard.enabled is False
-
-
-def test_keyboard_check_key_with_start(monkeypatch):
-    # Should delegate to module-level check_key
-    keyboard_mod.Keyboard.enabled = True
-
-    if os.name == 'nt':
-        monkeypatch.setattr(keyboard_mod.msvcrt, 'kbhit', lambda: True)
-        monkeypatch.setattr(keyboard_mod.msvcrt, 'getch', lambda: b'x')
-        assert keyboard_mod.Keyboard.check_key() == 'x'
-    else:
-        monkeypatch.setattr(keyboard_mod.select, 'select',
-                            lambda x, y, z, w=None: ([sys.stdin], [], []))
-        monkeypatch.setattr(sys.stdin, 'read', lambda n: 'y')
-        assert keyboard_mod.Keyboard.check_key() == 'y'
+    monkeypatch.setattr(keyboard_mod.Keyboard, 'enabled', False)
+    assert keyboard_mod.Keyboard.check_key() is None
 
 
 @pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
-def test_keyboard_start_non_tty_stdin_does_not_raise(monkeypatch):
-    """A non-terminal stdin disables hotkeys instead of failing the run; termios.error is not an
-    OSError, and every multiprocessing worker gets /dev/null on stdin.
+def test_keyboard_reads_controlling_terminal(terminal):
+    """Keys come from the controlling terminal, not stdin, which a pool worker drawing a sweep's
+    dashboard has as /dev/null.
     """
-    def not_a_tty(_):
-        raise keyboard_mod.termios.error(25, 'Inappropriate ioctl for device')
+    keyboard_mod.Keyboard.start()
+    assert keyboard_mod.Keyboard.enabled is True
+    assert _cbreak(terminal)
+    assert keyboard_mod.Keyboard.check_key() is None
 
-    monkeypatch.setattr(keyboard_mod.termios, 'tcgetattr', not_a_tty)
-    monkeypatch.delattr(keyboard_mod.Keyboard, 'old_settings', raising=False)
+    os.write(terminal.typed, b'h')
+    select.select([terminal.fd], [], [], 5)
+    assert keyboard_mod.Keyboard.check_key() == 'h'
+    assert keyboard_mod.Keyboard.check_key() is None
+
+    keyboard_mod.Keyboard.stop()
+    assert not _cbreak(terminal)
+    assert keyboard_mod.Keyboard.fd is None
+    assert terminal.opened and set(terminal.opened) <= set(terminal.closed)
+
+
+@pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
+def test_keyboard_start_without_controlling_terminal(monkeypatch):
+    """No controlling terminal, as under cron or a CI runner, disables hotkeys instead of
+    failing the run.
+    """
+    real_open = os.open
+
+    def no_tty(path, *args, **kwargs):
+        if path == "/dev/tty":
+            raise OSError(6, 'No such device or address')
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", no_tty)
 
     keyboard_mod.Keyboard.start()
 
     assert keyboard_mod.Keyboard.enabled is False
-    assert not hasattr(keyboard_mod.Keyboard, 'old_settings')
+    assert keyboard_mod.Keyboard.fd is None
     assert keyboard_mod.Keyboard.check_key() is None
-
-    # Teardown must be just as tolerant: nothing was saved, so nothing is
-    # restored and no exception escapes.
     keyboard_mod.Keyboard.stop()
 
 
 @pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
-def test_keyboard_start_setcbreak_failure_leaves_no_state(monkeypatch):
-    """A failed setcbreak after a successful probe leaves no settings for stop() to restore."""
-    monkeypatch.setattr(keyboard_mod.termios, 'tcgetattr', lambda x: 'settings')
-    monkeypatch.delattr(keyboard_mod.Keyboard, 'old_settings', raising=False)
-
-    def fails(_):
-        raise keyboard_mod.termios.error(25, 'Inappropriate ioctl for device')
-
-    monkeypatch.setattr(keyboard_mod.tty, 'setcbreak', fails)
-    monkeypatch.setattr(keyboard_mod.sys.stdin, 'fileno', lambda: 0)
+def test_keyboard_start_in_background_job(terminal, monkeypatch):
+    """A background job leaves the terminal alone: changing its mode would stop the job with
+    SIGTTOU.
+    """
+    monkeypatch.setattr(os, "tcgetpgrp", lambda fd: os.getpgrp() + 1)
 
     keyboard_mod.Keyboard.start()
 
     assert keyboard_mod.Keyboard.enabled is False
-    assert not hasattr(keyboard_mod.Keyboard, 'old_settings')
+    assert keyboard_mod.Keyboard.fd is None
+    assert not _cbreak(terminal)
+    assert terminal.opened and set(terminal.opened) <= set(terminal.closed)
 
 
 @pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
-def test_keyboard_stop_tolerates_terminal_going_away(monkeypatch):
-    monkeypatch.setattr(keyboard_mod.termios, 'tcgetattr', lambda x: 'settings')
-    monkeypatch.setattr(keyboard_mod.tty, 'setcbreak', lambda x: None)
-    monkeypatch.setattr(keyboard_mod.sys.stdin, 'fileno', lambda: 0)
+def test_keyboard_start_setcbreak_failure_leaves_no_state(terminal, monkeypatch):
+    """A failed setcbreak after a successful probe leaves no settings for stop() to restore."""
+    def fails(_):
+        raise keyboard_mod.termios.error(25, 'Inappropriate ioctl for device')
+
+    monkeypatch.setattr(keyboard_mod.tty, 'setcbreak', fails)
+
+    keyboard_mod.Keyboard.start()
+
+    assert keyboard_mod.Keyboard.enabled is False
+    assert keyboard_mod.Keyboard.fd is None
+    assert not hasattr(keyboard_mod.Keyboard, 'old_settings')
+    assert terminal.opened and set(terminal.opened) <= set(terminal.closed)
+
+
+@pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
+def test_keyboard_stop_tolerates_terminal_going_away(terminal, monkeypatch):
     keyboard_mod.Keyboard.start()
     assert keyboard_mod.Keyboard.enabled is True
 
@@ -134,17 +153,19 @@ def test_keyboard_stop_tolerates_terminal_going_away(monkeypatch):
     # The saved settings describe a terminal that no longer exists; a second
     # stop() must not retry them.
     assert not hasattr(keyboard_mod.Keyboard, 'old_settings')
+    assert keyboard_mod.Keyboard.fd is None
+    assert set(terminal.opened) <= set(terminal.closed)
     keyboard_mod.Keyboard.stop()
 
 
 @pytest.mark.skipif(os.name == 'nt', reason="termios is POSIX only")
 def test_keyboard_check_key_disables_on_terminal_loss(monkeypatch):
-    keyboard_mod.Keyboard.enabled = True
+    monkeypatch.setattr(keyboard_mod.Keyboard, 'enabled', True)
 
-    def gone(*args, **kwargs):
-        raise OSError(9, 'Bad file descriptor')
+    def gone(fd):
+        raise OSError(5, 'Input/output error')
 
-    monkeypatch.setattr(keyboard_mod.select, 'select', gone)
+    monkeypatch.setattr(keyboard_mod, 'check_key', gone)
 
     # A detached terminal must not throw out of the dashboard's render loop.
     assert keyboard_mod.Keyboard.check_key() is None
