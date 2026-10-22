@@ -16,6 +16,7 @@ source "$sc_refdir/apr/preamble.tcl"
 ###############################
 
 set lef_args []
+set lef_file "outputs/${sc_topmodule}.lef"
 if { [sc_cfg_tool_task_get var ord_abstract_lef_bloat_layers] } {
     lappend lef_args "-bloat_occupied_layers"
 } else {
@@ -23,9 +24,10 @@ if { [sc_cfg_tool_task_get var ord_abstract_lef_bloat_layers] } {
         "-bloat_factor" \
         [sc_cfg_tool_task_get var ord_abstract_lef_bloat_factor]
 }
-lappend lef_args "outputs/${sc_topmodule}.lef"
+lappend lef_args $lef_file
 
 sc_report_args -command write_abstract_lef -args $lef_args
+puts "Writing LEF: $lef_file"
 write_abstract_lef {*}$lef_args
 
 ###############################
@@ -47,6 +49,7 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
             }
         }
     }
+    puts "Writing CDL: outputs/${sc_topmodule}.cdl"
     write_cdl -masters $sc_cdl_masters "outputs/${sc_topmodule}.cdl"
 }
 
@@ -57,6 +60,7 @@ set remove_cells []
 foreach lib [sc_cfg_get asic asiclib] {
     lappend remove_cells {*}[sc_cfg_get library $lib asic cells physicalonly]
 }
+puts "Writing LVS Verilog: outputs/${sc_topmodule}.lvs.vg"
 write_verilog -include_pwr_gnd -remove_cells $remove_cells "outputs/${sc_topmodule}.lvs.vg"
 
 ###############################
@@ -79,6 +83,7 @@ if { [sc_cfg_tool_task_get var write_spef] } {
         } else {
             extract_parasitics -ext_model_file $pex_model
         }
+        puts "Writing SPEF (${pexcorner}): outputs/${sc_topmodule}.${pexcorner}.spef"
         write_spef "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
 }
@@ -141,7 +146,7 @@ if { [sc_cfg_tool_task_get var write_spef] && [sc_cfg_tool_task_get var use_spef
 
 if { [sc_cfg_tool_task_get var write_liberty] } {
     foreach scene $sc_scenarios {
-        puts "Writing timing model for $scene"
+        puts "Writing timing model for $scene: outputs/${sc_topmodule}.${scene}.lib"
         if { [sc_has_sta_mcmm_support] } {
             write_timing_model -library_name "${sc_topmodule}_${scene}" \
                 -scene $scene \
@@ -160,7 +165,7 @@ if { [sc_cfg_tool_task_get var write_liberty] } {
 
 if { [sc_cfg_tool_task_get var write_sdf] } {
     foreach scene $sc_scenarios {
-        puts "Writing SDF for $scene"
+        puts "Writing SDF for $scene: outputs/${sc_topmodule}.${scene}.sdf"
         if { [sc_has_sta_mcmm_support] } {
             write_sdf -scene $scene \
                 -include_typ \
