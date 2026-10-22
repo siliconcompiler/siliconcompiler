@@ -63,13 +63,6 @@ write_verilog -include_pwr_gnd -remove_cells $remove_cells "outputs/${sc_topmodu
 # Generate SPEF
 ###############################
 
-set estimate_parasitics_args []
-if { [sc_has_routing] || [sc_has_global_routing] } {
-    lappend estimate_parasitics_args -global_routing
-} else {
-    lappend estimate_parasitics_args -placement
-}
-
 if { [sc_cfg_tool_task_get var write_spef] } {
     # just need to define a corner
     define_process_corner -ext_model_index 0 X
@@ -88,30 +81,45 @@ if { [sc_cfg_tool_task_get var write_spef] } {
         }
         write_spef "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
+}
 
-    if { [sc_cfg_tool_task_get var use_spef] } {
-        set lib_pex [dict create]
-        foreach scenario $sc_scenarios {
-            set pexcorner [sc_cfg_get constraint timing scenario $scenario pexcorner]
+if { [sc_cfg_tool_task_get var write_spef] && [sc_cfg_tool_task_get var use_spef] } {
+    set lib_pex [dict create]
+    foreach scenario $sc_scenarios {
+        set pexcorner [sc_cfg_get constraint timing scenario $scenario pexcorner]
 
-            dict set lib_pex $scenario $pexcorner
-        }
+        dict set lib_pex $scenario $pexcorner
+    }
 
-        # read in spef for timing corners
-        foreach corner $sc_scenarios {
-            set pexcorner [dict get $lib_pex $corner]
+    # read in spef for timing corners
+    foreach corner $sc_scenarios {
+        set pexcorner [dict get $lib_pex $corner]
 
-            puts "Reading SPEF for $pexcorner into $corner"
-            read_spef -corner $corner \
-                "outputs/${sc_topmodule}.${pexcorner}.spef"
-        }
-    } else {
-        # estimate for metrics
-        estimate_parasitics {*}$estimate_parasitics_args
+        puts "Reading SPEF for $pexcorner into $corner"
+        read_spef -corner $corner \
+            "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
 } else {
-    # estimate for metrics
-    estimate_parasitics {*}$estimate_parasitics_args
+    # estimate_parasitics is slow, so only run it for what times the design
+    # below: the liberty and SDF outputs, IR drop, and the timing reports.
+    set sc_estimate_parasitics [expr {
+        [sc_cfg_tool_task_get var write_liberty] ||
+        [sc_cfg_tool_task_get var write_sdf] ||
+        [llength [sc_psm_check_nets]] > 0
+    }]
+    foreach report {setup hold unconstrained clock_skew power drv_violations fmax clock_trees} {
+        if { [sc_cfg_tool_task_check_in_list $report var reports] } {
+            set sc_estimate_parasitics true
+        }
+    }
+
+    if { !$sc_estimate_parasitics } {
+        utl::info FLW 1 "Skipping parasitic estimation, nothing in this task uses it"
+    } elseif { [sc_has_routing] || [sc_has_global_routing] } {
+        estimate_parasitics -global_routing
+    } else {
+        estimate_parasitics -placement
+    }
 }
 
 ###############################
