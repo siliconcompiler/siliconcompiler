@@ -41,7 +41,9 @@ dependencies = [
     "orjson >= 3.11.0, < 4",
     "packaging >= 21.3, < 27",
     "requests >= 2.33.0, < 3.0.0",
-    "Pillow >= 12.2.0, < 13.0.0",
+    # Pillow 13 requires Python 3.11.
+    "Pillow >= 12.2.0, < 13.0.0; python_version < '3.11'",
+    "Pillow >= 13.0.0, < 14.0.0; python_version >= '3.11'",
     "PyYAML >= 6.0.0, < 7.0.0",
     "GitPython >= 3.1.44, < 3.3",
 
@@ -98,9 +100,12 @@ lint = [
     "codespell == 2.4.3"
 ]
 docs = [
-    "Sphinx >= 7.4, <8.3",
+    # Sphinx 8.2 and pydata-sphinx-theme 0.20 require Python 3.11.
+    "Sphinx == 8.1.3; python_version < '3.11'",
+    "Sphinx == 8.2.3; python_version >= '3.11'",
     "pip-licenses == 5.5.5",
-    "pydata-sphinx-theme == 0.19.0",
+    "pydata-sphinx-theme == 0.19.0; python_version < '3.11'",
+    "pydata-sphinx-theme == 0.23.0; python_version >= '3.11'",
     "sc-leflib >= 0.2.0"
 ]
 optimizer = [
@@ -122,7 +127,9 @@ dashboard = [
     "pandas >= 1.1.5",
 
     # dashboard
-    "streamlit == 1.65.0",
+    # streamlit 1.66 requires Python 3.11.
+    "streamlit == 1.65.0; python_version < '3.11'",
+    "streamlit == 1.66.1; python_version >= '3.11'",
     "streamlit_agraph == 0.0.45",
     "streamlit-antd-components == 0.3.2",
     "streamlit_javascript == 0.1.5",
