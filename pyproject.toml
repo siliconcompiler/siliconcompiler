@@ -59,7 +59,7 @@ dependencies = [
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",
 
-    "pyslang == 11.0.0",
+    "pyslang >= 11.0.0, < 13.0.0",
 
     # CLI dashboard
     "rich >= 14.0.0, < 16.0.0"
