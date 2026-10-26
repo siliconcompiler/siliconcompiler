@@ -312,8 +312,8 @@ def test_hier_opt_not_used_when_flattening():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_hier_opt_loop_converges():
-    '''The opt_hier loop repeats to convergence, over more than one round on a four-deep design.'''
+def test_hier_opt_converges():
+    '''opt_hier runs to convergence, carrying the top's constants down four levels to the leaf.'''
     lines = _run_asic_synthesis(_deep_hierarchy_design(), True,
                                 flatten=False, auto_flatten=False,
                                 hier_opt=True, hier_opt_max_rounds=10)
@@ -321,14 +321,39 @@ def test_hier_opt_loop_converges():
     assert any("-hieropt" in line for line in lines), \
         "expected -hieropt to be passed to synth when the design keeps its hierarchy"
 
-    converged = [line for line in lines if "opt_hier converged after" in line]
-    assert converged, "expected the opt_hier loop to report convergence"
+    with open("build/deep/job0/synthesis/0/reports/stat.json") as f:
+        modules = json.load(f)["modules"]
+    leaf = [info["num_cells_by_type"] for name, info in modules.items()
+            if name.startswith("\\leaf")]
+    assert len(leaf) == 1
+    # With en tied high and b to zero, the adder and subtractor are gone, leaving the
+    # flops and any buffers abc puts in front of them.
+    assert {cell: count for cell, count in leaf[0].items()
+            if not cell.startswith("BUF_")} == {"DFF_X1": 8}
 
-    rounds = int(converged[0].split("converged after")[1].split("round")[0])
-    assert rounds > 1, \
-        f"expected more than one round on a four-deep design, got {rounds}"
-    assert not any("did not converge" in line for line in lines), \
-        "expected the loop to converge within hier_opt_max_rounds"
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize("message", [
+    "Disconnected 3 input bits of instance 'u' (type 'leaf') in 'top'",
+    "Substituting constant for 2 output bits of instance 'u' (type 'leaf') in 'top'",
+    "Replacing 2 output bits with tie-togethers on instance 'u' of 'leaf' in 'top'",
+    "Disconnected unused output terminal 'y' in module 'leaf'",
+    "Substituting constant 1'1 for input terminal 'a' in module 'leaf'",
+    "Replacing 2 input terminal bits with tie-togethers in module 'leaf'"])
+def test_hier_opt_loop_sees_every_change(tcl_interp, message):
+    '''Each message opt_hier prints for a change keeps the loop going for another round.'''
+    interp = tcl_interp("yosys/scripts/common/procs.tcl")
+    interp.setvar("message", message)
+    interp.eval("""
+        set rounds 0
+        proc yosys { cmd args } {
+            if { $cmd == "tee" && [incr ::rounds] == 1 } {
+                return $::message
+            }
+            return ""
+        }""")
+
+    assert interp.eval("sc_opt_hier_loop 10 {}") == "2"
 
 
 def test_hier_opt_max_rounds_rejects_zero(heartbeat_design):

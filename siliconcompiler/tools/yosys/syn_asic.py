@@ -745,7 +745,7 @@ class ASICSynthesis(ASICSynthesisBase):
             "int<1..>",
             "Maximum rounds of the opt_hier and uniquify convergence loops. Both propagate "
             "across one level of hierarchy per round, so a design needs roughly as many "
-            "rounds as it is deep.",
+            "rounds as it is deep. From yosys 0.71, opt_hier converges without the loop.",
             10)
 
     def __init_abc_parameter(self):
