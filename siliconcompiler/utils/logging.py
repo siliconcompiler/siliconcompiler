@@ -330,7 +330,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
 
     @staticmethod
     def configure_format(fmt, project, step, index):
-        from siliconcompiler.remote import client
+        from siliconcompiler.remote import remote_step_name
 
         max_width = 20
 
@@ -345,7 +345,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
         max_index_len = 1
 
         if project.option.get_remote():
-            nodes_to_run.append((client.remote_step_name, '0'))
+            nodes_to_run.append((remote_step_name, '0'))
         for future_step, future_index in nodes_to_run:
             max_step_len = max(len(future_step), max_step_len)
             max_index_len = max(len(future_index), max_index_len)

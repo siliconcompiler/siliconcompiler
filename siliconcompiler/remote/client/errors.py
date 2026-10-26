@@ -1,0 +1,293 @@
+'''
+Say what went wrong in three lines, without opening a URL: what failed, the
+extension members that say which, and the support reference beside the page.
+The ``type`` URIs are static, so only the client can render the specific failure.
+'''
+
+import re
+
+from typing import Any, Dict, Optional
+
+__all__ = ["RemoteError", "ServerProblem", "SessionEnded", "describe",
+           "NO_NODE_FAILED", "clean"]
+
+
+class RemoteError(Exception):
+    '''Something the client itself could not do.'''
+
+
+class ServerProblem(RemoteError):
+    '''The server refused, and said why in a way worth rendering.'''
+
+    def __init__(self, problem: Dict[str, Any], status: int,
+                 help_url: Optional[str] = None, next_step: Optional[str] = None,
+                 job_id: Optional[str] = None, titles: Optional[Dict[str, str]] = None,
+                 retry_after: Optional[float] = None):
+        self.problem = problem
+        self.status = status
+        self.help_url = help_url
+        self.retry_after = retry_after
+        super().__init__(describe(problem, status, next_step=next_step, help_url=help_url,
+                                  job_id=job_id, titles=titles))
+
+    @property
+    def slug(self) -> Optional[str]:
+        return _slug(self.problem)
+
+    def member(self, name: str) -> Any:
+        '''An extension member -- `limit`, `feature`, `reason`, and the rest.'''
+        return self.problem.get(name)
+
+
+class SessionEnded(ServerProblem):
+    '''The session is over: log in again, and do not refresh.'''
+
+    @property
+    def reason(self) -> str:
+        return self.problem.get("reason") or "revoked"
+
+
+# The extension members that name the instance, in reading order.
+_DISCRIMINATORS = (
+    "resource", "keypath", "limit", "reason", "feature", "artifact_kind", "job_ids",
+    "resource_kind", "detected", "member", "step", "index", "job_id",
+)
+
+# The registry's client action, keyed on the slug: `detail` may be reworded.
+_NEXT_STEP = {
+    "limit-exceeded": "Wait and retry; this allowance refills.",
+    "node-limit-exceeded": "Send a smaller flow.",
+    "upload-too-large": "Send a smaller archive or request; waiting will not help.",
+    "rate-limited": "Slow down and retry.",
+    "entitlement-denied": "Ask for a grant; waiting will not help.",
+    "account-not-provisioned": "Ask an administrator to provision your account.",
+    "not-permitted": "You cannot do that to this job: only its owner, and for a "
+                     "cancel or a delete a project owner, may.",
+    "download-too-large": "It is larger than this account may download over "
+                          "the API; the web portal is the way to it.",
+    "software-unavailable": "Ask for a version this server has, or ask its "
+                            "operator for the one you need.",
+    "artifact-not-approved": "It is held back from download here; ask for access "
+                             "on its page, where the listing says it may be asked.",
+    "resource-unavailable": "This server does not hold it and cannot be sent "
+                            "it: use one it holds, or ask its operator.",
+    "upload-forbidden": "That resource may not be uploaded here; use this "
+                        "server's copy.",
+    "resource-unresolved": "Set the PDK in your build script.",
+    "terms-not-accepted": "Sign each document below, then try again.",
+    "declared-mismatch": "The manifest and the job disagree; this is usually a "
+                         "client bug worth reporting.",
+    "upload-digest-mismatch": "The upload did not arrive intact; upload it again "
+                              "and submit.",
+    "archive-rejected": "Fix what the reason names, in a new job.",
+    "job-state-conflict": "This job is past the point where that is possible.",
+    "not-found": "Check the id, or the job may have been deleted.",
+    "not-ready": "Not available yet; retry.",
+    "feature-unsupported": "This deployment does not offer that now.",
+    "insufficient-scope": "This credential may not do that.",
+    "session-ended": "Log in again with sc-config remote configure.",
+    "invalid-dpop-proof": "The server did not accept this machine's key.",
+    "insecure-transport": "This server's address must be https: change it with "
+                          "sc-config remote configure. The request is not sent again.",
+    "idempotency-key-reuse": "A retry changed the request; start a new job.",
+    "invalid-cursor": "Start the listing again.",
+    "prior-results-unavailable": "Run from an earlier step, or name a job of your "
+                                 "own whose results can be used.",
+    # Never HTTP responses: `type` values on a job's or a node's error object.
+    "run-failed": "It will fail the same way unchanged. Read the failing node's "
+                  "log in the build directory this fetched, and change something "
+                  "before you resubmit.",
+    "run-interrupted": "The environment ended the run, not the job: resubmitting "
+                       "unchanged may work.",
+    "staging-failed": "The server could not get the job ready; submit again later.",
+    "staging-timed-out": "Resubmitting unchanged times out again: send a smaller set of "
+                         "Python packages, or ask the server's operator.",
+    # Seen only when the transport's retry with the nonce was refused too.
+    "dpop-nonce-required": "The server wanted a fresh proof and refused the retry; "
+                           "try again.",
+}
+
+
+def _by_status(status: Optional[int]) -> Optional[str]:
+    '''An unknown `type` is acted on by its status, as an untyped failure is.'''
+    if not isinstance(status, int):
+        return None
+    if status >= 500:
+        return "The server failed; try again later."
+    if status == 429:
+        return "Wait and retry."
+    if status == 401:
+        return "Log in again with sc-config remote configure."
+    if status == 404:
+        return "Check the id, or it may have been deleted."
+    if status >= 400:
+        return "The server refused the request; retrying it unchanged will not help."
+    return None
+
+
+# `archive-rejected` is one slug over many mistakes. Keyed on `reason`.
+_NEXT_STEP_BY_REASON = {
+    "missing_member": "The upload left out a file the flow reads; that is a "
+                      "client bug, or a task whose requirements miss a file.",
+    "unrequested_member": "The archive carried something the server did not ask for; "
+                          "that is a client bug.",
+    "python_package": "An uploaded wheel was refused; the client builds every "
+                      "wheel, so that is a client bug.",
+    "credential": "A dataroot's path went up with a user name or secret in it; the "
+                  "client removes them, so that is a client bug. Give the credential "
+                  "through the environment instead.",
+    "breakpoint": "Clear option,breakpoint: nobody is at a remote run.",
+    "interactive_task": "Remove the task that opens a window: nobody is at a "
+                        "remote run.",
+}
+
+# For a run that failed with no failed NODE (common: dying in setup leaves every
+# node `cancelled`), where *the failing node's log* does not exist.
+NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
+                  "in the job directory this fetched.")
+
+
+# An `unresolved` entry's `kind`, as a person reads it.
+_UNRESOLVED_KIND = {"python": "python", "tools": "tool", "interpreter": "interpreter",
+                    "class": "task class", "package": "package"}
+
+
+def _member(value) -> str:
+    '''One extension member as a person reads it; an empty list is "none".'''
+    if isinstance(value, (list, tuple)):
+        return " ".join(str(item) for item in value) if value else "none"
+    return str(value)
+
+
+def _keypath(value) -> str:
+    if isinstance(value, (list, tuple)):
+        return ",".join(str(part) for part in value)
+    return str(value)
+
+
+def describe(problem: Dict[str, Any], status: Optional[int] = None,
+             next_step: Optional[str] = None,
+             help_url: Optional[str] = None,
+             job_id: Optional[str] = None,
+             titles: Optional[Dict[str, str]] = None) -> str:
+    '''Three lines: what failed, which one, and where to look.
+
+    Tolerant: a proxy's 502 arrives as only a title and status. ``next_step``
+    overrides the slug's advice for this instance; ``help_url``, the server's
+    `rel="help"` page, replaces the `type` URI; ``job_id`` replaces the
+    `trace_id`; ``titles`` names `blocked_by` documents.
+    '''
+    lines = []
+
+    status = status or problem.get("status")
+    title = clean(problem.get("title") or "The server refused the request")
+    detail = clean(problem.get("detail")) if problem.get("detail") else None
+
+    first = f"{title}" if status is None else f"{title} ({status})"
+    lines.append(first if not detail else f"{first}: {detail}")
+
+    named = [f"{name}: "
+             + clean(_keypath(problem[name]) if name == "keypath" else _member(problem[name]))
+             for name in _DISCRIMINATORS if problem.get(name) is not None]
+    if named:
+        lines.append("  " + ", ".join(named))
+
+    # `software-unavailable`: one line per failed requirement.
+    for entry in problem.get("unresolved") or []:
+        if isinstance(entry, dict):
+            wanted = " or ".join(str(one) for one in entry.get("requirement") or []) \
+                or "any version"
+            kind = _UNRESOLVED_KIND.get(entry.get("kind"))
+            lines.append("  " + clean(
+                f"{kind + ' ' if kind else ''}{entry.get('name', '?')} {wanted} "
+                f"(available: {_member(entry.get('available') or [])})"))
+
+    for line in blocked_lines(problem.get("blocked_by"), titles):
+        lines.append(f"  {line}")
+
+    slug = _slug(problem)
+    step = next_step or _advice(slug, problem, status)
+    if step:
+        lines.append(f"  {step}")
+
+    trailer = []
+    if job_id:
+        trailer.append(f"job {clean(job_id)}")
+    elif problem.get("trace_id"):
+        trailer.append(f"trace {clean(problem['trace_id'])}")
+    if help_url:
+        trailer.append(clean(help_url))
+    elif isinstance(problem.get("type"), str):
+        trailer.append(clean(problem["type"]))
+    if trailer:
+        lines.append("  " + "  ".join(trailer))
+
+    return "\n".join(lines)
+
+
+# A capability refused.
+_CAPABILITY_STEP = {
+    "python-packages": "Ask the deployment for the python-packages grant. A job whose "
+                       "only Python is its own modules needs none.",
+    "python-wheels": "Ask the deployment for the python-wheels grant, or publish the "
+                     "package to one of its indexes.",
+}
+
+
+def _advice(slug: Optional[str], problem: Dict[str, Any],
+            status: Optional[int] = None) -> Optional[str]:
+    '''The registry's client action for this type, refined by `reason`; an
+    unknown type, or none, falls to the status.'''
+    if slug not in _NEXT_STEP:
+        return _by_status(status)
+    if slug == "archive-rejected":
+        return _NEXT_STEP_BY_REASON.get(problem.get("reason")) or _NEXT_STEP[slug]
+    if slug == "software-unavailable" and any(
+            isinstance(entry, dict) and entry.get("kind") == "interpreter"
+            for entry in problem.get("unresolved") or []):
+        # Nothing in the job changes the interpreter.
+        return ("No image here runs the Python this machine does. The server's "
+                "operator would have to add one; until then, run the job from a "
+                "Python it has.")
+    if slug == "entitlement-denied" and problem.get("resource_kind") == "capability":
+        return _CAPABILITY_STEP.get(problem.get("resource")) or \
+            "Ask the deployment for that grant; waiting will not help."
+    if slug == "session-ended" and problem.get("reason") == "reused":
+        return ("Your credentials were used elsewhere. Rotate this machine's key "
+                "with `sc-config remote rotate-key`, then log in again.")
+    return _NEXT_STEP[slug]
+
+
+def blocked_lines(blocked_by, titles: Optional[Dict[str, str]] = None) -> list:
+    '''One line per `terms` id in `blocked_by`, by its title where known, else its id.'''
+    if not isinstance(blocked_by, list):
+        return []
+    return [f"sign {clean(str((titles or {}).get(terms_id) or terms_id))}"
+            for terms_id in blocked_by if isinstance(terms_id, str) and terms_id]
+
+
+# Everything a terminal acts on except newline, tab and colour (SGR).
+_CONTROL = re.compile(r"\x1b(?!\[[0-9;]*m)|[\x00-\x08\x0b-\x1a\x1c-\x1f\x7f\x80-\x9f]")
+
+
+def clean(text: Optional[str]) -> str:
+    '''Server text made safe for a terminal: control characters stripped,
+    except newline, tab and colour.'''
+    if text is None:
+        return ""
+    text = str(text)
+    # A non-colour escape loses its introducer; colour sequences are left alone.
+    return _CONTROL.sub("", text)
+
+
+# Every registered `type` is this and a slug, the same on every deployment.
+_TYPE_BASE = "https://siliconcompiler.com/server-errors/"
+
+
+def _slug(problem: Dict[str, Any]) -> Optional[str]:
+    '''The condition a problem names, or None for a `type` outside the
+    registry, which is acted on by its status.'''
+    uri = problem.get("type")
+    if not isinstance(uri, str) or not uri.startswith(_TYPE_BASE):
+        return None
+    return uri[len(_TYPE_BASE):] or None

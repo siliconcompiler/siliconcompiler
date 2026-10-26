@@ -1,11 +1,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Optional, Tuple, Union, Dict
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
-from siliconcompiler.tool import TaskExecutableNotFound
+from siliconcompiler.tool import PythonEnvironment, TaskExecutableNotFound
 
 try:
     import cocotb_tools.config
@@ -92,6 +92,13 @@ def get_gpi_users():
 
 class CocotbTask(Task):
 
+    @classmethod
+    def framework_distributions(cls) -> Tuple[str, ...]:
+        """cocotb: this process sets up the GPI from its own copy, so the
+        node's image holds it at SiliconCompiler's range and the testbench's
+        environment leaves it out."""
+        return ("cocotb",)
+
     def __init__(self):
         super().__init__()
 
@@ -116,6 +123,42 @@ class CocotbTask(Task):
 
     def task(self):
         return "exec_cocotb"
+
+    def _get_test_module_names(self):
+        """
+        Get cocotb test module names from Python files in filesets.
+
+        The names are the declared files' stems, and nothing is resolved:
+        this runs in ``setup()``, which must not resolve a path, and
+        ``COCOTB_TEST_MODULES`` needs only the module names. A collected file
+        keeps its basename -- only its bucket directory carries a hash -- so
+        the declared stem is the module cocotb imports and every test is
+        reported under.
+
+        Returns:
+            str: comma-separated module names.
+        """
+        module_names = []
+        for lib, fileset in self.project.get_filesets():
+            for pyfile in lib.get("fileset", fileset, "file", "python"):
+                module_names.append(Path(pyfile).stem)
+        return ",".join(module_names)
+
+    def get_python_environment(self) -> PythonEnvironment:
+        """
+        The testbench's own Python, for a remote run to carry.
+
+        The test modules are the sources whose imports the environment is
+        read from. cocotb itself is SiliconCompiler's: this process configures
+        the GPI from its own copy, so the image has to hold the same version,
+        and the testbench's environment leaves it out.
+
+        Returns:
+            PythonEnvironment: the test modules, and cocotb as the framework's.
+        """
+        sources = tuple(str(pyfile) for lib, fileset in self.project.get_filesets()
+                        for pyfile in lib.get_file(fileset=fileset, filetype="python"))
+        return PythonEnvironment(sources=sources, framework=self.framework_distributions())
 
     def _get_test_modules(self):
         """
@@ -179,7 +222,7 @@ class CocotbTask(Task):
         Set up all required environment variables for cocotb execution.
         """
 
-        test_modules, _ = self._get_test_modules()
+        test_modules = self._get_test_module_names()
 
         # GPI_USERS is the node's, in get_runtime_environmental_variables():
         # absolute paths into whichever Python and cocotb run the node.
