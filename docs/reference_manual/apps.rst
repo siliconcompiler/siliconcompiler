@@ -25,6 +25,10 @@ Support apps
   :title: dashboard
 
 .. scapp::
+  :app: python3 -m siliconcompiler.remote.server
+  :title: sc-server
+
+.. scapp::
   :app: python3 -m siliconcompiler.apps.utils.summarize
   :title: summarize
 

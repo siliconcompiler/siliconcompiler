@@ -564,6 +564,37 @@ Troubleshooting
 For Developers: Custom Servers
 ------------------------------
 
-SiliconCompiler ships a small server of its own, run as
-``python3 -m siliconcompiler.remote.server``: enough to test the client against and to run jobs on
-one machine or a small Slurm cluster. ``setup/server/`` holds a Docker Compose deployment of it.
+SiliconCompiler ships a small server of its own, enough to test the client
+against and to run jobs on one machine or a small Slurm cluster.
+
+.. code-block:: bash
+
+  pip install "siliconcompiler[server]"
+  python3 -m siliconcompiler.remote.server -port 8080 -datadir ./sc_server -cluster local
+
+``-port``
+  The port to serve on (default ``8080``).
+
+``-datadir``
+  The directory holding the server's state: its database, each user's job
+  directories and the shared package cache (default ``./sc_server``).
+
+``-cluster``
+  How a run is started: ``local`` runs it as a process of the server, ``slurm``
+  submits it as one Slurm batch job. In the ``slurm`` case the compute nodes need
+  SiliconCompiler, the tools a flow uses, and the data directory mounted at the
+  same path as on the server. See :ref:`slurmsetup` for the cluster itself.
+
+Then run ``sc-config remote configure http://localhost:8080`` on the client.
+
+``setup/server/`` in the repository holds a Docker Compose deployment of the
+server on a real Slurm cluster (a controller, an accounting database and
+scalable compute nodes running the tools directly), used by the daily CI to run
+the ASIC and FPGA demos remotely. Its ``README.md`` says how to bring it up and
+its ``PROFILE.md`` lists what the server implements of the ``v1`` API.
+
+The server is a test server, not a service to expose to others. It does not
+verify who a caller is, and it does not offer the device login, terms or
+approvals, containers or Python packages, or continuing from an earlier job.
+Every node of a flow runs inside one job. A site that needs more writes its own
+server to the ``v1`` API, which the client speaks.

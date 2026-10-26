@@ -213,8 +213,8 @@ features below are packaged as extras, installed by naming them in brackets:
        ``report.make_metric_dataframe()``. Printing a summary with
        :meth:`.Project.summary()` needs neither.
    * - ``server``
-     - Running your own remote server, ``python3 -m
-       siliconcompiler.remote.server``. Submitting jobs to someone else's
+     - Running your own :ref:`remote server <custom-servers>` with
+       :ref:`sc-server <app-sc-server>`. Submitting jobs to someone else's
        server does not need it.
    * - ``s3``
      - Fetching a :term:`dataroot` from an ``s3://`` source: Amazon S3, or a

@@ -18,28 +18,56 @@ ARG SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:latest
 
 
 ##############################################################################
-# Stage 1 -- build a wheel with a real version.
+# Stage 1 -- work out the version, then build a wheel at it.
 #
-# siliconcompiler's version is derived from git by setuptools_scm, so this
-# stage takes the whole context including .git and lets it do that properly.
-# Only the wheel crosses into the final image, so the history does not ship.
-#
-# It cannot be skipped by inventing a version: lambdapdk requires
-# siliconcompiler>=0.38.5, so a placeholder makes pip's resolver refuse.
+# The version comes from SC_VERSION, else the git tags, else the _version.py an
+# editable install writes. A git worktree has no .git directory, only a file
+# pointing outside the build context, so it needs the last two or SC_VERSION.
+# Only the wheel crosses into the final image.
 ##############################################################################
+FROM ubuntu:24.04 AS version
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG SC_VERSION=""
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Mounted, not copied: only the answer is kept.
+RUN --mount=type=bind,target=/ctx set -eu; \
+    version="$SC_VERSION"; \
+    if [ -z "$version" ] && [ -d /ctx/.git ]; then \
+        version=$(git -c safe.directory='*' -C /ctx describe --tags \
+                  --abbrev=0 --match 'v[0-9]*' | sed 's/^v//'); \
+    fi; \
+    if [ -z "$version" ] && [ -f /ctx/siliconcompiler/_version.py ]; then \
+        version=$(sed -n 's/^__base_version__ = "\(.*\)"$/\1/p' \
+                  /ctx/siliconcompiler/_version.py); \
+    fi; \
+    if [ -z "$version" ]; then \
+        echo "Cannot work out the version: pass SC_VERSION=<x.y.z>" >&2; \
+        exit 1; \
+    fi; \
+    echo "$version" > /version
+
 FROM ubuntu:24.04 AS wheel
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates git python3 python3-venv python3-pip \
+        ca-certificates python3 python3-venv python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /src
-RUN python3 -m venv /build \
-    && /build/bin/pip install --no-cache-dir build \
-    && cd /src \
-    && /build/bin/python -m build --wheel --outdir /wheels \
-    && ls -l /wheels
+RUN python3 -m venv /build && /build/bin/pip install --no-cache-dir build
+
+COPY --from=version /version /version
+COPY pyproject.toml README.md LICENSE MANIFEST.in /src/
+COPY siliconcompiler /src/siliconcompiler
+
+RUN set -eu; \
+    export SETUPTOOLS_SCM_PRETEND_VERSION="$(cat /version)"; \
+    cd /src; \
+    /build/bin/python -m build --wheel --outdir /wheels
 
 
 ##############################################################################
@@ -61,7 +89,7 @@ ENV VIRTUAL_ENV=/venv
 ENV PATH="/venv/bin:$PATH"
 
 COPY --from=wheel /wheels /tmp/wheels
-# [server] pulls aiohttp, which sc-server needs and a default install omits.
+# [server] pulls Flask, which sc-server needs and a default install omits.
 # The glob goes through echo because an extra cannot be appended to a pattern,
 # and stage 1 builds exactly one wheel.
 RUN pip install --no-cache-dir --upgrade "$(echo /tmp/wheels/*.whl)[server]" \
