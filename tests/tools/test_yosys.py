@@ -323,9 +323,13 @@ def test_hier_opt_converges():
 
     with open("build/deep/job0/synthesis/0/reports/stat.json") as f:
         modules = json.load(f)["modules"]
-    # With en tied high and b to zero, nothing is left in the leaf but its flops.
-    assert [info["num_cells_by_type"] for name, info in modules.items()
-            if name.startswith("\\leaf")] == [{"DFF_X1": 8}]
+    leaf = [info["num_cells_by_type"] for name, info in modules.items()
+            if name.startswith("\\leaf")]
+    assert len(leaf) == 1
+    # With en tied high and b to zero, the adder and subtractor are gone, leaving the
+    # flops and any buffers abc puts in front of them.
+    assert {cell: count for cell, count in leaf[0].items()
+            if not cell.startswith("BUF_")} == {"DFF_X1": 8}
 
 
 @pytest.mark.timeout(60)
