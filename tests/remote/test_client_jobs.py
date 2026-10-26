@@ -1154,12 +1154,12 @@ def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_n
 @pytest.mark.parametrize("declared,sent", [
     (">=24Q3-2011", ">=24.3.2011"),
     (">=24Q3-2011,<27Q1-0", ">=24.3.2011,<27.1.0"),
-    ("whatever", None),
+    # A part with no operator is `==part`, as `check_exe_version` reads it.
+    (">=24Q3-2011,26Q3-2418", ">=24.3.2011,==26.3.2418"),
 ])
 def test_a_declared_requirement_is_normalised_before_it_is_sent(declared, sent):
     '''OpenROAD's `>=24Q3-2011` is not PEP 440, and only the driver can
-    make it comparable. Each part of a set on its own; an unreadable one is
-    dropped rather than refusing every OpenROAD.'''
+    make it comparable.'''
     from packaging.specifiers import SpecifierSet
     from packaging.version import Version
 
@@ -1172,6 +1172,14 @@ def test_a_declared_requirement_is_normalised_before_it_is_sent(declared, sent):
     if spec:
         # What the probe stores for a real OpenROAD satisfies it.
         assert Version("26.3.2418") in SpecifierSet(spec)
+
+
+def test_a_requirement_that_is_not_pep_440_is_dropped_rather_than_refusing_every_image():
+    '''`check_exe_version` reads `whatever` as `==whatever`, which matches nothing.'''
+    from siliconcompiler import Task
+    from siliconcompiler.remote.client.run import _normalize_spec
+
+    assert _normalize_spec(Task(), "whatever") is None
 
 
 def test_a_development_client_asks_by_prefix_rather_than_exactly():
@@ -1983,21 +1991,30 @@ class ReadsTheNetlist(NOPTask):
         self.add_input_file("gcd.vg")
 
 
-@pytest.mark.parametrize("steptwo,refused", [
-    ({"output": "own.vg"}, True),
-    ({"output": "gcd.vg"}, False),
-    ({"fetched_from": "01a0e000-0000-7000-8000-000000000001"}, False),
-], ids=["lacking", "holding", "continued"])
+class ReadsTheSuffixedNetlist(ReadsTheNetlist):
+    '''A task that declares the input under the name of the node it comes from.'''
+
+    def setup(self):
+        NOPTask.setup(self)
+        self.add_input_file(self.compute_input_file_node_name("gcd.vg", "steptwo", "0"))
+
+
+@pytest.mark.parametrize("last,steptwo,refused", [
+    (ReadsTheNetlist, {"output": "own.vg"}, True),
+    (ReadsTheNetlist, {"output": "gcd.vg"}, False),
+    (ReadsTheNetlist, {"fetched_from": "01a0e000-0000-7000-8000-000000000001"}, False),
+    (ReadsTheSuffixedNetlist, {"output": "gcd.vg"}, False),
+], ids=["lacking", "holding", "continued", "node-suffixed"])
 def test_an_input_the_outputs_packed_here_lack_stops_the_run_before_create(
-        run, nop_project, steptwo, refused):
+        run, nop_project, last, steptwo, refused):
     '''Read from the setup worked out here; a node reading results continued
     from another job is not checked, since they are not here.'''
-    _three_nodes(nop_project, both=True, last=ReadsTheNetlist)
+    _three_nodes(nop_project, both=True, last=last)
     _upstream_node(nop_project, "stepone", output="own.vg")
     _upstream_node(nop_project, "steptwo", **steptwo)
 
     if refused:
-        with pytest.raises(RemoteError, match="stepthree/0 reads gcd.vg"):
+        with pytest.raises(RemoteError, match="stepthree/0 reads an input"):
             run._check_upstream_files()
     else:
         run._check_upstream_files()
@@ -2120,3 +2137,14 @@ def test_a_ci_session_says_it_cannot_refresh(logged_in, caplog):
     assert caplog.text.count("Session: ci") == 1
     assert "on device" not in caplog.text
     assert "it cannot refresh" in caplog.text
+
+
+@pytest.mark.parametrize("text,said", [
+    ("404 from https://user:pw@host/x.tgz", "404 from https://host/x.tgz"),
+    ("no https://host/x.tgz?token=abc&v=2 here", "no https://host/x.tgz?token=***&v=*** here"),
+])
+def test_a_scrubbed_message_carries_no_credential(text, said):
+    '''Userinfo and query values are masked as a source's are, wherever the URL sits.'''
+    from siliconcompiler.remote.client.run import _scrubbed
+
+    assert _scrubbed(text) == said

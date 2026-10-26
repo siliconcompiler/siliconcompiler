@@ -919,6 +919,32 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return version
 
+    def _normalize_specifiers(self, spec_set: str, logger: logging.Logger) -> str:
+        """
+        One declared requirement, such as ``>=1.2,<2``, with each version put
+        through `normalize_version`. A part that is not ``<operator><version>``
+        is read as ``==part``. Shared by `check_exe_version` and the remote
+        client, so both ends read a requirement alike; ``logger`` is explicit
+        because a task has none outside a run.
+        """
+        specs_list = []
+        for spec in (s.strip() for s in spec_set.split(",") if s.strip()):
+            match = re.match(Task.__parse_version_check, spec)
+            if match is None:
+                logger.warning(f'Invalid version specifier {spec}. '
+                               f'Defaulting to =={spec}.')
+                specs_list.append(('==', spec))
+            else:
+                specs_list.append((match.group('operator'), match.group('version')))
+
+        try:
+            return ','.join(f'{op}{self.normalize_version(ver)}' for op, ver in specs_list)
+        except Exception:
+            logger.error(f'Unable to normalize versions for '
+                         f'{self.tool()}/{self.task()}: '
+                         f'{",".join([f"{op}{ver}" for op, ver in specs_list])}')
+            raise
+
     def check_exe_version(self, reported_version: str) -> bool:
         """
         Checks if the reported version of a tool satisfies the requirements
@@ -943,20 +969,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
         for spec_set in spec_sets:
-            split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
-            specs_list = []
-            for spec in split_specs:
-                match = re.match(Task.__parse_version_check, spec)
-                if match is None:
-                    self.logger.warning(f'Invalid version specifier {spec}. '
-                                        f'Defaulting to =={spec}.')
-                    operator = '=='
-                    spec_version = spec
-                else:
-                    operator = match.group('operator')
-                    spec_version = match.group('version')
-                specs_list.append((operator, spec_version))
-
             try:
                 normalized_version = self.normalize_version(reported_version)
             except Exception:
@@ -971,15 +983,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                   f'{self.tool()}/{self.task()} does not match standard.')
                 return False
 
-            try:
-                normalized_spec_list = [
-                    f'{op}{self.normalize_version(ver)}' for op, ver in specs_list]
-                normalized_specs = ','.join(normalized_spec_list)
-            except Exception:
-                self.logger.error(f'Unable to normalize versions for '
-                                  f'{self.tool()}/{self.task()}: '
-                                  f'{",".join([f"{op}{ver}" for op, ver in specs_list])}')
-                raise
+            normalized_specs = self._normalize_specifiers(spec_set, self.logger)
 
             try:
                 spec_set = SpecifierSet(normalized_specs)

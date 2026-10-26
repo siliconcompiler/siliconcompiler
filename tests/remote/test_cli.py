@@ -1,6 +1,7 @@
 import io
 import os
 import pytest
+import requests
 
 from pathlib import Path
 
@@ -32,6 +33,19 @@ def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
     assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/',
                 '-credentials', 'sc-auth/remote.json') != 0
     assert caplog.text
+
+
+def test_a_server_that_does_not_answer_is_reported_not_raised(monkeypatch, caplog):
+    '''A request timeout is a message and a non-zero exit, not a traceback.'''
+    def timed_out(*args, **kwargs):
+        raise requests.Timeout()
+
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    monkeypatch.setattr(requests.Session, "request", timed_out)
+
+    assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/',
+                '-credentials', 'sc-auth/remote.json') == 1
+    assert "did not answer" in caplog.text
 
 
 @pytest.mark.parametrize("manifest,said", [

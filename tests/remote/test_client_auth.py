@@ -137,7 +137,7 @@ def test_a_problem_at_the_token_endpoint_is_read_as_a_problem(
     assert len(_posts(fake_v1)) == 2
 
 
-def test_a_key_bound_elsewhere_names_the_operator_command(fake_v1, tmp_credentials):
+def test_a_key_bound_elsewhere_says_the_operator_can_release_it(fake_v1, tmp_credentials):
     fake_v1.route(responses.POST, "auth/token",
                   {"error": "invalid_client",
                    "error_description": "bound to a different key"}, status=401)
@@ -145,7 +145,8 @@ def test_a_key_bound_elsewhere_names_the_operator_command(fake_v1, tmp_credentia
     with pytest.raises(RemoteError) as raised:
         Client(tmp_credentials).login()
 
-    assert "release-binding" in str(raised.value)
+    assert "operator can release the binding" in str(raised.value)
+    assert "registry" not in str(raised.value)
     assert len(_posts(fake_v1)) == 1
 
 
@@ -1087,11 +1088,15 @@ def test_a_rotation_revokes_the_old_device_with_the_old_key(
     assert sent.index(revoke) < sent.index(login)
 
 
+@pytest.mark.parametrize("silence", ["bad-gateway", "timeout"])
 def test_a_rotation_the_server_cannot_hear_still_rotates(
-        logged_in, fake_v1, tmp_credentials, client_credentials, caplog):
+        logged_in, fake_v1, tmp_credentials, client_credentials, caplog, no_sleep, silence):
     old = tmp_credentials.thumbprint
-    fake_v1.route(responses.GET, "devices", "<html>502</html>", status=502,
-                  content_type="text/html")
+    if silence == "timeout":
+        fake_v1._mock.add(responses.GET, fake_v1.url("devices"), body=requests.Timeout())
+    else:
+        fake_v1.route(responses.GET, "devices", "<html>502</html>", status=502,
+                      content_type="text/html")
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     logged_in.rotate_key()
