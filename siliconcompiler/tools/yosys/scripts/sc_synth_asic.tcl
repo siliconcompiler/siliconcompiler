@@ -113,7 +113,15 @@ yosys scratchpad \
     -set flatten.separator "[sc_cfg_tool_task_get var hierarchy_separator]"
 
 # Start synthesis
-yosys synth {*}$synth_args -top $sc_topmodule -run begin:fine
+yosys synth {*}$synth_args -top $sc_topmodule -run begin:coarse
+
+# An ASIC flop has no power-on value, only a reset or set gives it one, so an initial value
+# cannot be built. Kept, it only stops yosys merging flops, folding constant ones, and
+# extracting an FSM from a state register. read_verilog keeps an initializer as a process
+# rule until proc, so drop them after proc and before the fsm pass in synth's coarse step.
+yosys proc
+yosys setattr -unset init
+yosys synth {*}$synth_args -top $sc_topmodule -run coarse:fine
 
 # Perform memory mapping, if available
 sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0

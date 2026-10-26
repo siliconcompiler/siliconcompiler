@@ -7,6 +7,7 @@ import os.path
 from siliconcompiler.targets import freepdk45_demo
 
 from siliconcompiler import ASIC, Design, Flowgraph, FPGA, StdCellLibrary, utils
+from siliconcompiler.fpgas.lattice_ice40 import ICE40Up5k_sg48
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
 from siliconcompiler.tools.yosys.open import OpenTask as YosysOpen
@@ -143,6 +144,71 @@ def test_synthesis_does_not_use_slang(heartbeat_design):
         "expected the design to be read with read_verilog when slang is disabled"
     assert not any("read_slang" in line for line in lines), \
         "did not expect the slang frontend (read_slang) to be used"
+
+
+def _initial_value_design():
+    '''Three flops on the same input that differ only in their initial value.
+
+    r1 is given a 1, and r2 is a 2-state bit, which slang gives an implicit 0.
+    '''
+    with open("pwron.sv", "w") as f:
+        f.write('''
+module pwron (input clk, input d, output q1, output q2, output q3);
+    reg r1 = 1'b1;
+    bit r2;
+    logic r3;
+    always_ff @(posedge clk) begin
+        r1 <= d;
+        r2 <= d;
+        r3 <= d;
+    end
+    assign q1 = r1;
+    assign q2 = r2;
+    assign q3 = r3;
+endmodule
+''')
+
+    design = Design("pwron")
+    design.set_dataroot("pwron", os.path.abspath("."))
+    with design.active_fileset("rtl"), design.active_dataroot("pwron"):
+        design.set_topmodule("pwron")
+        design.add_file("pwron.sv")
+    return design
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("use_slang", [True, False])
+def test_asic_synthesis_drops_initial_values(use_slang):
+    '''An ASIC flop has no power-on value, so the three flops merge into one on either frontend.'''
+    _run_asic_synthesis(_initial_value_design(), use_slang)
+
+    with open("build/pwron/job0/synthesis/0/reports/stat.json") as f:
+        assert json.load(f)["design"]["num_cells_by_type"]["DFF_X1"] == 1
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("use_slang", [True, False])
+def test_fpga_synthesis_keeps_initial_values(use_slang):
+    '''An ice40 flop powers up at 0, so r1's 1 takes LUTs to invert it on either frontend.'''
+    proj = FPGA(_initial_value_design())
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("elab_and_synth")
+    flow.node("elaborate", elaborate.Elaborate())
+    flow.node("synthesis", FPGASynthesis())
+    flow.edge("elaborate", "synthesis")
+    proj.set_flow(flow)
+    proj.set_fpga(ICE40Up5k_sg48())
+    FPGASynthesis.find_task(proj).set_yosys_useslang(use_slang)
+
+    proj.run()
+
+    with open("build/pwron/job0/synthesis/0/reports/stat.json") as f:
+        assert "SB_LUT4" in json.load(f)["design"]["num_cells_by_type"]
 
 
 class DummyYosysFPGA(YosysFPGA):

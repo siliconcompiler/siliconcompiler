@@ -303,7 +303,6 @@ proc sc_read_design_verilog { } {
             --top $sc_topmodule \
             {*}$slang_params \
             {*}$input_verilog
-        yosys setattr -unset init
     } else {
         # Use -noblackbox to correctly interpret empty modules as empty,
         # actual black boxes are read in later
