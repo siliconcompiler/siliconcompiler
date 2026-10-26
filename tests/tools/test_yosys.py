@@ -330,6 +330,30 @@ def test_hier_opt_loop_converges():
         "expected the loop to converge within hier_opt_max_rounds"
 
 
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize("message", [
+    "Disconnected 3 input bits of instance 'u' (type 'leaf') in 'top'",
+    "Substituting constant for 2 output bits of instance 'u' (type 'leaf') in 'top'",
+    "Replacing 2 output bits with tie-togethers on instance 'u' of 'leaf' in 'top'",
+    "Disconnected unused output terminal 'y' in module 'leaf'",
+    "Substituting constant 1'1 for input terminal 'a' in module 'leaf'",
+    "Replacing 2 input terminal bits with tie-togethers in module 'leaf'"])
+def test_hier_opt_loop_sees_every_change(tcl_interp, message):
+    '''Each message opt_hier prints for a change keeps the loop going for another round.'''
+    interp = tcl_interp("yosys/scripts/common/procs.tcl")
+    interp.setvar("message", message)
+    interp.eval("""
+        set rounds 0
+        proc yosys { cmd args } {
+            if { $cmd == "tee" && [incr ::rounds] == 1 } {
+                return $::message
+            }
+            return ""
+        }""")
+
+    assert interp.eval("sc_opt_hier_loop 10 {}") == "2"
+
+
 def test_hier_opt_max_rounds_rejects_zero(heartbeat_design):
     """hier_opt_max_rounds rejects zero, which would run neither opt_hier loop."""
     node = _asic_synthesis_node(heartbeat_design)
