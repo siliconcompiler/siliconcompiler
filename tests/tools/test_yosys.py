@@ -1,4 +1,5 @@
 import gzip
+import json
 import pytest
 
 import os.path
@@ -488,6 +489,42 @@ def test_hier_opt_keys_required_only_when_read(heartbeat_design):
         assert prefix + "var,hier_opt" in require
         assert prefix + "var,hier_opt_uniquify" not in require
         assert prefix + "var,hier_opt_max_rounds" not in require
+
+
+@pytest.mark.parametrize("modules", [
+    {"\\heartbeat": {"num_cells": 1, "num_submodules": 1, "area": 12.0,
+                     "num_cells_by_type": {"XOR2": 1, "mid": 1}},
+     "\\mid": {"num_cells": 1, "num_submodules": 2, "area": 7.0,
+               "num_cells_by_type": {"OR2": 1, "leaf": 2}},
+     "\\leaf": {"num_cells": 1, "num_submodules": 0, "area": 2.0,
+                "num_cells_by_type": {"AND2": 1}}},
+    {"\\heartbeat": {"num_cells": 2, "area": 5.0, "num_cells_by_type": {"XOR2": 1, "mid": 1}},
+     "\\mid": {"num_cells": 3, "area": 3.0, "num_cells_by_type": {"OR2": 1, "leaf": 2}},
+     "\\leaf": {"num_cells": 1, "area": 2.0, "num_cells_by_type": {"AND2": 1}}}],
+    ids=["yosys-0.57-stat", "yosys-0.56-stat"])
+def test_cell_area_report_counts_each_level_once(heartbeat_design, modules):
+    '''Each instance's area and cell count include its submodules once, in either stat format.'''
+    netlist = {"modules": {
+        "heartbeat": {"cells": {"g": {"type": "XOR2"}, "m0": {"type": "mid"}}},
+        "mid": {"cells": {"g": {"type": "OR2"}, "l0": {"type": "leaf"}, "l1": {"type": "leaf"}}},
+        "leaf": {"cells": {"g": {"type": "AND2"}}}}}
+
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        assert node.setup() is True
+        os.makedirs("reports")
+        os.makedirs("outputs")
+        with open("reports/stat.json", "w") as f:
+            json.dump({"modules": modules, "design": {"num_cells": 4, "area": 12.0}}, f)
+        with open("outputs/heartbeat.netlist.json", "w") as f:
+            json.dump(netlist, f)
+
+        node.task._generate_cell_area_report()
+
+    with open("reports/hierarchical_cell_area.json") as f:
+        report = json.load(f)
+    assert {name: (entry["cellarea"], entry["cellcount"]) for name, entry in report.items()} == {
+        "heartbeat": (12.0, 4), "m0": (7.0, 3), "m0.l0": (2.0, 1), "m0.l1": (2.0, 1)}
 
 
 @pytest.mark.parametrize("args", [["-c", "sc_synth_asic.tcl"], ["-C", "-c", "sc_synth_asic.tcl"]])
