@@ -35,10 +35,9 @@ def test_py_gcd():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -108,10 +107,9 @@ def test_py_gcd_skywater():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 9 multi-output cells (for example, "sky130_fd_sc_hd__fa_1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -219,11 +217,10 @@ def test_py_gcd_gf180():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 4 multi-output cells
     #    (for example, "gf180mcu_fd_sc_mcu9t5v0__addf_2")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -306,11 +303,10 @@ def test_py_gcd_ihp130():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # Unlike the other PDKs there is no multi-output cell warning here, because
     # ABC does not map any full adders for this library.
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 6
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
