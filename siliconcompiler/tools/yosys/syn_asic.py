@@ -233,7 +233,7 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
             "use_slang",
             "bool",
             "true/false, if true will attempt to use the slang frontend",
-            False)
+            True)
         self.add_parameter(
             "add_buffers",
             "bool",
