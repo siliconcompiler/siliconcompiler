@@ -141,6 +141,8 @@ def logged_in(fake_v1, client_credentials, tmp_credentials):
 
     client = Client(tmp_credentials)
     client.login()
+    # Login read `GET /v1`; a test that serves another one expects to see it.
+    client.transport.forget_published()
     return client
 
 

@@ -11,9 +11,9 @@ import platform
 import subprocess
 
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
-__all__ = ["machine_fingerprint", "local_subject", "display_name"]
+__all__ = ["machine_fingerprint", "local_subject", "display_name", "device_fingerprint"]
 
 
 # Changing this silently migrates every derived identity at once.
@@ -111,6 +111,15 @@ def local_subject() -> Tuple[str, Optional[str], str]:
         label = hashlib.sha256(_SALT + b"\0" + machine.encode("utf-8")).hexdigest()[:32]
 
     return subject, label, source
+
+
+def device_fingerprint() -> Dict[str, str]:
+    '''The machine id pair a refresh or a device login sends, derived and never
+    stored; empty where this machine has no id.'''
+    _, machine_hash, source = local_subject()
+    if not machine_hash:
+        return {}
+    return {"machine_id_hash": machine_hash, "machine_id_source": source}
 
 
 def display_name() -> str:

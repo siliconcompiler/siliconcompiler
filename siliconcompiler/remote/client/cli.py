@@ -5,12 +5,15 @@ import argparse
 import functools
 import os
 import sys
-import time
 
-from siliconcompiler.remote.client import Client, read_secret
+from typing import Any, Dict
+
+from siliconcompiler.remote.client import Client, read_secret, terms_title
 from siliconcompiler.remote.client.credentials import Credentials
-from siliconcompiler.remote.client.errors import RemoteError, ServerProblem, clean
+from siliconcompiler.remote.client.errors import (
+    RemoteError, ServerProblem, clean, describe, listed)
 from siliconcompiler.remote.client.results import recorded_job
+from siliconcompiler.remote.client.transport import retrying
 from siliconcompiler.scheduler.error import SCRuntimeError
 from siliconcompiler.utils import ConfigCommand
 
@@ -108,11 +111,11 @@ def _cli_use(args, client, logger):
 
 
 def _cli_show(args, client, logger):
-    client.print_configuration()
+    print_configuration(client)
     # The unauthenticated deployment block first: it explains an identity
     # failure, on an unenrolled machine or a down server.
-    client.print_deployment()
-    client.print_identity(client.me())
+    print_deployment(client)
+    print_identity(client, client.me())
 
 
 def _cli_uploads(args, client, logger):
@@ -212,23 +215,22 @@ def _cli_tail(args, client, logger):
         sys.stdout.write(text)
         sys.stdout.flush()
 
-    waiting = False
-    while True:
-        try:
-            client.tail_log(job_id, step, index, write=write)
-            return
-        except ServerProblem as e:
-            if e.slug == "feature-unsupported" and e.member("feature") == "logs.stream":
-                logger.info("This server serves no live log, so only a finished "
-                            "node's log can be read")
-                write(client.archived_log(job_id, step, index))
-                return
-            if e.slug != "not-ready" or not e.retry_after:
-                raise
-            if not waiting:
-                waiting = True
-                logger.info(f"{step}/{index} has not started; waiting for it")
-            time.sleep(e.retry_after)
+    told = []
+
+    def say(_):
+        if not told:
+            told.append(True)
+            logger.info(f"{step}/{index} has not started; waiting for it")
+
+    try:
+        retrying(lambda: client.tail_log(job_id, step, index, write=write),
+                 lambda e: e.slug == "not-ready", notice=say)
+    except ServerProblem as e:
+        if e.slug != "feature-unsupported" or e.member("feature") != "logs.stream":
+            raise
+        logger.info("This server serves no live log, so only a finished "
+                    "node's log can be read")
+        write(client.archived_log(job_id, step, index))
 
 
 def _print_status(logger, job) -> None:
@@ -258,6 +260,170 @@ def _print_status(logger, job) -> None:
     if error:
         logger.error(f"  error:   {clean(error.get('title'))}"
                      + (f": {clean(error['detail'])}" if error.get('detail') else ""))
+
+
+def print_configuration(client: Client) -> None:
+    '''What this machine would use, and what the server knows it by.'''
+    logger, credentials = client.logger, client.credentials
+    logger.info(f"Server: {client.base_url}" if client.base_url else "Server: not configured")
+    logger.info(f"Machine key: {credentials.thumbprint}")
+    logger.info(f"Session store: {credentials.auth_dir}")
+    if credentials.certificate:
+        logger.info(f"Verified with: {credentials.certificate} ({credentials.certs_dir})")
+    if credentials.user_id:
+        logger.info(f"Identity on this server: {credentials.user_id}")
+    others = [server for server in credentials.servers() if server != credentials.server]
+    if others:
+        logger.info(f"Also configured (sc-config remote use): {', '.join(others)}")
+
+    # Names only: a header's value is a secret.
+    names = ", ".join(sorted(credentials.headers()))
+    if names:
+        logger.info(f"Operator headers: {names}")
+    if credentials.ci_secret():
+        logger.info("CI credential: present")
+
+    whitelist = credentials.directory_whitelist
+    logger.info("Directory whitelist:")
+    for entry in whitelist or ["  (empty)"]:
+        logger.info(f"  {entry}" if whitelist else entry)
+
+
+def health(client: Client) -> Dict[str, Any]:
+    '''``GET /v1/healthz``: one word, and no credential.
+
+    A `fail` arrives as a 503, so the refusal path IS the answer, not a
+    swallowed error.
+    '''
+    try:
+        return client.transport.request("GET", "healthz", authenticated=False).json()
+    except ServerProblem:
+        return {"status": "fail"}
+    except ValueError:
+        # 200 but not JSON: up, and not this server.
+        return {"status": "warn"}
+
+
+def print_deployment(client: Client) -> None:
+    '''What the server says it is, for a person at a terminal.
+
+    Unauthenticated, so it works before enrolment and says the same to everybody.
+    '''
+    logger = client.logger
+    status = health(client)
+    published = client.capabilities(notices=False)
+
+    logger.info(f"Health: {clean(status.get('status', 'unknown'))}")
+    logger.info(f"API: {clean(published.get('api_version', 'unknown'))}")
+    logger.info(f"Identity assurance: {clean(published.get('identity_assurance', 'unknown'))}")
+
+    client.show_notices(published, always=True)
+
+    # Apart, as they are satisfied apart: the python set in ONE image, a tool per node.
+    software = published.get("software") or {}
+    for bucket, label in (("python", "Python distributions"), ("tools", "Tools")):
+        held = software.get(bucket) or {}
+        logger.info(f"{label} it can run:")
+        for name, versions in sorted(held.items()):
+            logger.info(f"  {clean(name)}: {listed(versions)}")
+        if not held:
+            logger.info("  (none advertised)")
+
+    logger.info(f"Sign-in: {listed(published.get('grant_types_supported'))}")
+    logger.info(f"Features: {listed(published.get('features'))}")
+
+    # Defaults only: an account's own are in `GET /v1/me`.
+    _print_limits(logger, "Default limits:", published.get("limits"))
+
+    if published.get("terms_url"):
+        logger.info(f"Terms: {clean(published['terms_url'])}")
+
+
+def _print_limits(logger, heading: str, limits) -> None:
+    '''Each limit under ``heading``, in readable units.'''
+    from siliconcompiler.utils.units import format_binary, format_duration
+
+    if not limits:
+        return
+    logger.info(heading)
+    for name, value in limits.items():
+        # null is unlimited, not zero.
+        if value is None:
+            shown = "unlimited"
+        elif name.endswith("_bytes"):
+            shown = format_binary(value, "B", digits=1, show_unit=True, compact=True,
+                                  default="—")
+        elif name.endswith("_seconds"):
+            shown = format_duration(value)
+        else:
+            shown = clean(value)
+        logger.info(f"  {clean(name)}: {shown}")
+
+
+# A metered usage key's `window`, as the period its `used` covers.
+_WINDOWS = {"calendar_month": "this month"}
+
+
+def print_identity(client: Client, identity: Dict[str, Any]) -> None:
+    '''Who the server says you are, this machine's session, your limits,
+    usage and terms, from one `GET /v1/me`.'''
+    from siliconcompiler.utils.units import format_binary, format_duration
+
+    logger = client.logger
+    logger.info(f"Server reports you as {clean(identity['id'])} "
+                f"(issuer {clean(identity['issuer'])})")
+
+    session = identity.get("session") or {}
+    if session:
+        where = f" on device {clean(session['device_id'])}" if session.get("device_id") else ""
+        logger.info(f"Session: {clean(session.get('kind', 'unknown'))}{where}")
+        logger.info(f"  scope: {clean(session.get('scope') or '(none)')}")
+        logger.info(f"  access token until {clean(session.get('access_expires_at'))}")
+        logger.info("  refresh token until " + clean(
+            session.get('refresh_expires_at') or '(none: it cannot refresh)'))
+        logger.info(f"  ends at {clean(session.get('session_expires_at'))}, "
+                    "and is never extended")
+
+    if identity.get("can_submit") is False:
+        logger.warning(describe({"title": "You cannot submit jobs here",
+                                 "type": identity.get("blocked_type")}))
+
+    _print_limits(logger, "Your limits:", identity.get("limits"))
+
+    usage = identity.get("usage") or {}
+    logger.info("Unfinished jobs (staging, queued, running or cancelling): "
+                f"{clean(usage.get('concurrent_jobs', 0))}")
+    compute = usage.get("compute_seconds") or {}
+    if compute:
+        total = compute.get("total")
+        window = compute.get("window")
+        # `used` is this window's; with no window, it is the whole.
+        period = (_WINDOWS.get(window) or f"in this {clean(window)} window") \
+            if window else "in all"
+        logger.info(f"Compute: {format_duration(compute.get('used') or 0)} {period}"
+                    + (f", {format_duration(total)} in all" if total is not None else ""))
+    stored = usage.get("storage_bytes") or {}
+    if stored:
+        used = format_binary(stored.get("used") or 0, "B", digits=1, show_unit=True,
+                             compact=True, default="—")
+        logger.info(f"Storage: {used}")
+
+    terms = [entry for entry in identity.get("terms") or [] if isinstance(entry, dict)]
+    if terms:
+        logger.info("Terms:")
+    for entry in terms:
+        title = terms_title(entry)
+        decided = "accepted" if entry.get("accepted_at") else \
+            "declined" if entry.get("declined_at") else "undecided"
+        logger.info(f"  {title}, version {clean(entry.get('version') or '?')}: {decided}")
+        # Not after a decline, which drops the prompt; nor where the reminder of
+        # its upcoming version has just offered the same page.
+        upcoming = entry.get("upcoming") if isinstance(entry.get("upcoming"), dict) else {}
+        if entry.get("can_decide") is True and entry.get("declined_at") is None \
+                and entry.get("id") and \
+                (entry["id"], upcoming.get("version")) not in client.terms_reminded:
+            logger.info("    It may be decided on its page in this server's portal.")
+            client.offer_terms_page(entry["id"], title)
 
 
 REMOTE_COMMAND = ConfigCommand(

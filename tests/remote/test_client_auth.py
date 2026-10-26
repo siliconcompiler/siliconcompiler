@@ -12,7 +12,7 @@ import responses
 
 from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProblem
 from siliconcompiler.remote.client import (
-    GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE, SCOPES)
+    GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE, SCOPES, cli)
 from siliconcompiler.remote.client.credentials import StoreError, parse_ci_secret
 from siliconcompiler.remote.client.transport import EdgeRefused
 
@@ -308,7 +308,7 @@ def test_the_environment_still_says_where_the_proxy_is(tmp_credentials, monkeypa
     bundle.write_text("")
     monkeypatch.setenv("HTTPS_PROXY", "http://proxy.test:3128")
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(bundle))
-    transport = Transport("https://sc-server.test/v1", dpop.generate_key(), tmp_credentials)
+    transport = Transport("https://sc-server.test/v1", dpop.generate_key(), tmp_credentials, None)
 
     settings = transport._session.merge_environment_settings(
         "https://sc-server.test/v1/me", {}, None, None, None)
@@ -356,7 +356,7 @@ def test_a_redirect_is_followed_only_to_https_from_https(base, target, followed,
     from siliconcompiler.remote import dpop
     from siliconcompiler.remote.client.transport import Transport
 
-    transport = Transport(base, dpop.generate_key(), tmp_credentials)
+    transport = Transport(base, dpop.generate_key(), tmp_credentials, None)
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         mock.add(responses.GET, f"{base}/redirect", status=303,
                  headers={"Location": target})
@@ -379,7 +379,7 @@ def test_a_header_value_is_checked_and_never_printed(tmp_credentials, fake_v1, c
 
     tmp_credentials.set_header("CF-Access-Client-Secret", "very-secret")
     with caplog.at_level("INFO"):
-        Client(tmp_credentials).print_configuration()
+        cli.print_configuration(Client(tmp_credentials))
 
     assert "CF-Access-Client-Secret" in caplog.text
     assert "very-secret" not in caplog.text
@@ -436,10 +436,10 @@ def test_threads_sharing_a_client_refresh_once(fake_v1, tmp_credentials, client_
     fake_v1._mock.add_callback(responses.POST, fake_v1.url("auth/token"), callback=refreshed,
                                content_type="application/json")
 
-    first = threading.Thread(target=client.ensure_session)
+    first = threading.Thread(target=client.transport.renew)
     first.start()
     assert inside.wait(5)
-    second = threading.Thread(target=client.ensure_session)
+    second = threading.Thread(target=client.transport.renew)
     second.start()
     first.join(10)
     second.join(10)
@@ -863,7 +863,7 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
     assert "expires in 3 days" in caplog.text
 
 
-@pytest.mark.parametrize("entry", ["login", "ensure_session"])
+@pytest.mark.parametrize("entry", ["login", "renew"])
 def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
         fake_v1, capabilities, tmp_credentials, ci_secret, capsys, entry):
     '''Never falling back to a refresh, `client_credentials` or the device grant,
@@ -875,7 +875,8 @@ def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
                   status=400)
 
     with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
-        getattr(Client(tmp_credentials, open_browser=False), entry)()
+        client = Client(tmp_credentials, open_browser=False)
+        (client.login if entry == "login" else client.transport.renew)()
 
     assert _grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
     assert not _posts(fake_v1, "auth/device")
@@ -971,11 +972,11 @@ def test_plain_http_carries_a_credential_only_where_nobody_is_authenticated(
     server.route(responses.POST, "auth/token", client_credentials)
 
     if sent:
-        client.ensure_session()
+        client.transport.renew()
         assert _grants(server) == ["refresh_token" if held else GRANT_CLIENT_CREDENTIALS]
     else:
         with pytest.raises(RemoteError, match="is not https"):
-            client.ensure_session()
+            client.transport.renew()
         assert not [call for call in server.calls if call.request.method == "POST"]
 
 

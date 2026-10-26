@@ -6,6 +6,7 @@ import pytest
 import responses
 
 from siliconcompiler.remote import RemoteError, ServerProblem
+from siliconcompiler.remote.client import cli
 from siliconcompiler.remote.client.run import RemoteRun, node_status
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -454,10 +455,8 @@ def test_a_refused_portal_command_fails_and_says_why(fake_v1, run, opened):
     assert opened == []
 
 
-def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened):
-    from siliconcompiler.remote.client import GRANT_TOKEN_EXCHANGE
-
-    run.client._mode = GRANT_TOKEN_EXCHANGE
+def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened, monkeypatch):
+    monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
 
     run._open_portal("01J9-job")
     with pytest.raises(RemoteError, match="CI session"):
@@ -2101,7 +2100,7 @@ def test_the_session_is_shown_from_me_and_nothing_is_refreshed(logged_in, fake_v
     import logging
 
     caplog.set_level(logging.INFO)
-    logged_in.print_identity({
+    cli.print_identity(logged_in, {
         "id": "u1", "issuer": "local",
         "session": {"kind": "interactive", "scope": "jobs:read jobs:write",
                     "device_id": "dev-1", "access_expires_at": "2026-09-29T10:15:00.000Z",
@@ -2127,7 +2126,7 @@ def test_a_ci_session_says_it_cannot_refresh(logged_in, caplog):
     import logging
 
     caplog.set_level(logging.INFO)
-    logged_in.print_identity({
+    cli.print_identity(logged_in, {
         "id": "u1", "issuer": "ci",
         "session": {"kind": "ci", "scope": "jobs:read", "device_id": None,
                     "access_expires_at": "a", "refresh_expires_at": None,

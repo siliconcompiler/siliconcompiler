@@ -94,7 +94,7 @@ def test_tail_waits_for_its_node_and_reads_the_archive_where_nothing_is_live(
     record_job(".", "j1")
     slept = []
     monkeypatch.setattr(cli, "Client", lambda *args, **kwargs: Answers())
-    monkeypatch.setattr(cli.time, "sleep", slept.append)
+    monkeypatch.setattr("siliconcompiler.remote.client.transport.time.sleep", slept.append)
 
     assert main(monkeypatch, 'tail', 'job.pkg.json', 'place/0',
                 '-credentials', 'sc-auth/remote.json') == 0

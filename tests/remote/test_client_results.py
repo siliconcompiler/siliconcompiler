@@ -366,11 +366,10 @@ def test_a_half_written_download_is_never_left_behind(fake_v1, logged_in, tmp_pa
     assert not (tmp_path / "thing.json.part").exists()
 
 
-def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in, tmp_path):
+def test_a_finished_nodes_log_comes_from_its_logs_artifact(fake_v1, logged_in):
     '''`/logs` is live output only: a finished node's log is its `logs` artifact.'''
     serve(fake_v1, [artifact("logs", "stepone", "0")], {"logs-stepone-0": "ran\n"})
-    logged_in.node_log("j1", "stepone", "0", tmp_path / "node.log")
-    assert (tmp_path / "node.log").read_text() == "ran\n"
+    assert logged_in.archived_log("j1", "stepone", "0") == "ran\n"
     assert not any("/logs" in call.request.path_url for call in fake_v1.calls)
 
 
@@ -379,8 +378,7 @@ def test_an_archived_log_that_does_not_match_its_listing_is_discarded(fake_v1, l
                              digest="sha256:" + "0" * 64)],
           {"logs-stepone-0": "ran\n"})
     with pytest.raises(RemoteError, match="did not match"):
-        logged_in.node_log("j1", "stepone", "0", "node.log")
-    assert not os.path.exists("node.log")
+        logged_in.archived_log("j1", "stepone", "0")
 
 
 def test_an_artifact_still_being_described_is_waited_for(fake_v1, logged_in, monkeypatch):

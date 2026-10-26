@@ -12,6 +12,7 @@ from unittest import mock
 
 from siliconcompiler.remote import (
     Client, Credentials, RemoteError, ServerProblem)
+from siliconcompiler.remote.client import cli
 from siliconcompiler.remote.client.errors import describe
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
@@ -67,22 +68,16 @@ def test_a_server_address_is_normalized(given, port, expected):
     assert normalize_server(given, port) == expected
 
 
-def test_configuring_an_ipv6_server_keeps_its_port():
-    '''As `sc-config remote configure` splits it.'''
-    from siliconcompiler.remote.client import _split_address
-
-    address, port, had_credentials = _split_address("https://[::1]:8000")
-
-    assert (address, port, had_credentials) == ("https://[::1]", 8000, False)
-    assert normalize_server(address, port) == "https://[::1]:8000/v1"
-    assert _split_address("https://me:secret@example.com")[2] is True
+def test_a_username_and_password_in_an_address_are_dropped():
+    '''The key is the credential: nothing of the userinfo is kept.'''
+    assert normalize_server("https://me:secret@example.com") == "https://example.com/v1"
 
 
 def test_a_client_without_a_server_builds_and_says_so(caplog):
     '''Constructing must not raise, or `sc-config remote configure` could not fix it.'''
     caplog.set_level(logging.INFO)
     client = Client(Credentials(Path("sc-home/auth/remote.json")))
-    client.print_configuration()
+    cli.print_configuration(client)
 
     assert client.base_url is None
     assert "Server: not configured" in caplog.text
@@ -131,7 +126,7 @@ def test_health_is_one_word_and_a_503_is_an_answer(fake_v1, tmp_credentials, bod
     is serving, whatever it sends.'''
     fake_v1.route(responses.GET, "healthz", body, status=status, content_type=content_type)
 
-    assert Client(tmp_credentials).health() == {"status": expected}
+    assert cli.health(Client(tmp_credentials)) == {"status": expected}
     assert "Authorization" not in fake_v1.calls[-1].request.headers
 
 
@@ -144,7 +139,7 @@ def test_the_deployment_report_is_what_the_server_says_it_is(
     _healthy(fake_v1)
 
     caplog.set_level(logging.INFO)
-    Client(tmp_credentials).print_deployment()
+    cli.print_deployment(Client(tmp_credentials))
 
     for said in ("Health: pass", "API: v1", "Identity assurance: self_asserted",
                  "siliconcompiler: 0.38.9", "client_credentials", "logs.stream",
@@ -195,8 +190,8 @@ def test_the_check_command_shows_every_notice_every_time(
 
     client = Client(tmp_credentials)
     client.capabilities()
-    client.print_deployment()
-    client.print_deployment()
+    cli.print_deployment(client)
+    cli.print_deployment(client)
 
     assert caplog.text.count("Notice: new tools image") == 3
 
@@ -296,8 +291,8 @@ def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
     assert opened == []
     assert asked_for_pages(fake_v1) == []
 
-    # Every time in the check command.
-    logged_in.remind_terms(me_body(terms_entry()), always=True)
+    logged_in.terms_reminded.clear()
+    logged_in.remind_terms(me_body(terms_entry()))
     assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}]
     assert opened == ["https://portal.test/enter?token=t1"]
 
@@ -341,7 +336,7 @@ def test_the_account_view_shows_its_own_limits_usage_and_every_terms_decision(
     fake_v1.route(responses.GET, "me", body)
     caplog.set_level(logging.INFO)
 
-    logged_in.print_identity(logged_in.me())
+    cli.print_identity(logged_in, logged_in.me())
 
     for said in ("You cannot submit jobs here", "Ask an administrator to provision",
                  "server-errors/account-not-provisioned",
@@ -685,7 +680,7 @@ def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credenti
     fake_v1.route(responses.GET, "me", {"id": "u-new", "issuer": "local"})
 
     caplog.set_level(logging.INFO)
-    Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0], prompt=False)
+    Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0])
 
     assert tmp_credentials.user_id == "u-new"
     assert all(line in caplog.text for line in said)
@@ -754,7 +749,7 @@ def test_use_server_switches_among_the_servers_configured_here(fake_v1, tmp_cred
     client = Client(tmp_credentials)
 
     caplog.set_level(logging.INFO)
-    client.print_configuration()
+    cli.print_configuration(client)
     assert f"Also configured (sc-config remote use): {V1_URL}" in caplog.text
 
     client.use_server(V1_URL.rsplit("/v1", 1)[0])
