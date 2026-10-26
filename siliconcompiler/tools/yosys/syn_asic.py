@@ -238,7 +238,7 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
             "add_buffers",
             "bool",
             "true/false, flag to indicate whether to add buffers or not.",
-            True)
+            False)
 
         self.__init_techmapping_parameter()
         self.__init_hierarchy_parameter()
@@ -673,7 +673,7 @@ class ASICSynthesis(ASICSynthesisBase):
             "add_tieoffs",
             "bool",
             "true/false, flag to indicate add tie high and tie low cells.",
-            True)
+            False)
         self.add_parameter(
             "opt_undriven",
             "bool",
