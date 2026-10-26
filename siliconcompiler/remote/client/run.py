@@ -107,7 +107,7 @@ class RemoteRun:
         self._needed = None
         self._environments = {}
         self._tasks = {}
-        self._inputs = {}
+        self._unfed = set()
         self._failed = {}
         self._upstream_sources = None
         self._last_state: Optional[str] = None
@@ -394,11 +394,8 @@ class RemoteRun:
         packed = self._upstream()[0]
         if not packed:
             return
-        held = {}
         for outputs in packed:
-            have = held[outputs] = set()
             for here, dirs, files in os.walk(os.path.join(root, outputs)):
-                have.update(files)
                 # A dangling link is a missing file, usually into a node never fetched.
                 for name in sorted(dirs + files):
                     full = os.path.join(here, name)
@@ -412,18 +409,14 @@ class RemoteRun:
         # Inputs are declared by setup, so read from the worked-out copy.
         self._needs()
         runtime = RuntimeFlowgraph.from_project(self.project)
-        for (step, index), reads in sorted(self._inputs.items()):
+        for step, index in sorted(self._unfed):
             upstream = runtime.get_node_inputs(step, index)
             sources = [os.path.relpath(os.path.join(
                 workdir(self.project, step=source, index=at), "outputs"), root)
                 for source, at in upstream]
-            if not sources or any(source not in held for source in sources):
-                continue
-            have = set().union(*(held[source] for source in sources))
-            lacking = sorted(name for name in reads if name not in have)
-            if lacking:
+            if sources and all(source in packed for source in sources):
                 raise RemoteError(
-                    f"{step}/{index} reads {', '.join(lacking)}, which the results of "
+                    f"{step}/{index} reads an input the results of "
                     f"{', '.join(f'{s}/{i}' for s, i in upstream)} on this machine do "
                     "not hold. Run from an earlier step")
 
@@ -614,7 +607,7 @@ class RemoteRun:
             # Per node: one setup failing here drops no other node's Python or `require`.
             self._environments = worked.environments
             self._tasks = worked.tasks
-            self._inputs = worked.inputs
+            self._unfed = worked.unfed
             self._failed = worked.failed
             carried = owners.with_required(self.project, worked.required)
             self._needed = (carried, owners.required(carried))
@@ -1700,41 +1693,24 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
                     job_id=job.get("id"))
 
 
-# One specifier as `Task.check_exe_version` parses it: a tool's version can be anything.
-_ONE_SPEC = re.compile(r"^\s*(?P<operator>==|!=|<=|>=|<|>|~=)\s*"
-                       r"(?P<version>[^,;\s)]*)\s*$")
-
-
 def _normalize_spec(task, declared: str) -> Optional[str]:
-    """One specifier set, each part's version put through the task's normaliser.
+    """One specifier set as the task reads it in `check_exe_version`.
 
-    An unparsable set is dropped, not sent raw: it would match nothing on the
+    An unusable set is dropped, not sent raw: it would match nothing on the
     server, turning *no readable version* into *no OpenROAD*.
     """
     from packaging.specifiers import InvalidSpecifier, SpecifierSet
 
-    parts = []
-    for one in str(declared).split(","):
-        found = _ONE_SPEC.match(one)
-        if not found:
-            logger.debug(f"dropping an unreadable version requirement: {one!r}")
-            return None
-        try:
-            version = task.normalize_version(found.group("version"))
-        except Exception as e:                                   # noqa: BLE001
-            logger.debug(f"could not normalize {one!r}: {e}")
-            return None
-        parts.append(f"{found.group('operator')}{version}")
-
-    if not parts:
-        return None
-    joined = ",".join(parts)
     try:
+        joined = task._normalize_specifiers(str(declared), logger)
         SpecifierSet(joined)
     except InvalidSpecifier:
-        logger.debug(f"dropping a requirement that is not PEP 440: {joined!r}")
+        logger.debug(f"dropping a requirement that is not PEP 440: {declared!r}")
         return None
-    return joined
+    except Exception as e:                                       # noqa: BLE001
+        logger.debug(f"could not normalize {declared!r}: {e}")
+        return None
+    return joined or None
 
 
 def _satisfied(versions, spec: str) -> bool:
@@ -1957,14 +1933,15 @@ def _pin(version: str) -> Optional[str]:
     return f"=={parsed}"
 
 
-# A URL's `user:secret@`, wherever it sits in a message.
-_USERINFO = re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s@]+@")
+_URL = re.compile(r"(?i)\b[a-z][a-z0-9+.-]*://[^\s'\"<>)]+")
 
 
 def _scrubbed(text: str) -> str:
-    '''A message with every URL's credentials taken out: what is said to the
-    server, and to whoever reads the job, never carries one.'''
-    return _USERINFO.sub(r"\1", text)
+    '''A message with every URL masked as a source is (no userinfo, no query
+    values): what is said to the server, and to whoever reads the job.'''
+    from siliconcompiler.remote import owners
+
+    return _URL.sub(lambda found: owners.masked(found.group()), text)
 
 
 class _Unsupplied(Exception):

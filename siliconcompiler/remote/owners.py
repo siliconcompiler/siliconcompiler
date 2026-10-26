@@ -752,12 +752,12 @@ def needed(key, required) -> bool:
 
 class WorkedOut(NamedTuple):
     '''One setup pass, per node: `require`, Python environment, the set-up task
-    with its declared versions, why a setup failed, and the input files.'''
+    with its declared versions, why a setup failed, and whether its inputs arrive.'''
     required: Dict[Tuple[str, str], List[str]]
     environments: Dict[Tuple[str, str], Any]
     tasks: Dict[Tuple[str, str], Any]
     failed: Dict[Tuple[str, str], str]
-    inputs: Dict[Tuple[str, str], List[str]]
+    unfed: Set[Tuple[str, str]]
 
 
 def work_out(project) -> WorkedOut:
@@ -787,7 +787,7 @@ def work_out(project) -> WorkedOut:
         environments: Dict[Tuple[str, str], Any] = {}
         tasks: Dict[Tuple[str, str], Any] = {}
         failed: Dict[Tuple[str, str], str] = {}
-        inputs: Dict[Tuple[str, str], List[str]] = {}
+        unfed: Set[Tuple[str, str]] = set()
         for layer in flow.get_execution_order():
             for step, index in layer:
                 node = SchedulerNode(work, step, index)
@@ -799,20 +799,21 @@ def work_out(project) -> WorkedOut:
                             continue
                         environment = node.task.get_python_environment()
                         versions = list(node.task.get("version") or [])
-                        reads = list(node.task.get("input") or [])
+                        fed = node.task._validate_io()
                 except Exception as e:                           # noqa: BLE001
                     failed[(step, index)] = str(e) or type(e).__name__
                     continue
                 if (step, index) in executed:
                     tasks[(step, index)] = (node.task, versions)
-                    inputs[(step, index)] = reads
+                    if not fed:
+                        unfed.add((step, index))
                     if environment is not None:
                         environments[(step, index)] = environment
                 values = work.get("tool", flow.get(step, index, "tool"),
                                   "task", flow.get(step, index, "task"), "require",
                                   step=step, index=index) or []
                 declared[(step, index)] = list(dict.fromkeys(values))
-        return WorkedOut(declared, environments, tasks, failed, inputs)
+        return WorkedOut(declared, environments, tasks, failed, unfed)
     finally:
         logger.setLevel(level)
 

@@ -28,7 +28,7 @@ import requests.auth
 from siliconcompiler import __version__
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, _slug, clean)
+    RemoteError, RemoteTimeout, ServerProblem, SessionEnded, _slug, clean)
 from siliconcompiler.utils.units import format_duration
 
 __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
@@ -287,7 +287,7 @@ class Transport:
                 time.sleep(2 ** _attempt)
                 return self.request(**again, _attempt=_attempt + 1, _waits=_waits)
             if isinstance(e, requests.Timeout):
-                raise TimeoutError(f"{self.base_url} did not answer") from None
+                raise RemoteTimeout(f"{self.base_url} did not answer") from None
             raise RemoteError(f"could not reach {self.base_url}: {_why(e)}") from None
         except requests.RequestException as e:
             raise RemoteError(f"could not reach {self.base_url}: {_why(e)}") from None

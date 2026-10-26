@@ -527,13 +527,10 @@ class Client:
     def _refused(self, refusal: OAuthRefusal, mode: str) -> RemoteError:
         '''What a failed login tells the person.'''
         if refusal.error == "invalid_client":
-            subject = local_subject()[0]
             return RemoteError(
                 "this server knows you by a different key: "
                 f"{clean(refusal.description or 'the subject is bound to another key')}. "
-                "Retrying will not help. An operator can release the binding: "
-                "python3 -m siliconcompiler.remote.server.software.registry release-binding "
-                f"{subject}")
+                "Retrying will not help; the server's operator can release the binding.")
         return RemoteError(str(refusal))
 
     def _relogin(self, reason: Optional[str]) -> None:
@@ -576,7 +573,7 @@ class Client:
         error ever changes the key.
 
         The old key revokes its own device first, ending its sessions and
-        freeing the subject: else `sc-server` refuses the new key
+        freeing the subject: else the server refuses the new key
         `invalid_client`. If that fails, the key is replaced anyway.
         '''
         old = self.credentials.thumbprint
