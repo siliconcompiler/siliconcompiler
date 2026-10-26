@@ -15,19 +15,11 @@ import stat
 
 from typing import Dict, List, Optional, Set, Tuple
 
-__all__ = ["resolve", "follow", "Homes", "relative", "HOP_LIMIT",
-           "OUTSIDE", "DANGLING", "LOOP", "OTHER"]
+__all__ = ["resolve", "follow", "Homes", "relative"]
 
 
 # Links a chain may pass before it counts as a loop.
-HOP_LIMIT = 40
-
-
-# Why a chain did not end inside the tree.
-OUTSIDE = "outside"      # it leaves the tree
-DANGLING = "dangling"    # it names nothing
-LOOP = "loop"            # it passes the hop limit
-OTHER = "other"          # it ends at something neither a file nor a directory
+_HOP_LIMIT = 40
 
 
 def resolve(tree, path) -> Optional[str]:
@@ -36,8 +28,10 @@ def resolve(tree, path) -> Optional[str]:
     return follow(tree, path)[0]
 
 
-def follow(tree, path) -> Tuple[Optional[str], Optional[str]]:
-    '''As :func:`resolve`, as ``(end, None)`` or ``(None, why)``.'''
+def follow(tree, path) -> Tuple[Optional[str], bool]:
+    '''As :func:`resolve`, as ``(end, False)``, or ``(None, outside)``: whether the
+    chain leaves the tree, rather than naming nothing, looping or ending at
+    something neither a file nor a directory.'''
     base = os.path.abspath(str(tree))
     real_base = os.path.realpath(base)
     start = os.path.abspath(str(path))
@@ -45,39 +39,39 @@ def follow(tree, path) -> Tuple[Optional[str], Optional[str]]:
     if within is None:
         within = _under(start, real_base)
     if within is None:
-        return None, OUTSIDE
+        return None, True
 
     resolved = real_base
     pending = [part for part in within.split(os.sep) if part]
-    hops = HOP_LIMIT
+    hops = _HOP_LIMIT
     while pending:
         part = pending.pop(0)
         if part == os.curdir:
             continue
         if part == os.pardir:
             if resolved == real_base:
-                return None, OUTSIDE
+                return None, True
             resolved = os.path.dirname(resolved)
             continue
         candidate = os.path.join(resolved, part)
         try:
             info = os.lstat(candidate)
         except OSError:
-            return None, DANGLING
+            return None, False
         if stat.S_ISLNK(info.st_mode):
             hops -= 1
             if hops < 0:
-                return None, LOOP
+                return None, False
             try:
                 target = os.readlink(candidate)
             except OSError:
-                return None, DANGLING
+                return None, False
             if os.path.isabs(target):
                 inner = _under(os.path.normpath(target), base)
                 if inner is None:
                     inner = _under(os.path.normpath(target), real_base)
                 if inner is None:
-                    return None, OUTSIDE
+                    return None, True
                 resolved = real_base
                 pending = [piece for piece in inner.split(os.sep) if piece] + pending
             else:
@@ -85,18 +79,18 @@ def follow(tree, path) -> Tuple[Optional[str], Optional[str]]:
                            if piece] + pending
             continue
         if pending and not stat.S_ISDIR(info.st_mode):
-            return None, DANGLING
+            return None, False
         resolved = candidate
 
     if resolved == real_base:
-        return None, OTHER
+        return None, False
     try:
         info = os.lstat(resolved)
     except OSError:
-        return None, DANGLING
+        return None, False
     if stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode):
-        return resolved, None
-    return None, OTHER
+        return resolved, False
+    return None, False
 
 
 def relative(target: str, link_dir: str) -> str:

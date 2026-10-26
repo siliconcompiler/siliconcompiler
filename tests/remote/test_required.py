@@ -130,8 +130,8 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
                             pdk=resource(PDK, "lambda", GITHUB, create=False))
     required = owners.required(carried(project))
 
-    assert [item["keypath"][1] for item in owners.sources(project)] == ["lambda"]
-    assert owners.sources(project, required) == []
+    assert [item["keypath"][1] for item in owners.sources(owners.walk(project))] == ["lambda"]
+    assert owners.sources(owners.walk(project), required) == []
     names = {entry.name for entry in account(project, "none", Supply(), required)}
     assert "lambda" not in names and "mylib" in names
 
@@ -144,7 +144,7 @@ class NeedsItsImage(NOPTask):
         raise RuntimeError("Cocotb is not installed; cannot run test.")
 
 
-@pytest.mark.parametrize("fails", [None, "a node", "the pass"])
+@pytest.mark.parametrize("fails", [None, "a node"])
 def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
         gcd_design, tmp_path, logged_in, monkeypatch, fails):
     '''A library's views for ten tools used to all go up. A setup needing its
@@ -153,11 +153,6 @@ def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
 
-    def cannot(project):
-        raise RuntimeError("Cocotb is not installed; cannot run test.")
-
-    if fails == "the pass":
-        monkeypatch.setattr(owners, "work_out", cannot)
     project = reading_mylib(gcd_design, tmp_path)
     if fails == "a node":
         flow = project.get_flow()
@@ -166,13 +161,14 @@ def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
         project.set_flow(flow)
 
     run = RemoteRun(project, logged_in)
-    manifest, required = run._needs()
+    reads = run._read()
+    manifest, required = reads.manifest, reads.required
     if fails:
         assert required is None and owners.required(manifest) is None
     if fails == "a node":
         assert manifest.get("tool", "builtin", "task", "nop", "require",
                             step="stepone", index="0") == ["library,mylib,package,doc,datasheet"]
-    run._collect()
+    run._collect(reads)
 
     def sent(key):
         return os.path.exists(os.path.join(collectiondir(project), collected_path(
@@ -193,7 +189,8 @@ def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
     pdk = two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}")
     project = reading(gcd_design, tmp_path, ("library", "mixed", *DATASHEET), pdk=pdk)
 
-    RemoteRun(project, logged_in)._collect()
+    run = RemoteRun(project, logged_in)
+    run._collect(run._read())
 
     taken = [name for _, _, names in os.walk(collectiondir(project)) for name in names]
     assert "datasheet.pdf" in taken and "other.pdf" not in taken

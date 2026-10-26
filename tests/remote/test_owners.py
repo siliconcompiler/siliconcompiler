@@ -54,7 +54,7 @@ def collected_path(project, key, n=0):
     '''Where `collect` puts the ``n``th value of ``key``, relative to the
     collection: bucketed by a name only its own resolver knows.'''
     path = first(project, key, n).get()
-    for one in owners._values(project):
+    for one in owners.walk(project):
         if one.key == tuple(key) and one.value.get() == path:
             return owners.collected_path(one)
     raise AssertionError(f"{key} has no value {path}")
@@ -63,11 +63,9 @@ def collected_path(project, key, n=0):
 def decide(project, key, n=0):
     '''What `collect`'s selector is asked about the ``n``th value: its source,
     and whether it goes up.'''
-    value = first(project, key, n)
-    resolvers = project.get(*key[:-1], field="schema")._find_files_dataroot_resolvers(True)
-    dataroot = value.get(field="dataroot")
-    return (owners.source(resolvers, dataroot),
-            owners.uploads(project, key, dataroot, resolvers))
+    ones = [one for one in owners.walk(project) if one.key == tuple(key)]
+    # What is never walked is never collected.
+    return (ones[n].origin, ones[n].upload) if ones else (None, False)
 
 
 def test_every_owner_is_told_apart(project, tmp_path):
@@ -102,7 +100,8 @@ def test_the_design_always_goes_up_and_the_credentials_file_never(project, tmp_p
     # environment, and uploads what it finds.
     ("$FOUNDRY_ROOT", False, owners.LOCAL, True),
     ("dataroot://real", False, owners.REMOTE, False),       # judged by the one it names
-    ("python://some_pdk_package", False, owners.INSTALLED, False),
+    # No server lists a package nothing provides, so its files go up.
+    ("python://some_pdk_package", False, owners.INSTALLED, True),
     ("python://some_pdk_package", True, owners.EDITABLE, True),
 ])
 def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
@@ -124,9 +123,10 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
 
     assert decide(project, ("library", "mypdk", *DATASHEET)) == (origin, uploads)
     # No distribution provides the module, so no server supplies it by version.
-    assert owners.installed_dataroots(project) == \
-        ([(("library", "mypdk", "dataroot", "mypdk"), None)] if origin == owners.INSTALLED
-         else [])
+    assert {(one.keypath, one.distribution) for one in owners.walk(project)
+            if one.origin == owners.INSTALLED} == \
+        ({(("library", "mypdk", "dataroot", "mypdk"), None)} if origin == owners.INSTALLED
+         else set())
 
 
 @pytest.mark.parametrize("scheme", [
@@ -147,7 +147,7 @@ def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path
     project.set_pdk(pdk)
 
     assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
-    entry, = [item for item in owners.sources(project)
+    entry, = [item for item in owners.sources(owners.walk(project))
               if item["keypath"] == ["library", "secret", "dataroot", "secret"]]
     assert entry["private"] is True
     if local:
@@ -183,7 +183,7 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
     with design.active_dataroot("ip"):
         design.add_file("ip.v", fileset="rtl")
 
-    listed = {tuple(item["keypath"]): item for item in owners.sources(project)}
+    listed = {tuple(item["keypath"]): item for item in owners.sources(owners.walk(project))}
     record, = [one for one in owners.value_records(mask_credentials(project), "none")
                if one["key"][:2] == ["library", "lambda"]]
 
@@ -212,8 +212,7 @@ def test_userinfo_is_read_as_the_mask_reads_it():
 
 def uploaded_by_owner(project):
     '''What a remote run hands `collect`, by the owner rule alone.'''
-    return owners.collection(project, lambda one: owners.uploads(
-        project, one.key, one.dataroot, one.resolvers))
+    return owners.collection(owners.walk(project), lambda one: one.upload)
 
 
 def collect_by_owner(project):
@@ -276,7 +275,7 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
     collect_by_owner(project)
 
     collection = collectiondir(project)
-    report = owners.upload_report(project, collection)
+    report = owners.upload_report(owners.walk(project), collection)
     assert sum(row[3] for row in report) == \
         os.path.getsize("proj/rtl/a.v") + os.path.getsize("proj/rtl/defs.vh")
     assert sum(row[4] for row in report) == 2
@@ -475,9 +474,9 @@ def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_fo
 def test_what_is_skipped_is_what_collect_leaves_out(key):
     '''One rule at both ends: the client's copy had drifted, keeping a
     template's `default` keypath the collection drops.'''
-    from siliconcompiler.utils.curation import filter_collection_keys
+    from siliconcompiler.utils.curation import filter_collection_keys, never_collected
 
-    assert owners.skipped(key) == (filter_collection_keys([(key, None, None)]) == [])
+    assert never_collected(key) == (filter_collection_keys([(key, None, None)]) == [])
 
 
 RUN = ("tool", "acme_sim", "task", "run", "dataroot", "scripts")
@@ -526,7 +525,7 @@ def test_the_keypath_is_where_the_dataroot_is_defined(gcd_design):
     # No dataroot, or one its owner does not define: local, and uploaded.
     assert owners.dataroot_keypath(project, RTL, None) is None
     assert owners.dataroot_keypath(project, RTL, "nowhere") is None
-    assert {one.keypath for one in owners._values(project) if one.key == RTL} == \
+    assert {one.keypath for one in owners.walk(project) if one.key == RTL} == \
         {("library", "gcd", "dataroot", dataroot)}
 
 
@@ -534,8 +533,10 @@ def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
         project, monkeypatch, logged_in):
     '''The server refuses a keypath of any other shape, so the client says so
     first, naming the parameter.'''
+    from siliconcompiler import Flowgraph
     from siliconcompiler.remote import RemoteError
     from siliconcompiler.remote.client.run import RemoteRun
+    from siliconcompiler.tools.builtin.nop import NOPTask
 
     project.set_pdk(resource(PDK, "lambda", "https://github.com/siliconcompiler/x/",
                              create=False))
@@ -543,6 +544,10 @@ def test_a_dataroot_no_keypath_names_stops_the_client_before_create(
                         lambda project, key, dataroot: ("elsewhere", "dataroot", dataroot))
 
     with pytest.raises(owners.Unnamed, match=r"\[library,lambda,package,doc,datasheet\]"):
-        owners.sources(project)
+        owners.sources(owners.walk(project))
+    flow = Flowgraph("only")
+    flow.node("run", NOPTask())
+    project.set_flow(flow)
+    run = RemoteRun(project, logged_in)
     with pytest.raises(RemoteError, match="neither a library's nor a task's"):
-        RemoteRun(project, logged_in)._check_dataroots()
+        run._plan(run._read())
