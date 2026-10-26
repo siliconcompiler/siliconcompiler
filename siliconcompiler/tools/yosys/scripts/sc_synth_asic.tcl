@@ -200,10 +200,12 @@ if { [sc_cfg_tool_task_get var opt_dff_sat] } {
     lappend final_opt_args "-sat"
 }
 
-# synth only calls opt_hier once per opt invocation, which advances the design by one level
-# of hierarchy, so loop it here until the design stops changing.
-if { $hier_opt } {
+# Before yosys 0.71, opt -hier could stop repeating opt_hier while it was still changing
+# the design, so loop it here until the design stops changing.
+if { $hier_opt && ![sc_check_version 0 71] } {
     sc_opt_hier_loop $hier_opt_max_rounds $final_opt_args
+} elseif { $hier_opt } {
+    yosys opt -hier {*}$final_opt_args
 } else {
     yosys opt {*}$final_opt_args
 }

@@ -1,4 +1,5 @@
 import gzip
+import json
 import pytest
 
 import os.path
@@ -311,8 +312,8 @@ def test_hier_opt_not_used_when_flattening():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_hier_opt_loop_converges():
-    '''The opt_hier loop repeats to convergence, over more than one round on a four-deep design.'''
+def test_hier_opt_converges():
+    '''opt_hier runs to convergence, carrying the top's constants down four levels to the leaf.'''
     lines = _run_asic_synthesis(_deep_hierarchy_design(), True,
                                 flatten=False, auto_flatten=False,
                                 hier_opt=True, hier_opt_max_rounds=10)
@@ -320,14 +321,11 @@ def test_hier_opt_loop_converges():
     assert any("-hieropt" in line for line in lines), \
         "expected -hieropt to be passed to synth when the design keeps its hierarchy"
 
-    converged = [line for line in lines if "opt_hier converged after" in line]
-    assert converged, "expected the opt_hier loop to report convergence"
-
-    rounds = int(converged[0].split("converged after")[1].split("round")[0])
-    assert rounds > 1, \
-        f"expected more than one round on a four-deep design, got {rounds}"
-    assert not any("did not converge" in line for line in lines), \
-        "expected the loop to converge within hier_opt_max_rounds"
+    with open("build/deep/job0/synthesis/0/reports/stat.json") as f:
+        modules = json.load(f)["modules"]
+    # With en tied high and b to zero, nothing is left in the leaf but its flops.
+    assert [info["num_cells_by_type"] for name, info in modules.items()
+            if name.startswith("\\leaf")] == [{"DFF_X1": 8}]
 
 
 @pytest.mark.timeout(60)
