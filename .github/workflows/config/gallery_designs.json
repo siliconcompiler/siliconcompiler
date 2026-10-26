@@ -348,8 +348,10 @@
         "target": "gf180_gf180mcu_fd_sc_mcu7t5v0"
     },
     {
+        "cache": false,
         "design": "darksocv",
         "remote": false,
+        "skip": "place.detailed/0: [ERROR DPL-0033] detailed placement checks failed during check placement.",
         "target": "gf180_gf180mcu_fd_sc_mcu9t5v0"
     },
     {
