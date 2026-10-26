@@ -22,6 +22,8 @@ from typing import Callable, Dict, List, Optional
 from urllib.parse import urlsplit
 from urllib.request import url2pathname
 
+from packaging.version import InvalidVersion, Version
+
 from siliconcompiler.remote import environment
 from siliconcompiler.remote.client.capture import CannotForward, direct_url
 
@@ -138,11 +140,14 @@ def repack(dist: metadata.Distribution, directory: str) -> str:
     path = os.path.join(directory, f"{stem}-py3-none-any.whl")
     record = []
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        def add(arcname, data):
+        def write(arcname, data):
             info = zipfile.ZipInfo(arcname, date_time=_EPOCH)
             info.external_attr = 0o644 << 16
             info.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(info, data)
+
+        def add(arcname, data):
+            write(arcname, data)
             digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=")
             record.append(f"{arcname},sha256={digest.decode()},{len(data)}")
 
@@ -151,16 +156,11 @@ def repack(dist: metadata.Distribution, directory: str) -> str:
                 add(arcname, f.read())
         add(f"{dist_info}/WHEEL", wheel)
         record.append(f"{dist_info}/RECORD,,")
-        info = zipfile.ZipInfo(f"{dist_info}/RECORD", date_time=_EPOCH)
-        info.external_attr = 0o644 << 16
-        info.compress_type = zipfile.ZIP_DEFLATED
-        archive.writestr(info, "\n".join(record) + "\n")
+        write(f"{dist_info}/RECORD", "\n".join(record) + "\n")
     return path
 
 
 def _identity(dist: metadata.Distribution):
-    from packaging.version import InvalidVersion, Version
-
     name = environment.canonical(dist.metadata["Name"] or "")
     try:
         version = str(Version(dist.version))

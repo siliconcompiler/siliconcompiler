@@ -11,7 +11,7 @@ import pytest
 import responses
 
 from siliconcompiler import Design, Flowgraph, Project
-from siliconcompiler.remote import RemoteError, environment
+from siliconcompiler.remote import RemoteError, environment, owners
 from siliconcompiler.remote.client import capture, wheels
 from siliconcompiler.remote.client.run import RemoteRun
 from siliconcompiler.tool import PythonEnvironment
@@ -103,6 +103,12 @@ def editable_source(where, name, version, requires=(), tag="py3-none-any", leave
     return where
 
 
+def python_of(run):
+    '''What the run would send of the job's Python: `python_packages`, wheels, helpers.'''
+    plan = run._plan(run._read())
+    return plan.member, plan.built, plan.helpers
+
+
 @pytest.fixture
 def site(monkeypatch):
     site = os.path.abspath("site")
@@ -110,9 +116,9 @@ def site(monkeypatch):
     monkeypatch.syspath_prepend(site)
     # A real `pip wheel` finds nothing it was not handed.
     monkeypatch.setenv("PIP_NO_INDEX", "1")
-    capture._module_distributions.cache_clear()
+    owners.module_distributions.cache_clear()
     yield site
-    capture._module_distributions.cache_clear()
+    owners.module_distributions.cache_clear()
 
 
 def test_what_a_source_imports_by_distribution(site):
@@ -315,9 +321,13 @@ class RunsATestbench(NOPTask):
     def task(self):
         return "runsatestbench"
 
+    @classmethod
+    def framework_distributions(cls):
+        return ("scfakebits",)
+
     def get_python_environment(self):
         return PythonEnvironment(sources=(os.path.abspath("tb.py"),),
-                                 framework=("scfakebits",))
+                                 framework=self.framework_distributions())
 
 
 def cocotb_project(test_body, helpers=None):
@@ -434,23 +444,36 @@ def test_a_compiled_local_package_is_refused_before_create(
                   files={"_c.so": "\x7fELF"})
     project = cocotb_project("import scfakec\n")
     with pytest.raises(RemoteError, match="scfakec 1.0.0.*compiled file.*_c.so"):
-        RemoteRun(project, logged_in)._preflight()
+        RemoteRun(project, logged_in)._start()
     assert not _created(fake_v1)
 
 
 def test_a_helper_holding_a_compiled_extension_is_refused(site, fake_v1, logged_in):
     project = cocotb_project("import mine\n", {"mine/__init__.py": "", "mine/_c.so": "x"})
     with pytest.raises(RemoteError, match="compiled extension"):
-        RemoteRun(project, logged_in)._python()
+        python_of(RemoteRun(project, logged_in))
 
 
-def test_packages_to_install_stop_before_create_where_the_server_installs_none(
+def test_packages_to_install_are_refused_at_create_where_the_server_installs_none(
         site, fake_v1, logged_in):
+    '''`needs` names `python.env`, so create refuses before any bytes move.'''
+    from conftest import problem
+    from siliconcompiler.remote import ServerProblem
+
     _distribution(site, "scfakeumi", "0.3.1")
     project = cocotb_project("import scfakeumi\n")
-    with pytest.raises(RemoteError, match="needs scfakeumi==0.3.1.*python.env"):
-        RemoteRun(project, logged_in)._check_python_env()
-    assert not _created(fake_v1)
+    fake_v1.route(responses.GET, "me", {"id": "u-1"})
+    fake_v1.route(responses.POST, "jobs", problem("feature-unsupported", 501,
+                                                  feature="python.env"),
+                  status=501, content_type="application/problem+json")
+
+    with pytest.raises(ServerProblem, match="python.env"):
+        RemoteRun(project, logged_in)._start()
+
+    body = json.loads(next(c.request for c in fake_v1.calls
+                           if c.request.path_url == "/v1/jobs").body)
+    assert body["descriptor"]["needs"] == ["python.env"]
+    assert not [c for c in fake_v1.calls if "upload-grant" in c.request.url]
 
 
 def test_a_flow_needing_no_package_lists_nothing_and_its_helpers_still_travel(
@@ -458,10 +481,10 @@ def test_a_flow_needing_no_package_lists_nothing_and_its_helpers_still_travel(
     '''A task runs none of the user's Python by default; a testbench of only
     its own modules needs no `python_packages` and no `python.env`.'''
     assert NOPTask().get_python_environment() is None
-    assert RemoteRun(gcd_nop_project, logged_in)._python() == (None, {}, {})
+    assert python_of(RemoteRun(gcd_nop_project, logged_in)) == (None, {}, {})
 
     project = cocotb_project("import cocotb\nimport tbutil\n", {"tbutil.py": "X = 1\n"})
-    member, built, helpers = RemoteRun(project, logged_in)._python()
+    member, built, helpers = python_of(RemoteRun(project, logged_in))
     assert (member, built) == (None, {})
     assert [os.path.basename(path) for path in helpers] == ["tbutil.py"]
 
@@ -494,26 +517,12 @@ def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run
     '''Its setup cannot run here: stop before create, naming it and why.
     A failing setup elsewhere drops no other node's Python.'''
     with pytest.raises(RemoteError, match="sim/0 runs your own Python.*cocotb is not installed"):
-        RemoteRun(tb_project(gcd_design, sim=CannotSetUpHere()), logged_in)._python()
+        python_of(RemoteRun(tb_project(gcd_design, sim=CannotSetUpHere()), logged_in))
     _distribution(site, "scfakeumi", "0.3.1")
     open("tb.py", "w").write("import scfakeumi\n")
     project = tb_project(gcd_design, sim=RunsATestbench(), other=Broken())
-    member, _, _ = RemoteRun(project, logged_in)._python()
+    member, _, _ = python_of(RemoteRun(project, logged_in))
     assert member["requirements"] == ["scfakeumi==0.3.1"]
-
-
-def test_a_setup_pass_that_fails_whole_still_stops_a_node_running_the_users_python(
-        gcd_design, logged_in, monkeypatch):
-    '''No node was worked out, so none is sent without its Python packages.'''
-    from siliconcompiler.remote import owners
-
-    def cannot(project):
-        raise RuntimeError("the flow cannot be prepared here")
-
-    monkeypatch.setattr(owners, "work_out", cannot)
-    with pytest.raises(RemoteError, match="sim/0 runs your own Python.*cannot be prepared"):
-        RemoteRun(tb_project(gcd_design, sim=RunsATestbench(), other=NOPTask()),
-                  logged_in)._python()
 
 
 def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_in,
@@ -529,8 +538,9 @@ def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_
     asked = [{"kind": "python", "name": "scfake-private"}]
 
     run = RemoteRun(project, logged_in)
-    run._asked_rows = run._answer(asked, collectiondir(project))
-    run._pack(tmp_path / "first.tar.gz")
+    reads = run._read()
+    answered = run._answer(asked, collectiondir(project), reads)
+    run._pack(tmp_path / "first.tar.gz", run._plan(reads), reads, answered)
     with tarfile.open(tmp_path / "first.tar.gz") as tar:
         assert {wheel, f"{project.name}.pkg.json"} <= set(tar.getnames())
 
@@ -558,39 +568,38 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.path_url]
 
 
-@pytest.mark.parametrize("granted,wheel,stops", [
+@pytest.mark.parametrize("granted,stops", [
     # No `authorized`, as sc-server's: nothing granted gates nothing.
-    (None, False, None),
-    ([{"name": "python-packages", "via": ["self"]}], False, None),
-    ([], False, "is not granted python-packages"),
-    ([{"name": "python-packages", "via": ["self"]}], True,
-     "python-wheels to upload scfakeloose-3.0.0-py3-none-any.whl.*not granted python-wheels"),
+    (None, None),
+    ([{"name": "python-wheels", "via": ["self"]}], None),
+    ([], "python-wheels to upload scfakeloose-3.0.0-py3-none-any.whl.*not granted python-wheels"),
     # Each document in the way, by its `terms` title or its id.
-    ([{"name": "python-packages", "via": ["self"], "blocked_by": ["py-terms"]}], False,
-     "holds python-packages blocked on an agreement.*sign The Python terms"),
-    ([{"name": "python-packages", "via": ["self"], "blocked_by": ["other-terms"]}], False,
+    ([{"name": "python-wheels", "via": ["self"], "blocked_by": ["py-terms"]}],
+     "holds python-wheels blocked on an agreement.*sign The Python terms"),
+    ([{"name": "python-wheels", "via": ["self"], "blocked_by": ["other-terms"]}],
      "blocked on an agreement.*sign other-terms"),
     # The old name grants nothing.
-    ([{"name": "python-env", "via": ["self"]}], False, "is not granted python-packages"),
+    ([{"name": "python-wheel", "via": ["self"]}], "not granted python-wheels"),
 ])
-def test_a_capability_the_account_lacks_stops_the_run_before_create(
-        site, fake_v1, logged_in, granted, wheel, stops):
-    '''Checked against `GET /v1/me`'s `authorized.capabilities` before create:
-    packages need `python-packages`, wheels `python-wheels`.'''
+def test_wheels_an_account_may_not_upload_stop_the_run_before_create(
+        site, fake_v1, logged_in, granted, stops):
+    '''Create refuses `python-packages` itself, but a wheel is refused only while
+    staging, after the upload: checked against `authorized.capabilities`.'''
     _distribution(site, "scfakeumi", "0.3.1")
     _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"))
-    project = cocotb_project("import scfakeumi\n" + ("import scfakeloose\n" if wheel else ""))
+    project = cocotb_project("import scfakeumi\nimport scfakeloose\n")
     me = {"id": "u-1", "terms": [{"id": "py-terms", "title": "The Python terms"}]}
     if granted is not None:
         me["authorized"] = {"pdks": [], "capabilities": granted}
     fake_v1.route(responses.GET, "me", me)
     run = RemoteRun(project, logged_in)
+    built = python_of(run)[1]
 
     if stops is None:
-        run._check_account()
+        run._check_account(built)
     else:
         with pytest.raises(RemoteError, match=stops):
-            run._check_account()
+            run._check_account(built)
     assert not _created(fake_v1)
 
 
@@ -634,7 +643,7 @@ def test_what_the_job_ran_in_place_of_a_listed_version_is_said_once(
     _distribution(site, "scfakeumi", "0.3.1", requires=["scfakebits"])
     _distribution(site, "scfakebits", "1.2.0")
     run = RemoteRun(cocotb_project("import scfakeumi\n"), logged_in)
-    run._python()
+    run._member = python_of(run)[0]
     ran = {"state": "running",
            "resolved_versions": {"python": {"scfakeumi": ["0.3.4"], "SCFakeBits": ["1.2"],
                                             "siliconcompiler": ["0.38.9"]}}}

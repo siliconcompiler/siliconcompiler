@@ -102,6 +102,14 @@ def finished(*steps, running=()):
                for step in running]}
 
 
+def landing(call, *args):
+    '''How many objects ``call`` (a `Results` method, given ``args``) landed.'''
+    results = call.__self__
+    before = results._landed
+    call(*args)
+    return results._landed - before
+
+
 def landed(project, step, *path):
     return os.path.isfile(os.path.join(workdir(project, step=step, index="0"), *path))
 
@@ -128,7 +136,7 @@ def test_a_manifest_alone_is_a_successful_run_and_fills_in_every_node(
     assert nop_project.get("metric", "warnings", step="stepone", index="0") is None
 
     with caplog.at_level("WARNING"):
-        assert results.fetch("j1") == 1
+        assert landing(results.fetch, "j1") == 1
 
     assert "could not" not in caplog.text.lower()
     assert os.path.isfile(os.path.join(jobdir(nop_project), "gcd.pkg.json"))
@@ -142,7 +150,7 @@ def test_an_empty_listing_is_legal(fake_v1, results, caplog):
     '''No bulk output, no pipeline here, or retention took it all: no error.'''
     serve(fake_v1, [])
     with caplog.at_level("WARNING"):
-        assert results.fetch("j1") == 0
+        assert landing(results.fetch, "j1") == 0
     assert "kept nothing" in caplog.text
     assert "not an error" in caplog.text
 
@@ -156,7 +164,7 @@ def test_a_refused_archive_and_no_manifest_still_fetch_the_rest(fake_v1, results
           {"logs-stepone-0": "ran\n"})
 
     with caplog.at_level("INFO"):
-        assert results.fetch("j1") == 1
+        assert landing(results.fetch, "j1") == 1
 
     assert "may not have this" in caplog.text
     assert "does not keep those" in caplog.text
@@ -243,7 +251,7 @@ def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
         artifact("node", "stepone", "0", fetchable=False),
         artifact("node", "steptwo", "0", fetchable=False, can_request_access=True)])
     with caplog.at_level("WARNING"):
-        assert results.fetch("j1") == 0
+        assert landing(results.fetch, "j1") == 0
     assert not fetched(fake_v1)
     assert "may not have this" in caplog.text
     assert "not something asking would change" in caplog.text
@@ -263,7 +271,7 @@ def test_only_what_landed_is_counted_as_retrieved(fake_v1, results, caplog):
                     artifact("unheardof", "stepone", "0")],
           {"manifest-None-None": "{}"})
     with caplog.at_level("INFO"):
-        assert results.fetch("j1") == 1
+        assert landing(results.fetch, "j1") == 1
     assert "Retrieved 1 objects" in caplog.text
     assert "/v1/jobs/j1/artifacts/art-unheardof-stepone-0" not in fetched(fake_v1)
 
@@ -287,7 +295,7 @@ def test_one_objects_failure_does_not_abort_the_others(fake_v1, results,
                   problem("not-found", 404), status=404,
                   content_type="application/problem+json")
     with caplog.at_level("ERROR"):
-        assert results.fetch("j1") == 1
+        assert landing(results.fetch, "j1") == 1
     assert landed(nop_project, "steptwo", "sc_steptwo_0.log")
 
 
@@ -303,7 +311,7 @@ def test_a_node_archive_displaces_what_it_contains(fake_v1, results):
            **{f"node-{step}-0": tarball(["outputs/gcd.pkg.json", f"sc_{step}_0.log"])
               for step in ("stepone", "steptwo")}})
 
-    assert results.fetch("j1") == 4
+    assert landing(results.fetch, "j1") == 4
 
     assert sorted(fetched(fake_v1)) == ["/v1/jobs/j1/artifacts/art-final-stepone-0",
                                         "/v1/jobs/j1/artifacts/art-manifest-None-None",
@@ -323,7 +331,7 @@ def test_the_job_level_log_lands_beside_the_nodes_not_on_top_of_job_log(
     with open(os.path.join(here, "job.log"), "w") as local:
         local.write("what this process logged\n")
 
-    assert results.fetch("j1") == 1
+    assert landing(results.fetch, "j1") == 1
 
     assert open(os.path.join(here, "job.log")).read() == "what this process logged\n"
     assert "git is required" in open(os.path.join(here, "remote-job.log")).read()
@@ -346,7 +354,7 @@ def test_a_proxys_html_502_on_the_listing_is_rendered_and_not_fatal_mid_run(fake
                   "<html><body><h1>502 Bad Gateway</h1></body></html>",
                   status=502, content_type="text/html")
 
-    assert results.take("j1", finished("stepone")) == 0
+    assert landing(results.take, "j1", finished("stepone")) == 0
     with pytest.raises(ServerProblem) as raised:
         results.fetch("j1")
 
@@ -403,9 +411,9 @@ def test_a_nodes_results_are_taken_when_it_finishes_and_not_again_by_the_sweep(
     sweep does not fetch it again.'''
     serve(fake_v1, [artifact("node", "stepone", "0")],
           {"node-stepone-0": tarball(["outputs/gcd.pkg.json"])})
-    assert results.take("j1", finished("stepone", running=["steptwo"])) == 1
+    assert landing(results.take, "j1", finished("stepone", running=["steptwo"])) == 1
     assert landed(nop_project, "stepone", "outputs", "gcd.pkg.json")
-    assert results.fetch("j1") == 0
+    assert landing(results.fetch, "j1") == 0
     assert len(fetched(fake_v1)) == 1
 
 
@@ -426,8 +434,8 @@ def test_one_listing_per_batch_of_finished_nodes(fake_v1, results):
     serve(fake_v1, [artifact("node", "stepone", "0"), artifact("node", "steptwo", "0")],
           {f"node-{step}-0": tarball(["outputs/gcd.pkg.json"])
            for step in ("stepone", "steptwo")})
-    assert results.take("j1", finished("stepone", "steptwo")) == 2
-    assert results.take("j1", finished("stepone", "steptwo")) == 0
+    assert landing(results.take, "j1", finished("stepone", "steptwo")) == 2
+    assert landing(results.take, "j1", finished("stepone", "steptwo")) == 0
     assert len(listings(fake_v1)) == 1
     assert len(fetched(fake_v1)) == 2
 
@@ -453,7 +461,7 @@ def test_over_the_servers_ceiling_is_left_and_displaces_nothing(
         {"logs-stepone-0": "stepone ran\n"})
 
     with caplog.at_level("WARNING"):
-        assert results.fetch("j1") == 1
+        assert landing(results.fetch, "j1") == 1
 
     assert "1 object(s) were left on the server (47.7 MiB)" in caplog.text
     assert "1000 B" in caplog.text
@@ -475,7 +483,7 @@ def test_a_nodes_manifest_log_and_reports_are_taken_where_its_archive_is_withhel
         {"manifest-stepone-0": "{}", "logs-stepone-0": "ran\n",
          "reports-stepone-0": tarball(["reports/metrics.json"])})
 
-    assert results.take("j1", finished("stepone")) == 3
+    assert landing(results.take, "j1", finished("stepone")) == 3
 
     into = workdir(nop_project, step="stepone", index="0")
     assert open(os.path.join(into, "sc_stepone_0.log")).read() == "ran\n"
@@ -499,16 +507,19 @@ def test_a_nodes_archive_displaces_its_manifest_log_and_reports_only_if_fetched(
           + [artifact(kind, "stepone", "0") for kind in ("manifest", "logs", "reports")],
           {"node-stepone-0": node, "manifest-stepone-0": "{}", "logs-stepone-0": "ran\n",
            "reports-stepone-0": tarball(["reports/metrics.json"])})
-    assert results.take("j1", finished("stepone")) == len(taken)
+    assert landing(results.take, "j1", finished("stepone")) == len(taken)
     assert fetched(fake_v1) == [f"/v1/jobs/j1/artifacts/art-{kind}-stepone-0" for kind in taken]
 
 
 def test_a_continued_nodes_results_come_from_the_job_that_ran_it(fake_v1, results):
-    '''Only that node of the other job, as fetchable now.'''
-    serve(fake_v1, [artifact("manifest", "stepone", "0"), artifact("manifest", "steptwo", "0")],
+    '''Only that node of the other job, asked of the server by `step` and `index`.'''
+    serve(fake_v1, [artifact("manifest", "stepone", "0")],
           {"manifest-stepone-0": "{}"}, job="earlier")
-    assert results.fetch_node("earlier", "stepone", "0") == 1
+    assert landing(results.fetch_node, "earlier", "stepone", "0") == 1
     assert fetched(fake_v1) == ["/v1/jobs/earlier/artifacts/art-manifest-stepone-0"]
+    listing, = [c.request.path_url for c in fake_v1.calls
+                if c.request.path_url.startswith("/v1/jobs/earlier/artifacts?")]
+    assert "step=stepone" in listing and "index=0" in listing
 
 
 def test_the_upload_manifest_is_never_folded_back_in(results, nop_project):
@@ -541,7 +552,7 @@ def test_a_manifest_inside_a_node_archive_is_one_kept(fake_v1, results, caplog):
     serve(fake_v1, [artifact("node", "stepone", "0"), artifact("manifest", "stepone", "0")],
           {"node-stepone-0": tarball(["outputs/gcd.pkg.json"])})
     with caplog.at_level("INFO"):
-        assert results.fetch("j1") == 1
+        assert landing(results.fetch, "j1") == 1
     assert "No manifest was kept" not in caplog.text
 
 
@@ -558,7 +569,7 @@ def test_what_the_server_wrote_is_cleaned_before_it_is_printed(results):
 def test_a_row_for_a_node_the_flow_does_not_have_writes_nothing(fake_v1, results):
     '''`step: ".."` included: writes stay in the job's local directory.'''
     serve(fake_v1, [artifact("outputs", "..", "0"), artifact("outputs", "elsewhere", "0")])
-    assert results.fetch("j1") == 0
+    assert landing(results.fetch, "j1") == 0
     assert not fetched(fake_v1)
 
 
@@ -567,7 +578,7 @@ def test_bytes_that_do_not_match_the_listing_are_discarded(fake_v1, results, nop
     serve(fake_v1, [artifact("manifest", "stepone", "0", size_bytes=3,
                              digest="sha256:" + "0" * 64)],
           {"manifest-stepone-0": "{}"})
-    assert results.fetch("j1") == 0
+    assert landing(results.fetch, "j1") == 0
     assert not landed(nop_project, "stepone", "outputs", "gcd.pkg.json")
     assert "did not match" in caplog.text
 

@@ -11,7 +11,6 @@ Dynamic imports and imports under a platform check are not followed.
 '''
 
 import ast
-import functools
 import json
 import os
 import sys
@@ -19,7 +18,7 @@ import sys
 from importlib import metadata
 from typing import Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
 
-from siliconcompiler.remote import environment
+from siliconcompiler.remote import environment, owners
 
 __all__ = ["Reach", "Lists", "CannotForward", "reach", "lists", "place", "direct_url"]
 
@@ -89,7 +88,7 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
     '''
     from packaging.requirements import InvalidRequirement, Requirement
 
-    owned = _module_distributions()
+    owned = owners.module_distributions()
     stdlib = set(sys.stdlib_module_names)
 
     distributions: Dict[str, Set[str]] = {}
@@ -126,7 +125,8 @@ def reach(sources: Iterable[str], requirements: Iterable[str] = ()) -> Reach:
                 if helper is not None:
                     for relative, file in _helper_files(name, helper, warnings):
                         found[relative] = file
-                    todo.extend(_python_files(helper))
+                        if file.endswith(".py"):
+                            todo.append(file)
                     continue
                 if name in owned:
                     for owner in owned[name]:
@@ -154,7 +154,7 @@ def _helper(name: str, directory: str) -> Optional[str]:
         return module
     package = os.path.join(directory, name)
     if os.path.isdir(package) and not os.path.islink(package) \
-            and any(True for _ in _python_files(package)):
+            and any(file.endswith(".py") for _, file in _helper_files(name, package, [])):
         return package
     return None
 
@@ -183,19 +183,6 @@ def _helper_files(name: str, location: str, warnings: List[str]):
                 continue
             relative = os.path.relpath(full, location).replace(os.sep, "/")
             yield f"{name}/{relative}", full
-
-
-def _python_files(path: str):
-    if os.path.isfile(path):
-        if path.endswith(".py"):
-            yield path
-        return
-    for root, dirs, files in os.walk(path):
-        dirs[:] = sorted(d for d in dirs if d != "__pycache__"
-                         and not os.path.islink(os.path.join(root, d)))
-        for name in sorted(files):
-            if name.endswith(".py") and not os.path.islink(os.path.join(root, name)):
-                yield os.path.join(root, name)
 
 
 def lists(roots: Dict[str, Set[str]], provided: Iterable[str]) -> Lists:
@@ -284,11 +271,6 @@ def place(files: Dict[str, str], path: str, source: str, what: str) -> None:
             f"two sources would both be sent as {path}: {held} and {source}. Rename "
             "one, or install one from an index")
     files[path] = source
-
-
-@functools.lru_cache(maxsize=1)
-def _module_distributions() -> Dict[str, List[str]]:
-    return metadata.packages_distributions()
 
 
 def _installed() -> Dict[str, metadata.Distribution]:

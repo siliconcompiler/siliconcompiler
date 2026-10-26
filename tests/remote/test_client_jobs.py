@@ -181,6 +181,11 @@ def test_the_create_body_is_two_names_and_a_descriptor(fake_v1, run):
     assert json.loads(submitted.body) == {}
 
 
+def _versions(run):
+    '''The `requested_versions` a run would create its job with.'''
+    return run._plan(run._read()).versions
+
+
 def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     '''Never every class the manifest names: lambdapdk's PDK and libraries
     are data the job carries.'''
@@ -192,7 +197,7 @@ def test_requested_python_is_the_fixed_list(fake_v1, logged_in, gcd_design):
     project = ASIC(gcd_design)
     skywater130_demo(project)
 
-    pins = RemoteRun(project, logged_in)._requested_python()
+    pins = _versions(RemoteRun(project, logged_in))["python"]
 
     assert list(pins) == ["siliconcompiler"]
     assert version("lambdapdk")          # there to be left out
@@ -206,11 +211,18 @@ def test_an_installed_data_package_is_named_only_where_the_server_lists_it(
         named):
     '''Listed at this version, it is named exactly and its dataroots do not
     upload; otherwise, or with no distribution to name, its files go up with the job.'''
+    from siliconcompiler import StdCellLibrary
+    from siliconcompiler.package import PythonPathResolver
     from siliconcompiler.remote import owners
 
-    entry = ("library", "scfakelib", "scfakedata")
-    monkeypatch.setattr(owners, "installed_dataroots",
-                        lambda project, required=None: [(entry, distribution)])
+    lib = StdCellLibrary("scfakelib")
+    lib.set_dataroot("scfakedata", "python://scfakedata_module")
+    with lib.active_dataroot("scfakedata"):
+        lib.set("package", "doc", "datasheet", "datasheet.pdf")
+    nop_project.add_dep(lib)
+    monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
+                        staticmethod(lambda module: False))
+    monkeypatch.setattr(owners, "_distribution_of", lambda module: distribution)
     monkeypatch.setattr("siliconcompiler.remote.client.run.metadata.version",
                         lambda name: "1.0.0" if name == "scfakedata"
                         else __import__("importlib.metadata").metadata.version(name))
@@ -219,13 +231,13 @@ def test_an_installed_data_package_is_named_only_where_the_server_lists_it(
     fake_v1.replace(responses.GET, "", published)
 
     run = RemoteRun(nop_project, logged_in)
+    reads = run._read()
+    one, = [one for one in reads.values if one.key[:2] == ("library", "scfakelib")]
 
+    assert one.upload is not named
+    assert ("scfakedata" in run._plan(reads).versions["python"]) is named
     if named:
-        assert run._requested_python()["scfakedata"] == ["==1.0.0"]
-        assert not run._uploaded_packages()
-    else:
-        assert "scfakedata" not in run._requested_python()
-        assert run._uploaded_packages() == {entry}
+        assert run._plan(reads).versions["python"]["scfakedata"] == ["==1.0.0"]
 
 
 def _declared(name):
@@ -255,8 +267,8 @@ def test_a_framework_distribution_is_pinned_where_installed(fake_v1, logged_in, 
     from test_capture import RunsATestbench
 
     open("tb.py", "w").write("")
-    pins = RemoteRun(_one_node_project(gcd_design, RunsATestbench()),
-                     logged_in)._requested_python()
+    pins = _versions(RemoteRun(_one_node_project(gcd_design, RunsATestbench()),
+                               logged_in))["python"]
 
     assert _declared("scfakebits") == []
     assert "scfakebits" in pins
@@ -273,7 +285,7 @@ def test_a_cocotb_node_names_siliconcompilers_cocotb_range(fake_v1, logged_in, g
     project = _one_node_project(gcd_design, CocotbCompileTask())
 
     assert declared and _framework_range("cocotb") == declared[0]
-    assert RemoteRun(project, logged_in)._requested_python()["cocotb"] == declared
+    assert _versions(RemoteRun(project, logged_in))["python"]["cocotb"] == declared
 
 
 def test_the_loop_ends_on_terminal_and_not_on_the_name(fake_v1, run, no_sleep):
@@ -1097,19 +1109,6 @@ def test_no_live_log_on_a_nodes_tail_stops_tailing_for_the_run(fake_v1, run, cap
     assert len([c for c in fake_v1.calls if "/logs" in c.request.path_url]) == 1
 
 
-def test_the_software_preflight_warns_and_does_not_stop(fake_v1, run, capabilities,
-                                                        monkeypatch):
-    '''Create decides, from a `GET /v1` this client may hold stale.'''
-    said = []
-    monkeypatch.setattr(run.logger, "warning", lambda message, *_, **__: said.append(message))
-    fake_v1.replace(responses.GET, "", dict(capabilities, software={
-        "python": {"siliconcompiler": ["0.0.1"]}, "tools": {}, "interpreter": {}}))
-
-    run._check_software()
-
-    assert any("siliconcompiler 0.0.1" in message for message in said)
-
-
 class DeclaresAVersion(__import__("siliconcompiler").Task):
     '''A task of a tool nothing installs, whose setup says which versions.'''
 
@@ -1147,7 +1146,7 @@ def test_the_descriptor_names_the_tools_the_flow_needs(fake_v1, logged_in, gcd_n
                       "builtin": NOPTask}[task]())
     gcd_nop_project.set_flow(flow)
 
-    assert RemoteRun(gcd_nop_project, logged_in)._tool_requirements() == wanted
+    assert _versions(RemoteRun(gcd_nop_project, logged_in))["tools"] == wanted
 
 
 @pytest.mark.parametrize("declared,sent", [
@@ -1237,7 +1236,7 @@ def test_a_version_that_is_not_pep_440_is_dropped_with_a_warning(
     run = RemoteRun(_one_node_project(gcd_design, RunsATestbench()), logged_in)
 
     with caplog.at_level("WARNING"):
-        pins = run._requested_python()
+        pins = _versions(run)["python"]
 
     assert pins["scfakebits"] == []
     assert "Dropping the version requirement on scfakebits" in caplog.text
@@ -1248,7 +1247,8 @@ def _members(run, tmp_path):
     import tarfile
 
     upload = tmp_path / "upload.tar.gz"
-    run._pack(upload)
+    reads = run._read()
+    run._pack(upload, run._plan(reads), reads, [])
     with tarfile.open(upload) as tar:
         return {member.name: member for member in tar.getmembers() if member.name}, \
             {member.name: tar.extractfile(member).read() for member in tar.getmembers()
@@ -1350,7 +1350,7 @@ def test_the_uploaded_manifest_carries_no_credential(run, nop_project, tmp_path)
     assert not [name for name, body in blobs.items() if b"TOKEN" in body]
 
     # Still the set the archive was filtered by.
-    assert owners.required(sent) == owners.required(run._needs()[0])
+    assert owners.required(sent) == owners.required(run._read().manifest)
     assert nop_project.get("library", "gcd", "dataroot", "ip", "path") == \
         "git+https://alice:TOKEN@example.com/ip.git"
     with open(own) as f:
@@ -1661,7 +1661,7 @@ def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, s
     '''Created before anything is collected or packed, so a refusal there costs nothing.'''
     monkeypatch.setattr(RemoteRun, "_collect", lambda self, *args, **kwargs:
                         pytest.fail("collected"))
-    monkeypatch.setattr(RemoteRun, "_pack", lambda self, upload: pytest.fail("packed"))
+    monkeypatch.setattr(RemoteRun, "_pack", lambda self, *args: pytest.fail("packed"))
     fake_v1.route(responses.POST, "jobs", refusal, status=refusal["status"],
                   content_type="application/problem+json")
 
@@ -1824,7 +1824,7 @@ def test_an_interrupt_before_submit_cancels_the_job(fake_v1, run, monkeypatch):
     _created(fake_v1)
     _cancelled(fake_v1)
 
-    def interrupted(self, upload):
+    def interrupted(self, *args):
         raise KeyboardInterrupt
 
     monkeypatch.setattr(RemoteRun, "_pack", interrupted)
@@ -1845,18 +1845,18 @@ def test_an_asic_project_with_no_pdk_stops_before_create(fake_v1, logged_in, gcd
     project.add_fileset("rtl")
 
     with pytest.raises(RemoteError, match="sets no PDK"):
-        RemoteRun(project, logged_in)._preflight()
+        RemoteRun(project, logged_in)._start()
 
     assert not any(call.request.path_url == "/v1/jobs" for call in fake_v1.calls)
 
 
 def test_a_task_class_no_package_provides_stops_before_create(fake_v1, run, monkeypatch):
-    from siliconcompiler.remote.client import capture
+    from siliconcompiler.remote import owners
 
-    monkeypatch.setattr(capture, "_module_distributions", lambda: {})
+    monkeypatch.setattr(owners, "module_distributions", lambda: {})
 
     with pytest.raises(RemoteError, match="installed package"):
-        run._preflight()
+        run._start()
 
 
 def _three_nodes(project, both=False, last=NOPTask):
@@ -1976,7 +1976,7 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project, 
     os.symlink(target, os.path.join(two, "outputs", "gcd.vg"))
 
     with pytest.raises(RemoteError, match="steptwo/0/outputs/gcd.vg is a link to"):
-        run._check_upstream_files()
+        run._check_dangling()
 
 
 class ReadsTheNetlist(NOPTask):
@@ -2014,9 +2014,9 @@ def test_an_input_the_outputs_packed_here_lack_stops_the_run_before_create(
 
     if refused:
         with pytest.raises(RemoteError, match="stepthree/0 reads an input"):
-            run._check_upstream_files()
+            run._check_unfed(run._read().worked.unfed)
     else:
-        run._check_upstream_files()
+        run._check_unfed(run._read().worked.unfed)
 
 
 def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project, tmp_path):
@@ -2033,7 +2033,8 @@ def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project
         nop_project.add_dep(lib)
 
     collection = tmp_path / "collected"
-    run._collect([{"kind": "dataroot", "keypath": ["library", "alib", "dataroot", "root"]}],
+    run._collect(run._read(),
+                 [{"kind": "dataroot", "keypath": ["library", "alib", "dataroot", "root"]}],
                  directory=str(collection), only_asked=True)
 
     found = {name for _, _, names in os.walk(collection) for name in names}

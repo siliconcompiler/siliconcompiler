@@ -23,7 +23,7 @@ import time
 
 from importlib import metadata
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler._common import NodeStatus as SCNodeStatus
@@ -34,11 +34,15 @@ from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.schema_support.record import RecordTime
 
+from siliconcompiler.remote import environment, links, manifests, owners
+from siliconcompiler.remote.client import MAX_CANCEL_REASON, _UNPRINTABLE, capture, wheels
 from siliconcompiler.remote.client.errors import (
-    NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, clean, describe)
-from siliconcompiler.remote.client import MAX_CANCEL_REASON, _UNPRINTABLE
+    NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, blocked_lines, clean,
+    describe)
 from siliconcompiler.remote.client.results import Results, record_job, recorded_job
 from siliconcompiler.remote.environment import canonical
+from siliconcompiler.remote.runflow import (
+    node_tools, outputs_present, python_nodes, runtime_nodes, upstream_nodes)
 from siliconcompiler.utils.units import format_binary, format_duration
 
 __all__ = ["RemoteRun", "REMOTE_MANIFEST"]
@@ -83,6 +87,27 @@ def node_status(state: str, terminal: bool) -> str:
     return SCNodeStatus.ERROR if terminal else SCNodeStatus.PENDING
 
 
+class _Reads(NamedTuple):
+    '''What the flow reads, worked out once: the project carrying each node's
+    `require` and the keys that gives (None: not known), every path value
+    walked against what the server supplies, and each node's setup.'''
+    manifest: Any
+    required: Optional[Set[Tuple[str, ...]]]
+    values: List[Any]
+    worked: owners.WorkedOut
+
+
+class _Plan(NamedTuple):
+    '''What create describes and the archive carries, worked out before create.'''
+    flow: str
+    node_count: int
+    versions: Dict[str, Any]               # `requested_versions`
+    sources: List[Dict[str, Any]]          # what the server should supply
+    member: Optional[Dict[str, List[str]]]  # `python_packages`
+    built: Dict[str, str]                  # wheel name: path here
+    helpers: Dict[str, str]                # collected path: helper file here
+
+
 class RemoteRun:
     '''One project, run on one server.'''
 
@@ -100,26 +125,19 @@ class RemoteRun:
         self.output_lock = threading.Lock()
 
         # Requests already answered, so a repeated ask fails instead of looping.
-        self._uploading = []
         self._sent = set()
 
-        # What the flow reads, worked out once with each node's Python.
-        self._needed = None
-        self._environments = {}
-        self._tasks = {}
-        self._unfed = set()
-        self._failed = {}
+        # Set by `_start`, or by the first request a reconnect must answer.
+        self._reads: Optional[_Reads] = None
+        # The `python_packages` sent, which `resolved_versions` is compared to.
+        self._member: Optional[Dict[str, List[str]]] = None
         self._upstream_sources = None
         self._last_state: Optional[str] = None
         self._owner: Optional[str] = None
-        self._python_worked = None
         self._substituted_said = False
         self._owner_said = False
         self._wheel_dir: Optional[str] = None
-        self._asked_rows: list = []
         self._order: Optional[Dict[Tuple[str, str], int]] = None
-        self._python_pins = None
-        self._software = None
 
     def run(self) -> None:
         if self.project.get('arg', 'step') or self.project.get('arg', 'index'):
@@ -142,30 +160,29 @@ class RemoteRun:
         self._watch(job_id)
 
     def _start(self) -> str:
-        self._preflight()
+        self._check_project()
+        reads = self._reads = self._read()
+        self._check_unfed(reads.worked.unfed)
+        plan = self._plan(reads)
+        self._member = plan.member
+        self._check_account(plan.built)
 
         design = self.project.name
         jobname = self.project.option.get_jobname()
 
-        from siliconcompiler.remote import owners
-
         # Created before collecting or packing: the job names what else the
         # archive must hold.
-        flow, node_count = self._flow_descriptor()
         job = self.client.create_job(
             design=design, jobname=jobname,
             continues_from=self._upstream()[1] or None,
-            flow=flow, node_count=node_count,
+            flow=plan.flow, node_count=plan.node_count,
             # Listed packages and uploaded wheels both need `python.env`.
-            python_packages=self._python()[0],
-            needs=["python.env"] if self._python()[0] or self._python()[1] else None,
-            requested_versions={"python": self._requested_python(),
-                                "tools": self._tool_requirements(),
-                                **self._requested_interpreter()},
+            python_packages=plan.member,
+            needs=["python.env"] if plan.member or plan.built else None,
+            requested_versions=plan.versions,
             # What the server should supply: looked up there, never fetched,
             # credentials stripped.
-            sources=[item for item in owners.sources(self.project, self._needs()[1])
-                     if tuple(item["keypath"]) not in self._uploaded_packages()] or None)
+            sources=plan.sources or None)
 
         job_id = job["id"]
         self.project.set('record', 'remoteid', job_id)
@@ -178,17 +195,19 @@ class RemoteRun:
         self.project.write_manifest(self._manifest())
 
         try:
-            self._collect()
             with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
                 asked = job.get("upload_sources") or []
+                answered = []
                 if asked:
                     # Sent with this machine's OWN credentials, or cancelled.
                     self.logger.info(f"The server asked for {_named(asked)}")
-                    self._asked_rows = self._answer(asked, collectiondir(self.project))
+                    answered = self._answer(asked, collectiondir(self.project), reads)
+                else:
+                    self._collect(reads)
 
                 upload = Path(tmpdir) / "upload.tar.gz"
-                digest, size = self._pack(upload)
-                self._deliver(job_id, upload, size, digest)
+                digest, size, report = self._pack(upload, plan, reads, answered)
+                self._deliver(job_id, upload, size, digest, report)
         except _Held:
             # Kept, with its upload: a reconnect submits it.
             raise
@@ -201,8 +220,7 @@ class RemoteRun:
         self.logger.info("Job submitted")
         return job_id
 
-    def _deliver(self, job_id: str, upload: Path, size: int, digest: str,
-                 report=None) -> None:
+    def _deliver(self, job_id: str, upload: Path, size: int, digest: str, report) -> None:
         '''Grant, PUT and submit one archive, keeping the job through what a retry
         fixes: a failed PUT starts over under a re-issued grant for the same size
         and digest, and an upload that does not match its digest goes up again.'''
@@ -268,10 +286,9 @@ class RemoteRun:
         # Not a job to reconnect to.
         self.project.unset('record', 'remoteid')
 
-    def _preflight(self) -> None:
-        '''What the server would refuse, said here before create.'''
-        from siliconcompiler.flowgraph import RuntimeFlowgraph
-
+    def _check_project(self) -> None:
+        '''What this client refuses before it works anything out: a project the
+        server cannot run, and upstream results with a dangling link.'''
         project = self.project
 
         # The PDK fails closed where the class has a PDK setting.
@@ -281,16 +298,11 @@ class RemoteRun:
                 "one: set it with set_pdk() -- a target usually does -- and run again")
 
         # The server runs only task classes an installed package provides.
-        from siliconcompiler.remote.client import capture
-
-        provided = capture._module_distributions()
         flow = project.get_flow()
         missing = {}
-        for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
+        for step, index in runtime_nodes(project):
             name = flow.get_graph_node(step, index).get_taskmodule() or ""
-            module = name.split("/", 1)[0]
-            top = module.split(".", 1)[0]
-            if module == "__main__" or top not in provided:
+            if not owners.distributions_of(name):
                 missing.setdefault(name, []).append(f"{step}/{index}")
         if missing:
             named = "; ".join(f"{', '.join(nodes)} runs {name}"
@@ -300,103 +312,43 @@ class RemoteRun:
                 f"these are not: {named}. Move the task into a package, install it "
                 "here, and run again")
 
-        self._check_upstream_files()
-        self._check_dataroots()
-        self._check_software()
-        self._check_python_env()
-        self._check_account()
+        self._check_dangling()
 
-    def _check_dataroots(self) -> None:
-        '''Stop where a dataroot the server would be told of has no library or
-        task keypath naming it: the server refuses it.'''
-        from siliconcompiler.remote import owners
+    def _check_account(self, built: Dict[str, str]) -> None:
+        '''Read the account (`GET /v1/me`), which reminds of upcoming terms, and
+        stop where wheels would go up for an account without `python-wheels`.
 
-        try:
-            owners.sources(self.project, self._needs()[1])
-        except owners.Unnamed as e:
-            raise RemoteError(str(e)) from None
-
-    def _check_account(self) -> None:
-        '''Check the account (`GET /v1/me`) before create: unaccepted terms are
-        named, and an account that cannot submit or lacks a capability stops the run.'''
+        Create refuses everything else the account lacks, but a wheel is refused
+        only while the job stages, after the upload.'''
         try:
             me = self.client.me()
         except RemoteError:
             return
-        self._check_can_submit(me)
-        self._check_capabilities(me)
-
-    def _check_can_submit(self, me: Dict[str, Any]) -> None:
-        '''Stop where `can_submit` is false, with what create would refuse:
-        `blocked_type` is that refusal's `type`. Absent, nothing is known.'''
-        if not isinstance(me, dict) or me.get("can_submit") is not False:
-            return
-        blocked = me.get("blocked_type")
-        problem = {"type": blocked if isinstance(blocked, str) else None,
-                   "title": "This account cannot submit jobs on this server"}
-        titles = {}
-        if _slug(problem) == "terms-not-accepted":
-            # The service documents not yet accepted, each by its title.
-            unaccepted = [entry for entry in me.get("terms") or []
-                          if isinstance(entry, dict) and entry.get("id")
-                          and isinstance(entry.get("scope"), dict)
-                          and entry["scope"].get("applies_to") == "service"
-                          and entry.get("accepted_at") is None]
-            problem["blocked_by"] = [entry["id"] for entry in unaccepted]
-            titles = {entry["id"]: entry.get("title") for entry in unaccepted}
-            self.client.open_terms(problem["blocked_by"], titles)
-        raise RemoteError(describe(problem, titles=titles))
-
-    def _check_capabilities(self, me: Dict[str, Any]) -> None:
-        '''Stop where the job's Python needs `python-packages` or `python-wheels`
-        and the account lacks it or holds it blocked on an agreement.
-
-        Only where `authorized.capabilities` is published: sc-server grants
-        nothing, so `python.env` alone decides there.'''
         authorized = me.get("authorized") if isinstance(me, dict) else None
         granted = authorized.get("capabilities") if isinstance(authorized, dict) else None
-        if not isinstance(granted, list):
+        # Only where `authorized.capabilities` is published: sc-server grants
+        # nothing, so `python.env` alone decides there.
+        if not built or not isinstance(granted, list):
             return
-        member, built, _ = self._python()
-        needed = [name for name, needs in (("python-packages", bool(member)),
-                                           ("python-wheels", bool(built))) if needs]
-        held = {entry.get("name"): entry for entry in granted if isinstance(entry, dict)}
-        missing = [name for name in needed if name not in held]
-        blocked = [name for name in needed if name in held and held[name].get("blocked_by")]
-        if not missing and not blocked:
+        held = next((entry for entry in granted if isinstance(entry, dict)
+                     and entry.get("name") == "python-wheels"), None)
+        if held is not None and not held.get("blocked_by"):
             return
-        what = {"python-packages": "to install its Python packages",
-                "python-wheels": f"to upload {', '.join(sorted(built))}"}
-        said = [f"{name} {what[name]}" for name in missing + blocked]
-        # `blocked_by` holds `terms` ids: name each document by its title.
-        from siliconcompiler.remote.client.errors import blocked_lines
-
-        titles = {entry.get("id"): entry.get("title")
-                  for entry in me.get("terms") or [] if isinstance(entry, dict)}
-        signing = [line for name in blocked
-                   for line in blocked_lines(held[name].get("blocked_by"), titles)]
+        signing = blocked_lines((held or {}).get("blocked_by"), self.client.terms_titles())
         raise RemoteError(
-            f"this run's Python needs {' and '.join(said)}, and this account "
-            + ("is not granted " + " or ".join(missing) if missing else "")
-            + (" and " if missing and blocked else "")
-            + (f"holds {' and '.join(blocked)} blocked on an agreement it has not accepted"
-               if blocked else "")
+            f"this run's Python needs python-wheels to upload {', '.join(sorted(built))}, "
+            "and this account "
+            + ("is not granted python-wheels" if held is None else
+               "holds python-wheels blocked on an agreement it has not accepted")
             + (": " + "; ".join(signing) if signing else "")
             + ". Ask the deployment for the grant, or accept the agreement")
 
-    def _check_upstream_files(self) -> None:
-        '''Stop a `-from` run whose upstream outputs packed here lack a file it
-        reads: a dangling link, or an input a node's setup declares. A node
-        reading any results not packed here is not checked.'''
-        from siliconcompiler.flowgraph import RuntimeFlowgraph
-
+    def _check_dangling(self) -> None:
+        '''Stop a `-from` run whose upstream outputs packed here hold a dangling
+        link: a missing file, usually into a node never fetched.'''
         root = jobdir(self.project)
-        packed = self._upstream()[0]
-        if not packed:
-            return
-        for outputs in packed:
+        for outputs in self._upstream()[0]:
             for here, dirs, files in os.walk(os.path.join(root, outputs)):
-                # A dangling link is a missing file, usually into a node never fetched.
                 for name in sorted(dirs + files):
                     full = os.path.join(here, name)
                     if os.path.islink(full) and not os.path.exists(full):
@@ -406,10 +358,18 @@ class RemoteRun:
                             "the node it belongs to, or the whole job, or run from an "
                             "earlier step")
 
-        # Inputs are declared by setup, so read from the worked-out copy.
-        self._needs()
+    def _check_unfed(self, unfed) -> None:
+        '''Stop a `-from` run where a node reads an input the upstream outputs
+        packed here lack, as its setup declares it. A node reading any results
+        not packed here is not checked.'''
+        from siliconcompiler.flowgraph import RuntimeFlowgraph
+
+        root = jobdir(self.project)
+        packed = self._upstream()[0]
+        if not packed:
+            return
         runtime = RuntimeFlowgraph.from_project(self.project)
-        for step, index in sorted(self._unfed):
+        for step, index in sorted(unfed):
             upstream = runtime.get_node_inputs(step, index)
             sources = [os.path.relpath(os.path.join(
                 workdir(self.project, step=source, index=at), "outputs"), root)
@@ -419,39 +379,6 @@ class RemoteRun:
                     f"{step}/{index} reads an input the results of "
                     f"{', '.join(f'{s}/{i}' for s, i in upstream)} on this machine do "
                     "not hold. Run from an earlier step")
-
-    def _check_software(self) -> None:
-        '''Warn of a requirement nothing this server advertises satisfies; the server decides.'''
-        try:
-            software = self.client.capabilities().get("software") or {}
-        except RemoteError:
-            return
-        wanted = {"python": self._requested_python(), "tools": self._tool_requirements(),
-                  **self._requested_interpreter()}
-        for bucket, requirements in wanted.items():
-            held = software.get(bucket) or {}
-            for name, alternatives in (requirements or {}).items():
-                versions = held.get(name)
-                if bucket == "interpreter" and versions is not None and not any(
-                        _satisfied(versions, spec) for spec in alternatives):
-                    self.logger.warning(
-                        f"This server's images run Python {', '.join(versions)}, and "
-                        f"this job's own Python modules were written for "
-                        f"{' or '.join(alternatives)}: the job will be refused until "
-                        "the server's operator adds an image with that Python")
-                    continue
-                if versions is None:
-                    self.logger.warning(f"This server advertises no {name}; the job "
-                                        "may be refused")
-                    continue
-                if not alternatives:
-                    continue
-                # Test matches, never `filter`'s iterator, which is always truthy.
-                if not any(_satisfied(versions, spec) for spec in alternatives):
-                    self.logger.warning(
-                        f"This server advertises {name} {', '.join(versions)}, which "
-                        f"does not satisfy {' or '.join(alternatives)}; the job may be "
-                        "refused")
 
     def _needed_from(self, root: str) -> List[str]:
         '''What else of the job directory to pack, relative to it: the collected
@@ -476,22 +403,14 @@ class RemoteRun:
         if self._upstream_sources is not None:
             return self._upstream_sources
 
-        from siliconcompiler.remote.runflow import outputs_present, upstream_nodes
-
         # Skipped nodes are looked through, as the server does.
         skipped = [(step, index) for step, index in self.project.get_flow().get_nodes()
                    if self.project.get('record', 'status', step=step, index=index)
                    == SCNodeStatus.SKIPPED]
-        try:
-            upstream = upstream_nodes(self.project, skipped)
-        except Exception as e:                                   # noqa: BLE001
-            # An unresolvable flow fails at the server, with a reason.
-            logger.debug(f"could not tell which upstream results to send: {e}")
-            upstream = []
 
         root = jobdir(self.project)
         packed, continued = [], []
-        for step, index in upstream:
+        for step, index in upstream_nodes(self.project, skipped):
             node = workdir(self.project, step=step, index=index)
             if outputs_present(node, self.project.name):
                 packed.append(os.path.relpath(os.path.join(node, "outputs"), root))
@@ -508,12 +427,11 @@ class RemoteRun:
         self._upstream_sources = (packed, continued)
         return self._upstream_sources
 
-    def _report_upload(self, size: int, report=None) -> None:
+    def _report_upload(self, size: int, report) -> None:
         '''Log what goes up, per dataroot, with sizes, before it goes.
 
         Every time: a rule decides what uploads, and a PDK sent by mistake is
         gigabytes and, if proprietary, a disclosure.'''
-        report = self._uploading if report is None else report
         total = format_binary(size, "B", digits=1, show_unit=True, compact=True, default="—")
         self.logger.info(f"Uploading {total}")
         for kind, name, dataroot, weight, files in report:
@@ -526,8 +444,6 @@ class RemoteRun:
     def _send_asked(self, job_id: str, asked) -> None:
         '''Answer a job sent back to `awaiting_input`: an archive of ONLY what was
         asked for, its own grant, and submit again.'''
-        from siliconcompiler.remote import owners
-
         seen = tuple(sorted((item.get("kind"), ",".join(item.get("keypath") or ()),
                              item.get("name") or "") for item in asked))
         if seen in self._sent:
@@ -538,10 +454,11 @@ class RemoteRun:
             raise error
 
         self.logger.info(f"The server could not supply {_named(asked)}; sending it")
+        reads = self._reads = self._reads or self._read()
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
             collection = Path(tmpdir) / "sc_collected_files"
             try:
-                report = self._answer(asked, str(collection), only_asked=True)
+                report = self._answer(asked, str(collection), reads, only_asked=True)
             except _CannotSupply as e:
                 self._abandon(job_id, e)
                 raise
@@ -550,13 +467,11 @@ class RemoteRun:
             _pack_reproducibly(upload, collection)
             self._deliver(job_id, upload, os.path.getsize(upload),
                           f"sha256:{file_digest(upload).hexdigest()}",
-                          owners.upload_report(self.project, collection) + report)
+                          owners.upload_report(reads.values, collection) + report)
         self._sent.add(seen)
 
     def _open_portal(self, job_id: str) -> None:
         '''Open the job's page where a person is plainly watching.
-
-        Provisional: deleting this method and its one call removes it.
 
         The page comes from `POST /v1/auth/browser`, never built, and opens only
         outside CI, without `option,nodisplay`, and with stdout a terminal.
@@ -577,173 +492,113 @@ class RemoteRun:
 
         self.client.open_page("the job's page", require_tty=False, job_id=job_id)
 
-    def _needs(self):
-        '''``(manifest project, required keys)``, worked out once per run.
+    def _read(self) -> _Reads:
+        '''Work out what the flow reads: each node's `require` and Python, from its
+        setup run on a copy, and the project's path values walked once, against
+        the software the server lists.
 
-        The owner table says whether a value MAY go up; this says whether the
-        flow NEEDS it, carried in the manifest for the server to read.
-        Where a running node's setup cannot run here the set is None: every
-        file goes up by owner.
+        The owner table says whether a value MAY go up; the keys say whether the
+        flow NEEDS it, carried in the manifest for the server to read. Where a
+        running node's setup cannot run here the keys are None: every file goes
+        up by owner.
         '''
-        from siliconcompiler.remote import owners
-        from siliconcompiler.remote.runflow import runtime_nodes
+        worked = owners.work_out(self.project)
+        manifest = owners.with_required(self.project, worked.required)
+        required = owners.required(manifest)
+        if worked.failed and required is None:
+            named = ", ".join(f"{step}/{index}" for step, index in sorted(worked.failed))
+            self.logger.warning(
+                f"Could not work out which files {named} read; uploading every "
+                "file this machine may send")
+        try:
+            software = self.client.capabilities().get("software") or {}
+        except RemoteError:
+            software = {}
+        return _Reads(manifest, required, owners.walk(self.project, software.get("python")),
+                      worked)
 
-        if self._needed is None:
-            try:
-                worked = owners.work_out(self.project)
-            except Exception as e:                               # noqa: BLE001
-                self.logger.warning(
-                    f"Could not work out which files the flow reads ({e}); "
-                    "uploading every file this machine may send")
-                # No node worked out, so a node running the user's Python stops the run.
-                try:
-                    self._failed = dict.fromkeys(runtime_nodes(self.project),
-                                                 str(e) or type(e).__name__)
-                except Exception:                                # noqa: BLE001
-                    pass                    # with no flow to run, no node is one
-                self._needed = (self.project, None)
-                return self._needed
+    def _plan(self, reads: _Reads) -> _Plan:
+        '''What create describes and the archive carries, from ``reads``.'''
+        try:
+            sources = owners.sources(reads.values, reads.required)
+        except owners.Unnamed as e:
+            raise RemoteError(str(e)) from None
 
-            # Per node: one setup failing here drops no other node's Python or `require`.
-            self._environments = worked.environments
-            self._tasks = worked.tasks
-            self._unfed = worked.unfed
-            self._failed = worked.failed
-            carried = owners.with_required(self.project, worked.required)
-            self._needed = (carried, owners.required(carried))
-            if worked.failed and self._needed[1] is None:
-                named = ", ".join(f"{step}/{index}" for step, index in sorted(worked.failed))
-                self.logger.warning(
-                    f"Could not work out which files {named} read; uploading every "
-                    "file this machine may send")
-        return self._needed
+        worked = reads.worked
+        self._check_worked_out(worked.failed)
+        pins = self._python_pins(reads)
+        member, built, helpers = self._python_packages(reads, pins)
+        versions = {"python": pins, "tools": self._tool_requirements(worked.tasks)}
+        if worked.environments:
+            # This Python, only for a job running the user's own Python.
+            versions["interpreter"] = {"python": [
+                f"=={sys.version_info[0]}.{sys.version_info[1]}.*"]}
+        return _Plan(self.project.get_flow().name, len(runtime_nodes(self.project)),
+                     versions, sources, member, built, helpers)
 
-    def _requested_interpreter(self) -> Dict[str, Dict[str, List[str]]]:
-        '''`requested_versions.interpreter`: this Python as
-        `==3.12.*`, only for a job running the user's own Python, written against it.'''
-        self._needs()
-        if not self._environments:
-            return {}
-        return {"interpreter": {"python": [f"=={sys.version_info[0]}."
-                                           f"{sys.version_info[1]}.*"]}}
-
-    def _requested_python(self) -> Dict[str, List[str]]:
+    def _python_pins(self, reads: _Reads) -> Dict[str, List[str]]:
         '''`requested_versions.python`: siliconcompiler,
         each executed task's distribution, each declared framework at its range,
         each distribution whose dataroot the server supplies, and each holder of
         a private dataroot. Exact pins, frameworks excepted.'''
-        if self._python_pins is None:
-            from siliconcompiler.remote import owners
-            from siliconcompiler.remote.client import capture
-            from siliconcompiler.flowgraph import RuntimeFlowgraph
+        def alternatives(name, spec) -> List[str]:
+            # Sent, one that does not normalise would match nothing.
+            if spec is None:
+                self.logger.warning(f"Dropping the version requirement on {name}, which "
+                                    "is not PEP 440: this job takes any version of it")
+            return [spec] if spec else []
 
-            project, required = self._needs()
+        pins = {"siliconcompiler": alternatives("siliconcompiler", _pin(sc_version))}
 
-            def alternatives(name, spec) -> List[str]:
-                # Sent, one that does not normalise would match nothing.
-                if spec is None:
-                    self.logger.warning(f"Dropping the version requirement on {name}, which "
-                                        "is not PEP 440: this job takes any version of it")
-                return [spec] if spec else []
-
-            pins = {"siliconcompiler": alternatives("siliconcompiler", _pin(sc_version))}
-
-            def exact(distribution):
-                name = canonical(distribution)
-                if name in pins:
-                    return
-                try:
-                    pins[name] = alternatives(name, _pin(metadata.version(distribution)))
-                except metadata.PackageNotFoundError:
-                    return
-
-            installed = capture._module_distributions()
-            flow = project.get_flow()
-            framework = {name for env in self._environments.values()
-                         for name in env.framework}
-            for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
-                module = (flow.get_graph_node(step, index).get_taskmodule() or "")
-                for distribution in installed.get(module.split("/", 1)[0]
-                                                  .split(".", 1)[0], ()):
-                    exact(distribution)
-                # Declared on the class, so named even where setup cannot run here.
-                try:
-                    framework.update(flow.get_task_module(step, index)
-                                     .framework_distributions())
-                except Exception:                                # noqa: BLE001
-                    pass
-
-            for name in sorted(framework):
-                pins[canonical(name)] = alternatives(name, _framework_range(name))
-
-            for _, distribution in owners.installed_dataroots(project, required):
-                if self._supplied(distribution):
-                    exact(distribution)
-
-            for distribution in sorted(owners.private_holders(project, required)):
-                exact(distribution)
-
-            self._python_pins = pins
-        return self._python_pins
-
-    def _supplied(self, distribution: Optional[str]) -> bool:
-        '''Whether the server lists ``distribution`` at the version installed
-        here, so it can supply that package's dataroots itself. None, a module
-        no distribution provides, never is.'''
-        from packaging.version import InvalidVersion, Version
-
-        if not distribution:
-            return False
-        if self._software is None:
+        def exact(distribution):
+            name = canonical(distribution)
+            if name in pins:
+                return
             try:
-                self._software = self.client.capabilities().get("software") or {}
-            except RemoteError:
-                self._software = {}
-        listed = (self._software.get("python") or {}).get(canonical(distribution)) or []
-        try:
-            mine = Version(metadata.version(distribution))
-            return any(Version(version) == mine for version in listed)
-        except (InvalidVersion, metadata.PackageNotFoundError):
-            return False
+                pins[name] = alternatives(name, _pin(metadata.version(distribution)))
+            except metadata.PackageNotFoundError:
+                return
 
-    def _uploaded_packages(self):
-        '''The keypath of each dataroot from an installed package the
-        server does not list at this version: its files upload.'''
-        from siliconcompiler.remote import owners
+        flow = self.project.get_flow()
+        framework = set()
+        for step, index in runtime_nodes(self.project):
+            for distribution in owners.distributions_of(
+                    flow.get_graph_node(step, index).get_taskmodule()):
+                exact(distribution)
+            # Declared on the class, so named even where setup cannot run here.
+            framework.update(flow.get_task_module(step, index).framework_distributions())
 
-        project, required = self._needs()
-        return {entry for entry, distribution in owners.installed_dataroots(project, required)
-                if not self._supplied(distribution)}
+        for name in sorted(framework):
+            pins[canonical(name)] = alternatives(name, _framework_range(name))
 
-    def _python(self):
-        '''The job's Python, worked out once: ``(python_packages or None,
-        {wheel: path here}, {collected path: helper file here})``.
+        for distribution in sorted(owners.supplied_distributions(reads.values, reads.required)
+                                   | owners.private_holders(reads.values, reads.required)):
+            exact(distribution)
+
+        return pins
+
+    def _python_packages(self, reads: _Reads, pins: Dict[str, List[str]]):
+        '''The job's Python as ``(python_packages or None, {wheel: path here},
+        {collected path: helper file here})``.
 
         Always built by the client: imported distributions at their installed
-        versions, their dependencies as constraints, less what the image holds;
-        what no index has goes up as a wheel. No index is named, no pip config read.
-        With no requirement and no wheel it sends nothing and needs no `python.env`.
+        versions, their dependencies as constraints, less what the image holds
+        (``pins``); what no index has goes up as a wheel. No index is named, no
+        pip config read. With no requirement and no wheel it sends nothing and
+        needs no `python.env`.
         '''
-        if self._python_worked is not None:
-            return self._python_worked
+        worked = reads.worked
+        if not worked.environments:
+            return None, {}, {}
 
-        from siliconcompiler.remote import owners
-        from siliconcompiler.remote.client import capture, wheels
-
-        self._needs()
-        self._check_worked_out()
-        if not self._environments:
-            self._python_worked = (None, {}, {})
-            return self._python_worked
-
-        excluded = self._not_sent_roots()
-        tests = sorted({os.path.abspath(source) for wanted in self._environments.values()
+        excluded = owners.not_sent_roots(reads.values, reads.required)
+        tests = sorted({os.path.abspath(source) for wanted in worked.environments.values()
                         for source in wanted.sources})
-        collected = owners.collected_paths(self.project, tests)
+        collected = owners.collected_paths(reads.values, tests)
 
         roots: Dict[str, set] = {}
         helpers: Dict[str, str] = {}
-        for (step, index), wanted in sorted(self._environments.items()):
+        for (step, index), wanted in sorted(worked.environments.items()):
             try:
                 found = capture.reach(wanted.sources, wanted.requirements)
             except capture.CannotForward as e:
@@ -771,7 +626,7 @@ class RemoteRun:
                         raise RemoteError(f"{step}/{index}: {e}") from None
 
         try:
-            listed = capture.lists(roots, self._requested_python())
+            listed = capture.lists(roots, pins)
         except capture.CannotForward as e:
             raise RemoteError(str(e)) from None
         for warning in listed.warnings:
@@ -800,98 +655,50 @@ class RemoteRun:
             + (f" under {len(listed.constraints)} constraints" if member else "")
             + f", {len(built)} built as wheels, and {len(helpers)} of your own files "
             "sent beside the tests")
-        self._python_worked = (member, built, helpers)
-        return self._python_worked
+        return member, built, helpers
 
     def _drop_wheels(self) -> None:
         if self._wheel_dir:
             shutil.rmtree(self._wheel_dir, ignore_errors=True)
             self._wheel_dir = None
 
-    def _check_worked_out(self) -> None:
+    def _check_worked_out(self, failed) -> None:
         '''Stop where an executed node runs the user's Python and its setup failed
         here: its imports cannot be worked out.'''
-        from siliconcompiler.remote.runflow import python_nodes, runtime_nodes
-
-        if not self._failed:
+        if not failed:
             return
-        failed = [node for node in runtime_nodes(self.project) if node in self._failed]
-        for step, index in sorted(python_nodes(self.project.get_flow(), failed)):
+        nodes = [node for node in runtime_nodes(self.project) if node in failed]
+        for step, index in sorted(python_nodes(self.project.get_flow(), nodes)):
             raise RemoteError(
                 f"{step}/{index} runs your own Python, and what it needs cannot be "
-                f"worked out here, because its setup failed: {self._failed[(step, index)]}")
+                f"worked out here, because its setup failed: {failed[(step, index)]}")
 
-    def _check_python_env(self) -> None:
-        '''Stop before create where the job has Python packages to install and
-        the server installs none.'''
-        member, built, _ = self._python()
-        if not member and not built:
-            return
-        try:
-            features = self.client.capabilities().get("features") or []
-        except RemoteError:
-            return
-        if "python.env" in features:
-            return
-        named = (member or {}).get("requirements", []) + sorted(built)
-        raise RemoteError(
-            f"this run's Python needs {', '.join(named)} installed, and this server "
-            "does not install a job's Python packages (it lists no python.env)")
-
-    def _not_sent_roots(self) -> List[str]:
-        '''Directories reaching a node through their own dataroot (private, or
-        server-supplied), so never sent as the user's code.'''
-        from siliconcompiler.remote import owners
-
-        roots = []
-        project, required = self._needs()
-        supplied = {entry for entry, distribution
-                    in owners.installed_dataroots(project, required)
-                    if self._supplied(distribution)}
-        for one in owners._values(project):
-            if one.origin == owners.PRIVATE or one.keypath in supplied:
-                resolver = one.resolvers.get(one.dataroot)
-                try:
-                    path = resolver.get_path() if resolver is not None else None
-                except Exception:                                # noqa: BLE001
-                    path = None
-                if path:
-                    roots.append(str(path))
-        return sorted(set(roots))
-
-    def _collect(self, asked=(), directory=None, only_asked: bool = False) -> None:
+    def _collect(self, reads: _Reads, asked=(), directory=None,
+                 only_asked: bool = False) -> None:
         '''Collect what the flow reads: by owner, plus what the server asked for.
 
         The design always; a PDK's, library's, device's or tool's files only
         where local or editable (`owners`). No flag is consulted, `copy=True`
         included: the server holds what is left out or refuses at submit.
 
-        ``asked`` (`upload_sources`) selects required values under its dataroots.
-        Per value (`owners.collection`); a private dataroot is never collected.
+        ``asked`` (`upload_sources`) selects required values under its dataroots,
+        and with ``only_asked`` nothing else. Per value (`owners.collection`); a
+        private dataroot is never collected.
         '''
-        from siliconcompiler.remote import owners
-
         # By keypath, never name: many owners share the default `root`.
         wanted = {tuple(item.get("keypath") or ())
                   for item in asked if item.get("kind") == "dataroot"}
-        required = self._needs()[1]
-        if not only_asked:
-            wanted |= self._uploaded_packages()
 
         def pick(one) -> bool:
-            if not owners.needed(one.key, required):
-                return False
-            if not only_asked and owners.uploads(self.project, one.key, one.dataroot,
-                                                 one.resolvers):
-                return True
-            return one.keypath in wanted
+            return owners.needed(one.key, reads.required) and (
+                one.keypath in wanted or (not only_asked and one.upload))
 
-        chosen = owners.collection(self.project, pick)
+        chosen = owners.collection(reads.values, pick)
         try:
             collect(self.project, keys=chosen.keys, directory=directory,
-                    verbose=directory is None, select=chosen.select,
+                    verbose=not only_asked, select=chosen.select,
                     whitelist=list(self.client.credentials.directory_whitelist))
-        except (FileNotFoundError, RuntimeError, ValueError) as e:
+        except (OSError, RuntimeError, ValueError) as e:
             if not asked:
                 raise
             # Unreachable here too: fail naming it, and upload nothing.
@@ -899,30 +706,29 @@ class RemoteRun:
                 f"the server asked for {_named(asked)}, and this machine cannot "
                 f"reach it either: {e}") from None
 
-    def _pack(self, upload: Path) -> Tuple[str, int]:
-        '''Pack the manifest and what the server needs of the job directory.
+    def _pack(self, upload: Path, plan: _Plan, reads: _Reads, answered) -> Tuple[str, int, list]:
+        '''Pack the manifest and what the server needs of the job directory, as
+        ``(digest, size, what went up)``.
 
         Named entries only: a reused job directory holds old logs, fetched
         nodes and the `job.log` this run is appending to.
         No manifest in it carries a credential: anyone who can
         read the job reads its `input`, so each manifest goes as a masked copy.
         '''
-        from siliconcompiler.remote import owners
-
         root = jobdir(self.project)
         manifest = f"{self.project.name}.pkg.json"
 
         collected = collectiondir(self.project)
         placed = []
-        if collected and (self._python()[1] or self._python()[2]):
+        if collected and (plan.built or plan.helpers):
             os.makedirs(collected, exist_ok=True)
-            placed = self._place_python(collected)
+            placed = self._place_python(collected, plan)
 
         packed = self._upstream()[0]
         with tempfile.TemporaryDirectory(prefix="sc-remote-") as scratch:
             # Carries every node's `require`: the set this archive was filtered by.
             sent = os.path.join(scratch, manifest)
-            mask_credentials(self._needs()[0]).write_manifest(sent)
+            mask_credentials(reads.manifest).write_manifest(sent)
             replaced = self._upstream_manifests(root, packed, scratch)
 
             with tarfile.open(upload, mode="w:gz") as tar:
@@ -935,21 +741,18 @@ class RemoteRun:
                     else:
                         tar.add(os.path.join(root, name), arcname=name)
 
-        self._uploading = (owners.upload_report(self.project, collected)
-                           if collected and os.path.isdir(collected) else []) + placed \
-            + self._asked_rows
+        report = (owners.upload_report(reads.values, collected)
+                  if collected and os.path.isdir(collected) else []) + placed + answered
         if collected and os.path.isdir(collected):
             # In the archive now, and the largest thing here: keep no second copy.
             shutil.rmtree(collected, ignore_errors=True)
 
-        return f"sha256:{file_digest(upload).hexdigest()}", os.path.getsize(upload)
+        return f"sha256:{file_digest(upload).hexdigest()}", os.path.getsize(upload), report
 
     def _upstream_manifests(self, root: str, packed, scratch: str) -> Dict[str, str]:
         '''Each packed upstream manifest holding a credential, as ``{real path:
         masked copy under scratch}`` for `_LinkPacker` to send instead. Read
         importing nothing it names: it is a result, and may be a fetched one.'''
-        from siliconcompiler.remote import manifests
-
         replaced = {}
         for n, name in enumerate(packed):
             path = os.path.join(root, name, f"{self.project.name}.pkg.json")
@@ -971,16 +774,13 @@ class RemoteRun:
             replaced[os.path.realpath(path)] = copy
         return replaced
 
-    def _place_python(self, collection: str):
+    def _place_python(self, collection: str, plan: _Plan):
         '''Copy the wheels (under `python/`) and helper modules (beside their test)
         into the collection; return their upload-report rows. A helper `collect`
         already placed is left as it is.'''
-        from siliconcompiler.remote import environment
-
-        _, built, helpers = self._python()
         rows = []
         weight = files = 0
-        for relative, source in sorted(helpers.items()):
+        for relative, source in sorted(plan.helpers.items()):
             target = os.path.join(collection, *relative.split("/"))
             if os.path.exists(target):
                 continue
@@ -990,7 +790,7 @@ class RemoteRun:
             files += 1
         if files:
             rows.append(("python", "helper modules", None, weight, files))
-        for name, path in sorted(built.items()):
+        for name, path in sorted(plan.built.items()):
             target = os.path.join(collection, environment.WHEELS, name)
             os.makedirs(os.path.dirname(target), exist_ok=True)
             shutil.copyfile(path, target)
@@ -998,19 +798,18 @@ class RemoteRun:
                          os.path.getsize(target), 1))
         return rows
 
-    def _answer(self, asked, collection: str, only_asked: bool = False) -> list:
-        '''Put everything the server asked for into ``collection``, or nothing;
-        return the wheels' upload-report rows.
+    def _answer(self, asked, collection: str, reads: _Reads, only_asked: bool = False) -> list:
+        '''Put everything the server asked for into ``collection``, with what the
+        flow reads unless ``only_asked``, or nothing; return the wheels'
+        upload-report rows.
 
         Never a partial answer: every item is tried first, and any failure
         raises _CannotSupply naming each, which cancels the job.
         '''
-        from siliconcompiler.remote import environment
-
         failures = []
         for item in asked:
             if item.get("kind") == "dataroot":
-                why = self._unreachable(item)
+                why = self._unreachable(item, reads.values)
                 if why:
                     failures.append(f"the dataroot {','.join(item.get('keypath') or ())}: "
                                     f"{why}")
@@ -1027,11 +826,10 @@ class RemoteRun:
             if failures:
                 raise _CannotSupply(failures)
 
-            if any(item.get("kind") == "dataroot" for item in asked):
+            if not only_asked or any(item.get("kind") == "dataroot" for item in asked):
                 try:
-                    self._collect(asked, directory=collection, only_asked=only_asked)
-                except (FileNotFoundError, OSError, RuntimeError, ValueError,
-                        RemoteError) as e:
+                    self._collect(reads, asked, directory=collection, only_asked=only_asked)
+                except RemoteError as e:
                     raise _CannotSupply([_scrubbed(str(e) or type(e).__name__)]) from None
 
             rows = []
@@ -1044,19 +842,14 @@ class RemoteRun:
         finally:
             shutil.rmtree(wheel_dir, ignore_errors=True)
 
-    def _unreachable(self, item) -> Optional[str]:
+    def _unreachable(self, item, values) -> Optional[str]:
         '''Why an asked-for dataroot cannot be had here either, with any
         credential taken out of it; None where it can.'''
-        from siliconcompiler.remote import owners
-
         wanted = tuple(item.get("keypath") or ())
-        resolver = None
-        for one in owners._values(self.project):
-            if one.keypath == wanted:
-                resolver = one.resolvers.get(one.dataroot)
-                break
-        else:
+        one = next((one for one in values if one.keypath == wanted), None)
+        if one is None:
             return "this project names no such dataroot"
+        resolver = one.resolvers.get(one.dataroot)
         if resolver is None:
             return None
         try:
@@ -1069,8 +862,6 @@ class RemoteRun:
 
     def _wheel_asked(self, item, folder: str) -> str:
         '''Repack an asked-for Python package's wheel from what is installed here.'''
-        from siliconcompiler.remote.client import capture, wheels
-
         name = item.get("name") or ""
         try:
             dist = metadata.distribution(name)
@@ -1086,64 +877,27 @@ class RemoteRun:
             raise _Unsupplied(f"the Python package {name}: "
                               f"{str(e).splitlines()[0]}") from None
 
-    def _flow_descriptor(self) -> Tuple[Optional[str], Optional[int]]:
-        '''The flow's name and node count, for a refusal before the upload.
-        Advisory and re-derived at submit, so failing to build it is never fatal.'''
-        try:
-            from siliconcompiler.remote.runflow import runtime_nodes
-
-            flow = self.project.get_flow()
-            return flow.name, len(runtime_nodes(self.project))
-        except Exception as e:                                   # noqa: BLE001
-            logger.debug(f"no flow descriptor: {e}")
-            return None, None
-
-    def _tool_requirements(self) -> Dict[str, Any]:
+    def _tool_requirements(self, tasks) -> Dict[str, Any]:
         """Each tool the flow uses, with its version requirements.
 
         The server derives the same list at submit; this only moves a refusal
         BEFORE the upload. Each value is a list of alternative specifier sets,
-        as `check_exe_version` reads them; empty means any version.
+        as `check_exe_version` reads them; empty means any version. ``tasks``
+        is each node's set-up task with its declared versions, from the copy
+        worked out here, since a task declares its version in `setup()`; a
+        node whose setup failed says `[]`, any version.
         """
         wanted: Dict[str, Any] = {}
-        try:
-            from siliconcompiler.remote.runflow import node_tools, runtime_nodes
-
-            self._needs()
-            flow = self.project.get_flow()
-            for node, tool in node_tools(flow, runtime_nodes(self.project)).items():
-                if not tool:
-                    continue
-                for one in self._declared_versions(node):
-                    if one not in wanted.setdefault(tool, []):
-                        wanted[tool].append(one)
-                wanted.setdefault(tool, [])
-        except Exception as e:                                   # noqa: BLE001
-            logger.debug(f"no tool requirements: {e}")
-            return {}
+        for node, tool in node_tools(self.project.get_flow(),
+                                     runtime_nodes(self.project)).items():
+            if not tool:
+                continue
+            for one in _declared_versions(tasks.get(tuple(node))):
+                if one not in wanted.setdefault(tool, []):
+                    wanted[tool].append(one)
+            wanted.setdefault(tool, [])
 
         return wanted
-
-    def _declared_versions(self, node) -> List[str]:
-        """One node's declared version requirements for its tool.
-
-        Normalised with the task's own `normalize_version`, as
-        `check_exe_version` does: OpenROAD's `>=24Q3-2011` is not PEP 440, and
-        sent raw the server would refuse a satisfying image.
-        From the worked-out copy, since a task declares its version in
-        `setup()`; a node whose setup failed here says `[]`, any version.
-        """
-        held = self._tasks.get(tuple(node))
-        if held is None:
-            return []
-        task, declared = held
-
-        found = []
-        for one in declared:
-            normalized = _normalize_spec(task, one)
-            if normalized:
-                found.append(normalized)
-        return found
 
     def reconnect(self, job_id: str) -> None:
         '''Re-enter the wait for a job, submitting one a refused submit left waiting.
@@ -1274,7 +1028,7 @@ class RemoteRun:
 
         if self._substituted_said or job.get("state") in _NOT_YET_SUBMITTED:
             return
-        member = self._python_worked[0] if self._python_worked else None
+        member = self._member
         held = (job.get("resolved_versions") or {}).get("python")
         if not member or not isinstance(held, dict):
             return
@@ -1332,14 +1086,10 @@ class RemoteRun:
     def _flow_order(self) -> Dict[Tuple[str, str], int]:
         '''Each node's place in the flow's execution order, worked out once.'''
         if self._order is None:
-            order: Dict[Tuple[str, str], int] = {}
-            try:
-                for layer in self.project.get_flow().get_execution_order():
-                    for step, index in layer:
-                        order.setdefault((step, index), len(order))
-            except Exception as e:                               # noqa: BLE001
-                logger.debug(f"no flow order to list nodes in: {e}")
-            self._order = order
+            self._order = {}
+            for layer in self.project.get_flow().get_execution_order():
+                for step, index in layer:
+                    self._order.setdefault((step, index), len(self._order))
         return self._order
 
     def _report(self, job: Dict[str, Any], changed=None) -> None:
@@ -1693,6 +1443,17 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
                     job_id=job.get("id"))
 
 
+def _declared_versions(held) -> List[str]:
+    """One node's declared version requirements for its tool, normalised with
+    the task's own `normalize_version`, as `check_exe_version` does: OpenROAD's
+    `>=24Q3-2011` is not PEP 440, and sent raw the server would refuse a
+    satisfying image."""
+    if held is None:
+        return []
+    task, declared = held
+    return [spec for spec in (_normalize_spec(task, one) for one in declared) if spec]
+
+
 def _normalize_spec(task, declared: str) -> Optional[str]:
     """One specifier set as the task reads it in `check_exe_version`.
 
@@ -1711,16 +1472,6 @@ def _normalize_spec(task, declared: str) -> Optional[str]:
         logger.debug(f"could not normalize {declared!r}: {e}")
         return None
     return joined or None
-
-
-def _satisfied(versions, spec: str) -> bool:
-    '''Whether any of ``versions`` meets one PEP 440 specifier set.'''
-    from packaging.specifiers import InvalidSpecifier, SpecifierSet
-
-    try:
-        return any(SpecifierSet(spec).filter(versions, prereleases=True))
-    except InvalidSpecifier:
-        return True
 
 
 def _pack_reproducibly(upload: Path, directory: Path) -> None:
@@ -1752,8 +1503,6 @@ class _LinkPacker:
     '''
 
     def __init__(self, tar, root: str, tops, logger, replaced=None):
-        from siliconcompiler.remote import links
-
         self.tar, self.root, self.logger = tar, root, logger
         # Masked upstream manifests to send instead (`RemoteRun._upstream_manifests`).
         self.replaced: Dict[str, str] = dict(replaced or {})
@@ -1826,10 +1575,8 @@ class _LinkPacker:
         self.stored[real] = arcname
 
     def _add_link(self, path: str, arcname: str) -> None:
-        from siliconcompiler.remote import links
-
-        end, why = links.follow(self.root, path)
-        if why == links.OUTSIDE:
+        end, outside = links.follow(self.root, path)
+        if outside:
             # Its home is not in the archive, so it is stored like any other.
             end = os.path.realpath(path)
             if not (os.path.isfile(end) or os.path.isdir(end)):
@@ -1846,7 +1593,7 @@ class _LinkPacker:
         if first is not None:
             self._write_link(arcname, posixpath.relpath(first, posixpath.dirname(arcname)))
             return
-        if why == links.OUTSIDE:
+        if outside:
             self.logger.info(f"Sending {end} as {arcname}, a link out of the build directory")
         if os.path.isdir(end):
             self.stored[end] = arcname
@@ -1939,8 +1686,6 @@ _URL = re.compile(r"(?i)\b[a-z][a-z0-9+.-]*://[^\s'\"<>)]+")
 def _scrubbed(text: str) -> str:
     '''A message with every URL masked as a source is (no userinfo, no query
     values): what is said to the server, and to whoever reads the job.'''
-    from siliconcompiler.remote import owners
-
     return _URL.sub(lambda found: owners.masked(found.group()), text)
 
 
