@@ -93,8 +93,7 @@ def test_a_remote_run_leaves_the_build_directory_a_local_run_does(gcd_design, ra
         assert history.get("record", "status", step=step, index="0") == "success"
         assert history.get("metric", "tasktime", step=step, index="0") is not None
 
-    client.node_log(job["id"], "stepone", "0", "fetched.log")
-    assert "stepone" in open("fetched.log").read()
+    assert "stepone" in client.archived_log(job["id"], "stepone", "0")
 
 
 def run_cli(monkeypatch, *args):

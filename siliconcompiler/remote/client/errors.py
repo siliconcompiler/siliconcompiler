@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, Optional
 
 __all__ = ["RemoteError", "RemoteTimeout", "ServerProblem", "SessionEnded", "describe",
-           "NO_NODE_FAILED", "clean"]
+           "NO_NODE_FAILED", "clean", "listed"]
 
 
 class RemoteError(Exception):
@@ -21,18 +21,28 @@ class RemoteTimeout(RemoteError, TimeoutError):
 
 
 class ServerProblem(RemoteError):
-    '''The server refused, and said why in a way worth rendering.'''
+    '''The server refused, and said why in a way worth rendering.
+
+    Rendered when printed, so a caller that knows more sets ``next_step``,
+    ``job_id`` or ``titles`` and re-raises.
+    '''
 
     def __init__(self, problem: Dict[str, Any], status: int,
                  help_url: Optional[str] = None, next_step: Optional[str] = None,
                  job_id: Optional[str] = None, titles: Optional[Dict[str, str]] = None,
                  retry_after: Optional[float] = None):
+        super().__init__()
         self.problem = problem
         self.status = status
         self.help_url = help_url
+        self.next_step = next_step
+        self.job_id = job_id
+        self.titles = titles
         self.retry_after = retry_after
-        super().__init__(describe(problem, status, next_step=next_step, help_url=help_url,
-                                  job_id=job_id, titles=titles))
+
+    def __str__(self) -> str:
+        return describe(self.problem, self.status, next_step=self.next_step,
+                        help_url=self.help_url, job_id=self.job_id, titles=self.titles)
 
     @property
     def slug(self) -> Optional[str]:
@@ -284,14 +294,19 @@ def clean(text: Optional[str]) -> str:
     return _CONTROL.sub("", text)
 
 
+def listed(values) -> str:
+    '''Server-supplied names, one line, made safe to print.'''
+    return ", ".join(clean(value) for value in values or []) or "none"
+
+
 # Every registered `type` is this and a slug, the same on every deployment.
-_TYPE_BASE = "https://siliconcompiler.com/server-errors/"
+TYPE_BASE = "https://siliconcompiler.com/server-errors/"
 
 
 def _slug(problem: Dict[str, Any]) -> Optional[str]:
     '''The condition a problem names, or None for a `type` outside the
     registry, which is acted on by its status.'''
     uri = problem.get("type")
-    if not isinstance(uri, str) or not uri.startswith(_TYPE_BASE):
+    if not isinstance(uri, str) or not uri.startswith(TYPE_BASE):
         return None
-    return uri[len(_TYPE_BASE):] or None
+    return uri[len(TYPE_BASE):] or None

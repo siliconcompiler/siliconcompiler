@@ -35,12 +35,11 @@ JOB_FILE = "sc_remote_job.json"
 
 def record_job(directory: str, job_id: str) -> None:
     '''Record the job ``directory``'s results came from.'''
-    from siliconcompiler.remote.client.credentials import _write_atomic
+    from siliconcompiler.utils.settings import replace_file
 
     os.makedirs(directory, exist_ok=True)
     # The mode `open()` would give it: a job id is no secret.
-    _write_atomic(os.path.join(directory, JOB_FILE),
-                  json.dumps({"job_id": job_id}).encode(), mode=0o666)
+    replace_file(os.path.join(directory, JOB_FILE), json.dumps({"job_id": job_id}), 0o666)
 
 
 def recorded_job(directory: str) -> Optional[str]:

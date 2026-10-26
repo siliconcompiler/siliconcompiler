@@ -8,7 +8,7 @@ from conftest import problem
 from test_client import asked_for_pages
 
 from siliconcompiler.remote import Client, ServerProblem
-from siliconcompiler.remote.client import OAuthRefusal
+from siliconcompiler.remote.client import OAuthRefusal, cli
 from siliconcompiler.remote.client.errors import describe
 
 
@@ -112,9 +112,9 @@ def test_the_deployment_account_and_refusal_lines_lose_control_characters(
     fake_v1.route(responses.GET, "healthz", {"status": evil})
     caplog.set_level(logging.INFO)
 
-    logged_in.print_deployment()
+    cli.print_deployment(logged_in)
     logged_in._report_software({"software": {"python": {"siliconcompiler": [evil]}}})
-    logged_in.print_identity({
+    cli.print_identity(logged_in, {
         "id": evil, "issuer": evil, "can_submit": False, "blocked_type": evil,
         "session": {"kind": evil, "scope": evil, "device_id": evil,
                     "access_expires_at": evil, "refresh_expires_at": evil,
