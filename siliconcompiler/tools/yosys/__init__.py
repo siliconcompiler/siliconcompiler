@@ -398,6 +398,7 @@ class YosysTask(Task):
 
     def _synthesis_post_process(self):
         stat_json = "reports/stat.json"
+        metrics = None
         if os.path.exists(stat_json):
             with sc_open(stat_json) as f:
                 metrics = json.load(f)
@@ -419,13 +420,16 @@ class YosysTask(Task):
         else:
             self.logger.warning("Yosys cell statistics are missing")
 
-        registers = None
+        # dfflibmap logs what it mapped once per module, so adding up its counts misses
+        # every instance of a module past the first. Take only the flop cell names from
+        # it and count those from stat, which counts per instance.
+        flops = set()
         with sc_open(self.get_logpath("exe")) as f:
             for line in f:
-                line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
-                if line_registers:
-                    if registers is None:
-                        registers = 0
-                    registers += int(line_registers[0])
-        if registers is not None:
-            self.record_metric("registers", registers, source_file=self.get_logpath("exe"))
+                flop = re.match(r"^\s*mapped [0-9]+ \$_DFF\S* cells to \\?(\S+) cells", line)
+                if flop:
+                    flops.add(flop.group(1))
+        if flops and metrics:
+            cells_by_type = metrics.get("num_cells_by_type", {})
+            self.record_metric("registers", sum(cells_by_type.get(cell, 0) for cell in flops),
+                               source_file=stat_json)

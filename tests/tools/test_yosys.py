@@ -552,6 +552,26 @@ def test_cell_area_report_counts_each_level_once(heartbeat_design, modules):
         "heartbeat": (12.0, 4), "m0": (7.0, 3), "m0.l0": (2.0, 1), "m0.l1": (2.0, 1)}
 
 
+def test_registers_counts_every_instance(heartbeat_design):
+    '''registers counts the flops in every instance of a kept module, not in each module once.'''
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        assert node.setup() is True
+        # dfflibmap's lines for a leaf module instantiated twice, then for the top.
+        with open(node.task.get_logpath("exe"), "w") as f:
+            f.write("  mapped 16 $_DFF_P_ cells to \\DFF_X1 cells.\n"
+                    "  mapped 1 $_DFF_PN0_ cells to \\DFFR_X1 cells.\n"
+                    "  mapped 1 $_DFF_P_ cells to \\DFF_X1 cells.\n")
+        os.makedirs("reports")
+        with open("reports/stat.json", "w") as f:
+            json.dump({"design": {"num_cells_by_type": {
+                "DFF_X1": 33, "DFFR_X1": 2, "NAND2_X1": 40, "leaf": 2}}}, f)
+
+        node.task._synthesis_post_process()
+
+    assert node.project.get("metric", "registers", step="synthesis", index="0") == 35
+
+
 @pytest.mark.parametrize("args", [["-c", "sc_synth_asic.tcl"], ["-C", "-c", "sc_synth_asic.tcl"]])
 def test_yosys_replay_modes(args):
     """replay.sh --shell adds -C once, so yosys enters its Tcl shell when the script ends."""
