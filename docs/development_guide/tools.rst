@@ -90,12 +90,30 @@ Next, you define what the specific task needs to run and what it will produce.
 .. important::
 
    **Require every file the task reads, not only the settings it cannot do
-   without.** The required keys are also what a node's rerun check compares
-   and what ``sc-issue`` packages: a file the task reads without requiring it
-   -- a view reached through ``asic,asiclib`` and a fileset, say -- can change
-   without the node running again, and is missing from an issue built to
-   reproduce it. Where the task reads a library's files, require those
+   without.** The required keys are also what a node's rerun check compares,
+   what ``sc-issue`` packages and what a remote run uploads: a file the task
+   reads without requiring it -- a view reached through ``asic,asiclib`` and a
+   fileset, say -- can change without the node running again, is missing from
+   an issue built to reproduce it, and is not sent to a remote server, where the
+   node then fails. Where the task reads a library's files, require those
    filesets' files, as the OpenROAD and Yosys tasks do.
+
+.. note::
+
+   **A task whose tool runs the user's own Python** -- a testbench, a plugin
+   -- says so by overriding :meth:`.Task.get_python_environment`, returning the
+   source files the tool loads and any distributions it loads by name. A remote
+   run follows those files' imports into the job's Python packages, and sends
+   the modules beside those files with them; the cocotb tasks are the example.
+   The server reads only whether a class overrides it, to know which nodes get
+   the packages on their tool's path.
+
+   **What SiliconCompiler's own process needs for the task** -- cocotb, for a
+   cocotb task -- is declared on the class, by overriding
+   :meth:`.Task.framework_distributions`, so a remote run names it without
+   setting the node up and the node's image holds it at SiliconCompiler's
+   range. Import it where the node uses it, never at module import or in
+   ``setup()``: the submitting machine need not have it.
 
 .. important::
 
@@ -104,10 +122,11 @@ Next, you define what the specific task needs to run and what it will produce.
    rerun check decides which of them will run -- nodes outside ``-from``/``-to``
    and nodes whose previous result is reused included -- and resolving a path
    there fetches a remote PDK just to answer it for a node that does nothing. It
-   also runs to build the task's page in the reference manual, against a
-   placeholder design with nothing to find. Declare keys in ``setup()``; resolve
-   the files they name in :meth:`.Task.runtime_options` or later, where the task
-   actually runs.
+   also runs on the client of a remote run, for every node and before anything
+   is uploaded, to learn what the flow reads; and to build the task's page in
+   the reference manual, against a placeholder design with nothing to find.
+   Declare keys in ``setup()``; resolve the files they name in
+   :meth:`.Task.runtime_options` or later, where the task actually runs.
 
 Execution Lifecycle Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

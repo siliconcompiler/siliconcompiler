@@ -1,667 +1,780 @@
 import json
+import logging
 import os
+import re
+
+from pathlib import Path
+
 import pytest
-import requests
-import time
+import responses
 
-import os.path
+from unittest import mock
 
-from siliconcompiler import NodeStatus
-from siliconcompiler.remote import Client, ClientScheduler, ConfigureClient
-from siliconcompiler.remote import NodeStatus as RemoteNodeStatus
-from siliconcompiler.remote.server import Server
-from siliconcompiler.scheduler import Scheduler
-from siliconcompiler.scheduler.error import SCRuntimeError
-from siliconcompiler.scheduler.listener import RunListener
-from siliconcompiler.scheduler.send_messages import SummaryEmailListener
+from siliconcompiler.remote import (
+    Client, Credentials, RemoteError, ServerProblem)
+from siliconcompiler.remote.client.errors import describe
+from siliconcompiler.remote.client.transport import join_url, normalize_server
 
+from conftest import V1_URL, problem
 
-@pytest.fixture(autouse=True)
-def configured_server(monkeypatch):
-    '''Points the default credentials file at a server.
 
-    There is no built-in address to fall back on, so a client built without a
-    configuration has nothing to talk to. The tests that are about that case
-    point the same function at a file that is not there.
-    '''
-    cfg_file = os.path.abspath('default-credentials.json')
-    with open(cfg_file, 'w') as f:
-        json.dump({"address": "https://example.com", "directory_whitelist": []}, f)
-    monkeypatch.setattr('siliconcompiler.utils.default_credentials_file',
-                        lambda: cfg_file)
+def _form(body):
+    from urllib.parse import parse_qs
 
+    if isinstance(body, bytes):
+        body = body.decode()
+    return {k: v[0] for k, v in parse_qs(body).items()}
 
-class _Recorder(RunListener):
-    def __init__(self):
-        self.events = []
 
-    def node_started(self, project, step, index):
-        self.events.append(("node_started", step, index))
+def _grants(fake_v1):
+    return [_form(c.request.body)["grant_type"]
+            for c in fake_v1.calls if c.request.method == "POST"]
 
-    def node_finished(self, project, step, index):
-        self.events.append(("node_finished", step, index))
 
+def _refused(fake_v1, path, slug, status, headers=None, method=responses.GET, **members):
+    fake_v1.route(method, path, problem(slug, status, **members), status=status,
+                  content_type="application/problem+json", headers=headers)
 
-def _client(project, nodes=('stepone0', 'steptwo0'), listener=None):
-    '''A client with the node table __run_loop() would have built for it.'''
-    client = Client(project, listener)
-    client._Client__node_information = {
-        node: {
-            "step": node[:-1],
-            "index": node[-1],
-            "imported": False,
-            "fetched": False,
-            "started": False,
-            "finished": False,
-            "print": f"{node[:-1]}/{node[-1]}"
-        } for node in nodes
-    }
-    return client
 
+def _healthy(fake_v1):
+    fake_v1.route(responses.GET, "healthz", {"status": "pass"},
+                  content_type="application/health+json")
 
-def _starttime(project, step, index):
-    return project.get("record", field="schema").get_recorded_time(step, index, "starttime")
 
+def test_a_path_is_joined_not_urljoined():
+    '''urljoin("https://host/v1", "jobs") drops the version prefix.'''
+    assert join_url("https://host/v1", "jobs") == "https://host/v1/jobs"
+    assert join_url("https://host/v1", "/jobs") == "https://host/v1/jobs"
+    assert join_url("https://host/v1/", "jobs") == "https://host/v1/jobs"
+    assert join_url("https://host/v1") == "https://host/v1"
 
-def _status(busy, message):
-    return {'busy': busy, 'message': message}
 
+@pytest.mark.parametrize("given,port,expected", [
+    ("http://localhost:8000", None, "http://localhost:8000/v1"),
+    ("https://example.com", None, "https://example.com/v1"),
+    ("example.com", None, "https://example.com/v1"),
+    ("example.com", 8000, "https://example.com:8000/v1"),
+    ("https://example.com/v1", None, "https://example.com/v1"),
+    ("https://example.com/sc/v1", None, "https://example.com/sc/v1"),
+    ("https://[::1]:8000", None, "https://[::1]:8000/v1"),
+    ("https://[::1]", 8000, "https://[::1]:8000/v1"),
+    ("http://[fd00::5]:8080/sc", None, "http://[fd00::5]:8080/sc"),
+])
+def test_a_server_address_is_normalized(given, port, expected):
+    '''The scheme comes from the address, never the port (the old client
+    reached :8000 over plaintext); a bare address is https; IPv6 brackets and
+    an existing prefix are kept.'''
+    assert normalize_server(given, port) == expected
 
-def test_report_job_status_finished(gcd_nop_project):
-    '''A job that is not running ends the wait loop'''
-    client = _client(gcd_nop_project)
 
-    completed, running = client._report_job_status(
-        _status(False, 'Job has no running steps.'))
+def test_configuring_an_ipv6_server_keeps_its_port():
+    '''As `sc-config remote configure` splits it.'''
+    from siliconcompiler.remote.client import _split_address
 
-    assert running is False
-    assert completed == []
+    address, port, had_credentials = _split_address("https://[::1]:8000")
 
+    assert (address, port, had_credentials) == ("https://[::1]", 8000, False)
+    assert normalize_server(address, port) == "https://[::1]:8000/v1"
+    assert _split_address("https://me:secret@example.com")[2] is True
 
-def test_report_job_status_unparsable_message(gcd_nop_project, caplog):
-    '''A message that is not the node payload is reported, not crashed on'''
-    client = _client(gcd_nop_project)
 
-    completed, running = client._report_job_status(
-        _status(True, 'Job is being scheduled'))
-
-    assert running is True
-    assert completed == []
-    assert 'Job is still running: Job is being scheduled' in caplog.text
-
-
-def test_report_job_status_running_nodes(gcd_nop_project, monkeypatch):
-    '''Node statuses are recorded, and a running node's elapsed time becomes its recorded start
-    time as it is reported started'''
-    monkeypatch.setattr('siliconcompiler.remote.client.time.time', lambda: 1700000000.25)
-    listener = _Recorder()
-    client = _client(gcd_nop_project, listener=listener)
-
-    payload = {
-        'null': {'status': NodeStatus.SUCCESS},
-        'stepone0': {'status': NodeStatus.SUCCESS, 'elapsed_time': '0:00:30'},
-        'steptwo0': {'status': NodeStatus.RUNNING, 'elapsed_time': '0:01:05'}
-    }
-
-    completed, running = client._report_job_status(
-        _status(True, json.dumps(payload)))
-
-    assert running is True
-    # The 'null' key is the setup manifest, which the loop fetches as None.
-    assert sorted(completed, key=str) == [None, 'stepone0']
-
-    # 65s of elapsed time means the node started 65s ago. A finished node's
-    # times come from its own manifest.
-    assert _starttime(gcd_nop_project, 'steptwo', '0') == 1700000000.25 - 65
-    assert _starttime(gcd_nop_project, 'stepone', '0') is None
-    assert listener.events == [("node_started", "steptwo", "0")]
-
-    assert gcd_nop_project.get('record', 'status', step='stepone', index='0') == \
-        NodeStatus.SUCCESS
-    assert gcd_nop_project.get('record', 'status', step='steptwo', index='0') == \
-        NodeStatus.RUNNING
-
-
-def test_report_job_status_uploaded_is_pending(gcd_nop_project):
-    '''A node the client ran itself is reported back as uploaded, and is
-       pending as far as this run is concerned'''
-    client = _client(gcd_nop_project)
-
-    payload = {'stepone0': {'status': RemoteNodeStatus.UPLOADED}}
-
-    completed, running = client._report_job_status(
-        _status(True, json.dumps(payload)))
-
-    assert running is True
-    assert completed == []
-    assert gcd_nop_project.get('record', 'status', step='stepone', index='0') == \
-        NodeStatus.PENDING
-
-
-def test_report_job_status_without_elapsed_time(gcd_nop_project, monkeypatch):
-    '''A server that reports no timing still drives the loop, and a running node starts when
-    it is first seen'''
-    monkeypatch.setattr('siliconcompiler.remote.client.time.time', lambda: 1700000000.25)
-    client = _client(gcd_nop_project)
-
-    payload = {
-        'stepone0': {'status': NodeStatus.RUNNING},
-        'steptwo0': {'status': NodeStatus.PENDING}
-    }
-
-    completed, running = client._report_job_status(
-        _status(True, json.dumps(payload)))
-
-    assert running is True
-    assert completed == []
-    assert _starttime(gcd_nop_project, 'stepone', '0') == 1700000000.25
-    assert _starttime(gcd_nop_project, 'steptwo', '0') is None
-
-
-def test_report_job_status_reports_a_node_started_once(gcd_nop_project):
-    '''A node seen running on several polls is reported started, and its time recorded, once'''
-    listener = _Recorder()
-    client = _client(gcd_nop_project, listener=listener)
-
-    client._report_job_status(_status(True, json.dumps(
-        {'stepone0': {'status': NodeStatus.RUNNING, 'elapsed_time': '0:00:10'}})))
-    started = _starttime(gcd_nop_project, 'stepone', '0')
-    client._report_job_status(_status(True, json.dumps(
-        {'stepone0': {'status': NodeStatus.RUNNING, 'elapsed_time': '0:00:40'}})))
-
-    assert listener.events == [("node_started", "stepone", "0")]
-    assert _starttime(gcd_nop_project, 'stepone', '0') == started
-
-
-def test_finalize_loop_reports_nodes_without_results(gcd_nop_project):
-    '''A finished node whose results never arrived is still reported finished, and a node that
-    never finished is not'''
-    listener = _Recorder()
-    client = _client(gcd_nop_project, listener=listener)
-    client._Client__setup_information_fetched = False
-    client._Client__setup_information_loaded = False
-    gcd_nop_project.set('record', 'status', NodeStatus.ERROR, step='stepone', index='0')
-    gcd_nop_project.set('record', 'status', NodeStatus.PENDING, step='steptwo', index='0')
-
-    client._finalize_loop()
-    client._finalize_loop()
-
-    assert listener.events == [("node_finished", "stepone", "0")]
-
-
-@pytest.mark.parametrize("nodashboard", [False, True])
-def test_client_scheduler_listeners(gcd_nop_project, nodashboard):
-    '''The client side of a remote run is heard by the dashboard, the registered listeners and
-    the summary mail, and leaves node mail and the deprecated callbacks to the server's run'''
-    gcd_nop_project.option.set_nodashboard(nodashboard)
-    listener = RunListener()
-    Scheduler.add_listener(listener)
-
-    listeners = ClientScheduler(gcd_nop_project)._listeners()
-
-    if not nodashboard:
-        assert listeners.pop(0) is gcd_nop_project._dashboard
-    assert listeners[0] is listener
-    assert [type(other) for other in listeners[1:]] == [SummaryEmailListener]
-
-
-def test_report_job_status_truncates_long_lists(gcd_nop_project, caplog):
-    '''A status shared by more nodes than fit on a line is truncated'''
-    nodes = [f'node{num}0' for num in range(12)]
-    client = _client(gcd_nop_project, nodes=nodes)
-
-    payload = {node: {'status': NodeStatus.SUCCESS} for node in nodes}
-
-    client._report_job_status(_status(True, json.dumps(payload)))
-
-    logged = [line for line in caplog.text.splitlines() if 'Success (12)' in line]
-    assert len(logged) == 1
-    assert logged[0].endswith('...')
-
-
-def test_report_job_status_reads_server_payload(gcd_nop_project):
-    '''The client parses the progress payload the server builds, not a hand-written one.'''
-    server = Server()
-    server.set('option', 'nfsmount', os.path.abspath('mount'))
-
-    job_hash = 'a' * 32
-    now = time.time()
-    server.sc_jobs[job_hash] = {
-        None: {'status': NodeStatus.SUCCESS},
-        'stepone0': {'status': NodeStatus.SUCCESS, 'step': 'stepone', 'index': '0',
-                     'starttime': now - 90, 'endtime': now - 30},
-        'steptwo0': {'status': NodeStatus.RUNNING, 'step': 'steptwo', 'index': '0',
-                     'starttime': now - 12}
-    }
-    message = server._Server__progress_message(job_hash)
-
-    client = _client(gcd_nop_project)
-    completed, running = client._report_job_status(
-        _status(True, json.dumps(message)))
-
-    assert running is True
-    assert sorted(completed, key=str) == [None, 'stepone0']
-    # 0:00:12 of runtime so far for the running node.
-    assert now - 13 <= _starttime(gcd_nop_project, 'steptwo', '0') <= now - 11
-
-
-@pytest.mark.timeout(60)
-def test_fetch_results_inline(gcd_remote_test, inline_download_pool):
-    '''Results are downloaded, unpacked and merged into the local build, with the download
-    run in this process rather than in a pool worker the test cannot see.
-    '''
-    project = gcd_remote_test()
-
-    assert project.run()
-
-    assert inline_download_pool, 'the client never built a download pool'
-    fetched = [args[1] for pool in inline_download_pool for args in pool.calls]
-    assert None in fetched, 'the setup manifest was never fetched'
-    assert 'stepone0' in fetched
-
-    assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')
-    assert os.path.isfile('build/gcd/job0/steptwo/0/outputs/gcd.pkg.json')
-
-
-@pytest.mark.timeout(60)
-def test_fetch_results_missing_node(gcd_remote_test, inline_download_pool, caplog):
-    '''A node with nothing to fetch is reported, and the run is not derailed'''
-    project = gcd_remote_test()
-    project.set('record', 'remoteid', 'b' * 32)
-
-    client = Client(project)
-    client._fetch_result('nosuchnode0')
-
-    assert 'Could not fetch results for node: nosuchnode0' in caplog.text
-
-
-def _response(code, text='', headers=None):
-    resp = requests.Response()
-    resp.status_code = code
-    resp.encoding = 'ascii'
-    resp._content = bytes(text, encoding='ascii')
-    if headers:
-        resp.headers.update(headers)
-    return resp
-
-
-def test_post_retries_timeouts(gcd_nop_project, monkeypatch):
-    '''A timeout is retried rather than failing the job'''
-    monkeypatch.setattr('siliconcompiler.remote.client.time.sleep', lambda _: None)
-
-    attempts = []
-
-    def flaky_post(url, **kwargs):
-        attempts.append(url)
-        if len(attempts) < 3:
-            raise requests.Timeout()
-        return _response(200, 'Job deleted.')
-
-    monkeypatch.setattr(requests, 'post', flaky_post)
-
-    assert Client(gcd_nop_project).delete_job()['message'] == 'Job deleted.'
-    assert len(attempts) == 3
-
-
-def test_post_gives_up_on_repeated_timeouts(gcd_nop_project, monkeypatch):
-    '''Timeouts that never clear end the attempt'''
-    monkeypatch.setattr('siliconcompiler.remote.client.time.sleep', lambda _: None)
-
-    def always_timeout(url, **kwargs):
-        raise requests.Timeout()
-
-    monkeypatch.setattr(requests, 'post', always_timeout)
-
-    with pytest.raises(TimeoutError, match='Server communications timed out'):
-        Client(gcd_nop_project).delete_job()
-
-
-def test_post_follows_redirect(gcd_nop_project, monkeypatch):
-    '''A redirected POST is followed, since the spec turns it into a GET'''
-    urls = []
-
-    def redirecting_post(url, **kwargs):
-        urls.append(url)
-        if len(urls) == 1:
-            return _response(302, headers={'Location': 'http://elsewhere/delete_job/'})
-        return _response(200, 'Job deleted.')
-
-    monkeypatch.setattr(requests, 'post', redirecting_post)
-
-    assert Client(gcd_nop_project).delete_job()['message'] == 'Job deleted.'
-    assert urls[1] == 'http://elsewhere/delete_job/'
-
-
-def test_post_raises_on_error_without_handler(gcd_nop_project, monkeypatch):
-    '''An error with no handler for it is surfaced'''
-    monkeypatch.setattr(requests, 'post',
-                        lambda url, **kwargs: _response(500, json.dumps({'message': 'boom'})))
-
-    # check() posts without an error_action, which is the path under test here
-    with pytest.raises(RuntimeError, match='Server responded with 500: boom'):
-        Client(gcd_nop_project).check()
-
-
-def test_post_error_without_json_body(gcd_nop_project, monkeypatch):
-    '''A non-JSON error body is reported as it came'''
-    monkeypatch.setattr(requests, 'post',
-                        lambda url, **kwargs: _response(502, 'Bad Gateway'))
-
-    with pytest.raises(RuntimeError, match='Server responded with 502: Bad Gateway'):
-        Client(gcd_nop_project).check()
-
-
-def test_check_job_status_stops_on_refusal(gcd_nop_project, monkeypatch, caplog):
-    """A job this client may not watch ends the wait rather than polling forever"""
-    monkeypatch.setattr(
-        requests, 'post',
-        lambda url, **kwargs: _response(403, json.dumps(
-            {'message': 'Error: job belongs to another user.',
-             'status': 'rejected'})))
-
-    info = Client(gcd_nop_project).check_job_status()
-
-    assert info['busy'] is False
-    assert info['refused'] is True
-    assert 'Unable to check job status: Error: job belongs to another user.' in caplog.text
-
-
-def test_run_loop_refusal_is_not_completion(gcd_nop_project, monkeypatch):
-    '''A refused poll ends the run as a failure rather than a finished job'''
-    monkeypatch.setattr(
-        requests, 'post',
-        lambda url, **kwargs: _response(403, json.dumps(
-            {'message': 'Error: job belongs to another user.', 'status': 'rejected'})))
-
-    client = _client(gcd_nop_project)
-    # skip the /check_server/ round trip __ensure_run_loop_information would make
-    client._Client__check_interval = 0
-
-    with pytest.raises(SCRuntimeError, match='belongs to another user'):
-        client._run_loop()
-
-    # the loop must not have announced the job as done on the way out
-    assert client._Client__download_pool is None
-
-
-def test_check_job_status_keeps_waiting_on_a_hiccup(gcd_nop_project, monkeypatch):
-    """A server-side error is transient, so the wait continues"""
-    monkeypatch.setattr(requests, 'post',
-                        lambda url, **kwargs: _response(500, 'Internal Server Error'))
-
-    assert Client(gcd_nop_project).check_job_status()['busy'] is True
-
-
-def test_delete_job_reports_a_refusal(gcd_nop_project, monkeypatch, caplog):
-    '''A job the server will not delete is an answer, not an exception'''
-    monkeypatch.setattr(
-        requests, 'post',
-        lambda url, **kwargs: _response(403, json.dumps(
-            {'message': 'Error: job belongs to another user.', 'success': False})))
-
-    assert Client(gcd_nop_project).delete_job() == {
-        'message': 'Error: job belongs to another user.',
-        'success': False}
-    assert 'Unable to delete job: Error: job belongs to another user.' in caplog.text
-
-
-def test_delete_job_reads_the_json_response(gcd_nop_project, monkeypatch):
-    '''The documented response shape is what the client returns'''
-    monkeypatch.setattr(
-        requests, 'post',
-        lambda url, **kwargs: _response(200, json.dumps(
-            {'message': 'Job deleted.', 'success': True})))
-
-    assert Client(gcd_nop_project).delete_job() == {'message': 'Job deleted.', 'success': True}
-
-
-def test_delete_job_accepts_a_plain_text_server(gcd_nop_project, monkeypatch):
-    '''A server older than the JSON response still answers this client'''
-    monkeypatch.setattr(requests, 'post',
-                        lambda url, **kwargs: _response(200, 'Job deleted.'))
-
-    assert Client(gcd_nop_project).delete_job() == {'message': 'Job deleted.', 'success': True}
-
-
-def test_print_configuration(gcd_nop_project, scserver_credential, caplog):
-    '''The configuration the client would use is reportable'''
-    creds = scserver_credential(8000, username='user', password='pass')
-    gcd_nop_project.set('option', 'credentials', creds)
-
-    client = Client(gcd_nop_project)
-    client.configure_whitelist(add=['.'])
+def test_a_client_without_a_server_builds_and_says_so(caplog):
+    '''Constructing must not raise, or `sc-config remote configure` could not fix it.'''
+    caplog.set_level(logging.INFO)
+    client = Client(Credentials(Path("sc-home/auth/remote.json")))
     client.print_configuration()
 
-    assert 'Username: user' in caplog.text
-    assert 'Directory whitelist:' in caplog.text
-    assert os.path.abspath('.') in caplog.text
+    assert client.base_url is None
+    assert "Server: not configured" in caplog.text
+    with pytest.raises(RemoteError, match="No remote server address is configured"):
+        client.capabilities()
+    with pytest.raises(RemoteError, match="sc-config remote configure"):
+        client.me()
+
+
+def test_capabilities_carry_no_credential_and_a_proof(fake_v1, tmp_credentials, capabilities):
+    body = Client(tmp_credentials).capabilities()
+
+    assert body == capabilities
+    assert "Authorization" not in fake_v1.calls[0].request.headers
+    assert fake_v1.calls[0].request.headers["DPoP"]
+
+
+def test_the_rigs_capabilities_carry_every_required_member(capabilities):
+    '''The conformance rig's copy of a real `GET /v1`.'''
+    assert {"api_version", "software", "grant_types_supported", "limits", "features",
+            "identity_assurance", "notices"} <= set(capabilities)
+    assert capabilities["api_version"] == "v1"
+    # A closed set of buckets, and `siliconcompiler` REQUIRED in `python`.
+    assert set(capabilities["software"]) == {"python", "tools", "interpreter"}
+    assert "siliconcompiler" in capabilities["software"]["python"]
+    # This profile serves no device grant, so it must not advertise one.
+    assert "urn:ietf:params:oauth:grant-type:device_code" \
+        not in capabilities["grant_types_supported"]
+    assert set(capabilities["limits"]) == {
+        "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
+        "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
+        "max_archive_members", "max_archive_expanded_bytes",
+        "max_download_bytes", "abandon_after_seconds"}
+    # OPTIONAL: absent, not empty.
+    assert "terms_url" not in capabilities
+
+
+@pytest.mark.parametrize("body,status,content_type,expected", [
+    ({"status": "pass"}, 200, "application/health+json", "pass"),
+    ({"status": "fail"}, 503, "application/health+json", "fail"),
+    ("<html>502 Bad Gateway</html>", 503, "text/html", "fail"),
+], ids=["pass", "fail", "proxy"])
+def test_health_is_one_word_and_a_503_is_an_answer(fake_v1, tmp_credentials, body, status,
+                                                   content_type, expected):
+    '''The endpoint serves `fail` as a 503, and nothing answering 503 here
+    is serving, whatever it sends.'''
+    fake_v1.route(responses.GET, "healthz", body, status=status, content_type=content_type)
+
+    assert Client(tmp_credentials).health() == {"status": expected}
+    assert "Authorization" not in fake_v1.calls[-1].request.headers
+
+
+def test_the_deployment_report_is_what_the_server_says_it_is(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    '''Unauthenticated, so it prints before enrolment and for a server
+    that is down. Limits in readable units; null is unlimited, not zero.'''
+    capabilities["limits"]["concurrent_jobs"] = None
+    fake_v1.replace(responses.GET, "", capabilities)
+    _healthy(fake_v1)
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).print_deployment()
+
+    for said in ("Health: pass", "API: v1", "Identity assurance: self_asserted",
+                 "siliconcompiler: 0.38.9", "client_credentials", "logs.stream",
+                 "max_upload_bytes: 1.0 GiB", "max_download_bytes: 100 MiB",
+                 "max_job_nodes: 1000", "concurrent_jobs: unlimited"):
+        assert said in caplog.text
+    for call in fake_v1.calls:
+        assert "Authorization" not in call.request.headers
+
+
+def notice(level, message, **times):
+    return {"level": level, "message": message, "starts_at": None, "ends_at": None,
+            **times}
+
+
+def test_each_notice_is_shown_once_per_session_and_at_its_own_level(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    '''A level this client does not know is a warning, the cautious default.'''
+    capabilities["notices"] = [notice("info", "new tools image"),
+                               notice("severe", "a level from a later server"),
+                               notice("warning", "maintenance on Sunday",
+                                      starts_at="2026-09-27T02:00:00Z",
+                                      ends_at="2026-09-27T06:00:00Z"),
+                               notice("warning", "down Saturday",
+                                      ends_at="2026-10-03T06:00:00Z")]
+    fake_v1.replace(responses.GET, "", capabilities)
+    caplog.set_level(logging.INFO)
+
+    client = Client(tmp_credentials)
+    client.capabilities()
+    client.capabilities()
+
+    shown = [(record.levelname, record.message) for record in caplog.records
+             if record.message.startswith("Notice:")]
+    assert shown == [("INFO", "Notice: new tools image"),
+                     ("WARNING", "Notice: a level from a later server"),
+                     ("WARNING", "Notice: maintenance on Sunday (2026-09-27T02:00:00Z to "
+                                 "2026-09-27T06:00:00Z)"),
+                     ("WARNING", "Notice: down Saturday (until 2026-10-03T06:00:00Z)")]
+
 
+def test_the_check_command_shows_every_notice_every_time(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    capabilities["notices"] = [notice("info", "new tools image")]
+    fake_v1.replace(responses.GET, "", capabilities)
+    _healthy(fake_v1)
+    caplog.set_level(logging.INFO)
 
-def test_configure_whitelist_add_and_remove(gcd_nop_project, scserver_credential):
-    '''Whitelist entries are added once and can be taken back out'''
-    creds = scserver_credential(8000)
-    gcd_nop_project.set('option', 'credentials', creds)
+    client = Client(tmp_credentials)
+    client.capabilities()
+    client.print_deployment()
+    client.print_deployment()
 
-    client = Client(gcd_nop_project)
-    client.configure_whitelist(add=['.', '.'])
+    assert caplog.text.count("Notice: new tools image") == 3
 
-    with open(creds) as f:
-        assert json.load(f)['directory_whitelist'] == [os.path.abspath('.')]
 
-    client.configure_whitelist(remove=['.', 'neverlisted'])
+def test_a_deprecation_warns_once_per_session_with_its_sunset(
+        fake_v1, tmp_credentials, capabilities, caplog):
+    headers = {"Deprecation": "@1790000000", "Sunset": "Sat, 01 May 2027 00:00:00 GMT"}
+    fake_v1.replace(responses.GET, "", capabilities, headers=headers)
+    caplog.set_level(logging.INFO)
 
-    with open(creds) as f:
-        assert json.load(f)['directory_whitelist'] == []
+    client = Client(tmp_credentials)
+    client.capabilities()
+    client.capabilities()
 
+    warned = [record for record in caplog.records if "deprecated" in record.message]
+    assert len(warned) == 1
+    assert warned[0].levelname == "WARNING"
+    assert "Sat, 01 May 2027 00:00:00 GMT" in warned[0].message
 
-def test_run_loop_interrupt_reports_how_to_return(gcd_nop_project, monkeypatch, caplog):
-    '''Ctrl+C on a remote run leaves the user the commands to get back to it'''
-    client = Client(gcd_nop_project)
 
-    def interrupt():
-        raise KeyboardInterrupt
+def terms_entry(accepted_at=None, can_decide=True):
+    '''A `terms` entry as the v1 API has it: `can_decide`, and no URL.'''
+    return {"id": "tos", "title": "Terms of Service", "scope": {"applies_to": "service"},
+            "version": "2026-09-01", "accepted_at": "2026-09-02T00:00:00Z",
+            "declined_at": None, "can_decide": can_decide,
+            "upcoming": {"version": "2026-11-01", "effective_at": "2026-11-01T00:00:00Z",
+                         "accepted_at": accepted_at}}
 
-    monkeypatch.setattr(client, '_Client__run_loop', interrupt)
-
-    with pytest.raises(KeyboardInterrupt):
-        client._run_loop()
-
-    assert 'Disconnecting from remote job' in caplog.text
-    assert 'To reconnect to this job use: sc-remote -cfg' in caplog.text
-    assert 'To cancel this job use: sc-remote -cfg' in caplog.text
-
-
-def test_get_results_body_matches_published_schema(gcd_nop_project):
-    '''The client's get_results body validates against the server's published schema, which
-       must not require the job hash the client sends in the URL.
-    '''
-    # Compiling the published schema needs fastjsonschema, from the server
-    # extra. Everything else in this file is client side and needs neither.
-    pytest.importorskip("fastjsonschema", reason="the server extra is not installed")
-
-    from siliconcompiler.remote.server import validate_get_results
-
-    client = Client(gcd_nop_project)
-    params = client._Client__get_post_params()
-
-    validate_get_results(params)
-    validate_get_results({**params, 'node': 'write.gds0'})
-    validate_get_results({**params, 'node': 'dfm.metal_fill0'})
-
-
-def _no_input(monkeypatch):
-    """Makes every prompt unanswerable, which is what a scripted run has."""
-    def eof(*args, **kwargs):
-        raise EOFError()
-    monkeypatch.setattr('builtins.input', eof)
-
-
-def _configure_client(project):
-    project.set('option', 'credentials', 'credentials.json')
-    return ConfigureClient(project)
-
-
-def _written_config():
-    with open('credentials.json') as f:
-        return json.load(f)
-
-
-def test_configure_server_noninteractive(gcd_nop_project, monkeypatch):
-    """Every answer supplied means no prompt, so no terminal is needed."""
-    _no_input(monkeypatch)
-
-    _configure_client(gcd_nop_project).configure_server(
-        server="https://example.com:1234", username="user", password="pass")
-
-    assert _written_config() == {
-        "address": "https://example.com",
-        "port": 1234,
-        "username": "user",
-        "password": "pass",
-        "directory_whitelist": []
-    }
-
-
-def test_configure_server_accept_terms_deprecated(gcd_nop_project, monkeypatch):
-    """accept_terms is a no-op now that there is no public server to accept for."""
-    _no_input(monkeypatch)
-
-    with pytest.deprecated_call(match="accept_terms is deprecated and ignored"):
-        _configure_client(gcd_nop_project).configure_server(server="https://example.com",
-                                                            accept_terms=True)
-
-    assert _written_config()["address"] == "https://example.com"
-
-
-def test_configure_server_no_terms_prompt(gcd_nop_project, monkeypatch):
-    """No address is the public one, so the terms of service are never asked about."""
-    prompts = []
-
-    def answer(prompt):
-        prompts.append(prompt)
-        return ''
-    monkeypatch.setattr('builtins.input', answer)
-
-    _configure_client(gcd_nop_project).configure_server(server="https://example.com")
-
-    assert _written_config()["address"] == "https://example.com"
-    assert not any('terms of service' in prompt for prompt in prompts)
-
-
-def _existing_config():
-    with open('credentials.json', 'w') as f:
-        json.dump({"address": "https://old.example.com", "directory_whitelist": []}, f)
-
-
-def test_configure_server_existing_needs_clobber(gcd_nop_project, monkeypatch):
-    """An existing configuration is not overwritten on a guess."""
-    _no_input(monkeypatch)
-    _existing_config()
-
-    with pytest.raises(ValueError, match="pass clobber=True instead"):
-        _configure_client(gcd_nop_project).configure_server(server="https://example.com")
-
-    assert _written_config()["address"] == "https://old.example.com"
-
-
-def test_configure_server_clobber(gcd_nop_project, monkeypatch):
-    _no_input(monkeypatch)
-    _existing_config()
-
-    _configure_client(gcd_nop_project).configure_server(server="https://example.com",
-                                                        clobber=True)
-
-    assert _written_config()["address"] == "https://example.com"
-
-
-def test_configure_server_needs_a_server(gcd_nop_project, monkeypatch):
-    """An unanswerable prompt is an error rather than a silent no-op."""
-    _no_input(monkeypatch)
-
-    with pytest.raises(ValueError, match="choose a server address"):
-        _configure_client(gcd_nop_project).configure_server()
-
-    assert not os.path.exists('credentials.json')
-
-
-def test_configure_server_blank_answer(gcd_nop_project, monkeypatch):
-    """A blank answer has nothing to fall back on, so nothing is written."""
-    monkeypatch.setattr('builtins.input', lambda *args, **kwargs: '')
-
-    with pytest.raises(ValueError, match="a remote server address is required"):
-        _configure_client(gcd_nop_project).configure_server()
-
-    assert not os.path.exists('credentials.json')
-
-
-def test_configure_server_no_credentials(gcd_nop_project, monkeypatch):
-    """Unsupplied credentials become the blank answer the prompt accepts."""
-    _no_input(monkeypatch)
-
-    _configure_client(gcd_nop_project).configure_server(server="https://example.com")
-
-    config = _written_config()
-    assert "username" not in config
-    assert "password" not in config
-
-
-def test_configure_server_credentials_from_address(gcd_nop_project, monkeypatch):
-    _no_input(monkeypatch)
-
-    _configure_client(gcd_nop_project).configure_server(
-        server="https://user:pass@example.com")
-
-    config = _written_config()
-    assert config["username"] == "user"
-    assert config["password"] == "pass"
-
-
-def test_configure_server_interactive_clobber_declined(gcd_nop_project, monkeypatch):
-    """An answerable prompt still gets asked, and declining writes nothing."""
-    _existing_config()
-    monkeypatch.setattr('builtins.input', lambda *args, **kwargs: 'n')
-
-    _configure_client(gcd_nop_project).configure_server(server="https://example.com")
-
-    assert _written_config()["address"] == "https://old.example.com"
-
-
-def _client_without_config(project, monkeypatch):
-    """A client on a machine with no credentials file."""
-    monkeypatch.setattr('siliconcompiler.utils.default_credentials_file',
-                        lambda: os.path.abspath('nonexistent-credentials.json'))
-    return Client(project)
-
-
-def test_client_without_server_builds(gcd_nop_project, monkeypatch, caplog):
-    """Nothing to fall back on is reported, but the client is still usable."""
-    client = _client_without_config(gcd_nop_project, monkeypatch)
-
-    assert 'Could not find remote server configuration' in caplog.text
-    assert client._Client__url is None
-
-
-def test_print_configuration_without_server(gcd_nop_project, monkeypatch, caplog):
-    """A missing address is reported as such rather than as a server named None."""
-    client = _client_without_config(gcd_nop_project, monkeypatch)
+
+def asked_for_pages(fake_v1):
+    '''Each body this client sent endpoint 6.'''
+    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")]
+
+
+def me_body(*terms):
+    return {"id": "u1", "issuer": "local", "projects": [], "can_submit": True,
+            "limits": {}, "usage": {"concurrent_jobs": 0}, "terms": list(terms)}
+
+
+def _asked(monkeypatch, answer=None, tty=False, ci=False):
+    from siliconcompiler.remote import client as client_module
+
+    if tty:
+        for stream in ("stdin", "stdout"):
+            monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    if ci:
+        monkeypatch.setenv("CI", "true")
+    else:
+        monkeypatch.delenv("CI", raising=False)
+    monkeypatch.setattr(client_module, "_ask",
+                        answer or (lambda question: pytest.fail("asked")))
+
+
+def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
+        logged_in, fake_v1, caplog, monkeypatch):
+    '''Named before it takes effect; the client never accepts, and asks for
+    no page it will not open.'''
+    _asked(monkeypatch)
+    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+    logged_in.me()
+
+    named = [record.message for record in caplog.records if "2026-11-01" in record.message]
+    assert len(named) == 1
+    assert "Terms of Service" in named[0]
+    assert "2026-11-01T00:00:00Z" in named[0]
+    assert "accepted early, on its page in this server's portal" in caplog.text
+    assert asked_for_pages(fake_v1) == []
+    assert not [c for c in fake_v1.calls if c.request.method != "GET"
+                and "/auth/token" not in c.request.url]
+
+
+def test_an_accepted_upcoming_version_is_not_mentioned(logged_in, fake_v1, caplog):
+    fake_v1.route(responses.GET, "me",
+                  me_body(terms_entry(accepted_at="2026-10-01T00:00:00Z")))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+
+    assert "2026-11-01" not in caplog.text
+
+
+def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
+        logged_in, fake_v1, monkeypatch):
+    answers = iter(["n", "y"])
+    _asked(monkeypatch, lambda question: next(answers), tty=True)
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=t1", "expires_at": None})
+
+    logged_in.me()
+    assert opened == []
+    assert asked_for_pages(fake_v1) == []
+
+    # Every time in the check command.
+    logged_in.remind_terms(me_body(terms_entry()), always=True)
+    assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}]
+    assert opened == ["https://portal.test/enter?token=t1"]
+
+
+@pytest.mark.parametrize("can_decide,ci", [(False, False), (True, True)],
+                         ids=["page-cannot-decide", "ci"])
+def test_an_upcoming_version_is_only_reported_where_no_page_is_offered(
+        logged_in, fake_v1, monkeypatch, caplog, can_decide, ci):
+    _asked(monkeypatch, tty=True, ci=ci)
+    fake_v1.route(responses.GET, "me", me_body(terms_entry(can_decide=can_decide)))
+    caplog.set_level(logging.INFO)
+
+    logged_in.me()
+
+    assert "2026-11-01" in caplog.text
+    assert asked_for_pages(fake_v1) == []
+    if not can_decide:
+        assert "accepted early" not in caplog.text
+
+
+def test_the_account_view_shows_its_own_limits_usage_and_every_terms_decision(
+        logged_in, fake_v1, monkeypatch, caplog):
+    '''The account's limits, not the defaults; each document's decision, with its page
+    offered once where it can still be decided and was not declined.'''
+    asked = []
+    _asked(monkeypatch, lambda question: asked.append(question) or "n", tty=True)
+    body = me_body(
+        terms_entry(),
+        dict(terms_entry(), id="gf12-nda", title="gf12 NDA", accepted_at=None,
+             declined_at="2026-06-20T14:30:00Z", upcoming=None),
+        dict(terms_entry(can_decide=False), id="export", title="Export terms",
+             accepted_at=None, upcoming=None),
+        dict(terms_entry(), id="data", title="Data policy", accepted_at=None, upcoming=None))
+    body.update(
+        can_submit=False,
+        blocked_type="https://siliconcompiler.com/server-errors/account-not-provisioned",
+        limits={"max_job_nodes": 50, "concurrent_jobs": None},
+        usage={"concurrent_jobs": 3,
+               "compute_seconds": {"used": 60, "total": None, "limit": None,
+                                   "window": "calendar_week", "resets_at": None}})
+    fake_v1.route(responses.GET, "me", body)
+    caplog.set_level(logging.INFO)
+
+    logged_in.print_identity(logged_in.me())
+
+    for said in ("You cannot submit jobs here", "Ask an administrator to provision",
+                 "server-errors/account-not-provisioned",
+                 "Your limits:", "max_job_nodes: 50", "concurrent_jobs: unlimited",
+                 "Unfinished jobs (staging, queued, running or cancelling): 3",
+                 "Compute: 1m 00s in this calendar_week window",
+                 "Terms of Service, version 2026-09-01: accepted",
+                 "gf12 NDA, version 2026-09-01: declined",
+                 "Export terms, version 2026-09-01: undecided",
+                 "Data policy, version 2026-09-01: undecided"):
+        assert said in caplog.text, said
+    # The reminder's offer for the upcoming version, then the undecided policy's.
+    assert len(asked) == 2
+
+
+def test_login_needs_no_human_and_asserts_a_derived_subject(
+        fake_v1, tmp_credentials, client_credentials):
+    '''client_id=local:<derivation>, which RFC 6749 already registers.'''
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    body = Client(tmp_credentials).login()
+
+    assert body["access_token"] == "access-token-one"
+    assert tmp_credentials.refresh_token == "refresh-token-one"
+    # The access token is never written down.
+    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+    sent = _form(fake_v1.calls[-1].request.body)
+    assert sent["grant_type"] == "client_credentials"
+    assert sent["client_id"].startswith("local:")
+    assert sent["machine_id_source"] in (
+        "linux_machine_id", "macos_platform_uuid", "windows_machine_guid")
+
+
+def test_no_fingerprint_no_access(fake_v1, tmp_credentials, client_credentials):
+    '''With no machine id every such host would derive one subject.'''
+    from siliconcompiler.remote.client import identity
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    with mock.patch.object(identity, "machine_fingerprint", return_value=(None, "none")):
+        with pytest.raises(RemoteError, match="no id to sign in with"):
+            Client(tmp_credentials).login()
+
+    assert not [call for call in fake_v1.calls if "auth/token" in call.request.url]
+
+
+def test_the_subject_derivation_is_pinned():
+    '''Changing the salt or the derivation is a silent identity migration:
+    every user becomes a stranger on every server at once. The uid is in the
+    subject (one identity per user on a login node); the machine label is
+    not the subject.'''
+    from siliconcompiler.remote.client import identity
+
+    assert identity._SALT == b"siliconcompiler.remote.v1"
+    if hasattr(os, "getuid"):
+        assert identity._uid() == str(os.getuid())
+
+    with mock.patch.object(identity, "machine_fingerprint",
+                           return_value=("a-machine-id", "linux_machine_id")), \
+         mock.patch.object(identity, "_uid", return_value="1000"):
+        subject, label, source = identity.local_subject()
+
+    assert subject == "ef75e01d65b55facdf7413b2840745d7:1000"
+    assert label == "7eb20bb0b9607154b02dac185bb497d7"
+    assert source == "linux_machine_id"
+
+
+def test_a_first_command_enrolls_and_the_next_refreshes(
+        fake_v1, tmp_credentials, client_credentials):
+    '''`client_credentials` mints a new twelve-day token family each call,
+    so a later process must use `refresh_token` -- and send no scope.'''
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    Client(tmp_credentials).me()
+    Client(Credentials(tmp_credentials.path)).me()
+
+    assert _grants(fake_v1) == ["client_credentials", "refresh_token"]
+    refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
+    assert "scope" not in _form(refresh.body)
+
+
+@pytest.mark.parametrize("reason", ["revoked", None, "reused"])
+def test_a_dead_refresh_token_falls_back_to_enrolling_once(
+        fake_v1, tmp_credentials, client_credentials, caplog, reason):
+    '''Exactly one refresh and one enrolment: a refused refresh once
+    recursed through login() for hundreds of real round trips. The new token
+    replaces the dead one; `reused` also says to rotate the key.'''
+    tmp_credentials.save_tokens({"refresh_token": "long-dead"})
+    fake_v1.route(responses.POST, "auth/token",
+                  {"error": "invalid_grant", **({"reason": reason} if reason else {})},
+                  status=400)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    with caplog.at_level("WARNING"):
+        assert Client(tmp_credentials).me()["id"] == "u1"
+
+    assert _grants(fake_v1) == ["refresh_token", "client_credentials"]
+    assert tmp_credentials.refresh_token == "refresh-token-one"
+    if reason == "reused":
+        assert "sc-config remote rotate-key" in caplog.text
+        assert "used elsewhere" in caplog.text
+
+
+@pytest.mark.parametrize("typed", [True, False], ids=["typed", "header-only"])
+def test_an_expired_token_is_refreshed_silently(logged_in, fake_v1, tmp_credentials,
+                                                client_credentials, typed):
+    '''The challenge alone says `invalid_token` where no handler typed the body.'''
+    challenge = {"WWW-Authenticate": 'DPoP error="invalid_token"'}
+    if typed:
+        _refused(fake_v1, "me", "invalid-token", 401, headers=challenge)
+    else:
+        fake_v1.route(responses.GET, "me", "", status=401, headers=challenge,
+                      content_type="text/plain")
+    fake_v1.route(responses.POST, "auth/token",
+                  {**client_credentials, "access_token": "access-token-two"})
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    assert logged_in.me()["id"] == "u1"
+    assert tmp_credentials.refresh_token == "refresh-token-one"
+    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+
+
+def test_a_token_refused_again_after_a_refresh_is_the_answer(logged_in, fake_v1,
+                                                             client_credentials):
+    '''One refresh per request: a second `invalid-token` fails rather than
+    refreshing again.'''
+    for _ in range(3):
+        _refused(fake_v1, "me", "invalid-token", 401,
+                 headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
+    fake_v1.route(responses.POST, "auth/token",
+                  {**client_credentials, "access_token": "access-token-two"})
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug == "invalid-token"
+    assert _grants(fake_v1) == ["client_credentials", "refresh_token"]
+
+
+def test_an_unknown_challenge_fails_and_is_named(logged_in, fake_v1):
+    _refused(fake_v1, "me", "a-type-from-later", 401,
+             headers={"WWW-Authenticate": 'DPoP error="a_challenge_from_later"'})
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert 'error="a_challenge_from_later"' in str(raised.value)
+    assert _grants(fake_v1) == ["client_credentials"]
+
+
+def test_a_dead_session_is_logged_into_again_never_refreshed(logged_in, fake_v1):
+    '''The refresh token is the session that ended.'''
+    _refused(fake_v1, "me", "session-ended", 401, reason="revoked")
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    assert logged_in.me()["id"] == "u1"
+    assert _grants(fake_v1) == ["client_credentials", "client_credentials"]
+
+
+# Clear of each unit's boundary: `Date` has one-second resolution.
+@pytest.mark.parametrize("offset,said", [(330, r"5m \d\ds behind"), (-7530, "2h 05m ahead"),
+                                         (20, None), (None, None)])
+def test_a_refused_proof_fails_and_says_when_the_clock_is_off(logged_in, fake_v1,
+                                                              offset, said):
+    '''A bad proof is not a stale token, so nothing is
+    refreshed; a clock over a minute out is named from the server's `Date`.'''
+    import email.utils
+    import time as clock
+
+    headers = None if offset is None else \
+        {"Date": email.utils.formatdate(clock.time() + offset, usegmt=True)}
+    _refused(fake_v1, "me", "invalid-dpop-proof", 401, headers=headers)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug == "invalid-dpop-proof"
+    assert _grants(fake_v1) == ["client_credentials"]
+    if said:
+        assert re.search(said, str(raised.value)) and "clock" in str(raised.value)
+    else:
+        assert "clock is" not in str(raised.value)
+
+
+def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
+        fake_v1, tmp_credentials, client_credentials, caplog):
+    '''A reimage, container or changed uid replaces the principal; without
+    the persisted id, "my jobs were deleted" looks the same.'''
+    caplog.set_level(logging.WARNING)
+    tmp_credentials.set_user_id("the-old-me")
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "the-new-me", "issuer": "local"})
+
+    Client(tmp_credentials).me()
+
+    assert "different user" in caplog.text
+    assert tmp_credentials.user_id == "the-new-me"
+
+
+@pytest.mark.parametrize("body,status,said", [
+    (problem("limit-exceeded", 429, limit="concurrent_jobs", detail="four already running",
+             trace_id="a" * 32),
+     None, ["four already running", "limit: concurrent_jobs", "refills", "trace " + "a" * 32]),
+    (problem("feature-unsupported", 501, feature="device_grant"), None,
+     ["feature: device_grant"]),
+    (problem("archive-rejected", 422, reason="expanded_bytes"), None,
+     ["reason: expanded_bytes"]),
+    (problem("archive-rejected", 422, reason="a-reason-from-later"), None,
+     ["Fix what the reason names, in a new job."]),
+    ({"title": "Bad Gateway"}, 502, ["try again later"]),
+    # `detail` is prose: a limit it names changes nothing the client does.
+    (problem("run-failed", None, detail="place/0 exceeded its time limit"), None,
+     ["exceeded its time limit", "Read the failing node's log"]),
+    (problem("staging-timed-out", None, limit="max_staging_seconds"), None,
+     ["limit: max_staging_seconds", "times out again", "smaller set of Python packages"]),
+], ids=["detail-and-trace", "feature", "reason", "unknown-reason", "untyped-5xx",
+        "limit-in-detail", "staging-timed-out"])
+def test_a_refusal_renders_without_opening_a_url(body, status, said):
+    '''The type pages are static, so the client holds the only copy of the
+    specific failure: the discriminator, the next step and the trace.'''
+    rendered = describe(body, status) if status else describe(body)
+
+    for fragment in said:
+        assert fragment in rendered
+
+
+@pytest.mark.parametrize("body,status,content_type", [
+    ("<html><head><title>502 Bad Gateway</title></head>"
+     "<body><h1>502 Bad Gateway</h1></body></html>", 502, "text/html"),
+    ("", 503, "text/plain"),
+], ids=["proxy-html", "empty"])
+def test_a_non_problem_error_body_renders_rather_than_throwing(logged_in, fake_v1, body,
+                                                               status, content_type):
+    '''problem+json is promised only for what a handler produced.'''
+    fake_v1.route(responses.GET, "me", body, status=status, content_type=content_type)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.status == status
+    assert raised.value.slug is None
+    assert str(raised.value) and "<html>" not in str(raised.value)
+    if body:
+        assert "502" in str(raised.value)
+
+
+@pytest.mark.parametrize("content_type,body,said", [
+    ("application/json", problem("archive-rejected", 422), ["(422)"]),
+    ("application/problem+json",
+     {"title": "Refused here", "detail": "by the gateway", "trace_id": "a" * 32,
+      "instance": "/v1/me"},
+     ["Refused here (422): by the gateway", "trace " + "a" * 32]),
+], ids=["json-with-a-type", "problem-without-one"])
+def test_only_problem_json_names_a_condition(logged_in, fake_v1, content_type, body, said):
+    '''A `type` counts only under its own content type; a problem without one
+    keeps everything it said.'''
+    fake_v1.route(responses.GET, "me", body, status=422, content_type=content_type)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug is None and raised.value.status == 422
+    for fragment in said:
+        assert fragment in str(raised.value)
+    if "instance" in body:
+        assert raised.value.member("instance") == "/v1/me"
+
+
+def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
+    '''A 4xx from a later registry is still not worth repeating.'''
+    _refused(fake_v1, "me", "a-type-from-later", 422)
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.me()
+
+    assert raised.value.slug == "a-type-from-later"
+    assert "retrying it unchanged will not help" in str(raised.value)
+
+
+@pytest.mark.parametrize("uri", ["https://elsewhere.test/server-errors/limit-exceeded",
+                                 "about:blank", "limit-exceeded"])
+def test_a_type_outside_the_registry_names_no_slug(uri):
+    '''Only the registry's own URIs name a condition; any other is acted on by its status.'''
+    refusal = ServerProblem({"type": uri, "title": "Refused"}, 429)
+
+    assert refusal.slug is None
+    assert "Wait and retry." in str(refusal) and "refills" not in str(refusal)
+
+
+def test_devices_are_listed_across_pages_and_revoked(fake_v1, logged_in):
+    fake_v1.route(responses.GET, "devices", {"items": [{"id": "d1", "current": True}]},
+                  headers={"Link": f'<{V1_URL}/devices?cursor=c2>; rel="next"'})
+    fake_v1.route(responses.GET, "devices", {"items": [{"id": "d2"}]})
+
+    assert [device["id"] for device in logged_in.devices()] == ["d1", "d2"]
+    assert fake_v1.calls[-1].request.url.endswith("cursor=c2")
+
+    fake_v1.route(responses.DELETE, "devices/d1", "", status=204)
+    logged_in.revoke_device("d1")
+
+    assert fake_v1.calls[-1].request.method == "DELETE"
+
+
+@pytest.mark.parametrize("answer", [
+    {"body": "", "status": 204},
+    {"body": problem("session-ended", 401, reason="revoked"), "status": 401,
+     "content_type": "application/problem+json"},
+    {"body": problem("invalid-token", 401), "status": 401,
+     "content_type": "application/problem+json",
+     "headers": {"WWW-Authenticate": 'DPoP error="invalid_token"'}},
+], ids=["live", "already-dead", "token-refused"])
+def test_logout_forgets_the_session(fake_v1, logged_in, tmp_credentials, answer):
+    '''Even one already gone: the remaining job is local, and leaving never
+    starts a refresh or a login.'''
+    fake_v1.route(responses.POST, "auth/revoke", **answer)
+
+    logged_in.logout()
+
+    assert tmp_credentials.refresh_token is None
+    assert len([c for c in fake_v1.calls if c.request.url.endswith("/auth/token")]) == 1
+
+
+@pytest.mark.parametrize("software,said,unsaid", [
+    (None, ["This server runs siliconcompiler 0.38.9"], []),
+    ({"python": {"siliconcompiler": ["9.9.9"]}, "tools": {}},
+     ["which is not one of them", "before anything is uploaded"], []),
+    ({"python": {}, "tools": {}}, [], ["This server runs"]),
+], ids=["runs", "not-listed", "names-none"])
+def test_configure_says_what_the_server_runs(fake_v1, capabilities, tmp_credentials,
+                                             client_credentials, caplog, software, said,
+                                             unsaid):
+    '''`-configure` reports the software the server runs, and does not second-guess a server that
+    names none. A new server is not identity drift, so the old principal is forgotten.'''
+    if software is not None:
+        capabilities["software"] = software
+        fake_v1.replace(responses.GET, "", capabilities)
+    tmp_credentials.set_user_id("who-the-old-server-called-me")
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u-new", "issuer": "local"})
+
+    caplog.set_level(logging.INFO)
+    Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0], prompt=False)
+
+    assert tmp_credentials.user_id == "u-new"
+    assert all(line in caplog.text for line in said)
+    assert not any(line in caplog.text for line in unsaid)
+
+
+OTHER_URL = "https://other.test/v1"
+
+
+def test_switching_servers_asks_nothing_and_keeps_each_session(
+        fake_v1, capabilities, tmp_credentials, client_credentials, monkeypatch):
+    '''Each server keeps its own entry, so a switch overwrites nothing; switching
+    back refreshes the session that server already has.'''
+    from conftest import FakeV1
+
+    monkeypatch.setattr("siliconcompiler.remote.client._ask",
+                        lambda *args, **kwargs: pytest.fail("asked a question"))
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-first"})
+    other = FakeV1(fake_v1._mock, OTHER_URL)
+    other.route(responses.GET, "", capabilities)
+    other.route(responses.POST, "auth/token",
+                {**client_credentials, "refresh_token": "refresh-for-the-other"})
+    other.route(responses.GET, "me", {"id": "u-other", "issuer": "local"})
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
+
+    Client(tmp_credentials).configure_server(server=OTHER_URL.rsplit("/v1", 1)[0])
+    assert tmp_credentials.server == OTHER_URL
+    assert tmp_credentials.refresh_token == "refresh-for-the-other"
+
+    Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0])
+    assert tmp_credentials.server == V1_URL
+    assert _grants(fake_v1)[-1] == "refresh_token"
+
+
+@pytest.mark.parametrize("configured", [True, False], ids=["switching", "first"])
+@pytest.mark.parametrize("failure", ["unreachable", "login-refused"])
+def test_a_server_that_cannot_be_used_is_not_saved(fake_v1, capabilities, configured,
+                                                   failure):
+    '''Configuring either works or changes nothing: the default stays what it was,
+    and the new server gets no entry.'''
+    from conftest import FakeV1
+
+    credentials = Credentials(Path("sc-home/auth/remote.json"))
+    if configured:
+        credentials.set_server(V1_URL.rsplit("/v1", 1)[0])
+    if failure == "login-refused":
+        other = FakeV1(fake_v1._mock, OTHER_URL)
+        other.route(responses.GET, "", capabilities)
+        other.route(responses.POST, "auth/token", {"error": "invalid_client"}, status=401)
+
+    with pytest.raises(RemoteError):
+        Client(credentials).configure_server(server=OTHER_URL.rsplit("/v1", 1)[0])
+
+    assert credentials.server == (V1_URL if configured else None)
+    assert not credentials.knows(OTHER_URL)
+
+
+def test_use_server_switches_among_the_servers_configured_here(fake_v1, tmp_credentials,
+                                                               caplog):
+    '''Nothing is sent, and each server's session comes back with it; a server not
+    configured here is refused, naming -configure.'''
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-first"})
+    tmp_credentials.set_server(OTHER_URL.rsplit("/v1", 1)[0])
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-other"})
+    client = Client(tmp_credentials)
+
+    caplog.set_level(logging.INFO)
     client.print_configuration()
+    assert f"Also configured (sc-config remote use): {V1_URL}" in caplog.text
 
-    assert 'Server: not configured' in caplog.text
+    client.use_server(V1_URL.rsplit("/v1", 1)[0])
+    assert (tmp_credentials.server, client.base_url) == (V1_URL, V1_URL)
+    assert tmp_credentials.refresh_token == "refresh-for-the-first"
+
+    with pytest.raises(RemoteError, match="sc-config remote configure https://new.test"):
+        client.use_server("https://new.test")
+    assert tmp_credentials.server == V1_URL
+    assert not fake_v1.calls
 
 
-def test_client_without_server_cannot_post(gcd_nop_project, monkeypatch):
-    """A request with no address to send it to names the way to fix it."""
-    client = _client_without_config(gcd_nop_project, monkeypatch)
+def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
+    '''It has no access token for a refresh to repair.'''
+    tmp_credentials.save_tokens({"refresh_token": "whatever"})
+    _refused(fake_v1, "auth/token", "invalid-token", 401, method=responses.POST)
 
-    with pytest.raises(ValueError, match='No remote server address is configured'):
-        client.check()
+    client = Client(tmp_credentials)
+    with pytest.raises(ServerProblem):
+        client.transport.login({"grant_type": "refresh_token",
+                                "refresh_token": "whatever"})
 
-
-def test_run_without_server_stops_before_preprocess(gcd_nop_project, monkeypatch):
-    """The job is refused before its build directory is collected and packed up."""
-    client = _client_without_config(gcd_nop_project, monkeypatch)
-    monkeypatch.setattr(Client, '_Client__run_preprocess',
-                        lambda self: pytest.fail('preprocessed without a server'))
-
-    with pytest.raises(ValueError, match='No remote server address is configured'):
-        client.run()
+    assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1

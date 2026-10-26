@@ -1,0 +1,24 @@
+{
+  "api_version": "v1",
+  "software": {
+    "python": {"siliconcompiler": ["0.38.9"]},
+    "tools": {"openroad": ["2.0.1"]},
+    "interpreter": {"python": ["3.12.4"]}
+  },
+  "grant_types_supported": ["client_credentials", "refresh_token"],
+  "limits": {
+    "max_job_nodes": 1000,
+    "max_upload_bytes": 1073741824,
+    "artifact_retention_seconds": 2592000,
+    "pending_uploads": 8,
+    "concurrent_jobs": 4,
+    "concurrent_log_streams": 8,
+    "max_archive_members": 100000,
+    "max_archive_expanded_bytes": 10737418240,
+    "max_download_bytes": 104857600,
+    "abandon_after_seconds": 900
+  },
+  "features": ["logs.stream", "logs.stream.job"],
+  "identity_assurance": "self_asserted",
+  "notices": []
+}

@@ -41,6 +41,9 @@ dependencies = [
     "orjson >= 3.11.0, < 4",
     "packaging >= 21.3, < 27",
     "requests >= 2.33.0, < 3.0.0",
+    # DPoP: the client signs an ES256 proof on every request, so this is
+    # client-side and cannot live in the "server" extra.
+    "PyJWT[crypto] >= 2.10.0, < 3.0.0",
     # Pillow 13 requires Python 3.11.
     "Pillow >= 12.2.0, < 13.0.0; python_version < '3.11'",
     "Pillow >= 13.0.0, < 14.0.0; python_version >= '3.11'",
@@ -78,7 +81,6 @@ Discussion = "https://github.com/siliconcompiler/siliconcompiler/discussions"
 [project.scripts]
 sc-config = "siliconcompiler.apps.sc_config:main"
 sc-issue = "siliconcompiler.apps.sc_issue:main"
-sc-remote = "siliconcompiler.apps.sc_remote:main"
 sc-show = "siliconcompiler.apps.sc_show:main"
 sc-install = "siliconcompiler.apps.sc_install:main"
 smake = "siliconcompiler.apps.smake:main"
@@ -115,8 +117,7 @@ cocotb = [
     "cocotb >= 2.1.0, < 2.2.0"
 ]
 server = [
-    "aiohttp >= 3.10.11, < 3.15.0",
-    "fastjsonschema >= 2.20.0, < 2.23.0"
+    "Flask >= 3.1.0, < 4.0.0"
 ]
 s3 = [
     # 1.28 is the first to read AWS_ENDPOINT_URL_S3, which selects a non-AWS store.

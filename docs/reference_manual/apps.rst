@@ -12,13 +12,6 @@ CLI apps
   :app: sc-issue
 
 .. scapp::
-  :app: sc-remote
-
-.. scapp::
-  :app: python3 -m siliconcompiler.remote.server
-  :title: sc-server
-
-.. scapp::
   :app: sc-show
 
 .. scapp::

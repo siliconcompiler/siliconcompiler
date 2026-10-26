@@ -161,7 +161,8 @@ def test_run_passes_uid_and_gid(project):
 
 def test_a_task_container_is_given_email_json_and_nothing_else_of_sc(project, monkeypatch):
     """A node reads one file from ~/.sc, so that file is all it is given: nothing
-    else there, the token store in ~/.sc/auth included, reaches a tool."""
+    else there, the token store and the remote client's key in ~/.sc/auth included,
+    reaches a tool."""
     home = os.path.abspath(".sc")
     os.makedirs(os.path.join(home, "auth"))
     email = os.path.join(home, "email.json")

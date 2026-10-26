@@ -25,8 +25,8 @@ except ModuleNotFoundError:
 
 import os.path
 
-from typing import Any, List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, \
-    TYPE_CHECKING
+from typing import Any, List, Dict, NamedTuple, Tuple, Union, Optional, Set, TextIO, \
+    Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
@@ -458,6 +458,27 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     if status is None:
         return 1
     return os.waitstatus_to_exitcode(status)
+
+
+class PythonEnvironment(NamedTuple):
+    """
+    What a node's own Python needs, as :meth:`Task.get_python_environment`
+    reports it.
+
+    Attributes:
+        sources: Python files the tool's Python loads -- a testbench -- whose
+            imports are read to find what it needs.
+        requirements: distributions, or PEP 508 requirements, it loads by name
+            rather than by import: a plugin.
+        framework: distributions SiliconCompiler's own process needs for this
+            task -- cocotb, for a cocotb task. A remote run pins them in the
+            job's ``requested_versions`` so the image holds them, and leaves them out of
+            the job's Python packages, so the tool and SiliconCompiler load one
+            copy.
+    """
+    sources: Tuple[str, ...] = ()
+    requirements: Tuple[str, ...] = ()
+    framework: Tuple[str, ...] = ()
 
 
 class Task(NamedSchema, PathSchema, DocsSchema):
@@ -1023,7 +1044,69 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if value is not None:
                 envvars[env] = value
 
+        # A remote run's Python packages, ahead of everything else on the
+        # tool's path, where this node's task runs the user's Python: what the
+        # server installed for the job -- on the host, or in the layer of the
+        # image the node runs in. The user's own modules are collected files,
+        # found where the task finds its tests.
+        # Never on this process's: SiliconCompiler does not import from them.
+        carried = self.__remote_python()
+        if carried:
+            existing = envvars.get("PYTHONPATH", os.getenv("PYTHONPATH", ""))
+            envvars["PYTHONPATH"] = os.pathsep.join(
+                carried + [part for part in existing.split(os.pathsep) if part])
+
         return envvars
+
+    def __remote_python(self) -> List[str]:
+        from siliconcompiler.remote.environment import IMAGE_SITE, site_path
+        from siliconcompiler.utils.paths import jobdir
+
+        try:
+            if self.get_python_environment() is None:
+                return []
+            # Only where the server installed the job's packages is either
+            # there: a job without any, and every other node's image, has none.
+            paths = [os.path.join(jobdir(self.project), site_path()), IMAGE_SITE]
+        except Exception:                                       # noqa: BLE001
+            return []
+        return [path for path in paths if os.path.isdir(path)]
+
+    @classmethod
+    def framework_distributions(cls) -> Tuple[str, ...]:
+        """
+        Python distributions SiliconCompiler's own process on the node needs
+        for this task -- cocotb, for a cocotb task, whose simulator and whose
+        SiliconCompiler must load one installation.
+
+        Declared on the class, so a remote run names each in its
+        ``requested_versions.python``, at the range SiliconCompiler declares for it,
+        without running setup on the submitting machine: the node's image then
+        holds it, and the job's Python packages leave it out.
+
+        Returns:
+            tuple of str: distribution names; none by default.
+        """
+        return ()
+
+    def get_python_environment(self) -> Optional["PythonEnvironment"]:
+        """
+        What this node's tool runs of the user's Python, for a remote run to
+        carry.
+
+        A remote run lists, once per job, the distributions the sources of
+        every such node import and those it loads by name, at the versions
+        installed on the submitting machine; builds a wheel of each installed
+        editable, from a local path or from git; and sends the user's own
+        modules beside the tests. Called on the submitting machine, after
+        :meth:`setup`. The server reads only whether a task class overrides
+        this, to know which nodes run the user's Python.
+
+        Returns:
+            :class:`PythonEnvironment`, or None where the tool runs none of the
+            user's Python -- the default.
+        """
+        return None
 
     def get_runtime_arguments(self) -> List[str]:
         """
