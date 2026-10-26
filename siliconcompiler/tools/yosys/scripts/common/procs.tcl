@@ -104,15 +104,16 @@ proc sc_check_version { min_major min_minor { min_patch 0 } } {
 
 # opt_hier propagates constants, unused signals and tie-togethers across a single level
 # of hierarchy per invocation, so it has to be repeated until the design stops changing.
-# yosys' own convergence flag cannot be used to detect that: opt_hier only sets
-# opt.did_something when it disconnects an unused output, not when it substitutes a
-# constant or a tie-together, and opt clears the flag before it returns. Watch for the
-# messages opt_hier prints when it changes something instead.
+# opt -hier repeats it only while opt.did_something is set, which opt_hier did not set
+# for a constant or tie-together on a module's input terminals before yosys 0.71
+# (YosysHQ/yosys#6338), and the flag is always clear once opt returns. Watch for the
+# messages opt_hier prints when it changes something instead. Each marker matches two of
+# them, one for the instance side of a boundary and one for the module side.
 proc sc_opt_hier_loop { max_rounds opt_args } {
     set markers [list \
         "Substituting constant" \
-        "Disconnected unused output terminal" \
-        "input terminal bits with tie-togethers"]
+        "Disconnected " \
+        "with tie-togethers"]
 
     for { set round 1 } { $round <= $max_rounds } { incr round } {
         set opt_log [yosys tee -s result.string opt -hier {*}$opt_args]
@@ -302,7 +303,6 @@ proc sc_read_design_verilog { } {
             --top $sc_topmodule \
             {*}$slang_params \
             {*}$input_verilog
-        yosys setattr -unset init
     } else {
         # Use -noblackbox to correctly interpret empty modules as empty,
         # actual black boxes are read in later

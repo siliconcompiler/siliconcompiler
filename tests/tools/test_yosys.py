@@ -1,4 +1,5 @@
 import gzip
+import json
 import pytest
 
 import os.path
@@ -6,6 +7,7 @@ import os.path
 from siliconcompiler.targets import freepdk45_demo
 
 from siliconcompiler import ASIC, Design, Flowgraph, FPGA, StdCellLibrary, utils
+from siliconcompiler.fpgas.lattice_ice40 import ICE40Up5k_sg48
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
 from siliconcompiler.tools.yosys.open import OpenTask as YosysOpen
@@ -142,6 +144,71 @@ def test_synthesis_does_not_use_slang(heartbeat_design):
         "expected the design to be read with read_verilog when slang is disabled"
     assert not any("read_slang" in line for line in lines), \
         "did not expect the slang frontend (read_slang) to be used"
+
+
+def _initial_value_design():
+    '''Three flops on the same input that differ only in their initial value.
+
+    r1 is given a 1, and r2 is a 2-state bit, which slang gives an implicit 0.
+    '''
+    with open("pwron.sv", "w") as f:
+        f.write('''
+module pwron (input clk, input d, output q1, output q2, output q3);
+    reg r1 = 1'b1;
+    bit r2;
+    logic r3;
+    always_ff @(posedge clk) begin
+        r1 <= d;
+        r2 <= d;
+        r3 <= d;
+    end
+    assign q1 = r1;
+    assign q2 = r2;
+    assign q3 = r3;
+endmodule
+''')
+
+    design = Design("pwron")
+    design.set_dataroot("pwron", os.path.abspath("."))
+    with design.active_fileset("rtl"), design.active_dataroot("pwron"):
+        design.set_topmodule("pwron")
+        design.add_file("pwron.sv")
+    return design
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("use_slang", [True, False])
+def test_asic_synthesis_drops_initial_values(use_slang):
+    '''An ASIC flop has no power-on value, so the three flops merge into one on either frontend.'''
+    _run_asic_synthesis(_initial_value_design(), use_slang)
+
+    with open("build/pwron/job0/synthesis/0/reports/stat.json") as f:
+        assert json.load(f)["design"]["num_cells_by_type"]["DFF_X1"] == 1
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("use_slang", [True, False])
+def test_fpga_synthesis_keeps_initial_values(use_slang):
+    '''An ice40 flop powers up at 0, so r1's 1 takes LUTs to invert it on either frontend.'''
+    proj = FPGA(_initial_value_design())
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("elab_and_synth")
+    flow.node("elaborate", elaborate.Elaborate())
+    flow.node("synthesis", FPGASynthesis())
+    flow.edge("elaborate", "synthesis")
+    proj.set_flow(flow)
+    proj.set_fpga(ICE40Up5k_sg48())
+    FPGASynthesis.find_task(proj).set_yosys_useslang(use_slang)
+
+    proj.run()
+
+    with open("build/pwron/job0/synthesis/0/reports/stat.json") as f:
+        assert "SB_LUT4" in json.load(f)["design"]["num_cells_by_type"]
 
 
 class DummyYosysFPGA(YosysFPGA):
@@ -311,8 +378,8 @@ def test_hier_opt_not_used_when_flattening():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_hier_opt_loop_converges():
-    '''The opt_hier loop repeats to convergence, over more than one round on a four-deep design.'''
+def test_hier_opt_converges():
+    '''opt_hier runs to convergence, carrying the top's constants down four levels to the leaf.'''
     lines = _run_asic_synthesis(_deep_hierarchy_design(), True,
                                 flatten=False, auto_flatten=False,
                                 hier_opt=True, hier_opt_max_rounds=10)
@@ -320,14 +387,39 @@ def test_hier_opt_loop_converges():
     assert any("-hieropt" in line for line in lines), \
         "expected -hieropt to be passed to synth when the design keeps its hierarchy"
 
-    converged = [line for line in lines if "opt_hier converged after" in line]
-    assert converged, "expected the opt_hier loop to report convergence"
+    with open("build/deep/job0/synthesis/0/reports/stat.json") as f:
+        modules = json.load(f)["modules"]
+    leaf = [info["num_cells_by_type"] for name, info in modules.items()
+            if name.startswith("\\leaf")]
+    assert len(leaf) == 1
+    # With en tied high and b to zero, the adder and subtractor are gone, leaving the
+    # flops and any buffers abc puts in front of them.
+    assert {cell: count for cell, count in leaf[0].items()
+            if not cell.startswith("BUF_")} == {"DFF_X1": 8}
 
-    rounds = int(converged[0].split("converged after")[1].split("round")[0])
-    assert rounds > 1, \
-        f"expected more than one round on a four-deep design, got {rounds}"
-    assert not any("did not converge" in line for line in lines), \
-        "expected the loop to converge within hier_opt_max_rounds"
+
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize("message", [
+    "Disconnected 3 input bits of instance 'u' (type 'leaf') in 'top'",
+    "Substituting constant for 2 output bits of instance 'u' (type 'leaf') in 'top'",
+    "Replacing 2 output bits with tie-togethers on instance 'u' of 'leaf' in 'top'",
+    "Disconnected unused output terminal 'y' in module 'leaf'",
+    "Substituting constant 1'1 for input terminal 'a' in module 'leaf'",
+    "Replacing 2 input terminal bits with tie-togethers in module 'leaf'"])
+def test_hier_opt_loop_sees_every_change(tcl_interp, message):
+    '''Each message opt_hier prints for a change keeps the loop going for another round.'''
+    interp = tcl_interp("yosys/scripts/common/procs.tcl")
+    interp.setvar("message", message)
+    interp.eval("""
+        set rounds 0
+        proc yosys { cmd args } {
+            if { $cmd == "tee" && [incr ::rounds] == 1 } {
+                return $::message
+            }
+            return ""
+        }""")
+
+    assert interp.eval("sc_opt_hier_loop 10 {}") == "2"
 
 
 def test_hier_opt_max_rounds_rejects_zero(heartbeat_design):
@@ -488,6 +580,62 @@ def test_hier_opt_keys_required_only_when_read(heartbeat_design):
         assert prefix + "var,hier_opt" in require
         assert prefix + "var,hier_opt_uniquify" not in require
         assert prefix + "var,hier_opt_max_rounds" not in require
+
+
+@pytest.mark.parametrize("modules", [
+    {"\\heartbeat": {"num_cells": 1, "num_submodules": 1, "area": 12.0,
+                     "num_cells_by_type": {"XOR2": 1, "mid": 1}},
+     "\\mid": {"num_cells": 1, "num_submodules": 2, "area": 7.0,
+               "num_cells_by_type": {"OR2": 1, "leaf": 2}},
+     "\\leaf": {"num_cells": 1, "num_submodules": 0, "area": 2.0,
+                "num_cells_by_type": {"AND2": 1}}},
+    {"\\heartbeat": {"num_cells": 2, "area": 5.0, "num_cells_by_type": {"XOR2": 1, "mid": 1}},
+     "\\mid": {"num_cells": 3, "area": 3.0, "num_cells_by_type": {"OR2": 1, "leaf": 2}},
+     "\\leaf": {"num_cells": 1, "area": 2.0, "num_cells_by_type": {"AND2": 1}}}],
+    ids=["yosys-0.57-stat", "yosys-0.56-stat"])
+def test_cell_area_report_counts_each_level_once(heartbeat_design, modules):
+    '''Each instance's area and cell count include its submodules once, in either stat format.'''
+    netlist = {"modules": {
+        "heartbeat": {"cells": {"g": {"type": "XOR2"}, "m0": {"type": "mid"}}},
+        "mid": {"cells": {"g": {"type": "OR2"}, "l0": {"type": "leaf"}, "l1": {"type": "leaf"}}},
+        "leaf": {"cells": {"g": {"type": "AND2"}}}}}
+
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        assert node.setup() is True
+        os.makedirs("reports")
+        os.makedirs("outputs")
+        with open("reports/stat.json", "w") as f:
+            json.dump({"modules": modules, "design": {"num_cells": 4, "area": 12.0}}, f)
+        with open("outputs/heartbeat.netlist.json", "w") as f:
+            json.dump(netlist, f)
+
+        node.task._generate_cell_area_report()
+
+    with open("reports/hierarchical_cell_area.json") as f:
+        report = json.load(f)
+    assert {name: (entry["cellarea"], entry["cellcount"]) for name, entry in report.items()} == {
+        "heartbeat": (12.0, 4), "m0": (7.0, 3), "m0.l0": (2.0, 1), "m0.l1": (2.0, 1)}
+
+
+def test_registers_counts_every_instance(heartbeat_design):
+    '''registers counts the flops in every instance of a kept module, not in each module once.'''
+    node = _asic_synthesis_node(heartbeat_design)
+    with node.runtime():
+        assert node.setup() is True
+        # dfflibmap's lines for a leaf module instantiated twice, then for the top.
+        with open(node.task.get_logpath("exe"), "w") as f:
+            f.write("  mapped 16 $_DFF_P_ cells to \\DFF_X1 cells.\n"
+                    "  mapped 1 $_DFF_PN0_ cells to \\DFFR_X1 cells.\n"
+                    "  mapped 1 $_DFF_P_ cells to \\DFF_X1 cells.\n")
+        os.makedirs("reports")
+        with open("reports/stat.json", "w") as f:
+            json.dump({"design": {"num_cells_by_type": {
+                "DFF_X1": 33, "DFFR_X1": 2, "NAND2_X1": 40, "leaf": 2}}}, f)
+
+        node.task._synthesis_post_process()
+
+    assert node.project.get("metric", "registers", step="synthesis", index="0") == 35
 
 
 @pytest.mark.parametrize("args", [["-c", "sc_synth_asic.tcl"], ["-C", "-c", "sc_synth_asic.tcl"]])

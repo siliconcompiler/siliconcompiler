@@ -49,7 +49,8 @@ def generate_summary_image(project, output_path, info):
 
     # Get max height of any ASCII character in font, so we can consistently space each line
     _, descent = font.getmetrics()
-    _, bb_top, _, bb_bottom = font.getmask(string.printable).getbbox()
+    # Strip trailing whitespace: Pillow 13's raqm layout rejects newlines.
+    _, bb_top, _, bb_bottom = font.getmask(string.printable.strip()).getbbox()
     line_height = (bb_bottom - bb_top) + descent
 
     text = []

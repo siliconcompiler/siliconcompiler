@@ -11,77 +11,76 @@ if os.name == 'nt':
     #: Errors raised when the terminal cannot be probed or reconfigured.
     TERMINAL_ERRORS = (OSError, ValueError)
 
-    def check_key() -> Optional[str]:
+    def check_key(fd: Optional[int]) -> Optional[str]:
+        # msvcrt reads the console itself, so there is no descriptor to poll.
         if msvcrt.kbhit():
             return msvcrt.getch().decode('utf-8', errors='ignore')
         return None
 else:
     # macOS/Linux setup
-    import sys
-    import select
     import tty
     import termios
 
     # ``termios.error`` is NOT a subclass of OSError -- its MRO is
-    # (termios.error, Exception, BaseException, object) -- so catching OSError
-    # alone misses the single most common failure: a stdin that is not a
-    # terminal, which raises termios.error(ENOTTY, "Inappropriate ioctl for
-    # device"). Every process launched by multiprocessing gets /dev/null on
-    # stdin, as does anything run under nohup, cron or a CI runner that closes
-    # stdin, so this is the normal case for a worker, not an exotic one.
-    # ValueError covers a stdin that has already been closed.
-    TERMINAL_ERRORS = (OSError, termios.error, ValueError)
+    # (termios.error, Exception, BaseException, object) -- so both are caught:
+    # termios calls fail with the former, opening and reading with the latter.
+    TERMINAL_ERRORS = (OSError, termios.error)
 
-    def check_key() -> Optional[str]:
-        if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-            return sys.stdin.read(1)
-        return None
+    def check_key(fd: int) -> Optional[str]:
+        try:
+            return os.read(fd, 1).decode('utf-8', errors='ignore')
+        except BlockingIOError:
+            return None
 
 
 class Keyboard:
     enabled: bool = False
+    #: The controlling terminal, open from start() to stop().
+    fd: Optional[int] = None
 
     @staticmethod
     def start() -> None:
         """
         Set up the terminal to read single key presses without blocking.
 
-        This is a no-op when stdin is not an interactive terminal. Keyboard
-        input is a convenience -- the dashboard renders to stdout, which can
-        be a terminal even when stdin is not (a ``ProcessPoolExecutor`` worker
-        inherits the parent's stdout but is handed /dev/null on stdin) -- so a
-        terminal that cannot be probed must degrade to "no hotkeys", never
+        Keys are read from the controlling terminal, not stdin: the process
+        that draws the dashboard can be a ``ProcessPoolExecutor`` worker, which
+        inherits the parent's terminal but is handed /dev/null on stdin.
+
+        This is a no-op when there is no controlling terminal, or when this
+        process is not in its foreground job. Keyboard input is a convenience,
+        so a terminal that cannot be set up must degrade to "no hotkeys", never
         fail the run that opened the dashboard.
         """
         # Start from disabled, so a failed probe below leaves hotkeys off
-        # rather than inheriting an "enabled" from an earlier terminal. This
-        # matters across process boundaries: under the fork start method a
-        # worker inherits this class attribute from a parent whose stdin was a
-        # terminal, while its own is /dev/null -- polling that would spin on an
-        # always-readable fd that only ever returns EOF.
+        # rather than inheriting an "enabled" from an earlier terminal. Under
+        # the fork start method a worker inherits this class attribute from its
+        # parent.
         Keyboard.enabled = False
 
         if os.name == 'nt':
             return
 
-        # Save the terminal settings for later restoration
+        # Non-blocking applies to this open of the terminal only, not to the
+        # stdin the shell shares.
         try:
-            old_settings = termios.tcgetattr(sys.stdin)
-        except TERMINAL_ERRORS:
-            # stdin is not a terminal (or is gone), so it cannot be set up for
-            # non-blocking input.
+            fd = os.open("/dev/tty", os.O_RDONLY | os.O_NONBLOCK)
+        except OSError:
             return
 
         try:
-            tty.setcbreak(sys.stdin.fileno())
+            # Changing the mode from a background job would stop the whole job
+            # with SIGTTOU.
+            if os.tcgetpgrp(fd) == os.getpgrp():
+                old_settings = termios.tcgetattr(fd)
+                tty.setcbreak(fd)
+                Keyboard.fd = fd
+                Keyboard.old_settings = old_settings
+                Keyboard.enabled = True
+                return
         except TERMINAL_ERRORS:
-            # tcgetattr succeeded but the mode change did not; leave the
-            # terminal exactly as it was found rather than recording settings
-            # that stop() would then try to restore.
-            return
-
-        Keyboard.old_settings = old_settings
-        Keyboard.enabled = True
+            pass
+        os.close(fd)
 
     @staticmethod
     def stop() -> None:
@@ -100,10 +99,12 @@ class Keyboard:
         # a failure here means the terminal went away mid-run. Drop the saved
         # settings either way: they describe a terminal that no longer exists.
         del Keyboard.old_settings
+        fd, Keyboard.fd = Keyboard.fd, None
         try:
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         except TERMINAL_ERRORS:
             pass
+        os.close(fd)
 
     @staticmethod
     def check_key() -> Optional[str]:
@@ -114,7 +115,7 @@ class Keyboard:
         if not Keyboard.enabled:
             return None
         try:
-            return check_key()
+            return check_key(Keyboard.fd)
         except TERMINAL_ERRORS:
             # The terminal was detached mid-run. Stop polling rather than
             # letting this escape into the dashboard's render loop.

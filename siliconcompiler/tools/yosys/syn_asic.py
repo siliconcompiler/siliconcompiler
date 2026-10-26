@@ -238,7 +238,7 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
             "add_buffers",
             "bool",
             "true/false, flag to indicate whether to add buffers or not.",
-            True)
+            False)
 
         self.__init_techmapping_parameter()
         self.__init_hierarchy_parameter()
@@ -602,22 +602,25 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
         cellarea_report = CellArea()
 
         def get_area_count(module):
-            if f"\\{module}" not in stat["modules"]:
-                return 0.0, 0
             info = stat["modules"][f"\\{module}"]
 
             count = info["num_cells"]
-            area = 0.0
-            if "area" in info:
-                area = info["area"]
+            area = info.get("area", 0.0)
+            # Since yosys 0.57 a module's area already includes its submodules, and
+            # num_cells leaves out the submodule instances. Before that, both covered
+            # only the module's own cells, and num_cells counted each submodule
+            # instance as a cell.
+            rolled_up = "num_submodules" in info
 
             for cell, inst_count in info["num_cells_by_type"].items():
+                if f"\\{cell}" not in stat["modules"]:
+                    continue
                 cell_area, cell_count = get_area_count(cell)
 
                 count += cell_count * inst_count
-                if cell_count > 0:
+                if not rolled_up:
                     count -= inst_count
-                area += cell_area * inst_count
+                    area += cell_area * inst_count
 
             return area, count
 
@@ -673,7 +676,7 @@ class ASICSynthesis(ASICSynthesisBase):
             "add_tieoffs",
             "bool",
             "true/false, flag to indicate add tie high and tie low cells.",
-            True)
+            False)
         self.add_parameter(
             "opt_undriven",
             "bool",
@@ -742,7 +745,7 @@ class ASICSynthesis(ASICSynthesisBase):
             "int<1..>",
             "Maximum rounds of the opt_hier and uniquify convergence loops. Both propagate "
             "across one level of hierarchy per round, so a design needs roughly as many "
-            "rounds as it is deep.",
+            "rounds as it is deep. From yosys 0.71, opt_hier converges without the loop.",
             10)
 
     def __init_abc_parameter(self):
