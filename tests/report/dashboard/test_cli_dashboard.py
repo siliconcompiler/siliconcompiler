@@ -3001,15 +3001,30 @@ def test_owner_ingests_remote_jobs(local_group):
 
 def test_orphaned_remote_job_is_retired(local_group):
     """A job whose process has gone is marked complete, so it cannot hold stop()
-    open forever, and stays on screen."""
+    open forever, and stays on screen with what it left running shown failed."""
     board = _board()
-    board._job_data["d/gone"] = _job("d", "gone", complete=False)
+    gone = _job("d", "gone")
+    gone.nodes = [
+        {"step": step, "index": "0", "status": status, "time": {"start": start}}
+        for step, status, start in (
+            ("done", NodeStatus.SUCCESS, None),
+            ("running", NodeStatus.RUNNING, 1.0),
+            ("queued", NodeStatus.QUEUED, 1.0),
+            ("waiting", NodeStatus.PENDING, None))]
+    gone.total, gone.success, gone.finished = 4, 1, 1
+    board._job_data["d/gone"] = gone
 
     board._ingest_remote({}, [], ["d/gone"])
 
-    assert board._job_data["d/gone"].complete is True
-    # Still on screen: a retired job keeps its last known state.
-    assert "d/gone" in board._job_data
+    retired = board._job_data["d/gone"]
+    assert retired.complete is True
+    assert [node["status"] for node in retired.nodes] == [
+        NodeStatus.SUCCESS, NodeStatus.ERROR, NodeStatus.ERROR, NodeStatus.PENDING]
+    # Their clocks stop rather than counting on from the start they last sent.
+    assert [node["time"]["start"] for node in retired.nodes] == [None] * 4
+    assert (retired.error, retired.finished) == (2, 3)
+    # Replaced, not edited: the render thread may still be painting the old one.
+    assert gone.nodes[1]["status"] == NodeStatus.RUNNING
 
 
 def test_member_promotes_when_the_owner_disappears(local_group, monkeypatch):

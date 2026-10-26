@@ -9,7 +9,7 @@ import types
 import os.path
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 from typing import Any, List, Dict, Optional, Set, Tuple
 
@@ -1228,8 +1228,21 @@ class Board:
                 data = self._job_data.get(project_id)
                 if data is not None and not data.complete:
                     # Its process is gone: keep the row, but stop it holding
-                    # stop() open.
-                    data.complete = True
+                    # stop() open. What it left running will never finish, so
+                    # show it failed, as the scheduler records a node killed by
+                    # a signal. Replaced rather than edited: the render thread
+                    # may be painting this one.
+                    nodes = []
+                    stopped = 0
+                    for node in data.nodes:
+                        if NodeStatus.is_running(node["status"]):
+                            node = {**node, "status": NodeStatus.ERROR,
+                                    "time": {**node["time"], "start": None}}
+                            stopped += 1
+                        nodes.append(node)
+                    self._job_data[project_id] = replace(
+                        data, complete=True, nodes=nodes,
+                        error=data.error + stopped, finished=data.finished + stopped)
 
             self._board_info.data_modified = True
             finished = all(job.complete for job in self._job_data.values())
