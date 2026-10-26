@@ -1,0 +1,45 @@
+{% extends "_layout.html" %}
+{% set title = "Idempotency key reused with a different request" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "The same Idempotency-Key with a different request." %}
+{% block main %}
+<p>You sent an <code>Idempotency-Key</code> this server has already seen, with a request that differs from the one it was first used for. A key replays exactly one request.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Use a fresh key for a new request.</li>
+  <li>When retrying after a timeout, resend the <em>identical</em> request with the same key &mdash; that is what the key is for.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/idempotency-key-reuse",
+  "title":    "Idempotency key reused with a different request",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>The same key with a different body.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>The same key on a different job, or with a body that differs from the recorded submit body. The replay is scoped to the caller, the job and the request: it replays only when the path&rsquo;s job id and the recorded submit body both match.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="job-state-conflict.html"><code>job-state-conflict</code></a> is a job already past the point where that call makes sense.</p>
+{% endblock %}

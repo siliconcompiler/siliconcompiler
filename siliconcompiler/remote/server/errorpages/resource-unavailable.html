@@ -1,0 +1,72 @@
+{% extends "_layout.html" %}
+{% set title = "This server does not hold that resource" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "The job needs a resource this deployment does not hold and cannot supply, and you could not send it either." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>The job needs a PDK, a library, an FPGA device or a tool that this deployment does not hold and has no way to supply &mdash; and it is not one you can send. A resource you <em>can</em> send is never refused this way: the server asks for it instead, in the job&rsquo;s <code>upload_sources</code>. What is left is a resource marked private, whose copy only the server may supply, and one the deployment controls.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>resource</code> to see which, <code>keypath</code> for which of its dataroots, and <code>resource_kind</code> where the deployment names it.</li>
+  <li>For a private dataroot, ask this deployment&rsquo;s operator to hold a copy of it under that keypath. Private data is never uploaded, so nothing you send can satisfy it.</li>
+  <li>Or run against a deployment that holds it.</li>
+  <li>Retrying the same job returns the same answer.</li>
+</ol>
+</div>
+
+<p><strong>Also covers</strong> what <code>unsatisfiable-request</code> meant, which was retired before the API froze: the two meant <em>this server cannot provide it</em>, with the same members. For software in a version no image holds, see <a href="software-unavailable.html"><code>software-unavailable</code></a>.</p>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/resource-unavailable",
+  "title":    "This server does not hold that resource",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "resource": "mypdk",  <span class="c">// REQUIRED on this type</span>
+  "keypath":  ["library", "mypdk", "dataroot", "mypdk"],  <span class="c">// where it is a dataroot</span>
+  "resource_kind": "pdk",  <span class="c">// where the deployment can name it</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Its name, or for a dataroot its owner&rsquo;s: the library&rsquo;s, or the task&rsquo;s tool. Names are unique across kinds, so it alone says which resource.</td></tr>
+<tr><td><code>keypath</code></td><td>optional</td>
+    <td>Where it is a dataroot, which one, as <code>sources</code> names it: <code>["library", name, "dataroot", root]</code>, or <code>["tool", tool, "task", task, "dataroot", root]</code> for a task&rsquo;s own. Most owners have a dataroot called <code>root</code>, so the owner alone does not say which.</td></tr>
+<tr><td><code>resource_kind</code></td><td>optional</td>
+    <td><code>pdk</code>, <code>library</code>, <code>fpga</code> or <code>tool</code>, where the deployment can name the kind. One without a catalogue of resources &mdash; the reference <code>sc-server</code> is one &mdash; leaves it out at create, where a source carries no kind, and names the resource alone. It is never the design.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>A private or controlled source in the descriptor&rsquo;s <code>sources</code> that the server does not hold &mdash; before the archive uploads, by its name.</td></tr>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>While the job stages, after the archive is opened, against what the manifest&rsquo;s read reports: a private source the descriptor did not list, with its kind where it is a resource&rsquo;s.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="resource-unresolved.html"><code>resource-unresolved</code></a> is the server not being able to work out <em>which</em> resource the flow needs. Here it knows which, and does not have it.</p>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is a resource the deployment has and you may not use.</p>
+
+<p><a href="software-unavailable.html"><code>software-unavailable</code></a> is the same answer for images: software no image holds in the version you asked for.</p>
+
+<p><a href="upload-forbidden.html"><code>upload-forbidden</code></a> is files you did upload that you were not allowed to.</p>
+{% endblock %}

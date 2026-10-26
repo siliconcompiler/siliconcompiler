@@ -1,0 +1,103 @@
+{% extends "_layout.html" %}
+{% set title = "Not entitled to this resource" %}
+{% set status = "403 Forbidden" %}
+{% set description = "Your account is not permitted to use a PDK, tool or library this job asks for." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>Your account holds no grant for something the job asks for, or an artifact derives from &mdash; a PDK, a tool, a library or an FPGA device. Only a missing grant is this: an unaccepted agreement is <a href="terms-not-accepted.html"><code>terms-not-accepted</code></a>. Where a grant through a project lapsed, <code>detail</code> says so.</p>
+
+<p><strong>Retrying will not change this.</strong> It is a statement about what your account holds,
+not about how busy the server is, and the identical request returns the identical answer.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>resource_kind</code> and <code>resource</code> to see exactly what was refused.</li>
+  <li>Check <code>GET /v1/me</code>. The <code>authorized</code> block lists what your account does
+      hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>).</li>
+  <li>If you should have it, this is an access request to whoever administers your account.
+      <strong>There is no API call that grants it to you.</strong></li>
+</ol>
+<p>Do not retry on a timer. Nothing about this answer changes with time.</p>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":          "https://siliconcompiler.com/server-errors/entitlement-denied",
+  "title":         "Not entitled to this resource",
+  "status":        403,
+  "detail":        "The manifest names a PDK this account does not hold.",
+  "instance":      "/v1/jobs/01J9.../submit",
+
+  "resource_kind": "pdk",     <span class="c">// REQUIRED on this type</span>
+  "resource":      "gf22",    <span class="c">// REQUIRED on this type</span>
+
+  "trace_id":      "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Which kind of thing was refused: <code>pdk</code>, <code>tool</code>,
+        <code>library</code>, <code>fpga</code>. The kind is a value, never a prefix on the
+        type.</td></tr>
+<tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Its name, as the catalogue spells it.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and
+read <code>resource_kind</code> and <code>resource</code> for the specifics &mdash; never parse
+<code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td><code>POST /v1/jobs</code></td>
+    <td>The descriptor names something you do not hold.</td></tr>
+<tr><td><code>GET /v1/jobs/{id}</code></td>
+    <td><strong>The enforcing gate</strong>, as a <code>rejected</code> job&rsquo;s <code>error</code> &mdash; checked while the job stages, against what the manifest&rsquo;s read
+        reports, not against what the descriptor claimed.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>You do not hold a resource the artifact derives from &mdash; and
+        <code>resource</code> names that resource. A refusal about the object itself is
+        <a href="artifact-not-approved.html"><code>artifact-not-approved</code></a>.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>A running node&rsquo;s live log, when you lack a resource in the job&rsquo;s set: a live
+        stream is gated like the archive, and <code>resource</code> names it.</td></tr>
+</tbody>
+</table>
+
+<p>The submit check is the one that matters. A job can be created successfully and still be refused
+at submit, because create only saves an upload and submit is where the real manifest is read.</p>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="insufficient-scope.html"><code>insufficient-scope</code></a> is the same <code>403</code>
+and a different question. This page is <em>your account may not use that thing</em>. That one is
+<em>the credential you presented was not minted with permission to make this call</em> &mdash; a
+narrower token, not a narrower account.</p>
+
+<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> (<code>422</code>)
+means the deployment does not hold the resource and cannot supply it <strong>at all</strong>. The
+question of whether you may use it never arose, and nothing about your account will fix it.</p>
+
+<p><a href="resource-unresolved.html"><code>resource-unresolved</code></a> (<code>422</code>) means
+the server could not work out what the flow needs &mdash; for a PDK, whether a name or the literal <code>none</code> was intended. Again,
+nothing was denied; the question could not be asked.</p>
+
+<p><a href="terms-not-accepted.html"><code>terms-not-accepted</code></a> (<code>403</code>) means you
+hold the resource but have not accepted a document covering it. That one is fixable by you.</p>
+
+<p><a href="not-found.html"><code>not-found</code></a> (<code>404</code>) is what a job naming a
+<code>project</code> you are not a member of gets &mdash; never this, because a <code>403</code>
+would confirm the project exists.</p>
+{% endblock %}

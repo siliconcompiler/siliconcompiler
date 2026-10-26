@@ -1,0 +1,65 @@
+{% extends "_layout.html" %}
+{% set title = "Those earlier results cannot be used" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "A continues_from entry names results that cannot be used." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>A run that starts part-way through its flow takes the results of a node it does not run from an earlier job, named in create&rsquo;s <code>continues_from</code>. One of those entries names results that cannot be used: <code>step</code>, <code>index</code> and <code>job_id</code> say which, and <code>reason</code> says why.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>reason</code>. <code>not_found</code>, <code>not_owner</code>, <code>deleted</code>, <code>not_completed</code>, <code>expired</code> or <code>withheld</code>: those results are not available, so run from an earlier step &mdash; one whose results you have &mdash; or name a job of your own whose results can be used.</li>
+  <li>For <code>not_completed</code>, name the job that ran the node: a job that only copied a node&rsquo;s results in did not run it.</li>
+  <li>An archived job may be continued from: <code>archived</code> is registered and never raised.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/prior-results-unavailable",
+  "title":    "Those earlier results cannot be used",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs",
+  "step":     "cts",        <span class="c">// REQUIRED on this type</span>
+  "index":    "0",          <span class="c">// REQUIRED on this type</span>
+  "job_id":   "01J9...",    <span class="c">// REQUIRED on this type</span>
+  "reason":   "expired",    <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>step</code>, <code>index</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The node whose results were to be copied.</td></tr>
+<tr><td><code>job_id</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The job the entry named.</td></tr>
+<tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>not_found</code> &mdash; no such job, or one you cannot read: one answer for both, so it confirms nothing. <code>not_owner</code> &mdash; a job you can read and do not own. <code>deleted</code> &mdash; the job is deleted. <code>not_completed</code> &mdash; that job did not complete that node, or only copied it in. <code>expired</code> &mdash; the artifact holding the node&rsquo;s outputs, or its manifest, has been deleted. <code>withheld</code> &mdash; an administrator withheld one of them. <code>archived</code> is registered and never raised. An unrecognised value means act on the type alone.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>Every entry is checked before anything is uploaded.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: every entry is checked again while the job stages, and its results can go, or be withheld, in between.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> with <code>reason: "missing_member"</code> is a node the run reads whose results the client sent neither in the archive nor as a job in <code>continues_from</code>.</p>
+{% endblock %}

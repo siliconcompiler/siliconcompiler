@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ title }}{% endblock %} - sc-server</title>
+<style>
+  :root { --ink: #16181d; --dim: #5b6270; --line: #d9dde5; --bg: #fff;
+          --panel: #f6f7f9; --accent: #1f5fd0; --bad: #b4232c; --good: #1d7a4a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e7eaf0; --dim: #99a2b3; --line: #333947; --bg: #14161b;
+            --panel: #1c1f27; --accent: #6ea8ff; --bad: #ff8189; --good: #56cc90; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  header { border-bottom: 1px solid var(--line); padding: 10px 16px; display: flex;
+           align-items: center; gap: 20px; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; }
+  header a { color: var(--dim); text-decoration: none; flex: 1; }
+  main { padding: 20px 16px 60px; max-width: 1200px; }
+  h2 { font-size: 19px; margin: 0 0 8px; }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  p.lede, .muted { color: var(--dim); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-size: 12px; text-transform: uppercase; }
+  a { color: var(--accent); }
+  code, pre { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+        padding: 12px; overflow: auto; max-height: 60vh; white-space: pre-wrap;
+        word-break: break-word; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 12px;
+         background: var(--panel); border: 1px solid var(--line); }
+  .bad { color: var(--bad); border-color: var(--bad); }
+  .good { color: var(--good); border-color: var(--good); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+           padding: 12px 16px; margin: 0 0 16px; }
+  form { display: inline; }
+  button { font: inherit; padding: 5px 11px; border-radius: 5px; cursor: pointer;
+           border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  button:hover { border-color: var(--accent); }
+  button.danger:hover { border-color: var(--bad); color: var(--bad); }
+</style>
+{% block head %}{% endblock %}
+<header>
+  <h1>sc-server</h1>
+  <a href="{{ url_for('portal.jobs') }}">Jobs</a>
+  {% if csrf %}
+  <form method="post" action="{{ url_for('portal.logout') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button>Sign out</button>
+  </form>
+  {% endif %}
+</header>
+<main>{% block body %}{% endblock %}</main>

@@ -1,0 +1,44 @@
+{% extends "_layout.html" %}
+{% set title = "Not permitted on this job" %}
+{% set status = "403 Forbidden" %}
+{% set description = "You can read this job and may not act on it." %}
+{% block main %}
+<p>A write on a job you can read and may not act on: an upload grant, a submit, a cancel or a
+<code>DELETE</code> on a job you do not own &mdash; where, for a cancel or a delete, you also do not
+hold the <code>owner</code> role in the job&rsquo;s project. Also a create naming an archived project
+you are a member of, with <code>detail</code> saying it is archived.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Stop, and do not offer that action on that job again.</li>
+  <li>Only the job&rsquo;s owner may ask for its upload grant or submit it. Only the owner, and a
+      holder of the <code>owner</code> role in its project, may cancel or delete it. Ask one of them.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/not-permitted",
+  "title":    "Not permitted on this job",
+  "status":   403,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9.../cancel",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p>No required extension members. <code>detail</code> is prose and may be reworded at any time.</p>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="not-found.html"><code>not-found</code></a> is a job you cannot read at all: a
+<code>403</code> there would confirm it exists. Here you have already read the job, so saying no
+plainly reveals nothing.</p>
+
+<p><a href="insufficient-scope.html"><code>insufficient-scope</code></a> is the credential lacking the
+scope for the call. This one is you, with a credential that may make the call, and this job.</p>
+{% endblock %}

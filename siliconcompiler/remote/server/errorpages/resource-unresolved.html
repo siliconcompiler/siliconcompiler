@@ -1,0 +1,57 @@
+{% extends "_layout.html" %}
+{% set title = "Could not resolve what this flow needs" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "The server could not decide what the flow needs." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>Reading your manifest while the job staged, the server could not decide which resource it needs &mdash; for a PDK, whether a name was intended or the literal <code>none</code>. Nothing was denied: the question could not be asked.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>resource_kind</code>.</li>
+  <li>Name that resource explicitly in your build script and submit again.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/resource-unresolved",
+  "title":    "Could not resolve what this flow needs",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "resource_kind": "pdk",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The kind that could not be resolved.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>By the manifest&rsquo;s read, while the job stages, after the archive is opened.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is a resource the server identified and does not hold.</p>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is a resource you may not use.</p>
+{% endblock %}

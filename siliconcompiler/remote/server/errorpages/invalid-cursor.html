@@ -1,0 +1,45 @@
+{% extends "_layout.html" %}
+{% set title = "Invalid cursor" %}
+{% set status = "400 Bad Request" %}
+{% set description = "A stale or malformed ?cursor=. Restart the pagination." %}
+{% block main %}
+<p>The <code>cursor</code> you sent is stale, malformed, or not a position in this collection.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Start the listing again without a cursor.</li>
+  <li>Use cursors only as the server handed them back, from the <code>Link</code> header of the page before.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/invalid-cursor",
+  "title":    "Invalid cursor",
+  "status":   400,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs</code></td>
+    <td></td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts</code></td>
+    <td></td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="invalid-request.html"><code>invalid-request</code></a> is a malformed request in some other way; fixing the request is its answer, restarting the listing is this one&rsquo;s.</p>
+{% endblock %}
