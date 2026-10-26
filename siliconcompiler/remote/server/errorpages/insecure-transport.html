@@ -1,0 +1,49 @@
+{% extends "_layout.html" %}
+{% set title = "Upgrade required" %}
+{% set status = "426 Upgrade Required" %}
+{% set description = "A credential was offered over plaintext. Re-send over https." %}
+{% block main %}
+<p>A credential &mdash; an access token, a refresh token, a <code>device_code</code> or a <code>user_code</code> &mdash; was sent over plaintext to a deployment that authenticates.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Re-send over <code>https</code>.</li>
+  <li>Point your client at the server&rsquo;s <code>https</code> address. A client never downgrades.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/insecure-transport",
+  "title":    "Upgrade required",
+  "status":   426,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">any endpoint that takes a credential</td>
+    <td>Including the token endpoint and the device-login approval leg.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>At the two OAuth endpoints</h2>
+
+<p>Raised at <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> too, before any
+OAuth processing, and in <code>problem+json</code> there as everywhere &mdash; never as an OAuth
+<code>error</code>. A client handles it by its status and <code>type</code>.</p>
+
+<h2>What this is not</h2>
+
+<p><a href="invalid-token.html"><code>invalid-token</code></a> is a token that arrived safely and was not accepted.</p>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "_layout.html" %}
+{% set title = "Terms not accepted" %}
+{% set status = "403 Forbidden" %}
+{% set description = "There is an agreement you have not accepted, and it covers something this request needs." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>There is a terms document you have not accepted, and it covers something this request needs.</p>
+
+<p><strong>This one you can fix yourself.</strong> <code>blocked_by</code> lists every document in
+the way, by its terms <code>id</code>.</p>
+
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Name each document by its <code>title</code> in <code>GET /v1/me</code>&rsquo;s
+      <code>terms</code>, found by its <code>id</code>.</li>
+  <li>Open each one&rsquo;s page from <code>POST /v1/auth/browser</code> with
+      <code>{"terms_id": "&lt;id&gt;"}</code>, read it, and sign it there.</li>
+  <li>Then retry the original request unchanged.</li>
+</ol>
+<p>You may also decline, and you may change your mind later. Declining is a recorded answer, not a
+failure state.</p>
+</div>
+
+<h2>What each document costs</h2>
+
+<table>
+<thead><tr><th>The document</th><th>What is blocked</th><th>How you will have noticed</th></tr></thead>
+<tbody>
+<tr><td>a <code>"service"</code> document</td>
+    <td><strong>Everything</strong> &mdash; no create or submit of any kind.</td>
+    <td><code>GET /v1/me</code> reports <code>can_submit: false</code>, and
+        <code>blocked_type</code> is this type&rsquo;s URI.</td></tr>
+<tr><td>an agreement on a resource</td>
+    <td><strong>Only what names or derives from the covered resource.</strong></td>
+    <td><code>can_submit</code> stays <code>true</code>. This refusal arrives at create for a
+        resource the job names, while staging against the job&rsquo;s resource set, and on a fetch
+        or a log stream of what derives from it.</td></tr>
+</tbody>
+</table>
+
+<p>For a fetch or a log stream, an acceptance of an earlier version of the document counts.</p>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":       "https://siliconcompiler.com/server-errors/terms-not-accepted",
+  "title":      "Terms not accepted",
+  "status":     403,
+  "detail":     "This flow names a PDK covered by an agreement you have not accepted.",
+  "instance":   "/v1/jobs",
+
+  "blocked_by": ["gf22-nda", "gf22-export"],       <span class="c">// REQUIRED</span>
+
+  "trace_id":   "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>blocked_by</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Each document in the way, by its terms <code>id</code>, as a list. The same shape
+        <code>GET /v1/me</code>&rsquo;s <code>authorized</code> entries and the artifact listing
+        carry. A document&rsquo;s page comes from <code>POST /v1/auth/browser</code>.</td></tr>
+</tbody>
+</table>
+
+<p>A terms <code>id</code> is an opaque key &mdash; <code>gf22-nda</code> is a slug somebody typed.
+Do not parse it. Every document carries a human <code>title</code> in <code>GET /v1/me</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<p>Every gate. At <code>POST /v1/jobs</code> and at submit, for a service document and for a
+resource the job names; while the job stages, against what the manifest&rsquo;s read reports, where
+it ends the job <code>rejected</code> with this on its <code>error</code>; and at
+<code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code> and <code>&hellip;/logs</code>, for what the
+artifact or log derives from.</p>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> means your account does not
+hold the resource at all. This means you hold it and have not signed for it.</p>
+
+<p><code>artifact-not-approved</code> (<code>403</code>) is a per-object decision on a specific
+output, not a document you can accept. It needs a human approval process, not a click.</p>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "_layout.html" %}
+{% set title = "Artifact not approved" %}
+{% set status = "403 Forbidden" %}
+{% set description = "The per-object gate said no: withheld, an issue, or a node archive holding something that is." %}
+{% block main %}
+<p>You hold every resource the artifact derives from and have accepted every agreement behind it, but one thing is still missing: an approval to download it. Or the artifact is held back by a rule about the object itself: it is withheld, it is an <code>issue</code> testcase, or it is a <code>node</code> archive that holds something that is, or a member deleted on its own &mdash; or this deployment does not hand its kind over the API. Two cases have nothing to ask for: the <code>input</code> of a rejected job, and an output built over content supplied from a held copy tied to no resource.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Look at the artifact in the listing: a <code>fetchable: false</code> object with <code>can_request_access: true</code> has a path to approval &mdash; open its page from <code>POST /v1/auth/browser</code> with <code>{"artifact_id": "&lt;id&gt;"}</code>, and ask there.</li>
+  <li>With <code>can_request_access: false</code> there is no request to make. A deployment with a web portal may offer the object there.</li>
+  <li>For a <code>node</code> archive, fetch what it holds that you can have &mdash; its manifest, log and reports are listed on their own.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/artifact-not-approved",
+  "title":    "Artifact not approved",
+  "status":   403,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>The object&rsquo;s own gate.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>A node&rsquo;s archived log, held back the same way.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="entitlement-denied.html"><code>entitlement-denied</code></a> is your account not holding a resource the artifact derives from, and names it.</p>
+
+<p><a href="not-ready.html"><code>not-ready</code></a> is an artifact still being described, and is worth asking about again.</p>
+
+<p><a href="not-found.html"><code>not-found</code></a> is an artifact whose bytes are gone.</p>
+{% endblock %}

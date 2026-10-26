@@ -1,0 +1,49 @@
+{% extends "_layout.html" %}
+{% set title = "Not acceptable" %}
+{% set status = "406 Not Acceptable" %}
+{% set description = "No representation satisfies your Accept. Often answered below the handler, untyped." %}
+{% block main %}
+<p>Your <code>Accept</code> header asks for nothing this endpoint can produce. Most of this API ignores <code>Accept</code> and sends its one representation, so this is rare.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Accept <code>application/json</code> on the API, and <code>text/event-stream</code> at the log stream.</li>
+</ol>
+</div>
+
+<div class="warn">
+<p><strong>An untyped answer is expected here.</strong> This refusal is often produced below the
+request handler &mdash; by routing, the framework or a proxy &mdash; and then it arrives as the web
+server&rsquo;s own page, not as <code>application/problem+json</code>, and has no <code>type</code>
+at all. Treat a non-<code>problem+json</code> <code>406</code> exactly as you would this type.</p>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/not-acceptable",
+  "title":    "Not acceptable",
+  "status":   406,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">any endpoint</td>
+    <td>Content negotiation, where a deployment does it.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="unsupported-media-type.html"><code>unsupported-media-type</code></a> is about what you <em>sent</em>, not what you accept.</p>
+{% endblock %}

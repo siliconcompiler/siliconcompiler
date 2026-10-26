@@ -1,0 +1,53 @@
+{% extends "_layout.html" %}
+{% set title = "The run failed" %}
+{% set status = "Not an HTTP response" %}
+{% set description = "Never an HTTP response. A type on a job’s or node’s error object." %}
+{% block main %}
+<p>The run itself failed, in a way resubmitting unchanged repeats. The job was accepted and ran, and a node &mdash; or the run around the nodes &mdash; ended in failure: a tool or flow failure, or a deployment time or memory limit, with <code>detail</code> naming the limit.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>It will fail the same way: change something before you resubmit.</li>
+  <li>Where <code>detail</code> names a time or memory limit, the fix is a smaller run or a larger limit.</li>
+  <li>Otherwise look at the nodes: the one whose <code>error.type</code> is this, and whose <code>exit_code</code> is non-zero, is where it happened. Its own <code>error.detail</code> says what the server knows, and its log says the rest. Where no node failed, the job&rsquo;s own log says why the run stopped.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "id":    "01J9...",
+  "state": "failed",
+  "error": {
+    "type":   "https://siliconcompiler.com/server-errors/run-failed",
+    "title":  "The run failed",
+    "detail": "..."
+  }
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As the job&rsquo;s <code>error.type</code>, and as the <code>error.type</code> of each failed node, whose <code>detail</code> names the limit it ran into.</td></tr>
+</tbody>
+</table>
+
+<h2>Getting help with your specific failure</h2>
+
+<div class="do">
+<p>This type arrives inside a job, not on a request, so there is no <code>trace_id</code> on it.
+<strong>Quote the job&rsquo;s <code>id</code></strong> when you escalate &mdash; it is the one
+identifier that finds the run on the server, its scheduler job and its logs.</p>
+<p class="aside">This page documents the error <em>type</em>. It is the same page for everyone who
+hits it and it cannot see your job &mdash; the job id is what connects the two.</p>
+</div>
+
+<h2>What this is not</h2>
+
+<p><a href="run-interrupted.html"><code>run-interrupted</code></a> is the environment ending the run &mdash; preemption, a failed compute node, a lost job, an image that could not be pulled &mdash; and resubmitting unchanged may work.</p>
+{% endblock %}
