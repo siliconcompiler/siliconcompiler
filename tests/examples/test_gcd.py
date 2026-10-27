@@ -35,10 +35,9 @@ def test_py_gcd():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -108,10 +107,9 @@ def test_py_gcd_skywater():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 9 multi-output cells (for example, "sky130_fd_sc_hd__fa_1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -219,11 +217,10 @@ def test_py_gcd_gf180():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 4 multi-output cells
     #    (for example, "gf180mcu_fd_sc_mcu9t5v0__addf_2")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 7
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -306,11 +303,10 @@ def test_py_gcd_ihp130():
     # 1x [-Wsign-conversion] implicit conversion changes signedness at gcd.v:279
     assert project.get('metric', 'warnings', step='elaborate', index='0') == 7
 
-    # 2x Latch inferred for signal (GcdUnitCtrlRTL do_sub and do_swap)
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # Unlike the other PDKs there is no multi-output cell warning here, because
     # ABC does not map any full adders for this library.
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 6
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -385,11 +381,10 @@ def test_py_gcd_hls():
     # The Bambu convert task defines no warning regex, so it records no metrics.
     assert project.get('metric', 'warnings', step='convert', index='0') is None
 
-    # 4x Replacing memory with list of registers, for genblk1.in1_sign,
-    #    genblk1.xdenom_arr, genblk1.temp and genblk1.quot
-    # 9x ABC: The network is combinational (run "fraig" or "fraig_sweep")
+    # 1x non-edge sensitivity on a signal will be synthesized as @* sensitivity
+    # 7x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 14
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 9
 
     # 1x [STA-0441] gcd_hls.sdc:3 set_input_delay relative to a clock defined on
     #    the same port/pin not allowed
@@ -427,10 +422,10 @@ def test_py_gcd_hls():
     assert project.get('metric', 'warnings', step='route.global', index='0') == 1
     assert project.get('metric', 'warnings', step='route.antenna_repair', index='0') == 1
 
-    # Currently 9: 1x [STA-2402] and 8x [EST-0026] Missing route to pin, one per
-    # pin, spread across the Datapath temp array and assorted logic cells. Not
-    # asserted, see the note in test_py_gcd_gf180(); this was 14 on yosys 0.67.
-    # assert project.get('metric', 'warnings', step='route.detailed', index='0') == 9
+    # Currently 13: 1x [STA-2402] and 12x [EST-0026] Missing route to pin, one per
+    # pin. Not asserted, see the note in test_py_gcd_gf180(); this was 14 on
+    # yosys 0.67.
+    # assert project.get('metric', 'warnings', step='route.detailed', index='0') == 13
 
     # Skipped ("no metal fill rules are available" from freepdk45), so no metrics
     # are recorded for this node.
