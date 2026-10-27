@@ -451,8 +451,11 @@ token. A proof is a compact JWS, freshly signed for each HTTP request:
    "ath": "fUHy...",        // with an access token: base64url(SHA-256(token))
    "nonce": "eyJ7..."}      // where the server issued one
 
-* **alg** is ``ES256``, the one algorithm ``v1`` allows: a server MUST accept
-  it and a client MUST use it. It is not negotiated.
+* **alg** is ``ES256``: `ECDSA
+  <https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm>`__
+  on the P-256 curve with SHA-256, as :rfc:`7518#section-3.4` defines it. It is
+  the one algorithm ``v1`` allows: a server MUST accept it and a client MUST use
+  it, and it is not negotiated.
 * **htu** is canonical: scheme and host lowercased, a default port omitted, the
   path as sent, and no query or fragment. A server canonicalises both sides and
   compares against its configured public origins with the request's path, never
