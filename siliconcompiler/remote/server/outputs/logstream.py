@@ -24,8 +24,7 @@ __all__ = ["resume_from", "events"]
 logger = logging.getLogger("sc-server")
 
 POLL_SECONDS = 0.25
-# How often the node's state is asked for: each ask reconciles the job, which on
-# Slurm runs `squeue`.
+# How often the node's state is asked for: each ask reconciles the job.
 STATE_SECONDS = 2
 KEEPALIVE_SECONDS = 15
 

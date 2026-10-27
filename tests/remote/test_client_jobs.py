@@ -550,8 +550,9 @@ DONE = _answer(GET, JOB, job_body("completed"))
     pytest.param(dict(call="create", queue=[_answer(POST, "jobs", HTML, 502, "text/html")],
                       outcome="ServerProblem", status=502, said=["502"],
                       asked=("/v1/jobs", 3)), id="keyed-create-gateway"),
-    pytest.param(dict(call="create", queue=[requests.ConnectionError("connection reset"),
-                                            _answer(POST, "jobs", {"id": "01J9-job"}, 201)],
+    pytest.param(dict(call="create", queue=[
+        _answer(POST, "jobs", requests.ConnectionError("connection reset")),
+        _answer(POST, "jobs", {"id": "01J9-job"}, 201)],
                       asked=("/v1/jobs", 2)), id="keyed-create-dropped"),
     # A typed 5xx is the server's answer, not a failure worth repeating.
     pytest.param(dict(call="create", queue=[_problem(POST, "jobs", "feature-unsupported",
@@ -580,8 +581,15 @@ DONE = _answer(GET, JOB, job_body("completed"))
     pytest.param(dict(call="poll", queue=[_problem(GET, JOB, "brand-new-limit", 429,
                                                    {"Retry-After": "11"}), DONE],
                       paced=11), id="poll-unknown-429"),
+    # So is a lost connection, or an answer that never came.
+    pytest.param(dict(call="poll", queue=[_answer(GET, JOB, requests.ConnectionError("refused")),
+                                          DONE],
+                      warned="could not reach", paced=5), id="poll-unreachable"),
+    pytest.param(dict(call="poll", queue=[_answer(GET, JOB, requests.Timeout("slow"))] * 3
+                      + [DONE], warned="did not answer", paced=5), id="poll-timed-out"),
     pytest.param(dict(call="poll", queue=[_answer(GET, JOB, "oops", 500, "text/plain")],
-                      outcome="RemoteError"), id="poll-never-comes-back"),
+                      outcome="RemoteError", said=["sc-config remote fetch"]),
+                 id="poll-never-comes-back"),
 ])
 def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
         fake_v1, run, no_sleep, caplog, case):
@@ -590,11 +598,10 @@ def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
     case = {"outcome": None, "status": None, "slug": None, "said": (), "unsaid": (),
             "unseen": None, "asked": None, "slept": None, "paced": None, "warned": None,
             **case}
-    for entry in case["queue"]:
-        if isinstance(entry, Exception):
-            fake_v1._mock.add(responses.POST, fake_v1.url("jobs"), body=entry)
+    for method, path, body, status, content_type, headers in case["queue"]:
+        if isinstance(body, Exception):
+            fake_v1._mock.add(method, fake_v1.url(path), body=body)
         else:
-            method, path, body, status, content_type, headers = entry
             fake_v1.route(method, path, body, status=status, content_type=content_type,
                           headers=headers)
     client = run.client
@@ -1434,7 +1441,7 @@ def test_leaving_a_job_not_yet_queued_warns_once(run, monkeypatch, caplog, state
     run.logger.propagate = True
 
     with caplog.at_level(logging.WARNING), pytest.raises(KeyboardInterrupt):
-        run._watch("01J9-job")
+        run.watch("01J9-job")
 
     assert len(asked) == polls
     assert ("not fully submitted" in caplog.text and "Ctrl-C again" in caplog.text) == \
@@ -1482,6 +1489,8 @@ def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, s
     ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"cocotb": []}}, []),
     # sc-server's own: it lists no tool, and runs what the node has.
     ({"tools": {}}, {"tools": {"yosys": [], "openroad": [">=3"]}}, []),
+    # A version that is not PEP 440 cannot be judged here.
+    ({"tools": {"openroad": ["v2.0-17598-gabc"]}}, {"tools": {"openroad": [">=3"]}}, []),
     # A listed name at no version allowed, in each bucket, said together.
     ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"siliconcompiler": ["==2.0.0"]}},
      ["Python package siliconcompiler ==2.0.0 (offered: 1.0.0)"]),
@@ -1490,7 +1499,7 @@ def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, s
     ({"interpreter": {"python": ["3.12.4"]}}, {"interpreter": {"python": ["==3.14.*"]}},
      ["interpreter python ==3.14.* (offered: 3.12.4)"]),
 ], ids=["met", "bucket-unlisted", "any-version", "name-normalised", "name-unlisted",
-        "no-tools-listed", "version-unmet", "tools-unmet", "interpreter-unmet"])
+        "no-tools-listed", "not-pep440", "version-unmet", "tools-unmet", "interpreter-unmet"])
 def test_a_listed_version_the_run_does_not_allow_is_warned_of(
         fake_v1, run, capabilities, caplog, software, versions, said):
     '''`GET /v1`'s `software` against the run's requirements: said, never refused,
@@ -1651,12 +1660,12 @@ def test_a_resumed_run_submits_the_upload_a_waiting_job_holds(fake_v1, run, no_s
         route_submitted(fake_v1)
         fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
         with caplog.at_level("INFO"):
-            run._watch("01J9-job")
+            run.watch("01J9-job")
         assert said in caplog.text
     else:
         refused(fake_v1, responses.POST, "jobs/01J9-job/submit", "job-state-conflict", 409)
         with pytest.raises(RemoteError, match=said):
-            run._watch("01J9-job")
+            run.watch("01J9-job")
 
     assert not _cancels(fake_v1)
 

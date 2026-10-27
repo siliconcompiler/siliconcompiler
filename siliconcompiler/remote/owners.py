@@ -340,12 +340,13 @@ def collected_path(one: _Value) -> Optional[str]:
 
 
 def collected_paths(values: List[_Value], paths) -> Dict[str, str]:
-    '''``{path: collected path}`` for each of ``paths`` a non-private value
+    '''``{path: collected path}`` for each of ``paths`` a value that goes up
     resolves to: where a test's helper modules go.'''
     wanted = {os.path.realpath(str(path)): str(path) for path in paths}
     found: Dict[str, str] = {}
     for one in values:
-        if one.origin == PRIVATE:
+        # Nothing else is collected, and resolving a remote source fetches it.
+        if not one.upload:
             continue
         resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
         try:

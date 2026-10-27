@@ -82,3 +82,14 @@ __all__ = [
     "banner",
     "remote_step_name"
 ]
+
+
+def __getattr__(name):
+    if name == "NodeStatus":
+        import warnings
+        from siliconcompiler import NodeStatus
+
+        warnings.warn("siliconcompiler.remote.NodeStatus is deprecated. Please use "
+                      "siliconcompiler.NodeStatus instead.", DeprecationWarning, stacklevel=2)
+        return NodeStatus
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

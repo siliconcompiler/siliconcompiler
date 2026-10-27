@@ -4,6 +4,8 @@ The job path: create, upload, submit, stage, run, cancel, delete.
 Every state change goes through :meth:`Jobs.move`, a conditional ``UPDATE``, so
 two threads cannot both end a job or record a transition twice. A job's state
 is advanced from what the run reports when the job is read (:meth:`Jobs.reconcile`).
+What the run finished is archived on a thread of the job's own, and recorded
+finished only once its artifacts exist, so a read never waits on the archiving.
 '''
 
 import base64
@@ -62,10 +64,12 @@ class Jobs:
         self.cluster = cluster
         self.storage = Storage(datadir)
         self.dispatcher = dispatcher_for(cluster)
-        # Jobs with a staging thread, or an upload arriving, in this process.
+        # Jobs with a staging thread, an upload arriving, or a collecting thread,
+        # in this process.
         self._staging = set()
         self._receiving = set()
-        self._collecting = threading.Lock()
+        self._collecting = set()
+        self._claim = threading.Lock()
 
     def root(self, user_id: str, job_id: str) -> Path:
         '''The job's build directory, where its results stay.'''
@@ -215,7 +219,9 @@ class Jobs:
 
         self._receiving.add(job_id)
         try:
-            self.storage.receive(job_id, stream, int(size))
+            # Kept for submit, which a client waiting for a slot repeats every few seconds.
+            self.store.execute("UPDATE jobs SET received_digest = ? WHERE id = ?",
+                               (self.storage.receive(job_id, stream, int(size)), job_id))
         except OverflowError as e:
             raise ProblemError("upload-too-large", detail=str(e)) from None
         except ValueError as e:
@@ -230,13 +236,11 @@ class Jobs:
 
     def submit(self, session, job_id: str) -> Dict[str, Any]:
         job = self.owned(session, job_id)
-        path = self.storage.upload_path(job_id)
-        if job["state"] != "created" or not path.is_file():
+        if job["state"] != "created" or not self.storage.upload_path(job_id).is_file():
             raise ProblemError("job-state-conflict", detail="this job holds no upload to submit")
 
         # Of the archive, the digest alone, and before anything is extracted.
-        from siliconcompiler.utils import file_digest
-        if f"sha256:{file_digest(path).hexdigest()}" != job["upload_digest"]:
+        if job["received_digest"] != job["upload_digest"]:
             raise ProblemError("upload-digest-mismatch",
                                detail="the upload is not the one its grant bound")
 
@@ -351,28 +355,51 @@ class Jobs:
                                detail="the manifest cannot be read") from None
 
     def reconcile(self, job) -> None:
-        '''Advance a job from what is known of its run, and keep what it has left.'''
+        '''Advance a job from what is known of its run.'''
         if job["state"] not in TERMINAL:
             self._advance(job)
-            job = self.row(job["id"])
-        if job["state"] in ("running", "cancelling") or (
-                job["state"] in TERMINAL and job["collected_at"] is None):
-            self._collect(job)
 
-    def _collect(self, job) -> None:
-        '''Make the artifacts of every node that is done, and of the job once it is.
-        A terminal job is marked, so this happens once.'''
-        final = job["state"] in TERMINAL
-        nodes = [(row["step"], row["idx"]) for row in self.store.all(
-            f"SELECT step, idx FROM job_nodes WHERE job_id = ? AND state IN "
-            f"({_marks(NODE_TERMINAL)})", (job["id"], *NODE_TERMINAL))]
-        tree = self.root(job["user_id"], job["id"]) / job["design"] / job["jobname"]
-        with self._collecting:
-            artifacts.collect(self.store, self.storage.artifact_dir(job["id"]), tree, job,
-                              nodes, final)
-            if final:
-                self.store.execute("UPDATE jobs SET collected_at = ? WHERE id = ?",
-                                   (time.time(), job["id"]))
+    def _collect_later(self, job_id: str, alive: bool) -> None:
+        '''Start the job's collecting thread, unless one is running.'''
+        with self._claim:
+            if job_id in self._collecting:
+                return
+            self._collecting.add(job_id)
+        threading.Thread(target=self._collect, args=(job_id, alive), daemon=True).start()
+
+    def _collect(self, job_id: str, alive: bool) -> None:
+        '''Make the artifacts of what the run has finished, and only then record it
+        finished, since a client fetches what it sees terminal. Once the run is over,
+        that is every node and the job's own, and then the job ends. Idempotent, so
+        a restart that lost this thread loses nothing: the next read starts it again.'''
+        try:
+            job = self.row(job_id)
+            # A read from before the job ended can ask again.
+            if job["state"] in TERMINAL:
+                return
+            progress = self._progress(job)
+            over = not alive or progress.get("state") in ("completed", "failed")
+            nodes = {name: node for name, node in (progress.get("nodes") or {}).items()
+                     if over or node.get("state") in NODE_TERMINAL}
+            # Over, every node: one the run left open may still have kept a log.
+            archived = [(row["step"], row["idx"]) for row in self.store.all(
+                "SELECT step, idx FROM job_nodes WHERE job_id = ?", (job_id,))
+                if over or f"{row['step']}/{row['idx']}" in nodes]
+            artifacts.collect(self.store, self.storage.artifact_dir(job_id),
+                              self.root(job["user_id"], job_id) / job["design"] / job["jobname"],
+                              job, archived, over)
+            self._sync_nodes(job_id, nodes)
+            if over:
+                self._end(job, progress)
+        except Exception:                                        # noqa: BLE001
+            logger.exception(f"collecting {job_id} failed")
+        finally:
+            self._collecting.discard(job_id)
+            self.store.release()
+
+    def _progress(self, job) -> Dict[str, Any]:
+        return runspec.read_json(
+            self.root(job["user_id"], job["id"]) / runspec.PROGRESS_FILENAME) or {}
 
     def _advance(self, job) -> None:
         job_id, state = job["id"], job["state"]
@@ -396,18 +423,30 @@ class Jobs:
 
         # Alive first: a run that is gone has written its last progress.
         alive = self.dispatcher.is_alive(scheduler_id)
-        progress = runspec.read_json(
-            self.root(job["user_id"], job_id) / runspec.PROGRESS_FILENAME)
-        if progress:
-            self._sync_nodes(job_id, progress.get("nodes") or {})
-        finished = progress and progress.get("state") in ("completed", "failed")
-        times = {name: progress[name] for name in ("started_at", "finished_at")
-                 if progress and progress.get(name)}
+        progress = self._progress(job)
+        nodes = progress.get("nodes") or {}
+        done = {name for name, node in nodes.items() if node.get("state") in NODE_TERMINAL}
+        # What the run finished is recorded by the thread that archives it.
+        self._sync_nodes(job_id, {name: node for name, node in nodes.items()
+                                  if name not in done})
+        still_open = {f"{row['step']}/{row['idx']}" for row in self.store.all(
+            f"SELECT step, idx FROM job_nodes WHERE job_id = ? AND state NOT IN "
+            f"({_marks(NODE_TERMINAL)})", (job_id, *NODE_TERMINAL))}
 
-        if state == "cancelling":
-            if finished or not alive:
-                self.move(job_id, ("cancelling",), "cancelled", reason=self._reason(job_id))
-        elif finished:
+        over = not alive or progress.get("state") in ("completed", "failed")
+        if over or done & still_open:
+            self._collect_later(job_id, alive)
+        if not over and progress.get("state") == "running":
+            self.move(job_id, ("queued",), "running", started_at=progress.get("started_at"))
+
+    def _end(self, job, progress: Dict[str, Any]) -> None:
+        '''Move a job whose run is over to the state it ended in.'''
+        job_id = job["id"]
+        if job["state"] == "cancelling":
+            self.move(job_id, ("cancelling",), "cancelled", reason=self._reason(job_id))
+        elif progress.get("state") in ("completed", "failed"):
+            times = {name: progress[name] for name in ("started_at", "finished_at")
+                     if progress.get(name)}
             failed = progress["state"] == "failed" or self.store.one(
                 "SELECT 1 FROM job_nodes WHERE job_id = ? AND state = 'failed'", (job_id,))
             if failed:
@@ -416,11 +455,9 @@ class Jobs:
                           error=json.dumps(error), **times)
             else:
                 self.move(job_id, ("queued", "running"), "completed", **times)
-        elif not alive:
+        else:
             self.move(job_id, ("queued", "running"), "failed", error=json.dumps(problem(
                 "run-interrupted", detail="the run ended without finishing")))
-        elif progress and progress.get("state") == "running":
-            self.move(job_id, ("queued",), "running", started_at=progress.get("started_at"))
 
     def _sync_nodes(self, job_id: str, nodes: Dict[str, Dict[str, Any]]) -> None:
         for name, node in nodes.items():

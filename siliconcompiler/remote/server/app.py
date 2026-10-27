@@ -55,6 +55,11 @@ def create_app(datadir, cluster: str = "local",
 
     @app.errorhandler(HTTPException)
     def http_refused(e):
+        if e.code >= 500:
+            # Untyped, so a client acts on the status: a crash, which Flask has
+            # already logged, is not the caller's invalid request.
+            return _problem_response({"type": "about:blank", "title": e.name,
+                                      "status": e.code}, e.code, {})
         slug = _HTTP_SLUGS.get(e.code, "invalid-request")
         headers = dict(e.get_headers()) if e.code == 405 else {}
         headers.pop("Content-Type", None)

@@ -11,7 +11,7 @@ from siliconcompiler.remote.server import config  # noqa: E402
 from siliconcompiler.remote.server.running import runspec  # noqa: E402
 from siliconcompiler.remote.server.staging.archive import ArchiveRejected, extract  # noqa: E402
 
-from conftest import raw_archive, settle, slug, upload, write_progress  # noqa: E402
+from conftest import finish, raw_archive, settle, slug, upload, write_progress  # noqa: E402
 
 
 LIMITS = {"max_archive_members": 100, "max_archive_expanded_bytes": 1 << 20}
@@ -48,8 +48,7 @@ def test_a_job_goes_from_create_to_completed(server, api, dispatcher, submit):
     assert running.headers["Retry-After"] == "1"
     assert running.get_json()["nodes"][0]["terminal"] is False
 
-    write_progress(server, job, "completed", finished_at=1010.0)
-    dispatcher.alive = False
+    finish(server, api, dispatcher, job)
     done = api("GET", f"/v1/jobs/{job['id']}")
     assert "Retry-After" not in done.headers
     done = done.get_json()
@@ -79,11 +78,70 @@ def test_a_job_follows_what_its_run_reports(server, api, dispatcher, submit, pro
         write_progress(server, job, progress[0], progress[1], **progress[2])
     dispatcher.alive = alive
 
-    after = get(api, job)
+    after = settle(api, job["id"], {"queued", "running"} - {state})
 
     assert (after["state"], slug_of(after)) == (state, error or "")
     assert (after["error"] or {}).get("detail") == detail
     assert all(n["terminal"] for n in after["nodes"]) == after["terminal"]
+
+
+def test_a_read_never_waits_on_archiving_nor_sees_the_job_end_before_it(
+        monkeypatch, server, api, dispatcher, tree):
+    '''Archiving tars whole node directories, off the request; a client fetches the
+    results of a job as soon as it reads terminal.'''
+    from siliconcompiler.remote.server.outputs import artifacts
+
+    job, _ = tree
+    held, collect = threading.Event(), artifacts.collect
+
+    def slow(*args):
+        assert held.wait(10)
+        collect(*args)
+    monkeypatch.setattr(artifacts, "collect", slow)
+    write_progress(server, job, "completed", finished_at=1010.0)
+    dispatcher.alive = False
+
+    during = get(api, job)
+    assert (during["state"], during["terminal"]) == ("queued", False)
+    assert not any(n["terminal"] for n in during["nodes"])
+    assert api("GET", f"/v1/jobs/{job['id']}/artifacts").get_json()["items"] == []
+
+    held.set()
+    after = settle(api, job["id"], ("queued",))
+    assert after["state"] == "completed" and all(n["terminal"] for n in after["nodes"])
+    assert len(api("GET", f"/v1/jobs/{job['id']}/artifacts").get_json()["items"]) == 8
+
+
+def test_slurm_is_asked_about_a_job_at_most_once_per_window(monkeypatch):
+    '''Every read of a job asks whether its run is alive, and a client polls each second.
+    A read while the one ask is out is told alive, which ends nothing.'''
+    import subprocess
+
+    from siliconcompiler.remote.server.running import dispatch
+
+    asked, entered, release = [], threading.Event(), threading.Event()
+
+    def run(command):
+        asked.append(command[0])
+        entered.set()
+        assert release.wait(10)
+        state = "COMPLETED\n" if command[0] == "sacct" else ""
+        return subprocess.CompletedProcess(command, 0, state, "")
+    monkeypatch.setattr(dispatch, "_run", run)
+    slurm, first = dispatch.SlurmDispatcher(), []
+
+    thread = threading.Thread(target=lambda: first.append(slurm.is_alive("7")))
+    thread.start()
+    assert entered.wait(10)
+    assert slurm.is_alive("7") is True
+    release.set()
+    thread.join()
+
+    assert first == [False] and slurm.is_alive("7") is False
+    assert asked == ["squeue", "sacct"]
+
+    monkeypatch.setattr(dispatch, "ALIVE_SECONDS", 0)
+    assert slurm.is_alive("7") is False and asked == ["squeue", "sacct"] * 2
 
 
 @pytest.mark.parametrize("method, path, body", [
@@ -213,6 +271,21 @@ def test_the_digest_is_checked_before_anything_is_extracted(server, server_clien
 
     assert upload(server_client, api, job["id"], archive).status_code == 204
     assert api("POST", f"/v1/jobs/{job['id']}/submit", json={}).status_code == 202
+
+
+def test_submit_compares_the_digest_taken_as_the_upload_arrived(
+        monkeypatch, server, server_client, api, job_archive):
+    '''A submit waiting for a slot is repeated every few seconds, so it never reads the
+    upload, of up to max_upload_bytes, again.'''
+    monkeypatch.setitem(config.LIMITS, "concurrent_jobs", 0)
+    job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    assert upload(server_client, api, job["id"], job_archive()).status_code == 204
+    # Read again, this would no longer match.
+    server.config["SC_JOBS"].storage.upload_path(job["id"]).write_bytes(b"changed")
+
+    refused = api("POST", f"/v1/jobs/{job['id']}/submit", json={})
+
+    assert (refused.status_code, slug(refused)) == (429, "limit-exceeded")
 
 
 def test_a_job_with_no_upload_cannot_be_submitted(api):
@@ -422,7 +495,7 @@ def test_a_cancel_while_running_stops_the_run_and_is_idempotent(server, api, dis
     assert get(api, job)["state"] == "cancelling"
     dispatcher.alive = False
 
-    after = get(api, job)
+    after = settle(api, job["id"], ("cancelling",))
     again = api("POST", f"/v1/jobs/{job['id']}/cancel", json={})
     assert (after["state"], again.status_code, again.get_json()["state"]) \
         == ("cancelled", 202, "cancelled")
@@ -448,7 +521,7 @@ def test_only_a_finished_job_is_deleted_and_it_stays_readable(server, api, dispa
     assert root.exists()
 
     api("POST", f"/v1/jobs/{job['id']}/cancel")
-    get(api, job)
+    settle(api, job["id"], ("cancelling",))
     assert [api("DELETE", f"/v1/jobs/{job['id']}").status_code for _ in range(2)] == [204, 204]
 
     after = get(api, job)
@@ -472,7 +545,7 @@ def test_the_concurrent_cap_is_refused_as_a_wait(monkeypatch, api, dispatcher, s
     assert get(api, second)["state"] == "created"
 
     api("POST", f"/v1/jobs/{first['id']}/cancel")
-    get(api, first)
+    settle(api, first["id"], ("cancelling",))
     assert api("POST", f"/v1/jobs/{second['id']}/submit", json={}).status_code == 202
 
 

@@ -104,6 +104,3 @@ tells the reader to quote `trace_id` and `instance` for a refused request, and
 the job's `id` for a type that arrives on a job's `error`; rendering the
 specific failure is the client's job. One stylesheet, no external requests,
 light and dark; the one build step is the render, and only publishing needs it.
-
-⚠️ The plans docs link to this folder on GitHub's `server-v1` branch, not on
-`main`, so those links stop resolving once that branch is deleted.

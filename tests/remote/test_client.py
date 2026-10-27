@@ -31,27 +31,39 @@ def test_a_path_is_joined_not_urljoined():
     assert join_url("https://host/v1") == "https://host/v1"
 
 
-@pytest.mark.parametrize("given,port,expected", [
-    ("http://localhost:8000", None, "http://localhost:8000/v1"),
-    ("https://example.com", None, "https://example.com/v1"),
-    ("example.com", None, "https://example.com/v1"),
-    ("example.com", 8000, "https://example.com:8000/v1"),
-    ("https://example.com/v1", None, "https://example.com/v1"),
-    ("https://example.com/sc/v1", None, "https://example.com/sc/v1"),
-    ("https://[::1]:8000", None, "https://[::1]:8000/v1"),
-    ("https://[::1]", 8000, "https://[::1]:8000/v1"),
-    ("http://[fd00::5]:8080/sc", None, "http://[fd00::5]:8080/sc"),
+@pytest.mark.parametrize("given,expected", [
+    ("http://localhost:8000", "http://localhost:8000/v1"),
+    ("https://example.com", "https://example.com/v1"),
+    ("example.com", "https://example.com/v1"),
+    ("example.com:8000", "https://example.com:8000/v1"),
+    ("https://example.com/v1", "https://example.com/v1"),
+    ("https://example.com/sc/v1", "https://example.com/sc/v1"),
+    ("https://[::1]:8000", "https://[::1]:8000/v1"),
+    ("http://[fd00::5]:8080/sc", "http://[fd00::5]:8080/sc"),
 ])
-def test_a_server_address_is_normalized(given, port, expected):
-    '''The scheme comes from the address, never the port (the old client
-    reached :8000 over plaintext); a bare address is https; IPv6 brackets and
-    an existing prefix are kept.'''
-    assert normalize_server(given, port) == expected
+def test_a_server_address_is_normalized(given, expected):
+    '''The scheme comes from the address, never the port; a bare address is
+    https; IPv6 brackets and an existing prefix are kept.'''
+    assert normalize_server(given) == expected
 
 
 def test_a_username_and_password_in_an_address_are_dropped():
     '''The key is the credential: nothing of the userinfo is kept.'''
     assert normalize_server("https://me:secret@example.com") == "https://example.com/v1"
+
+
+@pytest.mark.parametrize("module,name,moved", [
+    ("siliconcompiler.remote", "NodeStatus", "siliconcompiler"),
+    ("siliconcompiler.remote.client", "ClientScheduler", "siliconcompiler.remote"),
+    ("siliconcompiler.remote.client", "remote_step_name", "siliconcompiler.remote"),
+])
+def test_a_moved_name_still_imports_and_warns(module, name, moved):
+    '''A released name that moved keeps working at its old home, with a warning.'''
+    import importlib
+
+    with pytest.warns(DeprecationWarning, match=f"{moved}.{name}"):
+        found = getattr(importlib.import_module(module), name)
+    assert found is getattr(importlib.import_module(moved), name)
 
 
 def test_a_client_without_a_server_builds_and_says_so(caplog):

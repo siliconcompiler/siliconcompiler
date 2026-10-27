@@ -28,7 +28,8 @@ import requests.auth
 from siliconcompiler import __version__
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
-    TYPE_BASE, RemoteError, RemoteTimeout, ServerProblem, SessionEnded, _slug, clean)
+    TYPE_BASE, RemoteError, RemoteTimeout, ServerProblem, SessionEnded, Unreachable, _slug,
+    clean)
 from siliconcompiler.remote.client.identity import device_fingerprint
 from siliconcompiler.utils.units import format_duration
 
@@ -57,6 +58,12 @@ MAX_RETRIES = 2
 MAX_WAITS = 10
 
 TIMEOUT_SECONDS = 30
+
+# How long a request goes on before giving up on a server that does not answer:
+# each attempt's connect and read timeouts, and the backoff between attempts. A
+# `Retry-After` the server names is waited out on top of it.
+GIVE_UP_SECONDS = (MAX_RETRIES + 1) * 2 * TIMEOUT_SECONDS + \
+    sum(2 ** attempt for attempt in range(MAX_RETRIES))
 
 # How long a live log may be silent: an edge drops a connection idle for 100
 # seconds, so the server's keep-alive comments come sooner and the client waits longer.
@@ -127,7 +134,7 @@ def join_url(base: str, path: str = "") -> str:
     return f"{base.rstrip('/')}/{path.lstrip('/')}"
 
 
-def normalize_server(address: str, port: Optional[int] = None) -> str:
+def normalize_server(address: str) -> str:
     '''The base URL for a server address; the scheme comes from it, never the port.
     Any username and password in it are dropped: the key is the credential.'''
     from urllib3.exceptions import LocationParseError
@@ -142,10 +149,8 @@ def normalize_server(address: str, port: Optional[int] = None) -> str:
     except LocationParseError as e:
         raise RemoteError(f"{address} is not a server address: {e}") from None
 
-    # A port in the address wins over one given beside it; an IPv6 host keeps
-    # its brackets.
-    return Url(scheme=parts.scheme, host=parts.host,
-               port=parts.port if parts.port is not None else port,
+    # An IPv6 host keeps its brackets.
+    return Url(scheme=parts.scheme, host=parts.host, port=parts.port,
                path=(parts.path or "").rstrip("/") or "/v1").url
 
 
@@ -295,7 +300,7 @@ class Transport:
                     continue
                 if isinstance(e, requests.Timeout):
                     raise RemoteTimeout(f"{self.base_url} did not answer") from None
-                raise RemoteError(f"could not reach {self.base_url}: {_why(e)}") from None
+                raise Unreachable(f"could not reach {self.base_url}: {_why(e)}") from None
             except requests.RequestException as e:
                 raise RemoteError(f"could not reach {self.base_url}: {_why(e)}") from None
 
@@ -597,6 +602,9 @@ class Transport:
         with self._renewing:
             if self.access_token is not None:
                 return True
+            # Before taking the store, which others wait on for one request's
+            # time: this may send a request of its own, `GET /v1`.
+            self.check_plaintext()
             with self._credentials.transaction():
                 # Another process may have refreshed since: its token is current.
                 stored, left = self._credentials.access_token()
@@ -606,7 +614,6 @@ class Transport:
                 refresh_token = self._credentials.refresh_token
                 if not refresh_token:
                     return False
-                self.check_plaintext()
 
                 # No `scope`: a refresh returns the session's full scope.
                 form = {"grant_type": "refresh_token", "refresh_token": refresh_token,
@@ -619,7 +626,10 @@ class Transport:
                     refused = e
                 else:
                     self.set_tokens(body.get("access_token"), body.get("expires_in"))
-                    self._credentials.save_tokens(body)
+                    # A server that does not rotate leaves it out (RFC 6749
+                    # section 6): the one presented stays good.
+                    self._credentials.save_tokens(
+                        {**body, "refresh_token": body.get("refresh_token") or refresh_token})
                     return True
 
             # Outside the transaction, which the raise below would roll back.

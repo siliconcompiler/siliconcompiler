@@ -44,6 +44,24 @@ def test_a_refusal_is_problem_json_with_a_help_link(server_client, method, path,
     assert response.headers["Cache-Control"] == "private, no-store"
 
 
+def test_a_crash_is_an_untyped_500_that_is_logged(server, server_client, caplog):
+    '''A client retries an untyped 5xx, and would not retry what reads as its own invalid
+    request.'''
+    @server.route("/v1/crash")
+    def crash():
+        raise RuntimeError("boom")
+
+    response = server_client.get("/v1/crash")
+
+    assert response.status_code == 500
+    assert response.mimetype == "application/problem+json"
+    assert response.get_json() == {"type": "about:blank", "title": "Internal Server Error",
+                                   "status": 500}
+    assert "Link" not in response.headers
+    assert any(record.exc_info and record.exc_info[0] is RuntimeError
+               for record in caplog.records)
+
+
 def test_a_problem_bounds_its_detail():
     body = problem("invalid-request", detail="a\x00b\n" + "x" * 400)
 

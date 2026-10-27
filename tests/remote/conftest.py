@@ -621,7 +621,8 @@ def tree(server, submit):
 
 
 def finish(server, api, dispatcher, job):
-    '''End the run, and read the job so the server notices.'''
+    '''End the run, and read the job until it has ended: the server archives the
+    run on a thread first.'''
     write_progress(server, job, "completed", finished_at=1010.0)
     dispatcher.alive = False
-    api("GET", f"/v1/jobs/{job['id']}")
+    return settle(api, job["id"], ("queued", "running"))

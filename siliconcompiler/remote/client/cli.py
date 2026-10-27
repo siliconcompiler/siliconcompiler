@@ -23,7 +23,8 @@ def _add_parser(commands) -> None:
         help="the servers remote jobs are submitted to",
         description="Configure the servers remote jobs are submitted to and this "
                     "machine's session on each, kept in ~/.sc/auth/. A job is followed, "
-                    "cancelled and deleted in the server's portal. The v1 remote client is "
+                    "cancelled and deleted in the server's portal, and a run left before "
+                    "its job ended gets its results with fetch. The v1 remote client is "
                     "alpha: its commands and what it prints may still change.")
     actions = parser.add_subparsers(dest="action", metavar="<action>", required=True)
 
@@ -57,6 +58,14 @@ def _add_parser(commands) -> None:
             "server", nargs="?", help="its address, if not the default server's")
     action("rotate-key", _cli_rotate_key,
            "replace this machine's key on every server configured here, and log in again")
+    action("fetch", _cli_fetch, "follow a remote run's job to its end and bring its "
+                                "results into the run's build directory",
+           description="Reconnect to the job a remote run submitted, as the run itself "
+                       "would have: follow it to its end, then bring its results into "
+                       "the run's build directory. For a run interrupted, or cut off "
+                       "from the server, before its job ended.").add_argument(
+        "manifest", help="the run's manifest, <builddir>/<design>/<jobname>/<design>.pkg.json, "
+                         "which names its job")
 
 
 def _cli(func, args) -> int:
@@ -104,6 +113,35 @@ def _cli_logout(args, client, logger):
 
 def _cli_rotate_key(args, client, logger):
     client.rotate_key()
+
+
+def _cli_fetch(args, client, logger):
+    from siliconcompiler import Project
+    from siliconcompiler.remote.client.run import RemoteRun
+    from siliconcompiler.schema import EditableSchema
+
+    project = Project.from_manifest(filepath=args.manifest)
+    job_id = project.get('record', 'remoteid')
+    if not job_id:
+        raise RemoteError(f"{args.manifest} names no remote job: it is not the manifest of "
+                          "a remote run whose job was submitted")
+
+    # The run's own store, which may not be the default.
+    client = Client(Credentials.for_project(project), logger=logger)
+    try:
+        RemoteRun(project, client).watch(job_id)
+    except KeyboardInterrupt:
+        # Said how to come back as it left.
+        return 1
+    finally:
+        # As the scheduler does as a run ends, in place of the record the
+        # interrupted run left: what was fetched is kept.
+        jobname = project.option.get_jobname()
+        if jobname in project.getkeys("history"):
+            EditableSchema(project).remove("history", jobname)
+        project._record_history()
+        project.write_manifest(args.manifest)
+    project.summary()
 
 
 def print_configuration(client: Client) -> None:
@@ -278,5 +316,8 @@ To log in to a server, check the connection, and open the portal its jobs are in
     sc-config remote portal
 
 To make another server already configured here the default:
-    sc-config remote use https://other.example.com""",
+    sc-config remote use https://other.example.com
+
+To bring home the results of a remote run interrupted before its job ended:
+    sc-config remote fetch build/heartbeat/job0/heartbeat.pkg.json""",
     add_parser=_add_parser)

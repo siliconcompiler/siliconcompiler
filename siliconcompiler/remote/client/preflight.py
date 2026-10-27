@@ -19,13 +19,18 @@ _KINDS = {"python": "Python package", "tools": "tool", "interpreter": "interpret
 
 
 def _satisfied(versions, spec: str) -> bool:
-    '''Whether any of ``versions`` meets one PEP 440 specifier set; one that does
-    not parse is the server's to refuse.'''
+    '''Whether any of ``versions`` meets one PEP 440 specifier set; a specifier or
+    a version that does not parse is the server's to judge.'''
     from packaging.specifiers import InvalidSpecifier, SpecifierSet
+    from packaging.version import InvalidVersion, Version
 
     try:
-        return any(SpecifierSet(spec).filter(versions, prereleases=True))
-    except InvalidSpecifier:
+        allowed = SpecifierSet(spec)
+        # One at a time: `filter` raises on an unparsable version before packaging
+        # 26, and drops it silently after.
+        return any(allowed.contains(Version(str(version)), prereleases=True)
+                   for version in versions)
+    except (InvalidSpecifier, InvalidVersion):
         return True
 
 

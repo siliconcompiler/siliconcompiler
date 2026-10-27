@@ -195,7 +195,7 @@ def test_a_line_longer_than_a_chunk_is_never_split_inside_a_character(log, monke
 
 
 def test_a_stream_asks_the_nodes_state_at_its_own_pace_not_each_poll(log, monkeypatch):
-    '''Each ask reconciles the job, which on Slurm runs `squeue`.'''
+    '''Each ask reconciles the job, so it is not made on every poll of the file.'''
     tree, path = log
     monkeypatch.setattr(logstream, "STATE_SECONDS", 60)
     asked = []

@@ -127,6 +127,20 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
          else set())
 
 
+def test_finding_a_tests_collected_path_fetches_nothing(project, tmp_path, monkeypatch):
+    '''Only a value that goes up is resolved: a remote PDK is not fetched to
+    find where the design's own file lands.'''
+    from siliconcompiler.package.https import HTTPResolver
+
+    monkeypatch.setattr(HTTPResolver, "get_path", lambda self: pytest.fail("fetched"))
+    project.set_pdk(resource(PDK, "mypdk", "https://example.test/pdk.tar.gz", create=False))
+    path = project.find_files(*RTL)[0]
+
+    found = owners.collected_paths(list(owners.walk(project)), [path])
+
+    assert found == {path: collected_path(project, RTL)}
+
+
 @pytest.mark.parametrize("scheme", [
     "file+private", "git+private", "git+https+private", "git+ssh+private",
     "ssh+private", "http+private", "https+private"])

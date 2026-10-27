@@ -411,6 +411,58 @@ def test_a_lost_refresh_is_retried_with_the_same_token(fake_v1, tmp_credentials,
     assert tmp_credentials.refresh_token == "r2"
 
 
+@pytest.mark.parametrize("grant,kept", [
+    ("refresh_token", "r1"), (GRANT_CLIENT_CREDENTIALS, None)], ids=["refresh", "login"])
+def test_an_answer_without_a_refresh_token_keeps_the_held_one_only_on_a_refresh(
+        fake_v1, tmp_credentials, client_credentials, grant, kept):
+    '''A refresh need not rotate it (RFC 6749 section 6), so the one presented stays;
+    a login starts a session, so a stale one goes.'''
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    fake_v1.route(responses.POST, "auth/token",
+                  {k: v for k, v in client_credentials.items() if k != "refresh_token"})
+    client = Client(tmp_credentials)
+
+    if grant == "refresh_token":
+        client.transport.refresh()
+    else:
+        client.login()
+
+    assert grants(fake_v1) == [grant]
+    assert Credentials(tmp_credentials.path).refresh_token == kept
+
+
+def test_a_refresh_holds_the_store_no_longer_than_another_process_waits_for_it(
+        plain, monkeypatch, no_sleep):
+    '''Only the token request is sent holding it, each attempt of which may wait out a
+    connect and a read timeout: a waiter gets the holder's outcome, not a StoreError.'''
+    import contextlib
+
+    from siliconcompiler.remote.client.credentials import LOCK_SECONDS
+    from siliconcompiler.remote.client.transport import TIMEOUT_SECONDS
+
+    server, client = plain
+    client.credentials.save_tokens({"refresh_token": "r1"})
+    server._mock.add(responses.POST, server.url("auth/token"), body=requests.Timeout())
+    held = []
+    transaction = client.credentials.transaction
+
+    @contextlib.contextmanager
+    def watched():
+        sent, slept = len(server.calls), len(no_sleep)
+        try:
+            with transaction():
+                yield
+        finally:
+            held.append(2 * TIMEOUT_SECONDS * (len(server.calls) - sent)
+                        + sum(no_sleep[slept:]))
+    monkeypatch.setattr(client.credentials, "transaction", watched)
+
+    with pytest.raises(RemoteError):
+        client.transport.refresh()
+
+    assert 0 < max(held) <= LOCK_SECONDS
+
+
 @posix_only
 def test_the_store_is_private_from_creation_whatever_the_umask_and_tightened_when_widened(
         tmp_path, monkeypatch):
@@ -456,21 +508,6 @@ def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, m
     assert command[1] == str(credentials.auth_dir)
     assert command[2:4] == ["/inheritance:r", "/grant:r"]
     assert command[4].endswith(":(OI)(CI)F")
-
-
-def test_the_auth_dir_can_be_moved_and_leaves_an_older_clients_file_alone(
-        monkeypatch, tmp_path, settings):
-    '''A moved store is often a runner's scratch, emptied after the job.'''
-    from siliconcompiler.remote.client.credentials import UPLOADS
-
-    home = _legacy_home(tmp_path)
-    monkeypatch.setenv("SC_AUTH_DIR", str(tmp_path / "elsewhere"))
-    creds = Credentials(home / "credentials")
-    creds.key()
-
-    assert creds.key_path.parent == tmp_path / "elsewhere"
-    assert (creds.server, UPLOADS.get()) == (None, [])
-    assert (home / "credentials").exists()
 
 
 def test_a_key_another_process_wrote_first_is_the_one_kept(monkeypatch, tmp_path):
@@ -582,40 +619,23 @@ def test_a_stored_access_token_is_dropped_only_where_it_is_the_refused_one(
     assert tmp_credentials.access_token() == (None, 0.0)
 
 
-def _legacy_home(tmp_path):
-    '''A released client's configuration file.'''
-    home = tmp_path / "home" / ".sc"
-    home.mkdir(parents=True)
-    (home / "credentials").write_text(json.dumps({
-        "address": "https://sc-server.test", "port": 443, "username": "someone",
-        "password": "hunter2", "directory_whitelist": ["/proj"]}))
-    return home
+def test_an_older_clients_file_is_not_a_store_and_is_never_written(monkeypatch):
+    '''Named as the store, an older client's configuration file is refused on the first
+    write, with the reason, and left as it was.'''
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    Path("home").mkdir(mode=0o700)
+    old = Path("home", "credentials")
+    old.write_text(json.dumps({"address": "https://sc-server.test", "port": 443,
+                               "directory_whitelist": ["/proj"]}))
+    os.chmod(old, 0o600)
+    written = old.read_text()
 
+    creds = Credentials(old)
+    assert creds.server is None
+    with pytest.raises(StoreError, match="cannot be used: .* not JSON objects"):
+        creds.set_server("https://sc-server.test")
 
-@pytest.mark.parametrize("named", ["store", "old-file"])
-def test_an_older_clients_file_is_moved_in_once(tmp_path, caplog, settings, named):
-    '''Server moved into the store and whitelist into `remote uploads`, the old file
-    removed, and its username and password not kept; naming the old file still finds
-    the store, saying where to point it.'''
-    from siliconcompiler.remote.client.credentials import UPLOADS
-
-    home = _legacy_home(tmp_path)
-    path = home / ("auth" if named == "store" else "") / ("remote.json" if named == "store"
-                                                          else "credentials")
-
-    first = Credentials(path)
-    again = Credentials(path)
-
-    assert _store_file(first)["store"] == {
-        "version": 1, "server": "https://sc-server.test:443/v1"}
-    assert UPLOADS.get() == ["/proj"]
-    assert "hunter2" not in first.path.read_text()
-    assert not (home / "credentials").exists()
-    assert sorted(entry.name for entry in (home / "auth").iterdir()) == \
-        ["remote.json", "remote.json.lock"]
-    assert first.path == again.path == home / "auth" / "remote.json"
-    assert again.server == "https://sc-server.test:443/v1"
-    assert ("point -credentials there" in caplog.text) is (named == "old-file")
+    assert old.read_text() == written
 
 
 @pytest.fixture

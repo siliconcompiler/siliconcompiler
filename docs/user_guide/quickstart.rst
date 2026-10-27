@@ -191,6 +191,14 @@ or delete it in the server's portal, which
 
     sc-config remote portal
 
+To bring its results into the build directory once you have disconnected,
+point ``sc-config remote fetch`` at the manifest the run wrote, which names the
+job:
+
+.. code-block:: bash
+
+    sc-config remote fetch build/<design>/job0/<design>.pkg.json
+
 .. seealso::
    :ref:`Directory structures <directory_structures>` explains the build tree
    these paths refer to, and where else a run writes.

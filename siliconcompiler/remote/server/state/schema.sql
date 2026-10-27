@@ -38,10 +38,10 @@ CREATE TABLE IF NOT EXISTS tokens (
 CREATE INDEX IF NOT EXISTS tokens_by_session ON tokens (session_id);
 CREATE INDEX IF NOT EXISTS tokens_by_device ON tokens (device_id);
 
--- `upload_size` and `upload_digest` are what the first grant bound; the digest is
--- checked against the file on disk at submit. `active_at` is the client's last
--- create, grant, upload or submit: a `created` job idle past
--- `abandon_after_seconds` is abandoned.
+-- `upload_size` and `upload_digest` are what the first grant bound, and
+-- `received_digest` is the upload's own, taken as it arrived: submit compares
+-- the two. `active_at` is the client's last create, grant, upload or submit: a
+-- `created` job idle past `abandon_after_seconds` is abandoned.
 CREATE TABLE IF NOT EXISTS jobs (
     id               TEXT PRIMARY KEY,
     user_id          TEXT NOT NULL REFERENCES users (id),
@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     idempotency_key  TEXT,
     upload_size      INTEGER,
     upload_digest    TEXT,
+    received_digest  TEXT,
     scheduler_job_id TEXT,
     error            TEXT,
     created_at       REAL NOT NULL,
@@ -60,7 +61,6 @@ CREATE TABLE IF NOT EXISTS jobs (
     started_at       REAL,
     finished_at      REAL,
     deleted_at       REAL,
-    collected_at     REAL,
     UNIQUE (user_id, idempotency_key)
 );
 CREATE INDEX IF NOT EXISTS jobs_by_user ON jobs (user_id, created_at DESC, id DESC);

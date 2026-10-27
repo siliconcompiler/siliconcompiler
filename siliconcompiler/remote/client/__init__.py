@@ -775,9 +775,11 @@ class Client:
         '''
         # Both or neither: one alone is a 400.
         params = {"step": step, "index": index} if step is not None else {}
+        # On both requests: a server may stream the log itself rather than redirect.
+        headers = {"Last-Event-ID": str(last_event_id)} if last_event_id else {}
         try:
             response = self.transport.request(
-                "GET", f"jobs/{job_id}/logs", params=params,
+                "GET", f"jobs/{job_id}/logs", params=params, headers=headers,
                 stream=True, expect_redirect=True)
         except ServerProblem as e:
             if e.slug == "terms-not-accepted":
@@ -786,10 +788,6 @@ class Client:
             elif e.slug == "feature-unsupported":
                 self.transport.forget_published()
             raise
-
-        headers = {}
-        if last_event_id:
-            headers["Last-Event-ID"] = str(last_event_id)
 
         return self.transport.follow(response, headers=headers, kind="stream")
 
@@ -1031,3 +1029,15 @@ def read_secret(name: str) -> Optional[str]:
     else:
         value = sys.stdin.readline().rstrip("\r\n")
     return value or None
+
+
+def __getattr__(name):
+    if name in ("ClientScheduler", "remote_step_name"):
+        import warnings
+        from siliconcompiler import remote
+
+        warnings.warn(f"siliconcompiler.remote.client.{name} is deprecated. Please use "
+                      f"siliconcompiler.remote.{name} instead.", DeprecationWarning,
+                      stacklevel=2)
+        return getattr(remote, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

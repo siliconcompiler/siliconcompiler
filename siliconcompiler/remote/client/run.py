@@ -37,8 +37,8 @@ from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.remote import environment, links, manifests, owners
 from siliconcompiler.remote.client import capture, preflight, wheels
 from siliconcompiler.remote.client.errors import (
-    NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, blocked_lines, clean,
-    describe)
+    NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP, _slug,
+    blocked_lines, clean, describe)
 from siliconcompiler.remote.client.credentials import UPLOADS
 from siliconcompiler.remote.client.results import Results, recorded_job
 from siliconcompiler.remote.environment import canonical
@@ -64,7 +64,7 @@ _PORTAL = "the portal: sc-config remote portal"
 # Only a fallback: the server sets the pace with `Retry-After`.
 DEFAULT_POLL_SECONDS = 5
 
-# Server errors are transient and retried, but not forever.
+# Server errors and a lost connection are transient and retried, but not forever.
 MAX_TRANSIENT_POLLS = 20
 
 MAX_LINE = 70
@@ -164,7 +164,7 @@ class RemoteRun:
         else:
             job_id = self._start()
 
-        self._watch(job_id)
+        self.watch(job_id)
 
     def _start(self) -> str:
         self._check_project()
@@ -901,7 +901,8 @@ class RemoteRun:
 
         return wanted
 
-    def _watch(self, job_id: str) -> None:
+    def watch(self, job_id: str) -> None:
+        '''Follow ``job_id`` to its end and bring its results into the build directory.'''
         warned = False
         while True:
             try:
@@ -919,8 +920,15 @@ class RemoteRun:
                         "is abandoned. Press Ctrl-C again to leave anyway.")
                     continue
                 self.logger.info(f"Disconnecting from remote job {job_id}, which goes on "
-                                 f"running: follow, cancel or delete it in {_PORTAL}")
+                                 f"running: {self._fetch_later()} brings its results here, "
+                                 f"and it is followed, cancelled or deleted in {_PORTAL}")
                 raise
+
+    def _fetch_later(self) -> str:
+        '''The command that reconnects to this run's job, from the manifest the
+        scheduler writes as the run ends.'''
+        manifest = os.path.join(jobdir(self.project), f"{self.project.name}.pkg.json")
+        return f"sc-config remote fetch {manifest}"
 
     def _poll(self, job_id: str) -> None:
         transient = 0
@@ -935,20 +943,22 @@ class RemoteRun:
                 self._last_state = job.get("state")
                 owner = job.get("owner")
                 self._owner = owner.get("id") if isinstance(owner, dict) else None
-            except ServerProblem as refusal:
-                if not _later(refusal):
+            except (ServerProblem, Unreachable) as failure:
+                if isinstance(failure, ServerProblem) and not _later(failure):
                     # AS A FAILURE: falling through would announce an empty finished job.
-                    self.logger.error(str(refusal))
+                    self.logger.error(str(failure))
                     raise RemoteError(
                         f"the server will not report on job {job_id}") from None
 
                 transient += 1
                 if transient > MAX_TRANSIENT_POLLS:
                     raise RemoteError(
-                        f"the server has been failing for {transient} polls; "
-                        f"job {job_id} may still be running") from None
-                self.logger.warning(str(refusal))
-                time.sleep(refusal.retry_after or DEFAULT_POLL_SECONDS)
+                        f"the server has been failing for {transient} polls; job {job_id} "
+                        f"may still be running, and {self._fetch_later()} brings its "
+                        "results here") from None
+                self.logger.warning(str(failure))
+                wait = failure.retry_after if isinstance(failure, ServerProblem) else None
+                time.sleep(wait or DEFAULT_POLL_SECONDS)
                 continue
 
             if job.get("state") in _WAITING and self._act_on_waiting(job_id, job):
@@ -1512,7 +1522,8 @@ class _LinkPacker:
         return None
 
     def add(self, name: str) -> None:
-        self._add_dir(os.path.join(self.root, name), name)
+        # A member name is "/"-separated; `TarInfo`, unlike `tar.add`, does not convert.
+        self._add_dir(os.path.join(self.root, name), name.replace(os.sep, "/"))
 
     def _add_dir(self, path: str, arcname: str) -> None:
         import stat

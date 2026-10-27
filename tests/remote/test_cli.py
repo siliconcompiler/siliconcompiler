@@ -89,3 +89,33 @@ def test_upload_directories_are_a_setting_kept_absolute(monkeypatch, settings):
     for change, paths in (('add', ['a', 'b']), ('add', ['a']), ('remove', ['a'])):
         assert main(monkeypatch, change, 'remote', 'uploads', *paths, command='settings') == 0
     assert UPLOADS.get() == [os.path.abspath('b')]
+
+
+@pytest.mark.parametrize("job", ["01J9-job", None])
+def test_fetch_follows_the_job_the_runs_manifest_names(
+        monkeypatch, fake_v1, client_credentials, nop_project, job):
+    '''The job is the manifest's `record,remoteid`, followed to its end and its results
+    kept in the manifest; a manifest naming none is refused before the server is asked.'''
+    from conftest import job_body, node_body
+
+    store().set_server(V1_URL.rsplit("/v1", 1)[0])
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(
+        "completed", nodes=[node_body("stepone", "completed"),
+                            node_body("steptwo", "completed")]))
+    fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
+    if job:
+        nop_project.set('record', 'remoteid', job)
+    nop_project.option.set_remote(True)
+    # What the scheduler writes as an interrupted run ends.
+    nop_project._record_history()
+    nop_project.write_manifest("gcd.pkg.json")
+
+    assert main(monkeypatch, 'fetch', 'gcd.pkg.json') == (0 if job else 1)
+
+    polled = [c for c in fake_v1.calls if c.request.path_url == "/v1/jobs/01J9-job"]
+    assert bool(polled) is bool(job)
+    # A finished run no longer asks to run remotely, in its record either.
+    fetched = type(nop_project).from_manifest(filepath="gcd.pkg.json")
+    assert fetched.option.get_remote() is not bool(job)
+    assert fetched.history("job0").option.get_remote() is not bool(job)

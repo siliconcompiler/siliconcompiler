@@ -2,6 +2,7 @@ import gzip
 import hashlib
 import io
 import tarfile
+import time
 
 from urllib.parse import urlsplit
 
@@ -110,6 +111,9 @@ def test_a_node_is_kept_when_it_finishes_and_the_job_once_it_does(
         server, api, dispatcher, tree):
     job, _ = tree
     write_progress(server, job, "running", {"stepone/0": "completed", "steptwo/0": "running"})
+    # Kept on a thread: the node reads terminal once they are listed.
+    while not api("GET", f"/v1/jobs/{job['id']}").get_json()["nodes"][0]["terminal"]:
+        time.sleep(0.05)
     first = listed(api, job)
     assert {(a["kind"], a["step"]) for a in first} == {("manifest", "stepone"),
                                                        ("logs", "stepone"),

@@ -46,13 +46,15 @@ class Storage:
     def verify(self, signature: str, *parts) -> bool:
         return hmac.compare_digest(self.sign(*parts), signature or "")
 
-    def receive(self, job_id: str, stream, size: int) -> None:
+    def receive(self, job_id: str, stream, size: int) -> str:
         '''Write one upload of exactly ``size`` bytes, counting what arrives:
         ``Content-Length`` is only the sender's claim. More raises OverflowError,
-        fewer ValueError.'''
+        fewer ValueError. Returns its digest, taken on the way in so the upload
+        is never read again for it.'''
         path = self.upload_path(job_id)
         # Renamed into place, so a half-received upload never looks complete.
         partial = path.with_name(path.name + ".part")
+        digest = hashlib.sha256()
         written = 0
         try:
             with open(partial, "wb") as f:
@@ -63,12 +65,14 @@ class Storage:
                     written += len(chunk)
                     if written > size:
                         raise OverflowError(f"the upload is past the {size} bytes it was granted")
+                    digest.update(chunk)
                     f.write(chunk)
             if written != size:
                 raise ValueError(f"the upload is {written} bytes and was granted {size}")
             os.replace(partial, path)
         finally:
             partial.unlink(missing_ok=True)
+        return f"sha256:{digest.hexdigest()}"
 
     def discard(self, job_id: str) -> None:
         self.upload_path(job_id).unlink(missing_ok=True)

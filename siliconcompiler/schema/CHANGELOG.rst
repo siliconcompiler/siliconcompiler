@@ -14,6 +14,12 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.57.3 — 2026-10-27
+===================
+- Rewrote the help and examples of ``option,credentials`` for the ``v1`` remote
+  client, whose store is ``~/.sc/auth/remote.json`` (no substantive parameter
+  change).
+
 0.57.2 — 2026-09-28
 ===================
 - Changed ``tool,<tool>,task,<task>,require`` from ``[str]`` to ``{str}`` so

@@ -512,10 +512,7 @@ class OptionSchema(BaseSchema):
                 uses ".sc/auth/remote.json" in the user's home directory, beside
                 the machine's key, "dpop-key.pem". It is written by "sc-config
                 remote configure". The directories a remote run may upload from
-                are not kept here but in the "remote uploads" setting. A
-                credentials file an older client wrote, such as
-                ".sc/credentials", is moved into the "auth" directory beside it
-                the first time it is read."""))
+                are not kept here but in the "remote uploads" setting."""))
 
         schema.insert(
             'cachedir',

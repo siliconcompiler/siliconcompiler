@@ -343,8 +343,11 @@ entry points are ``sc-config``, ``sc-issue``, ``sc-show``, ``sc-install`` and
        ``sc-config settings add remote uploads <dir>``
    * - ``sc-remote -cfg <manifest> -cancel``
      - The server's portal, opened by ``sc-config remote portal``, where a job
-       is followed, cancelled and deleted. ``-reconnect``, ``-delete`` and
-       ``-cfg <manifest>`` alone went the same way
+       is followed, cancelled and deleted. ``-delete`` and ``-cfg <manifest>``
+       alone went the same way
+   * - ``sc-remote -cfg <manifest> -reconnect``
+     - ``sc-config remote fetch <manifest>``, with the job directory's
+       manifest, ``<builddir>/<design>/<jobname>/<design>.pkg.json``
    * - ``python3 -m siliconcompiler.apps.utils.cleanup``
      - ``sc-config cache clean``, same arguments, except that ``-dryrun`` takes no
        value: drop a ``true`` after it

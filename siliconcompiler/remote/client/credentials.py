@@ -17,7 +17,6 @@ back a stale refresh token reads as reuse and ends the session.
 
 import contextlib
 import hashlib
-import json
 import logging
 import os
 import stat
@@ -29,15 +28,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import RemoteError
+from siliconcompiler.remote.client.transport import GIVE_UP_SECONDS, normalize_server
 from siliconcompiler.utils.multiprocessing import get_file_lock
 from siliconcompiler.utils.settings import (
     Setting, SettingsCategory, _make_directory, replace_file)
 
-__all__ = ["Credentials", "StoreError", "AUTH_DIRNAME", "STORE_FILENAME", "KEY_FILENAME",
+__all__ = ["Credentials", "StoreError", "STORE_FILENAME", "KEY_FILENAME",
            "CI_SECRET_VARIABLE", "parse_ci_secret"]
 
 
-AUTH_DIRNAME = "auth"
 AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
 
 STORE_FILENAME = "remote.json"
@@ -53,12 +52,9 @@ STORE_VERSION = 1
 _STORE = "store"        # version, server
 _SERVERS = "servers"    # each server's entry, by its URL
 
-# A refresh holds the store across its request, which may take 30 seconds.
-LOCK_SECONDS = 60
-
-# An older client's configuration file, moved into the store once and removed.
-_LEGACY_CONFIG = "credentials"
-_LEGACY_FIELDS = ("address", "port", "directory_whitelist")
+# A refresh holds the store across its token request: waiting for the store
+# outlasts that request giving up, so the waiter sees the holder's outcome.
+LOCK_SECONDS = GIVE_UP_SECONDS
 
 # The remote client's category in the user's settings.json.
 SETTINGS_CATEGORY = "remote"
@@ -104,15 +100,11 @@ class Credentials:
         return cls(Path(utils.default_credentials_file()))
 
     def __init__(self, path: Path):
-        '''``path`` is the store file, `option,credentials`; an older client's
-        configuration file there is moved into ``auth/`` beside it.'''
-        store, legacy = _resolve(Path(path))
+        '''``path`` is the store file, `option,credentials`.'''
         if os.environ.get(AUTH_DIR_VARIABLE):
-            # Often a runner's scratch, emptied after the job: nothing is moved into it.
-            store, legacy = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME, None
+            path = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
         self._selected: Optional[str] = None
-        self._open(store)
-        self._migrate(legacy)
+        self._open(path)
 
     def _open(self, path: Path) -> None:
         from siliconcompiler.utils.settings import SettingsManager
@@ -139,8 +131,6 @@ class Credentials:
     def select(self, server: Optional[str]) -> None:
         '''Act for ``server`` in this process without making it the default; None
         goes back to the default.'''
-        from siliconcompiler.remote.client.transport import normalize_server
-
         self._selected = normalize_server(server) if server else None
 
     def _entry(self, server: Optional[str] = None) -> Dict[str, Any]:
@@ -190,8 +180,6 @@ class Credentials:
 
     def set_server(self, server: str) -> None:
         '''Point this machine at a server; switching back finds its entry intact.'''
-        from siliconcompiler.remote.client.transport import normalize_server
-
         with self.transaction():
             self._store.set(_STORE, "server", normalize_server(server))
 
@@ -421,63 +409,6 @@ class Credentials:
     def _write(self, path: Path, payload: bytes) -> None:
         self._ensure_dir()
         replace_file(str(path), payload, _PRIVATE_FILE)
-
-    def _migrate(self, config: Optional[Path]) -> None:
-        '''Move an older client's server into the store, and its whitelist into
-        the `uploads` setting, once.'''
-        from siliconcompiler.remote.client.transport import normalize_server
-
-        if config is None:
-            return
-        values = _read_json(config)
-
-        with self.transaction():
-            if values.get("address") and not self.server:
-                self._store.set(_STORE, "server",
-                                normalize_server(values["address"], values.get("port")))
-        if values.get("directory_whitelist") and not UPLOADS.get():
-            UPLOADS.set(list(values["directory_whitelist"]))
-
-        config.unlink(missing_ok=True)
-        logger.info(f"Moved the remote configuration into {self.path}")
-
-
-def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
-    '''``(store file, legacy configuration to move in or None)`` for the path
-    `option,credentials` names. A legacy file's store is ``auth/remote.json``
-    beside it, which is also used once the file is gone.
-    '''
-    if given.exists():
-        if _is_legacy_config(given):
-            return given.parent / AUTH_DIRNAME / STORE_FILENAME, given
-        return given, None
-
-    beside = given.parent / AUTH_DIRNAME / STORE_FILENAME
-    if given.name != STORE_FILENAME and beside.exists():
-        logger.warning(f"{given} was moved into {beside}: point -credentials there")
-        return beside, None
-
-    # A store named directly may still have a legacy file above it to move in.
-    if given.parent.name == AUTH_DIRNAME:
-        old = given.parent.parent / _LEGACY_CONFIG
-        if old.exists() and _is_legacy_config(old):
-            return given, old
-    return given, None
-
-
-def _is_legacy_config(path: Path) -> bool:
-    '''Whether ``path`` is an older client's configuration file.'''
-    values = _read_json(path)
-    return bool(values) and _STORE not in values and \
-        any(name in values for name in _LEGACY_FIELDS)
-
-
-def _read_json(path: Path) -> Dict[str, Any]:
-    try:
-        value = json.loads(Path(path).read_text() or "{}")
-    except (OSError, ValueError):
-        return {}
-    return value if isinstance(value, dict) else {}
 
 
 def parse_ci_secret(secret: str):

@@ -89,18 +89,17 @@ def no_wait(monkeypatch):
 @pytest.mark.parametrize("reason", ["expired", "a-reason-from-a-later-server"])
 def test_an_ended_stream_reconnects_with_the_last_event_id(logged_in, fake_v1, no_wait,
                                                            reason):
-    '''An `end` other than `terminal` ends this connection: ask `/logs`
-    again and hand the last id to the new stream, never to `/logs`.'''
+    '''An `end` other than `terminal` ends this connection: ask `/logs` again and
+    hand it the last id as well as the new stream, since a server may stream it itself.'''
     stream(fake_v1, 1, sse(log("7", "one\n"), end(reason)))
     stream(fake_v1, 2, sse(log("8", "two\n"), end("terminal")))
 
     assert follow(logged_in) == "one\ntwo\n"
 
-    assert len(asked_logs(fake_v1)) == 2
-    assert not [c for c in asked_logs(fake_v1) if "Last-Event-ID" in c.request.headers]
+    for first, second in (asked_logs(fake_v1), streams(fake_v1)):
+        assert "Last-Event-ID" not in first.request.headers
+        assert second.request.headers["Last-Event-ID"] == "7"
     first, second = streams(fake_v1)
-    assert "Last-Event-ID" not in first.request.headers
-    assert second.request.headers["Last-Event-ID"] == "7"
     assert first.request.url != second.request.url
 
 

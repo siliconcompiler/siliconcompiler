@@ -10,6 +10,8 @@ import shlex
 import signal
 import subprocess
 import sys
+import threading
+import time
 
 from pathlib import Path
 
@@ -21,6 +23,9 @@ logger = logging.getLogger("sc-server")
 
 # Scheduler commands run inside requests, so a wedged controller must not stall one.
 COMMAND_TIMEOUT = 20
+
+# How long Slurm's answer about whether a job is alive stands.
+ALIVE_SECONDS = 5
 
 RUN_LOG = "sc-server-run.log"
 
@@ -91,6 +96,12 @@ class SlurmDispatcher(Dispatcher):
     '''``sbatch`` it, and ask ``squeue`` about it. The batch job orchestrates:
     it submits each node as a job of its own.'''
 
+    def __init__(self):
+        # Scheduler id -> (when asked, alive): every read of a job asks, and a
+        # client polls each second.
+        self._asked = {}
+        self._lock = threading.Lock()
+
     def submit(self, job_id: str, jobroot: Path, manifest: Path) -> str:
         script = jobroot / "sc-server-run.sh"
         script.write_text(
@@ -109,6 +120,24 @@ class SlurmDispatcher(Dispatcher):
         return completed.stdout.strip().split(";")[0]
 
     def is_alive(self, scheduler_job_id: str) -> bool:
+        '''Asked of Slurm at most once every ``ALIVE_SECONDS`` per job, however many
+        reads want it. A stale answer is safe: alive only delays a job's end, and a
+        job that is gone stays gone.'''
+        with self._lock:
+            now = time.monotonic()
+            self._asked = {key: asked for key, asked in self._asked.items()
+                           if now - asked[0] < ALIVE_SECONDS}
+            if scheduler_job_id in self._asked:
+                return self._asked[scheduler_job_id][1]
+            # Claimed before asking: a read meanwhile is told alive, which ends nothing.
+            self._asked[scheduler_job_id] = (now, True)
+
+        alive = self._ask(scheduler_job_id)
+        with self._lock:
+            self._asked[scheduler_job_id] = (time.monotonic(), alive)
+        return alive
+
+    def _ask(self, scheduler_job_id: str) -> bool:
         queued = _run(["squeue", "-h", "-j", scheduler_job_id, "-o", "%T"])
         if queued.returncode == 0 and queued.stdout.strip():
             return True

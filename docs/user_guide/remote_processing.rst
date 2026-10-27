@@ -86,11 +86,12 @@ your own:
 ``remote.json``
   The store: which server is the default, and for each server you have
   configured, your session with it -- the id it knows you by, its refresh
-  token, or a CI credential in place of one -- any headers an operator's
-  access layer requires, and the authority it is verified with, if one of your
-  own. :keypath:`option,credentials` names this file. No access token is
-  written down, so every command, ``sc-config remote show`` included, spends
-  the refresh token once. ``sc-config remote show`` reports the session this
+  token and its access token until that expires, or a CI credential in place
+  of them -- any headers an operator's access layer requires, and the
+  authority it is verified with, if one of your own.
+  :keypath:`option,credentials` names this file. A command reads with the
+  stored access token while it lasts, and spends the refresh token only once
+  it has expired. ``sc-config remote show`` reports the session this
   machine holds -- its scope, the device it is bound to, and when its tokens
   and the session itself end -- as the server reports it.
 
@@ -100,10 +101,7 @@ your own:
 
 The headers are configured once, for the server, and sent to its address and
 nowhere else: a live log or a download arrives through the server's own
-address, or from somewhere that needs none. A ``$HOME/.sc/credentials`` file an
-older client wrote, and the files it kept beside it, are moved into
-``remote.json`` the first time it is read, and its upload whitelist into the
-``uploads`` setting.
+address, or from somewhere that needs none.
 
 Two settings are not secrets, and live in ``$HOME/.sc/settings.json`` instead,
 in its ``remote`` category, changed with :ref:`sc-config settings <app-sc-config>`:
@@ -461,6 +459,16 @@ Interrupting a run with ``Ctrl-C`` disconnects from it without stopping it: the
 job keeps running on the server, and you follow, cancel or delete it in the
 portal. A run interrupted before its job was submitted cancels the job, since
 nothing else would submit it.
+
+To bring the results of a job you disconnected from into its build directory,
+or of one whose run lost the server for longer than it waits, point
+``sc-config remote fetch`` at the manifest the run wrote as it ended, which
+names the job. It follows the job to its end, as the run would have, and keeps
+what it fetched in that manifest:
+
+.. code-block:: bash
+
+  sc-config remote fetch build/heartbeat/job0/heartbeat.pkg.json
 
 A job whose submit is refused -- a terms document to accept, or an account to
 be provisioned -- is cancelled the same way: once that is done, run the flow

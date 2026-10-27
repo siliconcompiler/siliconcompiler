@@ -8,15 +8,19 @@ import re
 
 from typing import Any, Dict, Optional
 
-__all__ = ["RemoteError", "RemoteTimeout", "ServerProblem", "SessionEnded", "describe",
-           "NO_NODE_FAILED", "clean", "listed"]
+__all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
+           "describe", "NO_NODE_FAILED", "clean", "listed"]
 
 
 class RemoteError(Exception):
     '''Something the client itself could not do.'''
 
 
-class RemoteTimeout(RemoteError, TimeoutError):
+class Unreachable(RemoteError):
+    '''The request did not reach the server, or its answer never came back.'''
+
+
+class RemoteTimeout(Unreachable, TimeoutError):
     '''The server did not answer in time.'''
 
 
