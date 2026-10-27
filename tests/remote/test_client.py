@@ -13,7 +13,7 @@ from unittest import mock
 from siliconcompiler.remote import (
     Client, Credentials, RemoteError, ServerProblem)
 from siliconcompiler.remote.client import cli
-from siliconcompiler.remote.client.errors import TYPE_BASE
+from siliconcompiler.remote.client.errors import REGISTERED, TYPE_BASE
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
 from conftest import V1_URL, asked_for_pages, claims, form, grants, problem
@@ -401,19 +401,29 @@ def test_the_subject_derivation_is_pinned():
     assert source == "linux_machine_id"
 
 
-def test_a_first_command_enrolls_and_the_next_refreshes(
-        fake_v1, tmp_credentials, client_credentials):
-    '''`client_credentials` mints a new twelve-day token family each call,
-    so a later process must use `refresh_token` -- and send no scope.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
+@pytest.mark.parametrize("lifetime,later", [
+    (900, ["client_credentials"]),
+    (1, ["client_credentials", "refresh_token"]),
+], ids=["unexpired-token-is-read-with", "expired-token-refreshes"])
+def test_a_first_command_enrolls_and_the_next_reads_with_its_token_or_refreshes(
+        fake_v1, tmp_credentials, client_credentials, lifetime, later):
+    '''`client_credentials` mints a new twelve-day token family each call, so a later
+    process reads `/me` with the access token the store kept until it expires, and
+    refreshes -- sending no scope -- only after, rather than rotating the pair for nothing.'''
+    fake_v1.route(responses.POST, "auth/token", dict(client_credentials, expires_in=lifetime))
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     Client(tmp_credentials).me()
     Client(Credentials(tmp_credentials.path)).me()
 
-    assert grants(fake_v1) == ["client_credentials", "refresh_token"]
-    refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
-    assert "scope" not in form(refresh.body)
+    assert grants(fake_v1) == later
+    reads = [c.request for c in fake_v1.calls if c.request.method == "GET"
+             and c.request.path_url.endswith("/me")]
+    kept = "DPoP access-token-one"
+    assert [read.headers["Authorization"] for read in reads] == [kept, kept]
+    if len(later) > 1:
+        refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
+        assert "scope" not in form(refresh.body)
 
 
 ME = {"id": "u1", "issuer": "local"}
@@ -458,7 +468,7 @@ def _nonce(slug, number, **headers):
                  id="refused-again"),
     pytest.param(dict(queue=[_problem("a-type-from-later", 401,
                                       {"WWW-Authenticate": 'DPoP error="a_challenge_from_later"'})],
-                      outcome="a-type-from-later", said=['error="a_challenge_from_later"'],
+                      outcome=None, said=['error="a_challenge_from_later"'],
                       grants=[ENROLL]), id="unknown-challenge"),
     # The refresh token is the session that ended: log in again, never refresh.
     pytest.param(dict(queue=[_problem("session-ended", 401, reason="revoked"), _me()],
@@ -474,6 +484,16 @@ def _nonce(slug, number, **headers):
     pytest.param(dict(queue=[_problem("invalid-dpop-proof", 401)],
                       outcome="invalid-dpop-proof", grants=[ENROLL], unsaid=["clock is"]),
                  id="proof-clock-unknown"),
+    # The clock is corrected and the request repeated whichever way the 401 says so.
+    pytest.param(dict(queue=[(responses.GET, "me", {"error": "invalid_dpop_proof"}, 401,
+                              "application/json", None), _me()],
+                      offset=330, grants=[ENROLL], said=[r"5m \d\ds behind"]),
+                 id="proof-clock-oauth-body"),
+    pytest.param(dict(queue=[(responses.GET, "me", "", 401, "text/plain",
+                              {"WWW-Authenticate": 'DPoP error="invalid_dpop_proof"'}),
+                             _me()],
+                      offset=330, grants=[ENROLL], said=[r"5m \d\ds behind"]),
+                 id="proof-clock-challenge-only"),
     # A client that only refreshes loops on a nonce for ever; the nonce is sent once.
     pytest.param(dict(queue=[_nonce("dpop-nonce-required", "api-nonce"), _me()],
                       grants=[ENROLL], nonces=("/v1/me", [None, "api-nonce"])),
@@ -545,7 +565,7 @@ def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
             call()
             said = caplog.text
             assert tmp_credentials.refresh_token == "refresh-token-one"
-            assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+            assert tmp_credentials.access_token()[0] == client.transport.access_token is not None
         else:
             with pytest.raises(RemoteError) as raised:
                 call()
@@ -636,6 +656,7 @@ def test_a_refusal_renders_without_opening_a_url(body, status, extra, said, unsa
     rendered = str(refusal)
     slug = body.get("type", "")[len(TYPE_BASE):] if body.get("type", "").startswith(
         TYPE_BASE) else None
+    slug = slug if slug in REGISTERED else None
 
     assert refusal.slug == slug
     for name in set(body) - {"type", "title", "status"}:

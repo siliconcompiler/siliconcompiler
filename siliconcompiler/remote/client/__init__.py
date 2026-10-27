@@ -41,6 +41,10 @@ GRANT_TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 
 CI_EXPIRY_WARNING_SECONDS = 7 * 86400
 
+# How long a refused create or submit waits for a person to sign, and how often it looks.
+TERMS_WAIT_SECONDS = 600
+TERMS_POLL_SECONDS = 5
+
 ROTATE_COMMAND = "sc-config remote rotate-key"
 
 # Named on every create by a CI credential bound to a project.
@@ -145,20 +149,30 @@ class Client:
                 if e.error != "unsupported_grant_type":
                     raise self._refused(e) from None
                 tried.add(mode)
-                self.transport.forget_published()
+                self._grants_were_stale()
             else:
                 return self._granted(body)
 
     def _grant_types(self) -> List[str]:
-        '''What `GET /v1` offers.'''
-        return list(self.capabilities().get("grant_types_supported") or [])
+        '''What this server offers, as kept beside its credential, else what `GET /v1` says.'''
+        kept = self.credentials.grants()
+        if kept is not None:
+            return kept
+        offered = list(self.capabilities().get("grant_types_supported") or [])
+        self.credentials.save_grants(offered)
+        return offered
+
+    def _grants_were_stale(self) -> None:
+        '''`unsupported_grant_type` says the kept answer is old: drop it, and `GET /v1`.'''
+        self.credentials.save_grants(None)
+        self.transport.forget_published()
 
     def _ci_login(self) -> Dict[str, Any]:
         '''Token exchange for a CI key, retried once if `GET /v1` offers it after
         `unsupported_grant_type`. Never falls back to another grant.'''
         for reread in (False, True):
             if reread:
-                self.transport.forget_published()
+                self._grants_were_stale()
                 if GRANT_TOKEN_EXCHANGE not in self._grant_types():
                     break
             try:
@@ -443,7 +457,8 @@ class Client:
         '''Open a URL a person must act on: `https`, or `http` where nobody is authenticated.'''
         scheme = urlsplit(url or "").scheme
         if scheme != "https" and not (scheme == "http" and self._unauthenticated()):
-            self.logger.warning(f"Not opening {what}: {clean(url)} is not an https URL")
+            # Without the URL: a sign-in link is a bearer secret, and is printed only by `_show`.
+            self.logger.warning(f"Not opening {what}: its URL is not an https URL")
             return False
         if not BROWSER.get() or (require_tty and not sys.stdout.isatty()):
             return False
@@ -620,23 +635,47 @@ class Client:
                 self.logger.warning(f"Waiting: this server's {named}limit is "
                                     "reached, and it refills.")
 
-        try:
-            return retrying(send, lambda e: e.slug == "limit-exceeded", notice=say)
-        except ServerProblem as e:
-            if e.slug == "terms-not-accepted":
-                self._to_sign(e)
-            raise
+        signed = False
+        while True:
+            try:
+                return retrying(send, lambda e: e.slug == "limit-exceeded", notice=say)
+            except ServerProblem as e:
+                if e.slug != "terms-not-accepted":
+                    raise
+                # Once: a second refusal after the person signed is the answer.
+                if signed or not self._to_sign(e) or not self._signed(e.member("blocked_by")):
+                    raise
+                signed = True
 
-    def _to_sign(self, refusal: ServerProblem) -> None:
+    def _to_sign(self, refusal: ServerProblem) -> bool:
         '''Name each document a `terms-not-accepted` refusal blocks by its title,
-        and open its page where a person can see it. Never accepted here.'''
+        and open its page where a person can see it; whether any opened. Never
+        accepted here.'''
         blocked = refusal.member("blocked_by")
         if not isinstance(blocked, list) or not blocked:
-            return
+            return False
 
         titles = self.terms_titles()
-        self.open_terms(blocked, titles)
+        opened = self.open_terms(blocked, titles)
         refusal.titles = titles or None
+        return opened
+
+    def _signed(self, blocked) -> bool:
+        '''Wait, for a bounded time, until the person has accepted each of the
+        `terms` ids in ``blocked``; whether they did.'''
+        self.logger.info("Waiting for you to sign the document(s) in your browser, "
+                         "then this continues.")
+        for _ in range(TERMS_WAIT_SECONDS // TERMS_POLL_SECONDS):
+            time.sleep(TERMS_POLL_SECONDS)
+            try:
+                terms = self.me(remind=False).get("terms") or []
+            except RemoteError:
+                return False
+            accepted = {entry.get("id") for entry in terms
+                        if isinstance(entry, dict) and entry.get("accepted_at")}
+            if all(terms_id in accepted for terms_id in blocked):
+                return True
+        return False
 
     def terms_titles(self) -> Dict[str, str]:
         '''Each terms document's title by its id, from `GET /v1/me`, read once;
@@ -650,15 +689,17 @@ class Client:
                             if isinstance(entry, dict) and entry.get("title")}
         return self._titles
 
-    def open_terms(self, blocked, titles: Dict[str, str]) -> None:
+    def open_terms(self, blocked, titles: Dict[str, str]) -> bool:
         '''Open each `terms` id's page, named by its title, where a person is
-        plausibly here to see it. Never accepted here.'''
+        plausibly here to see it; whether any opened. Never accepted here.'''
         if not self.may_open():
-            return
+            return False
+        opened = False
         for terms_id in blocked:
             if isinstance(terms_id, str) and terms_id:
                 title = clean(titles.get(terms_id) or terms_id)
-                self.open_page(f"{title}'s page", terms_id=terms_id)
+                opened = self.open_page(f"{title}'s page", terms_id=terms_id) or opened
+        return opened
 
     def job(self, job_id: str) -> tuple:
         '''``GET /v1/jobs/{id}``, and the `Retry-After` interval, read per response.'''

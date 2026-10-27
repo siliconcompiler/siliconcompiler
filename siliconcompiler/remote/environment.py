@@ -24,14 +24,20 @@ from packaging.utils import InvalidWheelFilename, parse_wheel_filename
 from packaging.utils import canonicalize_name as canonical
 from packaging.version import InvalidVersion, Version
 
-__all__ = ["MAX_BYTES", "MAX_ENTRIES", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
+__all__ = ["MAX_BYTES", "MAX_ENTRIES", "MAX_REQUESTED_NAMES", "MAX_REQUESTED_SETS",
+           "MAX_REQUESTED_SET_LENGTH", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
            "PackagesError", "WheelError", "Pin", "Packages", "Wheel", "canonical",
-           "parse_entry", "parse", "render", "site_path", "wheel_name",
-           "check_wheel"]
+           "parse_entry", "parse", "check_requested_versions", "render", "site_path",
+           "wheel_name", "check_wheel"]
 
 
 MAX_BYTES = 64 * 1024
 MAX_ENTRIES = 1000
+
+# `requested_versions`, across its buckets: names, specifier sets, and one set's length.
+MAX_REQUESTED_NAMES = 500
+MAX_REQUESTED_SETS = 1000
+MAX_REQUESTED_SET_LENGTH = 200
 
 # The wheels' folder under the collection directory: unhashed, so it collides
 # with no other collected folder.
@@ -165,6 +171,24 @@ def parse(member: Any) -> Packages:
             pins.append(pin)
         parsed[field] = tuple(pins)
     return Packages(parsed["requirements"], parsed["constraints"])
+
+
+def check_requested_versions(requested: dict) -> None:
+    '''`requested_versions`, held to the bounds a create is refused past. Raises
+    PackagesError naming the bound.'''
+    names = sum(len(bucket) for bucket in requested.values())
+    if names > MAX_REQUESTED_NAMES:
+        raise PackagesError(f"requested_versions names {names} packages and tools, and at "
+                            f"most {MAX_REQUESTED_NAMES} are taken")
+    sets = [spec for bucket in requested.values() for specs in bucket.values()
+            for spec in specs]
+    if len(sets) > MAX_REQUESTED_SETS:
+        raise PackagesError(f"requested_versions holds {len(sets)} specifier sets, and at "
+                            f"most {MAX_REQUESTED_SETS} are taken")
+    for spec in sets:
+        if len(spec) > MAX_REQUESTED_SET_LENGTH:
+            raise PackagesError(f"a specifier set is {len(spec)} characters, and at most "
+                                f"{MAX_REQUESTED_SET_LENGTH} are taken", spec[:40] + "...")
 
 
 def render(pins: Sequence[Pin], header: str = "") -> str:

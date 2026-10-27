@@ -4,11 +4,11 @@ import logging
 import pytest
 import responses
 
-from conftest import asked_for_pages, problem, refused
+from conftest import asked_for_pages, creates, problem, refused
 
 from siliconcompiler.remote import ServerProblem
 from siliconcompiler.remote.client import OAuthRefusal, cli
-from siliconcompiler.remote.client.errors import clean, describe
+from siliconcompiler.remote.client.errors import REGISTERED, clean, describe
 
 
 # The client half of the v1 API's behaviour tests that the rest of the suite
@@ -93,7 +93,43 @@ def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
     assert logged_in.open_url("http://portal.test/approve", "the page") is False
 
     assert opened == []
-    assert "http://portal.test/approve" in caplog.text
+    assert "not an https URL" in caplog.text
+    assert "portal.test" not in caplog.text
+
+
+def test_a_single_use_sign_in_url_is_printed_where_no_browser_opened_and_never_logged(
+        logged_in, fake_v1, capabilities, monkeypatch, capsys, caplog):
+    '''Not opened as it is not https, so the warning names no URL and the terminal
+    gets it once.'''
+    url = "http://portal.test/enter?token=single-use-secret"
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda target: opened.append(target) or True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    fake_v1.replace(responses.GET, "", {**capabilities, "grant_types_supported": [
+        "urn:ietf:params:oauth:grant-type:device_code"]})
+
+    assert logged_in._show({"url": url, "expires_at": "2026-10-01T18:04:30Z"},
+                           "the page") is False
+
+    assert opened == []
+    assert "single-use-secret" not in caplog.text
+    assert capsys.readouterr().out.count(url) == 1
+
+
+def test_the_clients_registry_is_the_error_pages_the_deployment_serves():
+    '''A `type` outside what the client knows is acted on as an untyped failure, so a
+    slug missing here would be waited out wrongly and one extra would be trusted.'''
+    from pathlib import Path
+
+    import siliconcompiler.remote as remote
+
+    pages = Path(remote.__file__).parent / "server" / "errorpages"
+    served = {page.stem for page in pages.glob("*.html")
+              if not page.name.startswith("_") and page.stem != "index"}
+
+    assert REGISTERED == served
+    assert ServerProblem(problem("rate-limited", 429), 429).slug == "rate-limited"
+    assert ServerProblem(problem("brand-new-limit", 429), 429).slug is None
 
 
 def terms_refusal(fake_v1):
@@ -116,6 +152,7 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("sys.stdout.isatty", lambda: tty)
+    monkeypatch.setattr("siliconcompiler.remote.client.time.sleep", lambda seconds: None)
     monkeypatch.delenv("CI", raising=False)
     terms_refusal(fake_v1)
 
@@ -134,6 +171,52 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
     else:
         assert asked_for_pages(fake_v1) == [] and opened == []
     assert not [c for c in fake_v1.calls if "accept" in c.request.url]
+
+
+@pytest.mark.parametrize("tty,signed,creates_sent", [
+    (True, True, 2), (True, False, 1), (False, True, 1),
+], ids=["signed-then-retried", "never-signed", "nobody-there"])
+def test_a_terms_refusal_is_retried_once_after_the_person_signs(
+        logged_in, fake_v1, monkeypatch, tty, signed, creates_sent):
+    '''The registry's client action: open each page, then retry. It waits for the
+    documents to read as accepted in `GET /v1/me`, and sends the create once more,
+    under the same key; off a terminal nobody is there to sign, so it does not.'''
+    monkeypatch.setattr("webbrowser.open", lambda url: True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: tty)
+    monkeypatch.setattr("siliconcompiler.remote.client.time.sleep", lambda seconds: None)
+    monkeypatch.delenv("CI", raising=False)
+    refused(fake_v1, responses.POST, "jobs", "terms-not-accepted", 403, blocked_by=["tos"])
+    fake_v1.route(responses.POST, "jobs", {"id": "job-1"}, status=201)
+    fake_v1.route(responses.POST, "auth/browser", {"url": "https://portal.test/enter",
+                                                   "expires_at": "2026-10-01T18:04:30Z"})
+    # Read for the title, then once while waiting: only then is the document signed.
+    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [{"id": "tos", "title": "Terms"}]})
+    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [{"id": "tos", "title": "Terms"}]})
+    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
+        {"id": "tos", "title": "Terms", "accepted_at": "2026-10-01T18:00:00Z" if signed
+         else None}]})
+
+    if creates_sent == 2:
+        assert logged_in.create_job(design="gcd", jobname="job0")["id"] == "job-1"
+        keys = {c.request.headers["Idempotency-Key"] for c in creates(fake_v1)}
+        assert len(keys) == 1
+    else:
+        with pytest.raises(ServerProblem, match="sign Terms"):
+            logged_in.create_job(design="gcd", jobname="job0")
+    assert len(creates(fake_v1)) == creates_sent
+
+
+def test_a_presigned_url_is_not_logged_by_the_http_library_at_debug(caplog):
+    '''urllib3's request line carries the path and query, a signature included.'''
+    pool = logging.getLogger("urllib3.connectionpool")
+    caplog.set_level(logging.DEBUG)
+
+    pool.debug('%s://%s:%s "%s %s %s" %s %s', "https", "storage.test", 443, "PUT",
+               "/obj?X-Amz-Signature=secret", "HTTP/1.1", 200, 0)
+    pool.warning("Retrying (Retry(total=2)) after connection broken")
+
+    assert "X-Amz-Signature" not in caplog.text
+    assert "Retrying" in caplog.text
 
 
 def test_the_stream_url_is_never_printed(logged_in, fake_v1, caplog):

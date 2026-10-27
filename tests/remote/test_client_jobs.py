@@ -11,7 +11,7 @@ from siliconcompiler.remote.client.run import RemoteRun, node_status
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from conftest import (
-    job_body, node_body, problem, put_body, refused, route_created, route_granted,
+    creates, job_body, node_body, problem, put_body, refused, route_created, route_granted,
     route_submitted, routes_for_a_submit)
 
 
@@ -484,6 +484,7 @@ def _problem(method, path, slug, status, headers=None, **members):
 
 GET, POST = responses.GET, responses.POST
 JOB = "jobs/01J9-job"
+GRANT = "jobs/01J9-job/upload-grant"
 HTML = "<html><body><h1>502 Bad Gateway</h1></body></html>"
 DONE = _answer(GET, JOB, job_body("completed"))
 
@@ -518,6 +519,24 @@ DONE = _answer(GET, JOB, job_body("completed"))
     pytest.param(dict(call="job", queue=[_answer(GET, JOB, "<html>later</html>", 404,
                                                  "text/html")],
                       outcome="ServerProblem", status=404, slept=[]), id="html-404-answered"),
+    # A type outside the registry is untyped: a wait is honoured only where it is named.
+    pytest.param(dict(call="job", queue=[_problem(GET, JOB, "brand-new-limit", 429,
+                                                  {"Retry-After": "2"}), DONE],
+                      slept=[2.0]), id="unknown-type-429-waited"),
+    pytest.param(dict(call="job", queue=[_problem(GET, JOB, "brand-new-outage", 503,
+                                                  {"Retry-After": "2"}), DONE],
+                      slept=[2.0]), id="unknown-type-5xx-waited"),
+    pytest.param(dict(call="job", queue=[_problem(GET, JOB, "brand-new-limit", 429)],
+                      outcome="ServerProblem", status=429, slept=[]),
+                 id="unknown-type-429-no-wait-named"),
+    # Not keyed, but repeating it is safe: a wait the 5xx names is honoured.
+    pytest.param(dict(call="grant", queue=[
+        _answer(POST, GRANT, HTML, 503, "text/html", {"Retry-After": "3"}),
+        _answer(POST, GRANT, {"url": "https://storage.test/put", "headers": {}})],
+        slept=[3.0], asked=("/v1/" + GRANT, 2)), id="unkeyed-post-5xx-waited"),
+    pytest.param(dict(call="grant", queue=[_answer(POST, GRANT, HTML, 503, "text/html")],
+                      outcome="ServerProblem", status=503, slept=[],
+                      asked=("/v1/" + GRANT, 1)), id="unkeyed-post-5xx-no-wait-named"),
     # A keyed create replays, so a 5xx or a dropped connection is retried with its key.
     pytest.param(dict(call="create", queue=[_answer(POST, "jobs", HTML, 502, "text/html")],
                       outcome="ServerProblem", status=502, said=["502"],
@@ -573,6 +592,7 @@ def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
     call = {"me": client.me, "create": lambda: client.create_job("gcd", "job0"),
             "artifact": lambda: client.fetch_artifact("J", "A", "a.bin"),
             "job": lambda: client.job("01J9-job")[0]["state"],
+            "grant": lambda: client.upload_grant("01J9-job", 1, "sha256:" + "0" * 64),
             "poll": lambda: run._poll("01J9-job")}[case["call"]]
 
     with caplog.at_level("WARNING"):
@@ -602,7 +622,7 @@ def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
         path, count = case["asked"]
         sent = [c.request for c in fake_v1.calls if c.request.path_url == path]
         assert len(sent) == count
-        if sent[0].method == "POST":
+        if sent[0].method == "POST" and "Idempotency-Key" in sent[0].headers:
             assert len({r.headers["Idempotency-Key"] for r in sent}) == 1
 
 
@@ -1453,6 +1473,73 @@ def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, s
 
     assert all(line in str(raised.value) for line in said), str(raised.value)
     assert not any("upload-grant" in call.request.url for call in fake_v1.calls)
+
+
+@pytest.mark.parametrize("software,versions,said", [
+    # A requirement the map meets, or a bucket it does not publish, is not for the client to refuse.
+    ({"python": {"siliconcompiler": ["1.0.0", "1.1.0"]}},
+     {"python": {"siliconcompiler": ["==1.1.*"]}}, []),
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"tools": {"yosys": ["==1.0"]}}, []),
+    ({"tools": {"yosys": ["0.40"]}}, {"tools": {"yosys": []}}, []),
+    ({"python": {"Scfake_Data": ["2.0"]}}, {"python": {"scfake-data": ["==2.0"]}}, []),
+    # What it cannot meet, in each bucket, said together.
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"siliconcompiler": ["==2.0.0"]}},
+     ["Python package siliconcompiler ==2.0.0 (offered: 1.0.0)"]),
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"cocotb": []}},
+     ["no Python package cocotb here (offered: siliconcompiler)"]),
+    ({"tools": {"openroad": ["2.0.1"]}}, {"tools": {"yosys": [], "openroad": [">=3", "<1"]}},
+     ["no tool yosys here", "tool openroad >=3 or <1 (offered: 2.0.1)"]),
+    ({"interpreter": {"python": ["3.12.4"]}}, {"interpreter": {"python": ["==3.14.*"]}},
+     ["interpreter python ==3.14.* (offered: 3.12.4)"]),
+], ids=["met", "bucket-unpublished", "any-version", "name-normalised", "version-unmet",
+        "python-name-unheld", "tools-unmet", "interpreter-unmet"])
+def test_a_requirement_the_published_software_cannot_meet_stops_the_run_before_create(
+        fake_v1, run, capabilities, software_preflight, software, versions, said):
+    '''`GET /v1`'s `software` is compared with the run's requirements before wheels
+    are built and before a job exists; the server's answer at create stays binding.'''
+    fake_v1.replace(responses.GET, "", dict(capabilities, software=software))
+
+    if not said:
+        run._check_requested(versions)
+        return
+    with pytest.raises(RemoteError) as raised:
+        run._check_requested(versions)
+
+    assert all(line in str(raised.value) for line in said), str(raised.value)
+    assert "nothing was created or uploaded" in str(raised.value)
+
+
+def test_a_run_the_published_software_cannot_run_creates_no_job(
+        fake_v1, run, capabilities, software_preflight, caplog):
+    '''The whole path: this machine's SiliconCompiler is not a version offered.'''
+    fake_v1.replace(responses.GET, "", dict(
+        capabilities, software={"python": {"siliconcompiler": ["0.0.1"]}, "tools": {}}))
+
+    with pytest.raises(RemoteError, match="Python package siliconcompiler"):
+        run._start()
+
+    assert not creates(fake_v1)
+
+
+@pytest.mark.parametrize("versions,said", [
+    ({"python": {f"pkg{n}": [] for n in range(500)}}, None),
+    ({"python": {f"pkg{n}": [] for n in range(501)}}, "501 packages and tools"),
+    ({"python": {f"pkg{n}": [] for n in range(300)}, "tools": {f"t{n}": [] for n in range(201)}},
+     "501 packages and tools"),
+    ({"python": {"a": [f"=={n}" for n in range(1000)]}}, None),
+    ({"python": {"a": [f"=={n}" for n in range(500)]},
+      "tools": {"b": [f"=={n}" for n in range(501)]}}, "1001 specifier sets"),
+    ({"tools": {"a": ["==" + "1" * 198]}}, None),
+    ({"tools": {"a": ["==" + "1" * 199]}}, "201 characters"),
+], ids=["names-at-bound", "names-over", "names-across-buckets", "sets-at-bound", "sets-over",
+        "length-at-bound", "length-over"])
+def test_requested_versions_is_held_to_its_bounds_before_create(run, versions, said):
+    '''At most 500 names and 1,000 specifier sets across the buckets, each 200 characters.'''
+    if said is None:
+        run._check_requested(versions)
+        return
+    with pytest.raises(RemoteError, match=said):
+        run._check_requested(versions)
 
 
 @pytest.mark.parametrize("reason,detail,said", [
