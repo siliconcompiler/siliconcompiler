@@ -821,7 +821,7 @@ is a token to ask with. The JSON body names the page, with at most one member:
 .. code-block:: json
 
   {"job_id": "01J9..."}       // the job's page
-  {"terms_id": "gf12-nda"}    // a terms document's page, to read and decide
+  {"terms_id": "acme-nda"}    // a terms document's page, to read and decide
   {"artifact_id": "01J9..."}  // asking for an artifact's approval
   {}                          // the portal's home
 
@@ -971,8 +971,8 @@ the server decides again at every gate.
       {"slug": "tapeout-alpha", "name": "Tapeout Alpha", "role": "owner",  // "owner" | "member"
        "archived_at": null}],          //   REQUIRED, nullable
     "authorized": {                    // OPTIONAL. Absent, never {}, where there are no grants
-      "pdks": [{"name": "gf12", "expires_at": "2027-01-01T00:00:00Z",
-                "blocked_by": ["gf12-nda"],     // OPTIONAL. Unaccepted agreements, by terms id
+      "pdks": [{"name": "acme", "expires_at": "2027-01-01T00:00:00Z",
+                "blocked_by": ["acme-nda"],     // OPTIONAL. Unaccepted agreements, by terms id
                 "via": ["self", "project:tapeout-alpha"]}],
       "tools":        [],
       "libraries":    [],
@@ -992,8 +992,8 @@ the server decides again at every gate.
     "usage": {                         // REQUIRED. Reported, not enforced, but concurrent_jobs
       "compute_seconds": {"used": 18000, "total": 972000, "limit": 360000,
                           "window": "calendar_month", "resets_at": "2026-11-01T00:00:00Z"},
-      "license_seconds": {"vcs": {"used": 3600, "total": null, "limit": null,
-                                  "window": "calendar_month", "resets_at": "2026-11-01T00:00:00Z"}},
+      "license_seconds": {"acme_sim": {"used": 3600, "total": null, "limit": null,
+                                       "window": "calendar_month", "resets_at": "2026-11-01T00:00:00Z"}},
       "storage_bytes":   {"used": 5368709120, "total": null, "limit": null,
                           "window": null, "resets_at": null},
       "concurrent_jobs": 0
@@ -1010,9 +1010,9 @@ the server decides again at every gate.
     "blocked_type": "https://siliconcompiler.com/server-errors/terms-not-accepted",
                                        // OPTIONAL. Only while can_submit is false
     "terms": [                         // REQUIRED. [] for none
-      {"id": "gf12-nda",               // opaque; never branched on
-       "title": "GF12 PDK NDA",        // display only
-       "scope": {"applies_to": "resource", "resources": {"pdks": ["gf12"]}},
+      {"id": "acme-nda",               // opaque; never branched on
+       "title": "Acme PDK NDA",        // display only
+       "scope": {"applies_to": "resource", "resources": {"pdks": ["acme"]}},
                                        // "service", or "resource" with resources
        "version": "2026-05-01",
        "accepted_at": null,            // nullable
@@ -1812,7 +1812,7 @@ A job's results, filterable by ``kind``, ``step`` and ``index``, and paginated.
      "deleted_reason": null,               // REQUIRED, nullable. Prose, where a person removed it
      "fetchable":      true,               // REQUIRED. For this caller; never cached across callers
      "access_requested_at": null,          // REQUIRED, nullable. The caller's pending request
-     "blocked_by":     ["gf12-nda"],       // OPTIONAL. Unaccepted agreements, by terms id
+     "blocked_by":     ["acme-nda"],       // OPTIONAL. Unaccepted agreements, by terms id
      "can_request_access": false}          // REQUIRED. Only an approval is missing, and it can be asked for
   ]}
 
@@ -1927,7 +1927,7 @@ A refusal is an :rfc:`9457` body, ``application/problem+json``:
                                        // OPTIONAL. Names fields, never echoes values
     "instance": "/v1/jobs",            // OPTIONAL; a server SHOULD send it
     "resource_kind": "pdk",            // the type's own members
-    "resource":      "gf22",
+    "resource":      "acme",
     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"   // OPTIONAL; a server SHOULD send it
   }
 
