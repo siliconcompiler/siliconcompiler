@@ -264,13 +264,6 @@ def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
     assert "not something asking would change" in caplog.text
 
 
-def test_no_fetch_once_probe_remains():
-    '''Follow-on 23's probe, removed: *listed* means describable.'''
-    from siliconcompiler.remote.client import results as module
-    for name in ("_fetch_once", "_names_no_way", "NOT_READY_ASKS"):
-        assert not hasattr(module, name) and not hasattr(module.Results, name), name
-
-
 def test_only_what_landed_is_counted_as_retrieved(fake_v1, results, caplog):
     '''A kind with no home here -- job-level or node-bound -- writes nothing,
     and is not "retrieved".'''

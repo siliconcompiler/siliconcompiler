@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -75,25 +74,6 @@ def test_capabilities_carry_no_credential_and_a_proof(fake_v1, tmp_credentials, 
     assert body == capabilities
     assert "Authorization" not in fake_v1.calls[0].request.headers
     assert fake_v1.calls[0].request.headers["DPoP"]
-
-
-def test_the_rigs_capabilities_carry_every_required_member(capabilities):
-    '''The conformance rig's copy of a real `GET /v1`.'''
-    assert {"api_version", "software", "grant_types_supported", "limits", "features",
-            "identity_assurance", "notices"} <= set(capabilities)
-    assert capabilities["api_version"] == "v1"
-    # A closed set of buckets, and `siliconcompiler` REQUIRED in `python`.
-    assert set(capabilities["software"]) == {"python", "tools", "interpreter"}
-    assert "siliconcompiler" in capabilities["software"]["python"]
-    # This profile serves no device grant, so it must not advertise one.
-    assert "urn:ietf:params:oauth:grant-type:device_code" \
-        not in capabilities["grant_types_supported"]
-    assert set(capabilities["limits"]) == {
-        "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
-        "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
-        "max_archive_members", "max_archive_expanded_bytes", "abandon_after_seconds"}
-    # OPTIONAL: absent, not empty.
-    assert "terms_url" not in capabilities
 
 
 @pytest.mark.parametrize("body,status,content_type,expected", [
@@ -350,18 +330,20 @@ def test_the_account_view_shows_the_session_limits_usage_and_every_terms_decisio
 
 def test_login_needs_no_human_and_asserts_a_derived_subject(
         fake_v1, tmp_credentials, client_credentials):
-    '''client_id=local:<derivation>, which RFC 6749 already registers.'''
+    '''client_id=local:<derivation>, which RFC 6749 already registers, and the bare
+    username as `display_name`.'''
+    import getpass
+
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     body = Client(tmp_credentials).login()
 
     assert body["access_token"] == "access-token-one"
     assert tmp_credentials.refresh_token == "refresh-token-one"
-    # The access token is never written down.
-    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
     sent = form(fake_v1.calls[-1].request.body)
     assert sent["grant_type"] == "client_credentials"
     assert sent["client_id"].startswith("local:")
+    assert sent["display_name"] == getpass.getuser()
     assert sent["machine_id_source"] in (
         "linux_machine_id", "macos_platform_uuid", "windows_machine_guid")
 

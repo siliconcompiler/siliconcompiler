@@ -358,16 +358,26 @@ def test_threads_sharing_a_client_refresh_once(fake_v1, tmp_credentials, client_
     '''A thread that waited on another's refresh uses the token it got: no second
     refresh and no login, as a remote run's tail threads share one client.'''
     import threading
-    import time
 
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     client = Client(tmp_credentials)
-    inside = threading.Event()
+    inside, waiting = threading.Event(), threading.Event()
+    lock = client.transport._renewing
+
+    class Watched:
+        def __enter__(self):
+            if not lock.acquire(blocking=False):
+                waiting.set()
+                lock.acquire()
+
+        def __exit__(self, *exc):
+            lock.release()
+    client.transport._renewing = Watched()
 
     def refreshed(request):
         inside.set()
-        # The second thread asks while this refresh is still in flight.
-        time.sleep(0.5)
+        # Answered only once the second thread waits on this refresh.
+        assert waiting.wait(5)
         return 200, {}, json.dumps({**client_credentials, "refresh_token": "r2"})
 
     fake_v1._mock.add_callback(responses.POST, fake_v1.url("auth/token"), callback=refreshed,
@@ -663,24 +673,18 @@ def test_a_denied_device_login_says_why(fake_v1, tmp_credentials, device, no_sle
     assert said in str(raised.value)
 
 
-@pytest.mark.parametrize("grant", ["client_credentials", "device"])
-def test_the_display_name_is_the_username(request, fake_v1, tmp_credentials,
-                                          client_credentials, no_sleep, grant):
-    '''`display_name` is the bare username; a device's label also names its host.'''
+def test_a_device_label_is_the_username_at_this_host(fake_v1, tmp_credentials,
+                                                     client_credentials, no_sleep, device):
     import getpass
     import platform
 
-    if grant == "device":
-        request.getfixturevalue("device")()
+    device()
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     Client(tmp_credentials).login()
 
-    if grant == "device":
-        sent = form(posts(fake_v1, "auth/device")[0].body)
-        assert sent["device_label"] == f"{getpass.getuser()}@{platform.node()}"
-    else:
-        assert form(posts(fake_v1)[0].body)["display_name"] == getpass.getuser()
+    sent = form(posts(fake_v1, "auth/device")[0].body)
+    assert sent["device_label"] == f"{getpass.getuser()}@{platform.node()}"
 
 
 @pytest.mark.parametrize("ci,scope,level", [
@@ -723,12 +727,13 @@ def exchange(fake_v1, capabilities, ci_secret):
 @pytest.mark.parametrize("offered", [None, (GRANT_DEVICE_CODE,)],
                          ids=["exchange-offered", "device-only"])
 def test_a_ci_key_trades_first_and_never_prints_a_code(
-        fake_v1, capabilities, tmp_credentials, exchange, capsys, offered):
+        fake_v1, capabilities, tmp_credentials, exchange, caplog, offered):
     '''Token exchange first whatever is offered, never a
     `user_code` in a CI log, and no refresh token kept.'''
     exchange()
     if offered:
         _offer(fake_v1, capabilities, *offered)
+    caplog.set_level("INFO")
 
     Client(tmp_credentials).login()
 
@@ -742,7 +747,7 @@ def test_a_ci_key_trades_first_and_never_prints_a_code(
     assert assertion["cnf"]["jkt"] == tmp_credentials.thumbprint
     assert assertion["iss"] == assertion["sub"] == "01J9credential"
     assert tmp_credentials.refresh_token is None
-    assert "code" not in capsys.readouterr().out.lower()
+    assert "enter the code" not in caplog.text
 
 
 def test_a_ci_session_trades_again_for_each_access_token(fake_v1, tmp_credentials,
@@ -774,38 +779,36 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
 
 
 @pytest.mark.parametrize("entry", ["login", "renew"])
-def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
-        fake_v1, capabilities, tmp_credentials, ci_secret, capsys, entry):
-    '''Never falling back to a refresh, `client_credentials` or the device grant,
-    though this machine and deployment have all three, whether a login or a command asked.'''
+@pytest.mark.parametrize("offered", [
+    (GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, "refresh_token"), (GRANT_TOKEN_EXCHANGE,),
+], ids=["others", "exchange"])
+def test_a_refused_ci_trade_reads_the_grants_once_and_never_falls_back(
+        fake_v1, capabilities, tmp_credentials, ci_secret, caplog, entry, offered):
+    '''It trades again where `GET /v1` now offers token exchange, and otherwise fails:
+    never a refresh, `client_credentials` or the device grant, though this machine
+    and deployment have all three, whether a login or a command asked.'''
     tmp_credentials.save_tokens({"refresh_token": "an-interactive-session"})
-    _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE,
-           "refresh_token")
+    _offer(fake_v1, capabilities, *offered)
     fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
                   status=400)
+    trades = GRANT_TOKEN_EXCHANGE in offered
+    if trades:
+        fake_v1.route(responses.POST, "auth/token",
+                      {"access_token": "ci", "token_type": "DPoP", "expires_in": 900})
+    caplog.set_level("INFO")
+    client = Client(tmp_credentials)
 
-    with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
-        client = Client(tmp_credentials)
+    if trades:
         (client.login if entry == "login" else client.transport.renew)()
+    else:
+        with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
+            (client.login if entry == "login" else client.transport.renew)()
 
-    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
+    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE] * (2 if trades else 1)
     assert not posts(fake_v1, "auth/device")
     assert len([c for c in fake_v1.calls if c.request.method == "GET"
                 and c.request.url.rstrip("/").endswith("/v1")]) == 1
-    assert "code" not in capsys.readouterr().out.lower()
-
-
-def test_a_ci_key_trades_after_the_grants_say_it_now_can(
-        fake_v1, capabilities, tmp_credentials, ci_secret):
-    _offer(fake_v1, capabilities, GRANT_TOKEN_EXCHANGE)
-    fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
-                  status=400)
-    fake_v1.route(responses.POST, "auth/token",
-                  {"access_token": "ci", "token_type": "DPoP", "expires_in": 900})
-
-    Client(tmp_credentials).login()
-
-    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
+    assert "enter the code" not in caplog.text
 
 
 def test_a_trade_refused_for_the_clock_is_minted_again_on_the_corrected_one(

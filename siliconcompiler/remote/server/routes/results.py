@@ -1,5 +1,6 @@
 '''
-Endpoints 20, 21 and 22: a job's artifacts and its live logs.
+A job's artifacts and its live logs: ``GET /v1/jobs/{id}/artifacts``, one
+artifact, and ``/logs``.
 
 None carries bytes. The listing is JSON; a fetch and a log answer `303` to a
 signed URL on this host, whose signature is that route's only credential.

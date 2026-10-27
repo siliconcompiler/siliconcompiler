@@ -84,6 +84,16 @@ def test_a_finished_node_is_a_stream_that_sends_its_log_and_names_the_archive(
     assert logs(stranger, job).status_code == 404
 
 
+def test_a_deleted_jobs_logs_are_not_found(server, server_client, api, dispatcher, tree):
+    '''Neither asked for again nor through a stream URL handed out before.'''
+    job, _ = tree
+    finish(server, api, dispatcher, job)
+    redirect = logs(api, job)
+    assert api("DELETE", f"/v1/jobs/{job['id']}").status_code == 204
+
+    assert slug(logs(api, job)) == slug(stream(server_client, redirect)) == "not-found"
+
+
 def test_a_resumed_stream_sends_only_what_follows_the_id(server, server_client, api, dispatcher,
                                                          tree):
     job, root = tree
@@ -133,6 +143,22 @@ def frames_of(generator):
         def get_data(self, as_text):
             return b"".join(generator).decode()
     return frames(Body())
+
+
+def test_a_log_that_links_out_of_the_job_sends_nothing(monkeypatch):
+    '''Each read goes through `confine`, so a link a running job swaps in is refused.'''
+    from pathlib import Path
+
+    monkeypatch.setattr(logstream, "STATE_SECONDS", 0)
+    Path("secret.txt").write_text("not the job's\n")
+    tree = Path("tree").absolute()
+    tree.mkdir()
+    (tree / "sc_place_0.log").symlink_to(Path("secret.txt").absolute())
+
+    found = run_stream(tree, tree / "sc_place_0.log", ["running", "completed"],
+                       deadline=time.time() + 60)
+
+    assert [event for event, _, _ in found] == ["node_state", "end"]
 
 
 def test_a_running_node_sends_whole_lines_and_leaves_the_rest_for_later(log):

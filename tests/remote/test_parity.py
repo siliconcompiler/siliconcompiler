@@ -70,6 +70,7 @@ def test_a_remote_run_leaves_the_build_directory_a_local_run_does(gcd_design, ra
 
     job, _ = client.job(history.get("record", "remoteid"))
     assert (job["state"], job["terminal"]) == ("completed", True)
+    assert job["started_at"] and job["finished_at"]
     assert job["progress"] == {"total_count": 2, "completed_count": 2, "failed_count": 0,
                                "skipped_count": 0, "cancelled_count": 0}
 

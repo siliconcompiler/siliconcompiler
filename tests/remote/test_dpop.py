@@ -56,16 +56,6 @@ def test_a_proof_verifies_and_returns_its_thumbprint(key):
     assert dpop.verify_proof(proof, "POST", URL) == _thumbprint(key)
 
 
-def test_htu_drops_the_query_and_fragment(key):
-    '''RFC 9449: valid for the same path with other filters, not another path.'''
-    proof = dpop.sign_proof(key, "GET", f"{URL}?state=running#top")
-
-    dpop.verify_proof(proof, "GET", URL)
-
-    with pytest.raises(dpop.DPoPError, match="htu"):
-        dpop.verify_proof(proof, "GET", "https://sc-server.test/v1/me")
-
-
 def proof_with_htu(key, method, htu, access_token=None):
     '''A proof carrying ``htu`` exactly as given, as a client that does not
     canonicalise would sign it.'''
@@ -97,7 +87,8 @@ def test_canonical_is_not_lax(key, other):
 
 
 def test_the_client_signs_the_canonical_form(key):
-    proof = dpop.sign_proof(key, "GET", "https://SC-SERVER.test:443/v1/jobs?state=running")
+    '''RFC 9449: no query and no fragment, so it holds for the path with other filters.'''
+    proof = dpop.sign_proof(key, "GET", "https://SC-SERVER.test:443/v1/jobs?state=running#top")
 
     assert jwt.decode(proof, options={"verify_signature": False})["htu"] == URL
 
@@ -113,14 +104,13 @@ def test_a_proof_is_bound_to_its_method_and_its_access_token(key):
         dpop.verify_proof(proof, "GET", URL, access_token="token-two")
 
 
-@pytest.mark.parametrize("sign", [1, -1], ids=["stale", "future"])
-def test_a_proof_outside_the_window_is_refused(key, sign):
-    '''Absolute, not one-sided: a clock far ahead is as wrong as one behind.'''
+def test_a_proof_older_than_the_window_is_refused(key):
+    '''One from a clock far ahead is held to the same window, below.'''
     proof = dpop.sign_proof(key, "GET", URL)
 
     with pytest.raises(dpop.DPoPError, match="iat"):
         dpop.verify_proof(proof, "GET", URL,
-                          now=int(time.time()) + sign * (dpop.PROOF_LIFETIME_SECONDS + 5))
+                          now=int(time.time()) + dpop.PROOF_LIFETIME_SECONDS + 5)
 
 
 @pytest.mark.parametrize("ahead,accepted", [(2, True), (dpop.PROOF_LIFETIME_SECONDS - 5, True),

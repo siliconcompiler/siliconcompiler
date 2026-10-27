@@ -148,7 +148,7 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
                                                                 monkeypatch, tty):
     '''`blocked_by` is `terms` ids, named by title from
     `GET /v1/me`, else by id; on a terminal each page is asked for at
-    endpoint 6 and opened, off one none is minted. Nothing is accepted.'''
+    `POST /v1/auth/browser` and opened, off one none is minted. Nothing is accepted.'''
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("sys.stdout.isatty", lambda: tty)
