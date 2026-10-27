@@ -1,8 +1,7 @@
 # Local sc-server on a real Slurm cluster
 
 A throwaway cluster for running SiliconCompiler's bundled remote job server,
-`python3 -m siliconcompiler.remote.server -cluster slurm`, end to end. What it
-accepts and refuses of the `v1` API is in [PROFILE.md](PROFILE.md).
+`python3 -m siliconcompiler.remote.server -cluster slurm`, end to end.
 
 | Service | Runs |
 |---|---|

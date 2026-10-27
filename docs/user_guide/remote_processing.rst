@@ -436,13 +436,15 @@ Two refusals come out of that list and they mean different things:
   fact about the deployment rather than about this moment. Refused at submit,
   before the job is handed to the cluster, so nothing ran and nothing queued.
 
-Two things a remote run does not bring back, both on purpose:
+What a remote run does not bring back, on purpose:
 
-``inputs/`` and ``sc_collected_files/``
-  The first is copies of the upstream node's outputs, which you already have
-  from the upstream node. The second is what this machine uploaded; the client
-  removes its own copy once the archive is built, so sending it back would undo
-  that and pay for the same bytes twice.
+``sc_collected_files/``
+  What this machine uploaded; the client removes its own copy once the archive
+  is built, so sending it back would undo that and pay for the same bytes twice.
+
+A node's ``inputs/`` -- copies of its upstream node's outputs -- comes back
+where the server sends it: ``sc-server`` returns each node's whole directory,
+``inputs/`` included.
 
 Anything the server did not keep
   Retention is per kind rather than per job -- a manifest is kept for years and
@@ -578,8 +580,7 @@ Then run ``sc-config remote configure http://localhost:8080`` on the client.
 ``setup/server/`` in the repository holds a Docker Compose deployment of the
 server on a real Slurm cluster (a controller, an accounting database and
 scalable compute nodes running the tools directly), used by the daily CI to run
-the ASIC and FPGA demos remotely. Its ``README.md`` says how to bring it up and
-its ``PROFILE.md`` lists what the server implements of the ``v1`` API.
+the ASIC and FPGA demos remotely. Its ``README.md`` says how to bring it up.
 
 The server is a test server, not a service to expose to others. It does not
 verify who a caller is, and it does not offer the device login, terms or
