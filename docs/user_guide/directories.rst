@@ -298,12 +298,12 @@ machine-wide defaults from outside your home directory, at
 :ref:`User Settings <user_settings>` covers the file format and the precedence
 rules between the two.
 
-``auth/`` holds the remote client's store, ``remote.json`` -- the server, the
-upload whitelist and each server's session, written by ``sc-config remote
-configure`` -- beside the machine's key, ``dpop-key.pem``. Only you can read
-it. Point :keypath:`option,credentials` at a different file to use more than
-one server. A ``credentials`` file an older client left in ``~/.sc`` is moved
-into it the first time it is read. See
+``auth/`` holds the remote client's store, ``remote.json`` -- the default
+server and each server's session, written by ``sc-config remote configure`` --
+beside the machine's key, ``dpop-key.pem``. Only you can read it. One store
+holds every server configured here; point :keypath:`option,credentials` at a
+different file to keep another. A ``credentials`` file an older client left in
+``~/.sc`` is moved into it the first time it is read. See
 :ref:`Remote Processing <remote_processing>`.
 
 ``auth/tokens.json`` holds the tokens private data sources are fetched with,

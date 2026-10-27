@@ -247,23 +247,17 @@ def test_node_states_are_recorded_and_unknown_nodes_ignored(fake_v1, run, nop_pr
     assert nop_project.get('record', 'status', step="steptwo", index="0") == "skipped"
 
 
-def test_reconnect_re_enters_the_wait(fake_v1, run):
-    '''The answer to Ctrl-C, and the only way back to a detached job.'''
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
-
-    run.reconnect("01J9-job")
-
-
 SIGN_IN = {"url": "https://sc-server.test/portal/enter?token=t",
            "expires_at": "2026-10-01T18:04:30Z"}
 
 
 @pytest.fixture
 def opened(run, monkeypatch):
-    '''What the run opened in a browser, with the tty checks out of the way.'''
+    '''What the run opened in a browser, as at a terminal outside CI.'''
     urls = []
-    monkeypatch.setattr("siliconcompiler.remote.client.credentials.preference",
-                        lambda name, default=None: True if name == "open_portal" else default)
+    run.project.option.set_nodisplay(False)
+    monkeypatch.delenv("CI", raising=False)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
     monkeypatch.setattr(run.client, "open_url",
                         lambda url, what, require_tty=True: urls.append(url) or True)
     return urls
@@ -341,12 +335,23 @@ def test_a_refused_portal_command_fails_and_says_why(fake_v1, run, opened):
     assert opened == []
 
 
-def test_a_ci_session_never_asks_for_a_page(fake_v1, run, opened, monkeypatch):
-    monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
+@pytest.mark.parametrize("why", ["ci", "browser-off", "nodisplay"])
+def test_a_job_page_is_asked_for_only_where_somebody_watches(fake_v1, run, opened,
+                                                             monkeypatch, settings, why):
+    '''Not in CI, which asks for no page at all, nor with the `remote browser`
+    setting off or `option,nodisplay` set.'''
+    from siliconcompiler.remote.client.credentials import BROWSER
+
+    if why == "ci":
+        monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
+        with pytest.raises(RemoteError, match="CI session"):
+            run.client.portal()
+    elif why == "browser-off":
+        BROWSER.set(False)
+    else:
+        run.project.option.set_nodisplay(True)
 
     run._open_portal("01J9-job")
-    with pytest.raises(RemoteError, match="CI session"):
-        run.client.portal()
 
     assert not _pages(fake_v1)
     assert not opened
@@ -416,51 +421,6 @@ def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
                      for call in fake_v1.calls if urlsplit(call.request.url).path == "/v1/jobs"]
     assert (first["archived"], first["terminal"]) == (["true"], ["false"])
     assert second["archived"] == ["true", "false"]
-
-
-@pytest.mark.parametrize("reason,sent", [
-    (None, "cancelled from SiliconCompiler"),
-    ("wrong constraints", "wrong constraints"),
-    ("é" * 300, "é" * 300),
-], ids=["default", "own", "300-code-points"])
-def test_a_cancel_always_says_why(fake_v1, logged_in, reason, sent):
-    '''`reason` is optional on the wire, and this client always sends one:
-    the caller's own, or one naming the tool and never the hostname.'''
-    import socket
-
-    fake_v1.route(responses.POST, "jobs/01J9-job/cancel", job_body("cancelling"), status=202)
-
-    logged_in.cancel_job("01J9-job", **({"reason": reason} if reason else {}))
-
-    assert json.loads(fake_v1.calls[-1].request.body) == {"reason": sent}
-    assert socket.gethostname() not in sent
-
-
-@pytest.mark.parametrize("reason,said", [("é" * 301, "at most 300 characters"),
-                                         ("two\nlines", "control character"),
-                                         ("a\x9bb", "control character")])
-def test_a_cancel_reason_is_checked_before_it_is_sent(fake_v1, logged_in, reason, said):
-    '''Refused here, naming why, never cut; nothing sent.'''
-    with pytest.raises(RemoteError, match=said):
-        logged_in.cancel_job("01J9-job", reason=reason)
-
-    assert not _cancels(fake_v1)
-
-
-def test_delete_is_a_204_with_no_body(fake_v1, logged_in):
-    fake_v1.route(responses.DELETE, "jobs/01J9-job", "", status=204, content_type="")
-
-    assert logged_in.delete_job("01J9-job") is None
-
-
-def test_deleting_an_unfinished_job_says_to_cancel_it_first(fake_v1, logged_in):
-    refused(fake_v1, responses.DELETE, "jobs/01J9-job", "job-state-conflict", 409)
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.delete_job("01J9-job")
-
-    assert "cancel it with sc-config remote cancel" in str(raised.value)
-    assert "past the point" not in str(raised.value)
 
 
 @pytest.mark.parametrize("slug,status,said", [("not-found", 404, "not one you are a member of"),
@@ -1591,17 +1551,15 @@ def test_an_upload_that_does_not_match_its_digest_goes_up_again(fake_v1, run):
 
 
 @pytest.mark.parametrize("slug,status,state,outcome", [
-    ("terms-not-accepted", 403, None, "kept"),
-    ("account-not-provisioned", 403, None, "kept"),
-    ("brand-new-outage", 503, None, "kept"),
+    ("terms-not-accepted", 403, None, "cancelled"),
+    ("brand-new-outage", 503, None, "cancelled"),
     ("job-state-conflict", 409, "staging", "submitted"),
     ("job-state-conflict", 409, "awaiting_input", "cancelled"),
 ])
-def test_a_refused_submit_cancels_only_what_cannot_be_submitted_again(
+def test_a_refused_submit_cancels_the_job_unless_it_was_submitted(
         fake_v1, run, no_sleep, slug, status, state, outcome):
-    '''A refusal a person clears, or a server failure, leaves the job waiting with
-    its upload for a reconnect; a state conflict is read again, and only a job
-    holding no upload is cancelled.'''
+    '''Nothing would submit it later, so it is cancelled rather than left holding a
+    slot; a state conflict is read again, and a job already staging was submitted.'''
     route_created(fake_v1)
     route_granted(fake_v1)
     refused(fake_v1, responses.POST, "jobs/01J9-job/submit", slug, status)
@@ -1612,33 +1570,31 @@ def test_a_refused_submit_cancels_only_what_cannot_be_submitted_again(
     if outcome == "submitted":
         assert run._start() == "01J9-job"
     else:
-        with pytest.raises(RemoteError) as raised:
+        with pytest.raises(RemoteError):
             run._start()
-    if outcome == "kept":
-        assert str(raised.value).endswith("sc-config remote reconnect "
-                                          f"{run._manifest()}")
 
     assert len(_cancels(fake_v1)) == (outcome == "cancelled")
     assert bool(run.project.get('record', 'remoteid')) == (outcome != "cancelled")
 
 
 @pytest.mark.parametrize("answer,said", [(202, "Job submitted"), (409, "holds no upload")])
-def test_a_reconnect_submits_the_upload_a_waiting_job_holds(fake_v1, run, no_sleep, caplog,
-                                                            answer, said):
-    '''Left `awaiting_input` by a refused submit, it is submitted again by its
-    owner; a 409 means it holds none, and it is not cancelled from here.'''
+def test_a_resumed_run_submits_the_upload_a_waiting_job_holds(fake_v1, run, no_sleep, caplog,
+                                                              answer, said):
+    '''Left `awaiting_input` with its upload, as by a run killed before its submit,
+    it is submitted by its owner; a 409 means it holds none, and it is not cancelled
+    from here.'''
     run.client.credentials.set_user_id("01J9-user")
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("awaiting_input", nodes=[]))
     if answer == 202:
         route_submitted(fake_v1)
         fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
         with caplog.at_level("INFO"):
-            run.reconnect("01J9-job")
+            run._watch("01J9-job")
         assert said in caplog.text
     else:
         refused(fake_v1, responses.POST, "jobs/01J9-job/submit", "job-state-conflict", 409)
         with pytest.raises(RemoteError, match=said):
-            run.reconnect("01J9-job")
+            run._watch("01J9-job")
 
     assert not _cancels(fake_v1)
 

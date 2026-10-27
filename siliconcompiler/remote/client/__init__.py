@@ -3,21 +3,22 @@
 
 import logging
 import os
-import re
 import sys
 import time
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit
 
 from siliconcompiler.remote.client.credentials import (
-    Credentials, describe_certificates, parse_ci_secret)
+    AUTH_DIR_VARIABLE, BROWSER, CI_SECRET_VARIABLE, Credentials, parse_ci_secret,
+    read_authority)
 from siliconcompiler.remote.client.errors import (
     RemoteError, ServerProblem, SessionEnded, clean, describe, listed)
 from siliconcompiler.remote.client.identity import (
     device_fingerprint, display_name, local_subject)
 from siliconcompiler.remote.client.transport import (
-    MAX_WAITS, CertificateRefused, EdgeRefused, OAuthRefusal, Transport, _retry_after,
+    MAX_WAITS, EdgeRefused, OAuthRefusal, Transport, _retry_after,
     authenticates, link, normalize_server, origin_of, retrying)
 
 __all__ = [
@@ -45,22 +46,14 @@ ROTATE_COMMAND = "sc-config remote rotate-key"
 # Named on every create by a CI credential bound to a project.
 PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
 
-# The server refuses a longer cancel reason rather than cutting it.
-MAX_CANCEL_REASON = 300
-
-# What a cancel's reason may not hold: a control character.
-_UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
-
 
 class Client:
     '''One machine talking to one server.'''
 
     def __init__(self, credentials: Credentials,
-                 logger: Optional[logging.Logger] = None,
-                 open_browser: bool = True):
+                 logger: Optional[logging.Logger] = None):
         self.credentials = credentials
         self.logger = logger or logging.getLogger(__name__)
-        self.open_browser = open_browser
 
         # Each notice and upcoming terms version is shown once per client.
         self._notices_shown = set()
@@ -74,23 +67,14 @@ class Client:
 
         self._transport = self._make_transport(credentials.server)
 
-    def _make_transport(self, base_url: str, certificate: Optional[str] = None) -> Transport:
-        '''A transport for the selected server, verified with ``certificate`` or the
+    def _make_transport(self, base_url: str, authority: Optional[str] = None) -> Transport:
+        '''A transport for the selected server, verified with ``authority`` or the
         one recorded for it.'''
+        authority = authority or self.credentials.authority
         return Transport(base_url, self.credentials.key(), self.credentials, self._relogin,
                          logger=self.logger, trades=bool(self.credentials.ci_secret()),
-                         verify=self._trust(certificate or self.credentials.certificate))
-
-    def _trust(self, name: Optional[str]) -> Optional[str]:
-        '''The CA bundle for an imported certificate; None for the default.'''
-        if not name:
-            return None
-        if not self.credentials.certificate_path(name).is_file():
-            self.logger.warning(
-                f"The certificate {name} chosen for this server is not in "
-                f"{self.credentials.certs_dir}: import it again with sc-config remote import-cert")
-            return None
-        return str(self.credentials.trust_bundle(name))
+                         verify=str(self.credentials.trust_bundle(authority))
+                         if authority else None)
 
     @property
     def transport(self) -> Transport:
@@ -378,46 +362,58 @@ class Client:
         self.login()
 
     def rotate_key(self) -> None:
-        '''Replace this machine's DPoP key and enrol again as a new device; no
+        '''Replace this machine's DPoP key, which every server configured here
+        knows it by, and log in to the default server again as a new device; no
         error ever changes the key.
 
-        The old key revokes its own device first, ending its sessions and
-        freeing the subject: else the server refuses the new key
-        `invalid_client`. If that fails, the key is replaced anyway.
+        On each server holding a session, the old key revokes its own device
+        first, ending its sessions and freeing the subject: else that server
+        refuses the new key `invalid_client`. If that fails, the key is replaced
+        anyway.
         '''
         old = self.credentials.thumbprint
-        if self._transport is not None:
-            self._retire_this_device()
+        for server in self.credentials.servers():
+            self.credentials.select(server)
+            if self.credentials.refresh_token:
+                self._transport = self._make_transport(server)
+                self._retire_this_device()
+        self.credentials.select(None)
         self.credentials.rotate_key()
-        if self._transport is not None:
-            self._transport = self._make_transport(self._transport.base_url)
+        default = self.credentials.server
+        self._transport = self._make_transport(default) if default else None
         self.logger.info(f"Replaced this machine's key ({old[:12]}... -> "
                          f"{self.credentials.thumbprint[:12]}...)")
         if self._transport is not None:
             self.login()
-            self.logger.info("Logged in again as a new device.")
+            self.logger.info(f"Logged in to {default} again as a new device.")
 
     def _retire_this_device(self) -> None:
-        '''Revoke the current key's device with that key, and forget its session.'''
+        '''Revoke the current key's device with that key, and forget its session.
+        Never a login: a session that cannot be refreshed is warned of.'''
         try:
+            if self.transport.access_token is None and not self.transport.refresh():
+                raise RemoteError("its session has ended")
             current = next((device for device in self.devices() if device.get("current")),
                            None)
             if current is not None:
                 self.revoke_device(current["id"])
-                self.logger.info(f"Revoked this machine's device under the old key "
-                                 f"({clean(str(current.get('name') or current['id']))}).")
+                name = clean(str(current.get('name') or current['id']))
+                self.logger.info(f"Revoked this machine's device on {self.base_url} under "
+                                 f"the old key ({name}).")
         except RemoteError as e:
             self.logger.warning(
-                f"Could not revoke this machine's device under the old key ({e}); the "
-                "server may refuse the new key until its operator releases the binding.")
+                f"Could not revoke this machine's device on {self.base_url} under the old "
+                f"key ({e}); that server may refuse the new key until its operator "
+                "releases the binding.")
         finally:
             self.credentials.forget_tokens()
             self.transport.set_tokens(None)
 
     def logout(self) -> None:
-        '''End this session on the server, then forget it here. Revoking needs
-        an access token, so the refresh token is spent for one; never a login,
-        and a session the revoke finds ended or its token refused is gone already.'''
+        '''End this session on the server, then forget the server here. Revoking
+        needs an access token, so the refresh token is spent for one; never a
+        login, and a session the revoke finds ended or its token refused is gone already.'''
+        server = self.transport.base_url
         try:
             if self.transport.access_token is None:
                 self.transport.refresh()
@@ -427,65 +423,13 @@ class Client:
             # Over or unreachable: forgetting it locally must still happen.
             logger.debug(f"could not revoke on the server: {e}")
         finally:
-            self.credentials.forget_tokens()
-            self.transport.set_tokens(None)
-
-    def ci_setup(self, server: Optional[str] = None) -> None:
-        '''Write the store from the CI secret in the environment, for a CI job.
-
-        On GitHub Actions the store goes in `RUNNER_TEMP`, emptied between jobs,
-        and SC_AUTH_DIR is exported to later steps.
-        '''
-        from siliconcompiler.remote.client.credentials import (
-            AUTH_DIR_VARIABLE, CI_SECRET_VARIABLE)
-
-        secret = os.environ.get(CI_SECRET_VARIABLE)
-        if not secret:
-            raise RemoteError(f"{CI_SECRET_VARIABLE} is not set: it holds the one-line "
-                              "CI credential")
-        parse_ci_secret(secret)
-
-        configured = self.credentials.server
-        runner_temp = os.environ.get("RUNNER_TEMP")
-        if runner_temp and not os.environ.get(AUTH_DIR_VARIABLE):
-            from pathlib import Path
-
-            self.credentials.relocate(Path(runner_temp) / "sc-auth")
-            exported = os.environ.get("GITHUB_ENV")
-            if exported:
-                with open(exported, "a") as f:
-                    f.write(f"{AUTH_DIR_VARIABLE}={self.credentials.auth_dir}\n")
-
-        if server:
-            configured = normalize_server(server)
-        if configured:
-            if configured != self.credentials.server:
-                self.credentials.set_server(configured)
-            self._transport = self._make_transport(configured)
-
-        self.credentials.save_ci_secret(secret)
-        self.logger.info(f"CI credential stored in {self.credentials.auth_dir}")
-        self.ask_headers()
-
-    def ask_headers(self) -> None:
-        '''Ask for the headers the server's access layer requires, name then
-        hidden value, until a blank name. Nothing is asked without a terminal.'''
-        if not sys.stdin.isatty():
-            self.logger.info("Set any header the server's access layer requires with "
-                             "`sc-config remote header set <name>`, the value on standard input.")
-            return
-        while True:
-            name = input("Header the server's access layer requires (blank when done): ")
-            if not name.strip():
-                return
-            self.set_header(name.strip(), read_secret(name.strip()))
-
-    def set_header(self, name: str, value: Optional[str]) -> None:
-        '''An operator header, sent only to the server's own origin.
-        Its value is a secret, never printed.'''
-        self.credentials.set_header(name, value)
-        self.logger.info(f"{'Set' if value is not None else 'Removed'} the {name} header "
-                         f"for {self.transport.api_origin}")
+            self.credentials.forget()
+            self._transport = None
+        self.logger.info(f"Logged out of {server}, and removed it from this machine")
+        others = self.credentials.servers()
+        if others and not self.credentials.server:
+            self.logger.info(f"No server is the default now: choose one of {', '.join(others)} "
+                             "with sc-config remote use <server>")
 
     def _unauthenticated(self) -> bool:
         '''Whether this deployment authenticates nobody: only then is an http page opened.'''
@@ -501,7 +445,7 @@ class Client:
         if scheme != "https" and not (scheme == "http" and self._unauthenticated()):
             self.logger.warning(f"Not opening {what}: {clean(url)} is not an https URL")
             return False
-        if not self.open_browser or (require_tty and not sys.stdout.isatty()):
+        if not BROWSER.get() or (require_tty and not sys.stdout.isatty()):
             return False
         import webbrowser
 
@@ -733,32 +677,11 @@ class Client:
         '''``GET /v1/jobs``, following ``Link`` to the end.'''
         return self._pages("jobs", _filters(filters))
 
-    def cancel_job(self, job_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
-        '''``POST /v1/jobs/{id}/cancel``. Idempotent.
-
-        A reason is always sent, so the job page says why it stopped; no host
-        name, since every reader sees it. Too long or holding a control
-        character is refused here, as the server would.
-        '''
-        if reason is not None and len(reason) > MAX_CANCEL_REASON:
-            raise RemoteError(f"a cancel's reason is at most {MAX_CANCEL_REASON} "
-                              f"characters, and this one is {len(reason)}")
-        if reason is not None and _UNPRINTABLE.search(reason):
-            raise RemoteError("a cancel's reason is one line, with no control "
-                              "character, and this one has one")
-        body = {"reason": reason or "cancelled from SiliconCompiler"}
+    def cancel_job(self, job_id: str, reason: str) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/cancel``. Idempotent. ``reason`` is what the job
+        page says stopped it: one line, of at most 300 characters.'''
         return self.transport.request(
-            "POST", f"jobs/{job_id}/cancel", json_body=body).json()
-
-    def delete_job(self, job_id: str) -> None:
-        '''``DELETE /v1/jobs/{id}``. Idempotent; the job stays readable.'''
-        try:
-            self.transport.request("DELETE", f"jobs/{job_id}")
-        except ServerProblem as e:
-            if e.slug == "job-state-conflict":
-                e.next_step = ("Only a finished job can be deleted: cancel it with sc-config "
-                               "remote cancel, or let it finish, then delete it.")
-            raise
+            "POST", f"jobs/{job_id}/cancel", json_body={"reason": reason}).json()
 
     def artifacts(self, job_id: str, **filters) -> list:
         '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
@@ -860,13 +783,22 @@ class Client:
 
         return LogTail(self, job_id, step, index).follow(write=write)
 
-    def configure_server(self, server: Optional[str] = None) -> None:
+    def configure_server(self, server: Optional[str] = None,
+                         headers: Optional[Dict[str, Optional[str]]] = None,
+                         authority: Optional[str] = None) -> None:
         '''Make a server this machine's default, once it is reached and logged in
-        to. Each server keeps its own entry, so switching overwrites nothing;
-        one that cannot be used leaves the store as it was.'''
+        to. Each server keeps its own entry, so switching overwrites nothing; a
+        new one that cannot be used is not kept.
+
+        ``headers`` are the operator headers its access layer requires, by name,
+        None removing one: set before the server is reached, which they let
+        through. ``authority`` is the PEM file of the authority that signs the
+        server's certificate, kept only once it verifies the server. With
+        `SC_CI_CREDENTIAL` set, the session is that CI credential's.
+        '''
         if not server:
             server = _ask("Remote server address: ",
-                          hint="choose a server address with -server")
+                          hint="name it: sc-config remote configure <server>")
 
         if not server or not server.strip():
             raise RemoteError(
@@ -880,21 +812,40 @@ class Client:
                 "server authenticates with a key held on this machine, which "
                 "is generated for you.")
 
-        previous = self.credentials.server
+        pem = None
+        if authority:
+            pem, found = read_authority(authority)
+            for subject, fingerprint in found:
+                self.logger.info(f"Authority: {subject}")
+                self.logger.info(f"  SHA-256 {fingerprint}")
+            self.logger.info("Check the fingerprint with whoever runs the server.")
+
+        secret = os.environ.get(CI_SECRET_VARIABLE)
+        if secret:
+            self._ci_store(secret)
+
         candidate = normalize_server(server)
         added = not self.credentials.knows(candidate)
         # Selected for the login, which saves the session in this server's entry.
-        self.credentials.set_server(candidate)
-        self._transport = self._make_transport(candidate)
+        self.credentials.select(candidate)
         try:
-            capabilities, chosen = self._reach()
+            for name, value in (headers or {}).items():
+                self.credentials.set_header(name, value)
+            if secret:
+                self.credentials.save_ci_secret(secret)
+            self._transport = self._make_transport(candidate, authority=pem)
+            capabilities = self.capabilities()
             identity = self.me()
         except BaseException:
-            self.credentials.restore_server(previous, drop=candidate if added else None)
+            if added:
+                self.credentials.forget()
+            self.credentials.select(None)
+            previous = self.credentials.server
             self._transport = self._make_transport(previous) if previous else None
             raise
-        if chosen:
-            self.credentials.set_certificate(chosen)
+        if pem:
+            self.credentials.set_authority(pem)
+        self.credentials.set_server(candidate)
 
         self.logger.info(f"Configured {self.base_url}")
         self.logger.info(f"This machine's key: {self.credentials.thumbprint}")
@@ -908,61 +859,36 @@ class Client:
                 "security boundary.")
         self.logger.info(f"Saved to {self.credentials.path}")
 
-    def use_server(self, server: str) -> None:
-        '''Make a server configured here the default. Nothing is sent: it was
-        reached when configured, and its session and certificate are its own.'''
-        chosen = normalize_server(server)
-        if not self.credentials.knows(chosen):
+    def _ci_store(self, secret: str) -> None:
+        '''Check the CI credential; on GitHub Actions, keep the store in
+        `RUNNER_TEMP`, emptied between jobs, and export SC_AUTH_DIR to later steps.'''
+        parse_ci_secret(secret)
+        runner_temp = os.environ.get("RUNNER_TEMP")
+        if runner_temp and not os.environ.get(AUTH_DIR_VARIABLE):
+            self.credentials.relocate(Path(runner_temp) / "sc-auth")
+            exported = os.environ.get("GITHUB_ENV")
+            if exported:
+                with open(exported, "a") as f:
+                    f.write(f"{AUTH_DIR_VARIABLE}={self.credentials.auth_dir}\n")
+
+    def select(self, server: Optional[str]) -> None:
+        '''Act for a server configured here, in this process only; None for the default.'''
+        chosen = normalize_server(server) if server else None
+        if chosen and not self.credentials.knows(chosen):
             configured = ", ".join(self.credentials.servers()) or "none"
             raise RemoteError(
                 f"{chosen} is not configured here (configured: {configured}): "
                 f"add it with sc-config remote configure {server.strip()}")
-        self.credentials.set_server(chosen)
-        self._transport = self._make_transport(chosen)
-        self.logger.info(f"Using {chosen}")
+        self.credentials.select(chosen)
+        current = self.credentials.server
+        self._transport = self._make_transport(current) if current else None
 
-    def _reach(self):
-        '''GET /v1, and where the server's certificate cannot be verified, the
-        imported one chosen to verify it: asked here, in no other command.'''
-        try:
-            return self.capabilities(), None
-        except CertificateRefused:
-            names = self.credentials.certificates()
-            if not (names and sys.stdin.isatty()):
-                raise
-            name = self._choose_certificate(names)
-            if name is None:
-                raise
-        self._transport = self._make_transport(self.credentials.server, certificate=name)
-        return self.capabilities(), name
-
-    def _choose_certificate(self, names) -> Optional[str]:
-        self.logger.info("This server's certificate could not be verified. Certificates "
-                         "imported here:")
-        for number, name in enumerate(names, 1):
-            self.logger.info(f"  {number}. {name}")
-            payload = self.credentials.certificate_path(name).read_bytes()
-            for subject, fingerprint in describe_certificates(payload):
-                self.logger.info(f"     {subject}, SHA-256 {fingerprint}")
-        answer = _ask(f"Which signs this server's certificate? "
-                      f"[1-{len(names)}, blank for none] ").strip()
-        if not answer:
-            return None
-        if answer.isdigit() and 1 <= int(answer) <= len(names):
-            return names[int(answer) - 1]
-        raise RemoteError(f"{answer} is not one of 1 to {len(names)}")
-
-    def import_certificate(self, path, overwrite: bool = False) -> str:
-        '''Keep a certificate authority's certificate for -configure to offer
-        where a server's certificate cannot be verified.'''
-        name, found = self.credentials.import_certificate(path, overwrite=overwrite)
-        for subject, fingerprint in found:
-            self.logger.info(f"  {subject}")
-            self.logger.info(f"    SHA-256 {fingerprint}")
-        self.logger.info(f"Imported {name}. Check the fingerprint with whoever runs the "
-                         "server; sc-config remote configure offers it where a server's "
-                         "certificate cannot be verified.")
-        return name
+    def use_server(self, server: str) -> None:
+        '''Make a server configured here the default. Nothing is sent: it was
+        reached when configured, and its session and authority are its own.'''
+        self.select(server)
+        self.credentials.set_server(self.base_url)
+        self.logger.info(f"Using {self.base_url}")
 
     def _report_software(self, capabilities) -> None:
         '''What siliconcompiler this server runs, and whether this machine's is one.
@@ -1035,7 +961,7 @@ class Client:
 
     def may_open(self) -> bool:
         '''Whether a person is plausibly here to see a page opened unasked.'''
-        return self.open_browser and sys.stdout.isatty() and \
+        return BROWSER.get() and sys.stdout.isatty() and \
             not (self.ci_session or os.environ.get("CI"))
 
     def portal(self) -> bool:
@@ -1045,23 +971,6 @@ class Client:
         endpoint 6 answers a sign-in. Asked for on purpose: a refusal fails.
         '''
         return self._show(self.browser_page(), "the portal", require_tty=False)
-
-    def configure_whitelist(self, add=None, remove=None) -> None:
-        '''Which directories may be uploaded from: absolute paths, each once.'''
-        entries = list(self.credentials.directory_whitelist)
-
-        for path in add or []:
-            absolute = os.path.abspath(path)
-            if absolute not in entries:
-                entries.append(absolute)
-
-        for path in remove or []:
-            absolute = os.path.abspath(path)
-            if absolute in entries:
-                entries.remove(absolute)
-
-        self.credentials.set_directory_whitelist(entries)
-        self.logger.info(f"Directory whitelist saved to {self.credentials.path}")
 
 
 def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
@@ -1097,14 +1006,12 @@ def _ask(question: str, hint: Optional[str] = None) -> str:
             + (f": {hint}" if hint else "")) from None
 
 
-def read_secret(name: str) -> str:
+def read_secret(name: str) -> Optional[str]:
     '''A header value: hidden on a terminal, else one stdin line; never an
-    argument, which shell history would keep.'''
+    argument, which shell history would keep. None for an empty one.'''
     if sys.stdin.isatty():
         import getpass
-        value = getpass.getpass(f"Value for {name}: ")
+        value = getpass.getpass(f"Value for {name} (empty to remove it): ")
     else:
         value = sys.stdin.readline().rstrip("\r\n")
-    if not value:
-        raise RemoteError(f"no value was given for {name}")
-    return value
+    return value or None
