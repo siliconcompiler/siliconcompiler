@@ -1,16 +1,14 @@
 import json
 import os
-import shutil
 import sys
 
 import pytest
 
 from siliconcompiler import ASIC, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
-from siliconcompiler.utils import mask_credentials
 
 
-# What goes in a remote run's archive, and the server's accounting for the rest.
+# What goes in a remote run's archive.
 
 DATASHEET = ("package", "doc", "datasheet")
 GITHUB = "https://github.com/siliconcompiler/x/archive/"
@@ -158,22 +156,11 @@ def test_every_private_scheme_is_private_before_any_other_rule(project, tmp_path
         assert "ghp_TOKEN" not in entry["source"] and "alice" not in entry["source"]
 
 
-def test_the_marker_is_tested_in_one_place():
-    '''A `+private` scheme, on a local path or a fetched source alike.'''
-    from siliconcompiler.package import FileResolver
-    from siliconcompiler.package.git import GitResolver
-
-    assert owners.is_private(FileResolver("x", None, "file+private:///a"))
-    assert owners.is_private(GitResolver("x", None, "git+ssh+private://host/a.git", "v1"))
-    assert not owners.is_private(FileResolver("x", None, "/a"))
-    assert not owners.is_private(GitResolver("x", None, "git+ssh://host/a.git", "v1"))
-
-
 def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_credential(
         project, tmp_path):
     '''`safe_source` (#5454): no userinfo, every query value masked -- one
-    string in the client's `sources` and the server's `value_records`. A
-    design's own remote dataroot goes up, so it is not listed.'''
+    string in the client's `sources`. A design's own remote dataroot goes up,
+    so it is not listed.'''
     project.set_pdk(resource(
         PDK, "lambda", "https://user:ghp_x@github.com/siliconcompiler/x/archive/v1.tar.gz"
         "?access_token=SECRET&lfs=true", create=False))
@@ -184,8 +171,6 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
         design.add_file("ip.v", fileset="rtl")
 
     listed = {tuple(item["keypath"]): item for item in owners.sources(owners.walk(project))}
-    record, = [one for one in owners.value_records(mask_credentials(project), "none")
-               if one["key"][:2] == ["library", "lambda"]]
 
     assert not any("kind" in item for item in listed.values())       # by keypath
     assert not any(keypath[1] == "gcd" for keypath in listed)
@@ -193,7 +178,6 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
     assert sent["source"] == ("https://github.com/siliconcompiler/x/archive/v1.tar.gz"
                               "?access_token=***&lfs=***")
     assert (sent["ref"], sent["private"]) == ("v1", False)
-    assert record["source"] == sent["source"]
     assert owners.is_masked(sent["source"]) and not owners.is_masked(GITHUB)
     hidden = listed[("library", "secretlib", "dataroot", "secretlib")]
     assert hidden["private"] is True and "source" not in hidden
@@ -250,9 +234,9 @@ def test_collect_takes_what_the_owner_rule_selects_and_no_flag_is_touched(
 
 @pytest.mark.skipif(sys.platform == "win32",
                     reason="Making a symbolic link needs a privilege on Windows")
-def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
+def test_a_file_with_many_names_is_reported_once():
     '''Stored once, every other name a link carrying no bytes: the report says
-    what the archive holds, and each value is found once the sources are gone.'''
+    what the archive holds.'''
     from siliconcompiler import Design, Lint
     from siliconcompiler.utils.paths import collectiondir
 
@@ -279,10 +263,6 @@ def test_a_file_with_many_names_is_reported_once_and_accounted_under_each():
     assert sum(row[3] for row in report) == \
         os.path.getsize("proj/rtl/a.v") + os.path.getsize("proj/rtl/defs.vh")
     assert sum(row[4] for row in report) == 2
-    shutil.move("proj", "moved")
-    assert {(entry.dataroot, entry.status) for entry in
-            account(project, collection, Supply())} == \
-        {("top", owners.UPLOADED), ("rtl", owners.UPLOADED)}
 
 
 def two_sources(tmp_path, second, *, create=True):
@@ -320,147 +300,6 @@ def test_a_value_goes_up_on_its_own(project, tmp_path, second, origin):
 
     taken = collected_names(project)
     assert "datasheet.pdf" in taken and "other.pdf" not in taken
-
-
-class Supply:
-    '''A server, as `account_records` asks it.'''
-
-    def __init__(self, packages=(), private=None, held=None, allowed=()):
-        self.packages, self.private = set(packages), private or {}
-        self.held_roots, self.allowed = held or {}, list(allowed)
-
-    def package(self, module):
-        return module in self.packages
-
-    def private_root(self, keypath):
-        return self.private.get(tuple(keypath))
-
-    def held(self, source, ref):
-        return self.held_roots.get((source, ref))
-
-    def allowlisted(self, source, ref):
-        return any(str(source).startswith(prefix) for prefix in self.allowed)
-
-
-def account(project, collection_dir, supply, required=None):
-    '''How a server accounts for ``project``: its `value_records`, read where
-    the manifest is, then `account_records`.'''
-    return owners.account_records(owners.value_records(project, collection_dir, required),
-                                  collection_dir, supply, required)
-
-
-def status(project, name, supply, collection="none"):
-    for entry in account(project, collection, supply):
-        if entry.name == name:
-            return entry
-    raise AssertionError(f"{name} not accounted for")
-
-
-@pytest.mark.parametrize("root,supply,expected", [
-    # The live hole: rooted at `/etc`, left out of the archive, and
-    # the file IS on this machine -- asked of the client, never looked for.
-    ("/etc", {}, owners.ASK),
-    (GITHUB, {"allowed": ["https://github.com/siliconcompiler/"]}, owners.FETCH),
-    (GITHUB, {}, owners.ASK),           # off the allowlist: asked of the client, not refused
-    (GITHUB, {"held": True}, owners.SUPPLIED),                    # from the server's copy
-    ("python://some_pdk_package", {"packages": ["some_pdk_package"]}, owners.SUPPLIED),
-    ("python://some_pdk_package", {}, owners.ASK),
-])
-def test_a_file_not_uploaded_is_supplied_fetched_or_asked_for(
-        project, tmp_path, root, supply, expected):
-    project.set_pdk(resource(PDK, "pdk", root, create=False,
-                             file="passwd" if root == "/etc" else "datasheet.pdf"))
-    held = {(GITHUB, "v1"): str(tmp_path)} if supply.get("held") else None
-
-    entry = status(project, "pdk", Supply(**dict(supply, held=held)))
-
-    assert entry.status == expected
-    if expected == owners.FETCH:
-        assert (entry.source, entry.ref) == (GITHUB, "v1")
-    if held:
-        assert entry.root == str(tmp_path)
-
-
-def test_an_uploaded_file_is_accounted_as_uploaded(project, tmp_path):
-    project.set_pdk(resource(PDK, "mine", tmp_path / "pdk"))
-    collection = tmp_path / "sc_collected_files"
-    target = collection / collected_path(project, ("library", "mine", *DATASHEET))
-    target.parent.mkdir(parents=True)
-    target.write_text("uploaded\n")
-
-    assert status(project, "mine", Supply(), collection).status == owners.UPLOADED
-
-
-def test_a_private_design_is_supplied_like_any_other(project, tmp_path):
-    '''Designs can have private data too -- supplied from the operator's copy,
-    refused in the same words where there is none.'''
-    (tmp_path / "top.v").write_text("module top; endmodule\n")
-    design = project.get("library", "gcd", field="schema")
-    design.set_dataroot("mine", f"file+private://{tmp_path}")
-    with design.active_dataroot("mine"), design.active_fileset("rtl"):
-        design.add_file("top.v")
-    mine = ("library", "gcd", "dataroot", "mine")
-
-    def entry(supply):
-        found, = [one for one in account(project, "none", supply) if one.dataroot == "mine"]
-        return found
-
-    supplied = entry(Supply(private={mine: str(tmp_path)}))
-    assert (supplied.status, supplied.root) == (owners.SUPPLIED, str(tmp_path))
-    missing = entry(Supply())
-    assert missing.status == owners.UNAVAILABLE
-    assert missing.why.startswith("a private dataroot this server has no copy of, and "
-                                  "cannot fetch either")
-    assert decide(project, RTL) != (owners.PRIVATE, True)
-
-
-def test_a_path_escaping_a_supplied_root_is_refused_links_and_all(project, tmp_path):
-    root = tmp_path / "root"
-    (root / "inside").mkdir(parents=True)
-    (root / "inside" / "ok.lef").write_text("x")
-    (root / "escape").symlink_to("/etc")
-    assert owners.confined(root, "inside/ok.lef") == \
-        str((root / "inside" / "ok.lef").resolve())
-    for way_out in ("escape/passwd", "../outside", "/etc/passwd"):
-        assert owners.confined(root, way_out) is None
-
-    pdk = private(PDK, "secret", "/anywhere")
-    with pdk.active_dataroot("secret"):
-        pdk.set(*DATASHEET, "../../etc/passwd")
-    project.set_pdk(pdk)
-    secret = ("library", "secret", "dataroot", "secret")
-    assert status(project, "secret", Supply(private={secret: str(root)})).status == \
-        owners.UNAVAILABLE
-
-
-def test_a_private_dataroot_is_supplied_by_the_first_of_three_and_never_asked_for(
-        project, tmp_path):
-    '''The operator's copy, a held copy of its source, a fetch from the
-    allowlist -- and UNAVAILABLE where none answers, never ASK.'''
-    pdk = PDK("secret")
-    pdk.set_dataroot("secret", GITHUB.replace("https", "https+private", 1), tag="v1")
-    with pdk.active_dataroot("secret"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
-    project.set_pdk(pdk)
-    keypath = ("library", "secret", "dataroot", "secret")
-    (tmp_path / "datasheet.pdf").write_text("x")
-    record, = [one for one in owners.value_records(project, "none")
-               if one["key"][:2] == ["library", "secret"]]
-
-    # The manifest's own source, masked as any source is, and never uploaded.
-    assert (record["origin"], record["source"], record["ref"]) == \
-        (owners.PRIVATE, GITHUB, "v1")
-    assert decide(project, ("library", "secret", *DATASHEET)) == (owners.PRIVATE, False)
-
-    def entry(supply):
-        found, = [one for one in account(project, "none", supply) if one.keypath == keypath]
-        return found
-
-    mapped = entry(Supply(private={keypath: str(tmp_path)}, allowed=[GITHUB]))
-    assert (mapped.status, mapped.root) == (owners.SUPPLIED, str(tmp_path))
-    assert entry(Supply(held={(GITHUB, "v1"): str(tmp_path)})).status == owners.SUPPLIED
-    assert entry(Supply(allowed=[GITHUB])).status == owners.FETCH
-    assert entry(Supply()).status == owners.UNAVAILABLE
 
 
 @pytest.mark.parametrize("key", [

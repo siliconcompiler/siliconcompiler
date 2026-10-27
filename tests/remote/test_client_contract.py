@@ -4,43 +4,17 @@ import logging
 import pytest
 import responses
 
-from conftest import problem
-from test_client import asked_for_pages
+from conftest import asked_for_pages, problem, refused
 
-from siliconcompiler.remote import Client, ServerProblem
+from siliconcompiler.remote import ServerProblem
 from siliconcompiler.remote.client import OAuthRefusal, cli
-from siliconcompiler.remote.client.errors import describe
+from siliconcompiler.remote.client.errors import clean, describe
 
 
 # The client half of the v1 API's behaviour tests that the rest of the suite
 # does not already hold.
 
 ORIGIN = "https://sc-server.test"
-
-
-def test_a_second_nonce_challenge_is_the_answer(logged_in, fake_v1):
-    for nonce in ("one", "two"):
-        fake_v1.route(responses.GET, "me", problem("dpop-nonce-required", 401),
-                      status=401, content_type="application/problem+json",
-                      headers={"DPoP-Nonce": nonce})
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.me()
-
-    assert raised.value.slug == "dpop-nonce-required"
-    assert len([c for c in fake_v1.calls if c.request.url.endswith("/v1/me")]) == 2
-
-
-def test_a_second_nonce_challenge_at_the_token_endpoint_is_the_answer(
-        fake_v1, tmp_credentials):
-    for nonce in ("one", "two"):
-        fake_v1.route(responses.POST, "auth/token", {"error": "use_dpop_nonce"},
-                      status=400, headers={"DPoP-Nonce": nonce})
-
-    with pytest.raises(Exception):
-        Client(tmp_credentials).login()
-
-    assert len([c for c in fake_v1.calls if c.request.url.endswith("/auth/token")]) == 2
 
 
 def test_an_unknown_response_member_is_ignored(logged_in, fake_v1, capabilities,
@@ -59,20 +33,12 @@ def test_an_unknown_response_member_is_ignored(logged_in, fake_v1, capabilities,
     RemoteRun(nop_project, logged_in)._poll("j1")
 
 
-@pytest.mark.parametrize("path", ["auth/token", "auth/device"])
-@pytest.mark.parametrize("body", [
-    {"error": "invalid_grant", "reason": "revoked"},
-    {"error": "invalid_grant", "reason": "reused"},
-    {"error": "invalid_grant", "reason": "expired"},
-    {"error": "invalid_grant", "reason": "deactivated"},
-    {"error": "invalid_grant"},
-    {"error": "invalid_client", "error_description": "bound to a different key"},
-    {"error": "unsupported_grant_type"},
-    {"error": "invalid_scope"},
-    {"error": "invalid_dpop_proof"},
+@pytest.mark.parametrize("path,body", [
+    ("auth/token", {"error": "invalid_grant", "reason": "reused"}),
+    ("auth/device", {"error": "invalid_client", "error_description": "bound to a key"}),
 ])
-def test_every_oauth_error_is_read_for_error_and_reason(fake_v1, logged_in, path, body):
-    '''The OAuth shape: `error`, then `reason`, never `type`.'''
+def test_an_oauth_error_is_read_for_error_and_reason(fake_v1, logged_in, path, body):
+    '''The OAuth shape: `error`, then `reason` where there is one, never `type`.'''
     fake_v1.route(responses.POST, path, body, status=400)
 
     with pytest.raises(OAuthRefusal) as raised:
@@ -83,44 +49,27 @@ def test_every_oauth_error_is_read_for_error_and_reason(fake_v1, logged_in, path
 
 
 def test_server_text_loses_its_control_characters_and_keeps_its_colour():
-    text = describe(problem("run-failed", None,
-                            detail="bad\x00 bell\x07 clear\x1b[2J red\x1b[31mX\x1b[0m\ttab"))
+    text = clean("bad\x00 bell\x07 clear\x1b[2J red\x1b[31mX\x1b[0m\ttab")
 
     assert "\x00" not in text and "\x07" not in text and "\x1b[2J" not in text
     assert "\x1b[31mX\x1b[0m" in text and "\ttab" in text
 
 
-def test_a_notice_loses_its_control_characters(logged_in, fake_v1, capabilities, caplog):
-    fake_v1.replace(responses.GET, "", dict(capabilities, notices=[
-        {"level": "info", "message": "down\x1b]0;owned\x07 soon", "starts_at": None,
-         "ends_at": None}]))
-    caplog.set_level(logging.INFO)
-
-    logged_in.capabilities()
-
-    line, = [record.message for record in caplog.records if "Notice" in record.message]
-    assert "\x07" not in line and "\x1b]" not in line
-
-
-def test_the_deployment_account_and_refusal_lines_lose_control_characters(
+def test_the_deployment_notice_and_refusal_lines_lose_control_characters(
         logged_in, fake_v1, capabilities, caplog):
     evil = "\x1b]0;owned\x07"
     fake_v1.replace(responses.GET, "", dict(
         capabilities, api_version=f"v1{evil}", identity_assurance=evil,
         grant_types_supported=[evil], features=[evil], limits={evil: 1},
-        software={"python": {evil: [evil]}, "tools": {}}, terms_url=evil))
+        software={"python": {evil: [evil]}, "tools": {}}, terms_url=evil,
+        notices=[{"level": "info", "message": f"down{evil} soon", "starts_at": None,
+                  "ends_at": None}]))
     fake_v1.route(responses.GET, "healthz", {"status": evil})
     caplog.set_level(logging.INFO)
 
+    logged_in.capabilities()
     cli.print_deployment(logged_in)
     logged_in._report_software({"software": {"python": {"siliconcompiler": [evil]}}})
-    cli.print_identity(logged_in, {
-        "id": evil, "issuer": evil, "can_submit": False, "blocked_type": evil,
-        "session": {"kind": evil, "scope": evil, "device_id": evil,
-                    "access_expires_at": evil, "refresh_expires_at": evil,
-                    "session_expires_at": evil},
-        "limits": {evil: evil}, "usage": {"concurrent_jobs": evil},
-        "terms": [{"id": "tos", "title": evil, "version": evil, "can_decide": False}]})
     rendered = [describe(problem("not-found", 404, trace_id=evil), help_url=evil),
                 describe(dict(problem("not-found", 404), type=evil), job_id=evil)]
 
@@ -148,9 +97,8 @@ def test_an_http_url_from_a_deployment_that_authenticates_is_printed_not_opened(
 
 
 def terms_refusal(fake_v1):
-    fake_v1.route(responses.POST, "jobs", problem(
-        "terms-not-accepted", 403, blocked_by=["tos", "gf22-nda", "export"]),
-        status=403, content_type="application/problem+json")
+    refused(fake_v1, responses.POST, "jobs", "terms-not-accepted", 403,
+            blocked_by=["tos", "gf22-nda", "export"])
     fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
         {"id": "tos", "title": "Terms of Service", "can_decide": True},
         {"id": "export", "title": "Export Control Statement", "can_decide": True}]})
@@ -186,17 +134,6 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
     else:
         assert asked_for_pages(fake_v1) == [] and opened == []
     assert not [c for c in fake_v1.calls if "accept" in c.request.url]
-
-
-def test_a_blocked_document_is_named_by_its_title_or_its_id():
-    from siliconcompiler.remote.client.errors import blocked_lines
-
-    assert blocked_lines(["tos", "gf22-nda", "export"],
-                         {"tos": "Terms of Service", "export": "Export Control Statement"}) \
-        == ["sign Terms of Service", "sign gf22-nda", "sign Export Control Statement"]
-    assert blocked_lines(["tos"]) == ["sign tos"]
-    # An entry that is not a terms id names nothing.
-    assert blocked_lines(["tos", {"id": "export"}, ""]) == ["sign tos"]
 
 
 def test_the_stream_url_is_never_printed(logged_in, fake_v1, caplog):

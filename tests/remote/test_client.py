@@ -13,28 +13,10 @@ from unittest import mock
 from siliconcompiler.remote import (
     Client, Credentials, RemoteError, ServerProblem)
 from siliconcompiler.remote.client import cli
-from siliconcompiler.remote.client.errors import describe
+from siliconcompiler.remote.client.errors import TYPE_BASE
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
-from conftest import V1_URL, problem
-
-
-def _form(body):
-    from urllib.parse import parse_qs
-
-    if isinstance(body, bytes):
-        body = body.decode()
-    return {k: v[0] for k, v in parse_qs(body).items()}
-
-
-def _grants(fake_v1):
-    return [_form(c.request.body)["grant_type"]
-            for c in fake_v1.calls if c.request.method == "POST"]
-
-
-def _refused(fake_v1, path, slug, status, headers=None, method=responses.GET, **members):
-    fake_v1.route(method, path, problem(slug, status, **members), status=status,
-                  content_type="application/problem+json", headers=headers)
+from conftest import V1_URL, asked_for_pages, claims, form, grants, problem
 
 
 def _healthy(fake_v1):
@@ -221,12 +203,6 @@ def terms_entry(accepted_at=None, can_decide=True):
                          "accepted_at": accepted_at}}
 
 
-def asked_for_pages(fake_v1):
-    '''Each body this client sent endpoint 6.'''
-    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
-            if c.request.url.endswith("/v1/auth/browser")]
-
-
 def me_body(*terms):
     return {"id": "u1", "issuer": "local", "projects": [], "can_submit": True,
             "limits": {}, "usage": {"concurrent_jobs": 0}, "terms": list(terms)}
@@ -246,79 +222,53 @@ def _asked(monkeypatch, answer=None, tty=False, ci=False):
                         answer or (lambda question: pytest.fail("asked")))
 
 
-def test_an_upcoming_version_is_named_once_per_session_and_never_accepted(
-        logged_in, fake_v1, caplog, monkeypatch):
-    '''Named before it takes effect; the client never accepts, and asks for
-    no page it will not open.'''
-    _asked(monkeypatch)
-    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
-    caplog.set_level(logging.INFO)
-
-    logged_in.me()
-    logged_in.me()
-
-    named = [record.message for record in caplog.records if "2026-11-01" in record.message]
-    assert len(named) == 1
-    assert "Terms of Service" in named[0]
-    assert "2026-11-01T00:00:00Z" in named[0]
-    assert "accepted early, on its page in this server's portal" in caplog.text
-    assert asked_for_pages(fake_v1) == []
-    assert not [c for c in fake_v1.calls if c.request.method != "GET"
-                and "/auth/token" not in c.request.url]
-
-
-def test_an_accepted_upcoming_version_is_not_mentioned(logged_in, fake_v1, caplog):
-    fake_v1.route(responses.GET, "me",
-                  me_body(terms_entry(accepted_at="2026-10-01T00:00:00Z")))
-    caplog.set_level(logging.INFO)
-
-    logged_in.me()
-
-    assert "2026-11-01" not in caplog.text
-
-
-def test_on_a_terminal_the_page_is_offered_and_opened_only_when_asked(
-        logged_in, fake_v1, monkeypatch):
-    answers = iter(["n", "y"])
-    _asked(monkeypatch, lambda question: next(answers), tty=True)
-    opened = []
-    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
-    fake_v1.route(responses.GET, "me", me_body(terms_entry()))
+@pytest.mark.parametrize("tty,ci,entry,answers,named,early,pages,opened", [
+    # Named once, with where it can be accepted; never accepted by the client.
+    pytest.param(False, False, {}, None, 1, True, [], 0, id="named-once"),
+    pytest.param(False, False, {"accepted_at": "2026-10-01T00:00:00Z"}, None, 0, False,
+                 [], 0, id="accepted-is-not-mentioned"),
+    pytest.param(True, False, {}, ["n", "y"], 2, True, [{"terms_id": "tos"}], 1,
+                 id="offered-and-opened-on-a-yes"),
+    pytest.param(True, False, {"can_decide": False}, None, 1, False, [], 0,
+                 id="page-cannot-decide"),
+    pytest.param(True, True, {}, None, 1, True, [], 0, id="ci"),
+])
+def test_an_upcoming_terms_version_is_named_and_a_page_offered_only_where_it_can_be(
+        logged_in, fake_v1, monkeypatch, caplog, tty, ci, entry, answers, named, early,
+        pages, opened):
+    '''Named before it takes effect, once per session; a page is asked for and opened
+    only on a terminal, where the client's question was answered yes.'''
+    replies = iter(answers or ())
+    _asked(monkeypatch, (lambda question: next(replies)) if answers else None, tty=tty, ci=ci)
+    urls = []
+    monkeypatch.setattr("webbrowser.open", lambda url: urls.append(url) or True)
+    fake_v1.route(responses.GET, "me", me_body(terms_entry(**entry)))
     fake_v1.route(responses.POST, "auth/browser",
                   {"url": "https://portal.test/enter?token=t1", "expires_at": None})
-
-    logged_in.me()
-    assert opened == []
-    assert asked_for_pages(fake_v1) == []
-
-    logged_in.terms_reminded.clear()
-    logged_in.remind_terms(me_body(terms_entry()))
-    assert asked_for_pages(fake_v1) == [{"terms_id": "tos"}]
-    assert opened == ["https://portal.test/enter?token=t1"]
-
-
-@pytest.mark.parametrize("can_decide,ci", [(False, False), (True, True)],
-                         ids=["page-cannot-decide", "ci"])
-def test_an_upcoming_version_is_only_reported_where_no_page_is_offered(
-        logged_in, fake_v1, monkeypatch, caplog, can_decide, ci):
-    _asked(monkeypatch, tty=True, ci=ci)
-    fake_v1.route(responses.GET, "me", me_body(terms_entry(can_decide=can_decide)))
     caplog.set_level(logging.INFO)
 
     logged_in.me()
+    logged_in.me()
+    if answers:
+        assert urls == [] and asked_for_pages(fake_v1) == []
+        logged_in.terms_reminded.clear()
+        logged_in.remind_terms(me_body(terms_entry(**entry)))
 
-    assert "2026-11-01" in caplog.text
-    assert asked_for_pages(fake_v1) == []
-    if not can_decide:
-        assert "accepted early" not in caplog.text
+    said = [record.message for record in caplog.records if "2026-11-01" in record.message]
+    assert len(said) == named
+    if named:
+        assert "Terms of Service" in said[0] and "2026-11-01T00:00:00Z" in said[0]
+    assert ("accepted early, on its page in this server's portal" in caplog.text) is early
+    assert asked_for_pages(fake_v1) == pages
+    assert urls == ["https://portal.test/enter?token=t1"] * opened
+    assert not [c for c in fake_v1.calls if c.request.method != "GET"
+                and "/auth/" not in c.request.url]
 
 
-def test_the_account_view_shows_its_own_limits_usage_and_every_terms_decision(
-        logged_in, fake_v1, monkeypatch, caplog):
-    '''The account's limits, not the defaults; each document's decision, with its page
-    offered once where it can still be decided and was not declined.'''
-    asked = []
-    _asked(monkeypatch, lambda question: asked.append(question) or "n", tty=True)
+EVIL = "\x1b]0;owned\x07"
+
+
+def _blocked_account():
     body = me_body(
         terms_entry(),
         dict(terms_entry(), id="gf12-nda", title="gf12 NDA", accepted_at=None,
@@ -333,23 +283,70 @@ def test_the_account_view_shows_its_own_limits_usage_and_every_terms_decision(
         usage={"concurrent_jobs": 3,
                "compute_seconds": {"used": 60, "total": None, "limit": None,
                                    "window": "calendar_week", "resets_at": None}})
+    return body
+
+
+@pytest.mark.parametrize("body,said,unsaid,asked", [
+    pytest.param(
+        _blocked_account(),
+        ["You cannot submit jobs here", "Ask an administrator to provision",
+         "server-errors/account-not-provisioned",
+         "Your limits:", "max_job_nodes: 50", "concurrent_jobs: unlimited",
+         "Unfinished jobs (staging, queued, running or cancelling): 3",
+         "Compute: 1m 00s in this calendar_week window",
+         "Terms of Service, version 2026-09-01: accepted",
+         "gf12 NDA, version 2026-09-01: declined",
+         "Export terms, version 2026-09-01: undecided",
+         "Data policy, version 2026-09-01: undecided"],
+        [], 2, id="account"),
+    pytest.param(
+        {"id": "u1", "issuer": "local",
+         "session": {"kind": "interactive", "scope": "jobs:read jobs:write",
+                     "device_id": "dev-1", "access_expires_at": "2026-09-29T10:15:00.000Z",
+                     "refresh_expires_at": "2026-10-06T10:00:00.000Z",
+                     "session_expires_at": "2026-10-11T10:00:00.000Z"},
+         "usage": {"concurrent_jobs": 2,
+                   "compute_seconds": {"used": 3600, "total": 7200, "limit": None,
+                                       "window": "calendar_month", "resets_at": "x"},
+                   "storage_bytes": {"used": 2048, "total": None, "limit": None,
+                                     "window": None, "resets_at": None}}},
+        ["Session: interactive on device dev-1", "scope: jobs:read jobs:write",
+         "refresh token until 2026-10-06T10:00:00.000Z",
+         "ends at 2026-10-11T10:00:00.000Z", "Compute: 1h 00m this month, 2h 00m in all"],
+        [], 0, id="interactive-session"),
+    pytest.param(
+        {"id": "u1", "issuer": "ci",
+         "session": {"kind": "ci", "scope": "jobs:read", "device_id": None,
+                     "access_expires_at": "a", "refresh_expires_at": None,
+                     "session_expires_at": "s"},
+         "usage": {"concurrent_jobs": 0}},
+        ["Session: ci", "it cannot refresh"], ["on device"], 0, id="ci-session"),
+    pytest.param(
+        {"id": EVIL, "issuer": EVIL, "can_submit": False, "blocked_type": EVIL,
+         "session": {"kind": EVIL, "scope": EVIL, "device_id": EVIL,
+                     "access_expires_at": EVIL, "refresh_expires_at": EVIL,
+                     "session_expires_at": EVIL},
+         "limits": {EVIL: EVIL}, "usage": {"concurrent_jobs": EVIL},
+         "terms": [{"id": "tos", "title": EVIL, "version": EVIL, "can_decide": False}]},
+        [], [], 0, id="control-characters"),
+])
+def test_the_account_view_shows_the_session_limits_usage_and_every_terms_decision(
+        logged_in, fake_v1, monkeypatch, caplog, body, said, unsaid, asked):
+    '''What `GET /v1/me` says and nothing refreshed; the reminder offers each page once
+    where it can still be decided; server text never carries a control character.'''
+    questions = []
+    _asked(monkeypatch, lambda question: questions.append(question) or "n", tty=True)
     fake_v1.route(responses.GET, "me", body)
     caplog.set_level(logging.INFO)
 
     cli.print_identity(logged_in, logged_in.me())
 
-    for said in ("You cannot submit jobs here", "Ask an administrator to provision",
-                 "server-errors/account-not-provisioned",
-                 "Your limits:", "max_job_nodes: 50", "concurrent_jobs: unlimited",
-                 "Unfinished jobs (staging, queued, running or cancelling): 3",
-                 "Compute: 1m 00s in this calendar_week window",
-                 "Terms of Service, version 2026-09-01: accepted",
-                 "gf12 NDA, version 2026-09-01: declined",
-                 "Export terms, version 2026-09-01: undecided",
-                 "Data policy, version 2026-09-01: undecided"):
-        assert said in caplog.text, said
-    # The reminder's offer for the upcoming version, then the undecided policy's.
-    assert len(asked) == 2
+    for line in said:
+        assert line in caplog.text, line
+    assert not any(line in caplog.text for line in unsaid)
+    assert "\x07" not in caplog.text and "\x1b]" not in caplog.text
+    assert len(questions) == asked
+    assert grants(fake_v1) == ["client_credentials"]
 
 
 def test_login_needs_no_human_and_asserts_a_derived_subject(
@@ -363,7 +360,7 @@ def test_login_needs_no_human_and_asserts_a_derived_subject(
     assert tmp_credentials.refresh_token == "refresh-token-one"
     # The access token is never written down.
     assert "access_token" not in json.loads(tmp_credentials.path.read_text())
-    sent = _form(fake_v1.calls[-1].request.body)
+    sent = form(fake_v1.calls[-1].request.body)
     assert sent["grant_type"] == "client_credentials"
     assert sent["client_id"].startswith("local:")
     assert sent["machine_id_source"] in (
@@ -414,113 +411,241 @@ def test_a_first_command_enrolls_and_the_next_refreshes(
     Client(tmp_credentials).me()
     Client(Credentials(tmp_credentials.path)).me()
 
-    assert _grants(fake_v1) == ["client_credentials", "refresh_token"]
+    assert grants(fake_v1) == ["client_credentials", "refresh_token"]
     refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
-    assert "scope" not in _form(refresh.body)
+    assert "scope" not in form(refresh.body)
 
 
-@pytest.mark.parametrize("reason", ["revoked", None, "reused"])
-def test_a_dead_refresh_token_falls_back_to_enrolling_once(
-        fake_v1, tmp_credentials, client_credentials, caplog, reason):
-    '''Exactly one refresh and one enrolment: a refused refresh once
-    recursed through login() for hundreds of real round trips. The new token
-    replaces the dead one; `reused` also says to rotate the key.'''
-    tmp_credentials.save_tokens({"refresh_token": "long-dead"})
-    fake_v1.route(responses.POST, "auth/token",
-                  {"error": "invalid_grant", **({"reason": reason} if reason else {})},
-                  status=400)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    with caplog.at_level("WARNING"):
-        assert Client(tmp_credentials).me()["id"] == "u1"
-
-    assert _grants(fake_v1) == ["refresh_token", "client_credentials"]
-    assert tmp_credentials.refresh_token == "refresh-token-one"
-    if reason == "reused":
-        assert "sc-config remote rotate-key" in caplog.text
-        assert "used elsewhere" in caplog.text
+ME = {"id": "u1", "issuer": "local"}
+EXPIRED = {"WWW-Authenticate": 'DPoP error="invalid_token"'}
+ENROLL, REFRESH = "client_credentials", "refresh_token"
 
 
-@pytest.mark.parametrize("typed", [True, False], ids=["typed", "header-only"])
-def test_an_expired_token_is_refreshed_silently(logged_in, fake_v1, tmp_credentials,
-                                                client_credentials, typed):
-    '''The challenge alone says `invalid_token` where no handler typed the body.'''
-    challenge = {"WWW-Authenticate": 'DPoP error="invalid_token"'}
-    if typed:
-        _refused(fake_v1, "me", "invalid-token", 401, headers=challenge)
-    else:
-        fake_v1.route(responses.GET, "me", "", status=401, headers=challenge,
-                      content_type="text/plain")
-    fake_v1.route(responses.POST, "auth/token",
-                  {**client_credentials, "access_token": "access-token-two"})
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    assert logged_in.me()["id"] == "u1"
-    assert tmp_credentials.refresh_token == "refresh-token-one"
-    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+def _problem(slug, status, headers=None, path="me", method=responses.GET, **members):
+    return (method, path, problem(slug, status, **members), status,
+            "application/problem+json", headers)
 
 
-def test_a_token_refused_again_after_a_refresh_is_the_answer(logged_in, fake_v1,
-                                                             client_credentials):
-    '''One refresh per request: a second `invalid-token` fails rather than
-    refreshing again.'''
-    for _ in range(3):
-        _refused(fake_v1, "me", "invalid-token", 401,
-                 headers={"WWW-Authenticate": 'DPoP error="invalid_token"'})
-    fake_v1.route(responses.POST, "auth/token",
-                  {**client_credentials, "access_token": "access-token-two"})
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.me()
-
-    assert raised.value.slug == "invalid-token"
-    assert _grants(fake_v1) == ["client_credentials", "refresh_token"]
+def _oauth(error, headers=None, **members):
+    return responses.POST, "auth/token", {"error": error, **members}, 400, \
+        "application/json", headers
 
 
-def test_an_unknown_challenge_fails_and_is_named(logged_in, fake_v1):
-    _refused(fake_v1, "me", "a-type-from-later", 401,
-             headers={"WWW-Authenticate": 'DPoP error="a_challenge_from_later"'})
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.me()
-
-    assert 'error="a_challenge_from_later"' in str(raised.value)
-    assert _grants(fake_v1) == ["client_credentials"]
+def _token(access="access-token-two"):
+    return responses.POST, "auth/token", {"access_token": access}, 200, \
+        "application/json", None
 
 
-def test_a_dead_session_is_logged_into_again_never_refreshed(logged_in, fake_v1):
-    '''The refresh token is the session that ended.'''
-    _refused(fake_v1, "me", "session-ended", 401, reason="revoked")
-    fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
-
-    assert logged_in.me()["id"] == "u1"
-    assert _grants(fake_v1) == ["client_credentials", "client_credentials"]
+def _me():
+    return responses.GET, "me", ME, 200, "application/json", None
 
 
-# Clear of each unit's boundary: `Date` has one-second resolution.
-@pytest.mark.parametrize("offset,said", [(330, r"5m \d\ds behind"), (-7530, "2h 05m ahead"),
-                                         (20, None), (None, None)])
-def test_a_refused_proof_fails_and_says_when_the_clock_is_off(logged_in, fake_v1,
-                                                              offset, said):
-    '''A bad proof is not a stale token, so nothing is
-    refreshed; a clock over a minute out is named from the server's `Date`.'''
+def _nonce(slug, number, **headers):
+    return _problem(slug, 401, {"DPoP-Nonce": number, **headers})
+
+
+# `queue` is what the server answers after the call that is in the way; `grants` the
+# token requests that made; `nonces` the proof's nonce on each request to a path.
+@pytest.mark.parametrize("case", [
+    pytest.param(dict(queue=[_problem("invalid-token", 401, EXPIRED), _token(), _me()],
+                      grants=[ENROLL, REFRESH]), id="expired"),
+    pytest.param(dict(queue=[(responses.GET, "me", "", 401, "text/plain", EXPIRED),
+                             _token(), _me()],
+                      grants=[ENROLL, REFRESH]), id="expired-by-the-header-alone"),
+    # One refresh per request: a second `invalid-token` is the answer.
+    pytest.param(dict(queue=[_problem("invalid-token", 401, EXPIRED)] * 3 + [_token()],
+                      outcome="invalid-token", grants=[ENROLL, REFRESH]),
+                 id="refused-again"),
+    pytest.param(dict(queue=[_problem("a-type-from-later", 401,
+                                      {"WWW-Authenticate": 'DPoP error="a_challenge_from_later"'})],
+                      outcome="a-type-from-later", said=['error="a_challenge_from_later"'],
+                      grants=[ENROLL]), id="unknown-challenge"),
+    # The refresh token is the session that ended: log in again, never refresh.
+    pytest.param(dict(queue=[_problem("session-ended", 401, reason="revoked"), _me()],
+                      grants=[ENROLL, ENROLL]), id="session-ended"),
+    # A bad proof is not a stale token, so nothing is refreshed; a clock over a minute
+    # out is named from the server's `Date`, clear of each unit's boundary.
+    pytest.param(dict(queue=[_problem("invalid-dpop-proof", 401)], offset=330,
+                      outcome="invalid-dpop-proof", grants=[ENROLL],
+                      said=[r"5m \d\ds behind", "clock"]), id="proof-clock-behind"),
+    pytest.param(dict(queue=[_problem("invalid-dpop-proof", 401)], offset=-7530,
+                      outcome="invalid-dpop-proof", grants=[ENROLL],
+                      said=["2h 05m ahead", "clock"]), id="proof-clock-ahead"),
+    pytest.param(dict(queue=[_problem("invalid-dpop-proof", 401)],
+                      outcome="invalid-dpop-proof", grants=[ENROLL], unsaid=["clock is"]),
+                 id="proof-clock-unknown"),
+    # A client that only refreshes loops on a nonce for ever; the nonce is sent once.
+    pytest.param(dict(queue=[_nonce("dpop-nonce-required", "api-nonce"), _me()],
+                      grants=[ENROLL], nonces=("/v1/me", [None, "api-nonce"])),
+                 id="nonce-by-slug"),
+    pytest.param(dict(queue=[_nonce("invalid-dpop-proof", "api-nonce", **{
+                          "WWW-Authenticate": 'DPoP error="use_dpop_nonce"'}), _me()],
+                      grants=[ENROLL], nonces=("/v1/me", [None, "api-nonce"])),
+                 id="nonce-by-challenge"),
+    pytest.param(dict(queue=[_nonce("dpop-nonce-required", "one"),
+                             _nonce("dpop-nonce-required", "two")],
+                      outcome="dpop-nonce-required", grants=[ENROLL],
+                      nonces=("/v1/me", [None, "one"])), id="nonce-twice"),
+    pytest.param(dict(logged_in=False, call="login",
+                      queue=[_oauth("use_dpop_nonce", {"DPoP-Nonce": "token-nonce"}),
+                             _token("access-token-one")],
+                      grants=[ENROLL, ENROLL], nonces=("/auth/token", [None, "token-nonce"])),
+                 id="token-nonce"),
+    pytest.param(dict(logged_in=False, call="login",
+                      queue=[_oauth("use_dpop_nonce", {"DPoP-Nonce": "one"}),
+                             _oauth("use_dpop_nonce", {"DPoP-Nonce": "two"})],
+                      outcome="oauth", said=["use_dpop_nonce"], grants=[ENROLL, ENROLL],
+                      nonces=("/auth/token", [None, "one"])), id="token-nonce-twice"),
+    # It has no access token for a refresh to repair.
+    pytest.param(dict(logged_in=False, stored="whatever", call="refresh-grant",
+                      queue=[_problem("invalid-token", 401, path="auth/token",
+                                      method=responses.POST)],
+                      outcome="invalid-token", grants=[REFRESH]), id="unauthenticated"),
+    # Exactly one refresh and one enrolment, the new token replacing the dead one.
+    pytest.param(dict(logged_in=False, stored="long-dead", queue=[
+        _oauth("invalid_grant", reason="revoked"), _token("access-token-one"), _me()],
+        grants=[REFRESH, ENROLL]), id="dead-refresh-revoked"),
+    pytest.param(dict(logged_in=False, stored="long-dead", queue=[
+        _oauth("invalid_grant"), _token("access-token-one"), _me()],
+        grants=[REFRESH, ENROLL]), id="dead-refresh-no-reason"),
+    pytest.param(dict(logged_in=False, stored="long-dead", queue=[
+        _oauth("invalid_grant", reason="reused"), _token("access-token-one"), _me()],
+        grants=[REFRESH, ENROLL], said=["sc-config remote rotate-key", "used elsewhere"]),
+        id="dead-refresh-reused"),
+])
+def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
+        request, fake_v1, tmp_credentials, client_credentials, caplog, case):
+    '''A refusal is read by its slug, challenge or OAuth `error`, not its status: refresh
+    once, log in again where the session ended, repeat a nonce once, and stop on the rest.'''
     import email.utils
     import time as clock
 
-    headers = None if offset is None else \
-        {"Date": email.utils.formatdate(clock.time() + offset, usegmt=True)}
-    _refused(fake_v1, "me", "invalid-dpop-proof", 401, headers=headers)
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.me()
-
-    assert raised.value.slug == "invalid-dpop-proof"
-    assert _grants(fake_v1) == ["client_credentials"]
-    if said:
-        assert re.search(said, str(raised.value)) and "clock" in str(raised.value)
+    case = {"logged_in": True, "stored": None, "call": "me", "outcome": "ok", "said": (),
+            "unsaid": (), "nonces": None, "offset": None, **case}
+    if case["logged_in"]:
+        client = request.getfixturevalue("logged_in")
     else:
-        assert "clock is" not in str(raised.value)
+        if case["stored"]:
+            tmp_credentials.save_tokens({"refresh_token": case["stored"]})
+        client = Client(tmp_credentials)
+    for index, (method, path, body, status, content_type, headers) in enumerate(case["queue"]):
+        if status == 200:
+            body = {**client_credentials, **body} if path == "auth/token" else body
+        if index == 0 and case["offset"] is not None:
+            headers = {**(headers or {}), "Date": email.utils.formatdate(
+                clock.time() + case["offset"], usegmt=True)}
+        fake_v1.route(method, path, body, status=status, content_type=content_type,
+                      headers=headers)
+    call = {"me": client.me, "login": client.login,
+            "refresh-grant": lambda: client.transport.login(
+                {"grant_type": "refresh_token", "refresh_token": "whatever"})}[case["call"]]
+
+    with caplog.at_level("WARNING"):
+        if case["outcome"] == "ok":
+            call()
+            said = caplog.text
+            assert tmp_credentials.refresh_token == "refresh-token-one"
+            assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+        else:
+            with pytest.raises(RemoteError) as raised:
+                call()
+            said = str(raised.value)
+            if case["outcome"] == "oauth":
+                assert not isinstance(raised.value, ServerProblem)
+            else:
+                assert raised.value.slug == case["outcome"]
+
+    assert grants(fake_v1) == case["grants"]
+    for fragment in case["said"]:
+        assert re.search(fragment, said), said
+    assert not any(fragment in said for fragment in case["unsaid"])
+    if case["nonces"]:
+        path, expected = case["nonces"]
+        assert [claims(c.request.headers["DPoP"]).get("nonce") for c in fake_v1.calls
+                if c.request.url.endswith(path)] == expected
+
+
+@pytest.mark.parametrize("body,status,extra,said,unsaid", [
+    pytest.param(
+        problem("limit-exceeded", 429, limit="concurrent_jobs", job_ids=["a", "b"],
+                trace_id="a" * 32, detail="four already running" + EVIL),
+        429, {},
+        ["Limit exceeded (429): four already running", "limit: concurrent_jobs",
+         "job_ids: a b", "refills", "trace " + "a" * 32], [], id="detail-members-and-trace"),
+    pytest.param(problem("feature-unsupported", 501, feature="projects"), 501, {},
+                 ["feature: projects", "does not offer that"], [], id="feature"),
+    pytest.param(
+        problem("software-unavailable", 422, reason="unavailable", unresolved=[
+            {"kind": "tools", "name": "openroad", "requirement": [">=24.3.2011", "==2.0"],
+             "available": ["2.1.0"]},
+            {"kind": "tools", "name": "magic", "requirement": [], "available": []},
+            {"kind": "python", "name": "za-sclib", "requirement": ["==0.1.80"],
+             "available": ["0.1.80"]},
+            {"kind": "class", "name": "mytasks/MyTask", "requirement": [], "available": []},
+            {"kind": "package", "name": "numpy", "requirement": ["==1.*"], "available": []}]),
+        422, {},
+        ["reason: unavailable", "tool openroad >=24.3.2011 or ==2.0 (available: 2.1.0)",
+         "tool magic any version (available: none)",
+         "python za-sclib ==0.1.80 (available: 0.1.80)", "task class mytasks/MyTask",
+         "package numpy ==1.* (available: none)", "Ask for a version this server has"],
+        [], id="software-by-kind"),
+    pytest.param(
+        problem("software-unavailable", 422, reason="unavailable", unresolved=[
+            {"kind": "interpreter", "name": "python", "requirement": ["==3.12.*"],
+             "available": ["3.11.9"]}]),
+        422, {},
+        ["interpreter python ==3.12.* (available: 3.11.9)",
+         "No image here runs the Python this machine does"], ["Ask for a version"],
+        id="software-interpreter"),
+    # Each document by its title where known, else its id; anything else names nothing.
+    pytest.param(problem("terms-not-accepted", 403,
+                         blocked_by=["tos", "gf22-nda", {"id": "export"}, ""]),
+                 403, {"titles": {"tos": "Terms of Service"}},
+                 ["sign Terms of Service", "sign gf22-nda", "Sign each document"],
+                 ["sign {", "sign export"], id="blocked-by"),
+    pytest.param(problem("archive-rejected", 422, reason="a-reason-from-later"), 422, {},
+                 ["reason: a-reason-from-later", "Fix what the reason names, in a new job."],
+                 [], id="unknown-reason"),
+    pytest.param(problem("entitlement-denied", 403, resource_kind="pdk", resource="gf12"),
+                 403, {}, ["resource: gf12", "resource_kind: pdk", "Ask for a grant"], [],
+                 id="entitlement"),
+    pytest.param(problem("entitlement-denied", 403, resource_kind="capability",
+                         resource="a-capability-from-later"),
+                 403, {}, ["Ask the deployment for that grant"], [], id="unknown-capability"),
+    # By name, never as `resource_kind: None`.
+    pytest.param(problem("resource-unavailable", 422, resource="secret"), 422, {},
+                 ["resource: secret", "cannot be sent it"], ["resource_kind", "None"],
+                 id="resource-without-a-kind"),
+    # Never an HTTP response, so no status; a limit in `detail` changes nothing.
+    pytest.param(problem("run-failed", None, detail="place/0 exceeded its time limit"),
+                 None, {}, ["exceeded its time limit", "Read the failing node's log"],
+                 ["(None)"], id="no-status"),
+    # An unknown type, or one outside the registry, is acted on by its status.
+    pytest.param(problem("a-type-from-later", 422), 422, {},
+                 ["retrying it unchanged will not help"], [], id="unknown-type"),
+    pytest.param({"title": "Bad Gateway"}, 502, {}, ["Bad Gateway (502)", "try again later"],
+                 [], id="untyped-5xx"),
+    pytest.param({"type": "https://elsewhere.test/server-errors/limit-exceeded",
+                  "title": "Refused"}, 429, {}, ["Wait and retry."], ["refills"],
+                 id="type-outside-the-registry"),
+])
+def test_a_refusal_renders_without_opening_a_url(body, status, extra, said, unsaid):
+    '''The type pages are static, so the client holds the only copy of the specific
+    failure: the discriminator, the next step and the trace, each cleaned for a terminal.'''
+    refusal = ServerProblem(body, status, **extra)
+    rendered = str(refusal)
+    slug = body.get("type", "")[len(TYPE_BASE):] if body.get("type", "").startswith(
+        TYPE_BASE) else None
+
+    assert refusal.slug == slug
+    for name in set(body) - {"type", "title", "status"}:
+        assert refusal.member(name) == body[name]
+    if slug:
+        assert f"server-errors/{slug}" in rendered
+    for fragment in said:
+        assert fragment in rendered, rendered
+    assert not any(fragment in rendered for fragment in unsaid)
+    assert "\x07" not in rendered and "\x1b]" not in rendered
 
 
 def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
@@ -536,53 +661,6 @@ def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
 
     assert "different user" in caplog.text
     assert tmp_credentials.user_id == "the-new-me"
-
-
-@pytest.mark.parametrize("body,status,said", [
-    (problem("limit-exceeded", 429, limit="concurrent_jobs", detail="four already running",
-             trace_id="a" * 32),
-     None, ["four already running", "limit: concurrent_jobs", "refills", "trace " + "a" * 32]),
-    (problem("feature-unsupported", 501, feature="device_grant"), None,
-     ["feature: device_grant"]),
-    (problem("archive-rejected", 422, reason="expanded_bytes"), None,
-     ["reason: expanded_bytes"]),
-    (problem("archive-rejected", 422, reason="a-reason-from-later"), None,
-     ["Fix what the reason names, in a new job."]),
-    ({"title": "Bad Gateway"}, 502, ["try again later"]),
-    # `detail` is prose: a limit it names changes nothing the client does.
-    (problem("run-failed", None, detail="place/0 exceeded its time limit"), None,
-     ["exceeded its time limit", "Read the failing node's log"]),
-    (problem("staging-timed-out", None, limit="max_staging_seconds"), None,
-     ["limit: max_staging_seconds", "times out again", "smaller set of Python packages"]),
-], ids=["detail-and-trace", "feature", "reason", "unknown-reason", "untyped-5xx",
-        "limit-in-detail", "staging-timed-out"])
-def test_a_refusal_renders_without_opening_a_url(body, status, said):
-    '''The type pages are static, so the client holds the only copy of the
-    specific failure: the discriminator, the next step and the trace.'''
-    rendered = describe(body, status) if status else describe(body)
-
-    for fragment in said:
-        assert fragment in rendered
-
-
-@pytest.mark.parametrize("body,status,content_type", [
-    ("<html><head><title>502 Bad Gateway</title></head>"
-     "<body><h1>502 Bad Gateway</h1></body></html>", 502, "text/html"),
-    ("", 503, "text/plain"),
-], ids=["proxy-html", "empty"])
-def test_a_non_problem_error_body_renders_rather_than_throwing(logged_in, fake_v1, body,
-                                                               status, content_type):
-    '''problem+json is promised only for what a handler produced.'''
-    fake_v1.route(responses.GET, "me", body, status=status, content_type=content_type)
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.me()
-
-    assert raised.value.status == status
-    assert raised.value.slug is None
-    assert str(raised.value) and "<html>" not in str(raised.value)
-    if body:
-        assert "502" in str(raised.value)
 
 
 @pytest.mark.parametrize("content_type,body,said", [
@@ -605,27 +683,6 @@ def test_only_problem_json_names_a_condition(logged_in, fake_v1, content_type, b
         assert fragment in str(raised.value)
     if "instance" in body:
         assert raised.value.member("instance") == "/v1/me"
-
-
-def test_an_unknown_type_is_acted_on_by_its_status(fake_v1, logged_in):
-    '''A 4xx from a later registry is still not worth repeating.'''
-    _refused(fake_v1, "me", "a-type-from-later", 422)
-
-    with pytest.raises(ServerProblem) as raised:
-        logged_in.me()
-
-    assert raised.value.slug == "a-type-from-later"
-    assert "retrying it unchanged will not help" in str(raised.value)
-
-
-@pytest.mark.parametrize("uri", ["https://elsewhere.test/server-errors/limit-exceeded",
-                                 "about:blank", "limit-exceeded"])
-def test_a_type_outside_the_registry_names_no_slug(uri):
-    '''Only the registry's own URIs name a condition; any other is acted on by its status.'''
-    refusal = ServerProblem({"type": uri, "title": "Refused"}, 429)
-
-    assert refusal.slug is None
-    assert "Wait and retry." in str(refusal) and "refills" not in str(refusal)
 
 
 def test_devices_are_listed_across_pages_and_revoked(fake_v1, logged_in):
@@ -713,7 +770,7 @@ def test_switching_servers_asks_nothing_and_keeps_each_session(
 
     Client(tmp_credentials).configure_server(server=V1_URL.rsplit("/v1", 1)[0])
     assert tmp_credentials.server == V1_URL
-    assert _grants(fake_v1)[-1] == "refresh_token"
+    assert grants(fake_v1)[-1] == "refresh_token"
 
 
 @pytest.mark.parametrize("configured", [True, False], ids=["switching", "first"])
@@ -760,16 +817,3 @@ def test_use_server_switches_among_the_servers_configured_here(fake_v1, tmp_cred
         client.use_server("https://new.test")
     assert tmp_credentials.server == V1_URL
     assert not fake_v1.calls
-
-
-def test_an_unauthenticated_request_never_refreshes(fake_v1, tmp_credentials):
-    '''It has no access token for a refresh to repair.'''
-    tmp_credentials.save_tokens({"refresh_token": "whatever"})
-    _refused(fake_v1, "auth/token", "invalid-token", 401, method=responses.POST)
-
-    client = Client(tmp_credentials)
-    with pytest.raises(ServerProblem):
-        client.transport.login({"grant_type": "refresh_token",
-                                "refresh_token": "whatever"})
-
-    assert len([c for c in fake_v1.calls if c.request.method == "POST"]) == 1

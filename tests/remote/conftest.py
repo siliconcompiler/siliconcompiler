@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 
 import pytest
 import responses
@@ -121,6 +122,184 @@ def problem(slug, status, **members):
         "status": status,
         **members,
     }
+
+
+def refused(fake_v1, method, path, slug, status, headers=None, **members):
+    '''Answer ``method`` ``path`` with the problem+json of ``slug``.'''
+    fake_v1.route(method, path, problem(slug, status, **members), status=status,
+                  content_type="application/problem+json", headers=headers)
+
+
+def form(body):
+    '''A request body's form fields.'''
+    from urllib.parse import parse_qs
+
+    if isinstance(body, bytes):
+        body = body.decode()
+    return {k: v[0] for k, v in parse_qs(body).items()}
+
+
+def posts(fake_v1, path="auth/token"):
+    '''Every POST to ``path``, as the requests that were sent.'''
+    return [c.request for c in fake_v1.calls
+            if c.request.method == "POST" and c.request.url.endswith(path)]
+
+
+def grants(fake_v1):
+    '''The grant type of each token request, in order.'''
+    return [form(r.body)["grant_type"] for r in posts(fake_v1)]
+
+
+def claims(token):
+    import jwt
+
+    return jwt.decode(token, options={"verify_signature": False})
+
+
+def mode(path):
+    return stat.S_IMODE(os.stat(path).st_mode)
+
+
+def asked_for_pages(fake_v1):
+    '''Each body this client sent endpoint 6.'''
+    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")]
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    slept = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    return slept
+
+
+def node_body(step, state, **extra):
+    node = {"step": step, "index": "0", "state": state,
+            "terminal": state in ("completed", "failed", "skipped", "cancelled"),
+            "started_at": None, "finished_at": None, "exit_code": None,
+            "error": None}
+    node.update(extra)
+    return node
+
+
+def job_body(state="running", nodes=None, terminal=None, **extra):
+    '''A job object shaped the way the v1 API publishes it.'''
+    nodes = nodes if nodes is not None else [node_body("stepone", "running"),
+                                             node_body("steptwo", "pending")]
+    if terminal is None:
+        terminal = state in ("completed", "failed", "cancelled", "rejected",
+                             "abandoned")
+    return {
+        "id": "01J9-job", "state": state, "terminal": terminal,
+        "state_changed_at": "2026-09-22T10:00:00.000Z",
+        "design": "gcd", "jobname": "job0", "flow": "nopflow",
+        "owner": {"id": "01J9-user", "name": "A User"}, "project": None,
+        "created_at": "2026-09-22T10:00:00.000Z",
+        "submitted_at": "2026-09-22T10:00:01.000Z",
+        "started_at": None, "finished_at": None,
+        "archived_at": None, "deleted_at": None, "error": None,
+        "nodes": nodes,
+        # Derived: the client reads `failed_count` to choose its advice.
+        "progress": {
+            "total_count": len(nodes),
+            "completed_count": sum(1 for n in nodes if n["state"] == "completed"),
+            "failed_count": sum(1 for n in nodes if n["state"] == "failed")},
+        **extra,
+    }
+
+
+def make_authority(directory, name="Our CA"):
+    '''An authority of our own, and a certificate for 127.0.0.1 it signs; returns
+    the authority's file and the server's certificate and key files.'''
+    import datetime
+    import ipaddress
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def issue(subject, issuer, key, signer, extensions):
+        builder = (x509.CertificateBuilder().subject_name(subject).issuer_name(issuer)
+                   .public_key(key.public_key()).serial_number(x509.random_serial_number())
+                   .not_valid_before(now - datetime.timedelta(minutes=5))
+                   .not_valid_after(now + datetime.timedelta(days=1)))
+        for extension, critical in extensions:
+            builder = builder.add_extension(extension, critical)
+        return builder.sign(signer, hashes.SHA256())
+
+    def usage(**granted):
+        flags = dict.fromkeys(("digital_signature", "content_commitment", "key_encipherment",
+                               "data_encipherment", "key_agreement", "key_cert_sign",
+                               "crl_sign", "encipher_only", "decipher_only"), False)
+        return x509.KeyUsage(**{**flags, **granted})
+
+    ca_key = ec.generate_private_key(ec.SECP256R1())
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
+    ca = issue(ca_name, ca_name, ca_key, ca_key, [
+        (x509.BasicConstraints(ca=True, path_length=None), True),
+        (usage(key_cert_sign=True, crl_sign=True), True),
+        (x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), False)])
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    leaf = issue(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "127.0.0.1")]),
+                 ca_name, key, ca_key, [
+                     (x509.BasicConstraints(ca=False, path_length=None), True),
+                     (usage(digital_signature=True), True),
+                     (x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), False),
+                     (x509.SubjectAlternativeName(
+                         [x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), False),
+                     (x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                         ca_key.public_key()), False)])
+
+    files = [directory / "our-ca.pem", directory / "server.pem", directory / "server.key"]
+    files[0].write_bytes(ca.public_bytes(serialization.Encoding.PEM))
+    files[1].write_bytes(leaf.public_bytes(serialization.Encoding.PEM))
+    files[2].write_bytes(key.private_bytes(serialization.Encoding.PEM,
+                                           serialization.PrivateFormat.PKCS8,
+                                           serialization.NoEncryption()))
+    return files
+
+
+def route_created(fake_v1, **extra):
+    fake_v1.route(responses.POST, "jobs",
+                  {"id": "01J9-job", "state": "created", "project": None,
+                   "created_at": "2026-09-22T10:00:00.000Z", **extra}, status=201)
+
+
+def route_granted(fake_v1, put_status=200):
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put",
+                      "" if put_status == 200 else "denied", status=put_status,
+                      content_type="text/plain")
+
+
+def route_submitted(fake_v1, **body):
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", **body),
+                  status=202)
+
+
+def routes_for_a_submit(fake_v1, **created):
+    route_created(fake_v1, **created)
+    route_granted(fake_v1)
+    route_submitted(fake_v1)
+
+
+def put_body(fake_v1):
+    '''The archive the client PUT to storage.'''
+    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
+    body = put.request.body
+    return body.read() if hasattr(body, "read") else body
+
+
+def creates(fake_v1):
+    return [c for c in fake_v1.calls
+            if c.request.method == "POST" and c.request.url.endswith("/v1/jobs")]
 
 
 @pytest.fixture

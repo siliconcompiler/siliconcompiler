@@ -1,8 +1,7 @@
 '''
 What owns each file a job names, where it came from, and how it reaches a run.
 
-The client asks this what to archive and what the server should supply; the
-server asks it whether each file the manifest names arrived or can be supplied.
+The client asks this what to archive and what the server should supply.
 
 Every file is uploaded or supplied by identity: the server never reads
 a path a job names, or a manifest could root a library at `/etc` and have the
@@ -48,16 +47,14 @@ from urllib.parse import urlsplit
 from siliconcompiler.remote.environment import canonical
 
 __all__ = ["DESIGN", "PROJECT", "LOCAL", "EDITABLE", "INSTALLED",
-           "REMOTE", "PRIVATE", "UPLOADED", "SUPPLIED", "FETCH", "ASK", "UNAVAILABLE",
-           "is_private", "owner", "source", "walk", "sources",
+           "REMOTE", "PRIVATE", "is_private", "owner", "source", "walk", "sources",
            "dataroot_keypath", "is_dataroot_keypath", "shown",
            "Unnamed",
-           "safe_source", "masked", "is_masked", "has_userinfo", "Entry", "confined",
+           "safe_source", "masked", "is_masked", "has_userinfo",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "distributions_of",
            "module_distributions", "supplied_distributions", "not_sent_roots",
-           "private_holders", "collection", "Collection", "collected_path",
-           "value_records", "account_records"]
+           "private_holders", "collection", "Collection", "collected_path"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -465,167 +462,11 @@ def private_holders(values: List[_Value], required=None) -> Set[str]:
             if one.origin == PRIVATE and one.distribution and needed(one.key, required)}
 
 
-# How the server accounts for a dataroot: worst first.
-UNAVAILABLE = "unavailable"   # private and not supplied, or a path that escapes
-ASK = "ask"                   # the client can send it, and has not
-FETCH = "fetch"               # allowlisted, not held: fetched after submit
-SUPPLIED = "supplied"         # held, private-mapped, or an installed package
-UPLOADED = "uploaded"         # every file of it is in the archive
-
-_WORST = (UNAVAILABLE, ASK, FETCH, SUPPLIED, UPLOADED)
-
-
-class Entry(NamedTuple):
-    '''How one dataroot's files, or one owner's outside any, reach the run.'''
-    kind: str
-    name: Optional[str]
-    dataroot: Optional[str]
-    status: str
-    root: Optional[str] = None      # the server's own copy, for SUPPLIED
-    source: Optional[str] = None    # what to fetch, for FETCH
-    ref: Optional[str] = None
-    why: Optional[str] = None       # for UNAVAILABLE
-    origin: Optional[str] = None    # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
-    key: Optional[Tuple[str, ...]] = None   # the value that decided the status,
-    path: Optional[str] = None              # for a refusal to name
-    keypath: Optional[Tuple[str, ...]] = None   # the dataroot's; None for files in none
-
-    @property
-    def wire(self) -> Dict[str, Any]:
-        '''As `upload_sources` spells it; only a dataroot is ever asked for.'''
-        return {"kind": "dataroot", "keypath": list(self.keypath)}
-
-
-def value_records(project, collection_dir, required=None) -> List[Dict[str, Any]]:
-    '''Every value the flow reads, as plain data: the manifest's half of the
-    accounting, :func:`account_records` the server's. ``collected_path`` is
-    computed here, since the layout is the reading SiliconCompiler's.
-
-    The server checks each ``collected`` path itself: whatever wrote the
-    manifest decides what this says.
-    '''
-    records = []
-    for one in walk(project):
-        if not needed(one.key, required):
-            continue
-        record = {"key": list(one.key), "step": one.step, "index": one.index,
-                  "kind": one.kind, "name": one.name, "dataroot": one.dataroot,
-                  "keypath": list(one.keypath) if one.keypath else None,
-                  "origin": one.origin, "path": one.value.get(),
-                  "collected_path": collected_path(one),
-                  "collected": None, "source": None, "ref": None, "package": None}
-        found = _collected_at(one, collection_dir)
-        if found is not None:
-            record["collected"] = found
-        resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
-        if one.origin == INSTALLED and resolver is not None:
-            record["package"] = resolver.urlpath
-        elif one.origin in (REMOTE, PRIVATE) and _remote(resolver):
-            # A private source too: a held copy or a fetch supplies it.
-            record["source"] = safe_source(resolver)
-            record["ref"] = getattr(resolver, "reference", None)
-        records.append(record)
-    return records
-
-
 def _remote(resolver) -> bool:
     '''Whether the resolver fetches remotely, private or not (`source` says PRIVATE first).'''
     from siliconcompiler.package import RemoteResolver
 
     return isinstance(resolver, RemoteResolver)
-
-
-def account_records(records, collection_dir, supply, required=None) -> List[Entry]:
-    '''Every file the flow reads, as how it reaches the run: the server's half
-    of the accounting, from :func:`value_records`. ``supply`` answers for this
-    server; ``required`` None accounts for every file.
-
-    No path the job names is read: a file is uploaded, or supplied by
-    identity and confined to that root; else `ASK` or `UNAVAILABLE`.
-    Given ``required``, a supplied file must be THERE, else `UNAVAILABLE`.
-    An upload counts only where it really is inside ``collection_dir``.
-    '''
-    groups: Dict[Tuple[Optional[str], ...], Entry] = {}
-
-    for record in records:
-        key = tuple(record["key"])
-        if not needed(key, required):
-            continue
-        entry = _one(record, collection_dir, supply, present=required is not None)
-        # By keypath; files in no dataroot, by owner.
-        keypath = record.get("keypath")
-        group = tuple(keypath) if keypath else \
-            (record["kind"], record["name"], record["dataroot"])
-        held = groups.get(group)
-        if held is None or _WORST.index(entry.status) < _WORST.index(held.status):
-            groups[group] = entry
-
-    return sorted(groups.values(),
-                  key=lambda e: (_WORST.index(e.status), e.kind, str(e.name),
-                                 str(e.dataroot), e.keypath or ()))
-
-
-def _one(record, collection_dir, supply, present: bool = False) -> Entry:
-    path = record["path"]
-    keypath = tuple(record["keypath"]) if record.get("keypath") else None
-    base = dict(kind=record["kind"], name=record["name"], dataroot=record["dataroot"],
-                origin=record["origin"], key=tuple(record["key"]), path=path,
-                keypath=keypath)
-
-    # Private wins over everything, the archive included, and is NEVER asked for.
-    if record["origin"] == PRIVATE:
-        root = supply.private_root(keypath) if keypath else None
-        if root:
-            return _supplied(base, root, path, present)
-        remote = record.get("source")
-        entry = _by_source(base, record, supply, present) if remote else None
-        if entry is not None:
-            return entry
-        return Entry(**base, status=UNAVAILABLE,
-                     why="a private dataroot this server has no copy of, and cannot "
-                         "fetch either" + ("" if remote else
-                                           ": its source is on the submitter's machine"))
-
-    found = record.get("collected")
-    held = confined(collection_dir, found) if found and collection_dir else None
-    if held is not None and os.path.exists(held):
-        return Entry(**base, status=UPLOADED)
-
-    if record["origin"] in (LOCAL, EDITABLE):
-        return Entry(**base, status=ASK)
-
-    if record["origin"] == INSTALLED:
-        return Entry(**base, status=SUPPLIED) \
-            if record.get("package") and supply.package(record["package"]) \
-            else Entry(**base, status=ASK)
-
-    # REMOTE: by source and ref, and only from the allowlist.
-    return _by_source(base, record, supply, present) or Entry(**base, status=ASK)
-
-
-def _by_source(base, record, supply, present: bool) -> Optional[Entry]:
-    '''A file the server gets by its source and ref: confined to a copy it holds,
-    or fetched from the allowlist; None where it can do neither.'''
-    path, remote, ref = record["path"], record.get("source"), record.get("ref")
-    if not _relative_and_inside(path):
-        return Entry(**base, status=UNAVAILABLE, why="a path that escapes its dataroot")
-    root = supply.held(remote, ref)
-    if root:
-        return _supplied(base, root, path, present)
-    if supply.allowlisted(remote, ref):
-        return Entry(**base, status=FETCH, source=remote, ref=ref)
-    return None
-
-
-def _supplied(base, root, path, present: bool) -> Entry:
-    '''A file under a server root: confined to it and, where the flow reads it, there.'''
-    full = confined(root, path)
-    if full is None:
-        return Entry(**base, status=UNAVAILABLE, why="a path that escapes its dataroot")
-    if present and not os.path.exists(full):
-        return Entry(**base, status=UNAVAILABLE,
-                     why=f"{path} is not in this server's copy")
-    return Entry(**base, status=SUPPLIED, root=root)
 
 
 def _in_collection(one: _Value, collection_dir) -> Optional[str]:
@@ -638,40 +479,6 @@ def _in_collection(one: _Value, collection_dir) -> Optional[str]:
     except FileNotFoundError:
         return None
     return str(found) if found else None
-
-
-def _collected_at(one: _Value, collection_dir) -> Optional[str]:
-    '''`_in_collection`, relative to ``collection_dir``.'''
-    found = _in_collection(one, collection_dir)
-    if not found:
-        return None
-    base = os.path.abspath(str(collection_dir))
-    found = os.path.abspath(str(found))
-    if found == base or os.path.commonpath([base, found]) != base:
-        return None
-    return os.path.relpath(found, base).replace(os.sep, "/")
-
-
-def _relative_and_inside(path) -> bool:
-    '''Lexically: relative, and not climbing out of wherever it is joined.'''
-    text = str(path or "")
-    if not text or os.path.isabs(text) or text.startswith("$") or "\x00" in text:
-        return False
-    return not os.path.normpath(text).startswith("..")
-
-
-def confined(root, path) -> Optional[str]:
-    '''``root/path`` if it stays under ``root`` once symlinks resolve, else None.
-
-    Never trusted: ``../../etc/passwd`` or a symlink out must not escape.
-    '''
-    if not _relative_and_inside(path):
-        return None
-    base = os.path.realpath(str(root))
-    full = os.path.realpath(os.path.join(base, str(path)))
-    if full != base and os.path.commonpath([base, full]) != base:
-        return None
-    return full
 
 
 def upload_report(values: List[_Value], collection_dir) \

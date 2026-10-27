@@ -171,27 +171,34 @@ def test_a_refused_archive_and_no_manifest_still_fetch_the_rest(fake_v1, results
     assert "nothing to retry" in caplog.text
 
 
-def test_the_five_states_are_different_sentences(results):
-    '''Deleted before expiry; only `deleted_cause: expired` is the reaper,
-    an unknown cause is somebody deciding; a reason is repeated verbatim.'''
-    def why(**case):
-        return results._why(artifact(fetchable=False, **case))
+AT = {"deleted_at": "2026-09-20T00:00:00.000Z"}
 
-    at = dict(deleted_at="2026-09-20T00:00:00.000Z")
-    assert why(deleted_cause="removed", expires_at="2020-01-01T00:00:00.000Z", **at) == \
-        "deleted on 2026-09-20."
-    assert why(deleted_cause="legal", **at) == "deleted on 2026-09-20."
-    assert why(deleted_cause="removed", deleted_reason="superseded by the rerun", **at) == \
-        "deleted on 2026-09-20 -- superseded by the rerun."
-    expired = why(deleted_cause="expired", **at)
-    assert expired.startswith("aged out on 2026-09-20.") and "deleted" not in expired
 
-    said = {why(**case) for case in (
-        dict(deleted_cause="removed", **at), dict(deleted_cause="expired", **at),
-        dict(blocked_by=["nda"]), dict(can_request_access=True),
-        dict(can_request_access=True, access_requested_at="2026-09-20T00:00:00.000Z"),
-        dict())}
-    assert len(said) == 6
+@pytest.mark.parametrize("case,said,unsaid", [
+    # Only `deleted_cause: expired` is the reaper; an unknown cause is somebody deciding.
+    (dict(deleted_cause="removed", expires_at="2020-01-01T00:00:00.000Z", **AT),
+     ["deleted on 2026-09-20."], []),
+    (dict(deleted_cause="legal", **AT), ["deleted on 2026-09-20."], []),
+    (dict(deleted_cause="removed", deleted_reason="superseded by the rerun", **AT),
+     ["deleted on 2026-09-20 -- superseded by the rerun."], []),
+    (dict(deleted_cause="expired", **AT), ["aged out on 2026-09-20."], ["deleted"]),
+    (dict(blocked_by=["nda"]), ["held back by agreements", "sign nda"], []),
+    (dict(can_request_access=True), ["needs an approval"], ["requested"]),
+    (dict(can_request_access=True, access_requested_at="2026-09-20T00:00:00.000Z"),
+     ["access requested on 2026-09-20"], []),
+    (dict(), ["not something asking would change"], []),
+    # What the server wrote never carries a control character to the terminal.
+    (dict(deleted_at="2026-09-20\x1b[2J", deleted_cause="removed", deleted_reason="gone\x07"),
+     ["gone"], ["\x1b", "\x07"]),
+    (dict(can_request_access=True, access_requested_at="\x1b[2J2026-09-21"), [], ["\x1b"]),
+])
+def test_what_a_withheld_artifact_reports_is_one_sentence_per_state(results, case, said, unsaid):
+    '''Deleted before expiry, aged out, unsigned, askable, asked and none of those are
+    different sentences, and a reason is repeated verbatim but cleaned.'''
+    text = results._why(artifact(fetchable=False, **case))
+
+    assert all(fragment in text for fragment in said), text
+    assert not any(fragment in text for fragment in unsaid), text
 
 
 def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
@@ -297,26 +304,6 @@ def test_one_objects_failure_does_not_abort_the_others(fake_v1, results,
     with caplog.at_level("ERROR"):
         assert landing(results.fetch, "j1") == 1
     assert landed(nop_project, "steptwo", "sc_steptwo_0.log")
-
-
-def test_a_node_archive_displaces_what_it_contains(fake_v1, results):
-    '''Fetching a node archive and the objects inside it downloads twice. The
-    job manifest is still fetched beside it, and so is `final`.'''
-    serve(fake_v1, [artifact("manifest"),
-                    artifact("node", "stepone", "0"), artifact("node", "steptwo", "0"),
-                    artifact("logs", "stepone", "0"), artifact("logs", "steptwo", "0"),
-                    artifact("final", "stepone", "0")],
-          {"manifest-None-None": json.dumps({"schemaversion": "0.0.0"}),
-           "final-stepone-0": tarball(["outputs/gcd.v"]),
-           **{f"node-{step}-0": tarball(["outputs/gcd.pkg.json", f"sc_{step}_0.log"])
-              for step in ("stepone", "steptwo")}})
-
-    assert landing(results.fetch, "j1") == 4
-
-    assert sorted(fetched(fake_v1)) == ["/v1/jobs/j1/artifacts/art-final-stepone-0",
-                                        "/v1/jobs/j1/artifacts/art-manifest-None-None",
-                                        "/v1/jobs/j1/artifacts/art-node-stepone-0",
-                                        "/v1/jobs/j1/artifacts/art-node-steptwo-0"]
 
 
 def test_the_job_level_log_lands_beside_the_nodes_not_on_top_of_job_log(
@@ -446,69 +433,106 @@ def ceiling(fake_v1, limit):
     fake_v1.route(responses.GET, "me", {"id": "01J9-user", "terms": [], "limits": limits})
 
 
-def test_over_the_servers_ceiling_is_left_and_displaces_nothing(
-        fake_v1, results, nop_project, caplog):
-    '''The SERVER's number, named once. An archive left behind displaces
-    nothing; `input` is neither taken nor reported.'''
-    ceiling(fake_v1, 1000)
-    serve(fake_v1, [
-        artifact("input", size_bytes=50_000_000, media_type="application/gzip"),
-        artifact("input", "stepone", "0", size_bytes=50_000_000,
-                 media_type="application/gzip"),
-        artifact("node", "stepone", "0", size_bytes=50_000_000,
-                 media_type="application/gzip"),
-        artifact("logs", "stepone", "0")],
-        {"logs-stepone-0": "stepone ran\n"})
-
-    with caplog.at_level("WARNING"):
-        assert landing(results.fetch, "j1") == 1
-
-    assert "1 object(s) were left on the server (47.7 MiB)" in caplog.text
-    assert "1000 B" in caplog.text
-    assert "input" not in caplog.text
-    assert not any("art-input" in call.request.url for call in fake_v1.calls)
-    assert landed(nop_project, "stepone", "sc_stepone_0.log")
+BIG = 50_000_000
 
 
-def test_a_nodes_manifest_log_and_reports_are_taken_where_its_archive_is_withheld(
-        fake_v1, results, nop_project):
-    '''As the node finishes, not at the end; the job's own log and manifest
-    are not final until the run is.'''
-    serve(fake_v1, [
-        artifact("node", "stepone", "0", fetchable=False),
-        artifact("manifest", "stepone", "0"),
-        artifact("logs", "stepone", "0"),
-        artifact("reports", "stepone", "0"),
-        artifact("logs"), artifact("manifest")],
-        {"manifest-stepone-0": "{}", "logs-stepone-0": "ran\n",
-         "reports-stepone-0": tarball(["reports/metrics.json"])})
-
-    assert landing(results.take, "j1", finished("stepone")) == 3
-
-    into = workdir(nop_project, step="stepone", index="0")
-    assert open(os.path.join(into, "sc_stepone_0.log")).read() == "ran\n"
-    assert landed(nop_project, "stepone", "reports", "metrics.json")
-    assert landed(nop_project, "stepone", "outputs", "gcd.pkg.json")
-    assert "/v1/jobs/j1/artifacts/art-logs-None-None" not in fetched(fake_v1)
-    assert "/v1/jobs/j1/artifacts/art-manifest-None-None" not in fetched(fake_v1)
+def _node(step, **extra):
+    return artifact("node", step, "0", **extra)
 
 
-@pytest.mark.parametrize("limit,taken", [
-    (None, ["node"]),
-    # An archive too large to fetch covers nothing, or the node's record is
-    # lost to the size of its outputs.
-    (10, ["manifest", "logs", "reports"]),
-    (0, ["manifest", "logs", "reports"])], ids=["fetched", "too-large", "none-allowed"])
-def test_a_nodes_archive_displaces_its_manifest_log_and_reports_only_if_fetched(
-        fake_v1, results, limit, taken):
-    results._ceiling = limit
-    node = tarball(["outputs/gcd.pkg.json"])
-    serve(fake_v1, [artifact("node", "stepone", "0", size_bytes=len(node))]
-          + [artifact(kind, "stepone", "0") for kind in ("manifest", "logs", "reports")],
-          {"node-stepone-0": node, "manifest-stepone-0": "{}", "logs-stepone-0": "ran\n",
-           "reports-stepone-0": tarball(["reports/metrics.json"])})
-    assert landing(results.take, "j1", finished("stepone")) == len(taken)
-    assert fetched(fake_v1) == [f"/v1/jobs/j1/artifacts/art-{kind}-stepone-0" for kind in taken]
+def _kinds(*kinds, step="stepone"):
+    return [artifact(kind, step, "0") for kind in kinds]
+
+
+def _fetched_names(*names):
+    return [f"/v1/jobs/j1/artifacts/art-{name}" for name in names]
+
+
+NODE_BYTES = tarball(["outputs/gcd.pkg.json"])
+
+
+# `take` is as a node finishes; `fetch` the sweep at the end. `bodies` answer each fetched
+# artifact; `ceiling` is the account's download ceiling on `GET /v1/me`.
+@pytest.mark.parametrize("case", [
+    # A node archive displaces what it contains; the job manifest and `final` stay.
+    pytest.param(dict(
+        call="fetch",
+        items=[artifact("manifest"), _node("stepone"), _node("steptwo"),
+               *_kinds("logs"), *_kinds("logs", step="steptwo"),
+               artifact("final", "stepone", "0")],
+        bodies={"manifest-None-None": json.dumps({"schemaversion": "0.0.0"}),
+                "final-stepone-0": tarball(["outputs/gcd.v"]),
+                **{f"node-{step}-0": tarball(["outputs/gcd.pkg.json", f"sc_{step}_0.log"])
+                   for step in ("stepone", "steptwo")}},
+        fetched=["final-stepone-0", "manifest-None-None", "node-stepone-0", "node-steptwo-0"],
+        landed=4), id="archive-displaces"),
+    # A node's own manifest, log and reports are taken where its archive is withheld, as
+    # it finishes; the job's own log and manifest are not final until the run is.
+    pytest.param(dict(
+        call="take",
+        items=[_node("stepone", fetchable=False), *_kinds("manifest", "logs", "reports"),
+               artifact("logs"), artifact("manifest")],
+        bodies={"manifest-stepone-0": "{}", "logs-stepone-0": "ran\n",
+                "reports-stepone-0": tarball(["reports/metrics.json"])},
+        fetched=["logs-stepone-0", "manifest-stepone-0", "reports-stepone-0"], landed=3,
+        files=[("stepone", "sc_stepone_0.log"), ("stepone", "reports", "metrics.json"),
+               ("stepone", "outputs", "gcd.pkg.json")]), id="withheld-archive"),
+    # An archive too large to fetch covers nothing, or the node's record is lost to the
+    # size of its outputs.
+    pytest.param(dict(
+        call="take", ceiling=None,
+        items=[_node("stepone", size_bytes=len(NODE_BYTES)), *_kinds("manifest", "logs")],
+        bodies={"node-stepone-0": NODE_BYTES, "manifest-stepone-0": "{}",
+                "logs-stepone-0": "ran\n"},
+        fetched=["node-stepone-0"], landed=1), id="displaces-if-fetched"),
+    pytest.param(dict(
+        call="take", ceiling=10,
+        items=[_node("stepone", size_bytes=len(NODE_BYTES)), *_kinds("manifest", "logs")],
+        bodies={"node-stepone-0": NODE_BYTES, "manifest-stepone-0": "{}",
+                "logs-stepone-0": "ran\n"},
+        fetched=["logs-stepone-0", "manifest-stepone-0"], landed=2), id="too-large-covers-nothing"),
+    pytest.param(dict(
+        call="take", ceiling=0,
+        items=[_node("stepone", size_bytes=len(NODE_BYTES)), *_kinds("manifest", "logs")],
+        bodies={"node-stepone-0": NODE_BYTES, "manifest-stepone-0": "{}",
+                "logs-stepone-0": "ran\n"},
+        fetched=["logs-stepone-0", "manifest-stepone-0"], landed=2), id="none-allowed"),
+    # Over the SERVER's ceiling is left, named once, and displaces nothing; `input` is
+    # neither taken nor reported.
+    pytest.param(dict(
+        call="fetch", ceiling=1000,
+        items=[artifact("input", size_bytes=BIG, media_type="application/gzip"),
+               artifact("input", "stepone", "0", size_bytes=BIG,
+                        media_type="application/gzip"),
+               _node("stepone", size_bytes=BIG, media_type="application/gzip"),
+               *_kinds("logs")],
+        bodies={"logs-stepone-0": "stepone ran\n"}, fetched=["logs-stepone-0"], landed=1,
+        said=["1 object(s) were left on the server (47.7 MiB)", "1000 B"],
+        unsaid=["input"], files=[("stepone", "sc_stepone_0.log")]), id="over-the-ceiling"),
+    # Only a listing with no manifest at all means the server keeps none.
+    pytest.param(dict(
+        call="fetch", items=[_node("stepone"), *_kinds("manifest")],
+        bodies={"node-stepone-0": NODE_BYTES}, fetched=["node-stepone-0"], landed=1,
+        unsaid=["No manifest was kept"]), id="manifest-inside-the-archive"),
+])
+def test_which_artifacts_are_fetched_and_what_an_archive_displaces(
+        fake_v1, results, nop_project, caplog, case):
+    '''A node archive displaces the manifest, log and reports inside it only if it is
+    fetched; one over the ceiling is left on the server and displaces nothing.'''
+    if "ceiling" in case:
+        ceiling(fake_v1, case["ceiling"])
+    serve(fake_v1, case["items"], case["bodies"])
+    nodes = finished("stepone") if case["call"] == "take" else None
+
+    with caplog.at_level("INFO"):
+        assert landing(getattr(results, case["call"]), "j1", *([nodes] if nodes else [])) \
+            == case["landed"]
+
+    assert sorted(fetched(fake_v1)) == sorted(_fetched_names(*case["fetched"]))
+    for step, *path in case.get("files", ()):
+        assert landed(nop_project, step, *path)
+    assert all(fragment in caplog.text for fragment in case.get("said", ()))
+    assert not any(fragment in caplog.text for fragment in case.get("unsaid", ()))
 
 
 def test_a_continued_nodes_results_come_from_the_job_that_ran_it(fake_v1, results):
@@ -547,23 +571,10 @@ def test_what_is_withheld_for_one_reason_is_said_once(fake_v1, results, caplog):
     assert lines[1] == "outputs for stepone/0: deleted on 2026-09-20."
 
 
-def test_a_manifest_inside_a_node_archive_is_one_kept(fake_v1, results, caplog):
-    '''Only a listing with no manifest at all means the server keeps none.'''
-    serve(fake_v1, [artifact("node", "stepone", "0"), artifact("manifest", "stepone", "0")],
-          {"node-stepone-0": tarball(["outputs/gcd.pkg.json"])})
-    with caplog.at_level("INFO"):
-        assert landing(results.fetch, "j1") == 1
-    assert "No manifest was kept" not in caplog.text
-
-
 def test_what_the_server_wrote_is_cleaned_before_it_is_printed(results):
-    '''A kind, a date or a reason never carries a control character to the terminal.'''
-    said = [results._name(artifact("final\x1b]0;x\x07")) + results._why(artifact(
-        fetchable=False, deleted_at="2026-09-20\x1b[2J", deleted_cause="removed",
-        deleted_reason="gone\x07")),
-        results._why(artifact(fetchable=False, can_request_access=True,
-                              access_requested_at="\x1b[2J2026-09-21"))]
-    assert not [line for line in said if "\x1b" in line or "\x07" in line]
+    '''A kind never carries a control character to the terminal.'''
+    assert "\x1b" not in results._name(artifact("final\x1b]0;x\x07"))
+    assert "\x07" not in results._name(artifact("final\x1b]0;x\x07"))
 
 
 def test_a_row_for_a_node_the_flow_does_not_have_writes_nothing(fake_v1, results):

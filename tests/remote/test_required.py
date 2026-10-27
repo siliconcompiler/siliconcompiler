@@ -6,8 +6,7 @@ from siliconcompiler import ASIC, Flowgraph, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
 from siliconcompiler.tools.builtin.nop import NOPTask
 
-from test_owners import (DATASHEET, GITHUB, Supply, account, collected_path, resource,
-                         two_sources)
+from test_owners import DATASHEET, GITHUB, collected_path, resource
 
 
 # Only what the flow requires goes up: the union of every running node's
@@ -124,7 +123,7 @@ def test_a_node_the_flow_does_not_run_reads_nothing(gcd_design, tmp_path):
     assert ("library", "mylib", *QUICKSTART) not in owners.required(carried(project))
 
 
-def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_path):
+def test_sources_see_only_what_the_flow_reads(gcd_design, tmp_path):
     '''A PDK holding nothing the flow reads is never sent for, never fetched.'''
     project = reading_mylib(gcd_design, tmp_path,
                             pdk=resource(PDK, "lambda", GITHUB, create=False))
@@ -132,8 +131,6 @@ def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_pat
 
     assert [item["keypath"][1] for item in owners.sources(owners.walk(project))] == ["lambda"]
     assert owners.sources(owners.walk(project), required) == []
-    names = {entry.name for entry in account(project, "none", Supply(), required)}
-    assert "lambda" not in names and "mylib" in names
 
 
 class NeedsItsImage(NOPTask):
@@ -175,22 +172,3 @@ def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
             project, ("library", "mylib", *key))))
     assert sent(DATASHEET)
     assert sent(QUICKSTART) is bool(fails)
-
-
-def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
-        gcd_design, tmp_path, logged_in):
-    '''Per value: the local file of the parameter the flow reads goes up,
-    and the private one beside it stays here -- the run is not stopped for it.'''
-    from siliconcompiler.remote.client.run import RemoteRun
-    from siliconcompiler.utils.paths import collectiondir
-
-    (tmp_path / "secret").mkdir()
-    (tmp_path / "secret" / "other.pdf").write_text("private\n")
-    pdk = two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}")
-    project = reading(gcd_design, tmp_path, ("library", "mixed", *DATASHEET), pdk=pdk)
-
-    run = RemoteRun(project, logged_in)
-    run._collect(run._read())
-
-    taken = [name for _, _, names in os.walk(collectiondir(project)) for name in names]
-    assert "datasheet.pdf" in taken and "other.pdf" not in taken
