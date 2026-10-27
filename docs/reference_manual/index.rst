@@ -32,6 +32,7 @@ To learn how to use SiliconCompiler, see the :ref:`user guide <user_guide>`.
    schema
    schema_api
    apps
+   remote_api
    leflib_api
    uniquify_api
 

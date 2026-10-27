@@ -586,4 +586,4 @@ The server is a test server, not a service to expose to others. It does not
 verify who a caller is, and it does not offer the device login, terms or
 approvals, containers or Python packages, or continuing from an earlier job.
 Every node of a flow runs inside one job. A site that needs more writes its own
-server to the ``v1`` API, which the client speaks.
+server to the :ref:`v1 API <remote_api>`, which the client speaks.
