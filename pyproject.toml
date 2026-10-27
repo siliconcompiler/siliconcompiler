@@ -147,7 +147,7 @@ find = {namespaces = false}  # Disable implicit namespaces
 # test and its reason, so CI logs show what was skipped and why.
 addopts = "-rfEs"
 markers = [
-    "eda: this test requires EDA tools installed to run. By default these tests will be run nightly, not on push.",
+    "eda: this test requires EDA tools installed, or the network, to run. By default these tests will be run nightly, not on push.",
     "quick: always run this test on push, even if it requires EDA tools.",
     "nocpulimit: don't limit cpu count for this test.",
     "docker: test requires docker",
