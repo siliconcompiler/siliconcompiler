@@ -3,12 +3,17 @@ import pytest
 import os.path
 
 
+# eda for the network: these clone picorv32 from GitHub.
+@pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(60)
 def test_py_make_check():
     from picorv32 import make
     make.check()
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize("fileset", ("rtl", "rtl.memory"))
 def test_py_make_lint(fileset):

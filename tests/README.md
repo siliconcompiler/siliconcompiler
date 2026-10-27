@@ -49,7 +49,7 @@ These are autouse fixtures in `conftest.py`, so a test does not ask for them:
 
 | Marker | Meaning |
 |---|---|
-| `eda` | needs EDA tools; runs nightly |
+| `eda` | needs EDA tools or the network; runs nightly |
 | `quick` | with `eda` or `docker`, also runs on every push |
 | `docker` | needs Docker |
 | `slurm` | needs slurm; skipped automatically without it |
@@ -72,7 +72,7 @@ These are autouse fixtures in `conftest.py`, so a test does not ask for them:
 - **Ready-made projects:** `heartbeat_design`, `gcd_design` and their ASIC
   projects `asic_heartbeat` and `asic_gcd`. `pytest --fixtures tests/conftest.py`
   lists every fixture.
-- **Markers:** a test that runs a tool is `eda`. Add `quick` only if it has to
-  run on every push.
+- **Markers:** a test that runs a tool, or fetches anything over the network, is
+  `eda`. Add `quick` only if it has to run on every push.
 - **Docstrings and comments** follow the rules in
   [AGENTS.md](../AGENTS.md#changing-code-in-this-repository).
