@@ -302,11 +302,19 @@ def listed(values) -> str:
 # Every registered `type` is this and a slug, the same on every deployment.
 TYPE_BASE = "https://siliconcompiler.com/server-errors/"
 
+# Registered slugs that name no client action of their own, so the status advises.
+_ADVICE_BY_STATUS = ("invalid-request", "invalid-token", "method-not-allowed",
+                     "not-acceptable", "unsupported-media-type")
+
+# Every slug this client knows; any other `type` is acted on as an untyped failure.
+REGISTERED = frozenset(_NEXT_STEP) | frozenset(_ADVICE_BY_STATUS)
+
 
 def _slug(problem: Dict[str, Any]) -> Optional[str]:
     '''The condition a problem names, or None for a `type` outside the
-    registry, which is acted on by its status.'''
+    registry, or one this client does not know, which is acted on by its status.'''
     uri = problem.get("type")
     if not isinstance(uri, str) or not uri.startswith(TYPE_BASE):
         return None
-    return uri[len(TYPE_BASE):] or None
+    slug = uri[len(TYPE_BASE):]
+    return slug if slug in REGISTERED else None

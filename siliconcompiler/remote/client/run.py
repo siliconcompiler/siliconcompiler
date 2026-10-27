@@ -35,7 +35,7 @@ from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.remote import environment, links, manifests, owners
-from siliconcompiler.remote.client import capture, wheels
+from siliconcompiler.remote.client import capture, preflight, wheels
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, blocked_lines, clean,
     describe)
@@ -508,14 +508,51 @@ class RemoteRun:
         worked = reads.worked
         self._check_worked_out(worked.failed)
         pins = self._python_pins(reads)
-        member, built, helpers = self._python_packages(reads, pins)
         versions = {"python": pins, "tools": self._tool_requirements(worked.tasks)}
         if worked.environments:
             # This Python, only for a job running the user's own Python.
             versions["interpreter"] = {"python": [
                 f"=={sys.version_info[0]}.{sys.version_info[1]}.*"]}
+        # Before wheels are built, and before create: both are work a refusal wastes.
+        self._check_requested(versions)
+        member, built, helpers = self._python_packages(reads, pins)
         return _Plan(self.project.get_flow().name, len(runtime_nodes(self.project)),
                      versions, sources, member, built, helpers)
+
+    def _check_requested(self, versions: Dict[str, Any]) -> None:
+        '''Stop where create would refuse `requested_versions`: past its bounds, or
+        a name or version `GET /v1`'s `software` shows this server lacks.'''
+        try:
+            environment.check_requested_versions(versions)
+        except environment.PackagesError as e:
+            raise RemoteError(f"this run's requirements are too many for a server to "
+                              f"take: {e}") from None
+        try:
+            software = self.client.capabilities().get("software")
+        except RemoteError:
+            # The server decides at create.
+            return
+        lines = preflight.unmet(software, versions)
+        if lines:
+            raise RemoteError(
+                "this server cannot run this job as it stands, and nothing was created "
+                "or uploaded:\n" + "\n".join(f"  {line}" for line in lines)
+                + "\n  Install a version it offers, or ask its operator for the one you need.")
+
+    def _check_python_env(self) -> None:
+        '''Stop where the job's Python packages need `python.env` and `GET /v1`'s
+        `features` does not list it: a refusal at create otherwise, after the wheels
+        are built.'''
+        try:
+            published = self.client.capabilities()
+        except RemoteError:
+            return
+        if preflight.lacks_feature(published, "python.env"):
+            raise RemoteError(
+                "this job's Python environment needs the server's python.env feature, "
+                "which this server does not offer. Without it a job's Python packages "
+                "cannot run here; a job whose only Python is its own modules needs "
+                "none.")
 
     def _python_pins(self, reads: _Reads) -> Dict[str, List[str]]:
         '''`requested_versions.python`: siliconcompiler,
@@ -612,6 +649,9 @@ class RemoteRun:
             raise RemoteError(str(e)) from None
         for warning in listed.warnings:
             self.logger.warning(warning)
+
+        if listed.requirements or listed.wheels:
+            self._check_python_env()
 
         # Built before create, so a compiled file or failed build stops the run first.
         built: Dict[str, str] = {}

@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import sys
+import time
 
 import pytest
 import requests
@@ -83,7 +84,7 @@ def test_a_key_bound_elsewhere_says_the_operator_can_release_it(fake_v1, tmp_cre
 
 def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
         fake_v1, tmp_credentials, capabilities, no_sleep):
-    '''`unsupported_grant_type` says the offer changed: read again, cache nothing.'''
+    '''`unsupported_grant_type` says the offer changed: read again, and keep the new one.'''
     _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS)
     fake_v1.route(responses.GET, "", {**capabilities, "grant_types_supported":
                                       [GRANT_DEVICE_CODE, "refresh_token"]})
@@ -100,7 +101,25 @@ def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
     Client(tmp_credentials).login()
 
     assert grants(fake_v1) == ["client_credentials", GRANT_DEVICE_CODE]
-    assert "grant_types_supported" not in tmp_credentials.path.read_text()
+    assert tmp_credentials.grants() == [GRANT_DEVICE_CODE, "refresh_token"]
+
+
+def test_the_offer_is_kept_beside_the_credential_and_a_login_reads_it_not_get_v1(
+        fake_v1, tmp_credentials, capabilities, client_credentials):
+    '''Per server URL, so a later login on a stable deployment probes nothing.'''
+    from siliconcompiler.remote import Credentials
+
+    _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    Client(tmp_credentials).login()
+    asked = len([c for c in fake_v1.calls if c.request.path_url == "/v1"])
+
+    later = Credentials(tmp_credentials.path)
+    assert later.grants() == [GRANT_CLIENT_CREDENTIALS]
+    Client(later).login()
+
+    assert len([c for c in fake_v1.calls if c.request.path_url == "/v1"]) == asked
+    assert grants(fake_v1) == [GRANT_CLIENT_CREDENTIALS] * 2
 
 
 def test_the_login_prompt_shows_what_the_approval_page_shows(
@@ -287,16 +306,22 @@ def test_a_header_value_is_checked_and_never_printed(tmp_credentials, fake_v1, c
     assert "very-secret" not in caplog.text
 
 
+@pytest.mark.parametrize("lifetime,presented,kept", [
+    (900, ["r1"], "r2"),
+    (1, ["r1", "r2"], "r3"),
+], ids=["token-still-good", "token-lapsed"])
 def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
-                                                   client_credentials):
-    '''A process that waited for the lock uses what is in the store: a
-    rotated token presented after the grace window ends every session.'''
+                                                   client_credentials, lifetime, presented,
+                                                   kept):
+    '''A process that waited for the lock uses what is in the store -- the access token
+    while it lasts, else the rotated refresh token: one presented after the grace
+    window ends every session.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     first = Client(Credentials(tmp_credentials.path))
     second = Client(Credentials(tmp_credentials.path))
 
     fake_v1.route(responses.POST, "auth/token",
-                  {**client_credentials, "refresh_token": "r2"})
+                  {**client_credentials, "refresh_token": "r2", "expires_in": lifetime})
     fake_v1.route(responses.POST, "auth/token",
                   {**client_credentials, "refresh_token": "r3"})
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
@@ -304,8 +329,8 @@ def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
     first.me()
     second.me()
 
-    assert [form(r.body)["refresh_token"] for r in posts(fake_v1)] == ["r1", "r2"]
-    assert Credentials(tmp_credentials.path).refresh_token == "r3"
+    assert [form(r.body)["refresh_token"] for r in posts(fake_v1)] == presented
+    assert Credentials(tmp_credentials.path).refresh_token == kept
 
 
 def test_threads_sharing_a_client_refresh_once(fake_v1, tmp_credentials, client_credentials):
@@ -416,16 +441,22 @@ def _store_file(credentials):
 
 def test_the_store_is_one_versioned_file_of_two_categories(
         fake_v1, tmp_credentials, client_credentials):
-    '''No access token, scope, login mode, grant list or key kept in it.'''
+    '''The access token and its expiry beside the refresh token and the grants the server
+    offers; no scope, login mode or key kept in it.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
     Client(tmp_credentials).me()
     tmp_credentials.set_header("CF-Access-Client-Id", "id")
 
-    assert _store_file(tmp_credentials) == {
+    written = _store_file(tmp_credentials)
+    expires = written["servers"]["https://sc-server.test/v1"].pop("access_expires_at")
+    assert 0 < expires - time.time() <= client_credentials["expires_in"]
+    assert written == {
         "store": {"version": 1, "server": "https://sc-server.test/v1"},
         "servers": {"https://sc-server.test/v1": {
             "user_id": "u1", "refresh_token": "refresh-token-one",
+            "access_token": "access-token-one",
+            "grant_types_supported": ["client_credentials", "refresh_token"],
             "headers": {"CF-Access-Client-Id": "id"}}}}
     assert tmp_credentials.path == tmp_credentials.auth_dir / "remote.json"
     assert sorted(entry.name for entry in tmp_credentials.auth_dir.iterdir()) == \
@@ -457,7 +488,9 @@ def test_a_ci_credential_takes_the_place_of_a_refresh_token(tmp_credentials, ci_
 def test_rotating_the_key_ends_each_session_and_keeps_the_rest(
         tmp_credentials, ci_secret, monkeypatch):
     monkeypatch.delenv("SC_CI_CREDENTIAL")
-    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    tmp_credentials.save_tokens({"refresh_token": "r1", "access_token": "a1",
+                                 "expires_in": 900})
+    assert tmp_credentials.access_token()[0] == "a1"
     tmp_credentials.set_user_id("u1")
     tmp_credentials.set_header("X-Edge", "v")
     tmp_credentials.set_server("https://ci.test")
@@ -470,6 +503,25 @@ def test_rotating_the_key_ends_each_session_and_keeps_the_rest(
     assert servers["https://sc-server.test/v1"] == {"user_id": "u1", "headers": {"X-Edge": "v"}}
     assert servers["https://ci.test/v1"] == {"ci_credential": ci_secret}
     assert tmp_credentials.thumbprint != before
+
+
+def test_a_stored_access_token_is_dropped_only_where_it_is_the_refused_one(
+        tmp_credentials, monkeypatch):
+    '''A token another process stored since stays; one past its life reads as none.'''
+    tmp_credentials.save_tokens({"refresh_token": "r1", "access_token": "a1",
+                                 "expires_in": 900})
+
+    tmp_credentials.forget_access("another")
+    assert tmp_credentials.access_token()[0] == "a1"
+    tmp_credentials.forget_access("a1")
+    assert tmp_credentials.access_token() == (None, 0.0)
+    assert tmp_credentials.refresh_token == "r1"
+
+    tmp_credentials.save_tokens({"refresh_token": "r1", "access_token": "a2",
+                                 "expires_in": 900})
+    later = time.time() + 901
+    monkeypatch.setattr("siliconcompiler.remote.client.credentials.time.time", lambda: later)
+    assert tmp_credentials.access_token() == (None, 0.0)
 
 
 def _legacy_home(tmp_path):
