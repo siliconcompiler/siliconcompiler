@@ -57,38 +57,69 @@ session, so switching back to one needs no new login:
 
 makes a server already configured on this machine the default, without
 contacting it. ``sc-config remote show`` lists the servers configured here.
+``show``, ``portal`` and ``logout`` act on the default server, or on another
+one configured here when you name it. ``logout`` ends this machine's session on
+a server and removes the server from this machine, its headers and authority
+with it.
+
+Where the server sits behind an access layer that requires headers of its own,
+such as Cloudflare Access, name each one with ``-header``. Each value is asked
+for without being echoed, or read from standard input a line at a time in the
+order named, never from the command line; an empty value removes the header:
+
+.. code-block:: bash
+
+  sc-config remote configure https://your-server.example.com \
+    -header CF-Access-Client-Id -header CF-Access-Client-Secret
 
 What is written, and where
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Everything is in one private directory, ``$HOME/.sc/auth/``
 (``C:\Users\<USERNAME>\.sc\auth\`` on Windows) -- or wherever ``SC_AUTH_DIR``
-points -- in two files, and a directory once you import a certificate:
+points -- in two files, and a directory once a server has an authority of
+your own:
 
 ``dpop-key.pem``
   Your machine's private key. **This is the credential.**
 
 ``remote.json``
-  The store: which server, the upload whitelist, and for each server you have
+  The store: which server is the default, and for each server you have
   configured, your session with it -- the id it knows you by, its refresh
-  token, or a CI credential in place of one -- and any headers an operator's
-  access layer requires (``sc-config remote header``). ``-credentials`` names
-  this file. No access token is written down, so every command,
-  ``sc-config remote show`` included, spends the refresh token once.
-  ``sc-config remote show`` reports the session this machine holds -- its scope, the device it is bound to, and when
-  its tokens and the session itself end -- as the server reports it.
+  token, or a CI credential in place of one -- any headers an operator's
+  access layer requires, and the authority it is verified with, if one of your
+  own. :keypath:`option,credentials` names this file. No access token is
+  written down, so every command, ``sc-config remote show`` included, spends
+  the refresh token once. ``sc-config remote show`` reports the session this
+  machine holds -- its scope, the device it is bound to, and when its tokens
+  and the session itself end -- as the server reports it.
 
 ``certs/``
-  The certificate authorities you imported with ``sc-config remote import-cert``;
-  ``remote.json`` records which one each server is verified with.
+  Each authority's trust bundle, the usual authorities with yours, rebuilt
+  from ``remote.json`` when it is missing.
 
 The headers are configured once, for the server, and sent to its address and
 nowhere else: a live log or a download arrives through the server's own
 address, or from somewhere that needs none. A ``$HOME/.sc/credentials`` file an
 older client wrote, and the files it kept beside it, are moved into
-``remote.json`` the first time it is read. ``open_portal``, which forced the
-browser open or shut after a submit, moves to ``$HOME/.sc/settings.json``, in
-its ``remote`` category.
+``remote.json`` the first time it is read, and its upload whitelist into the
+``uploads`` setting.
+
+Two settings are not secrets, and live in ``$HOME/.sc/settings.json`` instead,
+in its ``remote`` category, changed with :ref:`sc-config settings <app-sc-config>`:
+
+``uploads``
+  The directories a run may upload a directory from. A directory not on the
+  list is not uploaded, and the client says so:
+
+  .. code-block:: bash
+
+    sc-config settings add remote uploads ~/projects/chip
+
+``browser``
+  ``false`` keeps the client from opening a browser -- for the login page, a
+  job's page or the portal -- on a machine with no screen; it prints the
+  address instead.
 
 Nothing else goes with a request. The client never sends a credential it did
 not put there itself, so an entry for the server in ``~/.netrc``, a credential
@@ -99,23 +130,24 @@ A server signed by your own authority
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Where the server's certificate is signed by a certificate authority of your
-organisation's, import that authority's certificate once:
+organisation's, give that authority's certificate when you configure it:
 
 .. code-block:: bash
 
-  sc-config remote import-cert ./our-ca.pem
+  sc-config remote configure https://your-server.example.com -cert ./our-ca.pem
 
 It prints each certificate's subject and SHA-256 fingerprint: check them with
-whoever runs the server. A certificate is kept under its file's name, and a
-different one under the same name is refused; ``-overwrite`` replaces it, and
-every server verified with it uses the replacement from then on. Then, when ``sc-config remote configure`` cannot verify a
-server's certificate, it lists the certificates you imported and asks which
-one signs it, and the server is verified with that one from then on. Only
-``configure`` asks; any other command fails and says to run it. An imported
-certificate is trusted in addition to the usual authorities, never in place
-of them, so an upload to public storage still verifies. A
-``REQUESTS_CA_BUNDLE`` in the environment still takes precedence. The client
-never trusts a certificate the server presents: only one you imported.
+whoever runs the server. The authority is kept for that server once it
+verifies it, and every later command verifies the server with it. When the
+authority is replaced, run the same command with the new file; your session is
+kept, since it is bound to this machine's key rather than to the certificate.
+A server certificate renewed by the same authority needs nothing.
+
+The authority is trusted in addition to the usual ones, never in place of them,
+so an upload to public storage still verifies, and so does a server that moves
+to a publicly signed certificate. A ``REQUESTS_CA_BUNDLE`` in the environment
+still takes precedence. The client never trusts a certificate the server
+presents: only one you gave it.
 
 .. warning::
 
@@ -344,7 +376,9 @@ may hold open at a time (``limits.concurrent_log_streams``); past that, nodes
 are named once and their logs arrive with their results like everything else.
 Set :keypath:`option,quiet` to turn the live output off -- it means here what it
 means locally. A server that offers no live tail simply reports node states, and
-the logs still arrive with the results.
+the logs still arrive with the results. A live log survives a dropped
+connection: the client asks again and resumes where it stopped, so nothing is
+repeated and nothing is skipped.
 
 **Results arrive as each node finishes, not at the end.** A node's outputs,
 reports, log and manifest come down as one object the moment that node is done,
@@ -418,34 +452,17 @@ Anything the server did not keep
   client says which objects were not available and why, in the words that fit
   the case: aged out, deleted, or held back.
 
-Watching, cancelling and reconnecting
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Interrupting a run
+^^^^^^^^^^^^^^^^^^
 
-A remote run writes ``sc_remote.pkg.json`` into its job directory **before it
-uploads anything**, and every command that acts on a job takes that path:
+Interrupting a run with ``Ctrl-C`` disconnects from it without stopping it: the
+job keeps running on the server, and you follow, cancel or delete it in the
+portal. A run interrupted before its job was submitted cancels the job, since
+nothing else would submit it.
 
-.. code-block:: bash
-
-  sc-config remote status build/<design>/<job>/sc_remote.pkg.json
-  sc-config remote reconnect build/<design>/<job>/sc_remote.pkg.json   # re-enter the wait
-  sc-config remote cancel build/<design>/<job>/sc_remote.pkg.json
-  sc-config remote delete build/<design>/<job>/sc_remote.pkg.json
-
-Interrupting a run with ``Ctrl-C`` disconnects from it without stopping it, and
-prints the reconnect and cancel commands with the path filled in. The job keeps
-running on the server.
-
-A job whose submit is refused until you act -- a terms document to accept, or
-an account to be provisioned -- is not cancelled: it keeps its upload, and
-``reconnect`` submits it once that is done.
-
-``cancel`` and ``delete`` are both safe to repeat: cancelling a job that has
-already stopped, or deleting one that is already deleted, is the same answer
-again. A job cannot be deleted while it is still running -- cancel it first.
-
-``cancel -reason "<why>"`` records why, for everyone who reads the job, in at
-most 300 characters on one line; a longer one is refused before anything is
-sent. Without it the reason is *cancelled from SiliconCompiler*.
+A job whose submit is refused -- a terms document to accept, or an account to
+be provisioned -- is cancelled the same way: once that is done, run the flow
+again.
 
 Looking at it in a browser
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -456,7 +473,8 @@ Looking at it in a browser
 
 A server carries a portal: your jobs and their nodes, each node's log live or
 archived, the artifacts a run produced, the machines that may act as you, your
-account, and the images the deployment runs jobs in.
+account, and the images the deployment runs jobs in. A job is cancelled and
+deleted there.
 
 **What went in is kept alongside what came out.** Every archive the job
 uploaded is its own artifact -- the first, and each follow-up the server asked
@@ -480,63 +498,32 @@ makes both worthless.
    issues is bound to a key; a cookie is not, and a path from one to the other
    would be the shortest way around that.
 
-Cancelling a job in the browser is the same cancel the command line makes, so a
-run you are still waiting on reports it and stops.
-
-Reading one node's log
-^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: bash
-
-  sc-config remote tail build/<design>/<job>/sc_remote.pkg.json place/0
-
-**If the node is still running this follows the log live**, and if it has
-finished it prints the archived one. The same call covers both, because a node
-can finish between asking and reading and a client that decided in advance
-would sometimes be wrong.
-
-``<step>/<index>`` is two fields rather than one name on purpose: ``place/10``
-and ``place1/0`` would otherwise both read as ``place10``. The index defaults to
-``0``.
-
-From Python:
-
-.. code-block:: python
-
-  client.tail_log(job_id, "place", "0", write=print)   # live, to the end
-  client.node_log(job_id, "place", "0", "place.log")   # the archived file
-
-A long tail survives being interrupted. The URL the server hands out has a
-lifetime of its own, shorter than most place-and-route runs, so the client
-re-asks and resumes from where it stopped -- which is also what happens when a
-laptop closes its lid or a proxy drops an idle connection. Nothing is repeated
-and nothing is skipped.
-
-A node that has not started yet is reported as not ready and is worth asking
-about again. A deployment that keeps finished logs but serves no live tail says
-so permanently rather than transiently, so a client stops asking for the tail
-and still gets the log when the node finishes.
+Cancelling a job in the browser stops a run you are still waiting on, which
+reports it.
 
 From CI
 -------
 
 A CI job has no person to approve a login. Where the server offers token
 exchange, mint a CI credential in the portal and store the one line it shows
-as the pipeline secret ``SC_CI_CREDENTIAL``. Then, before the build:
+as the pipeline secret ``SC_CI_CREDENTIAL``. Then, before the build, with that
+variable set:
 
 .. code-block:: bash
 
-  sc-config remote ci-setup https://your-server.example.com
+  sc-config remote configure https://your-server.example.com
 
-On GitHub Actions the session store goes in the job's own temporary directory
-and ``SC_AUTH_DIR`` is exported to later steps. Where the server sits behind an
-access layer such as Cloudflare Access, ``ci-setup`` asks for the headers it
-requires when run at a terminal. A pipeline sets each in a later step, the value
-on standard input so it never appears on a command line:
+The session is the CI credential's. On GitHub Actions the session store goes in
+the job's own temporary directory and ``SC_AUTH_DIR`` is exported to later
+steps. Where the server sits behind an access layer such as Cloudflare Access,
+name its headers in the same command, each value a line of standard input so
+it never appears on a command line; ``-cert`` goes here too:
 
 .. code-block:: bash
 
-  echo "$CF_CLIENT_SECRET" | sc-config remote header set CF-Access-Client-Secret
+  printf '%s\n%s\n' "$CF_CLIENT_ID" "$CF_CLIENT_SECRET" | \
+    sc-config remote configure https://your-server.example.com \
+      -header CF-Access-Client-Id -header CF-Access-Client-Secret
 
 A credential bound to one project needs that project named on every
 job: set ``SC_REMOTE_PROJECT``. The client warns, as a GitHub annotation, when
@@ -548,13 +535,14 @@ Troubleshooting
 * **"The edge refused this request":** Something in front of the server --
   an access layer such as Cloudflare Access -- answered instead of the API.
   Check the headers the operator asked you to set: ``sc-config remote show``
-  shows their names, and ``sc-config remote header set <name>`` sets one, reading the
-  value from standard input.
+  shows their names, and ``sc-config remote configure <server> -header <name>``
+  sets one, reading the value from standard input.
 * **"Your credentials were used elsewhere":** A session token was spent twice,
   so the server ended the session. Replace this machine's key with
-  ``sc-config remote rotate-key``. It revokes the device the old key is bound to
-  first, with that key, which ends every session it holds, and then enrols this
-  machine again as a new device.
+  ``sc-config remote rotate-key``. On every server configured here that holds a
+  session, it first revokes the device the old key is bound to, with that key,
+  which ends every session it holds; then it enrols this machine with the
+  default server again as a new device.
 * **Local Changes Not Reflected:** Any modifications you make to local, built-in tool scripts, PDKs, or libraries will not be used in a remote job. The remote server uses its own pre-configured environment.
 * **Network and Filesystem Issues:** Jobs run in isolated environments on the server. Code that relies on specific network or local filesystem calls may not work as expected.
 * **Reporting Issues:** If you encounter problems with the remote workflow, please open an issue on the `SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.

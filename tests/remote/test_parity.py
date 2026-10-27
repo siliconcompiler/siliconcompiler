@@ -87,7 +87,7 @@ def test_a_remote_run_leaves_the_build_directory_a_local_run_does(gcd_design, ra
     # Only what the client itself keeps: the job it ran as, and the server's log.
     extra = {name for name in here - local_tree if not name.startswith("job.")}
     assert {name for name in extra if os.path.basename(name) != "sc_remote_job.json"} == \
-        {"sc_remote.pkg.json", "remote-job.log"}
+        {"remote-job.log"}
 
     for step in ("stepone", "steptwo"):
         assert history.get("record", "status", step=step, index="0") == "success"
@@ -99,33 +99,20 @@ def test_a_remote_run_leaves_the_build_directory_a_local_run_does(gcd_design, ra
 def run_cli(monkeypatch, *args):
     from siliconcompiler.apps import sc_config
 
-    monkeypatch.setattr("sys.argv", ["sc-config", "remote", *args, "-credentials",
-                                     credentials()])
+    monkeypatch.setenv("SC_AUTH_DIR", os.path.dirname(credentials()))
+    monkeypatch.setattr("sys.argv", ["sc-config", "remote", *args])
     return sc_config.main()
 
 
 @pytest.mark.timeout(60)
-def test_the_cli_reaches_a_finished_job_from_its_manifest(monkeypatch, capsys, caplog, ran):
-    remote, _, client = ran
-    manifest = os.path.join(jobdir(remote), "sc_remote.pkg.json")
-
+def test_the_cli_configures_shows_and_logs_out_of_a_live_server(
+        monkeypatch, caplog, live_server):
     with caplog.at_level("INFO"):
-        assert run_cli(monkeypatch, "status", manifest) == 0
-        assert "completed" in caplog.text
-        assert run_cli(monkeypatch, "reconnect", manifest) == 0
-        caplog.clear()
-
-        for node in ("stepone/0", "stepone"):
-            assert run_cli(monkeypatch, "tail", manifest, node) == 0
-            assert "stepone" in capsys.readouterr().out
-
-        assert run_cli(monkeypatch, "cancel", manifest) == 0
-        assert "completed" in caplog.text
-        assert run_cli(monkeypatch, "cancel", manifest, "-reason", "x" * 301) == 1
-        assert "at most 300 characters" in caplog.text
-
-        assert run_cli(monkeypatch, "delete", manifest) == 0
-    assert client.jobs() == []
+        assert run_cli(monkeypatch, "configure", live_server) == 0
+        assert run_cli(monkeypatch, "show", live_server) == 0
+        assert "Server reports you as" in caplog.text
+        assert run_cli(monkeypatch, "logout") == 0
+    assert Credentials(credentials()).servers() == []
 
 
 class Dropped:

@@ -817,3 +817,38 @@ def test_use_server_switches_among_the_servers_configured_here(fake_v1, tmp_cred
         client.use_server("https://new.test")
     assert tmp_credentials.server == V1_URL
     assert not fake_v1.calls
+
+
+def test_a_named_server_is_acted_for_and_a_logout_forgets_it(
+        fake_v1, tmp_credentials, client_credentials, caplog):
+    '''Naming a server leaves the default alone; a logout revokes its session and
+    removes it here, its headers with it, and a default it was stays unset.'''
+    from conftest import FakeV1
+
+    other = FakeV1(fake_v1._mock, OTHER_URL)
+    for server in (fake_v1, other):
+        server.route(responses.POST, "auth/token", client_credentials)
+        server.route(responses.POST, "auth/revoke", {})
+    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    tmp_credentials.set_server(OTHER_URL.rsplit("/v1", 1)[0])
+    tmp_credentials.save_tokens({"refresh_token": "r2"})
+    tmp_credentials.set_header("X-Edge", "other's")
+    tmp_credentials.set_server(V1_URL.rsplit("/v1", 1)[0])
+    client = Client(tmp_credentials)
+
+    client.select(OTHER_URL)
+    assert (client.base_url, tmp_credentials.headers()) == (OTHER_URL, {"X-Edge": "other's"})
+    assert Credentials(tmp_credentials.path).server == V1_URL
+
+    client.select(None)
+    with caplog.at_level(logging.INFO):
+        client.logout()
+    assert f"choose one of {OTHER_URL}" in caplog.text
+    stored = Credentials(tmp_credentials.path)
+    assert (stored.server, stored.servers()) == (None, [OTHER_URL])
+
+    client.select(OTHER_URL)
+    client.logout()
+    assert Credentials(tmp_credentials.path).servers() == []
+    assert [c.request.url for c in fake_v1.calls if c.request.url.endswith("/revoke")] == \
+        [f"{V1_URL}/auth/revoke", f"{OTHER_URL}/auth/revoke"]

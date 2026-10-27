@@ -35,24 +35,31 @@ from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.remote import environment, links, manifests, owners
-from siliconcompiler.remote.client import MAX_CANCEL_REASON, _UNPRINTABLE, capture, wheels
+from siliconcompiler.remote.client import capture, wheels
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, blocked_lines, clean,
     describe)
-from siliconcompiler.remote.client.results import Results, record_job, recorded_job
+from siliconcompiler.remote.client.credentials import UPLOADS
+from siliconcompiler.remote.client.results import Results, recorded_job
 from siliconcompiler.remote.environment import canonical
 from siliconcompiler.remote.runflow import (
     node_tools, outputs_present, python_nodes, runtime_nodes, upstream_nodes)
 from siliconcompiler.utils.units import format_binary, format_duration
 
-__all__ = ["RemoteRun", "REMOTE_MANIFEST"]
+__all__ = ["RemoteRun"]
 
 
 logger = logging.getLogger(__name__)
 
 
-# What a reconnect reads, beside the job's manifest: reconnect and cancel take a path.
-REMOTE_MANIFEST = "sc_remote.pkg.json"
+# The server refuses a longer cancel reason rather than cutting it.
+MAX_CANCEL_REASON = 300
+
+# What a cancel's reason may not hold: a control character.
+_UNPRINTABLE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+# Where a person follows, cancels or deletes a job.
+_PORTAL = "the portal: sc-config remote portal"
 
 # Only a fallback: the server sets the pace with `Retry-After`.
 DEFAULT_POLL_SECONDS = 5
@@ -186,13 +193,10 @@ class RemoteRun:
 
         job_id = job["id"]
         self.project.set('record', 'remoteid', job_id)
-        record_job(jobdir(self.project), job_id)
 
         self.logger.info(f"Your job's reference ID is: {job_id}")
 
         self._open_portal(job_id)
-
-        self.project.write_manifest(self._manifest())
 
         try:
             with tempfile.TemporaryDirectory(prefix="sc-remote-") as tmpdir:
@@ -208,9 +212,6 @@ class RemoteRun:
                 upload = Path(tmpdir) / "upload.tar.gz"
                 digest, size, report = self._pack(upload, plan, reads, answered)
                 self._deliver(job_id, upload, size, digest, report)
-        except _Held:
-            # Kept, with its upload: a reconnect submits it.
-            raise
         except BaseException as e:
             self._abandon(job_id, e)
             raise
@@ -249,22 +250,15 @@ class RemoteRun:
     def _submit(self, job_id: str) -> None:
         '''Submit the upload the job holds, with a fresh key.
 
-        A refusal that leaves the job waiting with its upload until a person acts,
-        or a server failure, raises `_Held`. A state conflict is read again: a job
-        that left `awaiting_input` was submitted, or ended, and the watch says which.
+        A state conflict is read again: a job that left `awaiting_input` was
+        submitted, or ended, and the watch says which.
         '''
         try:
             self.client.submit_job(job_id)
         except ServerProblem as e:
-            if e.slug in _SUBMIT_LATER or e.status >= 500:
-                raise _Held(job_id, e, self._manifest()) from None
             if e.slug != "job-state-conflict" or \
                     self.client.job(job_id)[0].get("state") in _WAITING:
                 raise
-
-    def _manifest(self) -> str:
-        '''What a reconnect or a cancel is given: the job's own manifest.'''
-        return os.path.join(jobdir(self.project), REMOTE_MANIFEST)
 
     def _abandon(self, job_id: str, error: BaseException) -> None:
         '''Cancel a job that will not be submitted, so it holds no slot until abandoned.'''
@@ -471,26 +465,13 @@ class RemoteRun:
         self._sent.add(seen)
 
     def _open_portal(self, job_id: str) -> None:
-        '''Open the job's page where a person is plainly watching.
-
-        The page comes from `POST /v1/auth/browser`, never built, and opens only
-        outside CI, without `option,nodisplay`, and with stdout a terminal.
-        The `open_portal` preference overrides the last two either way.
+        '''Open the job's page where a person is plainly watching: outside CI,
+        with the `remote browser` setting on, without `option,nodisplay`, and
+        with stdout a terminal. The page comes from `POST /v1/auth/browser`, never built.
         '''
-        if self.client.ci_session:
+        if self.project.option.get_nodisplay() or not self.client.may_open():
             return
-        from siliconcompiler.remote.client.credentials import preference
-
-        wanted = preference("open_portal")
-        if wanted is False:
-            return
-        if not wanted:
-            if self.project.option.get_nodisplay():
-                return
-            if not (hasattr(sys.stdout, "isatty") and sys.stdout.isatty()):
-                return
-
-        self.client.open_page("the job's page", require_tty=False, job_id=job_id)
+        self.client.open_page("the job's page", job_id=job_id)
 
     def _read(self) -> _Reads:
         '''Work out what the flow reads: each node's `require` and Python, from its
@@ -697,7 +678,7 @@ class RemoteRun:
         try:
             collect(self.project, keys=chosen.keys, directory=directory,
                     verbose=not only_asked, select=chosen.select,
-                    whitelist=list(self.client.credentials.directory_whitelist))
+                    whitelist=UPLOADS.get())
         except (OSError, RuntimeError, ValueError) as e:
             if not asked:
                 raise
@@ -899,13 +880,6 @@ class RemoteRun:
 
         return wanted
 
-    def reconnect(self, job_id: str) -> None:
-        '''Re-enter the wait for a job, submitting one a refused submit left waiting.
-
-        The only way back after Ctrl-C, so the job id is recorded before the upload.
-        '''
-        self._watch(job_id)
-
     def _watch(self, job_id: str) -> None:
         warned = False
         while True:
@@ -923,14 +897,8 @@ class RemoteRun:
                         "source and nobody is here to send it, the job waits until it "
                         "is abandoned. Press Ctrl-C again to leave anyway.")
                     continue
-                manifest = self._manifest()
-                self.logger.info("Disconnecting from remote job")
-                self.logger.info(
-                    f"To reconnect to this job use: sc-config remote reconnect {manifest}")
-                # A job read through a project can be somebody else's.
-                me = self.client.credentials.user_id
-                if not (self._owner and me and self._owner != me):
-                    self.logger.info(f"To cancel this job use: sc-config remote cancel {manifest}")
+                self.logger.info(f"Disconnecting from remote job {job_id}, which goes on "
+                                 f"running: follow, cancel or delete it in {_PORTAL}")
                 raise
 
     def _poll(self, job_id: str) -> None:
@@ -1016,7 +984,7 @@ class RemoteRun:
             raise RemoteError(
                 f"job {job_id} holds no upload, and this machine has none to send it: it "
                 "waits until it is abandoned. Run the flow again, and cancel this job "
-                f"with: sc-config remote cancel {self._manifest()}") from None
+                f"in {_PORTAL}") from None
         self.logger.info("Job submitted")
         return True
 
@@ -1613,9 +1581,6 @@ _NOT_YET_SUBMITTED = ("created", "awaiting_input", "staging")
 # A job that takes an upload grant and a submit.
 _WAITING = ("created", "awaiting_input")
 
-# Submit refusals a person clears, after which the upload the job kept is submitted.
-_SUBMIT_LATER = ("terms-not-accepted", "account-not-provisioned")
-
 # The registered types that mean *later*; any other registered type is final.
 _LATER = ("not-ready", "rate-limited", "limit-exceeded")
 
@@ -1704,15 +1669,6 @@ class _CannotSupply(RemoteError):
         self.reason = self.LEAD + "; ".join(failures)
         super().__init__("the server asked for what this machine cannot supply, so the "
                          "job is cancelled:\n" + "\n".join(f"  {one}" for one in failures))
-
-
-class _Held(RemoteError):
-    '''A submit refused for now: the job waits, keeping its upload, for a
-    reconnect to submit it, and is not cancelled.'''
-
-    def __init__(self, job_id: str, refusal: ServerProblem, manifest: str):
-        super().__init__(f"{refusal}\nJob {job_id} waits, keeping its upload. Once that is "
-                         f"resolved, submit it with: sc-config remote reconnect {manifest}")
 
 
 def _fitted(lead: str, items: List[str]) -> str:

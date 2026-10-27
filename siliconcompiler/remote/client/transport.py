@@ -81,8 +81,8 @@ class EdgeRefused(RemoteError):
     def __init__(self, origin: str):
         super().__init__(
             f"the edge refused this request: check the Cloudflare credentials -- the "
-            f"operator-configured headers for {origin} (sc-config remote header set). This is an "
-            "intermediary in front of the server, not the API")
+            f"operator-configured headers for {origin} (sc-config remote configure <server> "
+            "-header <name>). This is an intermediary in front of the server, not the API")
 
 
 class CertificateRefused(RemoteError):
@@ -91,9 +91,8 @@ class CertificateRefused(RemoteError):
     def __init__(self, origin: str, why: str):
         super().__init__(
             f"{origin}'s certificate could not be verified ({why}). If an authority of "
-            "your own signs it, import that authority's certificate with sc-config "
-            "remote import-cert <file>, then run sc-config remote configure again to "
-            "choose it")
+            "your own signs it, give that authority's certificate with sc-config "
+            "remote configure <server> -cert <file>")
 
 
 class OAuthRefusal(RemoteError):

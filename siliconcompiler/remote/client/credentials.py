@@ -1,8 +1,8 @@
 '''
 What this machine holds, and how tightly: ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves it).
 
-``remote.json``    the store: the server, the upload whitelist, and per server
-                   its user id, refresh token or CI credential, and operator headers.
+``remote.json``    the store: the default server, and per server its user id,
+                   refresh token or CI credential, operator headers and authority.
 ``dpop-key.pem``   this machine's private key, **the machine pin itself**, in a
                    file of its own so no rewrite of the store can take it.
 
@@ -15,10 +15,10 @@ back a stale refresh token reads as reuse and ends the session.
 '''
 
 import contextlib
+import hashlib
 import json
 import logging
 import os
-import re
 import stat
 import sys
 
@@ -28,7 +28,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import RemoteError
 from siliconcompiler.utils.multiprocessing import get_file_lock
-from siliconcompiler.utils.settings import _make_directory, replace_file
+from siliconcompiler.utils.settings import (
+    Setting, SettingsCategory, _make_directory, replace_file)
 
 __all__ = ["Credentials", "StoreError", "AUTH_DIRNAME", "STORE_FILENAME", "KEY_FILENAME",
            "CI_SECRET_VARIABLE", "parse_ci_secret"]
@@ -39,7 +40,7 @@ AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
 
 STORE_FILENAME = "remote.json"
 KEY_FILENAME = "dpop-key.pem"
-# Certificate authorities a person imported, to verify a server with.
+# Each authority's trust bundle, rebuilt from the store when missing.
 CERTS_DIRNAME = "certs"
 
 CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
@@ -47,7 +48,7 @@ CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
 # A newer store is refused by name rather than misread.
 STORE_VERSION = 1
 
-_STORE = "store"        # version, server, directory_whitelist
+_STORE = "store"        # version, server
 _SERVERS = "servers"    # each server's entry, by its URL
 
 # A refresh holds the store across its request, which may take 30 seconds.
@@ -62,6 +63,22 @@ SETTINGS_CATEGORY = "remote"
 
 # The mode of a private file; its directory gets 0700 from it.
 _PRIVATE_FILE = 0o600
+
+
+def _absolute(paths) -> List[str]:
+    '''Upload directories as the absolute paths a collection compares.'''
+    if not isinstance(paths, list) or not all(isinstance(path, str) for path in paths):
+        raise ValueError(f"{SETTINGS_CATEGORY} uploads is a list of directories")
+    return [os.path.abspath(path) for path in paths]
+
+
+UPLOADS = Setting(SETTINGS_CATEGORY, "uploads", "[str]", [],
+                  "directories a remote run may upload a directory from",
+                  normalize=_absolute)
+BROWSER = Setting(SETTINGS_CATEGORY, "browser", "bool", True,
+                  "open the login page, a job's page and the portal in a browser; "
+                  "false prints their address instead")
+REMOTE_SETTINGS = SettingsCategory(SETTINGS_CATEGORY, UPLOADS, BROWSER)
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +107,7 @@ class Credentials:
         store, legacy = _resolve(Path(path))
         if os.environ.get(AUTH_DIR_VARIABLE):
             store = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
+        self._selected: Optional[str] = None
         self._open(store)
         self._migrate(legacy)
 
@@ -111,12 +129,16 @@ class Credentials:
 
     @property
     def server(self) -> Optional[str]:
-        '''The configured server's base URL, which keys its entry.'''
-        return self._store.get(_STORE, "server")
+        '''The base URL of the server acted for, which keys its entry: the one
+        selected in this process, else the default.'''
+        return self._selected or self._store.get(_STORE, "server")
 
-    @property
-    def directory_whitelist(self) -> list:
-        return list(self._store.get(_STORE, "directory_whitelist") or [])
+    def select(self, server: Optional[str]) -> None:
+        '''Act for ``server`` in this process without making it the default; None
+        goes back to the default.'''
+        from siliconcompiler.remote.client.transport import normalize_server
+
+        self._selected = normalize_server(server) if server else None
 
     def _entry(self, server: Optional[str] = None) -> Dict[str, Any]:
         server = server or self.server
@@ -179,81 +201,44 @@ class Credentials:
         return sorted(server for server, entry in
                       (self._store.get_category(_SERVERS) or {}).items() if entry)
 
-    def restore_server(self, server: Optional[str], drop: Optional[str] = None) -> None:
-        '''Make ``server`` the default again (None for none), removing the entry
-        ``drop``: what a configure that failed leaves.'''
+    def forget(self) -> None:
+        '''Remove this server's entry -- its session, headers, CI credential and
+        authority -- and its being the default.'''
+        server = self.server
+        if not server:
+            return
         with self.transaction():
-            if server:
-                self._store.set(_STORE, "server", server)
-            else:
+            self._store.delete(_SERVERS, server)
+            if self._store.get(_STORE, "server") == server:
                 self._store.delete(_STORE, "server")
-            if drop:
-                self._store.delete(_SERVERS, drop)
+        self._selected = None
 
     @property
     def certs_dir(self) -> Path:
         return self.auth_dir / CERTS_DIRNAME
 
     @property
-    def certificate(self) -> Optional[str]:
-        '''The imported certificate this server is verified with, if any.'''
-        return self._entry().get("certificate")
+    def authority(self) -> Optional[str]:
+        '''The PEM certificate of the authority this server is verified with, if any.'''
+        return self._entry().get("authority")
 
-    def set_certificate(self, name: Optional[str]) -> None:
-        self._update_entry(certificate=name)
+    def set_authority(self, authority: str) -> None:
+        self._update_entry(authority=authority)
 
-    def certificates(self) -> List[str]:
-        '''The names of the certificates imported here.'''
-        if not self.certs_dir.is_dir():
-            return []
-        return sorted(path.stem for path in self.certs_dir.glob("*.pem"))
-
-    def certificate_path(self, name: str) -> Path:
-        return self.certs_dir / f"{name}.pem"
-
-    def import_certificate(self, path, overwrite: bool = False) \
-            -> Tuple[str, List[Tuple[str, str]]]:
-        '''Keep a PEM certificate, or a bundle of them, as an authority to trust;
-        returns its name and each certificate's subject and SHA-256 fingerprint.
-        ``overwrite`` replaces a different one already imported under that name.'''
-        source = Path(path)
-        try:
-            payload = source.read_bytes()
-        except OSError as e:
-            raise StoreError(f"{source} cannot be read: {e.strerror or e}") from None
-        found = describe_certificates(payload)
-        name = re.sub(r"[^A-Za-z0-9._-]", "_", source.stem).strip(".") or "certificate"
-        target = self.certificate_path(name)
-        if not overwrite and target.exists() and target.read_bytes() != payload:
-            raise StoreError(f"a different certificate is already imported as {name}: "
-                             "rename the file to import this one beside it, or replace "
-                             "it with sc-config remote import-cert -overwrite")
-        # Private, its directory too: a certificate added here is one the client trusts.
-        self._write(target, payload)
-        # Not left to the mtime check: a stale bundle would go on trusting the old one.
-        self._trust_path(name).unlink(missing_ok=True)
-        return name, found
-
-    def _trust_path(self, name: str) -> Path:
-        return self.certs_dir / f".{name}.trust"
-
-    def trust_bundle(self, name: str) -> Path:
-        '''What requests trusts by default, plus the certificate ``name``: added
-        to, never in place of, so storage on a public host still verifies.'''
+    def trust_bundle(self, authority: str) -> Path:
+        '''What requests trusts by default, plus ``authority``: added to, never in
+        place of, so storage on a public host still verifies. Named by its
+        content, so a replaced authority is never trusted from a stale bundle.'''
         from requests.utils import DEFAULT_CA_BUNDLE_PATH
 
-        sources = [Path(DEFAULT_CA_BUNDLE_PATH), self.certificate_path(name)]
-        bundle = self._trust_path(name)
-        newest = max(source.stat().st_mtime for source in sources)
-        if not bundle.exists() or bundle.stat().st_mtime < newest:
-            payload = b"".join(
-                source.read_bytes().rstrip(b"\n") + b"\n" for source in sources)
-            replace_file(str(bundle), payload, _PRIVATE_FILE)
+        default = Path(DEFAULT_CA_BUNDLE_PATH)
+        digest = hashlib.sha256(authority.encode()).hexdigest()[:16]
+        bundle = self.certs_dir / f"{digest}.pem"
+        if not bundle.exists() or bundle.stat().st_mtime < default.stat().st_mtime:
+            # Private, its directory too: a certificate added here is one the client trusts.
+            replace_file(str(bundle), default.read_bytes().rstrip(b"\n") + b"\n" +
+                         authority.encode(), _PRIVATE_FILE)
         return bundle
-
-    def set_directory_whitelist(self, entries) -> None:
-        with self.transaction():
-            self._store.set(_STORE, "directory_whitelist", list(entries))
 
     def _update_entry(self, **values) -> None:
         '''This server's entry, changed: a value of None removes its field.'''
@@ -400,7 +385,8 @@ class Credentials:
         replace_file(str(path), payload, _PRIVATE_FILE)
 
     def _migrate(self, config: Optional[Path]) -> None:
-        '''Move an older client's server and whitelist into the store, once.'''
+        '''Move an older client's server into the store, and its whitelist into
+        the `uploads` setting, once.'''
         from siliconcompiler.remote.client.transport import normalize_server
 
         if config is None:
@@ -411,19 +397,11 @@ class Credentials:
             if values.get("address") and not self.server:
                 self._store.set(_STORE, "server",
                                 normalize_server(values["address"], values.get("port")))
-            if values.get("directory_whitelist") and not self.directory_whitelist:
-                self._store.set(_STORE, "directory_whitelist",
-                                list(values["directory_whitelist"]))
+        if values.get("directory_whitelist") and not UPLOADS.get():
+            UPLOADS.set(list(values["directory_whitelist"]))
 
         config.unlink(missing_ok=True)
         logger.info(f"Moved the remote configuration into {self.path}")
-
-
-def preference(name: str, default: Any = None) -> Any:
-    '''One of the remote client's preferences, from the user's settings.json.'''
-    from siliconcompiler.utils.multiprocessing import MPManager
-
-    return MPManager.get_settings().get(SETTINGS_CATEGORY, name, default)
 
 
 def _resolve(given: Path) -> Tuple[Path, Optional[Path]]:
@@ -480,6 +458,21 @@ def parse_ci_secret(secret: str):
     except Exception:                                           # noqa: BLE001
         raise RemoteError(f"the key in {CI_SECRET_VARIABLE} does not decode") from None
     return credential_id, key
+
+
+def read_authority(path) -> Tuple[str, List[Tuple[str, str]]]:
+    '''A PEM certificate, or a bundle of them, to trust as an authority: its text,
+    and each certificate's subject and SHA-256 fingerprint.'''
+    source = Path(path)
+    try:
+        payload = source.read_bytes()
+    except OSError as e:
+        raise StoreError(f"{source} cannot be read: {e.strerror or e}") from None
+    try:
+        found = describe_certificates(payload)
+    except StoreError as e:
+        raise StoreError(f"{source}: {e}") from None
+    return payload.decode(), found
 
 
 def describe_certificates(payload: bytes) -> List[Tuple[str, str]]:

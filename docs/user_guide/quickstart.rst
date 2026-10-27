@@ -177,31 +177,19 @@ Running this python script directly produces the same results as the :ref:`ASIC 
 Remote Run Controls
 -------------------
 
-When your job starts on a remote server, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
+When your job starts on a remote server, it will log a job ID which you can use to find your job if you close the terminal window or otherwise interrupt the run before it completes:
 
 .. code-block::
 
     | INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
 
-The job ID is recorded in the job's manifest, which is how
-:ref:`sc-config remote <app-sc-config>` identifies the job -- point it at that
-manifest to interact with a running job:
+Interrupting the run leaves the job running on the server. Follow it, cancel it
+or delete it in the server's portal, which
+:ref:`sc-config remote <app-sc-config>` opens in a browser, signed in as you:
 
 .. code-block:: bash
 
-    # Check on a job's progress.
-    sc-config remote status build/<design>/<jobname>/<design>.pkg.json
-
-    # Cancel a running job.
-    sc-config remote cancel build/<design>/<jobname>/<design>.pkg.json
-
-    # Ask the server to delete a job from its active records.
-    sc-config remote delete build/<design>/<jobname>/<design>.pkg.json
-
-    # Reconnect to an active job.
-    sc-config remote reconnect build/<design>/<jobname>/<design>.pkg.json
-
-Each of these also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` parameter.
+    sc-config remote portal
 
 .. seealso::
    :ref:`Directory structures <directory_structures>` explains the build tree

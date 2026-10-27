@@ -21,10 +21,10 @@ to look for it, and the four rows that are deliberately still open say so.
 |---|---|---|
 | **A** job status | ✅ | `tests/remote/test_client_jobs.py`. A1 is `terminal`, A3 is `_record`, A6 became the node-state mapping, A8 is `_report_state`. **A4 and A5 are struck** — see below |
 | **B** fetching results | ✅ | `tests/remote/test_client_results.py`, and the client half of `test_parity.py`. B1 is the tree assertion, B2 became *the manifest may be the only one there is*, B3 is the five sentences, B4 is `test_one_objects_failure_does_not_abort_the_others` |
-| **C** transport | ✅ | C1/C2 in `transport.py` (phase 2), C3–C7 in `test_client_jobs.py`, C8 is `delete_job`, C11–C13 were the phase-2 design requirements |
-| **D** credentials | ✅ | phase 2 |
+| **C** transport | ✅ | C1/C2 in `transport.py` (phase 2), C3–C7 in `test_client_jobs.py`, C11–C13 were the phase-2 design requirements. **C8 is struck** with the job actions — see below |
+| **D** credentials | ✅ | phase 2. **D9 and D10 changed** with the CLI cleanup — see below |
 | **E** no server configured | ✅ | E4 is `test_an_unconfigured_client_refuses_before_it_packs_anything` — the test fails if the collection runs at all |
-| **F** the CLI | ✅ | `tests/remote/test_parity.py`, against a live server. F7 and F8 are the reconnect path, and `-tail` is new rather than carried forward |
+| **F** the CLI | ✅ | `tests/remote/test_cli.py`, and `test_parity.py` against a live server. **F5–F9 are struck** — see below |
 | **G** submit-time sanitation | ✅ | `runspec.normalize`, asserted end to end in `test_the_run_happens_inside_the_users_own_tree`. **G7 is struck** — see below |
 | **I** the server entry point | ✅ | phase 1 |
 | **H** not carried forward | ✅ | every one is gone, and the job path is what replaced H2, H3, H4 and H9 |
@@ -38,9 +38,10 @@ first** — retention lapsing is the system doing what it said, and a deletion i
 
 🔴 **B1's destination holds, with two deliberate gaps.** `inputs/` is not shipped, because it is
 copies of the upstream node's outputs which the caller is already getting from the upstream node;
-and `sc_remote.pkg.json` exists only on the client, because it is the handle a reconnect uses.
-`test_a_design_runs_to_completion_and_the_tree_matches` asserts exactly that difference rather than
-a subset, so a third gap would fail it.
+and `remote-job.log` exists only on the client, because it is the server's log of the job as a
+whole. (`sc_remote.pkg.json`, the handle a reconnect used, went with the job actions.)
+`test_a_remote_run_leaves_the_build_directory_a_local_run_does` asserts exactly that difference
+rather than a subset, so a third gap would fail it.
 
 ✅ **B4's pool is gone and what it bought is not.** One object failing is reported and the rest still
 land; the parallelism it also bought was never the point of the row.
@@ -92,6 +93,19 @@ Deleted in the same commit as this file was written:
 | `tests/apps/test_sc_server.py` | |
 | most of `tests/apps/test_sc_remote.py` | the two argument-shape tests stayed; they test the app wrapper, which is not being rewritten |
 | the `scserver`, `scserver_users`, `scserver_nfs_path` fixtures in `tests/conftest.py` | `users.json` went with them |
+
+### What the CLI cleanup struck (owner, 2026-10-26)
+
+🔴 **The job actions are gone from the command line: a job is followed, cancelled and deleted in the
+server's portal** (`sc-config remote portal`). That strikes **C8** (`delete_job`), **F5** (the
+check before a verb), **F6** (`status`), **F7** (`reconnect`) and **F9** (a missing manifest). **F8
+changes:** Ctrl+C prints the job id and points to the portal, since no command gets back to the
+job. A run left holding a project's `record,remoteid` still re-enters the wait on its next `run()`.
+A submit refused until a person acts is now cancelled rather than kept for a reconnect.
+
+**D9 and D10 changed:** the whitelist is the `remote uploads` setting, changed with
+`sc-config settings add` and `remove`, which refuse to remove a value the list does not hold, as for
+every list setting. `print_configuration()` still prints it.
 
 ---
 
