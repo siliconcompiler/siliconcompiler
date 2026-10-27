@@ -1482,70 +1482,48 @@ def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, s
 
 
 @pytest.mark.parametrize("software,versions,said", [
-    # A requirement the map meets, or a bucket it does not publish, is not for the client to refuse.
+    # A requirement the map meets, or a name or bucket it does not list, goes unsaid.
     ({"python": {"siliconcompiler": ["1.0.0", "1.1.0"]}},
      {"python": {"siliconcompiler": ["==1.1.*"]}}, []),
     ({"python": {"siliconcompiler": ["1.0.0"]}}, {"tools": {"yosys": ["==1.0"]}}, []),
     ({"tools": {"yosys": ["0.40"]}}, {"tools": {"yosys": []}}, []),
     ({"python": {"Scfake_Data": ["2.0"]}}, {"python": {"scfake-data": ["==2.0"]}}, []),
-    # What it cannot meet, in each bucket, said together.
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"cocotb": []}}, []),
+    # sc-server's own: it lists no tool, and runs what the node has.
+    ({"tools": {}}, {"tools": {"yosys": [], "openroad": [">=3"]}}, []),
+    # A listed name at no version allowed, in each bucket, said together.
     ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"siliconcompiler": ["==2.0.0"]}},
      ["Python package siliconcompiler ==2.0.0 (offered: 1.0.0)"]),
-    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"cocotb": []}},
-     ["no Python package cocotb here (offered: siliconcompiler)"]),
     ({"tools": {"openroad": ["2.0.1"]}}, {"tools": {"yosys": [], "openroad": [">=3", "<1"]}},
-     ["no tool yosys here", "tool openroad >=3 or <1 (offered: 2.0.1)"]),
+     ["tool openroad >=3 or <1 (offered: 2.0.1)"]),
     ({"interpreter": {"python": ["3.12.4"]}}, {"interpreter": {"python": ["==3.14.*"]}},
      ["interpreter python ==3.14.* (offered: 3.12.4)"]),
-], ids=["met", "bucket-unpublished", "any-version", "name-normalised", "version-unmet",
-        "python-name-unheld", "tools-unmet", "interpreter-unmet"])
-def test_a_requirement_the_published_software_cannot_meet_stops_the_run_before_create(
-        fake_v1, run, capabilities, software_preflight, software, versions, said):
-    '''`GET /v1`'s `software` is compared with the run's requirements before wheels
-    are built and before a job exists; the server's answer at create stays binding.'''
+], ids=["met", "bucket-unlisted", "any-version", "name-normalised", "name-unlisted",
+        "no-tools-listed", "version-unmet", "tools-unmet", "interpreter-unmet"])
+def test_a_listed_version_the_run_does_not_allow_is_warned_of(
+        fake_v1, run, capabilities, caplog, software, versions, said):
+    '''`GET /v1`'s `software` against the run's requirements: said, never refused,
+    since the server's answer at create is the binding one.'''
     fake_v1.replace(responses.GET, "", dict(capabilities, software=software))
 
-    if not said:
-        run._check_requested(versions)
-        return
-    with pytest.raises(RemoteError) as raised:
-        run._check_requested(versions)
+    run._warn_unmet(versions)
 
-    assert all(line in str(raised.value) for line in said), str(raised.value)
-    assert "nothing was created or uploaded" in str(raised.value)
+    assert all(line in caplog.text for line in said), caplog.text
+    assert ("lists other versions" in caplog.text) is bool(said)
+    assert "yosys" not in caplog.text
 
 
-def test_a_run_the_published_software_cannot_run_creates_no_job(
-        fake_v1, run, capabilities, software_preflight, caplog):
-    '''The whole path: this machine's SiliconCompiler is not a version offered.'''
+def test_a_run_the_listed_software_does_not_allow_is_still_submitted(
+        fake_v1, run, capabilities, no_sleep, caplog):
+    '''This machine's SiliconCompiler is not a version listed: said, and created.'''
     fake_v1.replace(responses.GET, "", dict(
         capabilities, software={"python": {"siliconcompiler": ["0.0.1"]}, "tools": {}}))
+    routes_for_a_submit(fake_v1)
 
-    with pytest.raises(RemoteError, match="Python package siliconcompiler"):
-        run._start()
+    run._start()
 
-    assert not creates(fake_v1)
-
-
-@pytest.mark.parametrize("versions,said", [
-    ({"python": {f"pkg{n}": [] for n in range(500)}}, None),
-    ({"python": {f"pkg{n}": [] for n in range(501)}}, "501 packages and tools"),
-    ({"python": {f"pkg{n}": [] for n in range(300)}, "tools": {f"t{n}": [] for n in range(201)}},
-     "501 packages and tools"),
-    ({"python": {"a": [f"=={n}" for n in range(1000)]}}, None),
-    ({"python": {"a": [f"=={n}" for n in range(500)]},
-      "tools": {"b": [f"=={n}" for n in range(501)]}}, "1001 specifier sets"),
-    ({"tools": {"a": ["==" + "1" * 198]}}, None),
-    ({"tools": {"a": ["==" + "1" * 199]}}, "201 characters"),
-], ids=["names-at-bound", "names-over", "names-across-buckets", "sets-at-bound", "sets-over",
-        "length-at-bound", "length-over"])
-def test_requested_versions_is_held_to_its_bounds_before_create(run, versions, said):
-    '''At most 500 names and 1,000 specifier sets across the buckets, each 200 characters.'''
-    if said is None:
-        run._check_requested(versions)
-        return
-    with pytest.raises(RemoteError, match=said):
-        run._check_requested(versions)
+    assert "Python package siliconcompiler" in caplog.text
+    assert creates(fake_v1)
 
 
 @pytest.mark.parametrize("reason,detail,said", [

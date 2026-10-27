@@ -86,20 +86,6 @@ class FakeV1:
         return self._mock.calls
 
 
-@pytest.fixture(autouse=True)
-def lenient_software(request, monkeypatch):
-    '''A server that holds whatever a run asks for: the fixture's `software` is a
-    sample, not a catalogue. A test of the preflight asks for `software_preflight`.'''
-    if "software_preflight" not in request.fixturenames:
-        monkeypatch.setattr("siliconcompiler.remote.client.preflight.unmet",
-                            lambda software, requested: [])
-
-
-@pytest.fixture
-def software_preflight():
-    '''Marks a test that runs the real software preflight.'''
-
-
 @pytest.fixture
 def capabilities(datadir):
     '''The GET /v1 body, as the sc-server profile publishes it.'''

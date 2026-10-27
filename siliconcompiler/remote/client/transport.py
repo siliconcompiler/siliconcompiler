@@ -39,15 +39,15 @@ __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
 logger = logging.getLogger(__name__)
 
 
-class _NoRequestLines(logging.Filter):
-    '''Drops urllib3's DEBUG request lines, which name the path and query of every
-    request, a presigned storage URL's signature included.'''
+class _NoQueryStrings(logging.Filter):
+    '''Drops urllib3's DEBUG lines that carry a query string: its request line names
+    the path and query, and a presigned storage URL's signature is in the query.'''
 
     def filter(self, record: logging.LogRecord) -> bool:
-        return record.levelno > logging.DEBUG
+        return record.levelno > logging.DEBUG or "?" not in record.getMessage()
 
 
-logging.getLogger("urllib3.connectionpool").addFilter(_NoRequestLines())
+logging.getLogger("urllib3.connectionpool").addFilter(_NoQueryStrings())
 
 # Low on purpose: each retry follows the server's exact instruction, so a second
 # failure means it did not help.
