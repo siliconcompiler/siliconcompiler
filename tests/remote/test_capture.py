@@ -14,8 +14,10 @@ from siliconcompiler import Design, Flowgraph, Project
 from siliconcompiler.remote import RemoteError, environment, owners
 from siliconcompiler.remote.client import capture, wheels
 from siliconcompiler.remote.client.run import RemoteRun
-from siliconcompiler.tool import PythonEnvironment
 from siliconcompiler.tools.builtin.nop import NOPTask
+
+from conftest import problem, put_body, refused, routes_for_a_submit, creates
+from pytasks import RunsATestbench
 
 
 # A job's Python, read off the submitting machine: index packages listed as
@@ -315,21 +317,6 @@ def test_an_editable_build_that_is_not_a_pure_wheel_stops_with_why(site, tag, ba
     assert not [name for name in os.listdir(".") if name.endswith(".whl")]
 
 
-class RunsATestbench(NOPTask):
-    '''A task whose tool runs a testbench of the user's.'''
-
-    def task(self):
-        return "runsatestbench"
-
-    @classmethod
-    def framework_distributions(cls):
-        return ("scfakebits",)
-
-    def get_python_environment(self):
-        return PythonEnvironment(sources=(os.path.abspath("tb.py"),),
-                                 framework=self.framework_distributions())
-
-
 def cocotb_project(test_body, helpers=None):
     '''A cocotb testbench, its test module and the helpers beside it.'''
     from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
@@ -373,33 +360,10 @@ def offers_python_env(fake_v1, capabilities):
         capabilities, features=capabilities["features"] + ["python.env"]))
 
 
-def _routes_for_a_submit(fake_v1):
-    fake_v1.route(responses.POST, "jobs",
-                  {"id": "01J9-job", "state": "created", "project": None,
-                   "created_at": "2026-09-22T10:00:00.000Z"}, status=201)
-    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
-                  {"method": "PUT", "url": "https://storage.test/put",
-                   "headers": {"content-length": "1"},
-                   "expires_at": "2026-09-22T10:15:00.000Z"})
-    fake_v1.elsewhere(responses.PUT, "https://storage.test/put", "")
-    fake_v1.route(responses.POST, "jobs/01J9-job/submit",
-                  {"id": "01J9-job", "state": "staging", "terminal": False}, status=202)
-
-
-def _put_body(fake_v1):
-    put = next(c for c in fake_v1.calls if c.request.url == "https://storage.test/put")
-    return put.request.body.read() if hasattr(put.request.body, "read") else put.request.body
-
-
 def _uploaded(fake_v1):
-    with tarfile.open(fileobj=io.BytesIO(_put_body(fake_v1))) as tar:
+    with tarfile.open(fileobj=io.BytesIO(put_body(fake_v1))) as tar:
         return {member.name: (tar.extractfile(member).read() if member.isfile() else None)
                 for member in tar.getmembers()}
-
-
-def _created(fake_v1):
-    return [c for c in fake_v1.calls
-            if c.request.method == "POST" and c.request.url.endswith("/v1/jobs")]
 
 
 def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
@@ -415,11 +379,11 @@ def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
     _distribution(site, "scfake_helper", "0.1.0", editable_source=source)
     project = cocotb_project("import cocotb\nimport scfakebits\nimport scfake_helper\n"
                              "import tbutil\n", {"tbutil.py": "import scfakeumi\n"})
-    _routes_for_a_submit(fake_v1)
+    routes_for_a_submit(fake_v1)
 
     RemoteRun(project, logged_in)._start()
 
-    body = json.loads(_created(fake_v1)[0].request.body)
+    body = json.loads(creates(fake_v1)[0].request.body)
     member = body["python_packages"]
     assert member["requirements"] == ["scfakebits==1.2.0", "scfakeumi==0.3.1"]
     listed = {entry.split("==")[0] for entry in member["constraints"]}
@@ -445,7 +409,7 @@ def test_a_compiled_local_package_is_refused_before_create(
     project = cocotb_project("import scfakec\n")
     with pytest.raises(RemoteError, match="scfakec 1.0.0.*compiled file.*_c.so"):
         RemoteRun(project, logged_in)._start()
-    assert not _created(fake_v1)
+    assert not creates(fake_v1)
 
 
 def test_a_helper_holding_a_compiled_extension_is_refused(site, fake_v1, logged_in):
@@ -457,15 +421,12 @@ def test_a_helper_holding_a_compiled_extension_is_refused(site, fake_v1, logged_
 def test_packages_to_install_are_refused_at_create_where_the_server_installs_none(
         site, fake_v1, logged_in):
     '''`needs` names `python.env`, so create refuses before any bytes move.'''
-    from conftest import problem
     from siliconcompiler.remote import ServerProblem
 
     _distribution(site, "scfakeumi", "0.3.1")
     project = cocotb_project("import scfakeumi\n")
     fake_v1.route(responses.GET, "me", {"id": "u-1"})
-    fake_v1.route(responses.POST, "jobs", problem("feature-unsupported", 501,
-                                                  feature="python.env"),
-                  status=501, content_type="application/problem+json")
+    refused(fake_v1, responses.POST, "jobs", "feature-unsupported", 501, feature="python.env")
 
     with pytest.raises(ServerProblem, match="python.env"):
         RemoteRun(project, logged_in)._start()
@@ -533,7 +494,7 @@ def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_
 
     _distribution(site, "scfake_private", "1.2.0")
     project = cocotb_project("import scfake_private\n")
-    _routes_for_a_submit(fake_v1)
+    routes_for_a_submit(fake_v1)
     wheel = f"sc_collected_files/{environment.WHEELS}/scfake_private-1.2.0-py3-none-any.whl"
     asked = [{"kind": "python", "name": "scfake-private"}]
 
@@ -550,7 +511,7 @@ def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_
     assert [name for name in members if members[name] is not None] == [wheel]
     grant = next(c for c in fake_v1.calls if "upload-grant" in c.request.path_url)
     assert json.loads(grant.request.body)["digest"] == \
-        f"sha256:{hashlib.sha256(_put_body(fake_v1)).hexdigest()}"
+        f"sha256:{hashlib.sha256(put_body(fake_v1)).hexdigest()}"
 
 
 def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, logged_in):
@@ -600,7 +561,7 @@ def test_wheels_an_account_may_not_upload_stop_the_run_before_create(
     else:
         with pytest.raises(RemoteError, match=stops):
             run._check_account(built)
-    assert not _created(fake_v1)
+    assert not creates(fake_v1)
 
 
 @pytest.mark.parametrize("resource,advice", [
@@ -613,7 +574,6 @@ def test_a_capability_refused_at_create_says_which_and_what_to_do(
         site, fake_v1, logged_in, offers_python_env, resource, advice):
     '''A deployment that grants capabilities refuses at create or on the job --
     the same refusal either way.'''
-    from conftest import problem
     from siliconcompiler.remote.client.errors import ServerProblem, describe
 
     refusal = problem("entitlement-denied", 403, resource_kind="capability",
