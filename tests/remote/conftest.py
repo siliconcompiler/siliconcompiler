@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 
 import pytest
 import responses
@@ -123,6 +124,184 @@ def problem(slug, status, **members):
     }
 
 
+def refused(fake_v1, method, path, slug, status, headers=None, **members):
+    '''Answer ``method`` ``path`` with the problem+json of ``slug``.'''
+    fake_v1.route(method, path, problem(slug, status, **members), status=status,
+                  content_type="application/problem+json", headers=headers)
+
+
+def form(body):
+    '''A request body's form fields.'''
+    from urllib.parse import parse_qs
+
+    if isinstance(body, bytes):
+        body = body.decode()
+    return {k: v[0] for k, v in parse_qs(body).items()}
+
+
+def posts(fake_v1, path="auth/token"):
+    '''Every POST to ``path``, as the requests that were sent.'''
+    return [c.request for c in fake_v1.calls
+            if c.request.method == "POST" and c.request.url.endswith(path)]
+
+
+def grants(fake_v1):
+    '''The grant type of each token request, in order.'''
+    return [form(r.body)["grant_type"] for r in posts(fake_v1)]
+
+
+def claims(token):
+    import jwt
+
+    return jwt.decode(token, options={"verify_signature": False})
+
+
+def mode(path):
+    return stat.S_IMODE(os.stat(path).st_mode)
+
+
+def asked_for_pages(fake_v1):
+    '''Each body this client sent endpoint 6.'''
+    return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")]
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    slept = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    return slept
+
+
+def node_body(step, state, **extra):
+    node = {"step": step, "index": "0", "state": state,
+            "terminal": state in ("completed", "failed", "skipped", "cancelled"),
+            "started_at": None, "finished_at": None, "exit_code": None,
+            "error": None}
+    node.update(extra)
+    return node
+
+
+def job_body(state="running", nodes=None, terminal=None, **extra):
+    '''A job object shaped the way the v1 API publishes it.'''
+    nodes = nodes if nodes is not None else [node_body("stepone", "running"),
+                                             node_body("steptwo", "pending")]
+    if terminal is None:
+        terminal = state in ("completed", "failed", "cancelled", "rejected",
+                             "abandoned")
+    return {
+        "id": "01J9-job", "state": state, "terminal": terminal,
+        "state_changed_at": "2026-09-22T10:00:00.000Z",
+        "design": "gcd", "jobname": "job0", "flow": "nopflow",
+        "owner": {"id": "01J9-user", "name": "A User"}, "project": None,
+        "created_at": "2026-09-22T10:00:00.000Z",
+        "submitted_at": "2026-09-22T10:00:01.000Z",
+        "started_at": None, "finished_at": None,
+        "archived_at": None, "deleted_at": None, "error": None,
+        "nodes": nodes,
+        # Derived: the client reads `failed_count` to choose its advice.
+        "progress": {
+            "total_count": len(nodes),
+            "completed_count": sum(1 for n in nodes if n["state"] == "completed"),
+            "failed_count": sum(1 for n in nodes if n["state"] == "failed")},
+        **extra,
+    }
+
+
+def make_authority(directory, name="Our CA"):
+    '''An authority of our own, and a certificate for 127.0.0.1 it signs; returns
+    the authority's file and the server's certificate and key files.'''
+    import datetime
+    import ipaddress
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    def issue(subject, issuer, key, signer, extensions):
+        builder = (x509.CertificateBuilder().subject_name(subject).issuer_name(issuer)
+                   .public_key(key.public_key()).serial_number(x509.random_serial_number())
+                   .not_valid_before(now - datetime.timedelta(minutes=5))
+                   .not_valid_after(now + datetime.timedelta(days=1)))
+        for extension, critical in extensions:
+            builder = builder.add_extension(extension, critical)
+        return builder.sign(signer, hashes.SHA256())
+
+    def usage(**granted):
+        flags = dict.fromkeys(("digital_signature", "content_commitment", "key_encipherment",
+                               "data_encipherment", "key_agreement", "key_cert_sign",
+                               "crl_sign", "encipher_only", "decipher_only"), False)
+        return x509.KeyUsage(**{**flags, **granted})
+
+    ca_key = ec.generate_private_key(ec.SECP256R1())
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
+    ca = issue(ca_name, ca_name, ca_key, ca_key, [
+        (x509.BasicConstraints(ca=True, path_length=None), True),
+        (usage(key_cert_sign=True, crl_sign=True), True),
+        (x509.SubjectKeyIdentifier.from_public_key(ca_key.public_key()), False)])
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    leaf = issue(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "127.0.0.1")]),
+                 ca_name, key, ca_key, [
+                     (x509.BasicConstraints(ca=False, path_length=None), True),
+                     (usage(digital_signature=True), True),
+                     (x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]), False),
+                     (x509.SubjectAlternativeName(
+                         [x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), False),
+                     (x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                         ca_key.public_key()), False)])
+
+    files = [directory / "our-ca.pem", directory / "server.pem", directory / "server.key"]
+    files[0].write_bytes(ca.public_bytes(serialization.Encoding.PEM))
+    files[1].write_bytes(leaf.public_bytes(serialization.Encoding.PEM))
+    files[2].write_bytes(key.private_bytes(serialization.Encoding.PEM,
+                                           serialization.PrivateFormat.PKCS8,
+                                           serialization.NoEncryption()))
+    return files
+
+
+def route_created(fake_v1, **extra):
+    fake_v1.route(responses.POST, "jobs",
+                  {"id": "01J9-job", "state": "created", "project": None,
+                   "created_at": "2026-09-22T10:00:00.000Z", **extra}, status=201)
+
+
+def route_granted(fake_v1, put_status=200):
+    fake_v1.route(responses.POST, "jobs/01J9-job/upload-grant",
+                  {"method": "PUT", "url": "https://storage.test/put",
+                   "headers": {"content-length": "1"},
+                   "expires_at": "2026-09-22T10:15:00.000Z"})
+    fake_v1.elsewhere(responses.PUT, "https://storage.test/put",
+                      "" if put_status == 200 else "denied", status=put_status,
+                      content_type="text/plain")
+
+
+def route_submitted(fake_v1, **body):
+    fake_v1.route(responses.POST, "jobs/01J9-job/submit", job_body("staging", **body),
+                  status=202)
+
+
+def routes_for_a_submit(fake_v1, **created):
+    route_created(fake_v1, **created)
+    route_granted(fake_v1)
+    route_submitted(fake_v1)
+
+
+def put_body(fake_v1):
+    '''The archive the client PUT to storage.'''
+    put = next(c for c in fake_v1.calls if c.request.path_url == "/put")
+    body = put.request.body
+    return body.read() if hasattr(body, "read") else body
+
+
+def creates(fake_v1):
+    return [c for c in fake_v1.calls
+            if c.request.method == "POST" and c.request.url.endswith("/v1/jobs")]
+
+
 @pytest.fixture
 def fake_v1(capabilities):
     '''A v1 server answering in-process, GET /v1 already registered.'''
@@ -141,6 +320,8 @@ def logged_in(fake_v1, client_credentials, tmp_credentials):
 
     client = Client(tmp_credentials)
     client.login()
+    # Login read `GET /v1`; a test that serves another one expects to see it.
+    client.transport.forget_published()
     return client
 
 
@@ -156,227 +337,11 @@ def tmp_credentials():
     return creds
 
 
-#
-# A real store, archive, dispatcher and run, against `app.test_client()`.
-
-BASE = "http://localhost/v1"
-
-
-def slug(response):
-    '''The condition a refusal named, which is what a client branches on.'''
-    body = response.get_json() or {}
-    return (body.get("type") or "").rsplit("/", 1)[-1]
-
-
-def login(client, key, subject="machine:1000", **extra):
-    from siliconcompiler.remote import dpop
-
-    form = {"grant_type": "client_credentials",
-            "client_id": f"local:{subject}", **extra}
-    return client.post(
-        "/v1/auth/token", data=form,
-        headers={"DPoP": dpop.sign_proof(key, "POST", f"{BASE}/auth/token")},
-        content_type="application/x-www-form-urlencoded")
-
-
-def call(client, key, method, path, token, **kwargs):
-    '''One authenticated request, proof and all.'''
-    from siliconcompiler.remote import dpop
-
-    url = "http://localhost" + path
-    return client.open(
-        path, method=method,
-        headers={"Authorization": f"DPoP {token}",
-                 "DPoP": dpop.sign_proof(key, method, url, access_token=token),
-                 **(kwargs.pop("headers", None) or {})},
-        **kwargs)
-
-
-def read(client, key, token, job_id):
-    '''The job object, as GET /v1/jobs/{id} answers it.'''
-    return call(client, key, "GET", f"/v1/jobs/{job_id}", token).get_json()
-
-
-def stranger(client, subject="machine:1001"):
-    '''Another user on the same server: their key and token.'''
-    from siliconcompiler.remote import dpop
-
-    other = dpop.generate_key()
-    return other, login(client, other, subject=subject).get_json()["access_token"]
-
-
-@pytest.fixture(autouse=True)
-def staging_inline(request, monkeypatch):
-    '''Staging runs in the submitting request's thread, after the `202` body
-    is computed, so one GET reads the outcome. `threaded_staging` opts out.'''
-    if request.node.get_closest_marker("threaded_staging"):
-        return
-    try:
-        from siliconcompiler.remote.server.jobs import JobService
-    except ImportError:
-        return
-
-    def inline(self, job_id):
-        with self._preparing_lock:
-            if job_id in self._preparing:
-                return
-            self._preparing.add(job_id)
-        self._prepare(job_id)
-
-    monkeypatch.setattr(JobService, "_start_preparing", inline)
-
-
-# The one SiliconCompiler version the tests' registries hold (PROFILE.md section 5).
-TEST_SC_VERSION = "0.38.0"
-
-
-@pytest.fixture
-def runs_test_version(monkeypatch):
-    '''The server under test runs `TEST_SC_VERSION`.'''
-    try:
-        from siliconcompiler.remote.server.software import images
-    except ImportError:
-        return
-    monkeypatch.setattr(images, "own_version", lambda: TEST_SC_VERSION)
-
-
-@pytest.fixture(autouse=True)
-def manifest_read_inline(request, monkeypatch):
-    '''The manifest is read in the test process, so a task class a test
-    defines resolves. `real_read` keeps the contained subprocess.'''
-    if request.node.get_closest_marker("real_read"):
-        return
-    try:
-        from siliconcompiler.remote.server.staging import manifestread
-        from siliconcompiler.remote.server.jobs import JobService
-    except ImportError:
-        return
-
-    def inline(self, job, root, asked):
-        summary = manifestread.read(json.loads(json.dumps(asked)))
-        summary.update(contained={"network": False, "limits": False}, seconds=0)
-        # Through JSON, as the subprocess's answer is.
-        return json.loads(json.dumps(summary))
-
-    monkeypatch.setattr(JobService, "_run_read", inline)
-
-
-def run_manifest(manifest):
-    '''The project a dispatched run executes: the manifest with the server's
-    overrides applied, as the runner applies them.'''
-    from siliconcompiler import Project
-    from siliconcompiler.remote.server.running import runspec
-
-    project = Project.from_manifest(filepath=str(manifest))
-    run = runspec.read_run(runspec.state_dir(manifest) / runspec.RUN_FILENAME)
-    if run is not None:
-        runspec.apply_run(project, run)
-    return project
-
-
-def job_after(client, key, token, response):
-    '''The job a `202` submit answered for, as it stands once staging ran.'''
-    return read(client, key, token, response.get_json()['id'])
-
-
-class _JobError:
-    '''A job's `error`, read the way a refusal of the request is.'''
-
-    def __init__(self, error):
-        self._error = error
-        self.status_code = error.get("status")
-
-    def get_json(self):
-        return self._error
-
-
-def outcome(client, key, token, response):
-    '''What a submit came to: the refusal as answered or, after a `202`, the
-    error staging put on the job, where it has one.'''
-    if response.status_code != 202:
-        return response
-    error = job_after(client, key, token, response).get("error")
-    return _JobError(error) if error else response
-
-
-class FakeDispatcher:
-    '''Records what it was asked to run and never runs it: a refusal that
-    reached it would be a bug. `cluster="local"` is the real run.'''
-
-    name = "fake"
-
-    def __init__(self):
-        self.submitted = []
-        self.cancelled = []
-        self.cancelled_nodes = []
-        self.still_running = set()
-        self.handed = {}
-        self.alive = True
-
-    def submit(self, job_id, jobroot, manifest, image=None, queue=None):
-        self.submitted.append((job_id, jobroot, manifest))
-        self.handed = {"image": image, "queue": queue}
-        return f"fake:{len(self.submitted)}"
-
-    def is_alive(self, scheduler_job_id):
-        return self.alive
-
-    def cancel(self, scheduler_job_id, node_job_ids=()):
-        # None is "only the orphans": the run is gone, and a real dispatcher
-        # does not scancel a finished job.
-        if scheduler_job_id:
-            self.cancelled.append(scheduler_job_id)
-        self.cancelled_nodes = list(node_job_ids)
-
-    def node_jobs(self, job_id, nodes):
-        # One scheduler id per node, by a name the server can derive.
-        return {node: f"{job_id}_{node[0]}_{node[1]}" for node in nodes}
-
-    def running_nodes(self, job_id, nodes):
-        return [f"{job_id}_{step}_{index}" for step, index in nodes
-                if (step, index) in self.still_running]
-
-    def describe(self, scheduler_job_id):
-        return f"the scheduler's record of {scheduler_job_id}"
-
-
-@pytest.fixture
-def server():
-    '''A server on its own datadir, dispatching locally.'''
-    pytest.importorskip("flask", reason="the server extra is not installed")
-
-    from siliconcompiler.remote.server.app import create_app
-
-    return create_app("datadir", cluster="local")
-
-
-@pytest.fixture
-def server_client(server):
-    return server.test_client()
-
-
-@pytest.fixture
-def dispatcher(server):
-    fake = FakeDispatcher()
-    server.config["SC_JOBS"]._dispatcher = fake
-    return fake
-
-
 @pytest.fixture
 def key():
     from siliconcompiler.remote import dpop
 
     return dpop.generate_key()
-
-
-@pytest.fixture
-def token(server_client, key):
-    return login(server_client, key).get_json()["access_token"]
-
-
-@pytest.fixture
-def me(server_client, key, token):
-    return call(server_client, key, "GET", "/v1/me", token).get_json()["id"]
 
 
 @pytest.fixture
@@ -420,8 +385,7 @@ def job_archive(nop_project):
             from siliconcompiler.remote import owners
             from siliconcompiler.utils.curation import collect
 
-            chosen = owners.collection(project, lambda one: owners.uploads(
-                project, one.key, one.dataroot, one.resolvers))
+            chosen = owners.collection(owners.walk(project), lambda one: one.upload)
             collect(project, verbose=False, keys=chosen.keys, select=chosen.select)
         project.write_manifest(os.path.join(root, f"{project.name}.pkg.json"))
 
@@ -447,3 +411,210 @@ def job_archive(nop_project):
         return path, f"sha256:{digest.hexdigest()}", size
 
     return build
+
+
+#
+# The real server, from `create_app`, in the test's own directory.
+
+BASE = "http://localhost"
+
+
+@pytest.fixture
+def server():
+    pytest.importorskip("flask", reason="the server extra is not installed")
+
+    from siliconcompiler.remote.server.app import create_app
+
+    return create_app("sc-server", cluster="local")
+
+
+@pytest.fixture
+def server_client(server):
+    return server.test_client()
+
+
+@pytest.fixture
+def live_server(server):
+    '''The server on a real socket and thread, for the real client.'''
+    import threading
+
+    from werkzeug.serving import make_server
+
+    httpd = make_server("127.0.0.1", 0, server, threaded=True)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{httpd.server_port}"
+    finally:
+        httpd.shutdown()
+        thread.join(timeout=10)
+
+
+def slug(response):
+    '''The condition a refusal named, which is what a client branches on.'''
+    return ((response.get_json() or {}).get("type") or "").rsplit("/", 1)[-1]
+
+
+def proof(key, method, path, token=None):
+    from siliconcompiler.remote import dpop
+
+    return dpop.sign_proof(key, method, BASE + path, access_token=token)
+
+
+def login(client, key, subject="machine:1000", **extra):
+    form = {"grant_type": "client_credentials", "client_id": f"local:{subject}", **extra}
+    return client.post("/v1/auth/token", data=form,
+                       headers={"DPoP": proof(key, "POST", "/v1/auth/token")})
+
+
+def call(client, key, method, path, token, headers=None, **kwargs):
+    '''One authenticated request, proof and all.'''
+    return client.open(path, method=method, headers={
+        "Authorization": f"DPoP {token}",
+        "DPoP": proof(key, method, path.split("?")[0], token), **(headers or {})}, **kwargs)
+
+
+@pytest.fixture
+def token(server_client, key):
+    return login(server_client, key).get_json()["access_token"]
+
+
+#
+# The job path: a caller, a dispatcher that starts nothing, and a submitted job.
+
+class FakeDispatcher:
+    '''Starts nothing: a test writes the run's progress itself. `gate`, set,
+    holds `submit` until released, so staging can be caught half-way.'''
+
+    def __init__(self):
+        import threading
+
+        self.submitted, self.cancelled = [], []
+        self.alive = True
+        self.entered, self.gate = threading.Event(), threading.Event()
+        self.gate.set()
+
+    def submit(self, job_id, jobroot, manifest):
+        self.entered.set()
+        assert self.gate.wait(10)
+        self.submitted.append(job_id)
+        return f"fake:{job_id}"
+
+    def is_alive(self, scheduler_job_id):
+        return self.alive
+
+    def cancel(self, scheduler_job_id, node_names=()):
+        self.cancelled.append(scheduler_job_id)
+        self.alive = False
+
+
+@pytest.fixture
+def dispatcher(server):
+    server.config["SC_JOBS"].dispatcher = FakeDispatcher()
+    return server.config["SC_JOBS"].dispatcher
+
+
+def _caller(client, key, subject):
+    token = login(client, key, subject=subject).get_json()["access_token"]
+
+    def send(method, path, **kwargs):
+        return call(client, key, method, path, token, **kwargs)
+    return send
+
+
+@pytest.fixture
+def api(server_client, key):
+    return _caller(server_client, key, "machine:1000")
+
+
+@pytest.fixture
+def stranger(server_client):
+    from siliconcompiler.remote import dpop
+
+    return _caller(server_client, dpop.generate_key(), "machine:2000")
+
+
+def raw_archive(members):
+    '''An archive of ``{name: bytes}``, as ``(path, digest, size)``.'''
+    import hashlib
+    import io
+    import tarfile
+
+    with tarfile.open("raw.tar.gz", "w:gz") as tar:
+        for name, body in members.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(body)
+            tar.addfile(info, io.BytesIO(body))
+
+    with open("raw.tar.gz", "rb") as f:
+        body = f.read()
+    return os.path.abspath("raw.tar.gz"), f"sha256:{hashlib.sha256(body).hexdigest()}", len(body)
+
+
+def upload(server_client, api, job_id, archive, sent=None):
+    '''Grant and PUT an archive; ``sent`` are the bytes to PUT where they differ.'''
+    from urllib.parse import urlsplit
+
+    path, digest, size = archive
+    grant = api("POST", f"/v1/jobs/{job_id}/upload-grant",
+                json={"size_bytes": size, "digest": digest}).get_json()
+    target = urlsplit(grant["url"])
+    with open(path, "rb") as f:
+        body = f.read() if sent is None else sent
+    return server_client.put(f"{target.path}?{target.query}", data=body)
+
+
+def settle(api, job_id, states=("staging",)):
+    '''The job, once it has left ``states``: staging runs on a thread.'''
+    import time
+
+    end = time.time() + 10
+    while True:
+        job = api("GET", f"/v1/jobs/{job_id}").get_json()
+        if job["state"] not in states or time.time() > end:
+            return job
+        time.sleep(0.05)
+
+
+@pytest.fixture
+def submit(server_client, api, job_archive):
+    '''Create, upload and submit a job; returns the job as submit answered.'''
+    def go(archive=None, jobname="job0", settled=True):
+        job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": jobname}).get_json()
+        assert upload(server_client, api, job["id"], archive or job_archive()).status_code == 204
+        response = api("POST", f"/v1/jobs/{job['id']}/submit", json={})
+        assert response.status_code == 202
+        return settle(api, job["id"]) if settled else response.get_json()
+    return go
+
+
+def write_progress(server, job, state, nodes=None, **extra):
+    '''What the runner would have written for this job.'''
+    from siliconcompiler.remote.server.running import runspec
+
+    root = server.config["SC_JOBS"].root(job["owner"]["id"], job["id"])
+    nodes = nodes or {"stepone/0": state, "steptwo/0": state}
+    runspec.write_json(root / runspec.PROGRESS_FILENAME, {
+        "state": state, "started_at": 1000.0, "finished_at": None, **extra,
+        "nodes": {name: {"state": node, "started_at": 1000.0, "finished_at": None,
+                         "exit_code": None} for name, node in nodes.items()}})
+
+
+@pytest.fixture
+def tree(server, submit):
+    '''A submitted job and what its run leaves in the tree.'''
+    job = submit()
+    root = server.config["SC_JOBS"].root(job["owner"]["id"], job["id"]) / "gcd" / "job0"
+    for step in ("stepone", "steptwo"):
+        (root / step / "0" / "outputs").mkdir(parents=True)
+        (root / step / "0" / f"sc_{step}_0.log").write_text(f"{step} ran\n")
+        (root / step / "0" / "outputs" / "gcd.pkg.json").write_text("{}")
+    (root / "job.log").write_text("the flow\n")
+    return job, root
+
+
+def finish(server, api, dispatcher, job):
+    '''End the run, and read the job so the server notices.'''
+    write_progress(server, job, "completed", finished_at=1010.0)
+    dispatcher.alive = False
+    api("GET", f"/v1/jobs/{job['id']}")

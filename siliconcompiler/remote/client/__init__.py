@@ -8,15 +8,17 @@ import sys
 import time
 
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlsplit
 
 from siliconcompiler.remote.client.credentials import (
     Credentials, describe_certificates, parse_ci_secret)
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, clean, describe)
-from siliconcompiler.remote.client.identity import local_subject, display_name
+    RemoteError, ServerProblem, SessionEnded, clean, describe, listed)
+from siliconcompiler.remote.client.identity import (
+    device_fingerprint, display_name, local_subject)
 from siliconcompiler.remote.client.transport import (
-    CertificateRefused, EdgeRefused, OAuthRefusal, Transport, _retry_after, authenticates,
-    normalize_server, origin_of)
+    MAX_WAITS, CertificateRefused, EdgeRefused, OAuthRefusal, Transport, _retry_after,
+    authenticates, link, normalize_server, origin_of, retrying)
 
 __all__ = [
     "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
@@ -60,12 +62,10 @@ class Client:
         self.logger = logger or logging.getLogger(__name__)
         self.open_browser = open_browser
 
-        # The grant this session logged in with: a CI session trades, never refreshes.
-        self._mode: Optional[str] = None
-
         # Each notice and upcoming terms version is shown once per client.
         self._notices_shown = set()
-        self._terms_reminded = set()
+        self.terms_reminded = set()
+        self._titles: Optional[Dict[str, str]] = None
 
         if not credentials.server:
             # Raised on use, not here, so `sc-config remote configure` can build a client to fix it.
@@ -77,12 +77,9 @@ class Client:
     def _make_transport(self, base_url: str, certificate: Optional[str] = None) -> Transport:
         '''A transport for the selected server, verified with ``certificate`` or the
         one recorded for it.'''
-        transport = Transport(base_url, self.credentials.key(), self.credentials,
-                              verify=self._trust(certificate or self.credentials.certificate))
-        transport.relogin = self._relogin
-        transport.fingerprint = self._fingerprint
-        transport.warn = self.logger.warning
-        return transport
+        return Transport(base_url, self.credentials.key(), self.credentials, self._relogin,
+                         logger=self.logger, trades=bool(self.credentials.ci_secret()),
+                         verify=self._trust(certificate or self.credentials.certificate))
 
     def _trust(self, name: Optional[str]) -> Optional[str]:
         '''The CA bundle for an imported certificate; None for the default.'''
@@ -107,196 +104,39 @@ class Client:
     def base_url(self) -> Optional[str]:
         return self._transport.base_url if self._transport else None
 
-    def print_configuration(self) -> None:
-        '''What this machine would use, and what the server knows it by.'''
-        if self._transport is None:
-            self.logger.info("Server: not configured")
-        else:
-            self.logger.info(f"Server: {self.base_url}")
-
-        self.logger.info(f"Machine key: {self.credentials.thumbprint}")
-        self.logger.info(f"Session store: {self.credentials.auth_dir}")
-        if self.credentials.certificate:
-            self.logger.info(f"Verified with: {self.credentials.certificate} "
-                             f"({self.credentials.certs_dir})")
-        if self.credentials.user_id:
-            self.logger.info(f"Identity on this server: {self.credentials.user_id}")
-        others = [server for server in self.credentials.servers()
-                  if server != self.credentials.server]
-        if others:
-            self.logger.info(f"Also configured (sc-config remote use): {', '.join(others)}")
-
-        # Names only: a header's value is a secret.
-        if self._transport is not None:
-            names = ", ".join(sorted(self.credentials.headers()))
-            if names:
-                self.logger.info(f"Operator headers: {names}")
-        if self.credentials.ci_secret():
-            self.logger.info("CI credential: present")
-
-        whitelist = self.credentials.directory_whitelist
-        self.logger.info("Directory whitelist:")
-        for entry in whitelist or ["  (empty)"]:
-            self.logger.info(f"  {entry}" if whitelist else entry)
-
     def capabilities(self, notices: bool = True) -> Dict[str, Any]:
-        '''``GET /v1``, sent with no credential.
+        '''``GET /v1``, sent with no credential, read once per server.
 
         Branch on ``grant_types_supported``, never ``identity_assurance``, which
         is advisory. ``notices=False`` leaves showing the notices to the caller.
         '''
-        published = self.transport.request(
-            "GET", "", authenticated=False).json()
+        published = self.transport.published()
         if notices:
-            self._show_notices(published)
+            self.show_notices(published)
         return published
 
-    def _show_notices(self, published, always: bool = False) -> None:
+    def show_notices(self, published, always: bool = False) -> None:
         '''Each notice once per session, or with ``always`` every time. Never
         branched on: `level` only picks how loudly.'''
         import json
 
-        for notice in (published.get("notices") if isinstance(published, dict)
-                       else None) or []:
+        for notice in published.get("notices") or []:
             key = json.dumps(notice, sort_keys=True, default=str)
             if key in self._notices_shown and not always:
                 continue
             self._notices_shown.add(key)
-            level, line = _notice(notice)
+            level = notice.get("level") if notice.get("level") in ("info", "warning") \
+                else "warning"
+            line = clean(notice.get("message") or "")
+            starts, ends = notice.get("starts_at"), notice.get("ends_at")
+            if starts and ends:
+                line += f" ({clean(starts)} to {clean(ends)})"
+            elif starts:
+                line += f" (from {clean(starts)})"
+            elif ends:
+                line += f" (until {clean(ends)})"
             (self.logger.info if level == "info" else self.logger.warning)(
                 f"Notice: {line}")
-
-    def health(self) -> Dict[str, Any]:
-        '''``GET /v1/healthz``: one word, and no credential.
-
-        A `fail` arrives as a 503, so the refusal path IS the answer, not a
-        swallowed error.
-        '''
-        try:
-            return self.transport.request(
-                "GET", "healthz", authenticated=False).json()
-        except ServerProblem:
-            return {"status": "fail"}
-        except ValueError:
-            # 200 but not JSON: up, and not this server.
-            return {"status": "warn"}
-
-    def print_deployment(self) -> None:
-        '''What the server says it is, for a person at a terminal.
-
-        Unauthenticated, so it works before enrolment and says the same to everybody.
-        '''
-        health = self.health()
-        published = self.capabilities(notices=False)
-
-        self.logger.info(f"Health: {clean(health.get('status', 'unknown'))}")
-        self.logger.info(f"API: {clean(published.get('api_version', 'unknown'))}")
-        self.logger.info(
-            f"Identity assurance: {clean(published.get('identity_assurance', 'unknown'))}")
-
-        self._show_notices(published, always=True)
-
-        # Apart, as they are satisfied apart: the python set in ONE image, a tool per node.
-        software = published.get("software") or {}
-        for bucket, label in (("python", "Python distributions"),
-                              ("tools", "Tools")):
-            held = software.get(bucket) or {}
-            self.logger.info(f"{label} it can run:")
-            for name, versions in sorted(held.items()):
-                self.logger.info(f"  {clean(name)}: {_listed(versions)}")
-            if not held:
-                self.logger.info("  (none advertised)")
-
-        self.logger.info(f"Sign-in: {_listed(published.get('grant_types_supported'))}")
-        self.logger.info(f"Features: {_listed(published.get('features'))}")
-
-        # Defaults only: an account's own are in `GET /v1/me`.
-        self._print_limits("Default limits:", published.get("limits"))
-
-        if published.get("terms_url"):
-            self.logger.info(f"Terms: {clean(published['terms_url'])}")
-
-    def _print_limits(self, heading: str, limits) -> None:
-        '''Each limit under ``heading``, in readable units.'''
-        from siliconcompiler.utils.units import format_binary, format_duration
-
-        if not limits:
-            return
-        self.logger.info(heading)
-        for name, value in limits.items():
-            # null is unlimited, not zero.
-            if value is None:
-                shown = "unlimited"
-            elif name.endswith("_bytes"):
-                shown = format_binary(value, "B", digits=1, show_unit=True, compact=True,
-                                      default="—")
-            elif name.endswith("_seconds"):
-                shown = format_duration(value)
-            else:
-                shown = clean(value)
-            self.logger.info(f"  {clean(name)}: {shown}")
-
-    def print_identity(self, identity: Dict[str, Any]) -> None:
-        '''Who the server says you are, this machine's session, your limits,
-        usage and terms, from one `GET /v1/me`.'''
-        from siliconcompiler.utils.units import format_binary, format_duration
-
-        self.logger.info(f"Server reports you as {clean(identity['id'])} "
-                         f"(issuer {clean(identity['issuer'])})")
-
-        session = identity.get("session") or {}
-        if session:
-            where = f" on device {clean(session['device_id'])}" \
-                if session.get("device_id") else ""
-            self.logger.info(f"Session: {clean(session.get('kind', 'unknown'))}{where}")
-            self.logger.info(f"  scope: {clean(session.get('scope') or '(none)')}")
-            self.logger.info(f"  access token until {clean(session.get('access_expires_at'))}")
-            self.logger.info("  refresh token until " + clean(
-                session.get('refresh_expires_at') or '(none: it cannot refresh)'))
-            self.logger.info(f"  ends at {clean(session.get('session_expires_at'))}, "
-                             "and is never extended")
-
-        if identity.get("can_submit") is False:
-            self.logger.warning(describe({"title": "You cannot submit jobs here",
-                                          "type": identity.get("blocked_type")}))
-
-        self._print_limits("Your limits:", identity.get("limits"))
-
-        usage = identity.get("usage") or {}
-        self.logger.info(f"Unfinished jobs (staging, queued, running or cancelling): "
-                         f"{clean(usage.get('concurrent_jobs', 0))}")
-        compute = usage.get("compute_seconds") or {}
-        if compute:
-            total = compute.get("total")
-            window = compute.get("window")
-            # `used` is this window's; with no window, it is the whole.
-            period = (_WINDOWS.get(window) or f"in this {clean(window)} window") \
-                if window else "in all"
-            self.logger.info(f"Compute: {format_duration(compute.get('used') or 0)} {period}"
-                             + (f", {format_duration(total)} in all" if total is not None else ""))
-        stored = usage.get("storage_bytes") or {}
-        if stored:
-            used = format_binary(stored.get("used") or 0, "B", digits=1, show_unit=True,
-                                 compact=True, default="—")
-            self.logger.info(f"Storage: {used}")
-
-        terms = [entry for entry in identity.get("terms") or [] if isinstance(entry, dict)]
-        if terms:
-            self.logger.info("Terms:")
-        for entry in terms:
-            title = clean(entry.get("title") or entry.get("id") or "A terms document")
-            decided = "accepted" if entry.get("accepted_at") else \
-                "declined" if entry.get("declined_at") else "undecided"
-            self.logger.info(f"  {title}, version {clean(entry.get('version') or '?')}: "
-                             f"{decided}")
-            # Not after a decline, which drops the prompt; nor where the reminder of
-            # its upcoming version has just offered the same page.
-            upcoming = entry.get("upcoming") if isinstance(entry.get("upcoming"), dict) else {}
-            if entry.get("can_decide") is True and entry.get("declined_at") is None \
-                    and entry.get("id") and \
-                    (entry["id"], upcoming.get("version")) not in self._terms_reminded:
-                self.logger.info("    It may be decided on its page in this server's portal.")
-                self._offer_terms_page(entry["id"], title)
 
     def login(self) -> Dict[str, Any]:
         '''Obtain a session, the way this deployment offers one.
@@ -313,35 +153,35 @@ class Client:
         tried = set()
         while True:
             offered = self._grant_types()
-            self.transport.check_plaintext(offered)
+            self.transport.check_plaintext()
             mode = self._choose(offered, tried)
             try:
                 body = self._login_with(mode)
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type":
-                    raise self._refused(e, mode) from None
+                    raise self._refused(e) from None
                 tried.add(mode)
+                self.transport.forget_published()
             else:
                 return self._granted(body)
 
     def _grant_types(self) -> List[str]:
-        '''What `GET /v1` offers, reread for each login, which is rare.'''
+        '''What `GET /v1` offers.'''
         return list(self.capabilities().get("grant_types_supported") or [])
 
     def _ci_login(self) -> Dict[str, Any]:
         '''Token exchange for a CI key, retried once if `GET /v1` offers it after
         `unsupported_grant_type`. Never falls back to another grant.'''
-        try:
-            return self._granted(self._login_with(GRANT_TOKEN_EXCHANGE))
-        except OAuthRefusal as e:
-            if e.error != "unsupported_grant_type":
-                raise self._refused(e, GRANT_TOKEN_EXCHANGE) from None
-        if GRANT_TOKEN_EXCHANGE in self._grant_types():
+        for reread in (False, True):
+            if reread:
+                self.transport.forget_published()
+                if GRANT_TOKEN_EXCHANGE not in self._grant_types():
+                    break
             try:
                 return self._granted(self._login_with(GRANT_TOKEN_EXCHANGE))
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type":
-                    raise self._refused(e, GRANT_TOKEN_EXCHANGE) from None
+                    raise self._refused(e) from None
         raise RemoteError(
             f"{self.base_url} has no non-interactive login for a CI credential: it "
             "offers no token exchange. Run this job against a deployment that does, "
@@ -360,13 +200,10 @@ class Client:
 
     def _login_with(self, mode: str) -> Dict[str, Any]:
         if mode == GRANT_CLIENT_CREDENTIALS:
-            body = self._login_client_credentials()
-        elif mode == GRANT_TOKEN_EXCHANGE:
-            body = self._trade_login()
-        else:
-            body = self._login_device()
-        self._mode = mode
-        return body
+            return self._login_client_credentials()
+        if mode == GRANT_TOKEN_EXCHANGE:
+            return self._trade()
+        return self._login_device()
 
     def _login_client_credentials(self) -> Dict[str, Any]:
         '''``client_credentials``: no browser, no prompt; the server binds the key on first contact.
@@ -402,7 +239,7 @@ class Client:
 
         host = platform.node() or "unknown"
         form = {"scope": " ".join(SCOPES), "requesting_host": host,
-                "device_label": f"{display_name()}@{host}", **self._fingerprint()}
+                "device_label": f"{display_name()}@{host}", **device_fingerprint()}
 
         while True:
             started = self.transport.request(
@@ -446,11 +283,6 @@ class Client:
                 self.credentials.save_tokens(body)
                 return body
             self.logger.info("The code expired before it was approved; starting again.")
-
-    def _trade_login(self) -> Dict[str, Any]:
-        body = self._trade()
-        self.transport.trade = self._trade
-        return body
 
     def _trade(self) -> Dict[str, Any]:
         '''Trade the CI credential for one access token; no refresh token comes back.
@@ -524,16 +356,13 @@ class Client:
                 "needs one is refused.")
         return body
 
-    def _refused(self, refusal: OAuthRefusal, mode: str) -> RemoteError:
+    def _refused(self, refusal: OAuthRefusal) -> RemoteError:
         '''What a failed login tells the person.'''
         if refusal.error == "invalid_client":
-            subject = local_subject()[0]
             return RemoteError(
                 "this server knows you by a different key: "
                 f"{clean(refusal.description or 'the subject is bound to another key')}. "
-                "Retrying will not help. An operator can release the binding: "
-                "python3 -m siliconcompiler.remote.server.software.registry release-binding "
-                f"{subject}")
+                "Retrying will not help; the server's operator can release the binding.")
         return RemoteError(str(refusal))
 
     def _relogin(self, reason: Optional[str]) -> None:
@@ -548,35 +377,12 @@ class Client:
             self.logger.info(f"This session has ended ({reason}); starting a new one.")
         self.login()
 
-    def _fingerprint(self) -> Dict[str, str]:
-        '''The fingerprint pair, derived and never stored; empty on a CI session.'''
-        if self._mode == GRANT_TOKEN_EXCHANGE:
-            return {}
-        _, machine_hash, source = local_subject()
-        if not machine_hash:
-            return {}
-        return {"machine_id_hash": machine_hash, "machine_id_source": source}
-
-    def ensure_session(self) -> None:
-        '''Get an access token for this command, the cheapest way there is.
-
-        Refresh FIRST: each `client_credentials` login mints a new token
-        family, so logging in per command leaves live sessions behind.
-        '''
-        if self.transport.access_token is not None:
-            return
-        if self.credentials.ci_secret():
-            # A CI key trades, whatever refresh token the store holds.
-            self._ci_login()
-        else:
-            self.transport.renew()
-
     def rotate_key(self) -> None:
         '''Replace this machine's DPoP key and enrol again as a new device; no
         error ever changes the key.
 
         The old key revokes its own device first, ending its sessions and
-        freeing the subject: else `sc-server` refuses the new key
+        freeing the subject: else the server refuses the new key
         `invalid_client`. If that fails, the key is replaced anyway.
         '''
         old = self.credentials.thumbprint
@@ -594,7 +400,6 @@ class Client:
     def _retire_this_device(self) -> None:
         '''Revoke the current key's device with that key, and forget its session.'''
         try:
-            self.ensure_session()
             current = next((device for device in self.devices() if device.get("current")),
                            None)
             if current is not None:
@@ -618,7 +423,7 @@ class Client:
                 self.transport.refresh()
             if self.transport.access_token is not None:
                 self.transport.request("POST", "auth/revoke", renew=False)
-        except (SessionEnded, RemoteError) as e:
+        except RemoteError as e:
             # Over or unreachable: forgetting it locally must still happen.
             logger.debug(f"could not revoke on the server: {e}")
         finally:
@@ -652,8 +457,7 @@ class Client:
                     f.write(f"{AUTH_DIR_VARIABLE}={self.credentials.auth_dir}\n")
 
         if server:
-            address, port, _ = _split_address(server.strip())
-            configured = normalize_server(address, port)
+            configured = normalize_server(server)
         if configured:
             if configured != self.credentials.server:
                 self.credentials.set_server(configured)
@@ -686,15 +490,13 @@ class Client:
     def _unauthenticated(self) -> bool:
         '''Whether this deployment authenticates nobody: only then is an http page opened.'''
         try:
-            offered = self.capabilities(notices=False).get("grant_types_supported") or []
+            offered = self.transport.published().get("grant_types_supported") or []
         except RemoteError:
             return False
         return not authenticates(offered)
 
     def open_url(self, url: str, what: str, require_tty: bool = True) -> bool:
         '''Open a URL a person must act on: `https`, or `http` where nobody is authenticated.'''
-        from urllib.parse import urlsplit
-
         scheme = urlsplit(url or "").scheme
         if scheme != "https" and not (scheme == "http" and self._unauthenticated()):
             self.logger.warning(f"Not opening {what}: {clean(url)} is not an https URL")
@@ -711,7 +513,6 @@ class Client:
     def me(self, remind: bool = True) -> Dict[str, Any]:
         '''``GET /v1/me``, remembering which principal this server saw.
         ``remind=False`` leaves naming unaccepted terms to the caller.'''
-        self.ensure_session()
         body = self.transport.request("GET", "me").json()
 
         seen = self.credentials.user_id
@@ -727,24 +528,24 @@ class Client:
             self.remind_terms(body)
         return body
 
-    def remind_terms(self, me: Dict[str, Any], always: bool = False) -> None:
+    def remind_terms(self, me: Dict[str, Any]) -> None:
         '''Warn of each unaccepted upcoming terms version before it refuses a submit.
 
-        Once per session, or with ``always`` every time. Never accepted here:
-        that is the person's, in a browser, which a terminal outside CI offers.
+        Once per session. Never accepted here: that is the person's, in a
+        browser, which a terminal outside CI offers.
         '''
-        for entry in (me.get("terms") if isinstance(me, dict) else None) or []:
+        for entry in me.get("terms") or []:
             if not isinstance(entry, dict):
                 continue
             upcoming = entry.get("upcoming")
             if not isinstance(upcoming, dict) or upcoming.get("accepted_at") is not None:
                 continue
             key = (entry.get("id"), upcoming.get("version"))
-            if key in self._terms_reminded and not always:
+            if key in self.terms_reminded:
                 continue
-            self._terms_reminded.add(key)
+            self.terms_reminded.add(key)
 
-            title = clean(entry.get("title") or entry.get("id") or "A terms document")
+            title = terms_title(entry)
             when = upcoming.get("effective_at")
             self.logger.warning(
                 f"{title}: version {clean(upcoming.get('version') or '?')} takes effect"
@@ -757,9 +558,9 @@ class Client:
                 continue
             self.logger.warning("  It may be accepted early, on its page in this "
                                 "server's portal.")
-            self._offer_terms_page(entry["id"], title)
+            self.offer_terms_page(entry["id"], title)
 
-    def _offer_terms_page(self, terms_id: str, title: str) -> None:
+    def offer_terms_page(self, terms_id: str, title: str) -> None:
         '''Open a document's page if a person here says so. Never accepted here.'''
         if sys.stdin.isatty() and self.may_open():
             if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
@@ -767,13 +568,10 @@ class Client:
 
     def devices(self) -> list:
         '''The machines that can act as me, following ``Link`` to the end.'''
-        self.ensure_session()
-
         return self._pages("devices")
 
     def revoke_device(self, device_id: str) -> None:
         '''Revoke a machine, ending every session it holds.'''
-        self.ensure_session()
         self.transport.request("DELETE", f"devices/{device_id}")
 
     def create_job(self, design: str, jobname: str, *,
@@ -792,8 +590,6 @@ class Client:
         ``requested_versions`` is what the image must HOLD, each a list of PEP
         440 specifier sets; a ``python`` name left out may be missing from the image.
         '''
-        self.ensure_session()
-
         descriptor: Dict[str, Any] = {}
         for name, value in (("flow", flow), ("needs", needs),
                             ("requested_versions", requested_versions),
@@ -823,12 +619,9 @@ class Client:
             # At create these two are about the project named, never a job.
             why = {"not-found": "is not one you are a member of: check its name",
                    "not-permitted": "is archived: name another"}.get(e.slug)
-            if not project or not why:
-                raise
-            raise ServerProblem(
-                e.problem, e.status, help_url=e.help_url, retry_after=e.retry_after,
-                next_step=f"The project {project}, which {PROJECT_VARIABLE} names, {why}.") \
-                from None
+            if project and why:
+                e.next_step = f"The project {project}, which {PROJECT_VARIABLE} names, {why}."
+            raise
 
     def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
@@ -836,7 +629,6 @@ class Client:
         ``size`` and ``digest`` are the exact bytes about to go up; the first
         grant fixes both, and the server runs only bytes matching the digest.
         '''
-        self.ensure_session()
         return self.transport.request("POST", f"jobs/{job_id}/upload-grant",
                                       json_body={"size_bytes": size,
                                                  "digest": digest}).json()
@@ -853,8 +645,6 @@ class Client:
 
     def submit_job(self, job_id: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/submit``, with no body: the grant bound the digest.'''
-        self.ensure_session()
-
         # Fresh per submit, a resubmit included; a retry of this one reuses it.
         headers = {"Idempotency-Key": _fresh_key()}
 
@@ -865,53 +655,56 @@ class Client:
         '''A create or submit, waiting out a `limit-exceeded` per its
         `Retry-After`, whichever limit it names, and retrying with the same key.'''
         told = []
-        while True:
-            try:
-                return send()
-            except ServerProblem as e:
-                if e.slug == "terms-not-accepted":
-                    raise self._to_sign(e) from None
-                if e.slug != "limit-exceeded" or not e.retry_after:
-                    raise
-                limit = e.member("limit")
-                if limit not in told:
-                    told.append(limit)
-                    if limit == "pending_uploads":
-                        held = ", ".join(clean(str(job)) for job in e.member("job_ids") or [])
-                        self.logger.warning(
-                            "Waiting: this server's limit of jobs waiting for an upload is "
-                            f"reached, held by {held or 'your other jobs'}. Cancel any of "
-                            "them you abandoned.")
-                    elif limit == "concurrent_jobs":
-                        self.logger.warning(
-                            "Waiting: this server's limit of running jobs is reached; "
-                            "this one goes as soon as one of yours finishes.")
-                    else:
-                        named = f"{clean(str(limit))} " if limit else ""
-                        self.logger.warning(f"Waiting: this server's {named}limit is "
-                                            "reached, and it refills.")
-                time.sleep(e.retry_after)
 
-    def _to_sign(self, refusal: ServerProblem) -> ServerProblem:
-        '''A `terms-not-accepted` refusal with each blocking document named by
-        title and its page opened where a person can see it. Never accepted here.'''
-        blocked = refusal.member("blocked_by")
-        if not isinstance(blocked, list) or not blocked:
-            return refusal
+        def say(e):
+            limit = e.member("limit")
+            if limit in told:
+                return
+            told.append(limit)
+            if limit == "pending_uploads":
+                held = ", ".join(clean(str(job)) for job in e.member("job_ids") or [])
+                self.logger.warning(
+                    "Waiting: this server's limit of jobs waiting for an upload is "
+                    f"reached, held by {held or 'your other jobs'}. Cancel any of "
+                    "them you abandoned.")
+            elif limit == "concurrent_jobs":
+                self.logger.warning(
+                    "Waiting: this server's limit of running jobs is reached; "
+                    "this one goes as soon as one of yours finishes.")
+            else:
+                named = f"{clean(str(limit))} " if limit else ""
+                self.logger.warning(f"Waiting: this server's {named}limit is "
+                                    "reached, and it refills.")
 
         try:
-            terms = self.me(remind=False).get("terms") or []
-        except RemoteError:
-            terms = []
-        titles = {entry.get("id"): entry.get("title") for entry in terms
-                  if isinstance(entry, dict) and entry.get("title")}
+            return retrying(send, lambda e: e.slug == "limit-exceeded", notice=say)
+        except ServerProblem as e:
+            if e.slug == "terms-not-accepted":
+                self._to_sign(e)
+            raise
 
+    def _to_sign(self, refusal: ServerProblem) -> None:
+        '''Name each document a `terms-not-accepted` refusal blocks by its title,
+        and open its page where a person can see it. Never accepted here.'''
+        blocked = refusal.member("blocked_by")
+        if not isinstance(blocked, list) or not blocked:
+            return
+
+        titles = self.terms_titles()
         self.open_terms(blocked, titles)
+        refusal.titles = titles or None
 
-        if not titles:
-            return refusal
-        return ServerProblem(refusal.problem, refusal.status, help_url=refusal.help_url,
-                             titles=titles, retry_after=refusal.retry_after)
+    def terms_titles(self) -> Dict[str, str]:
+        '''Each terms document's title by its id, from `GET /v1/me`, read once;
+        empty where that cannot be read.'''
+        if self._titles is None:
+            try:
+                terms = self.me(remind=False).get("terms") or []
+            except RemoteError:
+                return {}
+            self._titles = {entry.get("id"): entry.get("title") for entry in terms
+                            if isinstance(entry, dict) and entry.get("title")}
+        return self._titles
 
     def open_terms(self, blocked, titles: Dict[str, str]) -> None:
         '''Open each `terms` id's page, named by its title, where a person is
@@ -925,22 +718,19 @@ class Client:
 
     def job(self, job_id: str) -> tuple:
         '''``GET /v1/jobs/{id}``, and the `Retry-After` interval, read per response.'''
-        self.ensure_session()
         try:
             response = self.transport.request("GET", f"jobs/{job_id}")
         except ServerProblem as e:
-            if e.slug == "not-found" and self._mode == GRANT_TOKEN_EXCHANGE:
-                raise ServerProblem(
-                    e.problem, e.status, help_url=e.help_url, job_id=job_id,
-                    next_step="The job may be gone, or this CI credential may be bound "
-                              "to another project than the job's.") from None
+            if e.slug == "not-found" and self.ci_session:
+                e.job_id = job_id
+                e.next_step = ("The job may be gone, or this CI credential may be bound "
+                               "to another project than the job's.")
             raise
 
         return response.json(), _retry_after(response)
 
     def jobs(self, **filters) -> list:
         '''``GET /v1/jobs``, following ``Link`` to the end.'''
-        self.ensure_session()
         return self._pages("jobs", _filters(filters))
 
     def cancel_job(self, job_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
@@ -956,24 +746,19 @@ class Client:
         if reason is not None and _UNPRINTABLE.search(reason):
             raise RemoteError("a cancel's reason is one line, with no control "
                               "character, and this one has one")
-        self.ensure_session()
-
         body = {"reason": reason or "cancelled from SiliconCompiler"}
         return self.transport.request(
             "POST", f"jobs/{job_id}/cancel", json_body=body).json()
 
     def delete_job(self, job_id: str) -> None:
         '''``DELETE /v1/jobs/{id}``. Idempotent; the job stays readable.'''
-        self.ensure_session()
         try:
             self.transport.request("DELETE", f"jobs/{job_id}")
         except ServerProblem as e:
-            if e.slug != "job-state-conflict":
-                raise
-            raise ServerProblem(
-                e.problem, e.status, help_url=e.help_url, retry_after=e.retry_after,
-                next_step="Only a finished job can be deleted: cancel it with sc-config "
-                          "remote cancel, or let it finish, then delete it.") from None
+            if e.slug == "job-state-conflict":
+                e.next_step = ("Only a finished job can be deleted: cancel it with sc-config "
+                               "remote cancel, or let it finish, then delete it.")
+            raise
 
     def artifacts(self, job_id: str, **filters) -> list:
         '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
@@ -981,7 +766,6 @@ class Client:
         `items` may be `[]` and no kind is guaranteed, the manifest included;
         judging an entry is the caller's.
         '''
-        self.ensure_session()
         return self._pages(f"jobs/{job_id}/artifacts", _filters(filters))
 
     def _pages(self, path: str, params: Optional[Dict[str, Any]] = None) -> list:
@@ -997,7 +781,7 @@ class Client:
                 response = self.transport.request("GET", path, params=params or None)
                 while True:
                     items.extend(response.json().get("items") or [])
-                    target = _next_link(response.headers.get("Link"), response.url)
+                    target = link(response, "next")
                     if not target:
                         return items
                     if origin_of(target) != self.transport.api_origin:
@@ -1012,31 +796,12 @@ class Client:
         '''``GET /v1/jobs/{id}/artifacts/{artifact_id}``, followed to the bytes.
         The API redirects: the bytes may be on another origin. One still being
         described is waited for as its `Retry-After` says, a bounded number of times.'''
-        from siliconcompiler.remote.client.transport import MAX_WAITS
-
-        self.ensure_session()
-
-        waits = 0
-        while True:
-            try:
-                response = self.transport.request(
-                    "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
-                    expect_redirect=True)
-                break
-            except ServerProblem as e:
-                if e.slug != "not-ready" or not e.retry_after or waits == MAX_WAITS:
-                    raise
-                waits += 1
-                time.sleep(e.retry_after)
+        response = retrying(
+            lambda: self.transport.request(
+                "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
+                expect_redirect=True),
+            lambda e: e.slug == "not-ready", limit=MAX_WAITS)
         return self.transport.save(self.transport.follow(response), dest)
-
-    def node_log(self, job_id: str, step: str, index: str, dest) -> str:
-        '''A finished node's log, from its `logs` artifact, written to ``dest``
-        -- `/logs` is live output only.'''
-        text = self.archived_log(job_id, step, index)
-        with open(dest, "w") as f:
-            f.write(text)
-        return str(dest)
 
     def archived_log(self, job_id: str, step: str, index: str) -> str:
         '''A finished node's `logs` artifact -- a gzip tar of its log files -- as
@@ -1069,8 +834,6 @@ class Client:
 
         Re-requested on every reconnect, never reused (see `logs`).
         '''
-        self.ensure_session()
-
         # Both or neither: one alone is a 400.
         params = {"step": step, "index": index} if step is not None else {}
         try:
@@ -1080,7 +843,9 @@ class Client:
         except ServerProblem as e:
             if e.slug == "terms-not-accepted":
                 # A live log is gated like its archive.
-                raise self._to_sign(e) from None
+                self._to_sign(e)
+            elif e.slug == "feature-unsupported":
+                self.transport.forget_published()
             raise
 
         headers = {}
@@ -1095,11 +860,11 @@ class Client:
 
         return LogTail(self, job_id, step, index).follow(write=write)
 
-    def configure_server(self, server: Optional[str] = None, prompt: bool = True) -> None:
+    def configure_server(self, server: Optional[str] = None) -> None:
         '''Make a server this machine's default, once it is reached and logged in
         to. Each server keeps its own entry, so switching overwrites nothing;
         one that cannot be used leaves the store as it was.'''
-        if not server and prompt:
+        if not server:
             server = _ask("Remote server address: ",
                           hint="choose a server address with -server")
 
@@ -1108,9 +873,7 @@ class Client:
                 "a remote server address is required: there is no default "
                 "server to fall back on")
 
-        address, port, had_credentials = _split_address(server.strip())
-
-        if had_credentials:
+        if "@" in urlsplit(server if "://" in server else f"//{server}").netloc:
             # The key is the credential; say so rather than drop them silently.
             self.logger.warning(
                 "Ignoring the username and password in that address: this "
@@ -1118,14 +881,13 @@ class Client:
                 "is generated for you.")
 
         previous = self.credentials.server
-        candidate = normalize_server(address, port)
+        candidate = normalize_server(server)
         added = not self.credentials.knows(candidate)
         # Selected for the login, which saves the session in this server's entry.
         self.credentials.set_server(candidate)
         self._transport = self._make_transport(candidate)
         try:
-            capabilities, chosen = self._reach(prompt)
-            self.ensure_session()
+            capabilities, chosen = self._reach()
             identity = self.me()
         except BaseException:
             self.credentials.restore_server(previous, drop=candidate if added else None)
@@ -1149,8 +911,7 @@ class Client:
     def use_server(self, server: str) -> None:
         '''Make a server configured here the default. Nothing is sent: it was
         reached when configured, and its session and certificate are its own.'''
-        address, port, _ = _split_address(server.strip())
-        chosen = normalize_server(address, port)
+        chosen = normalize_server(server)
         if not self.credentials.knows(chosen):
             configured = ", ".join(self.credentials.servers()) or "none"
             raise RemoteError(
@@ -1160,14 +921,14 @@ class Client:
         self._transport = self._make_transport(chosen)
         self.logger.info(f"Using {chosen}")
 
-    def _reach(self, prompt: bool):
+    def _reach(self):
         '''GET /v1, and where the server's certificate cannot be verified, the
         imported one chosen to verify it: asked here, in no other command.'''
         try:
             return self.capabilities(), None
         except CertificateRefused:
             names = self.credentials.certificates()
-            if not (prompt and names and sys.stdin.isatty()):
+            if not (names and sys.stdin.isatty()):
                 raise
             name = self._choose_certificate(names)
             if name is None:
@@ -1217,7 +978,7 @@ class Client:
             # Required on the wire: an older or broken server, not worth refusing over.
             return
 
-        self.logger.info(f"This server runs siliconcompiler {_listed(runs)}")
+        self.logger.info(f"This server runs siliconcompiler {listed(runs)}")
 
         if sc_version not in runs:
             self.logger.warning(
@@ -1229,7 +990,7 @@ class Client:
     @property
     def ci_session(self) -> bool:
         '''Whether this session is a CI credential's, which nobody is at.'''
-        return self._mode == GRANT_TOKEN_EXCHANGE or bool(self.credentials.ci_secret())
+        return bool(self.credentials.ci_secret())
 
     def browser_page(self, **named) -> Dict[str, Any]:
         '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
@@ -1239,7 +1000,6 @@ class Client:
         '''
         if self.ci_session:
             raise RemoteError("a CI session asks for no page: nobody is at a browser")
-        self.ensure_session()
         return self.transport.request("POST", "auth/browser", json_body=named).json()
 
     def open_page(self, what: str, require_tty: bool = True, **named) -> bool:
@@ -1314,19 +1074,9 @@ def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
             for name, value in filters.items() if value is not None}
 
 
-def _next_link(header: Optional[str], base: str) -> Optional[str]:
-    '''The `rel="next"` target of a `Link` header (RFC 8288), resolved against
-    the request; None on the last page.'''
-    from urllib.parse import urljoin
-
-    from requests.utils import parse_header_links
-
-    for link in parse_header_links(header or ""):
-        # A parameter's name is case-insensitive; requests keeps it as sent.
-        rel = next((value for name, value in link.items() if name.lower() == "rel"), "")
-        if "next" in rel.lower().split():
-            return urljoin(base, link["url"])
-    return None
+def terms_title(entry: Dict[str, Any]) -> str:
+    '''A terms document's title as a person reads it, else its id.'''
+    return clean(entry.get("title") or entry.get("id") or "A terms document")
 
 
 def _fresh_key() -> str:
@@ -1334,31 +1084,6 @@ def _fresh_key() -> str:
     import uuid
 
     return str(uuid.uuid4())
-
-
-# A metered usage key's `window`, as the period its `used` covers.
-_WINDOWS = {"calendar_month": "this month"}
-
-
-def _listed(values) -> str:
-    '''Server-supplied names, one line, made safe to print.'''
-    return ", ".join(clean(value) for value in values or []) or "none"
-
-
-def _notice(notice) -> tuple:
-    '''A notice as ``(level, line)``; anything unknown is a warning.'''
-    if not isinstance(notice, dict):
-        return "warning", clean(str(notice))
-    level = notice.get("level") if notice.get("level") in ("info", "warning") else "warning"
-    line = clean(notice.get("message") or "")
-    starts, ends = notice.get("starts_at"), notice.get("ends_at")
-    if starts and ends:
-        line += f" ({clean(starts)} to {clean(ends)})"
-    elif starts:
-        line += f" (from {clean(starts)})"
-    elif ends:
-        line += f" (until {clean(ends)})"
-    return level, line
 
 
 def _ask(question: str, hint: Optional[str] = None) -> str:
@@ -1383,21 +1108,3 @@ def read_secret(name: str) -> str:
     if not value:
         raise RemoteError(f"no value was given for {name}")
     return value
-
-
-def _split_address(server: str):
-    '''Split an address into ``(scheme://host, port, had userinfo)``, keeping its scheme.'''
-    from urllib3.exceptions import LocationParseError
-    from urllib3.util import parse_url
-
-    if "://" not in server:
-        server = f"https://{server}"
-
-    try:
-        parts = parse_url(server)
-    except LocationParseError as e:
-        raise RemoteError(f"{server} is not a server address: {e}") from None
-
-    # An IPv6 host keeps its brackets, so its port is not read as part of it.
-    host = (parts.host or "") + (parts.path or "").rstrip("/")
-    return f"{parts.scheme}://{host}", parts.port, bool(parts.auth)

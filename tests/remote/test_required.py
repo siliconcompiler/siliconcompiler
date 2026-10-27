@@ -6,9 +6,7 @@ from siliconcompiler import ASIC, Flowgraph, PDK, StdCellLibrary
 from siliconcompiler.remote import owners
 from siliconcompiler.tools.builtin.nop import NOPTask
 
-from conftest import slug
-from test_owners import (DATASHEET, GITHUB, Supply, account, collected_path, private,
-                         resource, submit_project, two_sources)
+from test_owners import DATASHEET, GITHUB, collected_path, resource
 
 
 # Only what the flow requires goes up: the union of every running node's
@@ -125,16 +123,14 @@ def test_a_node_the_flow_does_not_run_reads_nothing(gcd_design, tmp_path):
     assert ("library", "mylib", *QUICKSTART) not in owners.required(carried(project))
 
 
-def test_accounting_and_sources_see_only_what_the_flow_reads(gcd_design, tmp_path):
+def test_sources_see_only_what_the_flow_reads(gcd_design, tmp_path):
     '''A PDK holding nothing the flow reads is never sent for, never fetched.'''
     project = reading_mylib(gcd_design, tmp_path,
                             pdk=resource(PDK, "lambda", GITHUB, create=False))
     required = owners.required(carried(project))
 
-    assert [item["keypath"][1] for item in owners.sources(project)] == ["lambda"]
-    assert owners.sources(project, required) == []
-    names = {entry.name for entry in account(project, "none", Supply(), required)}
-    assert "lambda" not in names and "mylib" in names
+    assert [item["keypath"][1] for item in owners.sources(owners.walk(project))] == ["lambda"]
+    assert owners.sources(owners.walk(project), required) == []
 
 
 class NeedsItsImage(NOPTask):
@@ -145,7 +141,7 @@ class NeedsItsImage(NOPTask):
         raise RuntimeError("Cocotb is not installed; cannot run test.")
 
 
-@pytest.mark.parametrize("fails", [None, "a node", "the pass"])
+@pytest.mark.parametrize("fails", [None, "a node"])
 def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
         gcd_design, tmp_path, logged_in, monkeypatch, fails):
     '''A library's views for ten tools used to all go up. A setup needing its
@@ -154,11 +150,6 @@ def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
     from siliconcompiler.remote.client.run import RemoteRun
     from siliconcompiler.utils.paths import collectiondir
 
-    def cannot(project):
-        raise RuntimeError("Cocotb is not installed; cannot run test.")
-
-    if fails == "the pass":
-        monkeypatch.setattr(owners, "work_out", cannot)
     project = reading_mylib(gcd_design, tmp_path)
     if fails == "a node":
         flow = project.get_flow()
@@ -167,123 +158,17 @@ def test_only_what_the_flow_reads_goes_up_unless_a_setup_cannot_run_here(
         project.set_flow(flow)
 
     run = RemoteRun(project, logged_in)
-    manifest, required = run._needs()
+    reads = run._read()
+    manifest, required = reads.manifest, reads.required
     if fails:
         assert required is None and owners.required(manifest) is None
     if fails == "a node":
         assert manifest.get("tool", "builtin", "task", "nop", "require",
                             step="stepone", index="0") == ["library,mylib,package,doc,datasheet"]
-    run._collect()
+    run._collect(reads)
 
     def sent(key):
         return os.path.exists(os.path.join(collectiondir(project), collected_path(
             project, ("library", "mylib", *key))))
     assert sent(DATASHEET)
     assert sent(QUICKSTART) is bool(fails)
-
-
-def test_a_private_file_beside_a_sent_one_stays_on_this_machine(
-        gcd_design, tmp_path, logged_in):
-    '''Per value: the local file of the parameter the flow reads goes up,
-    and the private one beside it stays here -- the run is not stopped for it.'''
-    from siliconcompiler.remote.client.run import RemoteRun
-    from siliconcompiler.utils.paths import collectiondir
-
-    (tmp_path / "secret").mkdir()
-    (tmp_path / "secret" / "other.pdf").write_text("private\n")
-    pdk = two_sources(tmp_path, f"file+private://{tmp_path / 'secret'}")
-    project = reading(gcd_design, tmp_path, ("library", "mixed", *DATASHEET), pdk=pdk)
-
-    RemoteRun(project, logged_in)._collect()
-
-    taken = [name for _, _, names in os.walk(collectiondir(project)) for name in names]
-    assert "datasheet.pdf" in taken and "other.pdf" not in taken
-
-
-@pytest.fixture
-def dispatcher(server):
-    from test_server_jobs import FakeDispatcher
-
-    fake = FakeDispatcher()
-    server.config["SC_JOBS"]._dispatcher = fake
-    return fake
-
-
-@pytest.mark.parametrize("left_out,refused", [(DATASHEET, True), (QUICKSTART, False)])
-def test_only_a_required_file_left_out_is_refused_before_dispatch(
-        server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path,
-        left_out, refused):
-    '''One the flow reads is `missing_member` before anything runs, not a
-    node failing on it; one it does not read may be left out.'''
-    project = carried(reading_mylib(gcd_design, tmp_path, pdk=PDK("lambda")))
-
-    _, response = submit_project(
-        server_client, key, token, job_archive, project,
-        left_out=collected_path(project, ("library", "mylib", *left_out)))
-
-    if refused:
-        assert response.status_code == 422
-        assert (slug(response), response.get_json()["reason"]) == \
-            ("archive-rejected", "missing_member")
-        assert "library,mylib,package,doc,datasheet" in response.get_json()["detail"]
-        assert not dispatcher.submitted
-    else:
-        assert response.status_code == 202, response.get_json()
-        assert dispatcher.submitted
-
-
-def test_a_source_nothing_in_the_flow_reads_is_never_fetched(
-        server, server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    from test_server_sources_flow import LAMBDA, fake_fetch, wait_for
-    from siliconcompiler.remote.server.staging.sources import Permanent
-
-    fake_fetch(server, fail=Permanent("fetched a source nothing reads"))
-    project = carried(reading_mylib(gcd_design, tmp_path,
-                                    pdk=resource(PDK, "lambda", LAMBDA, create=False)))
-
-    _, response = submit_project(server_client, key, token, job_archive, project)
-
-    assert response.status_code == 202, response.get_json()
-    assert wait_for(lambda: dispatcher.submitted)
-
-
-def test_a_required_file_missing_from_the_servers_copy_is_resource_unavailable(
-        server, server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''One the server should have supplied, and cannot.'''
-    root = tmp_path / "operator-copy"
-    root.mkdir()                                     # and no datasheet in it
-    server.config["SC_CONFIG"]._values["private_dataroots"] = {
-        "library": {"secret": {"secret": str(root)}}}
-    project = carried(reading(gcd_design, tmp_path, ("library", "secret", *DATASHEET),
-                              pdk=private(PDK, "secret", tmp_path / "client-copy")))
-
-    _, response = submit_project(server_client, key, token, job_archive, project)
-
-    assert (response.status_code, slug(response)) == (422, "resource-unavailable")
-    assert "not in this server's copy" in response.get_json()["detail"]
-    assert not dispatcher.submitted
-
-
-def test_a_follow_up_carries_only_the_required_values_of_what_was_asked(
-        server, server_client, key, token, job_archive, dispatcher, gcd_design, tmp_path):
-    '''A dataroot in `upload_sources` selects the required values under it --
-    never the whole repository.'''
-    from test_server_sources_flow import LAMBDA, fake_fetch, read, send, wait_for
-    from siliconcompiler.remote.server.staging.sources import Permanent
-
-    fake_fetch(server, fail=Permanent("the source answered 404"))
-    pdk = resource(PDK, "lambda", LAMBDA, create=False)
-    with pdk.active_dataroot("lambda"):
-        pdk.set(*QUICKSTART, "quickstart.pdf")
-    project = carried(reading(gcd_design, tmp_path, ("library", "lambda", *DATASHEET),
-                              pdk=pdk))
-
-    job, response = submit_project(server_client, key, token, job_archive, project)
-    assert response.status_code == 202, response.get_json()
-    assert wait_for(lambda: read(server_client, key, token, job["id"])["state"]
-                    == "awaiting_input")
-
-    unread = collected_path(project, ("library", "lambda", *QUICKSTART))
-    refused = send(server_client, key, token, job["id"],
-                   {f"sc_collected_files/{unread}": b"not asked for\n"})
-    assert refused.get_json()["reason"] == "unrequested_member"

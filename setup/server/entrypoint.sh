@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# One image, four roles. Usage: entrypoint.sh <bootstrap|dbd|ctld|node>
+# One image, three roles. Usage: entrypoint.sh <dbd|ctld|node>
 #
 # Each role starts munge first -- every slurm daemon authenticates with it --
 # and then runs its own daemon in the foreground so that docker sees the logs
@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-role="${1:?usage: entrypoint.sh <bootstrap|dbd|ctld|node>}"
+role="${1:?usage: entrypoint.sh <dbd|ctld|node>}"
 
 start_munge() {
     # Every slurm daemon authenticates with the same munge key, so it lives in
@@ -87,15 +87,6 @@ wait_for_port() {
 }
 
 case "$role" in
-bootstrap)
-    # The one role that is not a daemon and does not touch munge or slurm.
-    # It puts the two images compose just built into the registry, registers
-    # them and stages their bundles, and then exits -- and `scserver` waits for
-    # that exit, which is what makes `docker compose up` the whole procedure.
-    # See bootstrap.py for why it is a service and not a script.
-    exec /usr/local/bin/sc-bootstrap
-    ;;
-
 dbd)
     # slurmdbd.conf carries the database password, so it is written here from
     # the environment rather than baked into the image, and slurmdbd requires
@@ -120,47 +111,6 @@ CONF
 ctld)
     start_munge
     wait_for_port slurmdbd 6819 "slurmdbd"
-
-    # **Recover the JOBS and never the NODES.** StateSaveLocation is on a
-    # volume so a controller restart does not forget what was queued -- but
-    # every node in this cluster is DYNAMIC: it exists because `slurmd -Z` said
-    # so, and it appears in no configuration file. Recovering one from state
-    # asserts a node exists when nothing has said so since the restart, and if
-    # that container is gone the controller cheerfully schedules onto a ghost.
-    #
-    # What that looks like, and it is not subtle:
-    #
-    #   sinfo               6 nodes, for 2 replicas
-    #   slurmctld: error: Batch completion for JobId=41 sent from wrong node
-    #              (1bfa50e484ec rather than 9b6a4c6c8cb0). Was the job
-    #              requeued due to node failure?
-    #
-    # -- real jobs failing against a node that no longer exists. A dynamic
-    # node's existence is the node's to assert, so this drops the controller's
-    # memory of it and lets the live ones re-register, which they do within
-    # seconds. `job_state` is deliberately left alone.
-    rm -f /sc_tools/spool/slurm/node_state /sc_tools/spool/slurm/node_state.old
-
-    # Say so before slurmctld does. On a first start there is genuinely no
-    # saved state, and slurmctld announces that as two `error:` lines and
-    # "Jobs may be lost!" -- which is true of no jobs and reads like a fault on
-    # a deployment that has never run one. It cannot be suppressed: it is the
-    # controller's own logging, and there is no quieter cold start. What can be
-    # fixed is that nothing says it was expected.
-    if [ ! -f /sc_tools/spool/slurm/job_state ]; then
-        echo "first start on this state volume: slurmctld is about to report" >&2
-        echo "  no job_state and 'Jobs may be lost!'. There are no jobs yet;" >&2
-        echo "  it saves on shutdown and recovers from here on." >&2
-    fi
-
-    # Nothing to do for StateSaveLocation. It is slurm-owned in the image --
-    # install-slurm.sh does it for the base, the server stage does it for the
-    # slim one -- and docker pre-populates an empty NAMED volume from the image
-    # path, ownership included. Verified: the volume comes up 999:996.
-    #
-    # That copy is a named-volume behaviour only. Bind-mount a host
-    # directory over it instead and it arrives root-owned, and slurmctld
-    # refuses a state directory it cannot write.
 
     # The JWT signing key for slurmrestd. Generated per container rather than
     # baked in, and only slurmctld ever reads it -- slurmrestd forwards the
@@ -205,22 +155,11 @@ ctld)
         echo "NOTE: slurmrestd was not built into this image" >&2
     fi
 
-    # No client credential is seeded here. Under the v1 API a client holds a
-    # DPoP key pair rather than an address and a password, so the file this
-    # used to write has no meaning until the client that mints one exists.
-    # It comes back with that client.
-
-    # The server lays out <datadir> itself: the store, the artifacts, and one
-    # tree per user for builds and caches.
+    # The data directory is the volume the compute nodes mount at the same
+    # path: the run's batch job reads and writes its job directory and the
+    # shared package cache (/sc_server/cache) there.
     mkdir -p /sc_server
     cd /sc_server
-
-    # config.json is written by the `bootstrap` role, which runs to completion
-    # before this one is started -- see bootstrap.py, which also says what each
-    # of the mounts in it is for. One writer, deliberately: two places seeding
-    # the same policy file is how a mount list and the bundles staged against
-    # it drift apart.
-
     python3 -m siliconcompiler.remote.server \
         -cluster slurm \
         -port 8080 \
@@ -233,44 +172,16 @@ ctld)
     # underneath it -- which surfaces later and far away, as jobs that never
     # dispatch. Exiting on the first child to die makes the container's status
     # say what actually happened.
-    # Signal them AND WAIT. slurmctld saves its state on SIGTERM by writing
-    # job_state.new, fsyncing and renaming it into place -- so a shell that
-    # signals and then exits takes PID 1 down mid-save, docker tears the
-    # container apart, and what is left on the volume is a ZERO-LENGTH
-    # job_state.new and no job_state at all. The next start then says
-    #
-    #   error: Could not open job state file .../job_state
-    #   error: NOTE: Trying backup state save file. Jobs may be lost!
-    #
-    # which is indistinguishable from never having saved, and was happening on
-    # every restart. Putting StateSaveLocation on a volume is necessary and was
-    # not sufficient: without this the volume just collects the half-written
-    # file.
-    shutdown() {
-        kill -TERM $ctld_pid ${restd_pid:-} $server_pid 2>/dev/null || true
-
-        # Bounded: compose's stop_grace_period is what is actually enforced,
-        # and a controller that will not go in ten seconds is not going to.
-        for _ in $(seq 1 100); do
-            kill -0 $ctld_pid 2>/dev/null || return 0
-            sleep 0.1
-        done
-        echo "slurmctld did not stop in 10s; its state may be incomplete" >&2
-    }
-    trap 'shutdown; exit 0' INT TERM
+    trap 'kill -TERM $ctld_pid ${restd_pid:-} $server_pid 2>/dev/null || true' INT TERM
 
     wait -n
     status=$?
     echo "a daemon exited (status $status); shutting the container down" >&2
-    shutdown
+    kill -TERM $ctld_pid ${restd_pid:-} $server_pid 2>/dev/null || true
     exit "$status"
     ;;
 
 node)
-    # Where crun keeps container state, named explicitly in oci.conf. Created
-    # here because crun will not make its own root directory.
-    mkdir -p /run/crun
-
     # slurmd builds its own cgroup hierarchy, because cgroup.conf sets
     # IgnoreSystemd=yes and there is no systemd here to ask over DBus. Two
     # things have to be true for that to work, and neither is by default:
@@ -318,92 +229,21 @@ node)
     #
     # Keeping this shell as PID 1 in init.scope leaves /proc/1/cgroup at
     # "/init.scope", which strips to the real root.
-    start_slurmd() {
-        slurmd -D -Z --conf "RealMemory=500" &
-        slurmd_pid=$!
-    }
-    start_slurmd
+    slurmd -D -Z --conf "RealMemory=500" &
+    slurmd_pid=$!
 
     # On the way out, take the node back out of the cluster, so scaling down
     # does not leave the controller holding nodes that will never answer.
-    #
-    # **And then EXIT, rather than returning into the loop below.** A trap
-    # interrupts the `sleep`, runs, and hands control back -- so without this
-    # the shell went round again, slept another fifteen seconds, and was still
-    # sleeping when docker's ten-second grace period ran out. Every stop became
-    # a SIGKILL (exit 137), and `scontrol delete` raced it: the stale nodes
-    # that accumulate in `sinfo` after a rebuild are that race, not slurm.
     cleanup() {
         scontrol delete nodename="$(hostname)" 2>/dev/null || true
         kill -TERM "$slurmd_pid" 2>/dev/null || true
-
-        for _ in $(seq 1 50); do
-            kill -0 "$slurmd_pid" 2>/dev/null || break
-            sleep 0.1
-        done
-        exit 0
     }
     trap cleanup INT TERM
-
-    # Deleting the node is not politeness, it is what stops a zombie job.
-    # A dynamic node that vanishes without being deleted leaves the controller
-    # holding it AND whatever was running on it, reported RUNNING for ever on a
-    # container that no longer exists -- and the API believes the scheduler,
-    # so the job never leaves `running` either.
-
-    # **Re-register when the controller has forgotten us.** A dynamic node
-    # exists only in slurmctld's memory -- "slurmd -Z" tells the controller it
-    # is here and appears in no configuration file -- so a controller that
-    # restarts comes back with no record of any of them. `sinfo` then reports
-    #
-    #   compute*  up  infinite  0  n/a
-    #
-    # and every job sits at PENDING (PartitionConfig) for ever. Nothing about
-    # that says "restart the runners", which is the fix, and it had to be done
-    # by hand in the right order every time the server was rebuilt.
-    #
-    # Restarting slurmd ends whatever it was running, and that is not a
-    # cost: a controller with no record of this node has already lost those
-    # jobs. The node is unreachable work either way, and this way it comes
-    # back.
-    #
-    # The check is deliberately two conditions. The controller being
-    # unreachable is a different thing -- it is down, or restarting -- and
-    # bouncing slurmd at it then would just churn until it returns.
-    #
-    # The interval is also how long a stop can take, which is why `cleanup`
-    # exits rather than waiting for the next tick.
-    while true; do
-        if ! kill -0 "$slurmd_pid" 2>/dev/null; then
-            wait "$slurmd_pid"
-            status=$?
-            echo "slurmd exited (status $status)" >&2
-            exit "$status"
-        fi
-
-        # Backgrounded and waited on, NOT a plain `sleep 15`. Bash defers a
-        # trap until the current FOREGROUND command finishes, so with a plain
-        # sleep the TERM handler did not run for up to fifteen seconds --
-        # longer than docker's ten-second grace period, so every stop became a
-        # SIGKILL (exit 137) and `scontrol delete` never ran. That is where the
-        # stale nodes in `sinfo` came from, and the jobs stuck RUNNING on a
-        # container that no longer exists. `wait` is interruptible; `sleep` is
-        # not. Measured: 14s to die versus 0s.
-        sleep 15 &
-        wait $! 2>/dev/null || true
-
-        if scontrol ping >/dev/null 2>&1 &&
-           ! scontrol show node "$(hostname)" >/dev/null 2>&1; then
-            echo "the controller has no record of this node; re-registering" >&2
-            kill -TERM "$slurmd_pid" 2>/dev/null || true
-            wait "$slurmd_pid" 2>/dev/null || true
-            start_slurmd
-        fi
-    done
+    wait "$slurmd_pid"
     ;;
 
 *)
-    echo "unknown role: $role (expected bootstrap, dbd, ctld or node)" >&2
+    echo "unknown role: $role (expected dbd, ctld or node)" >&2
     exit 1
     ;;
 esac

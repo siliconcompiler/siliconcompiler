@@ -61,8 +61,7 @@ def public_jwk(key) -> Dict[str, str]:
     '''
     from jwt.algorithms import ECAlgorithm
 
-    public = key.public_key() if hasattr(key, "public_key") else key
-    return ECAlgorithm.to_jwk(public, as_dict=True)
+    return ECAlgorithm.to_jwk(key.public_key(), as_dict=True)
 
 
 def jwk_thumbprint(jwk: Dict[str, Any]) -> str:

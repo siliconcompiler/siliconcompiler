@@ -74,16 +74,16 @@ class LogTail:
 
             if not _is_stream(response):
                 # Anything but an event stream is a refusal, never log text.
-                from siliconcompiler.remote.client.transport import _problem_body, _retry_after
+                from siliconcompiler.remote.client.transport import (
+                    _problem_body, _retry_after, wait_out)
 
                 with response:
                     refusal = ServerProblem(_problem_body(response), response.status_code
                                             if response.status_code >= 400 else 502,
                                             retry_after=_retry_after(response))
-                if refusal.status != 429 or not refusal.retry_after:
-                    raise refusal
                 # A slot frees as another stream closes: wait, then a fresh `/logs`.
-                time.sleep(refusal.retry_after)
+                if refusal.status != 429 or not wait_out(refusal):
+                    raise refusal
                 continue
 
             with response:

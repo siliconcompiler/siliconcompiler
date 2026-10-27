@@ -26,7 +26,7 @@ from packaging.version import InvalidVersion, Version
 
 __all__ = ["MAX_BYTES", "MAX_ENTRIES", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
            "PackagesError", "WheelError", "Pin", "Packages", "Wheel", "canonical",
-           "parse_entry", "parse", "render", "wheels_path", "site_path", "wheel_name",
+           "parse_entry", "parse", "render", "site_path", "wheel_name",
            "check_wheel"]
 
 
@@ -172,11 +172,6 @@ def render(pins: Sequence[Pin], header: str = "") -> str:
     lines = [f"# {line}" if line else "#" for line in header.splitlines()]
     lines.extend(f"{canonical(pin.name)}=={pin.version}" for pin in pins)
     return "\n".join(lines) + "\n"
-
-
-def wheels_path() -> str:
-    '''Where the uploaded wheels sit, relative to the archive root.'''
-    return f"sc_collected_files/{WHEELS}"
 
 
 def site_path() -> str:

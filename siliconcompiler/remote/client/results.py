@@ -14,10 +14,12 @@ import os
 import sys
 import tempfile
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler import utils
-from siliconcompiler.remote.client.errors import RemoteError, clean
+from siliconcompiler.remote import manifests
+from siliconcompiler.remote.client.errors import RemoteError, blocked_lines, clean
+from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
 
@@ -35,12 +37,11 @@ JOB_FILE = "sc_remote_job.json"
 
 def record_job(directory: str, job_id: str) -> None:
     '''Record the job ``directory``'s results came from.'''
-    from siliconcompiler.remote.client.credentials import _write_atomic
+    from siliconcompiler.utils.settings import replace_file
 
     os.makedirs(directory, exist_ok=True)
     # The mode `open()` would give it: a job id is no secret.
-    _write_atomic(os.path.join(directory, JOB_FILE),
-                  json.dumps({"job_id": job_id}).encode(), mode=0o666)
+    replace_file(os.path.join(directory, JOB_FILE), json.dumps({"job_id": job_id}), 0o666)
 
 
 def recorded_job(directory: str) -> Optional[str]:
@@ -82,6 +83,8 @@ class Results:
         self._taken_nodes: set = set()
         self._landed = 0
 
+        # The nodes whose files landed since the record was last folded in.
+        self._unfolded: Set[Tuple[str, str]] = set()
         # Set only once the server's copy lands: until then the file at that
         # path is the pre-run upload, which must not be folded back in.
         self._job_manifest = None
@@ -89,33 +92,20 @@ class Results:
         # `False`: not looked up yet; `None`: this server publishes none.
         self._ceiling: Any = False
 
-        self._titles = None
-
     def _ours(self, items) -> List[Dict[str, Any]]:
         '''The rows for this job's flow: a row naming any other node, `..`
         included, is ignored, so nothing writes outside the job directory.'''
-        from siliconcompiler.flowgraph import Flowgraph
-
-        try:
-            nodes = set(self.project.get_flow().get_nodes())
-        except Exception:                                        # noqa: BLE001
-            nodes = set()
+        nodes = set(self.project.get_flow().get_nodes())
         kept = []
         for item in [item for item in items or [] if item.get("kind") not in _NOT_TAKEN]:
             step, index = item.get("step"), item.get("index")
             if step is None and index is None:
                 kept.append(item)
-                continue
-            try:
-                Flowgraph.check_node_name(step, index)
-            except (ValueError, TypeError):
-                logger.warning(f"ignoring a listed {clean(str(item.get('kind')))} for a "
-                               "node name that is not one")
-                continue
-            if (step, index) in nodes:
+            elif isinstance(step, str) and isinstance(index, str) and (step, index) in nodes:
                 kept.append(item)
             else:
-                logger.debug(f"ignoring a listed object for {step}/{index}, not in this flow")
+                logger.debug(f"ignoring a listed {clean(str(item.get('kind')))} for "
+                             f"{clean(str(step))}/{clean(str(index))}, not in this flow")
         return kept
 
     @property
@@ -161,7 +151,7 @@ class Results:
             f"download over the API: {names}. The web portal is the way to "
             "get them -- sc-config remote portal opens it.")
 
-    def take(self, job_id: str, job: Dict[str, Any]) -> int:
+    def take(self, job_id: str, job: Dict[str, Any]) -> None:
         '''Fetch what each node left as it finishes, one listing per poll.
 
         Not at the end: each node's manifest keeps the local record and the
@@ -175,7 +165,7 @@ class Results:
 
         fresh = done - self._taken_nodes
         if not fresh:
-            return 0
+            return
 
         try:
             # The endpoint's largest page: a wide flow lists four objects per node.
@@ -183,74 +173,41 @@ class Results:
         except Exception as e:                                   # noqa: BLE001
             # The final sweep asks again.
             logger.debug(f"could not list node results yet: {e}")
-            return 0
+            return
 
         # Oversized dropped BEFORE `_worth_fetching` (see `fetch`); reported
         # only by the final sweep. Node-bound only: the job's objects are not
         # final until the run is.
         listed = [item for item in listed if not self._oversized(item)]
-        items = [item for item in _worth_fetching(listed)
-                 if item.get("step") is not None]
-
-        landed = 0
-        for item in items:
-            key = (item.get("step"), item.get("index"))
-            if key not in fresh or not item.get("fetchable"):
-                continue
-            if item["id"] in self._fetched:
-                continue
-
-            try:
-                got = self._retrieve(job_id, item)
-                landed += got
-                self._fetched.add(item["id"])
-                self._landed += 1 if got else 0
-            except Exception as e:                               # noqa: BLE001
-                # The final sweep tries again.
-                logger.debug(f"{self._name(item)} not taken yet: {e}")
+        self._land(job_id, [item for item in _worth_fetching(listed)
+                            if (item.get("step"), item.get("index")) in fresh],
+                   lambda item, e: logger.debug(f"{self._name(item)} not taken yet: {e}"))
 
         # Recorded as LOOKED FOR, not found: a skipped node never has an
         # archive and would relist every poll. The final sweep catches late ones.
         self._taken_nodes |= fresh
+        self._replay()
 
-        if landed:
-            self._replay()
-
-        return landed
-
-    def fetch(self, job_id: str) -> int:
-        '''Retrieve everything fetchable and say what was not; returns how many landed.'''
+    def fetch(self, job_id: str) -> None:
+        '''Retrieve everything fetchable and say what was not.'''
         listed = self._ours(self.client.artifacts(job_id))
 
         if not listed:
             self.logger.warning(
                 "This server kept nothing from this run. The job's own record "
                 "is all there is, and it is not an error.")
-            return 0
+            return
 
         # BEFORE `_worth_fetching`: an archive not being fetched must not
         # displace the node's log and reports inside it.
         oversized = [item for item in listed if self._oversized(item)]
         items = _worth_fetching([item for item in listed if not self._oversized(item)])
 
-        landed = 0
-        withheld = []
-        for item in items:
-            if item.get("id") in self._fetched:
-                continue
-            if not item.get("fetchable"):
-                withheld.append(item)
-                continue
-            try:
-                got = self._retrieve(job_id, item)
-                landed += got
-                self._fetched.add(item["id"])
-                self._landed += 1 if got else 0
-            except Exception as e:                               # noqa: BLE001
-                # One object failing does not abort the others.
-                self.logger.error(f"{self._name(item)}: {e}")
+        # One object failing does not abort the others.
+        self._land(job_id, items, lambda item, e: self.logger.error(f"{self._name(item)}: {e}"))
 
-        self._report_withheld(withheld)
+        self._report_withheld([item for item in items if not item.get("fetchable")
+                               and (job_id, item.get("id")) not in self._fetched])
         self._report_oversized(oversized)
         # An unlisted kind is not kept here: no error, no retry. Said only
         # for the manifest, the one a user looks for, and from the whole
@@ -264,7 +221,20 @@ class Results:
 
         # The whole run's count: "2 of 26" would read like 24 failures.
         self.logger.info(f"Retrieved {self._landed} objects")
-        return landed
+
+    def _land(self, job_id: str, items: List[Dict[str, Any]], failed) -> None:
+        '''Retrieve each of ``items`` that is fetchable and not here yet; ``failed``
+        is told of one that does not come.'''
+        for item in items:
+            key = (job_id, item.get("id"))
+            if not item.get("fetchable") or key in self._fetched:
+                continue
+            try:
+                self._landed += self._retrieve(job_id, item)
+            except Exception as e:                               # noqa: BLE001
+                failed(item, e)
+                continue
+            self._fetched.add(key)
 
     def _report_withheld(self, items: List[Dict[str, Any]]) -> None:
         '''One line per reason, not one per object, so the one that differs is read.'''
@@ -305,7 +275,7 @@ class Results:
         if sign and _ask(f"Open the {len(sign)} agreement(s) to sign in a browser? "
                          "[y/N] ").strip().lower() in ("y", "yes"):
             for terms_id in sign:
-                title = clean(self._terms_titles().get(terms_id) or terms_id)
+                title = clean(self.client.terms_titles().get(terms_id) or terms_id)
                 self.client.open_page(f"{title}'s page", terms_id=terms_id)
 
         if ask and _ask(f"Open the approval request for {len(ask)} of them in a browser? "
@@ -336,10 +306,8 @@ class Results:
         # *Sign*: granted, but agreements stand in the way.
         blocked = item.get("blocked_by")
         if isinstance(blocked, list) and blocked:
-            from siliconcompiler.remote.client.errors import blocked_lines
-
             return ("held back by agreements you have not signed: "
-                    + "; ".join(blocked_lines(blocked, self._terms_titles())) + ".")
+                    + "; ".join(blocked_lines(blocked, self.client.terms_titles())) + ".")
 
         # *Ask*: an approval is all that is missing.
         if item.get("can_request_access") is True:
@@ -350,18 +318,6 @@ class Results:
 
         return (f"you may not have {this}. Neither an agreement nor an approval "
                 "is named, so it is not something asking would change.")
-
-    def _terms_titles(self) -> Dict[str, str]:
-        '''Each terms document's title, by id, from GET /v1/me -- read once.'''
-        if self._titles is None:
-            try:
-                terms = self.client.me().get("terms") or []
-            except RemoteError:
-                terms = []
-            self._titles = {entry.get("id"): entry.get("title")
-                            for entry in terms if isinstance(entry, dict)
-                            and entry.get("id") and entry.get("title")}
-        return self._titles
 
     def _retrieve(self, job_id: str, item: Dict[str, Any]) -> int:
         kind = item.get("kind")
@@ -398,6 +354,7 @@ class Results:
             return 0
 
         record_job(into, job_id)
+        self._unfolded.add((step, index))
         return 1
 
     def _gunzip(self, job_id: str, item: Dict[str, Any], dest: str) -> None:
@@ -439,30 +396,33 @@ class Results:
                 tar.extractall(root, members=members, **utils.tar_extract_kwargs())
 
     def _replay(self) -> None:
-        '''Fold the retrieved manifests' record and metrics into this project, for `summary()`.
+        '''Fold the record and metrics of what landed since the last call into
+        this project, for `summary()`: each node's manifest once, as its journal
+        adds, and the job's once.
 
         Nothing a job returns is imported or executed: only
         `_folded` values, for nodes the job ran.
         '''
-        from siliconcompiler.remote.runflow import runtime_nodes
-
-        try:
-            nodes = runtime_nodes(self.project)
-        except Exception:                                        # noqa: BLE001
+        landed, self._unfolded = self._unfolded, set()
+        job_manifest, self._job_manifest = self._job_manifest, None
+        if not landed and not job_manifest:
             return
-        ran = set(nodes)
+        ran = set(runtime_nodes(self.project))
 
-        for path in self._manifests(nodes):
-            try:
-                self._fold_in_journal(path, ran)
-            except Exception as e:                               # noqa: BLE001
-                logger.debug(f"could not replay {path}: {e}")
+        for step, index in runtime_nodes(self.project):
+            path = os.path.join(workdir(self.project, step=step, index=index), "outputs",
+                                f"{self.project.name}.pkg.json")
+            if (step, index) in landed and os.path.isfile(path):
+                try:
+                    self._fold_in_journal(path, ran)
+                except Exception as e:                           # noqa: BLE001
+                    logger.debug(f"could not replay {path}: {e}")
 
-        if self._job_manifest and os.path.isfile(self._job_manifest):
+        if job_manifest and os.path.isfile(job_manifest):
             try:
-                self._fold_in_final(self._job_manifest, ran)
+                self._fold_in_final(job_manifest, ran)
             except Exception as e:                               # noqa: BLE001
-                logger.debug(f"could not read {self._job_manifest}: {e}")
+                logger.debug(f"could not read {job_manifest}: {e}")
 
     def _fold_in_journal(self, path: str, ran) -> None:
         '''A node manifest's journal, read as data, through `_folded`.'''
@@ -486,8 +446,6 @@ class Results:
         It has no journal, only final state: node-bound `record` and `metric`
         values only, since a global value is the server's setting. Imports nothing.
         '''
-        from siliconcompiler.remote import manifests
-
         final = manifests.read(path)
         for group in ("record", "metric"):
             for key in final.getkeys(group):
@@ -497,29 +455,11 @@ class Results:
                         continue
                     self.project.set(group, key, value, step=step, index=index)
 
-    def fetch_node(self, job_id: str, step: str, index: str) -> int:
-        '''Fetch one node of the job a run continued from; returns how many landed.'''
-        items = [item for item in self._ours(self.client.artifacts(job_id))
-                 if item.get("step") == step and item.get("index") == index]
-        landed = 0
-        for item in _worth_fetching([item for item in items if not self._oversized(item)]):
-            if not item.get("fetchable"):
-                continue
-            try:
-                landed += self._retrieve(job_id, item)
-            except Exception as e:                               # noqa: BLE001
-                self.logger.error(f"{self._name(item)}: {e}")
-        return landed
-
-    def _manifests(self, nodes) -> List[str]:
-        '''Every node manifest on disk, whichever object brought it.'''
-        found = []
-        for step, index in nodes:
-            path = os.path.join(workdir(self.project, step=step, index=index),
-                                "outputs", f"{self.project.name}.pkg.json")
-            if os.path.isfile(path):
-                found.append(path)
-        return found
+    def fetch_node(self, job_id: str, step: str, index: str) -> None:
+        '''Fetch one node of the job a run continued from.'''
+        items = self._ours(self.client.artifacts(job_id, step=step, index=index))
+        self._land(job_id, _worth_fetching([item for item in items if not self._oversized(item)]),
+                   lambda item, e: self.logger.error(f"{self._name(item)}: {e}"))
 
     @staticmethod
     def _name(item: Dict[str, Any]) -> str:

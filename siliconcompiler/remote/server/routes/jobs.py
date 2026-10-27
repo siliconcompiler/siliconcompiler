@@ -1,20 +1,12 @@
-'''
-Endpoints 13 to 19: submission and control, plus the signed upload ``PUT``.
+'''`/v1/jobs`: the job path, and the signed upload ``PUT`` it hands out.'''
 
-Thin on purpose: every ordering rule, refusal and transition is in
-:mod:`siliconcompiler.remote.server.jobs`; here is only verb, path and scope.
-'''
-
-import time
+from urllib.parse import urlencode
 
 import flask
 
 from siliconcompiler.remote.server.errors import ProblemError
-from siliconcompiler.remote.server.routes import next_page
-from siliconcompiler.remote.server.routes.auth import public_url, require
-from siliconcompiler.remote.server.routes.errorpages import help_link
-from siliconcompiler.remote.server.state.storage import SignatureError
-from siliconcompiler.remote.server.state.store import PENDING_STATES
+from siliconcompiler.remote.server.jobs import RETRY_AFTER
+from siliconcompiler.remote.server.routes.auth import require_session
 
 __all__ = ["blueprint"]
 
@@ -26,162 +18,88 @@ def _jobs():
     return flask.current_app.config["SC_JOBS"]
 
 
-def _private(body, status: int = 200, headers=None):
-    response = flask.jsonify(body)
-    response.status_code = status
-    response.headers["Cache-Control"] = "private, no-store"
-    for name, value in (headers or {}).items():
-        response.headers[name] = value
-    return response
-
-
-def _body(required: bool = True):
-    '''The request's JSON, or a problem+json refusal saying which mistake it
-    is, never `get_json()`'s HTML page.'''
-    if flask.request.mimetype not in ("application/json", ""):
-        raise ProblemError(
-            "unsupported-media-type",
-            detail=f"this endpoint takes application/json, not {flask.request.mimetype}")
-
+def _body() -> dict:
+    '''The request's JSON, or nothing: every body here is optional or checked field by field.'''
     body = flask.request.get_json(silent=True)
-    if body is None:
-        if required:
-            raise ProblemError("invalid-request", detail="a JSON body is required")
-        return {}
-    if not isinstance(body, dict):
+    if body is not None and not isinstance(body, dict):
         raise ProblemError("invalid-request", detail="the body must be a JSON object")
-    return body
-
-
-def _idempotency_key():
-    key = flask.request.headers.get("Idempotency-Key")
-    if key is None:
-        return None
-    if not key or len(key) > 200:
-        raise ProblemError("invalid-request",
-                           detail="Idempotency-Key is at most 200 characters")
-    return key
+    return body or {}
 
 
 @blueprint.route("/v1/jobs", methods=["POST"])
-@require("jobs:write")
+@require_session
 def create(session):
-    '''Endpoint 13: no payload, so a job can be refused before bytes move.'''
-    body, status = _jobs().create(session, _body(), _idempotency_key())
-
-    # The job object itself, so `upload_sources` is one member wherever the
-    # server asks.
-    response = _private(body, status)
-    if status == 201:
-        response.headers["Location"] = f"/v1/jobs/{body['id']}"
+    job = _jobs().create(session, _body(), flask.request.headers.get("Idempotency-Key"))
+    response = flask.jsonify(job)
+    response.status_code = 201
+    response.headers["Location"] = f"/v1/jobs/{job['id']}"
     return response
+
+
+def origin() -> str:
+    '''Where a signed URL this server hands out points: the first public origin, else this host.'''
+    origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
+    return (origins[0] if origins else flask.request.host_url).rstrip("/")
 
 
 @blueprint.route("/v1/jobs/<job_id>/upload-grant", methods=["POST"])
-@require("jobs:write")
+@require_session
 def upload_grant(session, job_id):
-    '''Endpoint 14: issue or re-issue the grant; 200, since a re-issue
-    creates nothing.'''
-    return _private(_jobs().grant(session, job_id, public_url(""),
-                                  _body(required=False)))
-
-
-@blueprint.route("/v1/jobs/<job_id>/submit", methods=["POST"])
-@require("jobs:write")
-def submit(session, job_id):
-    '''Endpoint 15: the job is ready to run (the order is the job service's).'''
-    # `{}`: an empty body and a JSON `{}` alike.
-    return _private(_jobs().submit(session, job_id, _body(required=False),
-                                   _idempotency_key()), 202)
-
-
-@blueprint.route("/v1/jobs", methods=["GET"])
-@require("jobs:read")
-def listing(session):
-    '''Endpoint 16; no `Link` on the last page.'''
-    from siliconcompiler.remote.server.errors import only_query
-
-    only_query(flask.request.args, ("state", "flow", "design", "jobname", "project",
-                                    "mine", "archived", "terminal", "limit", "cursor"),
-               "GET /v1/jobs")
-    items, cursor = _jobs().listing(session, flask.request.args)
-
-    headers = {"Link": next_page("/v1/jobs", cursor)} if cursor else {}
-
-    return _private({"items": items}, headers=headers)
-
-
-@blueprint.route("/v1/jobs/<job_id>", methods=["GET"])
-@require("jobs:read")
-def get(session, job_id):
-    '''Endpoint 17, with `Retry-After` while the job is still going.'''
-    job = _jobs().get(session, job_id)
-
-    headers = {}
-    if not job["terminal"]:
-        headers["Retry-After"] = str(
-            flask.current_app.config["SC_CONFIG"]["poll_interval_seconds"])
-
-    # A failed job's error type gets its page, as a refusal's does.
-    link = help_link((job.get("error") or {}).get("type"))
-    if link:
-        headers["Link"] = link
-
-    return _private(job, headers=headers)
-
-
-@blueprint.route("/v1/jobs/<job_id>/cancel", methods=["POST"])
-@require("jobs:write")
-def cancel(session, job_id):
-    '''Endpoint 18. The body is optional, so a Ctrl-C can be expressed.'''
-    reason = _body(required=False).get("reason")
-    return _private(_jobs().cancel(session, job_id, reason), 202)
-
-
-@blueprint.route("/v1/jobs/<job_id>", methods=["DELETE"])
-@require("jobs:delete")
-def delete(session, job_id):
-    '''Endpoint 19: idempotent, and the row survives it.'''
-    _jobs().delete(session, job_id)
-
-    response = flask.make_response("", 204)
-    response.headers["Cache-Control"] = "private, no-store"
-    return response
+    return flask.jsonify(_jobs().grant(session, job_id, _body(), origin()))
 
 
 @blueprint.route("/storage/upload/<job_id>", methods=["PUT"])
 def upload(job_id):
-    '''Where the bytes actually go: this deployment's stand-in for a presigned
-    PUT, outside ``/v1``.
+    '''No session: the signature names one job and the byte count, and expires.'''
+    _jobs().receive(job_id, flask.request.args, flask.request.stream)
+    return "", 204
 
-    No session: the signature names one job, expires and carries the byte
-    ceiling, and the digest at submit decides what runs.
-    '''
-    storage = flask.current_app.config["SC_STORAGE"]
-    store = flask.current_app.config["SC_STORE"]
 
-    args = flask.request.args
-    try:
-        ceiling = storage.verify_upload(
-            job_id, args.get("max_bytes"), args.get("expires"), args.get("sig"),
-            time.time())
-    except SignatureError as e:
-        raise ProblemError("invalid-request", detail=str(e)) from None
-
-    job = store.one("SELECT state, deleted_at FROM jobs WHERE id = ?", (job_id,))
-    if job is None or job["deleted_at"]:
-        raise ProblemError("not-found", detail="no such job")
-    if job["state"] not in PENDING_STATES:
-        raise ProblemError(
-            "job-state-conflict",
-            detail=f"a job in {job['state']} takes no upload")
-
-    try:
-        size, digest = storage.receive(job_id, flask.request.stream, ceiling)
-    except ValueError as e:
-        raise ProblemError("upload-too-large", detail=str(e)) from None
-
-    # A courtesy, not a credential.
-    response = flask.jsonify({"size_bytes": size, "digest": digest})
-    response.headers["Cache-Control"] = "no-store"
+@blueprint.route("/v1/jobs/<job_id>/submit", methods=["POST"])
+@require_session
+def submit(session, job_id):
+    response = flask.jsonify(_jobs().submit(session, job_id))
+    response.status_code = 202
     return response
+
+
+def page(items, cursor):
+    '''A listing's body, with a ``Link`` to the next page where there is one.'''
+    response = flask.jsonify({"items": items})
+    if cursor:
+        query = [(name, value) for name, value in flask.request.args.items(multi=True)
+                 if name != "cursor"]
+        response.headers["Link"] = \
+            f'<{flask.request.path}?{urlencode([*query, ("cursor", cursor)])}>; rel="next"'
+    return response
+
+
+@blueprint.route("/v1/jobs", methods=["GET"])
+@require_session
+def listing(session):
+    return page(*_jobs().listing(session, flask.request.args))
+
+
+@blueprint.route("/v1/jobs/<job_id>", methods=["GET"])
+@require_session
+def get(session, job_id):
+    job = _jobs().get(session, job_id)
+    response = flask.jsonify(job)
+    if not job["terminal"]:
+        response.headers["Retry-After"] = str(RETRY_AFTER)
+    return response
+
+
+@blueprint.route("/v1/jobs/<job_id>/cancel", methods=["POST"])
+@require_session
+def cancel(session, job_id):
+    response = flask.jsonify(_jobs().cancel(session, job_id, _body().get("reason")))
+    response.status_code = 202
+    return response
+
+
+@blueprint.route("/v1/jobs/<job_id>", methods=["DELETE"])
+@require_session
+def delete(session, job_id):
+    _jobs().delete(session, job_id)
+    return "", 204

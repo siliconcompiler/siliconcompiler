@@ -27,6 +27,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import RemoteError
+from siliconcompiler.utils.multiprocessing import get_file_lock
+from siliconcompiler.utils.settings import _make_directory, replace_file
 
 __all__ = ["Credentials", "StoreError", "AUTH_DIRNAME", "STORE_FILENAME", "KEY_FILENAME",
            "CI_SECRET_VARIABLE", "parse_ci_secret"]
@@ -58,7 +60,7 @@ _LEGACY_FIELDS = ("address", "port", "directory_whitelist")
 # The remote client's category in the user's settings.json.
 SETTINGS_CATEGORY = "remote"
 
-_PRIVATE_DIR = 0o700
+# The mode of a private file; its directory gets 0700 from it.
 _PRIVATE_FILE = 0o600
 
 logger = logging.getLogger(__name__)
@@ -226,11 +228,8 @@ class Credentials:
             raise StoreError(f"a different certificate is already imported as {name}: "
                              "rename the file to import this one beside it, or replace "
                              "it with sc-config remote import-cert -overwrite")
-        self._ensure_dir()
-        if not self.certs_dir.exists():
-            # Private: a certificate added here is one the client trusts.
-            os.mkdir(self.certs_dir, _PRIVATE_DIR)
-        _write_atomic(target, payload)
+        # Private, its directory too: a certificate added here is one the client trusts.
+        self._write(target, payload)
         # Not left to the mtime check: a stale bundle would go on trusting the old one.
         self._trust_path(name).unlink(missing_ok=True)
         return name, found
@@ -249,7 +248,7 @@ class Credentials:
         if not bundle.exists() or bundle.stat().st_mtime < newest:
             payload = b"".join(
                 source.read_bytes().rstrip(b"\n") + b"\n" for source in sources)
-            _write_atomic(bundle, payload)
+            replace_file(str(bundle), payload, _PRIVATE_FILE)
         return bundle
 
     def set_directory_whitelist(self, entries) -> None:
@@ -372,7 +371,8 @@ class Credentials:
     def _owns(self, name: str) -> bool:
         '''Whether a file is the store's: the store, its lock, the key, or their temporaries.'''
         store = self.path.name
-        if name in (store, f"{store}.lock", f"{store}.sc_lock", KEY_FILENAME):
+        locks = (os.path.basename(path) for path in get_file_lock(self.path).paths)
+        if name in (store, *locks, KEY_FILENAME):
             return True
         return name.endswith(".tmp") and name.startswith((f".{store}.", f".{KEY_FILENAME}."))
 
@@ -391,14 +391,13 @@ class Credentials:
     def _ensure_dir(self) -> None:
         if self.auth_dir.exists():
             return
-        self.auth_dir.parent.mkdir(parents=True, exist_ok=True)
-        os.mkdir(self.auth_dir, _PRIVATE_DIR)
+        _make_directory(str(self.auth_dir), _PRIVATE_FILE)
         if sys.platform == "win32":                             # pragma: no cover
             _restrict_windows(self.auth_dir)
 
     def _write(self, path: Path, payload: bytes) -> None:
         self._ensure_dir()
-        _write_atomic(path, payload)
+        replace_file(str(path), payload, _PRIVATE_FILE)
 
     def _migrate(self, config: Optional[Path]) -> None:
         '''Move an older client's server and whitelist into the store, once.'''
@@ -498,24 +497,6 @@ def describe_certificates(payload: bytes) -> List[Tuple[str, str]]:
     return [(certificate.subject.rfc4514_string(),
              certificate.fingerprint(hashes.SHA256()).hex(":").upper())
             for certificate in found]
-
-
-def _write_atomic(path, payload: bytes, mode: int = _PRIVATE_FILE) -> None:
-    '''Write through a temporary file created with ``mode``, renamed over the
-    target: never truncated, and a private file never briefly readable.'''
-    from siliconcompiler.utils.settings import _create_temp, _replace
-
-    fd, temporary = _create_temp(str(path), mode)
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(payload)
-            f.flush()
-            os.fsync(f.fileno())
-        _replace(temporary, str(path))
-    except BaseException:
-        with contextlib.suppress(OSError):
-            os.unlink(temporary)
-        raise
 
 
 def _restrict_windows(path: Path) -> None:                      # pragma: no cover

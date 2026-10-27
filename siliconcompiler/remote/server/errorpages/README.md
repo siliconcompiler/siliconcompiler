@@ -4,11 +4,10 @@ One page per problem `type` in the `v1` API, `<slug>.html`, plus `index.html`
 and one stylesheet. Every refusal's `type` is
 `https://siliconcompiler.com/server-errors/<slug>`, and RFC 9457 §3.1.1 says
 that URI SHOULD dereference to documentation for the type: **this folder,
-rendered, is the set that is deployed there** (surface D158), and `sc-server`
+rendered, is the set that is deployed there** and `sc-server`
 serves the same pages at `/server-errors/` on its own host.
 
-🔴 **The registry is normative.** The error type registry -- §7 of crucible's
-`orchestration/api/surface.md` -- decides each slug's status, its extension
+**The registry is normative.** The registry in `errors.py` decides each slug's status, its extension
 members and what raises it. Where a page and its registry row disagree, the
 page is the bug. The titles are the exception: the pages are where titles are
 fixed, and `errors.py` sends them.

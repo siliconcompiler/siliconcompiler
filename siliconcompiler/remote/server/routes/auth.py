@@ -1,300 +1,136 @@
-'''
-Endpoints 3, 4, 5 and 6: getting a session, ending one, and a page for a
-person's browser.
+'''Getting a session, ending one, and who the session is.'''
 
-`/v1/auth/token` and `/v1/auth/device` refuse in the OAuth shape once OAuth
-processing starts (`errors.OAuthError`); everything else is problem+json.
-'''
-
-from urllib.parse import urlsplit
+from functools import wraps
 
 import flask
 
 from siliconcompiler.remote import dpop
+from siliconcompiler.remote.server import config
 from siliconcompiler.remote.server.errors import OAuthError, ProblemError
+from siliconcompiler.remote.server.state.store import iso
 
-__all__ = ["blueprint", "current_session", "require", "public_origin", "public_url"]
+__all__ = ["blueprint", "require_session"]
 
 
 blueprint = flask.Blueprint("auth", __name__)
 
 
-GRANT_CLIENT_CREDENTIALS = "client_credentials"
-GRANT_REFRESH_TOKEN = "refresh_token"
-GRANT_DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
-
-# Refused, since dropping one mints a token its caller misunderstands; other
-# unknown parameters are ignored (RFC 6749 section 3.2).
-_REFUSED_PARAMETERS = ("actor_token", "audience", "resource")
+def _identity():
+    return flask.current_app.config["SC_IDENTITY"]
 
 
-def _issuer():
-    return flask.current_app.config["SC_ISSUER"]
+def _store():
+    return flask.current_app.config["SC_STORE"]
 
 
-def public_origin() -> str:
-    '''The origin this deployment is reached at, from configuration.
-
-    Never `Host`, `X-Forwarded-Host` or the socket's scheme: a handed-out URL
-    gets clicked, and a proof checked against a caller-chosen host is not
-    checked. The request only picks AMONG configured origins: the proof's,
-    then `Host`'s, else the first.
-    '''
+def request_urls() -> list:
+    '''What a proof's `htu` may name: this request's URL, or the same path on
+    each configured public origin. Never `Host`, when origins are configured.'''
     origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
-    signed = _signed_origin()
-    if signed:
-        for origin in origins:
-            if dpop._htu(origin) == signed:
-                return origin
-    host = flask.request.host
-    for origin in origins:
-        if urlsplit(origin).netloc == host:
-            return origin
-    return origins[0]
+    if not origins:
+        return [flask.request.base_url]
+    return [f"{origin.rstrip('/')}{flask.request.script_root}{flask.request.path}"
+            for origin in origins]
 
 
-def _signed_origin():
-    '''The canonical origin of this request's DPoP proof's `htu`, or None;
-    unverified, since it only chooses among configured origins.'''
-    proof = flask.request.headers.get("DPoP")
-    if not proof:
-        return None
-    try:
-        import jwt
-
-        htu = jwt.decode(proof, options={"verify_signature": False}).get("htu")
-    except Exception:                                           # noqa: BLE001
-        return None
-    if not isinstance(htu, str):
-        return None
-    parts = urlsplit(htu)
-    return dpop._htu(f"{parts.scheme}://{parts.netloc}") if parts.netloc else None
-
-
-def public_url(path: str) -> str:
-    '''An absolute URL on this deployment, for a path under its mount point.'''
-    return f"{public_origin()}{flask.request.script_root}/{path.lstrip('/')}"
-
-
-def request_url() -> str:
-    '''The URL a DPoP proof's `htu` is checked against.'''
-    return public_url(flask.request.path)
-
-
-def current_session():
-    '''The verified caller, or a refusal; cached on the request so a second
-    check does not trip the replay guard.'''
-    session = getattr(flask.g, "sc_session", None)
-    if session is None:
-        session = _issuer().authenticate(
-            flask.request.headers.get("Authorization"),
-            flask.request.headers.get("DPoP"),
-            flask.request.method,
-            request_url())
-        flask.g.sc_session = session
-    return session
-
-
-def require(scope: str):
-    '''Guard a handler with the one scope it needs.'''
-    def decorator(handler):
-        from functools import wraps
-
-        @wraps(handler)
-        def guarded(*args, **kwargs):
-            session = current_session()
-            session.require(scope)
-            return handler(session, *args, **kwargs)
-        return guarded
-    return decorator
-
-
-MACHINE_ID_SOURCES = ("linux_machine_id", "macos_platform_uuid", "windows_machine_guid",
-                      "none")
+def require_session(handler):
+    '''Hand the handler the verified caller.'''
+    @wraps(handler)
+    def guarded(*args, **kwargs):
+        session = _identity().authenticate(
+            flask.request.headers.get("Authorization"), flask.request.headers.get("DPoP"),
+            flask.request.method, request_urls())
+        return handler(session, *args, **kwargs)
+    return guarded
 
 
 @blueprint.route("/v1/auth/token", methods=["POST"])
 def token():
-    '''Endpoint 4: the only token endpoint, form-encoded per RFC 6749. A
-    DPoP proof is REQUIRED on every grant.'''
-    form = _oauth_form()
-
-    proof = flask.request.headers.get("DPoP")
-    if not proof:
-        raise OAuthError("invalid_dpop_proof", "a DPoP proof is required on every grant")
-
+    '''The token endpoint: form-encoded, and a DPoP proof on every grant.'''
+    form = flask.request.form
     try:
-        jkt = dpop.verify_proof(proof, "POST", request_url())
+        jkt = _identity().check_proof(flask.request.headers.get("DPoP"), "POST",
+                                      request_urls())
     except dpop.DPoPError as e:
         raise OAuthError("invalid_dpop_proof", str(e)) from None
-    _issuer()._check_replay(proof, oauth=True)
 
     grant_type = form.get("grant_type")
-
-    if grant_type == GRANT_CLIENT_CREDENTIALS:
+    if grant_type == "client_credentials":
         client_id = form.get("client_id", "")
-        if not client_id.startswith("local:"):
-            raise OAuthError("invalid_request",
-                             "client_id must be local:<derivation> on this deployment")
-
-        body = _issuer().client_credentials(
-            subject=client_id[len("local:"):],
-            jkt=jkt,
-            requested_scope=form.get("scope"),
-            machine_id_hash=form.get("machine_id_hash") or None,
-            machine_id_source=_machine_id_source(form),
-            display_name=form.get("display_name") or None)
-
-    elif grant_type == GRANT_REFRESH_TOKEN:
-        refresh_token = form.get("refresh_token")
-        if not refresh_token:
+        if not client_id.startswith("local:") or client_id == "local:":
+            raise OAuthError("invalid_request", "client_id must be local:<subject>")
+        body = _identity().client_credentials(
+            client_id[len("local:"):], jkt, form.get("display_name") or None,
+            form.get("machine_id_source") or "none")
+    elif grant_type == "refresh_token":
+        if not form.get("refresh_token"):
             raise OAuthError("invalid_request", "refresh_token is required")
-        # `scope` is ignored: a refresh returns the session's full scope.
-        body = _issuer().refresh(refresh_token, jkt,
-                                 machine_id_hash=form.get("machine_id_hash") or None,
-                                 machine_id_source=_machine_id_source(form))
-
+        body = _identity().refresh(form["refresh_token"], jkt)
     elif not grant_type:
         raise OAuthError("invalid_request", "grant_type is required")
-
     else:
-        # The device grant included: a client switches login mode on this.
         raise OAuthError("unsupported_grant_type",
                          f"this deployment does not offer {grant_type}")
 
     response = flask.jsonify(body)
-    # RFC 6749 makes this a MUST on any response carrying tokens.
-    response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return response
 
 
-def _oauth_form():
-    '''The form, once the transport-level checks pass: 415 comes before OAuth
-    processing, so it stays problem+json.'''
-    if flask.request.mimetype != "application/x-www-form-urlencoded":
-        raise ProblemError(
-            "unsupported-media-type",
-            detail="this endpoint takes application/x-www-form-urlencoded")
-
-    form = flask.request.form
-    refused = [name for name in _REFUSED_PARAMETERS if name in form]
-    if refused:
-        raise OAuthError("invalid_request",
-                         f"{', '.join(refused)} is not supported here")
-    return form
-
-
-def _machine_id_source(form) -> str:
-    # One of four: the weak-path flag a device keeps for ever.
-    source = form.get("machine_id_source") or "none"
-    if source not in MACHINE_ID_SOURCES:
-        raise OAuthError("invalid_request",
-                         f"machine_id_source is one of {', '.join(MACHINE_ID_SOURCES)}")
-    return source
-
-
 @blueprint.route("/v1/auth/device", methods=["POST"])
 def device_authorization():
-    '''Endpoint 3: `unsupported_grant_type`, the client's cue to switch to
-    `client_credentials`.'''
-    _oauth_form()
-    raise OAuthError("unsupported_grant_type",
-                     "this deployment issues sessions with client_credentials")
+    raise ProblemError("feature-unsupported",
+                       detail="this deployment issues sessions with client_credentials")
 
 
 @blueprint.route("/v1/auth/revoke", methods=["POST"])
-def revoke():
-    '''Endpoint 5: end this session. No scope gates it: a credential may
-    always end itself.'''
-    _issuer().revoke(current_session())
-
-    response = flask.make_response("", 204)
-    response.headers["Cache-Control"] = "no-store"
-    return response
+@require_session
+def revoke(session):
+    _identity().revoke_session(session.session_id)
+    return "", 204
 
 
-# What a request may name: the page each id lands on.
-_PAGES = ("job_id", "terms_id", "artifact_id")
+@blueprint.route("/v1/me", methods=["GET"])
+@require_session
+def me(session):
+    user = _store().one("SELECT * FROM users WHERE id = ?", (session.user_id,))
+    refresh = _store().one(
+        "SELECT expires_at FROM tokens WHERE session_id = ? AND kind = 'refresh'",
+        (session.session_id,))
+    return flask.jsonify({
+        "id": user["id"],
+        "issuer": user["issuer"],
+        "session": {
+            "kind": "interactive",
+            "device_id": session.device_id,
+            "scope": " ".join(config.SCOPES),
+            "access_expires_at": iso(session.access_expires_at),
+            "refresh_expires_at": iso(refresh["expires_at"]) if refresh else None,
+            "session_expires_at": iso(session.session_expires_at),
+        },
+        "can_submit": True,
+        "limits": config.LIMITS,
+    })
 
 
-@blueprint.route("/v1/auth/browser", methods=["POST"])
-def browser():
-    '''Endpoint 6: a single-use sign-in that lands on one portal page.
-
-    The landing is built from the named id, never a caller's path, which
-    would be an open redirect. Any session but a CI one may ask.
-    '''
-    from siliconcompiler.remote.server.jobs.common import _from_epoch
-
-    session = current_session()
-    store = flask.current_app.config["SC_STORE"]
-    family = store.one("SELECT kind FROM token_families WHERE id = ?", (session.family_id,))
-    if family is None or family["kind"] != "interactive":
-        raise ProblemError("not-permitted",
-                           detail="a CI session asks for no page: nobody is at a browser")
-
-    named = _page_named()
-    jobs = flask.current_app.config["SC_JOBS"]
-    if named is None:
-        # The portal's home, or its own breadcrumb, checked when spent.
-        landing = None
-    elif named[0] == "job_id":
-        landing = flask.url_for("portal.job", job_id=jobs.owned(session, named[1])["id"])
-    elif named[0] == "terms_id":
-        # This profile serves no terms documents.
-        raise ProblemError("not-found", detail="no such terms document")
-    else:
-        row = store.one("SELECT job_id FROM artifacts WHERE id = ?", (named[1],))
-        if row is None:
-            raise ProblemError("not-found", detail="no such artifact")
-        jobs.owned(session, row["job_id"])
-        # This profile takes no access requests.
-        raise ProblemError("not-permitted",
-                           detail="this artifact has nothing to ask for: this server takes "
-                                  "no access requests")
-
-    token, expires = flask.current_app.config["SC_PORTAL"].offer(session.user_id, landing)
-    response = flask.jsonify({"url": _portal_url("/portal/enter", token=token),
-                              "expires_at": _from_epoch(expires)})
-    response.headers["Cache-Control"] = "private, no-store"
-    return response
+@blueprint.route("/v1/devices", methods=["GET"])
+@require_session
+def list_devices(session):
+    rows = _store().all("SELECT * FROM devices WHERE user_id = ? AND revoked_at IS NULL "
+                        "ORDER BY enrolled_at", (session.user_id,))
+    return flask.jsonify({"items": [
+        {"id": row["id"], "name": row["name"], "current": row["id"] == session.device_id,
+         "machine_id_source": row["machine_id_source"],
+         "enrolled_at": iso(row["enrolled_at"]), "last_seen_at": iso(row["last_seen_at"])}
+        for row in rows]})
 
 
-def _page_named():
-    '''``(member, id)`` the request's body names, or None for the portal's
-    home; an empty body is `{}`.'''
-    if flask.request.mimetype not in ("application/json", ""):
-        raise ProblemError("unsupported-media-type",
-                           detail=f"this endpoint takes application/json, not "
-                                  f"{flask.request.mimetype}")
-    body = flask.request.get_json(silent=True)
-    if body is None:
-        if flask.request.get_data():
-            raise ProblemError("invalid-request", detail="the body must be a JSON object")
-        return None
-    if not isinstance(body, dict):
-        raise ProblemError("invalid-request", detail="the body must be a JSON object")
-    unknown = sorted(set(body) - set(_PAGES))
-    if unknown:
-        raise ProblemError("invalid-request",
-                           detail=f"this endpoint takes one of {', '.join(_PAGES)}, "
-                                  f"not {', '.join(unknown)}")
-    if len(body) > 1:
-        raise ProblemError("invalid-request", detail="name one page: at most one member")
-    if not body:
-        return None
-    member, value = next(iter(body.items()))
-    if not isinstance(value, str) or not value:
-        raise ProblemError("invalid-request", detail=f"{member} is an id")
-    return member, value
-
-
-def _portal_url(path: str, **query) -> str:
-    '''A portal URL on `web_url_base`, else the configured origin, never on a
-    request header.'''
-    from urllib.parse import urlencode
-
-    base = flask.current_app.config["SC_CONFIG"]["web_url_base"]
-    root = base.rstrip("/") if base else f"{public_origin()}{flask.request.script_root}"
-    return f"{root}{path}" + (f"?{urlencode(query)}" if query else "")
+@blueprint.route("/v1/devices/<device_id>", methods=["DELETE"])
+@require_session
+def revoke_device(session, device_id):
+    '''Ends every session the machine holds; idempotent.'''
+    if _store().one("SELECT 1 FROM devices WHERE id = ? AND user_id = ?",
+                    (device_id, session.user_id)) is None:
+        raise ProblemError("not-found", detail="no such device")
+    _identity().revoke_device(device_id)
+    return "", 204

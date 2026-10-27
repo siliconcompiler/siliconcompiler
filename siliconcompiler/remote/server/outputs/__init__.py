@@ -1,1 +1,1 @@
-'''What a run leaves behind, and how it is served and taken back.'''
+'''What a run leaves behind: the artifacts made from it, and its live log.'''

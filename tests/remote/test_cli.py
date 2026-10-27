@@ -1,6 +1,7 @@
 import io
 import os
 import pytest
+import requests
 
 from pathlib import Path
 
@@ -32,6 +33,19 @@ def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
     assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/',
                 '-credentials', 'sc-auth/remote.json') != 0
     assert caplog.text
+
+
+def test_a_server_that_does_not_answer_is_reported_not_raised(monkeypatch, caplog):
+    '''A request timeout is a message and a non-zero exit, not a traceback.'''
+    def timed_out(*args, **kwargs):
+        raise requests.Timeout()
+
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    monkeypatch.setattr(requests.Session, "request", timed_out)
+
+    assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/',
+                '-credentials', 'sc-auth/remote.json') == 1
+    assert "did not answer" in caplog.text
 
 
 @pytest.mark.parametrize("manifest,said", [
@@ -80,7 +94,7 @@ def test_tail_waits_for_its_node_and_reads_the_archive_where_nothing_is_live(
     record_job(".", "j1")
     slept = []
     monkeypatch.setattr(cli, "Client", lambda *args, **kwargs: Answers())
-    monkeypatch.setattr(cli.time, "sleep", slept.append)
+    monkeypatch.setattr("siliconcompiler.remote.client.transport.time.sleep", slept.append)
 
     assert main(monkeypatch, 'tail', 'job.pkg.json', 'place/0',
                 '-credentials', 'sc-auth/remote.json') == 0
@@ -150,32 +164,26 @@ def test_uploads_and_headers_are_added_and_removed(monkeypatch):
 def test_import_cert_keeps_the_authority_for_configure(monkeypatch, caplog):
     '''The certificate lands in the store's own directory, its fingerprint said; a
     different one under the same name needs -overwrite.'''
-    import datetime
-
     from cryptography import x509
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import ec
-    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes
 
-    key = ec.generate_private_key(ec.SECP256R1())
-    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Our CA")])
-    now = datetime.datetime.now(datetime.timezone.utc)
-    first, second = (
-        x509.CertificateBuilder().subject_name(name).issuer_name(name)
-        .public_key(key.public_key()).serial_number(serial).not_valid_before(now)
-        .not_valid_after(now + datetime.timedelta(days=1)).sign(key, hashes.SHA256())
-        for serial in (1, 2))
-    Path("our-ca.pem").write_bytes(first.public_bytes(serialization.Encoding.PEM))
+    from conftest import make_authority
 
-    assert main(monkeypatch, 'import-cert', 'our-ca.pem',
+    for directory in ("one", "two"):
+        os.mkdir(directory)
+    first = make_authority(Path("one"))[0]
+    second = make_authority(Path("two"))[0]
+    fingerprint = x509.load_pem_x509_certificate(first.read_bytes()).fingerprint(
+        hashes.SHA256()).hex(":").upper()
+
+    assert main(monkeypatch, 'import-cert', str(first),
                 '-credentials', 'sc-auth/remote.json') == 0
 
-    assert Path("sc-auth/certs/our-ca.pem").read_bytes() == Path("our-ca.pem").read_bytes()
-    assert first.fingerprint(hashes.SHA256()).hex(":").upper() in caplog.text
+    assert Path("sc-auth/certs/our-ca.pem").read_bytes() == first.read_bytes()
+    assert fingerprint in caplog.text
 
-    Path("our-ca.pem").write_bytes(second.public_bytes(serialization.Encoding.PEM))
-    assert main(monkeypatch, 'import-cert', 'our-ca.pem',
+    assert main(monkeypatch, 'import-cert', str(second),
                 '-credentials', 'sc-auth/remote.json') == 1
-    assert main(monkeypatch, 'import-cert', 'our-ca.pem', '-overwrite',
+    assert main(monkeypatch, 'import-cert', str(second), '-overwrite',
                 '-credentials', 'sc-auth/remote.json') == 0
-    assert Path("sc-auth/certs/our-ca.pem").read_bytes() == Path("our-ca.pem").read_bytes()
+    assert Path("sc-auth/certs/our-ca.pem").read_bytes() == second.read_bytes()

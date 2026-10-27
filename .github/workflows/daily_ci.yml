@@ -321,12 +321,6 @@ jobs:
   remote_server:
     name: 'Remote server (slurm) demos'
     needs: [cache, docker_image]
-    # Off while the client and the server are rewritten against the v1 API.
-    # Neither half is in the tree, so setup/server/ does not come up and there
-    # is no client to drive it. Turn this back on with the phase that makes a
-    # design run end to end again; leaving it red daily teaches people to
-    # ignore it.
-    if: false
     # Generous: the job pulls a multi-GB base image and builds on top of it
     # before either demo starts, and a 2-core runner routes the ASIC design a
     # good deal slower than a workstation does.
@@ -388,10 +382,11 @@ jobs:
       # Seed both caches from the same artifact, because client and server are
       # separate here.
       #
-      # sc-server keeps its cache on the shared mount (<nfsmount>/cache), which
-      # every compute node reads, so seeding it there is what stops each node
-      # downloading the PDK again. It is copied in rather than bind-mounted, so
-      # the committed compose file stays free of host paths.
+      # sc-server keeps one cache for every user on the shared data directory
+      # (<datadir>/cache), which every compute node reads, so seeding it there
+      # is what stops each node downloading the PDK again. It is copied in
+      # rather than bind-mounted, so the committed compose file stays free of
+      # host paths.
       #
       # The client's is ~/.sc/cache, which has no environment override, so the
       # files have to be put where it will look.
@@ -410,11 +405,12 @@ jobs:
       - name: Point the client at the cluster
         run: |
           . .venv/bin/activate
-          creds=$(python3 -c \
-            'from siliconcompiler import utils; print(utils.default_credentials_file())')
-          mkdir -p "$(dirname "$creds")"
-          echo '{"address": "localhost", "port": 8080}' > "$creds"
-          curl -sf -m 30 -X POST http://localhost:8080/check_server/ -d '{}'
+          for _ in $(seq 1 30); do
+            curl -sf -m 5 http://localhost:8080/v1/healthz && break
+            sleep 2
+          done
+          sc-config remote configure http://localhost:8080
+          sc-config remote show
 
       # Both demos, because they exercise different halves: the ASIC flow ends
       # in a klayout stream, the FPGA flow in a genfasm bitstream.

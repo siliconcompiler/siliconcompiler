@@ -1,81 +1,42 @@
-# A local SiliconCompiler server backed by a real slurm cluster.
+# A local sc-server backed by a real slurm cluster.
 #
-#   docker compose up              # http://localhost:8080, rebuilding only
-#                                  # what a source change touched
+#   docker compose up --build      # http://localhost:8080
 #
-# **That is the whole procedure.** There is no second command to remember
-# and no order to get right: a one-shot `bootstrap` service pushes the images
-# compose just built into this stack's registry, registers them, stages their
-# bundles and writes the config, and `scserver` does not start until it has
-# exited 0. It used to be `compose.sh up --build` followed by `publish.sh`,
-# with a restart ordering that bit whenever it was forgotten -- and, worse, a
-# deadlock: a deployment with `containers: true` and an empty registry refuses
-# to start, so resetting the store left a server that would not come up and a
-# registration tool that needed it running.
-#
-# Self-contained by design: three locally-built images out of one build graph,
-# public base images otherwise, and no bind mounts except the docker socket
-# that `bootstrap` needs for as long as it runs -- all shared state lives in
-# named volumes, so nothing here depends on a path outside this repo.
+# Self-contained by design: one locally-built image (see Dockerfile), public
+# base images only, and no bind mounts -- all shared state lives in named
+# volumes, so nothing here depends on a path or a file outside this repo.
 #
 # The database password is the only credential, it is never published outside
 # the compose network, and it can be overridden:
 #
-#   SC_SLURM_DB_PASSWORD=... docker compose up
+#   SC_SLURM_DB_PASSWORD=... docker compose up --build
 
 name: sc-server-slurm
 
-# Everything the two build targets share. `target:` is what picks between them.
-x-build: &build
-  context: ../..
-  dockerfile: setup/server/Dockerfile
-  args:
-    # The sc_tools image to build on: it supplies slurm, slurmrestd and the
-    # EDA tools, and this Dockerfile adds only siliconcompiler. Override to
-    # build against a different one:
-    #
-    #   SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:<tag> docker compose up
-    #
-    # CI passes the image its docker_image job resolved, so the stack is
-    # exercised against the same one as the rest of the suite.
-    SC_TOOLS_IMAGE: ${SC_TOOLS_IMAGE:-ghcr.io/siliconcompiler/sc_tools:latest}
-    # Normally empty and worked out inside the build, from git where there is a
-    # real .git directory and from siliconcompiler/_version.py where there is
-    # not -- which is what lets a git WORKTREE build with plain `docker compose
-    # up`. Set it to override both.
-    SC_VERSION: ${SC_VERSION:-}
-
-# Two roles, two images, and the split is what a controller is. slurmctld,
-# slurmdbd and the API process schedule, answer HTTP and unpack bundles; they
-# do not run EDA tools, so they get an image that does not carry any. Only the
-# compute node runs the full one -- and that image still has to be built,
-# because it is what a node's task runs INSIDE.
-#
-# No `image:` on anything built here, and that is what keeps compose from
-# trying to fetch it. A named image is a registry reference -- `sc-server:local`
-# means `docker.io/library/sc-server:local` -- so compose asks Docker Hub for it
-# first and reports
-#
-#   pull access denied for sc-server, repository does not exist
-#
-# before falling back to building. Unnamed, each service's image is
-# `<project>-<service>`. `bootstrap` finds the two it pushes under those names.
-#
-# `pull_policy: build` on each of them, so `docker compose up` alone picks up
-# a source change. Without it compose builds an image only when it is MISSING,
-# and after the first `up` it never is -- so an edit ran against the old image
-# until somebody remembered `--build`.
-#
-# It consults the build graph on every `up`, and that is cheap only because
-# the context is stable: Dockerfile.dockerignore is an allow-list, and the one
-# step that reads `.git` is a stage of its own. An unchanged tree is then a
-# cache hit at every layer -- seconds, not a rebuild -- and an edit to the
-# package or to setup/server/ rebuilds from the first layer it touches.
-x-sc-server: &sc-server
+# Every slurm service is the same image in a different role. Compose builds it
+# once and the rest hit the cache.
+x-sc-slurm: &sc-slurm
   build:
-    <<: *build
-    target: server
-  pull_policy: build
+    context: ../..
+    dockerfile: setup/server/Dockerfile
+    args:
+      # The sc_tools image to build on: it supplies slurm, slurmrestd and the
+      # EDA tools, and this Dockerfile adds only siliconcompiler. Override to
+      # build against a different one:
+      #
+      #   SC_TOOLS_IMAGE=ghcr.io/siliconcompiler/sc_tools:<tag> \
+      #     docker compose up --build
+      #
+      # CI passes the image its docker_image job resolved, so the stack is
+      # exercised against the same one as the rest of the suite.
+      SC_TOOLS_IMAGE: ${SC_TOOLS_IMAGE:-ghcr.io/siliconcompiler/sc_tools:latest}
+      # The version to build. Needed from a git worktree (its .git points
+      # outside the build context) unless the package was installed editable
+      # there:
+      #
+      #   SC_VERSION=0.38.9 docker compose up --build
+      SC_VERSION: ${SC_VERSION:-}
+  image: sc-server-slurm:local
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
   volumes:
@@ -88,19 +49,14 @@ x-sc-server: &sc-server
 
 # Compute nodes. Scale freely:
 #
-#   docker compose up --scale scrunner=4
+#   docker compose up --build --scale scrunner=4
 #
 # No hostname is pinned and no node is named in slurm.conf: each slurmd
 # registers itself with "slurmd -Z", and the controller records the address and
 # hostname it registers with. So replicas need nothing unique configured, and
 # scaling needs no edit anywhere.
 x-scrunner: &scrunner
-  build:
-    <<: *build
-    target: cluster
-  pull_policy: build
-  environment:
-    SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
+  <<: *sc-slurm
   command: ["node"]
   # The only service needing extra privilege, and only for slurmd's cgroup
   # setup -- the tasks it runs need nothing beyond a normal container. slurmd
@@ -110,18 +66,9 @@ x-scrunner: &scrunner
   # mounted and nothing it writes escapes the namespace. CAP_SYS_ADMIN alone
   # is not enough: on an AppArmor host the profile is what refuses the
   # remount ("cannot remount cgroup read-write, is write-protected").
-  #
-  # NET_ADMIN is for the environment builder: it runs pip in a container with
-  # a network namespace of its own, holding only a loopback, and bringing that
-  # loopback up is an ioctl crun cannot make without it ("ioctl(SIOCSIFFLAGS):
-  # Operation not permitted"). It is crun's, on this node: sc-server takes it
-  # out of every bundle it writes, so no container's process -- a job's or the
-  # build's -- holds it. A compute node on real hardware runs crun as root and
-  # needs nothing here.
   cgroup: private
   cap_add:
     - SYS_ADMIN
-    - NET_ADMIN
   security_opt:
     - apparmor=unconfined
   volumes:
@@ -150,184 +97,41 @@ services:
       retries: 30
 
   slurmdbd:
-    <<: *sc-server
+    <<: *sc-slurm
     hostname: slurmdbd
     command: ["dbd"]
     depends_on:
       slurmdb:
         condition: service_healthy
 
-  # A registry on the internal network, so the whole image path can be
-  # exercised without pushing anything off this machine.
-  #
-  # It is here because the alternative is not testing it. "srun --container"
-  # takes an unpacked bundle, sc-server unpacks it from a registry reference,
-  # and the digest pinned at registration is the thing that makes two runs a
-  # month apart the same code. None of that is exercised by an image that only
-  # ever existed in the local docker daemon -- a locally built image has no
-  # repository digest at all, which is why registering one is refused.
-  #
-  # Plain HTTP, named as insecure in registries.conf. Published on loopback
-  # because the host's own daemon does the push and cannot resolve a compose
-  # service name; the cluster reaches it as registry:5000 over this network.
-  registry:
-    image: registry:2
-    hostname: registry
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:5000:5000"
-    volumes:
-      - registry-data:/var/lib/registry
-
-  # The framework image, which a node running no EDA tool resolves to. It is a
-  # service only so that compose builds it; it runs `true` and exits, and
-  # `bootstrap` waits for that before pushing it.
-  #
-  # An `Exited (0)` line for this in `docker compose ps -a` is what success
-  # looks like.
-  scruntime:
-    build:
-      <<: *build
-      target: runtime
-    pull_policy: build
-    entrypoint: ["/bin/true"]
-    restart: "no"
-
-  # The compute node's image, which is also what a node's task runs inside. It
-  # is built for `scrunner` anyway; this makes `bootstrap` wait for it rather
-  # than push an image that may not exist yet on a first `up`.
-  sctools:
-    build:
-      <<: *build
-      target: cluster
-    pull_policy: build
-    entrypoint: ["/bin/true"]
-    restart: "no"
-
-  # Registration, as a dependency rather than as a command you remember. See
-  # bootstrap.py -- including for the one privilege in this file.
-  bootstrap:
-    <<: *sc-server
-    command: ["bootstrap"]
-    restart: "no"
-    # What to push: the images compose builds for the `sctools` and
-    # `scruntime` services, by the names compose gives them. Those services are
-    # what make compose BUILD these two; the dependencies below are what make
-    # it wait.
-    environment:
-      SC_STACK_IMAGE: ${COMPOSE_PROJECT_NAME}-sctools
-      SC_RUNTIME_IMAGE: ${COMPOSE_PROJECT_NAME}-scruntime
-    volumes:
-      - sc-server-data:/sc_server
-      # The two images have to get from the daemon that just built them into
-      # the registry, and the daemon is the only thing that knows their layers.
-      # Used for exactly two calls, tag and push, by a container that exits
-      # when it is done. Nothing else in this file can see it -- the compute
-      # nodes deliberately cannot, because they run containers through crun,
-      # which is a binary slurm execs.
-      - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      registry:
-        condition: service_started
-      scruntime:
-        condition: service_completed_successfully
-      sctools:
-        condition: service_completed_successfully
-
-  # Controller and submit host: slurmctld, slurmrestd, and the SiliconCompiler
-  # server itself.
+  # Controller and submit host: slurmctld, slurmrestd, and sc-server itself.
   scserver:
-    <<: *sc-server
+    <<: *sc-slurm
     hostname: scserver
     command: ["ctld"]
-    # Longer than docker's default 10s, because this container stops three
-    # daemons in turn and slurmctld writes its state as it goes. Being killed
-    # partway is what leaves a half-written job_state and the "Jobs may be
-    # lost!" on the next start.
-    stop_grace_period: 30s
-    # Loopback only. This deployment runs the unauthenticated profile: nothing
-    # verifies who a caller is, and the DPoP key bound on first contact is the
-    # only real control it has. Published on 0.0.0.0 it would be reachable by
-    # anything that can route to this host. "Reachable from my own machine" is
-    # all the stack needs; exposing it more widely means an identity provider
-    # and firewalling first.
+    # Loopback only. sc-server does not verify who a caller is, so this is an
+    # open job-submission endpoint: published on 0.0.0.0 it would be reachable
+    # by anything that can route to this host. "Reachable from my own
+    # machine" is all the stack needs. Exposing it more widely means adding
+    # authentication and firewalling first.
     ports:
-      - "127.0.0.1:8080:8080"   # the v1 API
+      - "127.0.0.1:8080:8080"   # sc-server
       - "127.0.0.1:6820:6820"   # slurmrestd, built but not yet used by SC
     volumes:
       - munge-key:/etc/munge
       - sc-server-data:/sc_server
-      # StateSaveLocation, on a volume rather than in the image. Without
-      # this every recreation starts the controller with an empty state
-      # directory, so it logs
-      #
-      #   error: Could not open job state file .../job_state
-      #   error: NOTE: Trying backup state save file. Jobs may be lost!
-      #
-      # on every single start -- and the alarming half of that is true: a
-      # controller that forgets its state forgets the jobs that were queued and
-      # running. On a first start against an empty volume it still says it
-      # once, correctly, because there really is no prior state.
-      - slurm-state:/sc_tools/spool/slurm
     depends_on:
-      slurmdbd:
-        condition: service_started
-      # The dependency that replaces a procedure. The server refuses to start
-      # when it is set to run jobs in containers and no live image holds a
-      # siliconcompiler -- so it must not be started until something has put one
-      # there. Waiting for a successful exit is that something.
-      bootstrap:
-        condition: service_completed_successfully
+      - slurmdbd
 
   scrunner:
     <<: *scrunner
-    # Two by default, and the second one earns its keep: every node of a flow
-    # is submitted to Slurm as a job of its own, so a run really does spread
-    # across compute nodes. With one runner that fan-out is invisible -- the
-    # flow would finish either way and nothing would show whether the cluster
-    # was being used as a cluster. Scale up or down from here with
-    # "--scale scrunner=N"; nothing is configured per replica.
-    deploy:
-      replicas: 2
 
 volumes:
-  # What the local registry keeps. Its own volume rather than the shared tree:
-  # it is a registry's storage, not the deployment's data, and wiping one
-  # should not wipe the other.
-  registry-data:
-
-  # The shared filesystem, mounted at /sc_server and handed to the server as
-  # -datadir. The server lays it out itself:
-  #
-  #   server.db                       the job store
-  #   config.json                     the policy overlay, written by bootstrap
-  #   images/                         the OCI bundles slurm runs
-  #   artifacts/<job>/                what a finished run left behind
-  #   users/<user>/builds/<job>/      one directory per user per job, written by
-  #                                   the server and read back by the compute
-  #                                   node at the same path
-  #   users/<user>/cache/             that user's downloaded PDKs and data
-  #                                   packages
-  #
-  # Per user rather than cluster-wide: ccache and coursier create their own
-  # directories, so under one shared tree they land with the first user's uid
-  # and the second gets EPERM -- and chmod is owner-only, so the server cannot
-  # repair a directory it did not create. The cost is one copy of each PDK per
-  # user rather than one per cluster.
-  #
-  # It is on this volume rather than in each container's ~/.sc because a compute
-  # node need not share a home directory with the server, and because the
-  # scheduler hands the server's cachedir to the node -- so it has to be a path
-  # they both see.
+  # The shared filesystem, mounted at /sc_server on the server and every
+  # compute node, and handed to sc-server as -datadir. The server keeps its
+  # state there (store.sqlite3, one directory of builds per user) and the
+  # package cache (cache/), and the compute node reads and writes the same
+  # paths, so it must be a path they both see.
   sc-server-data:
   munge-key:
   slurmdb-data:
-
-  # The controller's own memory: what was queued, what was running, the
-  # reservations, and the JWT signing key the ctld role generates.
-  #
-  # Only the CONTROLLER's. `SlurmdSpoolDir` stays inside each runner, and
-  # deliberately: a scaled service shares one named volume between every
-  # replica, and two slurmds sharing a spool directory is worse than either of
-  # them forgetting. A runner restart already ends whatever it was running.
-  slurm-state:

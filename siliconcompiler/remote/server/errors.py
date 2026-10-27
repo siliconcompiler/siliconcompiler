@@ -12,8 +12,7 @@ import re
 
 from typing import Any, Dict, NamedTuple, Optional
 
-__all__ = ["DETAIL_MAX", "ERRORS", "TYPE_BASE", "OAuthError", "ProblemError",
-           "bound", "problem", "set_detail_max"]
+__all__ = ["ERRORS", "TYPE_BASE", "OAuthError", "ProblemError", "problem"]
 
 
 # Fixed by the v1 API and identical on every deployment.
@@ -132,25 +131,15 @@ ARCHIVE_VIOLATIONS = ("member_count", "expanded_bytes", "ratio",
 
 
 class OAuthError(Exception):
-    '''A refusal from OAuth processing at `/v1/auth/token` or `/v1/auth/device`,
-    in RFC 6749 section 5.2's shape. Transport refusals raised before it (405, 415,
-    426, 429) stay `ProblemError`.'''
-
-    # The codes a client branches on, and nothing else is ever sent.
-    CODES = ("invalid_request", "invalid_client", "invalid_grant",
-             "unsupported_grant_type", "invalid_scope", "access_denied",
-             "use_dpop_nonce", "invalid_dpop_proof")
+    '''A refusal at `/v1/auth/token`, in RFC 6749 section 5.2's shape; transport
+    refusals raised before OAuth processing starts stay `ProblemError`.'''
 
     def __init__(self, error: str, description: Optional[str] = None,
-                 reason: Optional[str] = None, status: int = 400,
-                 headers: Optional[dict] = None):
-        if error not in self.CODES:
-            raise KeyError(f"{error} is not an OAuth error code this server sends")
+                 reason: Optional[str] = None, status: int = 400):
         self.error = error
         self.description = description
         self.reason = reason
         self.status = status
-        self.headers = headers or {}
         super().__init__(description or error)
 
     def body(self) -> Dict[str, Any]:
@@ -176,11 +165,10 @@ class ProblemError(Exception):
         self.headers = headers or {}
         self.members = members
 
-        registered = self.error.status
-        if registered is None and status is None:
+        if self.error.status is None and status is None:
             raise ValueError(
                 f"{slug} is never an HTTP response; it is a type on an error object")
-        self.status = status or registered
+        self.status = status or self.error.status
 
         super().__init__(detail or self.error.title)
 
@@ -189,140 +177,30 @@ class ProblemError(Exception):
                        status=self.status, **self.members)
 
 
-# How much of a `detail` reaches a caller.
-# Some details carry text this server did not write -- a tool's exception, a
-# member's name -- with a path the CLIENT chose, and `detail` is published to
-# anyone who can read the job. Bounded once, in `problem()`, for every refusal;
-# the full text still reaches the log.
 # Characters, not bytes: cutting UTF-8 by bytes splits a codepoint.
-# A module-level default that `limits.max_detail_chars` replaces at startup, so
-# no call site has a way around it.
 DETAIL_MAX = 300
 
-
-def set_detail_max(characters: int) -> None:
-    """Adopt the deployment's bound. Called once, at startup."""
-    global DETAIL_MAX
-    DETAIL_MAX = int(characters)
-
-
-# This server's internals, which a `detail` must never carry: its data and
-# mount paths, and its host names.
-_INTERNAL_PATHS: list = []
-_INTERNAL_NAMES: list = []
-
-
-def set_internals(paths=(), names=()) -> None:
-    """What `scrub` takes out of every `detail`. Called once, at startup."""
-    # Stripped before the empty ones are dropped: `/` would otherwise become
-    # the empty string, which `replace` finds between every two characters.
-    _INTERNAL_PATHS[:] = sorted({str(path).rstrip("/") for path in paths if path}
-                                - {""}, key=len, reverse=True)
-    _INTERNAL_NAMES[:] = sorted({str(name) for name in names if name and len(name) > 2},
-                                key=len, reverse=True)
-
-
-# Credential-shaped: `token=...`, `password: ...`, a bearer header, a URL's
-# `user:secret@`, and the long opaque strings API keys are made of.
-_CREDENTIALS = (
-    # The header with its scheme, then a scheme on its own: `Authorization:
-    # Bearer x` must not stop at `Bearer` and leave `x`.
-    (re.compile(r"(?i)\b(authorization)\s*[:=]\s*(?:(?:bearer|dpop|basic)\s+)?\S+"),
-     r"\1 <redacted>"),
-    (re.compile(r"(?i)\b(bearer|dpop|basic)\s+(?!<redacted>)\S+"), r"\1 <redacted>"),
-    (re.compile(r"(?i)\b(pass(word)?|passwd|secret|token|api[_-]?key|key)\s*[:=]\s*\S+"),
-     r"\1=<redacted>"),
-    (re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^/\s@]+@"), r"\1<redacted>@"),
-    (re.compile(r"\b(gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{20,}"
-                r"\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\b"), "<redacted>"),
-)
-
-
-def scrub(detail: str) -> str:
-    '''Take this server's internals out of a `detail`.
-
-    A tool's exception text carries mount paths, hostnames and environment
-    dumps, which leak how the deployment is laid out.
-    '''
-    text = detail
-    for path in _INTERNAL_PATHS:
-        text = text.replace(path, "<server>")
-    for name in _INTERNAL_NAMES:
-        text = re.sub(rf"\b{re.escape(name)}\b", "<host>", text)
-    for pattern, replacement in _CREDENTIALS:
-        text = pattern.sub(replacement, text)
-    return text
-
-
-# NUL, the rest of C0, DEL and C1, whose U+009B is a one-character terminal
-# escape. Tab and newlines go in the whitespace collapse instead.
+# NUL, the rest of C0, DEL and C1, whose U+009B is a one-character terminal escape.
 _UNPRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 def bound(detail: Optional[str]) -> Optional[str]:
     '''One line of somebody else's text, short enough to publish: no control
-    characters (it reaches a terminal), no newlines (it breaks logs), and at
-    most `DETAIL_MAX` characters.'''
+    characters (it reaches a terminal), no newlines, at most `DETAIL_MAX`.'''
     if not detail:
         return detail
 
-    text = _UNPRINTABLE.sub("", detail)
-    text = " ".join(scrub(text).split())
-    if len(text) <= DETAIL_MAX:
-        return text
-
-    # Cut at a word where there is one nearby, so the tail is not half a path.
-    cut = text[:DETAIL_MAX]
-    space = cut.rfind(" ")
-    if space > DETAIL_MAX - 40:
-        cut = cut[:space]
-    return cut + "..."
-
-
-_TRACEPARENT = re.compile(r"^[0-9a-f]{2}-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$")
-
-
-def trace_id(headers) -> str:
-    '''This request's correlation id: the trace id of a W3C `traceparent`
-    where one arrived and is valid, else a fresh one -- once per request.'''
-    import uuid
-
-    import flask
-
-    held = getattr(flask.g, "sc_trace_id", None) if flask.has_request_context() else None
-    if held:
-        return held
-    found = _TRACEPARENT.match((headers.get("traceparent") or "").strip().lower())
-    value = found.group(1) if found and found.group(1) != "0" * 32 else uuid.uuid4().hex
-    if flask.has_request_context():
-        flask.g.sc_trace_id = value
-    return value
-
-
-def only_query(args, allowed, where: str) -> None:
-    '''Refuse a query parameter the collection does not define: a misspelled
-    filter would otherwise return everything.'''
-    unknown = sorted(set(args) - set(allowed))
-    if unknown:
-        raise ProblemError(
-            "invalid-request",
-            detail=f"{where} takes no {', '.join(unknown)}"
-                   + (f"; it takes {', '.join(allowed)}" if allowed else ""))
+    text = " ".join(_UNPRINTABLE.sub("", detail).split())
+    return text if len(text) <= DETAIL_MAX else text[:DETAIL_MAX] + "..."
 
 
 def problem(slug: str, detail: Optional[str] = None,
             status: Optional[int] = None, **members) -> Dict[str, Any]:
     '''An RFC 9457 body. ``type`` and ``title`` come from the registry; a
-    client branches on ``type``, never on the rewordable ``detail``.
-
-    `detail` is bounded here and nowhere else -- see `DETAIL_MAX`.
-    '''
+    client branches on ``type``, never on the rewordable ``detail``.'''
     err = ERRORS[slug]
 
-    body: Dict[str, Any] = {
-        "type": err.uri,
-        "title": err.title,
-    }
+    body: Dict[str, Any] = {"type": err.uri, "title": err.title}
 
     resolved = status or err.status
     if resolved is not None:

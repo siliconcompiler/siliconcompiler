@@ -564,256 +564,37 @@ Troubleshooting
 For Developers: Custom Servers
 ------------------------------
 
-If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: :ref:`sc-server <app-sc-server>`, run as ``python3 -m siliconcompiler.remote.server``.
-
-Running a server needs the ``server`` :ref:`extra <install_extras>`, which a default install does not carry -- submitting jobs to one, as the rest of this page does, needs nothing beyond SiliconCompiler itself:
-
-.. code-block:: bash
-
-   pip install --upgrade "siliconcompiler[server]"
-
-A ready-to-run deployment of it is checked in at ``setup/server/``: a Docker Compose stack that brings up ``sc-server`` backed by a real Slurm cluster -- ``slurmctld``, ``slurmdbd`` with a MariaDB accounting store, ``slurmrestd``, and one or more ``slurmd`` compute nodes -- with the EDA tools already in the image, so full flows run and not just the scheduler path.
+SiliconCompiler ships a small server of its own, enough to test the client
+against and to run jobs on one machine or a small Slurm cluster.
 
 .. code-block:: bash
 
-   cd setup/server
-   docker compose up -d --build
+  pip install "siliconcompiler[server]"
+  python3 -m siliconcompiler.remote.server -port 8080 -datadir ./sc_server -cluster local
 
-The server is then reachable on ``http://localhost:8080``, so :ref:`Step 1 <private-server>` is:
+``-port``
+  The port to serve on (default ``8080``).
 
-.. code-block:: bash
+``-datadir``
+  The directory holding the server's state: its database, each user's job
+  directories and the shared package cache (default ``./sc_server``).
 
-   sc-config remote configure http://localhost:8080
+``-cluster``
+  How a run is started: ``local`` runs it as a process of the server, ``slurm``
+  submits it as one Slurm batch job. In the ``slurm`` case the compute nodes need
+  SiliconCompiler, the tools a flow uses, and the data directory mounted at the
+  same path as on the server. See :ref:`slurmsetup` for the cluster itself.
 
-Add compute nodes with ``docker compose up -d --scale scrunner=4``; they register themselves, so no configuration changes. ``setup/server/README.md`` covers the rest, including how to build the stack from a git worktree.
+Then run ``sc-config remote configure http://localhost:8080`` on the client.
 
-What the server decides, and what it does not
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``setup/server/`` in the repository holds a Docker Compose deployment of the
+server on a real Slurm cluster (a controller, an accounting database and
+scalable compute nodes running the tools directly), used by the daily CI to run
+the ASIC and FPGA demos remotely. Its ``README.md`` says how to bring it up and
+its ``PROFILE.md`` lists what the server implements of the ``v1`` API.
 
-A submitted manifest says what to build. How it runs is the server's answer and
-is not negotiable: it turns the dashboard off, it turns :keypath:`option,remote`
-off so the compute node does not submit the job again, and it puts the build
-directory and the download cache inside a tree belonging to the submitting user
--- ``<datadir>/users/<user>/{builds,cache}/``. Per user rather than shared,
-because tools that create their own cache directories create them owned by
-whoever ran first, and nothing can repair a directory it did not create.
-
-Each job is handed to the cluster as **one batch job**, not one dispatch per
-node, and the server polls it once per run. ``-cluster`` names how that handover
-happens: ``local`` runs it in a process on the server itself, ``slurm`` submits
-it with ``sbatch``.
-
-.. _server-images:
-
-What a job runs in
-^^^^^^^^^^^^^^^^^^
-
-A server can run each job inside a container it has registered. **The submitter
-names a version and the operator names the image** -- and that inversion is the
-whole of the security argument. A client that could name an image would choose
-what executes on the cluster; a client naming ``siliconcompiler==0.39.1`` is
-naming data, which either matches something an operator added on purpose or
-does not.
-
-It is off until an operator turns it on, because whether the compute nodes can
-run a container at all is not something the server can find out by looking. A
-deployment that runs jobs on the host is a supported deployment, not a degraded
-one. To turn it on, put ``{"containers": true}`` in ``<datadir>/config.json``
-and register at least one image:
-
-.. code-block:: bash
-
-  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
-      add-software siliconcompiler -kind python
-  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
-      add-version siliconcompiler 0.39.1 -preference 10
-  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
-      add-image ghcr.io/org/sc-runtime:0.39.1 -contains siliconcompiler==0.39.1
-
-``-kind`` is ``python`` or ``tool`` and it is not decoration: it decides
-whether **one** image has to hold the name or each node's image does. Everything
-``python`` shares the run's interpreter -- ``siliconcompiler`` and a site
-library run in the same process -- so one container has to have all of it. A
-tool is resolved per node, against an image holding the python set and that
-tool. A tool also takes ``-driver``, the module carrying its Task driver, which
-is what lets the server read its version out of an image. The probe imports it,
-so a driver is a module under ``siliconcompiler.tools`` or one the deployment
-names in ``config.json``'s ``software_drivers`` -- never an arbitrary module:
-
-.. code-block:: bash
-
-  python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
-      add-software openroad -driver siliconcompiler.tools.openroad
-
-``add-image`` **resolves the tag to a digest once, there and then**, and the
-digest is what is dispatched. Rebuilding ``sc-runtime:0.39.1`` afterwards does
-not change what any job runs -- that takes registering it again, which is a
-decision somebody made rather than one that happened. Nothing is ever deleted:
-retiring a row stops it being used and keeps it readable, because a job from
-last year names it.
-
-Four things follow, and each is a behaviour rather than a setting:
-
-**A version is advertised only when it is runnable.** ``software`` renders from
-what is registered, joined to a live image that holds it. A version with no
-image is not offered, so a client is never told yes and refused at submit.
-
-**Submit resolves one image per node.** An import node running thirty seconds of
-Python has no business pulling a twelve-gigabyte OpenROAD image, so among the
-images that fit, the one with the fewest declared contents wins. There is no
-flag for *this one is python-only* -- an image whose contents are framework
-distributions and no tool already is one.
-
-**A tool with no image fails the whole submit**, before anything is handed to
-the cluster. Only a tool the deployment has registered counts: a server that
-curates images for the framework and says nothing about Verilator is not
-claiming to have a Verilator image and is not refused for lacking one.
-Registering the name is how an operator takes that claim on.
-
-**A request carries a version range and the server resolves it.** A client
-declares ``siliconcompiler>=0.39,<0.40`` -- a PEP 440 specifier, and a bare
-``0.39.1`` still means ``==0.39.1`` -- and the server matches it against what
-its images hold. A client cannot do that matching itself, and the reason is not
-convenience: ``software`` is a flat list per name *within a bucket* while the
-image join is over combinations, so a client resolving each requirement on its
-own can name a set no single image contains, with every version published,
-every one satisfiable, and nothing to run them in. What is stored is still
-exact; only the wire carries ranges.
-
-**The job's ``requested_versions`` is keyed the same two ways, and names every Python
-distribution the job imports.** The client pins each exactly, as installed
-on your machine -- SiliconCompiler itself, and the distribution every class in
-the manifest comes from, such as ``lambdapdk`` for its PDKs -- because a name
-left out is not required, and the job could land in an image without it. A
-development build pins its release line instead (``==0.39.1.*``).
-
-**A requirement is always a list, and that is how two tasks disagree.** A version
-requirement in SiliconCompiler is already a list of alternative specifier sets
--- :meth:`~siliconcompiler.Task.check_exe_version` accepts a tool matching any
-of them -- and it is declared per task, so a flow can hold two tasks of one
-tool wanting different things. ``{"openroad": [">=24Q3-2011", "==2.0"]}`` says
-both once. An empty list means *any version of this*, which is not the same as
-not naming the tool: naming it is what lets the server refuse before the
-upload.
-
-⚠️ **The client normalises those specifiers before sending them**, with the
-task's own ``normalize_version``. ``>=24Q3-2011`` is not a PEP 440 specifier at
-all, and only the driver knows how to turn it into ``>=24.3.2011``; sent raw it
-would be refused against an image that plainly satisfies it.
-
-**Versions can be read out of the image rather than typed.** The probe asks:
-``importlib.metadata`` for a python distribution, and for a tool its driver's
-own executable, version switch and parser -- the same ones a real run uses.
-
-.. code-block:: bash
-
-  python3 -m siliconcompiler.remote.server.software.probe \
-      -python siliconcompiler -tool openroad=siliconcompiler.tools.openroad
-
-🔴 **The command runs in the image and the parsing happens outside it**, which
-is what lets any tools image be registered rather than only one that has
-SiliconCompiler in it -- and most do not, including the image
-SiliconCompiler's own CI runs its tools in. ``-script`` prints the shell script
-for a caller that will run it somewhere else; each answer is framed, because a
-version check RUNS the tool and a tool that prints a banner writes to the same
-stream as the answer. The compose bootstrap does this for every tool in its
-image, which is how a deployment gets real tool versions without anybody
-typing them.
-
-**A tool that reports no version is registered with a date and marked.**
-``add-version <tool> 20260924 -unversioned`` records that the tool is in the
-image and nobody asked it what it was -- a complete tool list beats a partial
-one. It satisfies a requirement that names no version, which is the only kind
-SiliconCompiler generates, and it can never satisfy a range: ``20260924`` beats
-``2.0.1`` under every comparison there is, so without the mark an unversioned
-build from years ago would outrank a current release for ever. A request that
-names a version for such a tool is refused with *present but reports no
-version*, rather than with *no image matches* -- the second would send somebody
-looking for something that is already installed.
-
-**sc-server advertises one SiliconCompiler: the one it runs.** A job's manifest
-is read while the job stages, in a process of the server's own SiliconCompiler
-and never in the server itself, and reading a manifest is only backwards
-compatible, so every job resolves to that one version. A client whose version
-is another is refused when it creates the job, before anything is uploaded; an
-image holding another version is registered but neither advertised nor used,
-and a deployment that runs jobs in containers refuses to start until a live
-image holds the server's own. To offer a newer SiliconCompiler, upgrade the
-server.
-
-**A node waiting for its image reports** ``preparing``. A tool image is minutes
-on a host that has not seen it, and without a state for that the wait is
-indistinguishable from a hang.
-
-Whatever is scheduling is what places the container, and the two mechanisms are
-mutually exclusive because :keypath:`option,scheduler,name` holds one value:
-
-``-cluster slurm``
-  Each node is submitted as **a Slurm job of its own** --
-  ``srun --container <bundle>`` -- with its own resources and its own place in
-  the queue. The cluster needs an OCI runtime and an ``/etc/slurm/oci.conf``
-  telling Slurm how to call it; bundles are unpacked to
-  ``<datadir>/images/<digest>/`` and shared by every job that names that digest.
-
-``-cluster local``
-  There is no Slurm to place anything, so the node runs through
-  SiliconCompiler's own docker scheduler, by digest.
-
-.. important::
-
-   On a cluster :keypath:`option,scheduler,queue` keeps meaning what it means
-   there -- the **partition** -- and the server does not touch it. A server that
-   wrote an image reference into it would submit every node to a partition named
-   after a container.
-
-The job's own orchestrator
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-One batch job per run is still all the API process submits, and that job is the
-run's **orchestrator**: it loads the manifest, drives the flow and writes the
-progress the server polls. It submits every node and computes nothing itself.
-
-Two things follow, and a deployment should set both:
-
-``batch_queue``
-  The partition that job runs in. It holds one core for the length of the flow
-  and uses almost none of it, so a small partition with a long time limit fits
-  it and a compute partition is a node slot doing nothing. Unset leaves it to
-  the cluster's default.
-
-**It runs in the job's framework image**, where the deployment runs containers
--- which is what makes version matching real rather than half-done. Without it
-a job asking for SiliconCompiler 0.39 has its flow driven by whatever version
-the cluster installed, and only the tools would match.
-
-.. warning::
-
-   That puts a requirement on any image that can be a framework image: **it
-   submits every node, so it needs the Slurm client, ``slurm.conf`` and the
-   munge socket inside it.** An image carrying SiliconCompiler and no ``srun``
-   cannot drive a flow on a cluster.
-
-   Unpacking happens before ``sbatch`` can name the bundle, so an image nobody
-   staged is unpacked by the first submit that needs it -- correct, and minutes
-   of somebody's request. Stage it when you register it:
-
-   .. code-block:: bash
-
-     python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
-         add-image ghcr.io/org/sc-runtime:0.39.1 \
-         -contains siliconcompiler==0.39.1 -stage
-
-     python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> stage
-
-.. warning::
-
-   ``-contains`` is **declared and unverified**. Nothing opens the image to
-   check that what it claims to hold is inside it, so a wrong entry means a job
-   runs in a container without what it asked for and fails at run time rather
-   than at submit. ``resolve`` shows what a job would be placed in without
-   submitting one:
-
-   .. code-block:: bash
-
-     python3 -m siliconcompiler.remote.server.software.registry -datadir <dir> \
-         resolve -versions siliconcompiler==0.39.1 -tools openroad
+The server is a test server, not a service to expose to others. It does not
+verify who a caller is, and it does not offer the device login, terms or
+approvals, containers or Python packages, or continuing from an earlier job.
+Every node of a flow runs inside one job. A site that needs more writes its own
+server to the ``v1`` API, which the client speaks.

@@ -2,6 +2,8 @@
 started for a test imports a node's task by module name, and a test module
 would bring pytest and every fixture with it.'''
 
+import os
+
 from siliconcompiler.tool import PythonEnvironment
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -46,3 +48,18 @@ class AcmeCheck(AcmeTask):
 
     def task(self):
         return "check"
+
+
+class RunsATestbench(NOPTask):
+    '''A task whose tool runs a testbench of the user's.'''
+
+    def task(self):
+        return "runsatestbench"
+
+    @classmethod
+    def framework_distributions(cls):
+        return ("scfakebits",)
+
+    def get_python_environment(self):
+        return PythonEnvironment(sources=(os.path.abspath("tb.py"),),
+                                 framework=self.framework_distributions())
