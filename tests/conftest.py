@@ -2,6 +2,7 @@ import logging
 import os
 import pytest
 import glob
+import ipaddress
 import json
 import re
 import platform
@@ -142,6 +143,39 @@ def limit_cpus(monkeypatch, request):
         return 1
 
     monkeypatch.setattr(utils, 'get_cores', limit_cpu)
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch, request):
+    '''Keep the tests the Python CI jobs run -- not eda, not docker -- off the
+    network, so an outage cannot fail them. A test that needs it is eda.
+
+    Loopback stays open for the servers tests start. git is held to local
+    repositories by its environment, because it fetches in a subprocess.
+    '''
+    if 'eda' in request.keywords or 'docker' in request.keywords:
+        return
+
+    monkeypatch.setenv("GIT_ALLOW_PROTOCOL", "file")
+
+    def guard(connect):
+        def guarded(sock, address):
+            if sock.family in (socket.AF_INET, socket.AF_INET6):
+                host = address[0]
+                try:
+                    loopback = host == "localhost" or ipaddress.ip_address(host).is_loopback
+                except ValueError:
+                    loopback = False
+                if not loopback:
+                    # Not an OSError, so code that copes with being offline
+                    # cannot swallow it.
+                    raise RuntimeError(f"{request.node.nodeid} connected to {host}; "
+                                       "a test that needs the network must be marked eda")
+            return connect(sock, address)
+        return guarded
+
+    monkeypatch.setattr(socket.socket, "connect", guard(socket.socket.connect))
+    monkeypatch.setattr(socket.socket, "connect_ex", guard(socket.socket.connect_ex))
 
 
 class _SharedManagerServer:
