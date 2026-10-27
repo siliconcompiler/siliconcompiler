@@ -156,7 +156,7 @@ def mode(path):
 
 
 def asked_for_pages(fake_v1):
-    '''Each body this client sent endpoint 6.'''
+    '''Each body this client sent `POST /v1/auth/browser`.'''
     return [json.loads(c.request.body or b"{}") for c in fake_v1.calls
             if c.request.url.endswith("/v1/auth/browser")]
 

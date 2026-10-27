@@ -30,22 +30,20 @@ def store():
     return Credentials(Path("sc-auth/remote.json"))
 
 
-def test_an_unreachable_server_is_reported_not_raised(monkeypatch, caplog):
-    '''A refusal is a message and an exit code, never a traceback.'''
-    assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/') != 0
-    assert caplog.text
-
-
-def test_a_server_that_does_not_answer_is_reported_not_raised(monkeypatch, caplog):
-    '''A request timeout is a message and a non-zero exit, not a traceback.'''
-    def timed_out(*args, **kwargs):
-        raise requests.Timeout()
+@pytest.mark.parametrize("error,said", [
+    (requests.ConnectionError, "could not reach"), (requests.Timeout, "did not answer"),
+])
+def test_a_server_that_cannot_be_reached_is_reported_not_raised(
+        monkeypatch, caplog, error, said):
+    '''A message and a non-zero exit, never a traceback.'''
+    def failed(*args, **kwargs):
+        raise error()
 
     monkeypatch.setattr("time.sleep", lambda seconds: None)
-    monkeypatch.setattr(requests.Session, "request", timed_out)
+    monkeypatch.setattr(requests.Session, "request", failed)
 
-    assert main(monkeypatch, 'configure', 'https://127.0.0.1:1/') == 1
-    assert "did not answer" in caplog.text
+    assert main(monkeypatch, 'configure', 'https://sc-server.test/') == 1
+    assert said in caplog.text
 
 
 def test_use_and_logout_take_a_server_configured_here(monkeypatch):

@@ -955,7 +955,7 @@ class Client:
         return self._show(answer, what, require_tty=require_tty)
 
     def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True) -> bool:
-        '''Open the page endpoint 6 answered, and print it where it may be.
+        '''Open the page `POST /v1/auth/browser` answered, and print it where it may be.
 
         A non-null `expires_at` marks a single-use sign-in, a bearer secret:
         printed only where no browser opened, to the terminal, never a log.
@@ -984,7 +984,7 @@ class Client:
         '''`sc-config remote portal`: the portal's home, signed in as this machine.
 
         A cold browser cannot present this machine's key-bound identity, so
-        endpoint 6 answers a sign-in. Asked for on purpose: a refusal fails.
+        `POST /v1/auth/browser` answers a sign-in. Asked for on purpose: a refusal fails.
         '''
         return self._show(self.browser_page(), "the portal", require_tty=False)
 

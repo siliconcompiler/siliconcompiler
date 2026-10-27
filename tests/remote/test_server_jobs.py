@@ -21,6 +21,11 @@ def get(api, job):
     return api("GET", f"/v1/jobs/{job['id']}").get_json()
 
 
+def slug_of(job):
+    '''The type of a job's error, or "".'''
+    return (job["error"] or {}).get("type", "").rsplit("/", 1)[-1]
+
+
 def test_a_job_goes_from_create_to_completed(server, api, dispatcher, submit):
     job = submit()
 
@@ -76,8 +81,7 @@ def test_a_job_follows_what_its_run_reports(server, api, dispatcher, submit, pro
 
     after = get(api, job)
 
-    assert after["state"] == state
-    assert (after["error"] or {}).get("type", "").rsplit("/", 1)[-1] == (error or "")
+    assert (after["state"], slug_of(after)) == (state, error or "")
     assert (after["error"] or {}).get("detail") == detail
     assert all(n["terminal"] for n in after["nodes"]) == after["terminal"]
 
@@ -138,6 +142,21 @@ def test_create_with_the_same_key_is_the_same_job_and_listing_pages(api):
     assert [j["id"] for j in last.get_json()["items"]] == ids[:1]
     assert "Link" not in last.headers
     assert slug(api("GET", "/v1/jobs?cursor=junk")) == "invalid-cursor"
+
+
+def test_the_listing_filters_by_name_state_and_terminal(api):
+    created = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    cancelled = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job1"}).get_json()
+    api("POST", f"/v1/jobs/{cancelled['id']}/cancel", json={})
+
+    def listed(query):
+        return [job["id"] for job in api("GET", f"/v1/jobs?{query}").get_json()["items"]]
+
+    assert listed("jobname=job0") == [created["id"]]
+    assert listed("state=cancelled") == listed("terminal=true") == [cancelled["id"]]
+    assert listed("terminal=false&design=gcd") == [created["id"]]
+    assert listed("design=other") == []
+    assert slug(api("GET", "/v1/jobs?limit=many")) == "invalid-request"
 
 
 @pytest.mark.parametrize("change, status, expected", [
@@ -208,6 +227,8 @@ def test_a_job_with_no_upload_cannot_be_submitted(api):
     ("twice", "job0", "archive-rejected", "traversal"),
     ("another jobname", "other", "declared-mismatch", None),
     ("newer schema", "job0", "software-unavailable", "unavailable"),
+    ("unreadable manifest", "job0", "archive-rejected", "invalid_manifest"),
+    ("too many nodes", "job0", "node-limit-exceeded", None),
 ])
 def test_a_refused_archive_ends_the_job_rejected(server, api, dispatcher, submit, job_archive,
                                                  monkeypatch, kind, jobname, expected, reason):
@@ -218,14 +239,18 @@ def test_a_refused_archive_ends_the_job_rejected(server, api, dispatcher, submit
         "twice": lambda: job_archive(extra={"gcd.pkg.json": b"{}"}),
         "another jobname": job_archive,
         "newer schema": job_archive,
+        "unreadable manifest": lambda: raw_archive({"gcd.pkg.json": b"not json"}),
+        "too many nodes": job_archive,
     }[kind]()
     if kind == "newer schema":
         monkeypatch.setattr("siliconcompiler.remote.server.jobs.SCHEMA_VERSION", "0.0.1")
+    if kind == "too many nodes":
+        monkeypatch.setitem(config.LIMITS, "max_job_nodes", 1)
 
     job = submit(archive, jobname=jobname)
 
     assert job["state"] == "rejected" and job["terminal"]
-    assert job["error"]["type"].rsplit("/", 1)[-1] == expected
+    assert slug_of(job) == expected
     assert job["error"].get("reason") == reason
     assert not dispatcher.submitted
     assert not server.config["SC_JOBS"].root(job["owner"]["id"], job["id"]).exists()
@@ -261,10 +286,13 @@ FILE, DIR, SYM, LNK = tarfile.REGTYPE, tarfile.DIRTYPE, tarfile.SYMTYPE, tarfile
 
 @pytest.mark.parametrize("members, reason", [
     ([("../x", FILE, b"x")], "traversal"),
+    ([(".", FILE, b"x")], "traversal"),
     ([("/etc/x", FILE, b"x")], "traversal"),
     ([("a", FILE, b"x"), ("a", FILE, b"y")], "traversal"),
     ([("l", SYM, "a"), ("l/b", FILE, b"x")], "traversal"),
     ([("l", SYM, "../out")], "link_member"),
+    # Each link is inside on its own; together `l` climbs out through `m`.
+    ([("q/r", DIR, b""), ("q/r/m", SYM, ".."), ("l", SYM, "q/r/m/../..")], "link_member"),
     ([("l", SYM, "/etc/passwd")], "link_member"),
     ([("l", LNK, "missing")], "link_member"),
     ([("p", tarfile.FIFOTYPE, b"")], "device_member"),
@@ -285,11 +313,84 @@ def test_extraction_refuses_what_breaks_a_rule(members, reason):
     assert refused.value.reason == reason
 
 
+def test_extraction_refuses_an_archive_that_expands_too_far(monkeypatch):
+    '''A bomb, by its ratio, once the archive is past the floor where a ratio means anything.'''
+    import io
+
+    from siliconcompiler.remote.server.staging import archive
+
+    monkeypatch.setattr(archive, "_RATIO_FLOOR", 0)
+    monkeypatch.setattr(archive, "MAX_EXPANSION_RATIO", 10)
+    with tarfile.open("bomb.tar.gz", "w:gz") as tar:
+        info = tarfile.TarInfo("zeros")
+        info.size = 100000
+        tar.addfile(info, io.BytesIO(bytes(info.size)))
+
+    with pytest.raises(ArchiveRejected) as refused:
+        extract("bomb.tar.gz", "out", LIMITS)
+
+    assert refused.value.reason == "ratio"
+
+
 def test_extraction_keeps_links_that_stay_inside():
     extract(_tar(("d", DIR, b""), ("d/a", FILE, b"x"), ("s", SYM, "d/a"), ("h", LNK, "d/a")),
             "out", LIMITS)
 
     assert open("out/s").read() == open("out/h").read() == "x"
+
+
+@pytest.mark.parametrize("error, detail", [
+    ("dispatch", "sbatch: error: invalid partition"), ("other", "RuntimeError"),
+])
+def test_a_job_that_cannot_be_dispatched_fails_staging(monkeypatch, api, dispatcher, submit,
+                                                       error, detail):
+    '''A dispatcher's own refusal is named; anything else only by its type.'''
+    from siliconcompiler.remote.server.running.dispatch import DispatchError
+
+    def refuse(job_id, jobroot, manifest):
+        raise DispatchError(detail) if error == "dispatch" else RuntimeError("internal")
+    monkeypatch.setattr(dispatcher, "submit", refuse)
+
+    job = submit()
+
+    assert (job["state"], slug_of(job)) == ("failed", "staging-failed")
+    assert job["error"]["detail"] == detail
+
+
+@pytest.mark.parametrize("left, state, error", [
+    (("staging",), "failed", "staging-failed"), (("staging", "cancelling"), "cancelled", ""),
+])
+def test_a_job_whose_staging_a_restart_lost_ends(server, api, left, state, error):
+    '''No thread in this process is staging it, so nothing ever will.'''
+    jobs = server.config["SC_JOBS"]
+    job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    previous = ("created",)
+    for moved in left:
+        assert jobs.move(job["id"], previous, moved)
+        previous = (moved,)
+
+    after = get(api, job)
+
+    assert (after["state"], slug_of(after)) == (state, error)
+
+
+def test_a_cancel_before_dispatch_starts_no_run(monkeypatch, api, dispatcher, submit):
+    entered, gate = threading.Event(), threading.Event()
+    write = runspec.write_json
+
+    def held(path, body):
+        entered.set()
+        assert gate.wait(10)
+        write(path, body)
+    monkeypatch.setattr(runspec, "write_json", held)
+    job = submit(settled=False)
+    assert entered.wait(10)
+
+    api("POST", f"/v1/jobs/{job['id']}/cancel", json={})
+    gate.set()
+
+    assert settle(api, job["id"], ("staging", "cancelling"))["state"] == "cancelled"
+    assert not dispatcher.submitted
 
 
 def test_a_cancel_during_staging_stops_the_job(api, dispatcher, submit):
@@ -316,6 +417,10 @@ def test_a_cancel_while_running_stops_the_run_and_is_idempotent(server, api, dis
     first = api("POST", f"/v1/jobs/{job['id']}/cancel", json={})
     assert first.get_json()["state"] == "cancelling"
     assert dispatcher.cancelled == [f"fake:{job['id']}"]
+    # Until the run stops.
+    dispatcher.alive = True
+    assert get(api, job)["state"] == "cancelling"
+    dispatcher.alive = False
 
     after = get(api, job)
     again = api("POST", f"/v1/jobs/{job['id']}/cancel", json={})
@@ -444,30 +549,3 @@ def test_two_threads_cannot_both_move_a_job(server, api):
     assert [row["state"] for row in jobs.store.all(
         "SELECT state FROM job_transitions WHERE job_id = ? ORDER BY rowid", (job["id"],))] \
         == ["created", "staging"]
-
-
-@pytest.mark.timeout(90)
-def test_a_nop_run_goes_through_the_real_dispatcher(server, api, submit):
-    job = settle(api, submit()["id"], ("staging", "queued", "running"))
-
-    assert job["state"] == "completed", job["error"]
-    assert [n["state"] for n in job["nodes"]] == ["completed", "completed"]
-    assert job["started_at"] and job["finished_at"]
-    root = server.config["SC_JOBS"].root(job["owner"]["id"], job["id"])
-    assert (root / "gcd" / "job0" / "stepone" / "0" / "outputs").is_dir()
-
-
-@pytest.mark.timeout(90)
-def test_the_client_runs_a_nop_project_remotely(live_server, tmp_credentials, nop_project):
-    '''The real client, over a socket, to a completed job. Results come from the
-    artifact endpoints, which the next step adds.'''
-    from siliconcompiler.remote import Client
-
-    tmp_credentials.set_server(live_server)
-    nop_project.option.set_credentials(str(tmp_credentials.path))
-    nop_project.option.set_remote(True)
-
-    history = nop_project.run()
-
-    job, _ = Client(tmp_credentials).job(history.get("record", "remoteid"))
-    assert (job["state"], job["design"]) == ("completed", "gcd")

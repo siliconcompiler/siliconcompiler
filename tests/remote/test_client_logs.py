@@ -220,17 +220,3 @@ def test_the_stream_url_is_opaque_to_the_client(logged_in, fake_v1, no_wait):
     assert follow(logged_in) == "done\n"
     followed, = streams(fake_v1)
     assert followed.request.url == target
-
-
-def job(state):
-    return {"id": "j1", "state": state, "terminal": state == "completed", "nodes": []}
-
-
-@pytest.mark.parametrize("header,waited", [("1", 1), ("0", 1), ("0.25", 1), ("3", 3),
-                                           ("600", 600)])
-def test_a_retry_after_is_honoured_down_to_one_second(logged_in, fake_v1, header, waited):
-    '''Whole seconds, never below 1 and never cut short, and no longer floor
-    of the client's own.'''
-    fake_v1.route(responses.GET, "jobs/j1", job("running"), headers={"Retry-After": header})
-    _, retry_after = logged_in.job("j1")
-    assert retry_after == waited

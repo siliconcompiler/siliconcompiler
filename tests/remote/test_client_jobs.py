@@ -220,10 +220,13 @@ def test_the_loop_ends_on_terminal_and_not_on_the_name(fake_v1, run, no_sleep):
     assert len([c for c in fake_v1.calls if c.request.method == "GET"]) >= 2
 
 
-@pytest.mark.parametrize("retry_after,paced", [("17", 17), ("0", 1), ("soon", None)])
+@pytest.mark.parametrize("retry_after,paced", [
+    ("17", 17), ("0", 1), ("0.25", 1), ("600", 600), ("Wed, 21 Oct 2015 07:28:00 GMT", 1),
+    ("soon", None),
+], ids=["seconds", "zero", "fraction", "long", "past-date", "unreadable"])
 def test_the_server_sets_the_pace(fake_v1, run, no_sleep, retry_after, paced):
-    '''`Retry-After` per response, never below a second; an unreadable one
-    is not a failed poll.'''
+    '''`Retry-After` per response, seconds or a date, never below a second and never
+    cut short; an unreadable one is not a failed poll.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"),
                   headers={"Retry-After": retry_after})
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
@@ -685,19 +688,24 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, nodes, error,
     assert not any(line in text for line in unsaid)
 
 
-def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, capsys):
+def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run):
     '''A node's log line already says which node it came from.'''
+    import io
+    import threading
+
     from siliconcompiler.remote.client.run import _Tails
 
     tails = _Tails.__new__(_Tails)
     tails._run = run
     tails._logger = run.logger
-    tails._stop = __import__("threading").Event()
+    tails._stop = threading.Event()
+    shown = io.StringIO()
+    run.project._logger_console.setStream(shown)
+    line = "| INFO     | job0 | route.detailed       | 0 | Running"
 
-    tails._write("| INFO     | job0 | route.detailed       | 0 | Running\n")
+    tails._write(line + "\n")
 
-    printed = capsys.readouterr().err + capsys.readouterr().out
-    assert "remote" not in printed
+    assert shown.getvalue() == line + "\n"
 
 
 @pytest.fixture
@@ -989,27 +997,10 @@ def test_a_requirement_that_is_not_pep_440_is_dropped_rather_than_refusing_every
     assert _normalize_spec(Task(), "whatever") is None
 
 
-def test_a_development_client_asks_by_prefix_rather_than_exactly():
-    '''A dev build's local segment names a commit no image was built from.
-    `.*` attaches to the release segment only: `==0.38.10.dev*` is illegal.'''
-    from packaging.specifiers import InvalidSpecifier, SpecifierSet
-    from packaging.version import Version
-
-    from siliconcompiler.remote.client.run import _pin
-
-    spec = _pin("0.38.10.dev43+g20db24fa2.d20260924")
-    assert spec == "==0.38.10.*"
-    matches = SpecifierSet(spec, prereleases=True)
-    assert Version("0.38.10.dev7") in matches
-    assert Version("0.38.10") in matches
-    assert Version("0.38.9") not in matches
-
-    with pytest.raises(InvalidSpecifier):
-        SpecifierSet("==0.38.10.dev*")
-
-
 @pytest.mark.parametrize("version,pin", [
     ("0.38.9", "==0.38.9"), ("1.0.0-RC1", "==1.0.0rc1"), ("v2.1", "==2.1"),
+    # A dev build asks by its release prefix: its local segment names no image.
+    ("0.38.10.dev43+g20db24fa2.d20260924", "==0.38.10.*"),
     ("a-local-build", None)])
 def test_an_installed_version_is_pinned_in_pep_440_or_not_at_all(version, pin):
     from siliconcompiler.remote.client.run import _pin
