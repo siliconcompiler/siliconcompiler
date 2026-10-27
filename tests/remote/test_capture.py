@@ -352,12 +352,6 @@ def test_a_cocotb_node_names_its_testbench_and_leaves_cocotb_to_the_image():
     assert wanted.framework == ("cocotb",)
 
 
-@pytest.fixture
-def offers_python_env(fake_v1, capabilities):
-    fake_v1.replace(responses.GET, "", dict(
-        capabilities, features=capabilities["features"] + ["python.env"]))
-
-
 def _uploaded(fake_v1):
     with tarfile.open(fileobj=io.BytesIO(put_body(fake_v1))) as tar:
         return {member.name: (tar.extractfile(member).read() if member.isfile() else None)
@@ -365,7 +359,7 @@ def _uploaded(fake_v1):
 
 
 def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
-        site, fake_v1, logged_in, offers_python_env):
+        site, fake_v1, logged_in):
     '''The index package listed as installed; the editable one a wheel in
     neither list; the helper beside the test; cocotb left to the image.'''
     pytest.importorskip("pip")
@@ -401,7 +395,7 @@ def test_a_cocotb_job_with_an_index_package_and_an_editable_helper_package(
 
 
 def test_a_compiled_local_package_is_refused_before_create(
-        site, fake_v1, logged_in, offers_python_env):
+        site, fake_v1, logged_in):
     _distribution(site, "scfakec", "1.0.0", archive=os.path.abspath("c.tar.gz"),
                   files={"_c.so": "\x7fELF"})
     project = cocotb_project("import scfakec\n")
@@ -416,23 +410,9 @@ def test_a_helper_holding_a_compiled_extension_is_refused(site, fake_v1, logged_
         python_of(RemoteRun(project, logged_in))
 
 
-def test_packages_to_install_stop_the_run_before_create_where_the_server_installs_none(
-        site, fake_v1, logged_in):
-    '''`python.env` is checked against `features` before wheels are built or a job
-    is created, so a deployment without it is refused at once.'''
-    _distribution(site, "scfakeumi", "0.3.1")
-    project = cocotb_project("import scfakeumi\n")
-    fake_v1.route(responses.GET, "me", {"id": "u-1"})
-
-    with pytest.raises(RemoteError, match="python.env"):
-        RemoteRun(project, logged_in)._start()
-
-    assert not [c for c in fake_v1.calls if c.request.path_url == "/v1/jobs"]
-
-
-def test_a_server_refusing_python_env_at_create_is_still_reported(
-        site, fake_v1, logged_in, offers_python_env, monkeypatch):
-    '''A stale `features`: create's own `feature-unsupported` is the answer, and the
+def test_packages_to_install_are_refused_at_create_where_the_server_installs_none(
+        site, fake_v1, logged_in, monkeypatch):
+    '''`needs` names `python.env`, so create refuses before any bytes move, and the
     wheels built for the job are removed.'''
     import tempfile
 
@@ -493,7 +473,7 @@ def tb_project(gcd_design, **nodes):
 
 
 def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run(
-        site, gcd_design, fake_v1, logged_in, offers_python_env):
+        site, gcd_design, fake_v1, logged_in):
     '''Its setup cannot run here: stop before create, naming it and why.
     A failing setup elsewhere drops no other node's Python.'''
     with pytest.raises(RemoteError, match="sim/0 runs your own Python.*cocotb is not installed"):
@@ -506,7 +486,7 @@ def test_a_node_running_the_users_python_that_cannot_be_worked_out_stops_the_run
 
 
 def test_a_python_entry_is_answered_with_a_repacked_wheel(site, fake_v1, logged_in,
-                                                          tmp_path, offers_python_env):
+                                                          tmp_path):
     '''Repacked from the install here. Asked at create, in the first
     archive beside the manifest; asked later, alone in the follow-up.'''
     from siliconcompiler.utils.paths import collectiondir
@@ -562,7 +542,7 @@ def test_a_compiled_package_asked_for_stops_and_cancels_the_job(site, fake_v1, l
     ([{"name": "python-wheel", "via": ["self"]}], "not granted python-wheels"),
 ])
 def test_wheels_an_account_may_not_upload_stop_the_run_before_create(
-        site, fake_v1, logged_in, offers_python_env, granted, stops):
+        site, fake_v1, logged_in, granted, stops):
     '''Create refuses `python-packages` itself, but a wheel is refused only while
     staging, after the upload: checked against `authorized.capabilities`.'''
     _distribution(site, "scfakeumi", "0.3.1")
@@ -590,7 +570,7 @@ def test_wheels_an_account_may_not_upload_stop_the_run_before_create(
                       "package to one of its indexes."),
 ])
 def test_a_capability_refused_at_create_says_which_and_what_to_do(
-        site, fake_v1, logged_in, offers_python_env, resource, advice):
+        site, fake_v1, logged_in, resource, advice):
     '''A deployment that grants capabilities refuses at create or on the job --
     the same refusal either way.'''
     from siliconcompiler.remote.client.errors import ServerProblem, describe
@@ -614,7 +594,7 @@ def test_a_capability_refused_at_create_says_which_and_what_to_do(
 
 
 def test_what_the_job_ran_in_place_of_a_listed_version_is_said_once(
-        site, fake_v1, logged_in, caplog, offers_python_env):
+        site, fake_v1, logged_in, caplog):
     '''Once staged: each listed version its images hold another of, beside the
     one listed here. What matches is not said.'''
     import logging

@@ -18,19 +18,12 @@ from packaging.utils import InvalidWheelFilename, parse_wheel_filename
 from packaging.utils import canonicalize_name as canonical
 from packaging.version import InvalidVersion, Version
 
-__all__ = ["MAX_BYTES", "MAX_ENTRIES", "MAX_REQUESTED_NAMES", "MAX_REQUESTED_SETS",
-           "MAX_REQUESTED_SET_LENGTH", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
-           "PackagesError", "WheelError", "Wheel", "canonical", "check_requested_versions",
-           "site_path", "wheel_name", "check_wheel"]
+__all__ = ["MAX_BYTES", "MAX_ENTRIES", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
+           "WheelError", "Wheel", "canonical", "site_path", "wheel_name", "check_wheel"]
 
 
 MAX_BYTES = 64 * 1024
 MAX_ENTRIES = 1000
-
-# `requested_versions`, across its buckets: names, specifier sets, and one set's length.
-MAX_REQUESTED_NAMES = 500
-MAX_REQUESTED_SETS = 1000
-MAX_REQUESTED_SET_LENGTH = 200
 
 # The wheels' folder under the collection directory: unhashed, so it collides
 # with no other collected folder.
@@ -51,14 +44,6 @@ IMAGE_SITE = "/opt/sc/python-env/site"
 _METADATA_LIMIT = 1024 * 1024
 
 
-class PackagesError(ValueError):
-    '''A job's requirements outside their bounds; ``entry`` names the entry.'''
-
-    def __init__(self, why: str, entry: Optional[str] = None):
-        super().__init__(f"{entry!r}: {why}" if entry is not None else why)
-        self.why, self.entry = why, entry
-
-
 class WheelError(ValueError):
     '''Not a pure, well-formed wheel; ``compiled`` names a compiled file that is why.'''
 
@@ -73,24 +58,6 @@ class Wheel(NamedTuple):
     filename: str
     members: int = 0            # what it holds, held to the extraction limits
     expanded: int = 0           # its members' bytes, uncompressed
-
-
-def check_requested_versions(requested: dict) -> None:
-    '''`requested_versions`, held to the bounds a create is refused past. Raises
-    PackagesError naming the bound.'''
-    names = sum(len(bucket) for bucket in requested.values())
-    if names > MAX_REQUESTED_NAMES:
-        raise PackagesError(f"requested_versions names {names} packages and tools, and at "
-                            f"most {MAX_REQUESTED_NAMES} are taken")
-    sets = [spec for bucket in requested.values() for specs in bucket.values()
-            for spec in specs]
-    if len(sets) > MAX_REQUESTED_SETS:
-        raise PackagesError(f"requested_versions holds {len(sets)} specifier sets, and at "
-                            f"most {MAX_REQUESTED_SETS} are taken")
-    for spec in sets:
-        if len(spec) > MAX_REQUESTED_SET_LENGTH:
-            raise PackagesError(f"a specifier set is {len(spec)} characters, and at most "
-                                f"{MAX_REQUESTED_SET_LENGTH} are taken", spec[:40] + "...")
 
 
 def site_path() -> str:

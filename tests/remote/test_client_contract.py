@@ -4,7 +4,7 @@ import logging
 import pytest
 import responses
 
-from conftest import asked_for_pages, creates, problem, refused
+from conftest import asked_for_pages, problem, refused
 
 from siliconcompiler.remote import ServerProblem
 from siliconcompiler.remote.client import OAuthRefusal, cli
@@ -152,7 +152,6 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("sys.stdout.isatty", lambda: tty)
-    monkeypatch.setattr("siliconcompiler.remote.client.time.sleep", lambda seconds: None)
     monkeypatch.delenv("CI", raising=False)
     terms_refusal(fake_v1)
 
@@ -173,49 +172,19 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
     assert not [c for c in fake_v1.calls if "accept" in c.request.url]
 
 
-@pytest.mark.parametrize("tty,signed,creates_sent", [
-    (True, True, 2), (True, False, 1), (False, True, 1),
-], ids=["signed-then-retried", "never-signed", "nobody-there"])
-def test_a_terms_refusal_is_retried_once_after_the_person_signs(
-        logged_in, fake_v1, monkeypatch, tty, signed, creates_sent):
-    '''The registry's client action: open each page, then retry. It waits for the
-    documents to read as accepted in `GET /v1/me`, and sends the create once more,
-    under the same key; off a terminal nobody is there to sign, so it does not.'''
-    monkeypatch.setattr("webbrowser.open", lambda url: True)
-    monkeypatch.setattr("sys.stdout.isatty", lambda: tty)
-    monkeypatch.setattr("siliconcompiler.remote.client.time.sleep", lambda seconds: None)
-    monkeypatch.delenv("CI", raising=False)
-    refused(fake_v1, responses.POST, "jobs", "terms-not-accepted", 403, blocked_by=["tos"])
-    fake_v1.route(responses.POST, "jobs", {"id": "job-1"}, status=201)
-    fake_v1.route(responses.POST, "auth/browser", {"url": "https://portal.test/enter",
-                                                   "expires_at": "2026-10-01T18:04:30Z"})
-    # Read for the title, then once while waiting: only then is the document signed.
-    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [{"id": "tos", "title": "Terms"}]})
-    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [{"id": "tos", "title": "Terms"}]})
-    fake_v1.route(responses.GET, "me", {"id": "u1", "terms": [
-        {"id": "tos", "title": "Terms", "accepted_at": "2026-10-01T18:00:00Z" if signed
-         else None}]})
-
-    if creates_sent == 2:
-        assert logged_in.create_job(design="gcd", jobname="job0")["id"] == "job-1"
-        keys = {c.request.headers["Idempotency-Key"] for c in creates(fake_v1)}
-        assert len(keys) == 1
-    else:
-        with pytest.raises(ServerProblem, match="sign Terms"):
-            logged_in.create_job(design="gcd", jobname="job0")
-    assert len(creates(fake_v1)) == creates_sent
-
-
 def test_a_presigned_url_is_not_logged_by_the_http_library_at_debug(caplog):
-    '''urllib3's request line carries the path and query, a signature included.'''
+    '''urllib3's request line carries the path and query, a signature included;
+    its other lines are kept.'''
     pool = logging.getLogger("urllib3.connectionpool")
     caplog.set_level(logging.DEBUG)
 
     pool.debug('%s://%s:%s "%s %s %s" %s %s', "https", "storage.test", 443, "PUT",
                "/obj?X-Amz-Signature=secret", "HTTP/1.1", 200, 0)
+    pool.debug("Starting new HTTPS connection (%d): %s:%s", 1, "storage.test", 443)
     pool.warning("Retrying (Retry(total=2)) after connection broken")
 
     assert "X-Amz-Signature" not in caplog.text
+    assert "Starting new HTTPS connection" in caplog.text
     assert "Retrying" in caplog.text
 
 
