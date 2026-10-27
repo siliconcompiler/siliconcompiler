@@ -7,7 +7,8 @@ its build directory are made:
 ``manifest``  the job's ``<design>.pkg.json`` (job-level), and each node's own
 ``logs``      SiliconCompiler's ``job.log`` (job-level), and each node's log
               files as a tar
-``node``      one node's working directory as a tar, relative to that directory
+``node``      one node's whole working directory as a tar, ``inputs/`` included,
+              relative to that directory
 
 Each is made once, from the job's tree, read through :mod:`confine`.
 '''
@@ -31,10 +32,6 @@ __all__ = ["collect", "log_artifact", "wire"]
 
 logger = logging.getLogger("sc-server")
 
-# A node archive leaves out what the caller already has: `inputs/` are upstream
-# outputs, and `sc_collected_files/` is the client's own upload.
-_NOT_IN_A_NODE = ("inputs", "sc_collected_files")
-
 
 def collect(store, directory: Path, tree: Path, job, nodes, final: bool) -> None:
     '''Make the artifacts ``tree`` has not yet got: for each of ``nodes`` that is
@@ -54,7 +51,7 @@ def collect(store, directory: Path, tree: Path, job, nodes, final: bool) -> None
               _tarred(lambda tar: [confine.add_file(tar, tree, workdir / name, name)
                                    for name in logs]))
         _make(store, directory, job, "node", step, index,
-              _tarred(lambda tar: confine.add_tree(tar, tree, workdir, skip=_NOT_IN_A_NODE)))
+              _tarred(lambda tar: confine.add_tree(tar, tree, workdir)))
 
 
 def _listdir(path: Path):

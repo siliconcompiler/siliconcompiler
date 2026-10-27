@@ -68,21 +68,18 @@ def test_a_remote_run_leaves_the_build_directory_a_local_run_does(gcd_design, ra
     local.run()
     local_tree = tree(jobdir(local))
 
-    job, = client.jobs()
+    job, _ = client.job(history.get("record", "remoteid"))
     assert (job["state"], job["terminal"]) == ("completed", True)
-    detail, _ = client.job(job["id"])
-    assert detail["progress"] == {"total_count": 2, "completed_count": 2, "failed_count": 0,
-                                  "skipped_count": 0, "cancelled_count": 0}
+    assert job["started_at"] and job["finished_at"]
+    assert job["progress"] == {"total_count": 2, "completed_count": 2, "failed_count": 0,
+                               "skipped_count": 0, "cancelled_count": 0}
 
-    # What the run wrote on the server, and what came home, less `inputs/`
-    # (copies of upstream outputs the server does not send back).
+    # What the run wrote on the server, and what came home, `inputs/` included.
     on_server = tree(os.path.join("sc-server", "users", client.me()["id"], "builds",
                                   job["id"], "gcd", "job0"))
     assert local_tree <= on_server, sorted(local_tree - on_server)
     here = tree(jobdir(remote))
-    missing = {name for name in local_tree - here if os.sep + "inputs" + os.sep not in
-               os.sep + name}
-    assert not missing, sorted(missing)
+    assert local_tree <= here, sorted(local_tree - here)
 
     # Only what the client itself keeps: the job it ran as, and the server's log.
     extra = {name for name in here - local_tree if not name.startswith("job.")}
@@ -148,8 +145,9 @@ def test_a_tail_resumes_after_a_dropped_connection_with_no_gap_and_no_repeat(
 
     job = {"id": str(uuid.uuid4()), "owner": {"id": user}}
     server.config["SC_STORE"].execute(
-        "INSERT INTO jobs (id, user_id, design, jobname, state, scheduler_job_id, created_at) "
-        "VALUES (?, ?, 'gcd', 'job0', 'running', 'fake:1', ?)", (job["id"], user, time.time()))
+        "INSERT INTO jobs (id, user_id, design, jobname, state, scheduler_job_id, created_at, "
+        "active_at) VALUES (?, ?, 'gcd', 'job0', 'running', 'fake:1', ?, ?)",
+        (job["id"], user, time.time(), time.time()))
     server.config["SC_STORE"].execute(
         "INSERT INTO job_nodes (job_id, step, idx, state) VALUES (?, 'stepone', '0', 'running')",
         (job["id"],))

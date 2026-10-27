@@ -1,23 +1,17 @@
 '''
 A job's Python packages: the create body's `python_packages` (``requirements``
-and ``constraints``) and the wheels it uploads.
-
-One grammar at both ends: each entry exactly ``name==version``, canonical,
-each name once, within :data:`MAX_ENTRIES` and :data:`MAX_BYTES`. No entry
-names an index, and the lists never reach pip: the server writes its own files
-from what :func:`parse` accepted (:func:`render`).
+and ``constraints``, each entry exactly ``name==version``, within
+:data:`MAX_ENTRIES` and :data:`MAX_BYTES`) and the wheels it uploads.
 
 A wheel is pure or refused (:func:`check_wheel`).
 '''
 
 import email.parser
-import json
 import os
-import re
 import stat
 import zipfile
 
-from typing import Any, Iterable, NamedTuple, Optional, Sequence, Tuple
+from typing import NamedTuple, Optional
 
 from packaging.utils import InvalidWheelFilename, parse_wheel_filename
 # A distribution name as PEP 503 compares it.
@@ -25,9 +19,7 @@ from packaging.utils import canonicalize_name as canonical
 from packaging.version import InvalidVersion, Version
 
 __all__ = ["MAX_BYTES", "MAX_ENTRIES", "WHEELS", "COMPILED", "ROOT", "SITE", "IMAGE_SITE",
-           "PackagesError", "WheelError", "Pin", "Packages", "Wheel", "canonical",
-           "parse_entry", "parse", "render", "site_path", "wheel_name",
-           "check_wheel"]
+           "WheelError", "Wheel", "canonical", "site_path", "wheel_name", "check_wheel"]
 
 
 MAX_BYTES = 64 * 1024
@@ -48,19 +40,8 @@ SITE = "site"
 # A derived image's install, its own layer, reaching only the tool's PYTHONPATH.
 IMAGE_SITE = "/opt/sc/python-env/site"
 
-_NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
-_ENTRY = re.compile(rf"^(?P<name>{_NAME})==(?P<version>\S+)$")
-
 # The bound on each metadata file read from a wheel.
 _METADATA_LIMIT = 1024 * 1024
-
-
-class PackagesError(ValueError):
-    '''`python_packages` outside its grammar or bounds; ``entry`` names the entry.'''
-
-    def __init__(self, why: str, entry: Optional[str] = None):
-        super().__init__(f"{entry!r}: {why}" if entry is not None else why)
-        self.why, self.entry = why, entry
 
 
 class WheelError(ValueError):
@@ -71,107 +52,12 @@ class WheelError(ValueError):
         self.compiled = compiled
 
 
-class Pin(NamedTuple):
-    name: str
-    version: str
-
-    def __str__(self) -> str:
-        return f"{self.name}=={self.version}"
-
-
-class Packages(NamedTuple):
-    requirements: Tuple[Pin, ...] = ()
-    constraints: Tuple[Pin, ...] = ()
-
-    def names(self):
-        '''Every name listed, canonical.'''
-        return {canonical(pin.name) for pin in self.requirements + self.constraints}
-
-    def without(self, names: Iterable[str]) -> "Packages":
-        '''The lists less ``names``, which wheels replace.'''
-        drop = {canonical(name) for name in names}
-        return Packages(tuple(pin for pin in self.requirements if canonical(pin.name) not in drop),
-                        tuple(pin for pin in self.constraints if canonical(pin.name) not in drop))
-
-    def wire(self) -> dict:
-        return {"requirements": [str(pin) for pin in self.requirements],
-                "constraints": [str(pin) for pin in self.constraints]}
-
-
 class Wheel(NamedTuple):
     name: str                   # canonical
     version: str
     filename: str
     members: int = 0            # what it holds, held to the extraction limits
     expanded: int = 0           # its members' bytes, uncompressed
-
-
-def parse_entry(text: Any) -> Pin:
-    '''One entry, held to the grammar. Raises PackagesError naming it.'''
-    if not isinstance(text, str):
-        raise PackagesError("an entry is a string", json.dumps(text)[:80])
-    found = _ENTRY.match(text)
-    if not found:
-        raise PackagesError(
-            "not exactly name==version: extras, a marker, a range, a URL, a path, "
-            "an option and whitespace are all refused", text)
-    try:
-        canonical_form = str(Version(found["version"])) == found["version"]
-    except InvalidVersion:
-        canonical_form = False
-    if not canonical_form:
-        raise PackagesError(f"{found['version']} is not a PEP 440 version in its "
-                            "canonical form", text)
-    return Pin(found["name"], found["version"])
-
-
-def parse(member: Any) -> Packages:
-    '''`python_packages`, held to its grammar and bounds. Raises PackagesError.'''
-    if not isinstance(member, dict):
-        raise PackagesError("python_packages is an object of requirements and "
-                            "constraints")
-    unknown = sorted(set(member) - {"requirements", "constraints"})
-    if unknown:
-        raise PackagesError(f"python_packages has no member {unknown[0]!r}; it takes "
-                            "requirements and constraints")
-    lists = {}
-    for field in ("requirements", "constraints"):
-        entries = member.get(field)
-        if entries is None:
-            entries = []
-        if not isinstance(entries, list):
-            raise PackagesError(f"python_packages.{field} is a list of name==version")
-        lists[field] = entries
-
-    total = len(lists["requirements"]) + len(lists["constraints"])
-    if total > MAX_ENTRIES:
-        raise PackagesError(f"python_packages lists {total} entries, and at most "
-                            f"{MAX_ENTRIES} are taken")
-    size = len(json.dumps(member, separators=(",", ":")).encode())
-    if size > MAX_BYTES:
-        raise PackagesError(f"python_packages is {size} bytes, and at most {MAX_BYTES} "
-                            "are taken")
-
-    seen = set()
-    parsed = {}
-    for field in ("requirements", "constraints"):
-        pins = []
-        for entry in lists[field]:
-            pin = parse_entry(entry)
-            key = canonical(pin.name)
-            if key in seen:
-                raise PackagesError(f"{pin.name} is named twice across both lists", entry)
-            seen.add(key)
-            pins.append(pin)
-        parsed[field] = tuple(pins)
-    return Packages(parsed["requirements"], parsed["constraints"])
-
-
-def render(pins: Sequence[Pin], header: str = "") -> str:
-    '''A requirements or constraints file written from parsed pins, never the job's text.'''
-    lines = [f"# {line}" if line else "#" for line in header.splitlines()]
-    lines.extend(f"{canonical(pin.name)}=={pin.version}" for pin in pins)
-    return "\n".join(lines) + "\n"
 
 
 def site_path() -> str:

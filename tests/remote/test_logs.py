@@ -84,6 +84,16 @@ def test_a_finished_node_is_a_stream_that_sends_its_log_and_names_the_archive(
     assert logs(stranger, job).status_code == 404
 
 
+def test_a_deleted_jobs_logs_are_not_found(server, server_client, api, dispatcher, tree):
+    '''Neither asked for again nor through a stream URL handed out before.'''
+    job, _ = tree
+    finish(server, api, dispatcher, job)
+    redirect = logs(api, job)
+    assert api("DELETE", f"/v1/jobs/{job['id']}").status_code == 204
+
+    assert slug(logs(api, job)) == slug(stream(server_client, redirect)) == "not-found"
+
+
 def test_a_resumed_stream_sends_only_what_follows_the_id(server, server_client, api, dispatcher,
                                                          tree):
     job, root = tree
@@ -111,7 +121,9 @@ def test_a_finished_node_with_no_log_is_not_found(server, api, dispatcher, tree)
 
 
 @pytest.fixture
-def log(tmp_path):
+def log(tmp_path, monkeypatch):
+    # Asked on every pass, so a test's states are seen in turn.
+    monkeypatch.setattr(logstream, "STATE_SECONDS", 0)
     path = tmp_path / "sc_place_0.log"
     path.write_bytes(b"")
     return tmp_path, path
@@ -131,6 +143,22 @@ def frames_of(generator):
         def get_data(self, as_text):
             return b"".join(generator).decode()
     return frames(Body())
+
+
+def test_a_log_that_links_out_of_the_job_sends_nothing(monkeypatch):
+    '''Each read goes through `confine`, so a link a running job swaps in is refused.'''
+    from pathlib import Path
+
+    monkeypatch.setattr(logstream, "STATE_SECONDS", 0)
+    Path("secret.txt").write_text("not the job's\n")
+    tree = Path("tree").absolute()
+    tree.mkdir()
+    (tree / "sc_place_0.log").symlink_to(Path("secret.txt").absolute())
+
+    found = run_stream(tree, tree / "sc_place_0.log", ["running", "completed"],
+                       deadline=time.time() + 60)
+
+    assert [event for event, _, _ in found] == ["node_state", "end"]
 
 
 def test_a_running_node_sends_whole_lines_and_leaves_the_rest_for_later(log):
@@ -164,3 +192,19 @@ def test_a_line_longer_than_a_chunk_is_never_split_inside_a_character(log, monke
 
     assert [d["text"] for e, _, d in found if e == "log"] == ["\u00e9" * 4, "\u00e9" * 4,
                                                               "\u00e9"]
+
+
+def test_a_stream_asks_the_nodes_state_at_its_own_pace_not_each_poll(log, monkeypatch):
+    '''Each ask reconciles the job, which on Slurm runs `squeue`.'''
+    tree, path = log
+    monkeypatch.setattr(logstream, "STATE_SECONDS", 60)
+    asked = []
+
+    def node_state():
+        asked.append("running")
+        return "running"
+
+    frames_of(logstream.events(tree, path, "place", "0", node_state, lambda: "art", 0,
+                               time.time() + 0.6))
+
+    assert asked == ["running"]

@@ -38,6 +38,17 @@ __all__ = ["Transport", "join_url", "normalize_server", "EdgeRefused",
 
 logger = logging.getLogger(__name__)
 
+
+class _NoQueryStrings(logging.Filter):
+    '''Drops urllib3's DEBUG lines that carry a query string: its request line names
+    the path and query, and a presigned storage URL's signature is in the query.'''
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.levelno > logging.DEBUG or "?" not in record.getMessage()
+
+
+logging.getLogger("urllib3.connectionpool").addFilter(_NoQueryStrings())
+
 # Low on purpose: each retry follows the server's exact instruction, so a second
 # failure means it did not help.
 MAX_RETRIES = 2
@@ -328,9 +339,16 @@ class Transport:
                 needs_nonce = refusal["error"] == "use_dpop_nonce"
                 bad_proof = refusal["error"] == "invalid_dpop_proof"
             else:
+                # A 401 may say so in the problem's `type`, the challenge, or an OAuth-shaped
+                # body at an endpoint that is not an OAuth one.
+                shaped = None if _is_problem(response) else _json(response)
+                said = shaped.get("error") if isinstance(shaped, dict) else None
                 needs_nonce = status == 401 and (
-                    slug == "dpop-nonce-required" or "use_dpop_nonce" in challenge)
-                bad_proof = status == 401 and slug == "invalid-dpop-proof"
+                    slug == "dpop-nonce-required" or "use_dpop_nonce" in challenge
+                    or said == "use_dpop_nonce")
+                bad_proof = status == 401 and (
+                    slug == "invalid-dpop-proof"
+                    or "invalid_dpop_proof" in (said, _challenge(response)))
 
             if attempts < MAX_RETRIES:
                 # The nonce once: a second challenge is the answer.
@@ -360,15 +378,16 @@ class Transport:
                 continue
 
             # Waited out only where the server said how long and the answer means *later*.
-            # An untyped failure goes by its status: a 429 was not acted on, and a
-            # 5xx may have been, so only a read or a keyed write is repeated.
+            # An untyped failure goes by its status. A 5xx that names a wait is waited
+            # out on any method: every write that is not keyed (an upload grant, a
+            # cancel, a revoke) is safe to repeat.
             untyped = slug is None
             wait = _retry_after(response)
             if wait is not None and waits < MAX_WAITS and (
                     slug == "rate-limited"
                     or (slug == "job-state-conflict" and problem.get("reason") == "in_progress")
                     or (untyped and status == 429)
-                    or (untyped and status >= 500 and (method in ("GET", "HEAD") or keyed))):
+                    or (untyped and status >= 500)):
                 time.sleep(wait)
                 waits += 1
                 continue
@@ -384,7 +403,7 @@ class Transport:
 
             raise ServerProblem(problem, status, help_url=help_url(response),
                                 next_step=self._clock_advice(response)
-                                if slug == "invalid-dpop-proof" else _unknown_challenge(response),
+                                if bad_proof else _unknown_challenge(response),
                                 retry_after=wait)
 
     def renew(self, refused: Optional[str] = None, ended: Optional[str] = None) -> None:
@@ -399,6 +418,7 @@ class Transport:
         with self._renewing:
             if refused is not None and self._access_token == refused:
                 self.set_tokens(None)
+                self._credentials.forget_access(refused)
                 if ended:
                     self._credentials.forget_tokens()
                     self._relogin(ended)
@@ -578,6 +598,11 @@ class Transport:
             if self.access_token is not None:
                 return True
             with self._credentials.transaction():
+                # Another process may have refreshed since: its token is current.
+                stored, left = self._credentials.access_token()
+                if stored is not None and left > 5:
+                    self.set_tokens(stored, int(left))
+                    return True
                 refresh_token = self._credentials.refresh_token
                 if not refresh_token:
                     return False

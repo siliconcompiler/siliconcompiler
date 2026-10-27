@@ -8,8 +8,7 @@ server extra.
 
 from typing import Dict, List, Optional, Set, Tuple
 
-__all__ = ["runtime_nodes", "upstream_nodes", "outputs_present", "node_tools",
-           "inheriting_nodes", "python_nodes"]
+__all__ = ["runtime_nodes", "upstream_nodes", "outputs_present", "node_tools", "python_nodes"]
 
 
 def runtime_nodes(project) -> List[Tuple[str, str]]:
@@ -75,27 +74,6 @@ def node_tools(flow, nodes) -> Dict[Tuple[str, str], Optional[str]]:
             # The job's own image: the safe direction.
             wanted[(step, index)] = None
     return wanted
-
-
-def inheriting_nodes(flow, nodes, edges) -> Dict[Tuple[str, str],
-                                                 Optional[Tuple[str, str]]]:
-    '''Nodes that run wherever their input node ran, and where that is.
-
-    An execute task's command comes from the manifest, so the image that made
-    its inputs is likeliest to run it. The FIRST input: deterministic.
-    '''
-    before: Dict[Tuple[str, str], Tuple[str, str]] = {}
-    for from_step, from_index, to_step, to_index in edges:
-        before.setdefault((to_step, to_index), (from_step, from_index))
-
-    found: Dict[Tuple[str, str], Optional[Tuple[str, str]]] = {}
-    for step, index in nodes:
-        try:
-            if flow.get_task_module(step, index)()._remote_inherits_env:
-                found[(step, index)] = before.get((step, index))
-        except Exception:                                       # noqa: BLE001
-            continue
-    return found
 
 
 def python_nodes(flow, nodes) -> Set[Tuple[str, str]]:

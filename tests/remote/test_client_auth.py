@@ -4,6 +4,9 @@ import base64
 import json
 import os
 import sys
+import time
+
+from pathlib import Path
 
 import pytest
 import requests
@@ -13,6 +16,7 @@ from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProbl
 from siliconcompiler.remote.client import (
     GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE, SCOPES, cli)
 from siliconcompiler.remote.client.credentials import StoreError
+from siliconcompiler.utils.paths import jobdir
 
 from conftest import FakeV1, claims, form, grants, make_authority, mode, posts, problem
 
@@ -83,7 +87,7 @@ def test_a_key_bound_elsewhere_says_the_operator_can_release_it(fake_v1, tmp_cre
 
 def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
         fake_v1, tmp_credentials, capabilities, no_sleep):
-    '''`unsupported_grant_type` says the offer changed: read again, cache nothing.'''
+    '''`unsupported_grant_type` says the offer changed: read again, and keep the new one.'''
     _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS)
     fake_v1.route(responses.GET, "", {**capabilities, "grant_types_supported":
                                       [GRANT_DEVICE_CODE, "refresh_token"]})
@@ -100,7 +104,43 @@ def test_a_refused_grant_reads_the_offer_again_and_the_login_switches(
     Client(tmp_credentials).login()
 
     assert grants(fake_v1) == ["client_credentials", GRANT_DEVICE_CODE]
-    assert "grant_types_supported" not in tmp_credentials.path.read_text()
+    assert tmp_credentials.grants() == [GRANT_DEVICE_CODE, "refresh_token"]
+
+
+def test_the_offer_is_kept_beside_the_credential_and_a_login_reads_it_not_get_v1(
+        fake_v1, tmp_credentials, capabilities, client_credentials):
+    '''Per server URL, so a later login on a stable deployment probes nothing.'''
+    from siliconcompiler.remote import Credentials
+
+    _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    Client(tmp_credentials).login()
+    asked = len([c for c in fake_v1.calls if c.request.path_url == "/v1"])
+
+    later = Credentials(tmp_credentials.path)
+    assert later.grants() == [GRANT_CLIENT_CREDENTIALS]
+    Client(later).login()
+
+    assert len([c for c in fake_v1.calls if c.request.path_url == "/v1"]) == asked
+    assert grants(fake_v1) == [GRANT_CLIENT_CREDENTIALS] * 2
+
+
+@pytest.mark.parametrize("now", [GRANT_CLIENT_CREDENTIALS, GRANT_TOKEN_EXCHANGE])
+def test_a_kept_offer_with_no_login_to_use_is_read_again_once(
+        fake_v1, tmp_credentials, capabilities, client_credentials, now):
+    '''No refusal would ever say it is old, so `GET /v1` is asked once more.'''
+    tmp_credentials.save_grants([GRANT_TOKEN_EXCHANGE])
+    _offer(fake_v1, capabilities, now)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    if now == GRANT_TOKEN_EXCHANGE:
+        with pytest.raises(RemoteError, match="offers no login this client can use"):
+            Client(tmp_credentials).login()
+    else:
+        Client(tmp_credentials).login()
+
+    assert len([c for c in fake_v1.calls if c.request.path_url == "/v1"]) == 1
+    assert tmp_credentials.grants() == [now]
 
 
 def test_the_login_prompt_shows_what_the_approval_page_shows(
@@ -287,16 +327,22 @@ def test_a_header_value_is_checked_and_never_printed(tmp_credentials, fake_v1, c
     assert "very-secret" not in caplog.text
 
 
+@pytest.mark.parametrize("lifetime,presented,kept", [
+    (900, ["r1"], "r2"),
+    (1, ["r1", "r2"], "r3"),
+], ids=["token-still-good", "token-lapsed"])
 def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
-                                                   client_credentials):
-    '''A process that waited for the lock uses what is in the store: a
-    rotated token presented after the grace window ends every session.'''
+                                                   client_credentials, lifetime, presented,
+                                                   kept):
+    '''A process that waited for the lock uses what is in the store -- the access token
+    while it lasts, else the rotated refresh token: one presented after the grace
+    window ends every session.'''
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     first = Client(Credentials(tmp_credentials.path))
     second = Client(Credentials(tmp_credentials.path))
 
     fake_v1.route(responses.POST, "auth/token",
-                  {**client_credentials, "refresh_token": "r2"})
+                  {**client_credentials, "refresh_token": "r2", "expires_in": lifetime})
     fake_v1.route(responses.POST, "auth/token",
                   {**client_credentials, "refresh_token": "r3"})
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
@@ -304,24 +350,34 @@ def test_two_processes_refreshing_keep_the_session(fake_v1, tmp_credentials,
     first.me()
     second.me()
 
-    assert [form(r.body)["refresh_token"] for r in posts(fake_v1)] == ["r1", "r2"]
-    assert Credentials(tmp_credentials.path).refresh_token == "r3"
+    assert [form(r.body)["refresh_token"] for r in posts(fake_v1)] == presented
+    assert Credentials(tmp_credentials.path).refresh_token == kept
 
 
 def test_threads_sharing_a_client_refresh_once(fake_v1, tmp_credentials, client_credentials):
     '''A thread that waited on another's refresh uses the token it got: no second
     refresh and no login, as a remote run's tail threads share one client.'''
     import threading
-    import time
 
     tmp_credentials.save_tokens({"refresh_token": "r1"})
     client = Client(tmp_credentials)
-    inside = threading.Event()
+    inside, waiting = threading.Event(), threading.Event()
+    lock = client.transport._renewing
+
+    class Watched:
+        def __enter__(self):
+            if not lock.acquire(blocking=False):
+                waiting.set()
+                lock.acquire()
+
+        def __exit__(self, *exc):
+            lock.release()
+    client.transport._renewing = Watched()
 
     def refreshed(request):
         inside.set()
-        # The second thread asks while this refresh is still in flight.
-        time.sleep(0.5)
+        # Answered only once the second thread waits on this refresh.
+        assert waiting.wait(5)
         return 200, {}, json.dumps({**client_credentials, "refresh_token": "r2"})
 
     fake_v1._mock.add_callback(responses.POST, fake_v1.url("auth/token"), callback=refreshed,
@@ -402,12 +458,39 @@ def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, m
     assert command[4].endswith(":(OI)(CI)F")
 
 
-def test_the_auth_dir_can_be_moved(monkeypatch, tmp_path):
+def test_the_auth_dir_can_be_moved_and_leaves_an_older_clients_file_alone(
+        monkeypatch, tmp_path, settings):
+    '''A moved store is often a runner's scratch, emptied after the job.'''
+    from siliconcompiler.remote.client.credentials import UPLOADS
+
+    home = _legacy_home(tmp_path)
     monkeypatch.setenv("SC_AUTH_DIR", str(tmp_path / "elsewhere"))
-    creds = Credentials(tmp_path / "home" / "credentials")
+    creds = Credentials(home / "credentials")
     creds.key()
 
     assert creds.key_path.parent == tmp_path / "elsewhere"
+    assert (creds.server, UPLOADS.get()) == (None, [])
+    assert (home / "credentials").exists()
+
+
+def test_a_key_another_process_wrote_first_is_the_one_kept(monkeypatch, tmp_path):
+    '''The key is written under the store's lock, after looking again.'''
+    from siliconcompiler.remote import dpop
+
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    creds = Credentials(tmp_path / "auth" / "remote.json")
+    theirs = dpop.serialize_key(dpop.generate_key())
+    locked = creds.transaction
+
+    def first_in():
+        creds.key_path.write_bytes(theirs)
+        return locked()
+    monkeypatch.setattr(creds, "transaction", first_in)
+
+    creds.key()
+
+    assert creds.key_path.read_bytes() == theirs
+    assert creds.thumbprint == dpop.jwk_thumbprint(dpop.public_jwk(dpop.load_key(theirs)))
 
 
 def _store_file(credentials):
@@ -416,16 +499,22 @@ def _store_file(credentials):
 
 def test_the_store_is_one_versioned_file_of_two_categories(
         fake_v1, tmp_credentials, client_credentials):
-    '''No access token, scope, login mode, grant list or key kept in it.'''
+    '''The access token and its expiry beside the refresh token and the grants the server
+    offers; no scope, login mode or key kept in it.'''
     fake_v1.route(responses.POST, "auth/token", client_credentials)
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
     Client(tmp_credentials).me()
     tmp_credentials.set_header("CF-Access-Client-Id", "id")
 
-    assert _store_file(tmp_credentials) == {
+    written = _store_file(tmp_credentials)
+    expires = written["servers"]["https://sc-server.test/v1"].pop("access_expires_at")
+    assert 0 < expires - time.time() <= client_credentials["expires_in"]
+    assert written == {
         "store": {"version": 1, "server": "https://sc-server.test/v1"},
         "servers": {"https://sc-server.test/v1": {
             "user_id": "u1", "refresh_token": "refresh-token-one",
+            "access_token": "access-token-one",
+            "grant_types_supported": ["client_credentials", "refresh_token"],
             "headers": {"CF-Access-Client-Id": "id"}}}}
     assert tmp_credentials.path == tmp_credentials.auth_dir / "remote.json"
     assert sorted(entry.name for entry in tmp_credentials.auth_dir.iterdir()) == \
@@ -457,7 +546,9 @@ def test_a_ci_credential_takes_the_place_of_a_refresh_token(tmp_credentials, ci_
 def test_rotating_the_key_ends_each_session_and_keeps_the_rest(
         tmp_credentials, ci_secret, monkeypatch):
     monkeypatch.delenv("SC_CI_CREDENTIAL")
-    tmp_credentials.save_tokens({"refresh_token": "r1"})
+    tmp_credentials.save_tokens({"refresh_token": "r1", "access_token": "a1",
+                                 "expires_in": 900})
+    assert tmp_credentials.access_token()[0] == "a1"
     tmp_credentials.set_user_id("u1")
     tmp_credentials.set_header("X-Edge", "v")
     tmp_credentials.set_server("https://ci.test")
@@ -470,6 +561,25 @@ def test_rotating_the_key_ends_each_session_and_keeps_the_rest(
     assert servers["https://sc-server.test/v1"] == {"user_id": "u1", "headers": {"X-Edge": "v"}}
     assert servers["https://ci.test/v1"] == {"ci_credential": ci_secret}
     assert tmp_credentials.thumbprint != before
+
+
+def test_a_stored_access_token_is_dropped_only_where_it_is_the_refused_one(
+        tmp_credentials, monkeypatch):
+    '''A token another process stored since stays; one past its life reads as none.'''
+    tmp_credentials.save_tokens({"refresh_token": "r1", "access_token": "a1",
+                                 "expires_in": 900})
+
+    tmp_credentials.forget_access("another")
+    assert tmp_credentials.access_token()[0] == "a1"
+    tmp_credentials.forget_access("a1")
+    assert tmp_credentials.access_token() == (None, 0.0)
+    assert tmp_credentials.refresh_token == "r1"
+
+    tmp_credentials.save_tokens({"refresh_token": "r1", "access_token": "a2",
+                                 "expires_in": 900})
+    later = time.time() + 901
+    monkeypatch.setattr("siliconcompiler.remote.client.credentials.time.time", lambda: later)
+    assert tmp_credentials.access_token() == (None, 0.0)
 
 
 def _legacy_home(tmp_path):
@@ -563,24 +673,18 @@ def test_a_denied_device_login_says_why(fake_v1, tmp_credentials, device, no_sle
     assert said in str(raised.value)
 
 
-@pytest.mark.parametrize("grant", ["client_credentials", "device"])
-def test_the_display_name_is_the_username(request, fake_v1, tmp_credentials,
-                                          client_credentials, no_sleep, grant):
-    '''`display_name` is the bare username; a device's label also names its host.'''
+def test_a_device_label_is_the_username_at_this_host(fake_v1, tmp_credentials,
+                                                     client_credentials, no_sleep, device):
     import getpass
     import platform
 
-    if grant == "device":
-        request.getfixturevalue("device")()
+    device()
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     Client(tmp_credentials).login()
 
-    if grant == "device":
-        sent = form(posts(fake_v1, "auth/device")[0].body)
-        assert sent["device_label"] == f"{getpass.getuser()}@{platform.node()}"
-    else:
-        assert form(posts(fake_v1)[0].body)["display_name"] == getpass.getuser()
+    sent = form(posts(fake_v1, "auth/device")[0].body)
+    assert sent["device_label"] == f"{getpass.getuser()}@{platform.node()}"
 
 
 @pytest.mark.parametrize("ci,scope,level", [
@@ -623,12 +727,13 @@ def exchange(fake_v1, capabilities, ci_secret):
 @pytest.mark.parametrize("offered", [None, (GRANT_DEVICE_CODE,)],
                          ids=["exchange-offered", "device-only"])
 def test_a_ci_key_trades_first_and_never_prints_a_code(
-        fake_v1, capabilities, tmp_credentials, exchange, capsys, offered):
+        fake_v1, capabilities, tmp_credentials, exchange, caplog, offered):
     '''Token exchange first whatever is offered, never a
     `user_code` in a CI log, and no refresh token kept.'''
     exchange()
     if offered:
         _offer(fake_v1, capabilities, *offered)
+    caplog.set_level("INFO")
 
     Client(tmp_credentials).login()
 
@@ -642,7 +747,7 @@ def test_a_ci_key_trades_first_and_never_prints_a_code(
     assert assertion["cnf"]["jkt"] == tmp_credentials.thumbprint
     assert assertion["iss"] == assertion["sub"] == "01J9credential"
     assert tmp_credentials.refresh_token is None
-    assert "code" not in capsys.readouterr().out.lower()
+    assert "enter the code" not in caplog.text
 
 
 def test_a_ci_session_trades_again_for_each_access_token(fake_v1, tmp_credentials,
@@ -674,38 +779,36 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
 
 
 @pytest.mark.parametrize("entry", ["login", "renew"])
-def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
-        fake_v1, capabilities, tmp_credentials, ci_secret, capsys, entry):
-    '''Never falling back to a refresh, `client_credentials` or the device grant,
-    though this machine and deployment have all three, whether a login or a command asked.'''
+@pytest.mark.parametrize("offered", [
+    (GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, "refresh_token"), (GRANT_TOKEN_EXCHANGE,),
+], ids=["others", "exchange"])
+def test_a_refused_ci_trade_reads_the_grants_once_and_never_falls_back(
+        fake_v1, capabilities, tmp_credentials, ci_secret, caplog, entry, offered):
+    '''It trades again where `GET /v1` now offers token exchange, and otherwise fails:
+    never a refresh, `client_credentials` or the device grant, though this machine
+    and deployment have all three, whether a login or a command asked.'''
     tmp_credentials.save_tokens({"refresh_token": "an-interactive-session"})
-    _offer(fake_v1, capabilities, GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE,
-           "refresh_token")
+    _offer(fake_v1, capabilities, *offered)
     fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
                   status=400)
+    trades = GRANT_TOKEN_EXCHANGE in offered
+    if trades:
+        fake_v1.route(responses.POST, "auth/token",
+                      {"access_token": "ci", "token_type": "DPoP", "expires_in": 900})
+    caplog.set_level("INFO")
+    client = Client(tmp_credentials)
 
-    with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
-        client = Client(tmp_credentials)
+    if trades:
         (client.login if entry == "login" else client.transport.renew)()
+    else:
+        with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
+            (client.login if entry == "login" else client.transport.renew)()
 
-    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
+    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE] * (2 if trades else 1)
     assert not posts(fake_v1, "auth/device")
     assert len([c for c in fake_v1.calls if c.request.method == "GET"
                 and c.request.url.rstrip("/").endswith("/v1")]) == 1
-    assert "code" not in capsys.readouterr().out.lower()
-
-
-def test_a_ci_key_trades_after_the_grants_say_it_now_can(
-        fake_v1, capabilities, tmp_credentials, ci_secret):
-    _offer(fake_v1, capabilities, GRANT_TOKEN_EXCHANGE)
-    fake_v1.route(responses.POST, "auth/token", {"error": "unsupported_grant_type"},
-                  status=400)
-    fake_v1.route(responses.POST, "auth/token",
-                  {"access_token": "ci", "token_type": "DPoP", "expires_in": 900})
-
-    Client(tmp_credentials).login()
-
-    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
+    assert "enter the code" not in caplog.text
 
 
 def test_a_trade_refused_for_the_clock_is_minted_again_on_the_corrected_one(
@@ -1056,6 +1159,22 @@ def test_an_authority_is_trusted_beside_the_usual_ones(monkeypatch):
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(authority))
     assert session.merge_environment_settings(
         client.base_url, {}, None, None, None)["verify"] == str(authority)
+
+
+@posix_only
+def test_a_store_that_cannot_be_used_fails_a_remote_run_with_its_reason(
+        monkeypatch, tmp_path, nop_project):
+    '''`project.run()` reports it as a failed run, with no backtrace in the job log.'''
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    (tmp_path / "auth").mkdir()
+    os.chmod(tmp_path / "auth", 0o755)
+    nop_project.option.set_credentials(str(tmp_path / "auth" / "remote.json"))
+    nop_project.option.set_remote(True)
+
+    with pytest.raises(RuntimeError, match="^Run failed: .*readable by others"):
+        nop_project.run()
+
+    assert "Backtrace:" not in Path(jobdir(nop_project), "job.log").read_text()
 
 
 @posix_only

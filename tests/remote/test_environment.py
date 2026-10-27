@@ -1,4 +1,3 @@
-import importlib.metadata
 import os
 import zipfile
 
@@ -7,11 +6,7 @@ import pytest
 from siliconcompiler.remote import environment
 
 
-# A job's Python packages: the lists, held to one grammar at both ends, and the
-# uploaded wheels, held to what an upload may carry -- installed while staging.
-
-HELD = importlib.metadata.version("packaging")
-
+# A job's uploaded wheels, held to what an upload may carry -- installed while staging.
 
 def make_wheel(where, name, version, requires=(), files=None, tag="py3-none-any",
                wheel_tags=None, purelib=True):
@@ -33,62 +28,6 @@ def make_wheel(where, name, version, requires=(), files=None, tag="py3-none-any"
         for member, body in members.items():
             archive.writestr(member, body)
     return path
-
-
-def test_what_the_lists_take_and_how_the_builder_writes_them():
-    packages = environment.parse({"requirements": ["numpy==1.26.4", "pyuvm==3.0.0"],
-                                  "constraints": ["scapy==2.5.0", "cocotbext-eth==0.1.28"]})
-
-    assert [str(pin) for pin in packages.requirements] == ["numpy==1.26.4", "pyuvm==3.0.0"]
-    assert [str(pin) for pin in packages.constraints] == \
-        ["scapy==2.5.0", "cocotbext-eth==0.1.28"]
-    assert packages.names() == {"numpy", "pyuvm", "scapy", "cocotbext-eth"}
-    assert environment.parse({}) == environment.Packages()
-    # Every PEP 440 form in its canonical spelling.
-    for version in ("2!1.0", "1.0rc1", "1.0.post2", "1.0.dev3", "2.1.0+cpu.1"):
-        assert environment.parse_entry(f"x=={version}").version == version
-    # Nothing the job wrote is handed to pip: the builder writes canonical names.
-    assert environment.render(environment.parse({"requirements": ["PyUVM==3.0.0"]})
-                              .requirements, header="here") == "# here\npyuvm==3.0.0\n"
-
-
-@pytest.mark.parametrize("entry", [
-    "numpy>=1.26",                              # a range
-    "numpy==1.26.*",                            # a wildcard
-    "numpy[extra]==1.26.4",                     # extras
-    "numpy==1.26.4; python_version>'3'",        # a marker
-    "numpy == 1.26.4",                          # whitespace
-    "numpy===1.26.4",                           # arbitrary equality
-    "numpy==v1.26.4",                           # not canonical
-    "numpy==1.0-rc1",                           # not canonical
-    "git+https://github.com/x/y",               # a VCS URL
-    "./local",                                  # a path
-    "-e .",                                     # an option
-    "--index-url https://pkgs.example.com/",    # an index
-    "",
-    "numpy",
-    7,
-])
-def test_everything_else_is_refused_naming_the_entry(entry):
-    with pytest.raises(environment.PackagesError) as refused:
-        environment.parse({"requirements": ["ok==1.0", entry]})
-
-    assert refused.value.entry is not None
-
-
-def test_the_bounds_and_each_name_once_across_both_lists_as_pep_503_sees_it():
-    with pytest.raises(environment.PackagesError, match="named twice") as refused:
-        environment.parse({"requirements": ["Foo_Bar==1.0"], "constraints": ["foo-bar==2.0"]})
-    assert refused.value.entry == "foo-bar==2.0"
-    with pytest.raises(environment.PackagesError, match="1001 entries"):
-        environment.parse({"constraints": [f"p{n}==1.0" for n in range(1001)]})
-    long = "x" * 100
-    with pytest.raises(environment.PackagesError, match="bytes"):
-        environment.parse({"constraints": [f"{long}{n}==1.0" for n in range(700)]})
-    with pytest.raises(environment.PackagesError, match="no member 'extras'"):
-        environment.parse({"requirements": [], "extras": []})
-    with pytest.raises(environment.PackagesError, match="is an object"):
-        environment.parse(["numpy==1.0"])
 
 
 def test_a_pure_wheel_is_taken(tmp_path):

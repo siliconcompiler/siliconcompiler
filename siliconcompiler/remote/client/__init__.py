@@ -139,26 +139,45 @@ class Client:
             offered = self._grant_types()
             self.transport.check_plaintext()
             mode = self._choose(offered, tried)
+            if mode is None and not tried and self.credentials.grants() is not None:
+                # What was kept may be old, and no refusal will say so: ask again, once.
+                self._grants_were_stale()
+                offered = self._grant_types()
+                mode = self._choose(offered, tried)
+            if mode is None:
+                raise RemoteError(
+                    f"{self.base_url} offers no login this client can use "
+                    f"(it offers {', '.join(offered) or 'none'})")
             try:
                 body = self._login_with(mode)
             except OAuthRefusal as e:
                 if e.error != "unsupported_grant_type":
                     raise self._refused(e) from None
                 tried.add(mode)
-                self.transport.forget_published()
+                self._grants_were_stale()
             else:
                 return self._granted(body)
 
     def _grant_types(self) -> List[str]:
-        '''What `GET /v1` offers.'''
-        return list(self.capabilities().get("grant_types_supported") or [])
+        '''What this server offers, as kept beside its credential, else what `GET /v1` says.'''
+        kept = self.credentials.grants()
+        if kept is not None:
+            return kept
+        offered = list(self.capabilities().get("grant_types_supported") or [])
+        self.credentials.save_grants(offered)
+        return offered
+
+    def _grants_were_stale(self) -> None:
+        '''`unsupported_grant_type` says the kept answer is old: drop it, and `GET /v1`.'''
+        self.credentials.save_grants(None)
+        self.transport.forget_published()
 
     def _ci_login(self) -> Dict[str, Any]:
         '''Token exchange for a CI key, retried once if `GET /v1` offers it after
         `unsupported_grant_type`. Never falls back to another grant.'''
         for reread in (False, True):
             if reread:
-                self.transport.forget_published()
+                self._grants_were_stale()
                 if GRANT_TOKEN_EXCHANGE not in self._grant_types():
                     break
             try:
@@ -171,16 +190,16 @@ class Client:
             "offers no token exchange. Run this job against a deployment that does, "
             "or without the CI credential")
 
-    def _choose(self, offered, tried) -> str:
-        '''`client_credentials` first, needing no person, then the device grant.'''
+    @staticmethod
+    def _choose(offered, tried) -> Optional[str]:
+        '''`client_credentials` first, needing no person, then the device grant;
+        None where neither is left.'''
         candidates = [grant for grant in offered if grant not in tried]
         if GRANT_CLIENT_CREDENTIALS in candidates:
             return GRANT_CLIENT_CREDENTIALS
         if GRANT_DEVICE_CODE in candidates:
             return GRANT_DEVICE_CODE
-        raise RemoteError(
-            f"{self.base_url} offers no login this client can use "
-            f"(it offers {', '.join(offered) or 'none'})")
+        return None
 
     def _login_with(self, mode: str) -> Dict[str, Any]:
         if mode == GRANT_CLIENT_CREDENTIALS:
@@ -443,7 +462,8 @@ class Client:
         '''Open a URL a person must act on: `https`, or `http` where nobody is authenticated.'''
         scheme = urlsplit(url or "").scheme
         if scheme != "https" and not (scheme == "http" and self._unauthenticated()):
-            self.logger.warning(f"Not opening {what}: {clean(url)} is not an https URL")
+            # Without the URL: a sign-in link is a bearer secret, and is printed only by `_show`.
+            self.logger.warning(f"Not opening {what}: its URL is not an https URL")
             return False
         if not BROWSER.get() or (require_tty and not sys.stdout.isatty()):
             return False
@@ -672,10 +692,6 @@ class Client:
             raise
 
         return response.json(), _retry_after(response)
-
-    def jobs(self, **filters) -> list:
-        '''``GET /v1/jobs``, following ``Link`` to the end.'''
-        return self._pages("jobs", _filters(filters))
 
     def cancel_job(self, job_id: str, reason: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/cancel``. Idempotent. ``reason`` is what the job
@@ -939,7 +955,7 @@ class Client:
         return self._show(answer, what, require_tty=require_tty)
 
     def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True) -> bool:
-        '''Open the page endpoint 6 answered, and print it where it may be.
+        '''Open the page `POST /v1/auth/browser` answered, and print it where it may be.
 
         A non-null `expires_at` marks a single-use sign-in, a bearer secret:
         printed only where no browser opened, to the terminal, never a log.
@@ -968,7 +984,7 @@ class Client:
         '''`sc-config remote portal`: the portal's home, signed in as this machine.
 
         A cold browser cannot present this machine's key-bound identity, so
-        endpoint 6 answers a sign-in. Asked for on purpose: a refusal fails.
+        `POST /v1/auth/browser` answers a sign-in. Asked for on purpose: a refusal fails.
         '''
         return self._show(self.browser_page(), "the portal", require_tty=False)
 

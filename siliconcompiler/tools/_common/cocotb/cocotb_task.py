@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Tuple, Union, Dict
+from typing import Dict, List, Optional, Tuple, Union
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
@@ -156,36 +156,18 @@ class CocotbTask(Task):
         Returns:
             PythonEnvironment: the test modules, and cocotb as the framework's.
         """
-        sources = tuple(str(pyfile) for lib, fileset in self.project.get_filesets()
-                        for pyfile in lib.get_file(fileset=fileset, filetype="python"))
-        return PythonEnvironment(sources=sources, framework=self.framework_distributions())
+        return PythonEnvironment(sources=tuple(self._get_test_files()),
+                                 framework=self.framework_distributions())
 
-    def _get_test_modules(self):
+    def _get_test_files(self) -> List[str]:
         """
-        Get cocotb test module names from Python files in filesets.
+        Get the cocotb test modules' files from Python files in filesets.
 
         Returns:
-            tuple: (module_names, module_dirs) where module_names is a
-                   comma-separated string and module_dirs is a list of
-                   directories containing the modules.
+            list: the resolved path of each test module.
         """
-        module_names = []
-        module_dirs = []
-        seen_dirs = set()
-
-        for lib, fileset in self.project.get_filesets():
-            for pyfile in lib.get_file(fileset=fileset, filetype="python"):
-                path = Path(pyfile)
-                # Module name is the filename without .py extension
-                module_name = path.stem
-                module_names.append(module_name)
-                # Track the directory for PYTHONPATH
-                dir_path = str(path.parent.resolve())
-                if dir_path not in seen_dirs:
-                    seen_dirs.add(dir_path)
-                    module_dirs.append(dir_path)
-
-        return ",".join(module_names), module_dirs
+        return [str(pyfile) for lib, fileset in self.project.get_filesets()
+                for pyfile in lib.get_file(fileset=fileset, filetype="python")]
 
     def _get_libdirs(self):
         """
@@ -309,8 +291,9 @@ class CocotbTask(Task):
 
         python_path = [p for p in envs.get("PYTHONPATH", "").split(os.pathsep) if p]
 
-        # Get test module directories
-        _, module_dirs = self._get_test_modules()
+        # Get test module directories, each once
+        module_dirs = list(dict.fromkeys(
+            str(Path(pyfile).parent.resolve()) for pyfile in self._get_test_files()))
         # Get lib directories
         user_lib_dirs = self._get_libdirs()
 

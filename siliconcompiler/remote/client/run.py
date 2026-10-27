@@ -35,7 +35,7 @@ from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.remote import environment, links, manifests, owners
-from siliconcompiler.remote.client import capture, wheels
+from siliconcompiler.remote.client import capture, preflight, wheels
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, _NEXT_STEP, _slug, blocked_lines, clean,
     describe)
@@ -170,6 +170,13 @@ class RemoteRun:
         self._check_project()
         reads = self._reads = self._read()
         self._check_unfed(reads.worked.unfed)
+        try:
+            return self._create_and_send(reads)
+        finally:
+            # Built before create, so dropped however create or the upload ends.
+            self._drop_wheels()
+
+    def _create_and_send(self, reads: _Reads) -> str:
         plan = self._plan(reads)
         self._member = plan.member
         self._check_account(plan.built)
@@ -215,8 +222,6 @@ class RemoteRun:
         except BaseException as e:
             self._abandon(job_id, e)
             raise
-        finally:
-            self._drop_wheels()
 
         self.logger.info("Job submitted")
         return job_id
@@ -508,14 +513,29 @@ class RemoteRun:
         worked = reads.worked
         self._check_worked_out(worked.failed)
         pins = self._python_pins(reads)
-        member, built, helpers = self._python_packages(reads, pins)
         versions = {"python": pins, "tools": self._tool_requirements(worked.tasks)}
         if worked.environments:
             # This Python, only for a job running the user's own Python.
             versions["interpreter"] = {"python": [
                 f"=={sys.version_info[0]}.{sys.version_info[1]}.*"]}
+        self._warn_unmet(versions)
+        member, built, helpers = self._python_packages(reads, pins)
         return _Plan(self.project.get_flow().name, len(runtime_nodes(self.project)),
                      versions, sources, member, built, helpers)
+
+    def _warn_unmet(self, versions: Dict[str, Any]) -> None:
+        '''Say which of `requested_versions` `GET /v1`'s `software` lists at other
+        versions. Only said: the job is still submitted, and create decides.'''
+        try:
+            software = self.client.capabilities().get("software")
+        except RemoteError:
+            return
+        lines = preflight.unmet(software, versions)
+        if lines:
+            self.logger.warning(
+                "This server lists other versions than this job asks for; it is "
+                "submitted, and the server decides whether it can run it:\n"
+                + "\n".join(f"  {line}" for line in lines))
 
     def _python_pins(self, reads: _Reads) -> Dict[str, List[str]]:
         '''`requested_versions.python`: siliconcompiler,
@@ -621,7 +641,6 @@ class RemoteRun:
                 try:
                     path = wheels.build(dist, self._wheel_dir, warn=self.logger.warning)
                 except capture.CannotForward as e:
-                    self._drop_wheels()
                     raise RemoteError(str(e)) from None
                 built[os.path.basename(path)] = path
 
@@ -715,7 +734,9 @@ class RemoteRun:
             with tarfile.open(upload, mode="w:gz") as tar:
                 tar.add(sent, arcname=manifest)
                 needed = self._needed_from(root)
-                outputs = _LinkPacker(tar, root, needed, self.logger, replaced=replaced)
+                # It walks the whole job directory, so only where upstream outputs go up.
+                outputs = _LinkPacker(tar, root, needed, self.logger, replaced=replaced) \
+                    if packed else None
                 for name in needed:
                     if name in packed:
                         outputs.add(name)

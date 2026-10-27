@@ -39,10 +39,8 @@ The table says whether a value MAY go up; the flow says whether it is NEEDED
 
 import functools
 import os
-import re
 
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
-from urllib.parse import urlsplit
 
 from siliconcompiler.remote.environment import canonical
 
@@ -50,7 +48,7 @@ __all__ = ["DESIGN", "PROJECT", "LOCAL", "EDITABLE", "INSTALLED",
            "REMOTE", "PRIVATE", "is_private", "owner", "source", "walk", "sources",
            "dataroot_keypath", "is_dataroot_keypath", "shown",
            "Unnamed",
-           "safe_source", "masked", "is_masked", "has_userinfo",
+           "safe_source", "masked",
            "upload_report", "required",
            "needed", "work_out", "with_required", "WorkedOut", "distributions_of",
            "module_distributions", "supplied_distributions", "not_sent_roots",
@@ -201,23 +199,6 @@ def masked(url: Optional[str]) -> str:
     from siliconcompiler.package import Resolver
 
     return Resolver._masked_uri(url or "", show_userinfo=False)
-
-
-def is_masked(url: Optional[str]) -> bool:
-    '''Whether a source carries a masked query value (``?token=***`` or ``?***``).'''
-    if not url:
-        return False
-    query = urlsplit(url).query
-    return any(field.partition("=")[2] == "***" or field == "***"
-               for field in re.split(r"[&;]", query) if field)
-
-
-def has_userinfo(url: Optional[str]) -> bool:
-    '''Whether a URL carries userinfo, read as `Resolver._masked_uri` does, so
-    what a client strips and a server refuses agree.'''
-    if not url or not isinstance(url, str):
-        return False
-    return "@" in urlsplit(url).netloc
 
 
 class _Value(NamedTuple):

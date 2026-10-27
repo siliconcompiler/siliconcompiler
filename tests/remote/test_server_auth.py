@@ -129,7 +129,7 @@ def test_me_says_who_and_what_session(server_client, key, token):
 
     assert body["issuer"] == "local"
     assert body["can_submit"] is True
-    assert body["limits"]["max_download_bytes"] == 100 << 20
+    assert "max_download_bytes" not in body["limits"]
     assert body["session"]["kind"] == "interactive"
     for member in ("access_expires_at", "refresh_expires_at", "session_expires_at"):
         assert body["session"][member].endswith("Z")

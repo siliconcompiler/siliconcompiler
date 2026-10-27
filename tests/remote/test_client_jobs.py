@@ -11,7 +11,7 @@ from siliconcompiler.remote.client.run import RemoteRun, node_status
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from conftest import (
-    job_body, node_body, problem, put_body, refused, route_created, route_granted,
+    creates, job_body, node_body, problem, put_body, refused, route_created, route_granted,
     route_submitted, routes_for_a_submit)
 
 
@@ -220,10 +220,13 @@ def test_the_loop_ends_on_terminal_and_not_on_the_name(fake_v1, run, no_sleep):
     assert len([c for c in fake_v1.calls if c.request.method == "GET"]) >= 2
 
 
-@pytest.mark.parametrize("retry_after,paced", [("17", 17), ("0", 1), ("soon", None)])
+@pytest.mark.parametrize("retry_after,paced", [
+    ("17", 17), ("0", 1), ("0.25", 1), ("600", 600), ("Wed, 21 Oct 2015 07:28:00 GMT", 1),
+    ("soon", None),
+], ids=["seconds", "zero", "fraction", "long", "past-date", "unreadable"])
 def test_the_server_sets_the_pace(fake_v1, run, no_sleep, retry_after, paced):
-    '''`Retry-After` per response, never below a second; an unreadable one
-    is not a failed poll.'''
+    '''`Retry-After` per response, seconds or a date, never below a second and never
+    cut short; an unreadable one is not a failed poll.'''
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("running"),
                   headers={"Retry-After": retry_after})
     fake_v1.route(responses.GET, "jobs/01J9-job", job_body("completed"))
@@ -357,25 +360,30 @@ def test_a_job_page_is_asked_for_only_where_somebody_watches(fake_v1, run, opene
     assert not opened
 
 
+ARTIFACTS = "jobs/01J9-job/artifacts"
+
+
 @pytest.mark.parametrize("link", [
-    "</v1/jobs?limit=1&cursor=abc&kept=1>; rel=next",
-    '</v1/jobs?cursor=zzz>; rel="prev", </v1/jobs?limit=1&cursor=abc&kept=1>; rel="next"',
-    '<https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1>; title="a, b"; rel="next last"',
-    "</v1/jobs?limit=1&cursor=abc&kept=1>; REL=Next",
+    f"</v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; rel=next",
+    f'</v1/{ARTIFACTS}?cursor=zzz>; rel="prev", </v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; '
+    'rel="next"',
+    f'<https://sc-server.test/v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; title="a, b"; '
+    'rel="next last"',
+    f"</v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; REL=Next",
 ], ids=["unquoted", "second", "absolute", "case"])
 def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
     '''RFC 8288: the `rel="next"` URL requested unchanged,
     never this request rebuilt around a cursor.'''
     from urllib.parse import urlsplit
 
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]},
-                  headers={"Link": link})
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a1"}]}, headers={"Link": link})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a2"}]})
 
-    assert len(logged_in.jobs(archived=True)) == 2
+    assert len(logged_in.artifacts("01J9-job", kind="node")) == 2
 
-    pages = [c.request.url for c in fake_v1.calls if urlsplit(c.request.url).path == "/v1/jobs"]
-    assert pages[-1] == "https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1"
+    pages = [c.request.url for c in fake_v1.calls
+             if urlsplit(c.request.url).path == f"/v1/{ARTIFACTS}"]
+    assert pages[-1] == f"https://sc-server.test/v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1"
 
 
 @pytest.mark.parametrize("again", [False, True], ids=["restarted", "twice"])
@@ -383,27 +391,28 @@ def test_a_cursor_the_server_no_longer_takes_restarts_the_listing_once(
         fake_v1, logged_in, again):
     '''`invalid-cursor` starts the listing again from its first page, keeping
     nothing from before; a second one is the answer.'''
-    first = {"headers": {"Link": '</v1/jobs?cursor=stale>; rel="next"'}}
+    first = {"headers": {"Link": f'</v1/{ARTIFACTS}?cursor=stale>; rel="next"'}}
     stale = {"status": 400, "content_type": "application/problem+json"}
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]}, **first)
-    fake_v1.route(responses.GET, "jobs", problem("invalid-cursor", 400), **stale)
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]}, **first)
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a1"}]}, **first)
+    fake_v1.route(responses.GET, ARTIFACTS, problem("invalid-cursor", 400), **stale)
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a1"}]}, **first)
     if again:
-        fake_v1.route(responses.GET, "jobs", problem("invalid-cursor", 400), **stale)
+        fake_v1.route(responses.GET, ARTIFACTS, problem("invalid-cursor", 400), **stale)
         with pytest.raises(ServerProblem):
-            logged_in.jobs()
+            logged_in.artifacts("01J9-job")
     else:
-        fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
-        assert [job["state"] for job in logged_in.jobs()] == ["completed", "failed"]
+        fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a2"}]})
+        assert [item["id"] for item in logged_in.artifacts("01J9-job")] == ["a1", "a2"]
 
 
 def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
     '''The request carries this session.'''
-    fake_v1.route(responses.GET, "jobs", {"items": []},
-                  headers={"Link": '<https://elsewhere.test/v1/jobs?cursor=a>; rel="next"'})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": []},
+                  headers={"Link": f'<https://elsewhere.test/v1/{ARTIFACTS}?cursor=a>; '
+                                   'rel="next"'})
 
     with pytest.raises(RemoteError, match="another origin"):
-        logged_in.jobs()
+        logged_in.artifacts("01J9-job")
 
     assert not [c for c in fake_v1.calls if "elsewhere" in c.request.url]
 
@@ -412,15 +421,15 @@ def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
     '''`true` or `false`, never Python's `True`.'''
     from urllib.parse import parse_qs, urlsplit
 
-    fake_v1.route(responses.GET, "jobs", {"items": []})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": []})
 
-    logged_in.jobs(archived=True, terminal=False)
-    logged_in.jobs(archived=[True, False])
+    logged_in.artifacts("01J9-job", fetchable=True, deleted=False)
+    logged_in.artifacts("01J9-job", fetchable=[True, False])
 
-    first, second = [parse_qs(urlsplit(call.request.url).query)
-                     for call in fake_v1.calls if urlsplit(call.request.url).path == "/v1/jobs"]
-    assert (first["archived"], first["terminal"]) == (["true"], ["false"])
-    assert second["archived"] == ["true", "false"]
+    first, second = [parse_qs(urlsplit(call.request.url).query) for call in fake_v1.calls
+                     if urlsplit(call.request.url).path == f"/v1/{ARTIFACTS}"]
+    assert (first["fetchable"], first["deleted"]) == (["true"], ["false"])
+    assert second["fetchable"] == ["true", "false"]
 
 
 @pytest.mark.parametrize("slug,status,said", [("not-found", 404, "not one you are a member of"),
@@ -484,6 +493,7 @@ def _problem(method, path, slug, status, headers=None, **members):
 
 GET, POST = responses.GET, responses.POST
 JOB = "jobs/01J9-job"
+GRANT = "jobs/01J9-job/upload-grant"
 HTML = "<html><body><h1>502 Bad Gateway</h1></body></html>"
 DONE = _answer(GET, JOB, job_body("completed"))
 
@@ -518,6 +528,24 @@ DONE = _answer(GET, JOB, job_body("completed"))
     pytest.param(dict(call="job", queue=[_answer(GET, JOB, "<html>later</html>", 404,
                                                  "text/html")],
                       outcome="ServerProblem", status=404, slept=[]), id="html-404-answered"),
+    # A type outside the registry is untyped: a wait is honoured only where it is named.
+    pytest.param(dict(call="job", queue=[_problem(GET, JOB, "brand-new-limit", 429,
+                                                  {"Retry-After": "2"}), DONE],
+                      slept=[2.0]), id="unknown-type-429-waited"),
+    pytest.param(dict(call="job", queue=[_problem(GET, JOB, "brand-new-outage", 503,
+                                                  {"Retry-After": "2"}), DONE],
+                      slept=[2.0]), id="unknown-type-5xx-waited"),
+    pytest.param(dict(call="job", queue=[_problem(GET, JOB, "brand-new-limit", 429)],
+                      outcome="ServerProblem", status=429, slept=[]),
+                 id="unknown-type-429-no-wait-named"),
+    # Not keyed, but repeating it is safe: a wait the 5xx names is honoured.
+    pytest.param(dict(call="grant", queue=[
+        _answer(POST, GRANT, HTML, 503, "text/html", {"Retry-After": "3"}),
+        _answer(POST, GRANT, {"url": "https://storage.test/put", "headers": {}})],
+        slept=[3.0], asked=("/v1/" + GRANT, 2)), id="unkeyed-post-5xx-waited"),
+    pytest.param(dict(call="grant", queue=[_answer(POST, GRANT, HTML, 503, "text/html")],
+                      outcome="ServerProblem", status=503, slept=[],
+                      asked=("/v1/" + GRANT, 1)), id="unkeyed-post-5xx-no-wait-named"),
     # A keyed create replays, so a 5xx or a dropped connection is retried with its key.
     pytest.param(dict(call="create", queue=[_answer(POST, "jobs", HTML, 502, "text/html")],
                       outcome="ServerProblem", status=502, said=["502"],
@@ -573,6 +601,7 @@ def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
     call = {"me": client.me, "create": lambda: client.create_job("gcd", "job0"),
             "artifact": lambda: client.fetch_artifact("J", "A", "a.bin"),
             "job": lambda: client.job("01J9-job")[0]["state"],
+            "grant": lambda: client.upload_grant("01J9-job", 1, "sha256:" + "0" * 64),
             "poll": lambda: run._poll("01J9-job")}[case["call"]]
 
     with caplog.at_level("WARNING"):
@@ -602,7 +631,7 @@ def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
         path, count = case["asked"]
         sent = [c.request for c in fake_v1.calls if c.request.path_url == path]
         assert len(sent) == count
-        if sent[0].method == "POST":
+        if sent[0].method == "POST" and "Idempotency-Key" in sent[0].headers:
             assert len({r.headers["Idempotency-Key"] for r in sent}) == 1
 
 
@@ -659,19 +688,24 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, nodes, error,
     assert not any(line in text for line in unsaid)
 
 
-def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run, capsys):
+def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run):
     '''A node's log line already says which node it came from.'''
+    import io
+    import threading
+
     from siliconcompiler.remote.client.run import _Tails
 
     tails = _Tails.__new__(_Tails)
     tails._run = run
     tails._logger = run.logger
-    tails._stop = __import__("threading").Event()
+    tails._stop = threading.Event()
+    shown = io.StringIO()
+    run.project._logger_console.setStream(shown)
+    line = "| INFO     | job0 | route.detailed       | 0 | Running"
 
-    tails._write("| INFO     | job0 | route.detailed       | 0 | Running\n")
+    tails._write(line + "\n")
 
-    printed = capsys.readouterr().err + capsys.readouterr().out
-    assert "remote" not in printed
+    assert shown.getvalue() == line + "\n"
 
 
 @pytest.fixture
@@ -963,27 +997,10 @@ def test_a_requirement_that_is_not_pep_440_is_dropped_rather_than_refusing_every
     assert _normalize_spec(Task(), "whatever") is None
 
 
-def test_a_development_client_asks_by_prefix_rather_than_exactly():
-    '''A dev build's local segment names a commit no image was built from.
-    `.*` attaches to the release segment only: `==0.38.10.dev*` is illegal.'''
-    from packaging.specifiers import InvalidSpecifier, SpecifierSet
-    from packaging.version import Version
-
-    from siliconcompiler.remote.client.run import _pin
-
-    spec = _pin("0.38.10.dev43+g20db24fa2.d20260924")
-    assert spec == "==0.38.10.*"
-    matches = SpecifierSet(spec, prereleases=True)
-    assert Version("0.38.10.dev7") in matches
-    assert Version("0.38.10") in matches
-    assert Version("0.38.9") not in matches
-
-    with pytest.raises(InvalidSpecifier):
-        SpecifierSet("==0.38.10.dev*")
-
-
 @pytest.mark.parametrize("version,pin", [
     ("0.38.9", "==0.38.9"), ("1.0.0-RC1", "==1.0.0rc1"), ("v2.1", "==2.1"),
+    # A dev build asks by its release prefix: its local segment names no image.
+    ("0.38.10.dev43+g20db24fa2.d20260924", "==0.38.10.*"),
     ("a-local-build", None)])
 def test_an_installed_version_is_pinned_in_pep_440_or_not_at_all(version, pin):
     from siliconcompiler.remote.client.run import _pin
@@ -1453,6 +1470,51 @@ def test_a_refusal_at_create_packs_nothing(fake_v1, run, monkeypatch, refusal, s
 
     assert all(line in str(raised.value) for line in said), str(raised.value)
     assert not any("upload-grant" in call.request.url for call in fake_v1.calls)
+
+
+@pytest.mark.parametrize("software,versions,said", [
+    # A requirement the map meets, or a name or bucket it does not list, goes unsaid.
+    ({"python": {"siliconcompiler": ["1.0.0", "1.1.0"]}},
+     {"python": {"siliconcompiler": ["==1.1.*"]}}, []),
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"tools": {"yosys": ["==1.0"]}}, []),
+    ({"tools": {"yosys": ["0.40"]}}, {"tools": {"yosys": []}}, []),
+    ({"python": {"Scfake_Data": ["2.0"]}}, {"python": {"scfake-data": ["==2.0"]}}, []),
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"cocotb": []}}, []),
+    # sc-server's own: it lists no tool, and runs what the node has.
+    ({"tools": {}}, {"tools": {"yosys": [], "openroad": [">=3"]}}, []),
+    # A listed name at no version allowed, in each bucket, said together.
+    ({"python": {"siliconcompiler": ["1.0.0"]}}, {"python": {"siliconcompiler": ["==2.0.0"]}},
+     ["Python package siliconcompiler ==2.0.0 (offered: 1.0.0)"]),
+    ({"tools": {"openroad": ["2.0.1"]}}, {"tools": {"yosys": [], "openroad": [">=3", "<1"]}},
+     ["tool openroad >=3 or <1 (offered: 2.0.1)"]),
+    ({"interpreter": {"python": ["3.12.4"]}}, {"interpreter": {"python": ["==3.14.*"]}},
+     ["interpreter python ==3.14.* (offered: 3.12.4)"]),
+], ids=["met", "bucket-unlisted", "any-version", "name-normalised", "name-unlisted",
+        "no-tools-listed", "version-unmet", "tools-unmet", "interpreter-unmet"])
+def test_a_listed_version_the_run_does_not_allow_is_warned_of(
+        fake_v1, run, capabilities, caplog, software, versions, said):
+    '''`GET /v1`'s `software` against the run's requirements: said, never refused,
+    since the server's answer at create is the binding one.'''
+    fake_v1.replace(responses.GET, "", dict(capabilities, software=software))
+
+    run._warn_unmet(versions)
+
+    assert all(line in caplog.text for line in said), caplog.text
+    assert ("lists other versions" in caplog.text) is bool(said)
+    assert "yosys" not in caplog.text
+
+
+def test_a_run_the_listed_software_does_not_allow_is_still_submitted(
+        fake_v1, run, capabilities, no_sleep, caplog):
+    '''This machine's SiliconCompiler is not a version listed: said, and created.'''
+    fake_v1.replace(responses.GET, "", dict(
+        capabilities, software={"python": {"siliconcompiler": ["0.0.1"]}, "tools": {}}))
+    routes_for_a_submit(fake_v1)
+
+    run._start()
+
+    assert "Python package siliconcompiler" in caplog.text
+    assert creates(fake_v1)
 
 
 @pytest.mark.parametrize("reason,detail,said", [

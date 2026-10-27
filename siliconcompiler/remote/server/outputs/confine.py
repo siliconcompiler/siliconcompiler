@@ -80,21 +80,19 @@ def add_file(tar: tarfile.TarFile, root, path, arcname: str) -> None:
         _add_open(tar, handle, os.fstat(handle.fileno()), arcname)
 
 
-def add_tree(tar: tarfile.TarFile, root, top, skip=()) -> None:
+def add_tree(tar: tarfile.TarFile, root, top) -> None:
     '''Add everything under ``top`` to ``tar``, named relative to it.'''
     fd = _walk_to(*_parts(root, top))
     try:
-        _walk(tar, fd, Path(top), "", frozenset(skip), root)
+        _walk(tar, fd, Path(top), "", root)
     finally:
         os.close(fd)
 
 
-def _walk(tar, dir_fd, dir_path: Path, arcdir: str, skip, root) -> None:
+def _walk(tar, dir_fd, dir_path: Path, arcdir: str, root) -> None:
     with os.scandir(dir_fd) as entries:
         names = sorted(entry.name for entry in entries)
     for name in names:
-        if name in skip:
-            continue
         arcname = f"{arcdir}/{name}" if arcdir else name
         info = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
 
@@ -111,7 +109,7 @@ def _walk(tar, dir_fd, dir_path: Path, arcdir: str, skip, root) -> None:
                 member.type, member.mtime = tarfile.DIRTYPE, info.st_mtime
                 member.mode = stat.S_IMODE(info.st_mode)
                 tar.addfile(member)
-                _walk(tar, sub, dir_path / name, arcname, skip, root)
+                _walk(tar, sub, dir_path / name, arcname, root)
             finally:
                 os.close(sub)
         elif stat.S_ISREG(info.st_mode):

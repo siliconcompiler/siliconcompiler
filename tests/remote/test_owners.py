@@ -178,20 +178,20 @@ def test_sources_name_what_is_not_uploaded_as_both_ends_read_it_without_a_creden
     assert sent["source"] == ("https://github.com/siliconcompiler/x/archive/v1.tar.gz"
                               "?access_token=***&lfs=***")
     assert (sent["ref"], sent["private"]) == ("v1", False)
-    assert owners.is_masked(sent["source"]) and not owners.is_masked(GITHUB)
     hidden = listed[("library", "secretlib", "dataroot", "secretlib")]
     assert hidden["private"] is True and "source" not in hidden
 
 
-def test_userinfo_is_read_as_the_mask_reads_it():
-    '''What the client strips and the server refuses: anything ahead of the
-    host, `git@` included, and nothing in the path.'''
-    for url in ("git+https://alice:TOKEN@example.com/ip.git",
-                "git+ssh://git@github.com/acme/ip.git", "https://TOKEN@example.com/x"):
-        assert owners.has_userinfo(url)
-        assert not owners.has_userinfo(owners.masked(url))
-    for url in ("git+https://example.com/ip.git@v1", "/home/me@corp/ip", "", None):
-        assert not owners.has_userinfo(url)
+@pytest.mark.parametrize("url,sent", [
+    ("git+https://alice:TOKEN@example.com/ip.git", "git+https://example.com/ip.git"),
+    ("git+ssh://git@github.com/acme/ip.git", "git+ssh://github.com/acme/ip.git"),
+    ("https://TOKEN@example.com/x", "https://example.com/x"),
+    ("git+https://example.com/ip.git@v1", "git+https://example.com/ip.git@v1"),
+    ("/home/me@corp/ip", "/home/me@corp/ip"),
+])
+def test_a_masked_url_loses_what_is_ahead_of_the_host_and_keeps_its_path(url, sent):
+    '''What the client strips and the server refuses: `git@` included.'''
+    assert owners.masked(url) == sent
 
 
 def uploaded_by_owner(project):

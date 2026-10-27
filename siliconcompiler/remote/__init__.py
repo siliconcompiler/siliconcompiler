@@ -1,7 +1,7 @@
 '''
 Remote execution over the `v1` API: the client here, the server in
 :mod:`siliconcompiler.remote.server`. `Project.run()` reaches `ClientScheduler`
-when `option,remote` is set; ``tests/remote/BEHAVIOUR.md`` lists what the client owes.
+when `option,remote` is set.
 '''
 
 from siliconcompiler.scheduler import Scheduler
@@ -36,13 +36,12 @@ class ClientScheduler(Scheduler):
         from siliconcompiler.remote.client.run import RemoteRun
 
         project = self.project
-        credentials = Credentials.for_project(project)
-        client = Client(credentials, logger=project.logger.getChild("remote"))
-
         formatter = get_console_formatter(project, True, remote_step_name, None)
         previous = project._logger_console.formatter
         project._logger_console.setFormatter(formatter)
         try:
+            client = Client(Credentials.for_project(project),
+                            logger=project.logger.getChild("remote"))
             RemoteRun(project, client, self.listener).run()
         except RemoteError as e:
             # A message, not a traceback.

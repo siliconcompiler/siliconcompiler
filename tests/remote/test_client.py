@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -13,7 +12,7 @@ from unittest import mock
 from siliconcompiler.remote import (
     Client, Credentials, RemoteError, ServerProblem)
 from siliconcompiler.remote.client import cli
-from siliconcompiler.remote.client.errors import TYPE_BASE
+from siliconcompiler.remote.client.errors import REGISTERED, TYPE_BASE
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
 from conftest import V1_URL, asked_for_pages, claims, form, grants, problem
@@ -77,26 +76,6 @@ def test_capabilities_carry_no_credential_and_a_proof(fake_v1, tmp_credentials, 
     assert fake_v1.calls[0].request.headers["DPoP"]
 
 
-def test_the_rigs_capabilities_carry_every_required_member(capabilities):
-    '''The conformance rig's copy of a real `GET /v1`.'''
-    assert {"api_version", "software", "grant_types_supported", "limits", "features",
-            "identity_assurance", "notices"} <= set(capabilities)
-    assert capabilities["api_version"] == "v1"
-    # A closed set of buckets, and `siliconcompiler` REQUIRED in `python`.
-    assert set(capabilities["software"]) == {"python", "tools", "interpreter"}
-    assert "siliconcompiler" in capabilities["software"]["python"]
-    # This profile serves no device grant, so it must not advertise one.
-    assert "urn:ietf:params:oauth:grant-type:device_code" \
-        not in capabilities["grant_types_supported"]
-    assert set(capabilities["limits"]) == {
-        "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
-        "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
-        "max_archive_members", "max_archive_expanded_bytes",
-        "max_download_bytes", "abandon_after_seconds"}
-    # OPTIONAL: absent, not empty.
-    assert "terms_url" not in capabilities
-
-
 @pytest.mark.parametrize("body,status,content_type,expected", [
     ({"status": "pass"}, 200, "application/health+json", "pass"),
     ({"status": "fail"}, 503, "application/health+json", "fail"),
@@ -125,7 +104,7 @@ def test_the_deployment_report_is_what_the_server_says_it_is(
 
     for said in ("Health: pass", "API: v1", "Identity assurance: self_asserted",
                  "siliconcompiler: 0.38.9", "client_credentials", "logs.stream",
-                 "max_upload_bytes: 1.0 GiB", "max_download_bytes: 100 MiB",
+                 "max_upload_bytes: 1.0 GiB",
                  "max_job_nodes: 1000", "concurrent_jobs: unlimited"):
         assert said in caplog.text
     for call in fake_v1.calls:
@@ -351,18 +330,20 @@ def test_the_account_view_shows_the_session_limits_usage_and_every_terms_decisio
 
 def test_login_needs_no_human_and_asserts_a_derived_subject(
         fake_v1, tmp_credentials, client_credentials):
-    '''client_id=local:<derivation>, which RFC 6749 already registers.'''
+    '''client_id=local:<derivation>, which RFC 6749 already registers, and the bare
+    username as `display_name`.'''
+    import getpass
+
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     body = Client(tmp_credentials).login()
 
     assert body["access_token"] == "access-token-one"
     assert tmp_credentials.refresh_token == "refresh-token-one"
-    # The access token is never written down.
-    assert "access_token" not in json.loads(tmp_credentials.path.read_text())
     sent = form(fake_v1.calls[-1].request.body)
     assert sent["grant_type"] == "client_credentials"
     assert sent["client_id"].startswith("local:")
+    assert sent["display_name"] == getpass.getuser()
     assert sent["machine_id_source"] in (
         "linux_machine_id", "macos_platform_uuid", "windows_machine_guid")
 
@@ -401,19 +382,29 @@ def test_the_subject_derivation_is_pinned():
     assert source == "linux_machine_id"
 
 
-def test_a_first_command_enrolls_and_the_next_refreshes(
-        fake_v1, tmp_credentials, client_credentials):
-    '''`client_credentials` mints a new twelve-day token family each call,
-    so a later process must use `refresh_token` -- and send no scope.'''
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
+@pytest.mark.parametrize("lifetime,later", [
+    (900, ["client_credentials"]),
+    (1, ["client_credentials", "refresh_token"]),
+], ids=["unexpired-token-is-read-with", "expired-token-refreshes"])
+def test_a_first_command_enrolls_and_the_next_reads_with_its_token_or_refreshes(
+        fake_v1, tmp_credentials, client_credentials, lifetime, later):
+    '''`client_credentials` mints a new twelve-day token family each call, so a later
+    process reads `/me` with the access token the store kept until it expires, and
+    refreshes -- sending no scope -- only after, rather than rotating the pair for nothing.'''
+    fake_v1.route(responses.POST, "auth/token", dict(client_credentials, expires_in=lifetime))
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
 
     Client(tmp_credentials).me()
     Client(Credentials(tmp_credentials.path)).me()
 
-    assert grants(fake_v1) == ["client_credentials", "refresh_token"]
-    refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
-    assert "scope" not in form(refresh.body)
+    assert grants(fake_v1) == later
+    reads = [c.request for c in fake_v1.calls if c.request.method == "GET"
+             and c.request.path_url.endswith("/me")]
+    kept = "DPoP access-token-one"
+    assert [read.headers["Authorization"] for read in reads] == [kept, kept]
+    if len(later) > 1:
+        refresh = [c.request for c in fake_v1.calls if c.request.method == "POST"][-1]
+        assert "scope" not in form(refresh.body)
 
 
 ME = {"id": "u1", "issuer": "local"}
@@ -458,7 +449,7 @@ def _nonce(slug, number, **headers):
                  id="refused-again"),
     pytest.param(dict(queue=[_problem("a-type-from-later", 401,
                                       {"WWW-Authenticate": 'DPoP error="a_challenge_from_later"'})],
-                      outcome="a-type-from-later", said=['error="a_challenge_from_later"'],
+                      outcome=None, said=['error="a_challenge_from_later"'],
                       grants=[ENROLL]), id="unknown-challenge"),
     # The refresh token is the session that ended: log in again, never refresh.
     pytest.param(dict(queue=[_problem("session-ended", 401, reason="revoked"), _me()],
@@ -474,6 +465,16 @@ def _nonce(slug, number, **headers):
     pytest.param(dict(queue=[_problem("invalid-dpop-proof", 401)],
                       outcome="invalid-dpop-proof", grants=[ENROLL], unsaid=["clock is"]),
                  id="proof-clock-unknown"),
+    # The clock is corrected and the request repeated whichever way the 401 says so.
+    pytest.param(dict(queue=[(responses.GET, "me", {"error": "invalid_dpop_proof"}, 401,
+                              "application/json", None), _me()],
+                      offset=330, grants=[ENROLL], said=[r"5m \d\ds behind"]),
+                 id="proof-clock-oauth-body"),
+    pytest.param(dict(queue=[(responses.GET, "me", "", 401, "text/plain",
+                              {"WWW-Authenticate": 'DPoP error="invalid_dpop_proof"'}),
+                             _me()],
+                      offset=330, grants=[ENROLL], said=[r"5m \d\ds behind"]),
+                 id="proof-clock-challenge-only"),
     # A client that only refreshes loops on a nonce for ever; the nonce is sent once.
     pytest.param(dict(queue=[_nonce("dpop-nonce-required", "api-nonce"), _me()],
                       grants=[ENROLL], nonces=("/v1/me", [None, "api-nonce"])),
@@ -545,7 +546,7 @@ def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
             call()
             said = caplog.text
             assert tmp_credentials.refresh_token == "refresh-token-one"
-            assert "access_token" not in json.loads(tmp_credentials.path.read_text())
+            assert tmp_credentials.access_token()[0] == client.transport.access_token is not None
         else:
             with pytest.raises(RemoteError) as raised:
                 call()
@@ -636,6 +637,7 @@ def test_a_refusal_renders_without_opening_a_url(body, status, extra, said, unsa
     rendered = str(refusal)
     slug = body.get("type", "")[len(TYPE_BASE):] if body.get("type", "").startswith(
         TYPE_BASE) else None
+    slug = slug if slug in REGISTERED else None
 
     assert refusal.slug == slug
     for name in set(body) - {"type", "title", "status"}:

@@ -2,7 +2,8 @@
 What this machine holds, and how tightly: ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves it).
 
 ``remote.json``    the store: the default server, and per server its user id,
-                   refresh token or CI credential, operator headers and authority.
+                   refresh token or CI credential, access token and its expiry,
+                   operator headers, authority and the grants it offers.
 ``dpop-key.pem``   this machine's private key, **the machine pin itself**, in a
                    file of its own so no rewrite of the store can take it.
 
@@ -21,6 +22,7 @@ import logging
 import os
 import stat
 import sys
+import time
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -106,7 +108,8 @@ class Credentials:
         configuration file there is moved into ``auth/`` beside it.'''
         store, legacy = _resolve(Path(path))
         if os.environ.get(AUTH_DIR_VARIABLE):
-            store = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
+            # Often a runner's scratch, emptied after the job: nothing is moved into it.
+            store, legacy = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME, None
         self._selected: Optional[str] = None
         self._open(store)
         self._migrate(legacy)
@@ -259,11 +262,44 @@ class Credentials:
             self._update_entry(user_id=user_id)
 
     def save_tokens(self, body: Dict[str, Any]) -> None:
-        '''Persist the refresh token; the access token is never written down.'''
-        self._update_entry(refresh_token=body.get("refresh_token"))
+        '''Persist the refresh token, and the access token until it expires, so a
+        later command reads with it rather than refreshing and rotating the pair.'''
+        token, lifetime = body.get("access_token"), body.get("expires_in")
+        expires = time.time() + int(lifetime) if token and lifetime else None
+        self._update_entry(refresh_token=body.get("refresh_token"),
+                           access_token=token if expires else None,
+                           access_expires_at=expires)
+
+    def access_token(self) -> Tuple[Optional[str], float]:
+        '''The stored access token and the seconds it has left; None once it lapsed.'''
+        entry = self._entry()
+        token, expires = entry.get("access_token"), entry.get("access_expires_at")
+        if not token or isinstance(expires, bool) or not isinstance(expires, (int, float)):
+            return None, 0.0
+        left = expires - time.time()
+        return (token, left) if left > 0 else (None, 0.0)
+
+    def forget_access(self, refused: str) -> None:
+        '''Drop the stored access token if it is ``refused``: another process may
+        already have stored a new one, which stays.'''
+        with self.transaction():
+            if self._entry().get("access_token") == refused:
+                self._update_entry(access_token=None, access_expires_at=None)
 
     def forget_tokens(self) -> None:
-        self._update_entry(refresh_token=None)
+        self._update_entry(refresh_token=None, access_token=None, access_expires_at=None)
+
+    def grants(self) -> Optional[List[str]]:
+        '''The `grant_types_supported` this server last published, or None.'''
+        value = self._entry().get("grant_types_supported")
+        if isinstance(value, list) and all(isinstance(grant, str) for grant in value):
+            return value
+        return None
+
+    def save_grants(self, grants: Optional[List[str]]) -> None:
+        '''Keep the grants this server offers, or with None drop what was kept.'''
+        if self.server and grants != self.grants():
+            self._update_entry(grant_types_supported=None if grants is None else list(grants))
 
     def set_header(self, name: str, value: Optional[str]) -> None:
         '''Set an operator header for this server, or remove it with None. No
@@ -303,12 +339,12 @@ class Credentials:
         if self._key is not None:
             return self._key
 
-        if self.key_path.exists():
-            self._key = dpop.load_key(self.key_path.read_bytes())
-            return self._key
-
-        self._key = dpop.generate_key()
-        self._write(self.key_path, dpop.serialize_key(self._key))
+        if not self.key_path.exists():
+            # Under the store's lock, so two processes on first use keep one key.
+            with self.transaction():
+                if not self.key_path.exists():
+                    self._write(self.key_path, dpop.serialize_key(dpop.generate_key()))
+        self._key = dpop.load_key(self.key_path.read_bytes())
         return self._key
 
     @property
@@ -317,15 +353,17 @@ class Credentials:
         return dpop.jwk_thumbprint(dpop.public_jwk(self.key()))
 
     def rotate_key(self) -> None:
-        '''Replace the key, dropping every refresh token bound to it; ids, headers
+        '''Replace the key, dropping every refresh and access token bound to it; ids, headers
         and CI credentials stay.'''
         with self.transaction():
             self._key = dpop.generate_key()
             self._write(self.key_path, dpop.serialize_key(self._key))
             for server, entry in (self._store.get_category(_SERVERS) or {}).items():
-                if isinstance(entry, dict) and "refresh_token" in entry:
+                if isinstance(entry, dict) and ("refresh_token" in entry
+                                                or "access_token" in entry):
                     entry = dict(entry)
-                    entry.pop("refresh_token")
+                    for name in ("refresh_token", "access_token", "access_expires_at"):
+                        entry.pop(name, None)
                     self._store.set(_SERVERS, server, entry)
 
     def check_store(self) -> None:
