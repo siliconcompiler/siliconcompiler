@@ -1066,14 +1066,13 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         from siliconcompiler.remote.environment import IMAGE_SITE, site_path
         from siliconcompiler.utils.paths import jobdir
 
-        try:
-            if self.get_python_environment() is None:
-                return []
-            # Only where the server installed the job's packages is either
-            # there: a job without any, and every other node's image, has none.
-            paths = [os.path.join(jobdir(self.project), site_path()), IMAGE_SITE]
-        except Exception:                                       # noqa: BLE001
+        # Read off the class, as a remote run decides which nodes get the
+        # job's packages, so nothing is resolved here.
+        if type(self).get_python_environment is Task.get_python_environment:
             return []
+        # Only where the server installed the job's packages is either
+        # there: a job without any, and every other node's image, has none.
+        paths = [os.path.join(jobdir(self.project), site_path()), IMAGE_SITE]
         return [path for path in paths if os.path.isdir(path)]
 
     @classmethod

@@ -201,8 +201,6 @@ def test_the_lists_are_what_the_code_reaches_and_what_that_depends_on(site):
 
     assert listed.requirements == [("scfake-umi", "0.3.1")]
     assert listed.constraints == [("scfakebits", "1.2.0"), ("scfakedeep", "4.0")]
-    for name, version in listed.requirements + listed.constraints:
-        environment.parse_entry(f"{name}=={version}")
 
 
 def test_what_no_index_can_supply_is_a_wheel_and_what_it_depends_on_is_constrained(site):
@@ -433,12 +431,18 @@ def test_packages_to_install_stop_the_run_before_create_where_the_server_install
 
 
 def test_a_server_refusing_python_env_at_create_is_still_reported(
-        site, fake_v1, logged_in, offers_python_env):
-    '''A stale `features`: create's own `feature-unsupported` is the answer.'''
+        site, fake_v1, logged_in, offers_python_env, monkeypatch):
+    '''A stale `features`: create's own `feature-unsupported` is the answer, and the
+    wheels built for the job are removed.'''
+    import tempfile
+
     from siliconcompiler.remote import ServerProblem
 
+    os.makedirs("tmp")
+    monkeypatch.setattr(tempfile, "tempdir", os.path.abspath("tmp"))
     _distribution(site, "scfakeumi", "0.3.1")
-    project = cocotb_project("import scfakeumi\n")
+    _distribution(site, "scfakeloose", "3.0.0", archive=os.path.abspath("loose.tar.gz"))
+    project = cocotb_project("import scfakeumi\nimport scfakeloose\n")
     fake_v1.route(responses.GET, "me", {"id": "u-1"})
     refused(fake_v1, responses.POST, "jobs", "feature-unsupported", 501, feature="python.env")
 
@@ -449,6 +453,7 @@ def test_a_server_refusing_python_env_at_create_is_still_reported(
                            if c.request.path_url == "/v1/jobs").body)
     assert body["descriptor"]["needs"] == ["python.env"]
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.url]
+    assert os.listdir("tmp") == []
 
 
 def test_a_flow_needing_no_package_lists_nothing_and_its_helpers_still_travel(

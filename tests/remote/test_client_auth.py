@@ -6,6 +6,8 @@ import os
 import sys
 import time
 
+from pathlib import Path
+
 import pytest
 import requests
 import responses
@@ -14,6 +16,7 @@ from siliconcompiler.remote import Client, Credentials, RemoteError, ServerProbl
 from siliconcompiler.remote.client import (
     GRANT_CLIENT_CREDENTIALS, GRANT_DEVICE_CODE, GRANT_TOKEN_EXCHANGE, SCOPES, cli)
 from siliconcompiler.remote.client.credentials import StoreError
+from siliconcompiler.utils.paths import jobdir
 
 from conftest import FakeV1, claims, form, grants, make_authority, mode, posts, problem
 
@@ -120,6 +123,24 @@ def test_the_offer_is_kept_beside_the_credential_and_a_login_reads_it_not_get_v1
 
     assert len([c for c in fake_v1.calls if c.request.path_url == "/v1"]) == asked
     assert grants(fake_v1) == [GRANT_CLIENT_CREDENTIALS] * 2
+
+
+@pytest.mark.parametrize("now", [GRANT_CLIENT_CREDENTIALS, GRANT_TOKEN_EXCHANGE])
+def test_a_kept_offer_with_no_login_to_use_is_read_again_once(
+        fake_v1, tmp_credentials, capabilities, client_credentials, now):
+    '''No refusal would ever say it is old, so `GET /v1` is asked once more.'''
+    tmp_credentials.save_grants([GRANT_TOKEN_EXCHANGE])
+    _offer(fake_v1, capabilities, now)
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+
+    if now == GRANT_TOKEN_EXCHANGE:
+        with pytest.raises(RemoteError, match="offers no login this client can use"):
+            Client(tmp_credentials).login()
+    else:
+        Client(tmp_credentials).login()
+
+    assert len([c for c in fake_v1.calls if c.request.path_url == "/v1"]) == 1
+    assert tmp_credentials.grants() == [now]
 
 
 def test_the_login_prompt_shows_what_the_approval_page_shows(
@@ -427,12 +448,39 @@ def test_the_store_is_restricted_to_the_user_when_created_on_windows(tmp_path, m
     assert command[4].endswith(":(OI)(CI)F")
 
 
-def test_the_auth_dir_can_be_moved(monkeypatch, tmp_path):
+def test_the_auth_dir_can_be_moved_and_leaves_an_older_clients_file_alone(
+        monkeypatch, tmp_path, settings):
+    '''A moved store is often a runner's scratch, emptied after the job.'''
+    from siliconcompiler.remote.client.credentials import UPLOADS
+
+    home = _legacy_home(tmp_path)
     monkeypatch.setenv("SC_AUTH_DIR", str(tmp_path / "elsewhere"))
-    creds = Credentials(tmp_path / "home" / "credentials")
+    creds = Credentials(home / "credentials")
     creds.key()
 
     assert creds.key_path.parent == tmp_path / "elsewhere"
+    assert (creds.server, UPLOADS.get()) == (None, [])
+    assert (home / "credentials").exists()
+
+
+def test_a_key_another_process_wrote_first_is_the_one_kept(monkeypatch, tmp_path):
+    '''The key is written under the store's lock, after looking again.'''
+    from siliconcompiler.remote import dpop
+
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    creds = Credentials(tmp_path / "auth" / "remote.json")
+    theirs = dpop.serialize_key(dpop.generate_key())
+    locked = creds.transaction
+
+    def first_in():
+        creds.key_path.write_bytes(theirs)
+        return locked()
+    monkeypatch.setattr(creds, "transaction", first_in)
+
+    creds.key()
+
+    assert creds.key_path.read_bytes() == theirs
+    assert creds.thumbprint == dpop.jwk_thumbprint(dpop.public_jwk(dpop.load_key(theirs)))
 
 
 def _store_file(credentials):
@@ -1108,6 +1156,22 @@ def test_an_authority_is_trusted_beside_the_usual_ones(monkeypatch):
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(authority))
     assert session.merge_environment_settings(
         client.base_url, {}, None, None, None)["verify"] == str(authority)
+
+
+@posix_only
+def test_a_store_that_cannot_be_used_fails_a_remote_run_with_its_reason(
+        monkeypatch, tmp_path, nop_project):
+    '''`project.run()` reports it as a failed run, with no backtrace in the job log.'''
+    monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    (tmp_path / "auth").mkdir()
+    os.chmod(tmp_path / "auth", 0o755)
+    nop_project.option.set_credentials(str(tmp_path / "auth" / "remote.json"))
+    nop_project.option.set_remote(True)
+
+    with pytest.raises(RuntimeError, match="^Run failed: .*readable by others"):
+        nop_project.run()
+
+    assert "Backtrace:" not in Path(jobdir(nop_project), "job.log").read_text()
 
 
 @posix_only

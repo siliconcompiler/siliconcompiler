@@ -91,8 +91,7 @@ def test_the_rigs_capabilities_carry_every_required_member(capabilities):
     assert set(capabilities["limits"]) == {
         "max_job_nodes", "max_upload_bytes", "artifact_retention_seconds",
         "pending_uploads", "concurrent_jobs", "concurrent_log_streams",
-        "max_archive_members", "max_archive_expanded_bytes",
-        "max_download_bytes", "abandon_after_seconds"}
+        "max_archive_members", "max_archive_expanded_bytes", "abandon_after_seconds"}
     # OPTIONAL: absent, not empty.
     assert "terms_url" not in capabilities
 
@@ -125,7 +124,7 @@ def test_the_deployment_report_is_what_the_server_says_it_is(
 
     for said in ("Health: pass", "API: v1", "Identity assurance: self_asserted",
                  "siliconcompiler: 0.38.9", "client_credentials", "logs.stream",
-                 "max_upload_bytes: 1.0 GiB", "max_download_bytes: 100 MiB",
+                 "max_upload_bytes: 1.0 GiB",
                  "max_job_nodes: 1000", "concurrent_jobs: unlimited"):
         assert said in caplog.text
     for call in fake_v1.calls:

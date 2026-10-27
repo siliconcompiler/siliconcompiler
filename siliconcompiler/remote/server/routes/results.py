@@ -11,7 +11,6 @@ from urllib.parse import quote
 
 import flask
 
-from siliconcompiler.remote.server import config
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs import NODE_TERMINAL
 from siliconcompiler.remote.server.outputs import artifacts, logstream
@@ -54,13 +53,7 @@ def listing(session, job_id):
 @blueprint.route("/v1/jobs/<job_id>/artifacts/<artifact_id>", methods=["GET"])
 @require_session
 def fetch(session, job_id, artifact_id):
-    row = _jobs().artifact(session, job_id, artifact_id)
-    limit = config.LIMITS["max_download_bytes"]
-    if row["size_bytes"] > limit:
-        raise ProblemError("download-too-large", limit="max_download_bytes",
-                           detail=f"{row['size_bytes']} bytes, and this account may download "
-                                  f"at most {limit} over the API")
-
+    _jobs().artifact(session, job_id, artifact_id)
     expires = int(time.time()) + DOWNLOAD_SECONDS
     signature = _jobs().storage.sign("download", job_id, artifact_id, expires)
     return _see_other(f"{origin()}/storage/artifact/{job_id}/{artifact_id}"

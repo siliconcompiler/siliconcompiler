@@ -400,13 +400,27 @@ def test_two_moves_cannot_both_pass_the_concurrent_cap(server, api):
     assert states == ["created", "staging"]
 
 
-def test_a_job_never_submitted_is_abandoned_when_read(monkeypatch, api):
-    monkeypatch.setitem(config.LIMITS, "abandon_after_seconds", -1)
+@pytest.mark.parametrize("since, state", [
+    (None, "abandoned"), ("submit", "created"), ("receiving", "created"),
+], ids=["idle", "waiting-for-a-slot", "uploading"])
+def test_a_job_idle_past_the_limit_is_abandoned_and_its_upload_discarded(
+        monkeypatch, server, server_client, api, job_archive, since, state):
+    '''Idle since the client's last call, not old: a submit waiting for a slot and an
+    upload still arriving keep the job.'''
+    monkeypatch.setitem(config.LIMITS, "concurrent_jobs", 0)
+    jobs = server.config["SC_JOBS"]
     job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    assert upload(server_client, api, job["id"], job_archive()).status_code == 204
+    jobs.store.execute("UPDATE jobs SET created_at = created_at - 1000, "
+                       "active_at = active_at - 1000 WHERE id = ?", (job["id"],))
 
-    after = get(api, job)
+    if since == "submit":
+        assert slug(api("POST", f"/v1/jobs/{job['id']}/submit", json={})) == "limit-exceeded"
+    elif since == "receiving":
+        monkeypatch.setattr(jobs, "_receiving", {job["id"]})
 
-    assert (after["state"], after["terminal"]) == ("abandoned", True)
+    assert get(api, job)["state"] == state
+    assert jobs.storage.upload_path(job["id"]).exists() == (state == "created")
 
 
 def test_two_threads_cannot_both_move_a_job(server, api):
@@ -453,7 +467,7 @@ def test_the_client_runs_a_nop_project_remotely(live_server, tmp_credentials, no
     nop_project.option.set_credentials(str(tmp_credentials.path))
     nop_project.option.set_remote(True)
 
-    nop_project.run()
+    history = nop_project.run()
 
-    jobs = Client(tmp_credentials).jobs()
-    assert [(job["state"], job["design"]) for job in jobs] == [("completed", "gcd")]
+    job, _ = Client(tmp_credentials).job(history.get("record", "remoteid"))
+    assert (job["state"], job["design"]) == ("completed", "gcd")

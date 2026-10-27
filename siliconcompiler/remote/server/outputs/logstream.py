@@ -24,6 +24,9 @@ __all__ = ["resume_from", "events"]
 logger = logging.getLogger("sc-server")
 
 POLL_SECONDS = 0.25
+# How often the node's state is asked for: each ask reconciles the job, which on
+# Slurm runs `squeue`.
+STATE_SECONDS = 2
 KEEPALIVE_SECONDS = 15
 
 # The SSE `retry`: it paces a re-request of /logs, so a re-authorization.
@@ -52,12 +55,14 @@ def events(tree: Path, path: Path, step: str, index: str, node_state, artifact_i
     '''
     sent = start
     last = time.monotonic()
+    asked = None
 
     yield f"retry: {RETRY_MS}\n\n".encode()
 
     while True:
         # Before reading, so a node that ends meanwhile is drained by the next pass.
-        state = node_state()
+        if asked is None or time.monotonic() - asked >= STATE_SECONDS:
+            state, asked = node_state(), time.monotonic()
         over = state in NODE_TERMINAL
         data = _read(tree, path, sent)
         # A node that is over sends its last unterminated line, but not half a character.

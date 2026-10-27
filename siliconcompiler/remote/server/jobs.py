@@ -30,6 +30,7 @@ from siliconcompiler.remote.server.running.dispatch import DispatchError, dispat
 from siliconcompiler.remote.server.staging.archive import ArchiveRejected, extract
 from siliconcompiler.remote.server.state.storage import Storage
 from siliconcompiler.remote.server.state.store import Store, iso
+from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
 from siliconcompiler.schema import SCHEMA_VERSION, BaseSchema
 
 __all__ = ["Jobs", "RETRY_AFTER"]
@@ -61,15 +62,14 @@ class Jobs:
         self.cluster = cluster
         self.storage = Storage(datadir)
         self.dispatcher = dispatcher_for(cluster)
-        # Jobs with a staging thread in this process.
+        # Jobs with a staging thread, or an upload arriving, in this process.
         self._staging = set()
+        self._receiving = set()
         self._collecting = threading.Lock()
 
     def root(self, user_id: str, job_id: str) -> Path:
         '''The job's build directory, where its results stay.'''
         return self.datadir / "users" / user_id / "builds" / job_id
-
-    # State
 
     def row(self, job_id: str):
         return self.store.one("SELECT * FROM jobs WHERE id = ?", (job_id,))
@@ -126,8 +126,6 @@ class Jobs:
                     (timestamp, state == "failed", job_id, *NODE_TERMINAL))
         return True
 
-    # Create and upload
-
     def create(self, session, body: Dict[str, Any], key: Optional[str]) -> Dict[str, Any]:
         for name in ("design", "jobname"):
             value = body.get(name)
@@ -161,11 +159,12 @@ class Jobs:
             if held:
                 job_id = held["id"]
             else:
+                timestamp = time.time()
                 self.store.execute(
                     "INSERT INTO jobs (id, user_id, design, jobname, state, idempotency_key, "
-                    "created_at) VALUES (?, ?, ?, ?, 'created', ?, ?)",
+                    "created_at, active_at) VALUES (?, ?, ?, ?, 'created', ?, ?, ?)",
                     (job_id, session.user_id, body["design"], body["jobname"], key,
-                     time.time()))
+                     timestamp, timestamp))
                 self.store.execute(
                     "INSERT INTO job_transitions (job_id, state, at) VALUES (?, 'created', ?)",
                     (job_id, time.time()))
@@ -194,6 +193,7 @@ class Jobs:
             raise ProblemError("job-state-conflict",
                                detail="a re-issued grant repeats the first one's size and digest")
 
+        self._touch(job_id)
         expires = int(time.time()) + GRANT_SECONDS
         signature = self.storage.sign("upload", job_id, size, expires)
         return {"method": "PUT",
@@ -213,14 +213,20 @@ class Jobs:
         if job is None or job["state"] != "created":
             raise ProblemError("job-state-conflict", detail="this job takes no upload")
 
+        self._receiving.add(job_id)
         try:
             self.storage.receive(job_id, stream, int(size))
         except OverflowError as e:
             raise ProblemError("upload-too-large", detail=str(e)) from None
         except ValueError as e:
             raise ProblemError("invalid-request", detail=str(e)) from None
+        finally:
+            self._touch(job_id)
+            self._receiving.discard(job_id)
 
-    # Submit and staging
+    def _touch(self, job_id: str) -> None:
+        '''The client is still at work on a job it has not submitted.'''
+        self.store.execute("UPDATE jobs SET active_at = ? WHERE id = ?", (time.time(), job_id))
 
     def submit(self, session, job_id: str) -> Dict[str, Any]:
         job = self.owned(session, job_id)
@@ -234,6 +240,8 @@ class Jobs:
             raise ProblemError("upload-digest-mismatch",
                                detail="the upload is not the one its grant bound")
 
+        # Before the cap: a submit waiting for a slot keeps its job.
+        self._touch(job_id)
         if not self.move(job_id, ("created",), "staging", submitted_at=time.time(),
                          cap=config.LIMITS["concurrent_jobs"]):
             raise ProblemError("job-state-conflict", detail="this job was already submitted")
@@ -342,8 +350,6 @@ class Jobs:
             raise ProblemError("archive-rejected", reason="invalid_manifest",
                                detail="the manifest cannot be read") from None
 
-    # Reading, cancelling, deleting
-
     def reconcile(self, job) -> None:
         '''Advance a job from what is known of its run, and keep what it has left.'''
         if job["state"] not in TERMINAL:
@@ -371,7 +377,8 @@ class Jobs:
     def _advance(self, job) -> None:
         job_id, state = job["id"], job["state"]
         if state == "created":
-            if time.time() - job["created_at"] > config.LIMITS["abandon_after_seconds"]:
+            if job_id not in self._receiving and \
+                    time.time() - job["active_at"] > config.LIMITS["abandon_after_seconds"]:
                 self.move(job_id, ("created",), "abandoned", reason="not submitted in time")
                 self.storage.discard(job_id)
             return
@@ -432,8 +439,8 @@ class Jobs:
 
     def _node_names(self, job_id: str) -> List[str]:
         '''What SiliconCompiler's Slurm scheduler calls each node's job.'''
-        return [f"{job_id}_{row['step']}_{row['idx']}" for row in self.store.all(
-            "SELECT step, idx FROM job_nodes WHERE job_id = ?", (job_id,))]
+        rows = self.store.all("SELECT step, idx FROM job_nodes WHERE job_id = ?", (job_id,))
+        return [SlurmSchedulerNode.get_job_name(job_id, row["step"], row["idx"]) for row in rows]
 
     def current(self, session, job_id: str):
         '''The caller's job, row as of now.'''
@@ -553,8 +560,6 @@ class Jobs:
         shutil.rmtree(self.storage.artifact_dir(job_id), ignore_errors=True)
         self.store.execute("UPDATE jobs SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
                            (time.time(), job_id))
-
-    # The job object
 
     def wire(self, job, nodes: bool = True) -> Dict[str, Any]:
         user = self.store.one("SELECT display_name FROM users WHERE id = ?", (job["user_id"],))

@@ -507,11 +507,12 @@ class OptionSchema(BaseSchema):
                     "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"],
                 help="""
                 Filepath to the store remote processing keeps its configuration
-                and sessions in: the server, the upload whitelist, and each
-                server's session. If the credentials parameter is empty, the
-                remote processing client uses ".sc/auth/remote.json" in the
-                user's home directory, beside the machine's key,
-                "dpop-key.pem". It is written by "sc-config remote configure". A
+                and sessions in: the server and each server's session. If the
+                credentials parameter is empty, the remote processing client
+                uses ".sc/auth/remote.json" in the user's home directory, beside
+                the machine's key, "dpop-key.pem". It is written by "sc-config
+                remote configure". The directories a remote run may upload from
+                are not kept here but in the "remote uploads" setting. A
                 credentials file an older client wrote, such as
                 ".sc/credentials", is moved into the "auth" directory beside it
                 the first time it is read."""))

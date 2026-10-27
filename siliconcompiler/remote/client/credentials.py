@@ -108,7 +108,8 @@ class Credentials:
         configuration file there is moved into ``auth/`` beside it.'''
         store, legacy = _resolve(Path(path))
         if os.environ.get(AUTH_DIR_VARIABLE):
-            store = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
+            # Often a runner's scratch, emptied after the job: nothing is moved into it.
+            store, legacy = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME, None
         self._selected: Optional[str] = None
         self._open(store)
         self._migrate(legacy)
@@ -338,12 +339,12 @@ class Credentials:
         if self._key is not None:
             return self._key
 
-        if self.key_path.exists():
-            self._key = dpop.load_key(self.key_path.read_bytes())
-            return self._key
-
-        self._key = dpop.generate_key()
-        self._write(self.key_path, dpop.serialize_key(self._key))
+        if not self.key_path.exists():
+            # Under the store's lock, so two processes on first use keep one key.
+            with self.transaction():
+                if not self.key_path.exists():
+                    self._write(self.key_path, dpop.serialize_key(dpop.generate_key()))
+        self._key = dpop.load_key(self.key_path.read_bytes())
         return self._key
 
     @property
