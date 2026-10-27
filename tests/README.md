@@ -42,6 +42,8 @@ These are autouse fixtures in `conftest.py`, so a test does not ask for them:
   `@pytest.mark.timeout(N)` for a test that needs longer.
 - **`SCTESTCACHE` as the cache directory**, when it is set.
 - **For `eda` tests:** at most two CPU cores, and OpenROAD image generation off.
+- **For every other test, except `docker`:** no network. A connection to
+  anything but loopback raises, and git clones only local repositories.
 
 ## Markers
 
