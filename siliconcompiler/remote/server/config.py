@@ -20,7 +20,6 @@ LIMITS = {
     "concurrent_log_streams": 8,
     "max_archive_members": 100000,
     "max_archive_expanded_bytes": 10 << 30,
-    "max_download_bytes": 100 << 20,
     "abandon_after_seconds": 900,
 }
 

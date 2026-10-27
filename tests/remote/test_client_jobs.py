@@ -357,25 +357,30 @@ def test_a_job_page_is_asked_for_only_where_somebody_watches(fake_v1, run, opene
     assert not opened
 
 
+ARTIFACTS = "jobs/01J9-job/artifacts"
+
+
 @pytest.mark.parametrize("link", [
-    "</v1/jobs?limit=1&cursor=abc&kept=1>; rel=next",
-    '</v1/jobs?cursor=zzz>; rel="prev", </v1/jobs?limit=1&cursor=abc&kept=1>; rel="next"',
-    '<https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1>; title="a, b"; rel="next last"',
-    "</v1/jobs?limit=1&cursor=abc&kept=1>; REL=Next",
+    f"</v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; rel=next",
+    f'</v1/{ARTIFACTS}?cursor=zzz>; rel="prev", </v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; '
+    'rel="next"',
+    f'<https://sc-server.test/v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; title="a, b"; '
+    'rel="next last"',
+    f"</v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1>; REL=Next",
 ], ids=["unquoted", "second", "absolute", "case"])
 def test_the_next_page_is_the_link_target_as_given(fake_v1, logged_in, link):
     '''RFC 8288: the `rel="next"` URL requested unchanged,
     never this request rebuilt around a cursor.'''
     from urllib.parse import urlsplit
 
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]},
-                  headers={"Link": link})
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a1"}]}, headers={"Link": link})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a2"}]})
 
-    assert len(logged_in.jobs(archived=True)) == 2
+    assert len(logged_in.artifacts("01J9-job", kind="node")) == 2
 
-    pages = [c.request.url for c in fake_v1.calls if urlsplit(c.request.url).path == "/v1/jobs"]
-    assert pages[-1] == "https://sc-server.test/v1/jobs?limit=1&cursor=abc&kept=1"
+    pages = [c.request.url for c in fake_v1.calls
+             if urlsplit(c.request.url).path == f"/v1/{ARTIFACTS}"]
+    assert pages[-1] == f"https://sc-server.test/v1/{ARTIFACTS}?limit=1&cursor=abc&kept=1"
 
 
 @pytest.mark.parametrize("again", [False, True], ids=["restarted", "twice"])
@@ -383,27 +388,28 @@ def test_a_cursor_the_server_no_longer_takes_restarts_the_listing_once(
         fake_v1, logged_in, again):
     '''`invalid-cursor` starts the listing again from its first page, keeping
     nothing from before; a second one is the answer.'''
-    first = {"headers": {"Link": '</v1/jobs?cursor=stale>; rel="next"'}}
+    first = {"headers": {"Link": f'</v1/{ARTIFACTS}?cursor=stale>; rel="next"'}}
     stale = {"status": 400, "content_type": "application/problem+json"}
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]}, **first)
-    fake_v1.route(responses.GET, "jobs", problem("invalid-cursor", 400), **stale)
-    fake_v1.route(responses.GET, "jobs", {"items": [job_body("completed")]}, **first)
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a1"}]}, **first)
+    fake_v1.route(responses.GET, ARTIFACTS, problem("invalid-cursor", 400), **stale)
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a1"}]}, **first)
     if again:
-        fake_v1.route(responses.GET, "jobs", problem("invalid-cursor", 400), **stale)
+        fake_v1.route(responses.GET, ARTIFACTS, problem("invalid-cursor", 400), **stale)
         with pytest.raises(ServerProblem):
-            logged_in.jobs()
+            logged_in.artifacts("01J9-job")
     else:
-        fake_v1.route(responses.GET, "jobs", {"items": [job_body("failed")]})
-        assert [job["state"] for job in logged_in.jobs()] == ["completed", "failed"]
+        fake_v1.route(responses.GET, ARTIFACTS, {"items": [{"id": "a2"}]})
+        assert [item["id"] for item in logged_in.artifacts("01J9-job")] == ["a1", "a2"]
 
 
 def test_a_next_page_on_another_origin_is_not_followed(fake_v1, logged_in):
     '''The request carries this session.'''
-    fake_v1.route(responses.GET, "jobs", {"items": []},
-                  headers={"Link": '<https://elsewhere.test/v1/jobs?cursor=a>; rel="next"'})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": []},
+                  headers={"Link": f'<https://elsewhere.test/v1/{ARTIFACTS}?cursor=a>; '
+                                   'rel="next"'})
 
     with pytest.raises(RemoteError, match="another origin"):
-        logged_in.jobs()
+        logged_in.artifacts("01J9-job")
 
     assert not [c for c in fake_v1.calls if "elsewhere" in c.request.url]
 
@@ -412,15 +418,15 @@ def test_a_boolean_filter_goes_as_true_or_false(fake_v1, logged_in):
     '''`true` or `false`, never Python's `True`.'''
     from urllib.parse import parse_qs, urlsplit
 
-    fake_v1.route(responses.GET, "jobs", {"items": []})
+    fake_v1.route(responses.GET, ARTIFACTS, {"items": []})
 
-    logged_in.jobs(archived=True, terminal=False)
-    logged_in.jobs(archived=[True, False])
+    logged_in.artifacts("01J9-job", fetchable=True, deleted=False)
+    logged_in.artifacts("01J9-job", fetchable=[True, False])
 
-    first, second = [parse_qs(urlsplit(call.request.url).query)
-                     for call in fake_v1.calls if urlsplit(call.request.url).path == "/v1/jobs"]
-    assert (first["archived"], first["terminal"]) == (["true"], ["false"])
-    assert second["archived"] == ["true", "false"]
+    first, second = [parse_qs(urlsplit(call.request.url).query) for call in fake_v1.calls
+                     if urlsplit(call.request.url).path == f"/v1/{ARTIFACTS}"]
+    assert (first["fetchable"], first["deleted"]) == (["true"], ["false"])
+    assert second["fetchable"] == ["true", "false"]
 
 
 @pytest.mark.parametrize("slug,status,said", [("not-found", 404, "not one you are a member of"),

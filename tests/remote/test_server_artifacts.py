@@ -9,7 +9,6 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from siliconcompiler.remote.server import config  # noqa: E402
 from siliconcompiler.remote.server.outputs import confine  # noqa: E402
 
 from conftest import finish, slug, write_progress  # noqa: E402
@@ -188,19 +187,6 @@ def test_a_deleted_job_keeps_no_artifacts(server, api, dispatcher, tree):
     for path in ("artifacts", f"artifacts/{artifact['id']}"):
         assert api("GET", f"/v1/jobs/{job['id']}/{path}").status_code == 404
     assert not server.config["SC_JOBS"].storage.artifact_dir(job["id"]).exists()
-
-
-def test_an_object_over_the_download_ceiling_is_refused_for_size_alone(
-        monkeypatch, server, api, dispatcher, tree):
-    finish(server, api, dispatcher, tree[0])
-    node, = listed(api, tree[0], "?kind=node&step=stepone")
-    monkeypatch.setitem(config.LIMITS, "max_download_bytes", node["size_bytes"] - 1)
-
-    refused = api("GET", f"/v1/jobs/{tree[0]['id']}/artifacts/{node['id']}")
-
-    assert (refused.status_code, slug(refused)) == (403, "download-too-large")
-    assert refused.get_json()["limit"] == "max_download_bytes"
-    assert listed(api, tree[0], "?kind=node&step=stepone")[0]["fetchable"] is True
 
 
 @pytest.mark.parametrize("damage", ["signature", "expiry", "job"])

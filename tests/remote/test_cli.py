@@ -12,8 +12,7 @@ from siliconcompiler.remote import Credentials
 from conftest import V1_URL
 
 
-# The command's argument shape; the client itself is tested beside it (the
-# pre-v1 CLI behaviour is in tests/remote/BEHAVIOUR.md, section F).
+# The command's argument shape; the client itself is tested beside it.
 
 
 @pytest.fixture(autouse=True)

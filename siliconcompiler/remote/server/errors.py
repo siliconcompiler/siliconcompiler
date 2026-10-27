@@ -39,7 +39,8 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
     _Error("upload-too-large", 413, "Upload too large"),
     _Error("node-limit-exceeded", 403, "Too many nodes in this flow", ("limit",)),
     # Over `max_download_bytes`, which never refills -- so not
-    # `limit-exceeded`, whose `Retry-After` a client would obey for ever.
+    # `limit-exceeded`, whose `Retry-After` a client would obey for ever. This
+    # profile sets no download ceiling and never raises it.
     _Error("download-too-large", 403, "Download too large", ("limit",)),
     _Error("rate-limited", 429, "Too many requests"),
 

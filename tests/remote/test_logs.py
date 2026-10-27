@@ -111,7 +111,9 @@ def test_a_finished_node_with_no_log_is_not_found(server, api, dispatcher, tree)
 
 
 @pytest.fixture
-def log(tmp_path):
+def log(tmp_path, monkeypatch):
+    # Asked on every pass, so a test's states are seen in turn.
+    monkeypatch.setattr(logstream, "STATE_SECONDS", 0)
     path = tmp_path / "sc_place_0.log"
     path.write_bytes(b"")
     return tmp_path, path
@@ -164,3 +166,19 @@ def test_a_line_longer_than_a_chunk_is_never_split_inside_a_character(log, monke
 
     assert [d["text"] for e, _, d in found if e == "log"] == ["\u00e9" * 4, "\u00e9" * 4,
                                                               "\u00e9"]
+
+
+def test_a_stream_asks_the_nodes_state_at_its_own_pace_not_each_poll(log, monkeypatch):
+    '''Each ask reconciles the job, which on Slurm runs `squeue`.'''
+    tree, path = log
+    monkeypatch.setattr(logstream, "STATE_SECONDS", 60)
+    asked = []
+
+    def node_state():
+        asked.append("running")
+        return "running"
+
+    frames_of(logstream.events(tree, path, "place", "0", node_state, lambda: "art", 0,
+                               time.time() + 0.6))
+
+    assert asked == ["running"]

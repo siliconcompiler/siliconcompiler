@@ -143,6 +143,15 @@ class Client:
             offered = self._grant_types()
             self.transport.check_plaintext()
             mode = self._choose(offered, tried)
+            if mode is None and not tried and self.credentials.grants() is not None:
+                # What was kept may be old, and no refusal will say so: ask again, once.
+                self._grants_were_stale()
+                offered = self._grant_types()
+                mode = self._choose(offered, tried)
+            if mode is None:
+                raise RemoteError(
+                    f"{self.base_url} offers no login this client can use "
+                    f"(it offers {', '.join(offered) or 'none'})")
             try:
                 body = self._login_with(mode)
             except OAuthRefusal as e:
@@ -185,16 +194,16 @@ class Client:
             "offers no token exchange. Run this job against a deployment that does, "
             "or without the CI credential")
 
-    def _choose(self, offered, tried) -> str:
-        '''`client_credentials` first, needing no person, then the device grant.'''
+    @staticmethod
+    def _choose(offered, tried) -> Optional[str]:
+        '''`client_credentials` first, needing no person, then the device grant;
+        None where neither is left.'''
         candidates = [grant for grant in offered if grant not in tried]
         if GRANT_CLIENT_CREDENTIALS in candidates:
             return GRANT_CLIENT_CREDENTIALS
         if GRANT_DEVICE_CODE in candidates:
             return GRANT_DEVICE_CODE
-        raise RemoteError(
-            f"{self.base_url} offers no login this client can use "
-            f"(it offers {', '.join(offered) or 'none'})")
+        return None
 
     def _login_with(self, mode: str) -> Dict[str, Any]:
         if mode == GRANT_CLIENT_CREDENTIALS:
@@ -713,10 +722,6 @@ class Client:
             raise
 
         return response.json(), _retry_after(response)
-
-    def jobs(self, **filters) -> list:
-        '''``GET /v1/jobs``, following ``Link`` to the end.'''
-        return self._pages("jobs", _filters(filters))
 
     def cancel_job(self, job_id: str, reason: str) -> Dict[str, Any]:
         '''``POST /v1/jobs/{id}/cancel``. Idempotent. ``reason`` is what the job

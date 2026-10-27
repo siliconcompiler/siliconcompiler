@@ -170,6 +170,13 @@ class RemoteRun:
         self._check_project()
         reads = self._reads = self._read()
         self._check_unfed(reads.worked.unfed)
+        try:
+            return self._create_and_send(reads)
+        finally:
+            # Built before create, so dropped however create or the upload ends.
+            self._drop_wheels()
+
+    def _create_and_send(self, reads: _Reads) -> str:
         plan = self._plan(reads)
         self._member = plan.member
         self._check_account(plan.built)
@@ -215,8 +222,6 @@ class RemoteRun:
         except BaseException as e:
             self._abandon(job_id, e)
             raise
-        finally:
-            self._drop_wheels()
 
         self.logger.info("Job submitted")
         return job_id
@@ -661,7 +666,6 @@ class RemoteRun:
                 try:
                     path = wheels.build(dist, self._wheel_dir, warn=self.logger.warning)
                 except capture.CannotForward as e:
-                    self._drop_wheels()
                     raise RemoteError(str(e)) from None
                 built[os.path.basename(path)] = path
 
@@ -755,7 +759,9 @@ class RemoteRun:
             with tarfile.open(upload, mode="w:gz") as tar:
                 tar.add(sent, arcname=manifest)
                 needed = self._needed_from(root)
-                outputs = _LinkPacker(tar, root, needed, self.logger, replaced=replaced)
+                # It walks the whole job directory, so only where upstream outputs go up.
+                outputs = _LinkPacker(tar, root, needed, self.logger, replaced=replaced) \
+                    if packed else None
                 for name in needed:
                     if name in packed:
                         outputs.add(name)

@@ -40,11 +40,6 @@ def machine_fingerprint(monkeypatch):
     return real
 
 
-#
-# Canned answers, for what a working server cannot be made to say on demand
-# (`use_dpop_nonce`, a device limit exceeded, a proxy's HTML 502) and the client
-# branches on. The compose stack under setup/server/ is the integration rig.
-
 V1_URL = "https://sc-server.test/v1"
 
 
@@ -53,8 +48,8 @@ def _encoded(body):
 
 
 class FakeV1:
-    '''A v1 server that is only canned answers; the last `route()` for a
-    method and path wins.'''
+    '''A v1 server that is only canned answers, for what a working server cannot be
+    made to say on demand; the last `route()` for a method and path wins.'''
 
     def __init__(self, mock, base_url):
         self._mock = mock
@@ -445,9 +440,6 @@ def job_archive(nop_project):
     return build
 
 
-#
-# The real server, from `create_app`, in the test's own directory.
-
 BASE = "http://localhost"
 
 
@@ -510,9 +502,6 @@ def call(client, key, method, path, token, headers=None, **kwargs):
 def token(server_client, key):
     return login(server_client, key).get_json()["access_token"]
 
-
-#
-# The job path: a caller, a dispatcher that starts nothing, and a submitted job.
 
 class FakeDispatcher:
     '''Starts nothing: a test writes the run's progress itself. `gate`, set,
