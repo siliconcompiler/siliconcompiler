@@ -340,11 +340,11 @@ entry points are ``sc-config``, ``sc-issue``, ``sc-show``, ``sc-install`` and
    * - ``sc-remote -configure -server <url>``
      - ``sc-config remote configure <url>``. ``-configure -list`` is
        ``sc-config remote show``, and ``-configure -add <dir>`` is
-       ``sc-config remote uploads add <dir>``
+       ``sc-config settings add remote uploads <dir>``
    * - ``sc-remote -cfg <manifest> -cancel``
-     - ``sc-config remote cancel <manifest>``. ``-reconnect``, ``-delete`` and
-       ``-tail`` became actions the same way, and ``-cfg <manifest>`` alone is
-       ``status``
+     - The server's portal, opened by ``sc-config remote portal``, where a job
+       is followed, cancelled and deleted. ``-reconnect``, ``-delete`` and
+       ``-cfg <manifest>`` alone went the same way
    * - ``python3 -m siliconcompiler.apps.utils.cleanup``
      - ``sc-config cache clean``, same arguments, except that ``-dryrun`` takes no
        value: drop a ``true`` after it

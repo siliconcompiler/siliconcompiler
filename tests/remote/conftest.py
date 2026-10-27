@@ -173,6 +173,24 @@ def no_sleep(monkeypatch):
     return slept
 
 
+@pytest.fixture
+def settings(monkeypatch):
+    '''A settings.json of the test's own, for one that changes a setting: the
+    session's home is shared.'''
+    import functools
+    import logging
+
+    from siliconcompiler.utils.multiprocessing import MPManager
+    from siliconcompiler.utils.settings import SettingsManager
+
+    @functools.cache
+    def manager():
+        return SettingsManager(os.path.abspath("settings.json"), logging.getLogger(),
+                               system_filepath=os.path.abspath("system.json"))
+
+    monkeypatch.setattr(MPManager, "get_settings", staticmethod(manager))
+
+
 def node_body(step, state, **extra):
     node = {"step": step, "index": "0", "state": state,
             "terminal": state in ("completed", "failed", "skipped", "cancelled"),

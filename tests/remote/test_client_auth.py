@@ -140,7 +140,7 @@ def test_a_followed_redirect_gets_operator_headers_only_on_the_apis_origin(
     '''Operator headers go to the API's origin, where an edge
     wants them, and nowhere else; no token or proof goes to either, since the
     signature is the credential.'''
-    logged_in.set_header("CF-Access-Client-Id", "id")
+    logged_in.credentials.set_header("CF-Access-Client-Id", "id")
     log = "/stream" in location or "/streams/" in location
     fake_v1.route(responses.GET, "jobs/J/logs" if log else "jobs/J/artifacts/A", "",
                   status=303, headers={"Location": location})
@@ -421,11 +421,9 @@ def test_the_store_is_one_versioned_file_of_two_categories(
     fake_v1.route(responses.GET, "me", {"id": "u1", "issuer": "local"})
     Client(tmp_credentials).me()
     tmp_credentials.set_header("CF-Access-Client-Id", "id")
-    tmp_credentials.set_directory_whitelist(["/proj"])
 
     assert _store_file(tmp_credentials) == {
-        "store": {"version": 1, "server": "https://sc-server.test/v1",
-                  "directory_whitelist": ["/proj"]},
+        "store": {"version": 1, "server": "https://sc-server.test/v1"},
         "servers": {"https://sc-server.test/v1": {
             "user_id": "u1", "refresh_token": "refresh-token-one",
             "headers": {"CF-Access-Client-Id": "id"}}}}
@@ -485,9 +483,12 @@ def _legacy_home(tmp_path):
 
 
 @pytest.mark.parametrize("named", ["store", "old-file"])
-def test_an_older_clients_file_is_moved_in_once(tmp_path, caplog, named):
-    '''Server and whitelist moved, the old file removed, and its username and password not
-    kept; naming the old file still finds the store, saying where to point it.'''
+def test_an_older_clients_file_is_moved_in_once(tmp_path, caplog, settings, named):
+    '''Server moved into the store and whitelist into `remote uploads`, the old file
+    removed, and its username and password not kept; naming the old file still finds
+    the store, saying where to point it.'''
+    from siliconcompiler.remote.client.credentials import UPLOADS
+
     home = _legacy_home(tmp_path)
     path = home / ("auth" if named == "store" else "") / ("remote.json" if named == "store"
                                                           else "credentials")
@@ -496,8 +497,8 @@ def test_an_older_clients_file_is_moved_in_once(tmp_path, caplog, named):
     again = Credentials(path)
 
     assert _store_file(first)["store"] == {
-        "version": 1, "server": "https://sc-server.test:443/v1",
-        "directory_whitelist": ["/proj"]}
+        "version": 1, "server": "https://sc-server.test:443/v1"}
+    assert UPLOADS.get() == ["/proj"]
     assert "hunter2" not in first.path.read_text()
     assert not (home / "credentials").exists()
     assert sorted(entry.name for entry in (home / "auth").iterdir()) == \
@@ -528,7 +529,7 @@ def test_the_device_poll_waits_and_slows_down(fake_v1, tmp_credentials, device,
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
     with caplog.at_level("INFO"):
-        Client(tmp_credentials, open_browser=False).login()
+        Client(tmp_credentials).login()
 
     assert no_sleep == [2, 2, 7]
     assert "ABCD-EFGH" in caplog.text
@@ -542,7 +543,7 @@ def test_an_expired_device_code_starts_again(fake_v1, tmp_credentials, device,
     fake_v1.route(responses.POST, "auth/token", {"error": "expired_token"}, status=400)
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
-    Client(tmp_credentials, open_browser=False).login()
+    Client(tmp_credentials).login()
 
     assert len(posts(fake_v1, "auth/device")) == 2
     assert [form(r.body)["device_code"] for r in posts(fake_v1)] == ["first", "second"]
@@ -557,7 +558,7 @@ def test_a_denied_device_login_says_why(fake_v1, tmp_credentials, device, no_sle
                   status=400)
 
     with pytest.raises(RemoteError) as raised:
-        Client(tmp_credentials, open_browser=False).login()
+        Client(tmp_credentials).login()
 
     assert said in str(raised.value)
 
@@ -573,7 +574,7 @@ def test_the_display_name_is_the_username(request, fake_v1, tmp_credentials,
         request.getfixturevalue("device")()
     fake_v1.route(responses.POST, "auth/token", client_credentials)
 
-    Client(tmp_credentials, open_browser=False).login()
+    Client(tmp_credentials).login()
 
     if grant == "device":
         sent = form(posts(fake_v1, "auth/device")[0].body)
@@ -596,7 +597,7 @@ def test_a_scope_not_granted_is_named_at_login(request, fake_v1, tmp_credentials
     fake_v1.route(responses.POST, "auth/token", {**client_credentials, "scope": scope})
 
     with caplog.at_level("INFO"):
-        Client(tmp_credentials, open_browser=False).login()
+        Client(tmp_credentials).login()
 
     assert form(posts(fake_v1)[0].body)["scope"] == " ".join(SCOPES)
     said = [record for record in caplog.records if "not granted" in record.getMessage()]
@@ -629,7 +630,7 @@ def test_a_ci_key_trades_first_and_never_prints_a_code(
     if offered:
         _offer(fake_v1, capabilities, *offered)
 
-    Client(tmp_credentials, open_browser=False).login()
+    Client(tmp_credentials).login()
 
     assert not posts(fake_v1, "auth/device")
     (trade,) = posts(fake_v1)
@@ -647,7 +648,7 @@ def test_a_ci_key_trades_first_and_never_prints_a_code(
 def test_a_ci_session_trades_again_for_each_access_token(fake_v1, tmp_credentials,
                                                          exchange):
     exchange("one")
-    client = Client(tmp_credentials, open_browser=False)
+    client = Client(tmp_credentials)
     client.login()
 
     fake_v1.route(responses.GET, "me", problem("invalid-token", 401), status=401,
@@ -666,7 +667,7 @@ def test_a_ci_credential_near_expiry_warns_the_pipeline(fake_v1, tmp_credentials
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
     exchange(session_expires_in=3 * 86400)
 
-    Client(tmp_credentials, open_browser=False).login()
+    Client(tmp_credentials).login()
 
     assert "::warning::This CI credential expires in 3 days" in capsys.readouterr().out
     assert "expires in 3 days" in caplog.text
@@ -684,7 +685,7 @@ def test_a_ci_key_re_reads_the_grants_once_before_it_fails(
                   status=400)
 
     with pytest.raises(RemoteError, match="no non-interactive login for a CI credential"):
-        client = Client(tmp_credentials, open_browser=False)
+        client = Client(tmp_credentials)
         (client.login if entry == "login" else client.transport.renew)()
 
     assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
@@ -702,7 +703,7 @@ def test_a_ci_key_trades_after_the_grants_say_it_now_can(
     fake_v1.route(responses.POST, "auth/token",
                   {"access_token": "ci", "token_type": "DPoP", "expires_in": 900})
 
-    Client(tmp_credentials, open_browser=False).login()
+    Client(tmp_credentials).login()
 
     assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE, GRANT_TOKEN_EXCHANGE]
 
@@ -719,7 +720,7 @@ def test_a_trade_refused_for_the_clock_is_minted_again_on_the_corrected_one(
                   headers={"Date": email.utils.formatdate(time.time() + ahead, usegmt=True)})
     exchange()
 
-    Client(tmp_credentials, open_browser=False).login()
+    Client(tmp_credentials).login()
 
     first, second = (form(r.body)["subject_token"] for r in posts(fake_v1))
     first, second = claims(first), claims(second)
@@ -748,7 +749,7 @@ def test_a_ci_credential_is_never_sent_over_plain_http(tmp_path, ci_secret):
 
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         with pytest.raises(RemoteError) as raised:
-            Client(creds, open_browser=False).login()
+            Client(creds).login()
         assert not mock.calls
 
     assert "https" in str(raised.value)
@@ -761,7 +762,7 @@ def plain(capabilities, tmp_credentials):
     with responses.RequestsMock(assert_all_requests_are_fired=False) as mock:
         server = FakeV1(mock, "http://sc-server.test/v1")
         server.route(responses.GET, "", capabilities)
-        yield server, Client(tmp_credentials, open_browser=False)
+        yield server, Client(tmp_credentials)
 
 
 @pytest.mark.parametrize("offered,sent", [
@@ -808,7 +809,7 @@ def test_a_grant_refused_over_plain_http_stops_the_login(plain, capabilities):
 def test_a_project_bound_ci_credential_explains_a_404(fake_v1, tmp_credentials,
                                                       exchange):
     exchange()
-    client = Client(tmp_credentials, open_browser=False)
+    client = Client(tmp_credentials)
     client.login()
 
     fake_v1.route(responses.GET, "jobs/J", problem("not-found", 404), status=404,
@@ -820,75 +821,76 @@ def test_a_project_bound_ci_credential_explains_a_404(fake_v1, tmp_credentials,
     assert "another project" in str(raised.value)
 
 
-def test_ci_setup_writes_the_store_and_asks_for_the_access_headers(
-        tmp_path, monkeypatch, ci_secret):
-    '''Headers are typed in, never read from an environment variable.'''
+def test_configure_in_ci_trades_the_credential_and_keeps_the_store_in_the_runner(
+        fake_v1, monkeypatch, ci_secret, exchange):
+    '''The session is the CI credential's, the store is exported to later steps, and
+    a header is only what was given, never read from an environment variable.'''
+    from pathlib import Path
+
     monkeypatch.setenv("GITHUB_ACTIONS", "true")
-    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path / "runner"))
-    monkeypatch.setenv("GITHUB_ENV", str(tmp_path / "github_env"))
+    monkeypatch.setenv("RUNNER_TEMP", os.path.abspath("runner"))
+    monkeypatch.setenv("GITHUB_ENV", os.path.abspath("github_env"))
     monkeypatch.setenv("CF_ACCESS_CLIENT_ID", "ignored")
     monkeypatch.delenv("SC_AUTH_DIR", raising=False)
+    exchange()
+    fake_v1.route(responses.GET, "me", {"id": "u-ci", "issuer": "local"})
 
-    answers = iter(["CF-Access-Client-Id", "CF-Access-Client-Secret", ""])
-    values = iter(["cf-id", "cf-secret"])
-    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
-    monkeypatch.setattr("builtins.input", lambda _: next(answers))
-    monkeypatch.setattr("getpass.getpass", lambda _: next(values))
+    creds = Credentials(Path("home/auth/remote.json"))
+    Client(creds).configure_server("https://sc-server.test",
+                                   headers={"CF-Access-Client-Secret": "cf-secret"})
 
-    creds = Credentials(tmp_path / "home" / "auth" / "remote.json")
-    Client(creds).ci_setup(server="https://sc-server.test")
-
-    exported = (tmp_path / "github_env").read_text()
-    assert f"SC_AUTH_DIR={tmp_path / 'runner' / 'sc-auth'}" in exported
+    exported = Path("github_env").read_text()
+    assert f"SC_AUTH_DIR={os.path.abspath('runner/sc-auth')}" in exported
     assert "cf-secret" not in exported
+    assert grants(fake_v1) == [GRANT_TOKEN_EXCHANGE]
 
-    monkeypatch.setenv("SC_AUTH_DIR", str(tmp_path / "runner" / "sc-auth"))
+    monkeypatch.setenv("SC_AUTH_DIR", os.path.abspath("runner/sc-auth"))
     monkeypatch.delenv("SC_CI_CREDENTIAL")
-    reopened = Credentials(tmp_path / "home" / "auth" / "remote.json")
+    reopened = Credentials(Path("home/auth/remote.json"))
     assert reopened.ci_secret() == ci_secret
-    assert reopened.headers() == {
-        "CF-Access-Client-Id": "cf-id", "CF-Access-Client-Secret": "cf-secret"}
+    assert reopened.headers() == {"CF-Access-Client-Secret": "cf-secret"}
     assert reopened.server == "https://sc-server.test/v1"
     assert reopened.refresh_token is None
 
 
-def test_ci_setup_without_a_terminal_asks_nothing(tmp_path, monkeypatch, ci_secret):
-    monkeypatch.delenv("RUNNER_TEMP", raising=False)
-    monkeypatch.setenv("CF_ACCESS_CLIENT_ID", "ignored")
-    monkeypatch.setenv("CF_ACCESS_CLIENT_SECRET", "ignored")
-    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
-
-    creds = Credentials(tmp_path / "home" / "auth" / "remote.json")
-    Client(creds).ci_setup(server="https://sc-server.test")
-
-    assert creds.headers() == {}
-
-
-def test_a_rotation_revokes_the_old_device_with_the_old_key(
+def test_a_rotation_revokes_the_old_device_on_each_server_with_the_old_key(
         logged_in, fake_v1, tmp_credentials, client_credentials):
-    '''The old key proves possession one last time, then the new key logs in.'''
+    '''The old key proves possession one last time on each server holding a session,
+    then the new key logs in to the default; a server holding none is not logged in to.'''
     import jwt
 
     from siliconcompiler.remote import dpop
 
+    other = FakeV1(fake_v1._mock, "https://other.test/v1")
+    tmp_credentials.set_server("https://other.test")
+    tmp_credentials.save_tokens({"refresh_token": "refresh-for-the-other"})
+    tmp_credentials.set_server("https://idle.test")
+    tmp_credentials.set_user_id("u-idle")
+    tmp_credentials.set_server("https://sc-server.test")
+
     old = tmp_credentials.thumbprint
-    fake_v1.route(responses.GET, "devices",
-                  {"items": [{"id": "d-old", "name": "laptop", "current": True}]})
-    fake_v1.route(responses.DELETE, "devices/d-old", "", status=204)
-    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    for server, device in ((fake_v1, "d-old"), (other, "d-other")):
+        server.route(responses.GET, "devices",
+                     {"items": [{"id": device, "name": "laptop", "current": True}]})
+        server.route(responses.DELETE, f"devices/{device}", "", status=204)
+        server.route(responses.POST, "auth/token", client_credentials)
 
     logged_in.rotate_key()
 
     sent = [c.request for c in fake_v1.calls]
-    revoke, = [r for r in sent if r.method == "DELETE"]
+    revokes = [r for r in sent if r.method == "DELETE"]
     login = posts(fake_v1)[-1]
 
     def signer(request):
         return dpop.jwk_thumbprint(jwt.get_unverified_header(request.headers["DPoP"])["jwk"])
 
-    assert signer(revoke) == old
+    assert [r.url for r in revokes] == ["https://other.test/v1/devices/d-other",
+                                        "https://sc-server.test/v1/devices/d-old"]
+    assert {signer(r) for r in revokes} == {old}
+    assert login.url == "https://sc-server.test/v1/auth/token"
     assert signer(login) == tmp_credentials.thumbprint != old
-    assert sent.index(revoke) < sent.index(login)
+    assert sent.index(revokes[-1]) < sent.index(login)
+    assert not [r for r in sent if r.url.startswith("https://idle.test")]
 
 
 @pytest.mark.parametrize("silence", ["bad-gateway", "timeout"])
@@ -961,113 +963,96 @@ def _store():
     return Credentials(Path("sc-home/auth/remote.json"))
 
 
-def test_an_imported_authority_is_kept_privately_and_its_fingerprint_said(tmp_path):
-    '''Re-importing the same file is harmless; another under its name is refused
-    unless overwritten, which also rebuilds its trust bundle.'''
+def _authorities(*names):
+    '''A certificate authority of our own in each named directory: its file.'''
+    from pathlib import Path
+
+    for name in names:
+        os.mkdir(name)
+    return [make_authority(Path(name))[0] for name in names]
+
+
+def test_an_authority_is_said_by_fingerprint_and_trusted_from_a_private_bundle():
+    '''A replaced authority gets a bundle of its own, never a stale one; a file
+    holding no certificate is refused, naming it.'''
+    from pathlib import Path
+
     from cryptography import x509
     from cryptography.hazmat.primitives import hashes
 
-    authority, certificate, _ = make_authority(tmp_path)
+    from siliconcompiler.remote.client.credentials import read_authority
+
+    first, second = _authorities("one", "two")
     store = _store()
 
-    name, found = store.import_certificate(authority)
+    pem, found = read_authority(first)
 
-    expected = x509.load_pem_x509_certificate(authority.read_bytes())
-    assert (name, store.certificates()) == ("our-ca", ["our-ca"])
+    expected = x509.load_pem_x509_certificate(first.read_bytes())
+    assert pem == first.read_text()
     assert found == [("CN=Our CA", expected.fingerprint(hashes.SHA256()).hex(":").upper())]
-    assert store.import_certificate(authority)[0] == "our-ca"
+    bundle = store.trust_bundle(pem)
+    replaced = store.trust_bundle(read_authority(second)[0])
+    assert bundle != replaced
+    assert replaced.read_bytes().endswith(second.read_bytes())
     if sys.platform != "win32":
         assert mode(store.certs_dir) == 0o700
-        assert mode(store.certificate_path("our-ca")) == 0o600
-    renamed = tmp_path / "elsewhere" / "our-ca.pem"
-    renamed.parent.mkdir()
-    renamed.write_bytes(certificate.read_bytes())
-    store.trust_bundle("our-ca")
-    with pytest.raises(StoreError, match="already imported as our-ca"):
-        store.import_certificate(renamed)
-    assert store.import_certificate(renamed, overwrite=True)[0] == "our-ca"
-    assert store.certificate_path("our-ca").read_bytes() == certificate.read_bytes()
-    assert store.trust_bundle("our-ca").read_bytes().endswith(certificate.read_bytes())
-    (tmp_path / "notes.pem").write_text("not a certificate")
-    with pytest.raises(StoreError, match="no PEM certificate"):
-        store.import_certificate(tmp_path / "notes.pem")
+        assert mode(bundle) == 0o600
+    Path("notes.pem").write_text("not a certificate")
+    with pytest.raises(StoreError, match="notes.pem: it holds no PEM certificate"):
+        read_authority("notes.pem")
 
 
-def test_configure_offers_an_imported_authority_and_keeps_the_choice(tls_server, monkeypatch):
-    '''Asked once, in -configure; every later command verifies with the choice.'''
+def test_configure_keeps_the_authority_that_verifies_the_server(tls_server):
+    '''Every later command verifies with it.'''
     url, authority = tls_server
     store = _store()
-    store.import_certificate(authority)
-    asked = []
-    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
-    monkeypatch.setattr("siliconcompiler.remote.client._ask",
-                        lambda question, hint=None: asked.append(question) or "1")
 
-    Client(store).configure_server(server=url)
+    Client(store).configure_server(server=url, authority=str(authority))
 
-    assert (store.server, store.certificate) == (f"{url}/v1", "our-ca")
-    assert len(asked) == 1
-    monkeypatch.setattr("siliconcompiler.remote.client._ask",
-                        lambda *args, **kwargs: pytest.fail("asked again"))
+    assert (store.server, store.authority) == (f"{url}/v1", authority.read_text())
     assert Client(store).me()["id"] == "u1"
 
 
-@pytest.mark.parametrize("imported,terminal,answer", [
-    (False, True, "1"), (True, False, "1"), (True, True, ""),
-], ids=["nothing-imported", "no-terminal", "declined"])
-def test_an_unverified_certificate_is_said_and_nothing_saved(tls_server, monkeypatch,
-                                                             imported, terminal, answer):
-    '''The failure names -import_cert; the client never trusts what the server
-    presents, and a server it could not verify is not saved.'''
+@pytest.mark.parametrize("configured,given", [(False, False), (False, True), (True, True)],
+                         ids=["none-given", "another-given", "replaced-by-another"])
+def test_an_authority_that_does_not_verify_the_server_is_not_kept(tls_server, configured,
+                                                                  given):
+    '''The failure names -cert; the client never trusts what the server presents, a
+    new server it could not verify is not saved, and a configured one keeps its own.'''
     from siliconcompiler.remote.client.transport import CertificateRefused
 
     url, authority = tls_server
     store = _store()
-    if imported:
-        store.import_certificate(authority)
-    monkeypatch.setattr("sys.stdin.isatty", lambda: terminal)
-    monkeypatch.setattr("siliconcompiler.remote.client._ask", lambda *args, **kwargs: answer)
+    if configured:
+        Client(store).configure_server(server=url, authority=str(authority))
+    another = _authorities("another")[0] if given else None
 
-    with pytest.raises(CertificateRefused, match="sc-config remote import-cert"):
-        Client(store).configure_server(server=url)
+    with pytest.raises(CertificateRefused, match="configure <server> -cert <file>"):
+        Client(store).configure_server(server=url, authority=another)
 
-    assert (store.server, store.certificate) == (None, None)
-
-
-def test_only_configure_asks_whichmake_authority(tls_server, monkeypatch):
-    '''Any other command fails and says to configure; a submit never stops for a question.'''
-    from siliconcompiler.remote.client.transport import CertificateRefused
-
-    url, authority = tls_server
-    store = _store()
-    store.import_certificate(authority)
-    store.set_server(url)
-    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
-    monkeypatch.setattr("siliconcompiler.remote.client._ask",
-                        lambda *args, **kwargs: pytest.fail("asked outside -configure"))
-
-    with pytest.raises(CertificateRefused, match="sc-config remote configure"):
-        Client(store).capabilities()
+    if configured:
+        assert (store.server, store.authority) == (f"{url}/v1", authority.read_text())
+    else:
+        assert (store.server, store.servers()) == (None, [])
 
 
-def test_an_imported_authority_is_trusted_beside_the_usual_ones(tmp_path, monkeypatch):
+def test_an_authority_is_trusted_beside_the_usual_ones(monkeypatch):
     '''Added to, never in place of, so public storage still verifies; a
     REQUESTS_CA_BUNDLE in the environment still wins.'''
     from requests.utils import DEFAULT_CA_BUNDLE_PATH
 
-    authority, _, _ = make_authority(tmp_path)
+    authority, = _authorities("ca")
     store = _store()
-    store.import_certificate(authority)
     store.set_server("https://ours.test")
-    store.set_certificate("our-ca")
+    store.set_authority(authority.read_text())
 
     client = Client(store)
-    bundle = store.trust_bundle("our-ca").read_bytes()
+    bundle = store.trust_bundle(store.authority)
     session = client.transport._session
 
-    assert open(DEFAULT_CA_BUNDLE_PATH, "rb").read().strip() in bundle
-    assert authority.read_bytes().strip() in bundle
-    assert session.verify == str(store.trust_bundle("our-ca"))
+    assert open(DEFAULT_CA_BUNDLE_PATH, "rb").read().strip() in bundle.read_bytes()
+    assert authority.read_bytes().strip() in bundle.read_bytes()
+    assert session.verify == str(bundle)
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(authority))
     assert session.merge_environment_settings(
         client.base_url, {}, None, None, None)["verify"] == str(authority)
@@ -1083,7 +1068,7 @@ def test_an_imported_authority_is_trusted_beside_the_usual_ones(tmp_path, monkey
 ])
 def test_a_store_others_can_read_or_change_stops_the_client(tmp_path, which, widen, match):
     '''The directory holds the key: one others can read is refused, the key, store and
-    imported authorities likewise, and only the store's own files are judged.'''
+    authorities' bundles likewise, and only the store's own files are judged.'''
     if which == "fresh-directory":
         home = tmp_path / "mine"
         home.mkdir(mode=0o700)
@@ -1100,9 +1085,9 @@ def test_a_store_others_can_read_or_change_stops_the_client(tmp_path, which, wid
         store.set_server("https://sc-server.test")
         store.key()
         store.save_tokens({"refresh_token": "r1"})
-        store.import_certificate(authority)
+        bundle = store.trust_bundle(authority.read_text())
         target = {"dir": store.auth_dir, "key": store.key_path, "store": store.path,
-                  "certificate": store.certificate_path("our-ca")}[which]
+                  "certificate": bundle}[which]
         os.chmod(target, mode(target) | widen)
         path = store.path
 

@@ -1015,13 +1015,14 @@ def _add_parser(commands) -> None:
 
     # Imported here rather than at module scope: each of them imports this module.
     from siliconcompiler.package.cleanup import CACHE_SETTINGS
+    from siliconcompiler.remote.client.credentials import REMOTE_SETTINGS
     from siliconcompiler.scheduler.slurm import SLURM_SETTINGS
     from siliconcompiler.schema_support.option import OPTION_SETTINGS
     from siliconcompiler.schema_support.record import RECORD_SETTINGS
     from siliconcompiler.tool import OPENTASK_SETTINGS, SHOWTASK_SETTINGS
 
     categories = {category.name: category for category in (
-        CACHE_SETTINGS, RECORD_SETTINGS, SLURM_SETTINGS, OPTION_SETTINGS,
+        CACHE_SETTINGS, RECORD_SETTINGS, REMOTE_SETTINGS, SLURM_SETTINGS, OPTION_SETTINGS,
         SHOWTASK_SETTINGS, OPENTASK_SETTINGS)}
     parser = commands.add_parser(
         "settings",
