@@ -2022,8 +2022,7 @@ A refusal is an :rfc:`9457` body, ``application/problem+json``:
 
 * **type is the contract.** ``title`` and ``detail`` are prose and may change.
   After ``type``, a client MAY branch on ``reason`` where the type defines one,
-  and ignores a member it does not know. The ``type`` URI is the same on every
-  deployment; each dereferences to a page documenting it.
+  and ignores a member it does not know.
 * **A refusal is retried by waiting only where it carries** ``Retry-After``.
 * **Not every failure is typed.** A proxy or the framework can answer first, and
   ``400``, ``405``, ``415`` and ``406`` MAY arrive without a problem body. A
@@ -2033,8 +2032,6 @@ A refusal is an :rfc:`9457` body, ``application/problem+json``:
 * **A resource the caller cannot read is** ``404``, never ``403``, so a refusal
   confirms nothing. A write on a job the caller can read and may not act on is
   ``403 not-permitted``.
-* A deployment that serves the type pages itself MAY say where, with
-  ``Link: </server-errors/not-found>; rel="help"``.
 
 ``POST /v1/auth/device`` and ``POST /v1/auth/token`` answer what their OAuth
 processing refuses in the OAuth shape, :rfc:`6749#section-5.2`:
@@ -2046,10 +2043,21 @@ and ``405`` -- are problem bodies, as everywhere. A client at those two reads
 The registry
 ^^^^^^^^^^^^
 
-Every ``type`` is ``https://siliconcompiler.com/server-errors/<slug>``. The
-registry is closed: a server returns no other. A type with no status is never an
-HTTP response, only the ``type`` of a job's or node's ``error``. The members
-listed are required on that type.
+Every ``type`` is ``https://siliconcompiler.com/server-errors/<slug>``, the
+same on every server. It is an identifier, which a client compares as a string
+and never fetches, so a server MUST NOT put its own host in it. The registry is
+closed: a server returns no other. A type with no status is never an HTTP
+response, only the ``type`` of a job's or node's ``error``. The members listed
+are required on that type.
+
+A server MAY host its own pages documenting the types, and point a client to
+them, on a refusal and on a job carrying an ``error``, with a relative link:
+``Link: </server-errors/not-found>; rel="help"``. A client MAY show that link in
+place of the ``type``, and still branches on ``type``. ``sc-server`` serves its
+pages at ``/server-errors/``. Another server can render the same set with
+``python -m siliconcompiler.remote.server.routes.errorpages <outdir>``, with the
+``server`` extra installed. The same pages are also `published
+<https://siliconcompiler.com/server-errors/>`__ at the ``type`` URIs.
 
 .. server-errors::
 

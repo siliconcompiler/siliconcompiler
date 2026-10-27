@@ -2,7 +2,7 @@ from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 
 from siliconcompiler.remote.server import errors
-from siliconcompiler.schema.docs.utils import build_table, code, link, para, strong
+from siliconcompiler.schema.docs.utils import build_table, code, para, strong
 
 
 # The remote API's error `type` registry, rendered from the registry itself.
@@ -13,7 +13,7 @@ class ServerErrors(SphinxDirective):
         entries = [[strong('type'), strong('Status'), strong('Members'), strong('Title')]]
         for err in sorted(errors.ERRORS.values(), key=lambda err: err.slug):
             slug = nodes.paragraph()
-            slug += link(err.uri, text=err.slug)
+            slug += code(err.slug)
             members = nodes.paragraph()
             for n, member in enumerate(err.members):
                 if n:
