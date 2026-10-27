@@ -19,6 +19,95 @@ as described in :rfc:`2119` and :rfc:`8174`. The API constrains what a client
 can observe; how a server stores, schedules and isolates the work behind it is
 its own business.
 
+Terms
+-----
+
+CI
+  `Continuous integration <https://en.wikipedia.org/wiki/Continuous_integration>`__:
+  a pipeline that builds and tests every change, with no person at it.
+
+DER
+  `Distinguished Encoding Rules
+  <https://en.wikipedia.org/wiki/X.690#DER_encoding>`__, the binary encoding a
+  CI credential's private key is written in.
+
+DPoP
+  Demonstrating Proof of Possession (:rfc:`9449`): each request carries a proof,
+  signed with the client's private key, that it comes from the key the token was
+  issued to, so a stolen token is useless without the key.
+
+ECDSA
+  The `Elliptic Curve Digital Signature Algorithm
+  <https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm>`__.
+
+ES256
+  ECDSA on P-256 with SHA-256, under the name :rfc:`7518#section-3.4` gives it.
+  The one signature algorithm ``v1`` uses.
+
+FIFO
+  A `named pipe <https://en.wikipedia.org/wiki/Named_pipe>`__: a special file,
+  which an archive may not create.
+
+JWK
+  JSON Web Key (:rfc:`7517`): a key written as JSON. A proof carries the public
+  half of the client's key as one, with ``"kty": "EC"`` for an elliptic-curve
+  key.
+
+JWS
+  JSON Web Signature (:rfc:`7515`): a header, a payload and a signature over
+  both. In its compact form, each is base64url-encoded and the three are joined
+  by dots.
+
+JWT
+  JSON Web Token (:rfc:`7519`): a JWS whose payload is a set of claims, such as
+  ``iat`` (issued at) and ``exp`` (expires). A DPoP proof and a CI credential's
+  assertion are JWTs.
+
+KiB
+  A kibibyte, 1,024 bytes (`binary prefixes
+  <https://en.wikipedia.org/wiki/Binary_prefix>`__).
+
+LFS
+  `Git Large File Storage <https://git-lfs.com/>`__, which keeps a repository's
+  large files on a server of their own.
+
+NDA
+  A `non-disclosure agreement
+  <https://en.wikipedia.org/wiki/Non-disclosure_agreement>`__, such as a foundry
+  requires before it releases a :term:`PDK`.
+
+OAuth
+  OAuth 2.0 (:rfc:`6749`), the framework the login endpoints follow: a client
+  trades a grant for tokens at a token endpoint. The device grant is
+  :rfc:`8628`, and token exchange :rfc:`8693`.
+
+P-256
+  The elliptic curve also named secp256r1, defined in `NIST SP 800-186
+  <https://doi.org/10.6028/NIST.SP.800-186>`__.
+
+PDK
+  A process design kit; see :term:`PDK`.
+
+PEP
+  A `Python Enhancement Proposal <https://peps.python.org/>`__. :pep:`440`
+  defines Python version specifiers, and :pep:`503` how a distribution's name
+  is normalised.
+
+RFC
+  A Request for Comments, an `Internet standard
+  <https://www.rfc-editor.org/>`__ or one of its companions. Each is linked
+  where it is cited.
+
+SHA-256
+  The 256-bit hash of the `SHA-2 <https://en.wikipedia.org/wiki/SHA-2>`__
+  family. A digest is written ``sha256:<hex>``.
+
+SSE
+  `Server-sent events
+  <https://html.spec.whatwg.org/multipage/server-sent-events.html>`__: a stream
+  of text events in one HTTP response, ``text/event-stream``, resumed with
+  ``Last-Event-ID``.
+
 Overview
 --------
 
