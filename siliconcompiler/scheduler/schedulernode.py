@@ -130,6 +130,7 @@ class SchedulerNode:
         self.__pipe = None
         self.__failed_log_lines = 20
         self.__error = False
+        self.__halted = False
         self.__generate_test_case = not replay
         self.__replay = replay
         self.__hash = self.__project.option.get_hash()
@@ -418,6 +419,7 @@ class SchedulerNode:
         except:  # noqa E722
             # Catch everything to avoid generating additional errors during error handling
             pass
+        self.__halted = True
         sys.exit(1)
 
     def cancel(self) -> None:
@@ -947,15 +949,18 @@ class SchedulerNode:
     def __handle_failure(self):
         """Ends a node that fails inside it, and then makes its testcase.
 
-        A failure is a halt(), or an exception, which is logged and halts the
-        node; a failed verify raises one from select_input_nodes(). Either way
-        the node is recorded before its testcase is made. An interrupt is a
-        cancel rather than a failure, and passes through untouched.
+        A failure is a halt(), or an exception or an exit from anywhere else,
+        which is logged and halts the node; a failed verify raises one from
+        select_input_nodes(). Either way the node is recorded before its
+        testcase is made. An interrupt is a cancel rather than a failure, and
+        passes through untouched.
         """
         try:
             try:
                 yield
-            except Exception as e:
+            except (Exception, SystemExit) as e:
+                if isinstance(e, SystemExit) and self.__halted:
+                    raise
                 utils.print_traceback(self.logger, e)
                 self.halt()
         except SystemExit:

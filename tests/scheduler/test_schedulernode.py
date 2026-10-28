@@ -2220,11 +2220,15 @@ def _verify_fails(self):
     ("steptwo", lambda mp: None,
      "Unable to locate outputs directory for stepone/0"),
     ("steptwo", lambda mp: mp.setattr(NOPTask, "select_input_nodes", _verify_fails),
-     "steptwo/0 fails 'errors' metric: 0==1")],
-    ids=["validate", "inputs", "exception"])
+     "steptwo/0 fails 'errors' metric: 0==1"),
+    ("stepone", lambda mp: mp.setattr(SchedulerNode, "validate",
+                                      lambda self: sys.exit("validate exited")),
+     "validate exited")],
+    ids=["validate", "inputs", "exception", "exit"])
 def test_run_failure_generates_testcase(project_logger, project, caplog, monkeypatch,
                                         step, fail, reason):
-    """A node that fails outside execute() is recorded and then gets its testcase."""
+    """A node that fails outside execute(), even by an exit that skips halt(), is halted once
+    and then gets its testcase."""
     project_logger(project)
     project.logger.setLevel(logging.INFO)
 
@@ -2245,7 +2249,7 @@ def test_run_failure_generates_testcase(project_logger, project, caplog, monkeyp
 
     assert recorded == [NodeStatus.ERROR, True]
     assert reason in caplog.text
-    assert f"Halting {step}/0 due to errors" in caplog.text
+    assert caplog.text.count(f"Halting {step}/0 due to errors") == 1
 
 
 @pytest.mark.timeout(180)
