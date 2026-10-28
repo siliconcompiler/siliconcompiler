@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import logging.handlers
 import os
@@ -33,6 +34,7 @@ from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
     SchedulerNodeReset, SchedulerNodeResetSilent, _read_previous_run
 from siliconcompiler.utils.logging import SC_CONSOLE_QUIET_ATTR
 from siliconcompiler.utils.paths import jobdir, workdir
+from siliconcompiler.utils.settings import SettingsManager
 
 
 class OwnKeysTask(NOPTask):
@@ -2574,8 +2576,24 @@ def test_check_previous_run_status_preserves_success_path(project, monkeypatch):
         node.check_previous_run_status(node)
 
 
+@pytest.fixture
+def issue_settings(monkeypatch):
+    '''Puts the given user and system settings files in effect.'''
+    def install(user=None, system=None):
+        for name, data in (("settings.json", user), ("system.json", system)):
+            if data is not None:
+                with open(name, "w") as f:
+                    json.dump(data, f)
+        manager = SettingsManager(os.path.abspath("settings.json"), logging.getLogger(),
+                                  system_filepath=os.path.abspath("system.json"))
+        monkeypatch.setattr(MPManager, "get_settings", staticmethod(lambda: manager))
+    return install
+
+
 @pytest.mark.timeout(180)
-def test_generate_testcase_autoissue(project_logger, project, caplog):
+def test_generate_testcase_autoissue(project_logger, project, caplog, issue_settings):
+    """With no issue settings, the testcase includes lambdapdk's libraries."""
+    issue_settings()
     project_logger(project)
     project.logger.setLevel(logging.INFO)
 
@@ -2591,11 +2609,66 @@ def test_generate_testcase_autoissue(project_logger, project, caplog):
         get_pdk_names.return_value = ["testpdk"]
         get_lib_names.return_value = ["testlib"]
         node._SchedulerNode__generate_testcase()
-        testcase.assert_called_once()
+        testcase.assert_called_once_with(
+            project, "stepone", "0",
+            archive_name="sc_issue_testdesign_job0_stepone_0.tar.gz",
+            archive_directory=jobdir(project),
+            include_libraries=False,
+            include_specific_libraries=["testpdk", "testlib"],
+            hash_files=False,
+            verbose_collect=False)
         get_pdk_names.assert_called_once()
         get_lib_names.assert_called_once()
 
     assert caplog.text == ""
+
+
+@pytest.mark.timeout(180)
+@pytest.mark.parametrize("user,system,all_libraries,libraries", [
+    ({"alllibraries": True}, None, True, []),
+    ({"libraries": ["mylib", "mypdk"]}, None, False, ["mylib", "mypdk"]),
+    (None, {"alllibraries": True}, True, []),
+    (None, {"libraries": ["mypdk"]}, False, ["mypdk"]),
+    ({"libraries": ["mylib"]}, {"libraries": ["mypdk"]}, False, ["mylib"]),
+    ({"alllibraries": False},
+     {"alllibraries": {"value": True, "system_priority": True}}, True, []),
+    ({"libraries": ["mylib"]},
+     {"libraries": {"value": ["mypdk"], "system_priority": True}}, False, ["mypdk"])],
+    ids=["user-all", "user-named", "system-all", "system-named", "user-over-system",
+         "priority-all", "priority-named"])
+def test_generate_testcase_autoissue_libraries(project, issue_settings,
+                                               user, system, all_libraries, libraries):
+    """The issue settings, from the user or the system file, add libraries to lambdapdk's
+    or include every one, a system-priority value over the user's."""
+    issue_settings(user={"issue": user} if user else None,
+                   system={"issue": system} if system else None)
+    project.option.set_autoissue(True)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase, \
+            patch("lambdapdk.get_pdk_names", return_value=["testpdk"]), \
+            patch("lambdapdk.get_lib_names", return_value=["testlib"]):
+        node._SchedulerNode__generate_testcase()
+
+    _, kwargs = testcase.call_args
+    assert kwargs["include_libraries"] is all_libraries
+    assert kwargs["include_specific_libraries"] == ["testpdk", "testlib", *libraries]
+
+
+@pytest.mark.timeout(180)
+def test_generate_testcase_autoissue_writes_named_archive(project, issue_settings):
+    """The testcase lands in the job directory as sc_issue_<design>_<job>_<step>_<index>.tar.gz."""
+    issue_settings()
+    project.option.set_autoissue(True)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+    node._SchedulerNode__generate_testcase()
+
+    assert os.path.isfile(
+        os.path.join(jobdir(project), "sc_issue_testdesign_job0_stepone_0.tar.gz"))
 
 
 @pytest.mark.timeout(180)

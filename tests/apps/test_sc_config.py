@@ -67,6 +67,8 @@ def written():
     (["schema-options", "scheduler,msgevent", "end", "fail"], "schema-options",
      "scheduler,msgevent", ["end", "fail"]),
     (["showtask", "gds", "klayout"], "showtask", "gds", "klayout"),
+    (["issue", "alllibraries", "true"], "issue", "alllibraries", True),
+    (["issue", "libraries", "mylib", "mypdk"], "issue", "libraries", ["mylib", "mypdk"]),
     (["-raw", "mine", "key", '{"a": 1}'], "mine", "key", {"a": 1}),
     (["-raw", "mine", "key", "text"], "mine", "key", "text"),
 ])
