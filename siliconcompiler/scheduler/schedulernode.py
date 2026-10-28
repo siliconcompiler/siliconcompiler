@@ -24,12 +24,21 @@ from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import BaseSchema, Journal, Parameter
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir, cwdir
+from siliconcompiler.utils.settings import Setting, SettingsCategory
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
     from siliconcompiler import Flowgraph, Task
     from siliconcompiler.schema_support.record import RecordSchema
     from siliconcompiler.schema_support.metric import MetricSchema
+
+
+ISSUE_LIBRARIES = Setting("issue", "libraries", "[str]", [],
+                          "libraries an autoissue testcase includes besides lambdapdk's, "
+                          "the design and PDKs among them")
+ISSUE_ALLLIBRARIES = Setting("issue", "alllibraries", "bool", False,
+                             "whether an autoissue testcase includes every library")
+ISSUE_SETTINGS = SettingsCategory("issue", ISSUE_LIBRARIES, ISSUE_ALLLIBRARIES)
 
 
 class _SchedulerReset(Exception):
@@ -1307,7 +1316,9 @@ class SchedulerNode:
         Private helper to generate a test case upon failure.
 
         This method packages the failing state (including manifests, inputs,
-        and logs) into a compressed archive for easier debugging.
+        and logs) into a compressed archive for easier debugging, written to
+        the job directory as sc_issue_<design>_<jobname>_<step>_<index>.tar.gz.
+        It includes lambdapdk's libraries and any the issue settings add.
         """
 
         if not self.project.option.get_autoissue():
@@ -1325,15 +1336,17 @@ class SchedulerNode:
         from siliconcompiler.utils.issue import generate_testcase
         import lambdapdk
 
-        foss_libraries = [*lambdapdk.get_pdk_names(), *lambdapdk.get_lib_names()]
+        libraries = [*lambdapdk.get_pdk_names(), *lambdapdk.get_lib_names(),
+                     *ISSUE_LIBRARIES.get()]
 
         generate_testcase(
             self.__project,
             self.__step,
             self.__index,
+            archive_name=f"sc_issue_{self.__name}_{self.__job}_{self.__step}_{self.__index}.tar.gz",
             archive_directory=self.__jobworkdir,
-            include_libraries=False,
-            include_specific_libraries=foss_libraries,
+            include_libraries=ISSUE_ALLLIBRARIES.get(),
+            include_specific_libraries=libraries,
             hash_files=self.__hash,
             verbose_collect=False)
 
