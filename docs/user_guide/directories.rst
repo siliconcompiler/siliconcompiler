@@ -52,8 +52,9 @@ pointed at its target's copy; a target from outside the collection is copied onc
 where a link to it is first met, and a link whose target does not exist is left
 out with a warning.
 
-With :keypath:`option,autoissue` set, a node that fails also leaves its test case
-here, as ``sc_issue_<design>_<jobname>_<step>_<index>.tar.gz``, which
+With :keypath:`option,autoissue` set, a node whose tool exits with a nonzero code,
+or whose post-processing fails, also leaves its test case here, as
+``sc_issue_<design>_<jobname>_<step>_<index>.tar.gz``, which
 :ref:`sc-issue <app-sc-issue>` replays. It includes lambdapdk's libraries, and the
 ``issue`` :ref:`settings <user_settings>` add others: ``libraries`` names them, and
 ``alllibraries`` includes every one.
