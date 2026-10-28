@@ -926,9 +926,9 @@ class SchedulerNode:
             try:
                 self.run()
             except KeyboardInterrupt:
-                # Only an interrupt outside execute() reaches here -- that one
-                # is handled where the tool is, which is the only place that
-                # can take the tool down with it.
+                # Only an interrupt outside the node's work in run() reaches
+                # here -- that one is handled where the tool is, which is the
+                # only place that can take the tool down with it.
                 try:
                     # Cancel again, from in here. The scheduler cancels before
                     # it signals, which can land while this node was still
@@ -942,6 +942,33 @@ class SchedulerNode:
                     # the node unrecorded, and halt() is what ends this process.
                     self.halt(
                         errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
+
+    @contextlib.contextmanager
+    def __handle_failure(self):
+        """Ends a node that fails inside it, and then makes its testcase.
+
+        A failure is a halt(), or an exception, which is logged and halts the
+        node; a failed verify raises one from select_input_nodes(). Either way
+        the node is recorded before its testcase is made. An interrupt is a
+        cancel rather than a failure, and passes through untouched.
+        """
+        try:
+            try:
+                yield
+            except Exception as e:
+                utils.print_traceback(self.logger, e)
+                self.halt()
+        except SystemExit:
+            if self.__generate_test_case:
+                try:
+                    self.__generate_testcase()
+                except Exception as e:
+                    # The node has already failed; a testcase that cannot be
+                    # made is reported rather than raised in place of that.
+                    self.logger.error(
+                        f"Failed to generate testcase for {self.__step}/{self.__index}")
+                    utils.print_traceback(self.logger, e)
+            raise
 
     def run(self) -> None:
         """
@@ -1000,33 +1027,31 @@ class SchedulerNode:
             self.logger.addHandler(file_log)
 
             try:
-                # Select the inputs to this node
-                sel_inputs = self.__task.select_input_nodes()
-                if not self.__is_entry_node and not sel_inputs:
-                    self.halt(f'No inputs selected for {self.__step}/{self.__index}')
-                self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
+                with self.__handle_failure():
+                    # Select the inputs to this node
+                    sel_inputs = self.__task.select_input_nodes()
+                    if not self.__is_entry_node and not sel_inputs:
+                        self.halt(f'No inputs selected for {self.__step}/{self.__index}')
+                    self.__record.set("inputnode", sel_inputs,
+                                      step=self.__step, index=self.__index)
 
-                if self.__hash:
-                    self.__hash_files_pre_execute()
+                    if self.__hash:
+                        self.__hash_files_pre_execute()
 
-                # Forward data
-                if not self.__replay:
-                    self.setup_input_directory()
+                    # Forward data
+                    if not self.__replay:
+                        self.setup_input_directory()
 
-                # Write manifest prior to step running into inputs
-                self.__project.write_manifest(self.__manifests["input"])
+                    # Write manifest prior to step running into inputs
+                    self.__project.write_manifest(self.__manifests["input"])
 
-                # Check manifest
-                if not self.validate():
-                    self.halt("Failed to validate node setup. See previous errors")
+                    # Check manifest
+                    if not self.validate():
+                        self.halt("Failed to validate node setup. See previous errors")
 
-                try:
                     self.execute()
-                except KeyboardInterrupt:
-                    self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
-                except Exception as e:
-                    utils.print_traceback(self.logger, e)
-                    self.halt()
+            except KeyboardInterrupt:
+                self.halt(errmsg=f"Execution interrupted for {self.__step}/{self.__index}")
             finally:
                 # The node is finished, so stop holding its files. The
                 # per-stream captures have already been merged into <step>.log,
@@ -1255,9 +1280,6 @@ class SchedulerNode:
         self.__project.write_manifest(self.__manifests["output"])
 
         self.summarize()
-
-        if self.__error and self.__generate_test_case:
-            self.__generate_testcase()
 
         # Stop if there are errors
         errors = self.__metrics.get('errors', step=self.__step, index=self.__index)

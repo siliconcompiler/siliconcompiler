@@ -24,6 +24,7 @@ from siliconcompiler import Task
 from siliconcompiler import TaskSkip
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
+from siliconcompiler.tools.builtin.verify import VerifyTask
 from scheduler.tools.echo import EchoTask
 from scheduler.tools.sleeper import SleepTask, SLEEP_SECONDS
 
@@ -2051,18 +2052,27 @@ def test_run_failed_to_execute(project_logger, project, caplog):
     assert "Halting stepone/0 due to errors" in caplog.text
 
 
-def test_run_keyboard_interrupt_during_execute(project_logger, project, caplog):
+@pytest.mark.parametrize("target", [
+    "siliconcompiler.scheduler.SchedulerNode.execute",
+    "siliconcompiler.Task.run_task",
+    "siliconcompiler.scheduler.SchedulerNode.validate"])
+def test_run_keyboard_interrupt(project_logger, project, caplog, target):
+    """An interrupt anywhere in the node's work halts it as a cancel, with no testcase."""
     project_logger(project)
     project.logger.setLevel(logging.INFO)
+    project.option.set_autoissue(True)
 
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
-        call_exec.side_effect = KeyboardInterrupt()
+    with patch(target) as interrupted, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
+            testcase:
+        interrupted.side_effect = KeyboardInterrupt()
         with pytest.raises(SystemExit):
             node.run()
-        call_exec.assert_called_once()
+        interrupted.assert_called_once()
+        testcase.assert_not_called()
 
     assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
 
@@ -2078,9 +2088,7 @@ def test_run_failed_to_execute_initial_save_has_error(project):
     assert node._SchedulerNode__generate_test_case is True
 
     with patch("siliconcompiler.Task.run_task") as run_task, \
-            patch("siliconcompiler.scheduler.SchedulerNode.halt") as halt, \
-            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
-            testcase:
+            patch("siliconcompiler.scheduler.SchedulerNode.halt") as halt:
         run_task.return_value = 1
 
         def halt_step(*args, **kwargs):
@@ -2091,7 +2099,6 @@ def test_run_failed_to_execute_initial_save_has_error(project):
             node.run()
 
         run_task.assert_called_once()
-        testcase.assert_called_once()
 
     assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
     saved_manifest = Project.from_manifest(filepath=node.get_manifest())
@@ -2201,6 +2208,84 @@ def test_run_not_called_testcase_on_error(project):
         with pytest.raises(SystemExit):
             node.run()
         call_testcase.assert_not_called()
+
+
+def _verify_fails(self):
+    raise ValueError(f"{self.step}/{self.index} fails 'errors' metric: 0==1")
+
+
+@pytest.mark.parametrize("step,fail,reason", [
+    ("stepone", lambda mp: mp.setattr(SchedulerNode, "validate", lambda self: False),
+     "Failed to validate node setup"),
+    ("steptwo", lambda mp: None,
+     "Unable to locate outputs directory for stepone/0"),
+    ("steptwo", lambda mp: mp.setattr(NOPTask, "select_input_nodes", _verify_fails),
+     "steptwo/0 fails 'errors' metric: 0==1")],
+    ids=["validate", "inputs", "exception"])
+def test_run_failure_generates_testcase(project_logger, project, caplog, monkeypatch,
+                                        step, fail, reason):
+    """A node that fails outside execute() is recorded and then gets its testcase."""
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+
+    node = SchedulerNode(project, step, "0")
+    node.task.setup_work_directory(node.workdir)
+    fail(monkeypatch)
+
+    recorded = []
+
+    def generate():
+        recorded.append(project.get("record", "status", step=step, index="0"))
+        recorded.append(os.path.isfile(node.get_manifest()))
+
+    with patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase",
+               side_effect=generate):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert recorded == [NodeStatus.ERROR, True]
+    assert reason in caplog.text
+    assert f"Halting {step}/0 due to errors" in caplog.text
+
+
+@pytest.mark.timeout(180)
+def test_run_failed_verify_writes_testcase(project):
+    """A verify that fails writes the node's testcase into the job directory."""
+    flow = Flowgraph("verifyflow")
+    flow.node("stepone", NOPTask())
+    flow.node("check", VerifyTask())
+    flow.edge("stepone", "check")
+    flow.set("check", "0", "args", "errors==1")
+    project.set_flow(flow)
+    project.option.set_autoissue(True)
+    project.set("metric", "errors", 0, step="stepone", index="0")
+    project.set("record", "status", NodeStatus.SUCCESS, step="stepone", index="0")
+
+    with pytest.raises(SystemExit):
+        SchedulerNode(project, "check", "0").run()
+
+    assert project.get("record", "status", step="check", index="0") == NodeStatus.ERROR
+    testcases = [name for name in os.listdir(jobdir(project)) if name.startswith("sc_issue_")]
+    assert len(testcases) == 1
+    assert "_check_0" in testcases[0]
+
+
+def test_run_testcase_failure_still_halts(project_logger, project, caplog):
+    """A testcase that cannot be made is logged, and the failed node still ends through halt()."""
+    project_logger(project)
+    project.logger.setLevel(logging.INFO)
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.validate", return_value=False), \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase",
+                  side_effect=OSError("disk full")):
+        with pytest.raises(SystemExit):
+            node.run()
+
+    assert "Failed to generate testcase for stepone/0" in caplog.text
+    assert "disk full" in caplog.text
 
 
 def test_copy_from_do_nothing(project_logger, project, caplog):

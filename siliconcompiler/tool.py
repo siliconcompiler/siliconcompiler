@@ -1711,7 +1711,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         # explanation for a run that stops.
                         self.logger.info("Received ctrl-c.", extra=SC_CONSOLE_FORCE)
                         self.__terminate_exe(proc)
-                        raise TaskError
+                        # Still an interrupt, so the node ends as canceled, not failed
+                        raise
                     except TaskTimeout as e:
                         self.logger.error(f'Task timed out after {e.timeout:.1f} seconds',
                                           extra=SC_CONSOLE_FORCE)

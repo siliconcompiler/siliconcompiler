@@ -2290,6 +2290,7 @@ def test_run_task_exceptions_loop(running_node, monkeypatch, patch_psutil, error
 
 
 def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
+    """A ctrl-c ends the tool and stays an interrupt, so the node is canceled, not failed."""
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -2323,7 +2324,7 @@ def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TaskError, match=r"^$"):
+        with pytest.raises(KeyboardInterrupt):
             runtool.run_task('.', False, False, None, None)
 
     assert "Received ctrl-c." in caplog.text
