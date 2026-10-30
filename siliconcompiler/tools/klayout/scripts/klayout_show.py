@@ -117,8 +117,8 @@ def __screenshot(schema, layout_view, output_path):
 
     view_box = __add_margin(layout_view.active_cellview().cell.dbbox(), margin)
 
-    print(f'[INFO] Saving screenshot (({view_box.left}, {view_box.bottom}), '
-          f'({view_box.right}, {view_box.top})) to {output_path}')
+    print(f'[INFO] Saving screenshot (({view_box.left:.4f}, {view_box.bottom:.4f}), '
+          f'({view_box.right:.4f}, {view_box.top:.4f})) to {output_path}')
     layout_view.save_image_with_options(
         output_path,
         horizontal_resolution,
@@ -202,8 +202,8 @@ def __screenshot_montage(schema, view, xbins, ybins):
             }
 
             img_path = os.path.join('outputs', output_file)
-            print(f'[INFO] Saving screenshot (({subbox.left}, {subbox.bottom}), '
-                  f'({subbox.right}, {subbox.top})) to {img_path}')
+            print(f'[INFO] Saving screenshot (({subbox.left:.4f}, {subbox.bottom:.4f}), '
+                  f'({subbox.right:.4f}, {subbox.top:.4f})) to {img_path}')
             view.save_image_with_options(
                 img_path,
                 sub_img_spec["width"],
