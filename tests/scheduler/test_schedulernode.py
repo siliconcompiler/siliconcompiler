@@ -1079,6 +1079,29 @@ def test_check_files_changed_timestamp_nested_directory(project):
                 node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
+def test_check_files_changed_timestamp_stops_at_newer_file(project):
+    """The timestamp check stops at the first newer file, so it never reaches the invalid
+    symlink in the subdirectory."""
+    os.makedirs("testdir/subdir", exist_ok=True)
+    os.symlink("nonexistent_target.txt", "testdir/subdir/invalid_link.txt")
+
+    with open("testdir/testfile.txt", "w") as f:
+        f.write("test")
+
+    now = os.path.getmtime("testdir/testfile.txt") - 1
+    os.utime("testdir", (now - 1, now - 1))
+
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(timestamp\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
 def test_check_files_changed_package(project):
     now = time.time() - 1
 
