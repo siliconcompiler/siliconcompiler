@@ -1534,6 +1534,23 @@ proc sc_report_args { args } {
     puts "$keys(-command) siliconcompiler arguments: $reported"
 }
 
+proc sc_read_lefs { } {
+    set pdk [sc_cfg_get asic pdk]
+    set aprfileset [sc_cfg_get library $pdk pdk aprtechfileset openroad]
+    foreach sc_techlef [sc_cfg_get_fileset $pdk $aprfileset lef] {
+        puts "Reading techlef: ${sc_techlef}"
+        read_lef $sc_techlef
+    }
+
+    foreach lib [sc_cfg_get asic asiclib] {
+        set filesets [sc_cfg_get library $lib asic aprfileset]
+        foreach lef_file [sc_cfg_get_fileset $lib $filesets lef] {
+            puts "Reading lef: ${lef_file}"
+            read_lef $lef_file
+        }
+    }
+}
+
 proc sc_global_connections { args } {
     sta::check_argc_eq0 "sc_global_connections" $args
 

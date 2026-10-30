@@ -14,21 +14,7 @@ if { [file exists "inputs/${sc_topmodule}.odb"] || [file exists "inputs/${sc_top
     puts "Reading ODB: ${odb_file}"
     read_db $odb_file
 } else {
-    set aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]
-    foreach sc_techlef [sc_cfg_get_fileset $sc_pdk $aprfileset lef] {
-        # Read techlef
-        puts "Reading techlef: ${sc_techlef}"
-        read_lef $sc_techlef
-    }
-
-    # Read Lefs
-    foreach lib $sc_logiclibs {
-        set filesets [sc_cfg_get library $lib asic aprfileset]
-        foreach lef_file [sc_cfg_get_fileset $lib $filesets lef] {
-            puts "Reading lef: ${lef_file}"
-            read_lef $lef_file
-        }
-    }
+    sc_read_lefs
 
     if { [file exists "inputs/${sc_topmodule}.vg.gz"] } {
         set verilog_file "inputs/${sc_topmodule}.vg.gz"
