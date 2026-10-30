@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.38.12 (2026-10-30)
+=========================================
+
+**Major:**
+
+ * Changed yosys ASIC and FPGA synthesis to read the design with slang by default; `set_yosys_useslang(False)` goes back to yosys's own Verilog reader.
+ * Changed fileset parameters set with `set_param` to reach verilator and yosys exactly as written, which fixes string parameters in verilator but means a string value for yosys must now include its quotes (`'"hello"'`).
+
+**Minor:**
+
+ * Added `sc-config tokens` to store the tokens private dataroots are fetched with, rather than exporting them in every shell.
+ * Allowed `sc-issue` to take a node directory in place of the manifest inside it.
+ * Made `[option,autoissue]` write a testcase however a node fails, not only when its tool fails, named `sc_issue_<design>_<jobname>_<step>_<index>.tar.gz` and with its libraries chosen by the new `issue` settings.
+ * Added `missing_ok` to `get_dataroot`, which returns where a local dataroot would be rather than raising when it does not exist.
+
+ * Tools:
+
+  * openroad: added `LibertyBinaryTask` and the `liberty_binary` utility to convert liberty to the binary `.blib` that OpenROAD 26Q4-509 or newer reads in its place, and fixed a node failing when OpenROAD reports an infinite slack.
+  * yosys: stopped adding buffers and tie cells in ASIC synthesis by default, limited yosys to the task's thread count rather than every core, and fixed the `registers` metric counting a module's flops once however many times it is instantiated.
+
 SiliconCompiler 0.38.11 (2026-10-15)
 =========================================
 
