@@ -26,22 +26,7 @@ source "$sc_refdir/common/procs.tcl"
 # Common Setup
 ###############################
 
-# Read techlef
-set aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]
-foreach sc_techlef [sc_cfg_get_fileset $sc_pdk $aprfileset lef] {
-    # Read techlef
-    puts "Reading techlef: ${sc_techlef}"
-    read_lef $sc_techlef
-}
-
-# Read Lefs
-foreach lib [sc_cfg_get asic asiclib] {
-    set filesets [sc_cfg_get library $lib asic aprfileset]
-    foreach lef_file [sc_cfg_get_fileset $lib $filesets lef] {
-        puts "Reading lef: ${lef_file}"
-        read_lef $lef_file
-    }
-}
+sc_read_lefs
 
 # Read Verilog
 if { [file exists "inputs/${sc_topmodule}.vg"] } {

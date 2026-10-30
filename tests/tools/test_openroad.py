@@ -50,6 +50,8 @@ from siliconcompiler.tools.openroad import repair_design
 from siliconcompiler.tools.openroad import repair_timing
 from siliconcompiler.tools.openroad import screenshot
 from siliconcompiler.tools.openroad import synth_cleanup
+from siliconcompiler.tools.openroad import synthesis
+from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.tools.openroad.utils import rcx_merge
 from siliconcompiler.tools.openroad.utils.rcx_merge import (
     merge_openrcx_rules,
@@ -2160,6 +2162,29 @@ def test_openroad_cleanup_synth_defaults_do_not_leak_to_repair_timing():
             assert task.get("var", "rsz_sequence") == [], task.task()
         if task.valid("var", "rsz_skip_final_sizing"):
             assert task.get("var", "rsz_skip_final_sizing") is False, task.task()
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+@pytest.mark.parametrize("elaborate_first", [True, False])
+def test_openroad_synthesis(asic_gcd, elaborate_first):
+    """SynthesisTask maps RTL from an elaborate node or the filesets, avoiding dont_use cells."""
+    flow = Flowgraph("testflow")
+    flow.node("synthesis", synthesis.SynthesisTask())
+    if elaborate_first:
+        flow.node("elaborate", elaborate.Elaborate())
+        flow.edge("elaborate", "synthesis")
+    asic_gcd.set_flow(flow)
+
+    assert asic_gcd.run()
+    assert asic_gcd.history("job0").get("metric", "registers", step="synthesis",
+                                        index="0") == 34
+
+    with open(asic_gcd.find_result("vg", step="synthesis")) as f:
+        netlist = f.read()
+    for cell in asic_gcd.get_library("nangate45").get("asic", "cells", "dontuse"):
+        assert not re.search(rf"^\s*{cell}\s", netlist, re.MULTILINE), cell
 
 
 def test_openroad_init_floorplan_parameter_padring_fileset():
