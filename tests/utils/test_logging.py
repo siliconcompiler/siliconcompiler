@@ -8,7 +8,8 @@ from siliconcompiler.utils.logging import (
     SCSuppressLoggerFilter, SCTeeLoggerHandler, SCHistoryLogHandler,
     SCConsoleQuietFilter, SC_CONSOLE_QUIET_ATTR, console_quiet,
     SC_CONSOLE_FORCE, SC_CONSOLE_FORCE_ATTR, report_schema_warnings,
-    SCColorLoggerFormatter, SCLoggerFormatter, SC_LOG, SC_LOGERROR)
+    SCColorLoggerFormatter, SCLoggerFormatter, SC_LOG, SC_LOGERROR,
+    SCBlankColorlessLoggerFormatter)
 
 
 def _make_record(level=logging.INFO, msg="hello"):
@@ -442,6 +443,12 @@ def test_logerror_is_colored_like_error():
     assert formatter.format(_make_record(level=SC_LOGERROR, msg="x")).startswith(f"| {red}")
     # LOG stands in for INFO, which is left uncolored.
     assert formatter.format(_make_record(level=SC_LOG, msg="x")).startswith("| LOG")
+
+
+def test_colorless_formatter_strips_multi_parameter_codes():
+    """job.log drops bold colors such as ABC's "\\x1b[1;37m", not only single-number codes."""
+    record = _make_record(msg="\x1b[1;37msyn\x1b[0m : \x1b[31mx\x1b[0m")
+    assert SCBlankColorlessLoggerFormatter().format(record) == "syn : x"
 
 
 def _warn_newer_schema(text="0.99.0 is newer"):

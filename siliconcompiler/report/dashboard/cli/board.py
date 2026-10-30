@@ -25,7 +25,7 @@ from rich.text import Text
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCConsoleQuietFilter, \
-    SC_LOG, SC_LOGERROR
+    SC_LOG, SC_LOGERROR, strip_ansi_codes
 from siliconcompiler.utils.paths import builddir, workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema_support.record import RecordTime
@@ -218,6 +218,11 @@ class LogBufferHandler(logging.Handler):
             record (logging.LogRecord): The log record to process.
         """
         log_entry = self.format(record)
+        # SC colors only the leading level field. Codes past it are the tool's
+        # own (ABC colors its stats); rich would measure them as text and pass
+        # them to the terminal, cropping lines and leaking color.
+        level_end = log_entry.find("|", 1) + 1 if log_entry.startswith("|") else 0
+        log_entry = log_entry[:level_end] + strip_ansi_codes(log_entry[level_end:])
         if self.__unicode_rep:
             log_entry = self.__unicode_rep.sub(
                 self.__logger_unicode_map.get(record.levelname, record.levelname), log_entry)

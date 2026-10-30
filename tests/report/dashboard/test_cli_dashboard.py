@@ -31,6 +31,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.tools.builtin import BuiltinTask
 from siliconcompiler.utils.multiprocessing import MPManager, SharedGroup, SharedGroupMember
 from siliconcompiler.utils.paths import builddir
+from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 
 
 class FauxTask(Task):
@@ -524,6 +525,21 @@ def test_log_buffer_handler():
     assert len(lines) == 2
     assert "msg1" in lines[0]
     assert "msg2" in lines[1]
+
+
+@pytest.mark.parametrize("symbols,expect", [
+    (None, "| [yellow]WARNING [/] | syn : and = 4"),
+    ({"WARNING": "W"}, "| W  | syn : and = 4")])
+def test_log_buffer_handler_strips_tool_color_codes(symbols, expect):
+    """A tool's own color codes, like ABC's stats line, are dropped while SC's level color
+    is kept."""
+    buffer = LogBuffer(queue.Queue(), n=2)
+    handler = buffer.make_handler(symbols)
+    handler.setFormatter(SCColorLoggerFormatter(SCLoggerFormatter()))
+    handler.emit(logging.LogRecord(
+        "test", logging.WARNING, "path", 1, "\x1b[1;37msyn\x1b[0m : and = 4", (), None))
+
+    assert buffer.get_lines() == [expect]
 
 
 @pytest.mark.timeout(30)
