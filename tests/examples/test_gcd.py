@@ -374,9 +374,9 @@ def test_py_gcd_hls():
     # Warning counts pinned per node. This flow starts from gcd.c, so the design
     # is whatever Bambu generates rather than the hand-written gcd.v used by
     # test_py_gcd(), and the counts differ accordingly.
-    # Every OpenROAD node that reports power also warns once with [STA-2402]
-    # power activity propagation through registers did not converge after 50
-    # passes; the counts below include it.
+    # Every OpenROAD and OpenSTA node that reports power also warns once with
+    # [STA-2402] power activity propagation through registers did not converge
+    # after 50 passes; the counts below include it.
 
     # The Bambu convert task defines no warning regex, so it records no metrics.
     assert project.get('metric', 'warnings', step='convert', index='0') is None
@@ -388,7 +388,8 @@ def test_py_gcd_hls():
 
     # 1x [STA-0441] gcd_hls.sdc:3 set_input_delay relative to a clock defined on
     #    the same port/pin not allowed
-    assert project.get('metric', 'warnings', step='synthesis.timing', index='0') == 1
+    # 1x [STA-2402]
+    assert project.get('metric', 'warnings', step='synthesis.timing', index='0') == 2
 
     # 1x [STA-0441] same set_input_delay constraint, reported again when OpenROAD
     #    reads the SDC
