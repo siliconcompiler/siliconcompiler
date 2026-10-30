@@ -422,6 +422,37 @@ def test_hier_opt_loop_sees_every_change(tcl_interp, message):
     assert interp.eval("sc_opt_hier_loop 10 {}") == "2"
 
 
+@pytest.mark.timeout(60)
+@pytest.mark.parametrize("value", ['"hello"', "8'hff", "8"])
+def test_apply_params_passes_value_unchanged(tcl_interp, value):
+    '''chparam gets the param value as written; quoting a string is the user's job.'''
+    interp = tcl_interp("yosys/scripts/common/procs.tcl")
+    interp.setvar("value", value)
+    interp.eval("""
+        set sc_topmodule t
+        proc sc_cfg_exists { args } { return 1 }
+        proc sc_cfg_get { args } {
+            if { [lindex $args end] == "param" } {
+                return [dict create TYPE $::value]
+            }
+            return x
+        }
+        proc yosys { cmd args } {
+            if { $cmd == "tee" } {
+                return TYPE
+            }
+            if { $cmd == "chparam" && [lindex $args 0] == "-set" } {
+                set ::got [lrange $args 1 end]
+            }
+            return ""
+        }
+        sc_apply_params""")
+
+    assert interp.eval("lindex $::got 0") == "TYPE"
+    assert interp.eval("lindex $::got 1") == value
+    assert interp.eval("lindex $::got 2") == "t"
+
+
 def test_hier_opt_max_rounds_rejects_zero(heartbeat_design):
     """hier_opt_max_rounds rejects zero, which would run neither opt_hier loop."""
     node = _asic_synthesis_node(heartbeat_design)

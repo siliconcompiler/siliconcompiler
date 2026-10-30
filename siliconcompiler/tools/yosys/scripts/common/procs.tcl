@@ -43,10 +43,6 @@ proc sc_apply_params { } {
     yosys echo on
 
     dict for {key value} [sc_cfg_get library [sc_cfg_get option design] fileset $fileset param] {
-        if { ![string is integer $value] } {
-            set value [concat \"$value\"]
-        }
-
         if { [string first $key $module_params] != -1 } {
             yosys chparam -set $key $value $sc_topmodule
         } else {

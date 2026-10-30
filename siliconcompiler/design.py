@@ -522,7 +522,8 @@ class Design(DependencySchema, PathSchema, NamedSchema):
 
         Args:
             name (str): Parameter name.
-            value (str): Parameter value.
+            value (str): Parameter value, as a literal. A string includes its
+                quotes, such as '"hello"'.
             fileset (str, optional): Fileset name. If not provided, the active
                 fileset is used.
 
