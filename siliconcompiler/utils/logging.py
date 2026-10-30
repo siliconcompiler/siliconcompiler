@@ -289,16 +289,20 @@ class SCBlankLoggerFormatter(logging.Formatter):
         super().__init__("%(message)s")
 
 
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def strip_ansi_codes(text: str) -> str:
+    """Removes ANSI escape sequences, such as a tool's color codes, from ``text``."""
+    return _ANSI_ESCAPE.sub("", text)
+
+
 class SCBlankColorlessLoggerFormatter(logging.Formatter):
     def __init__(self):
         super().__init__("%(message)s")
 
-        self.__rm = re.compile(u"\u001b\\[(\\d+)m")
-
     def format(self, record):
-        msg = super().format(record)
-
-        return self.__rm.sub("", msg)
+        return strip_ansi_codes(super().format(record))
 
 
 class SCDebugLoggerFormatter(logging.Formatter):
