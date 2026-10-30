@@ -1058,6 +1058,27 @@ def test_check_files_changed_timestamp_directory(project):
                 node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
+def test_check_files_changed_timestamp_nested_directory(project):
+    os.makedirs("testdir/subdir", exist_ok=True)
+
+    with open("testdir/subdir/testfile.txt", "w") as f:
+        f.write("test")
+
+    now = os.path.getmtime("testdir/subdir/testfile.txt") - 1
+    # Only the nested file is newer than the previous run
+    os.utime("testdir/subdir", (now - 1, now - 1))
+    os.utime("testdir", (now - 1, now - 1))
+
+    project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
+    node = SchedulerNode(project, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(timestamp\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
+
+
 def test_check_files_changed_package(project):
     now = time.time() - 1
 
@@ -1229,7 +1250,7 @@ def test_check_files_changed_hash_directory_symlink(project):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Symlinks are not supported on Windows")
 def test_check_files_changed_directory_invalid_symlink(project):
-    """Test that get_file_time fails when a directory contains an invalid symlink."""
+    """Test that the timestamp check fails when a directory contains an invalid symlink."""
     # Create a directory with a valid file and an invalid symlink inside
     os.makedirs("testdir", exist_ok=True)
     with open("testdir/validfile.txt", "w") as f:
