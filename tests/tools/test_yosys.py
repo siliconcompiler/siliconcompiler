@@ -613,6 +613,42 @@ def test_hier_opt_keys_required_only_when_read(heartbeat_design):
         assert prefix + "var,hier_opt_max_rounds" not in require
 
 
+@pytest.mark.parametrize("task,groups", [
+    (ASICSynthesis, ("dontuse", "hold", "clkbuf", "clkgate", "clklogic")),
+    (ASICLECTask, ("filler", "decap", "antenna", "tap"))])
+def test_asic_cell_lists_required(heartbeat_design, task, groups):
+    """The library cell lists a task's script reads are part of the node."""
+    proj = ASIC(heartbeat_design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+    flow = Flowgraph("cellflow")
+    flow.node("node", task())
+    proj.set_flow(flow)
+    lib = proj.get_library("nangate45")
+    for group in groups:
+        lib.add_asic_celllist(group, "CELL_X1")
+    proj._init_run()
+
+    node = SchedulerNode(proj, "node", "0")
+    with node.runtime():
+        assert node.setup() is True
+        require = node.task.get("require")
+    for group in groups:
+        assert f"library,nangate45,asic,cells,{group}" in require
+
+
+@pytest.mark.parametrize("enable", [True, False])
+def test_asic_synthesis_tie_buffer_cells_required(heartbeat_design, enable):
+    """The tie and buffer cells are part of the node only when synthesis inserts them."""
+    node = _asic_synthesis_node(heartbeat_design, add_tieoffs=enable, add_buffers=enable)
+    node.project._init_run()
+    with node.runtime():
+        assert node.setup() is True
+        require = node.task.get("require")
+    for key in ("tiehigh_cell", "tielow_cell", "buffer_cell"):
+        assert (f"library,nangate45,tool,yosys,{key}" in require) is enable
+
+
 @pytest.mark.parametrize("modules", [
     {"\\heartbeat": {"num_cells": 1, "num_submodules": 1, "area": 12.0,
                      "num_cells_by_type": {"XOR2": 1, "mid": 1}},

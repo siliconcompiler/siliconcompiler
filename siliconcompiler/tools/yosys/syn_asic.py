@@ -513,6 +513,18 @@ class ASICSynthesisBase(_ASICTask, YosysTask):
 
         self.add_required_key("var", "use_slang")
         self.add_required_key("var", "add_buffers")
+        if self.get("var", "add_buffers") and mainlib.get("tool", "yosys", "buffer_cell"):
+            self.add_required_key(mainlib, "tool", "yosys", "buffer_cell")
+
+        # passed as -dont_use to clockgate, dfflibmap and abc
+        for lib in self.project.get("asic", "asiclib"):
+            lib_obj = self.project.get_library(lib)
+            groups = ["dontuse"]
+            if lib == mainlib.name:
+                groups.extend(["hold", "clkbuf", "clkgate", "clklogic"])
+            for group in groups:
+                if lib_obj.get("asic", "cells", group):
+                    self.add_required_key(lib_obj, "asic", "cells", group)
 
     def pre_process(self):
         super().pre_process()
@@ -1031,6 +1043,10 @@ class ASICSynthesis(ASICSynthesisBase):
         self.add_required_key("var", "autoname")
         self.add_required_key("var", "tie_undef")
         self.add_required_key("var", "add_tieoffs")
+        if self.get("var", "add_tieoffs"):
+            for key in ("tiehigh_cell", "tielow_cell"):
+                if self.mainlib.get("tool", "yosys", key):
+                    self.add_required_key(self.mainlib, "tool", "yosys", key)
         self.add_required_key("var", "opt_undriven")
         self.add_required_key("var", "opt_dff_sat")
         self.add_required_key("var", "flatten")
