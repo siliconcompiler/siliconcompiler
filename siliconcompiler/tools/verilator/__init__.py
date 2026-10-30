@@ -116,7 +116,6 @@ class VerilatorTask(CCache):
         design = self.project.design
         for param in design.getkeys("fileset", fileset, "param"):
             value = design.get("fileset", fileset, "param", param)
-            value = value.replace('"', '\\"')
             options.append(f'-G{param}={value}')
 
         if os.path.isfile(f'inputs/{self.design_topmodule}.sv'):

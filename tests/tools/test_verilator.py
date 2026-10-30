@@ -187,9 +187,11 @@ def test_lintflow(heartbeat_design):
     assert proj.history("job0").get('metric', 'warnings', step='lint', index='0') == 0
 
 
-def test_runtime_args(heartbeat_design, monkeypatch):
+@pytest.mark.parametrize("value", ["8", '"hello"'])
+def test_runtime_args(heartbeat_design, monkeypatch, value):
+    """A string parameter reaches Verilator unescaped; no shell runs the command."""
     proj = Project(heartbeat_design)
-    heartbeat_design.set_param("N", "8", "rtl")
+    heartbeat_design.set_param("N", value, "rtl")
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -207,7 +209,7 @@ def test_runtime_args(heartbeat_design, monkeypatch):
         assert node.task.get_runtime_arguments() == [
             '-sv',
             '--top-module', 'heartbeat',
-            '-GN=8',
+            f'-GN={value}',
             heartbeat_design.get_file("rtl", "verilog")[0],
             '--exe',
             '--build',

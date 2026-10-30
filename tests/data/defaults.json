@@ -17599,7 +17599,7 @@
               "example": [
                 "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
               ],
-              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported. The value is passed\nto the tools as written, so a string literal must include its quotes\n(\"hello\", not hello).",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -18368,7 +18368,7 @@
               "example": [
                 "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
               ],
-              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported. The value is passed\nto the tools as written, so a string literal must include its quotes\n(\"hello\", not hello).",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -19777,7 +19777,7 @@
               "example": [
                 "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
               ],
-              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported. The value is passed\nto the tools as written, so a string literal must include its quotes\n(\"hello\", not hello).",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -20598,7 +20598,7 @@
               "example": [
                 "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
               ],
-              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported. The value is passed\nto the tools as written, so a string literal must include its quotes\n(\"hello\", not hello).",
               "notes": null,
               "pernode": "never",
               "node": {

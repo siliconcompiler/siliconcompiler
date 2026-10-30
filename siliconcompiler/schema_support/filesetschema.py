@@ -140,7 +140,9 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
                 Sets a named parameter to a string value. The value is limited to basic
                 data literals. The types of parameters and values supported is tightly
                 coupled to tools being used. For example, in Verilog only integer
-                literals (64'h4, 2'b0, 4) and strings are supported.""")))
+                literals (64'h4, 2'b0, 4) and strings are supported. The value is passed
+                to the tools as written, so a string literal must include its quotes
+                ("hello", not hello).""")))
 
         schema.insert(
             'depfileset',
@@ -505,7 +507,8 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
 
         Args:
             name (str): Parameter name.
-            value (str): Parameter value.
+            value (str): Parameter value, as a literal. A string includes its
+                quotes, such as '"hello"'.
 
         Returns:
             str: Parameter value
