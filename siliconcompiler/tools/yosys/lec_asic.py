@@ -38,6 +38,13 @@ class ASICLECTask(_ASICTask):
 
         self.add_required_key("var", "induction_steps")
 
+        # sc_lec.tcl generates empty modules for these physical-only cells
+        for lib in self.project.get("asic", "asiclib"):
+            lib_obj = self.project.get_library(lib)
+            for celltype in ("filler", "decap", "antenna", "tap"):
+                if lib_obj.get("asic", "cells", celltype):
+                    self.add_required_key(lib_obj, "asic", "cells", celltype)
+
         if f"{self.design_topmodule}.lec.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="lec.vg")
             if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():

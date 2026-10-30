@@ -2072,17 +2072,23 @@ class APRTask(OpenROADTask):
         self.add_output_file(ext="odb.gz")
 
     def _add_pnr_cell_keys(self):
-        """Declare the library cell lists the APR preamble reads.
+        """Declare the library cells the APR scripts read.
 
-        These feed dont-use/filler handling in every APR node, so they must be
+        These feed dont-use, filler and tie handling in every APR node, so they must be
         hashed whether or not the node writes design views.
         """
         for lib in self.project.get("asic", "asiclib"):
             libobj = self.project.get_library(lib)
-            for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna", "physicalonly"]:
+            for celltype in ["decap", "filler", "tap", "endcap", "antenna", "physicalonly",
+                             "dontuse", "hold", "clkbuf", "clkgate", "clklogic"]:
                 if libobj.valid("asic", "cells", celltype) and \
                         libobj.get("asic", "cells", celltype):
                     self.add_required_key(libobj, "asic", "cells", celltype)
+
+        for key in ["tiehigh_cell", "tielow_cell", "scan_chain_cells", "multibit_ff_cells"]:
+            if self.mainlib.valid("tool", "openroad", key) and \
+                    self.mainlib.get("tool", "openroad", key):
+                self.add_required_key(self.mainlib, "tool", "openroad", key)
 
     def _get_pex_mapping(self):
         corners = {}

@@ -4812,6 +4812,27 @@ def test_openroad_liberty_binary_files_required(asic_gcd):
     assert "library,nangate45,fileset,models.timing.nldm,file,liberty" not in require
 
 
+def test_openroad_cell_lists_required(asic_gcd):
+    """The cell lists and mainlib cells the APR scripts read are part of the node."""
+    groups = ("decap", "filler", "tap", "endcap", "antenna", "physicalonly",
+              "dontuse", "hold", "clkbuf", "clkgate", "clklogic")
+    lib = asic_gcd.get_library("nangate45")
+    for group in groups:
+        lib.add_asic_celllist(group, "CELL_X1")
+    lib.add_openroad_scan_chain_cells("SDFF_X1")
+    lib.add_openroad_multibit_flipflops("DFF2_X1")
+    asic_gcd._init_run()
+
+    require = _setup_node(asic_gcd, "floorplan.init").get("require")
+
+    for group in groups:
+        assert f"library,nangate45,asic,cells,{group}" in require
+    for key in ("tiehigh_cell", "tielow_cell", "scan_chain_cells", "multibit_ff_cells"):
+        assert f"library,nangate45,tool,openroad,{key}" in require
+    # OpenROAD takes its tie cells from tool,openroad, not this list
+    assert "library,nangate45,asic,cells,tie" not in require
+
+
 @pytest.mark.timeout(60)
 @pytest.mark.parametrize("supported,binary,expect", [
     (True, True, ["typ.blib.gz"]),
