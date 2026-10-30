@@ -590,14 +590,30 @@ class SchedulerNode:
             raise SchedulerNodeReset(f'[{",".join(key)}] ({reason}) in {self.__step}/'
                                      f'{self.__index} has been modified from previous run')
 
-        def get_file_time(path):
-            times = [os.path.getmtime(path)]
-            if os.path.isdir(path):
-                for path_root, _, files in os.walk(path):
-                    for path_end in files:
-                        times.append(os.path.getmtime(os.path.join(path_root, path_end)))
+        def is_newer(path):
+            # Return as soon as one file is newer than the previous run
+            if os.path.getmtime(path) > previous_time:
+                return True
+            if not os.path.isdir(path):
+                return False
 
-            return max(times)
+            pending = [path]
+            while pending:
+                try:
+                    entries = os.scandir(pending.pop())
+                except OSError:
+                    # Skip unreadable directories, as os.walk() does
+                    continue
+                with entries:
+                    for entry in entries:
+                        if entry.is_dir(follow_symlinks=False):
+                            pending.append(entry.path)
+                        elif entry.is_dir():
+                            # Symlinked directories are not followed, as in os.walk()
+                            continue
+                        elif entry.stat().st_mtime > previous_time:
+                            return True
+            return False
 
         for key in sorted(keys):
             param = self.__project.get(*key, field=None)
@@ -636,7 +652,7 @@ class SchedulerNode:
 
                 for check_file in files:
                     try:
-                        if get_file_time(check_file) > previous_time:
+                        if is_newer(check_file):
                             gen_warning(key, "timestamp")
                     except FileNotFoundError as e:
                         gen_warning(key, f"file not found: {e.filename or e.filename2}")
