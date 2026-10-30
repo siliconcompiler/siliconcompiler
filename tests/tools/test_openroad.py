@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import gzip
+import json
 import os
 import pathlib
 import re
@@ -200,6 +201,28 @@ def test_metrics_task_scenario_reports(asic_gcd):
     # Kept as a list so a report announced twice is caught rather than deduplicated away
     assert len(announced) == len(set(announced))
     assert set(announced) == written
+
+
+def test_extract_metrics_infinite_timing(asic_gcd):
+    """An infinite timing metric, which OpenROAD writes as a JSON string, is skipped
+    rather than crashing metric extraction."""
+    os.makedirs("reports")
+    with open("reports/metrics.json", "w") as f:
+        json.dump({
+            "run__flow__platform__time_units": "1ns",
+            "sc__metric__timing__setup__ws": "-Infinity",
+            "sc__metric__timing__hold__ws": "Infinity",
+            "sc__metric__timing__setup__tns": 0.0
+        }, f)
+
+    node = SchedulerNode(asic_gcd, "place.global", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.task._extract_metrics()
+
+    assert asic_gcd.get("metric", "setupslack", step="place.global", index="0") is None
+    assert asic_gcd.get("metric", "holdslack", step="place.global", index="0") is None
+    assert asic_gcd.get("metric", "setuptns", step="place.global", index="0") == 0.0
 
 
 @pytest.mark.eda

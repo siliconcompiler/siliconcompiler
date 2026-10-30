@@ -2309,6 +2309,11 @@ class APRTask(OpenROADTask):
                 self.logger.error(f'Unable to parse metrics from OpenROAD: {e}')
                 metrics = {}
 
+            # OpenROAD writes a non-finite float as a quoted string
+            for metric, value in metrics.items():
+                if value in ("Infinity", "-Infinity", "NaN"):
+                    metrics[metric] = float(value)
+
             self._generate_cell_area_report(metrics)
 
             or_units = {}
