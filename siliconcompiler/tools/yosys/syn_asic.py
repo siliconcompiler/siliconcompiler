@@ -716,18 +716,15 @@ class ASICSynthesis(ASICSynthesisBase):
 
         self.add_parameter(
             "flatten",
-            "bool",
-            "true/false, invoke synth with the -flatten option",
-            True)
-        self.add_parameter(
-            "auto_flatten",
-            "bool",
-            "true/false, attempt to determine how to flatten the design",
-            True)
+            "<auto,flatten,none>",
+            "How to flatten the design: flatten removes all hierarchy, auto keeps only the "
+            "modules larger than hier_threshold, and none keeps all hierarchy.",
+            "flatten")
         self.add_parameter(
             "hier_threshold",
             "int<1..>",
-            "Instance limit for the number of cells in a module to preserve.",
+            "Instance limit for the number of cells in a module to preserve when flatten "
+            "is auto.",
             1000)
         self.add_parameter(
             "hierarchy_separator",
@@ -739,7 +736,8 @@ class ASICSynthesis(ASICSynthesisBase):
             "hier_opt",
             "bool",
             "true/false, enable cross-boundary optimization (opt_hier) when the design is "
-            "not flattened. Requires yosys >= 0.58 and has no effect when flatten is true.",
+            "not fully flattened. Requires yosys >= 0.58 and has no effect when flatten is "
+            "set to flatten.",
             True)
         self.add_parameter(
             "hier_opt_uniquify",
@@ -765,6 +763,10 @@ class ASICSynthesis(ASICSynthesisBase):
             "strategy",
             "<DELAY0,DELAY1,DELAY2,DELAY3,DELAY4,AREA0,AREA1,AREA2,AREA3>",
             "ABC synthesis strategy")
+        self.add_parameter(
+            "abc_script",
+            "file",
+            "Custom ABC script used for technology mapping, strategy is ignored when set.")
 
     def __init_clockgates_parameter(self):
         self.add_parameter(
@@ -871,29 +873,41 @@ class ASICSynthesis(ASICSynthesisBase):
         """
         self.set("var", "opt_dff_sat", enable, step=step, index=index)
 
-    def set_yosys_flatten(self, enable: bool,
+    def set_yosys_flatten(self, mode: str,
                           step: Optional[str] = None, index: Optional[str] = None):
         """
-        Enables or disables invoking synth with the -flatten option.
+        Sets how to flatten the design.
 
         Args:
-            enable (bool): True to enable, False to disable.
+            mode (str): 'flatten' to remove all hierarchy, 'auto' to keep only the modules
+                larger than the hierarchy threshold, or 'none' to keep all hierarchy.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
         """
-        self.set("var", "flatten", enable, step=step, index=index)
+        if isinstance(mode, bool):
+            import warnings
+            warnings.warn("set_yosys_flatten no longer takes a bool, "
+                          "pass 'flatten', 'auto' or 'none' instead",
+                          DeprecationWarning, stacklevel=2)
+            if mode:
+                mode = "flatten"
+            elif self.get("var", "flatten", step=step, index=index) == "flatten":
+                # auto_flatten defaulted to true, so turning flatten off fell back to it
+                mode = "auto"
+            else:
+                return
+        self.set("var", "flatten", mode, step=step, index=index)
 
     def set_yosys_autoflatten(self, enable: bool,
                               step: Optional[str] = None, index: Optional[str] = None):
-        """
-        Enables or disables attempting to determine how to flatten the design.
-
-        Args:
-            enable (bool): True to enable, False to disable.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-        """
-        self.set("var", "auto_flatten", enable, step=step, index=index)
+        """Deprecated, use ``set_yosys_flatten``."""
+        import warnings
+        warnings.warn("set_yosys_autoflatten is deprecated, use set_yosys_flatten",
+                      DeprecationWarning, stacklevel=2)
+        # auto_flatten was ignored while flatten was on
+        if self.get("var", "flatten", step=step, index=index) != "flatten":
+            self.set("var", "flatten", "auto" if enable else "none",
+                     step=step, index=index)
 
     def set_yosys_hierthreshold(self, threshold: int,
                                 step: Optional[str] = None, index: Optional[str] = None):
@@ -967,6 +981,18 @@ class ASICSynthesis(ASICSynthesisBase):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "strategy", strategy, step=step, index=index)
+
+    def set_yosys_abcscript(self, file: str,
+                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets a custom ABC script to use for technology mapping, strategy is ignored when set.
+
+        Args:
+            file (str): The path to the ABC script.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "abc_script", file, step=step, index=index)
 
     def set_yosys_mapclockgates(self, enable: bool,
                                 step: Optional[str] = None, index: Optional[str] = None):
@@ -1050,18 +1076,22 @@ class ASICSynthesis(ASICSynthesisBase):
         self.add_required_key("var", "opt_undriven")
         self.add_required_key("var", "opt_dff_sat")
         self.add_required_key("var", "flatten")
-        self.add_required_key("var", "auto_flatten")
-        self.add_required_key("var", "hier_threshold")
         self.add_required_key("var", "hierarchy_separator")
 
+        flatten = self.get("var", "flatten")
+        if flatten == "auto":
+            self.add_required_key("var", "hier_threshold")
+
         # Only read when the design keeps its hierarchy
-        if not self.get("var", "flatten"):
+        if flatten != "flatten":
             self.add_required_key("var", "hier_opt")
             if self.get("var", "hier_opt"):
                 self.add_required_key("var", "hier_opt_uniquify")
                 self.add_required_key("var", "hier_opt_max_rounds")
 
-        if self.get("var", "strategy"):
+        if self.get("var", "abc_script"):
+            self.add_required_key("var", "abc_script")
+        elif self.get("var", "strategy"):
             self.add_required_key("var", "strategy")
 
         self.add_required_key("var", "map_clockgates")

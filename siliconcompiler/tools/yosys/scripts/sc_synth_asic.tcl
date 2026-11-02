@@ -76,16 +76,16 @@ if { [sc_cfg_get library $sc_mainlib tool yosys tristatebuffermap] != {} } {
     yosys tribuf
 }
 
-set flatten_design [sc_cfg_tool_task_get var flatten]
+set sc_flatten [sc_cfg_tool_task_get var flatten]
 set synth_args []
-if { $flatten_design } {
+if { $sc_flatten == "flatten" } {
     lappend synth_args "-flatten"
 }
 
 # Cross-boundary optimization only applies to a design that keeps some hierarchy. It is
-# still useful on the auto_flatten path below, where keep_hierarchy preserves the modules
+# still useful on the auto path below, where keep_hierarchy preserves the modules
 # above hier_threshold. opt_hier was added in 0.56 and fixed in 0.58.
-set hier_opt [expr { !$flatten_design && [sc_cfg_tool_task_get var hier_opt] }]
+set hier_opt [expr { $sc_flatten != "flatten" && [sc_cfg_tool_task_get var hier_opt] }]
 if { $hier_opt && ![sc_check_version 0 58] } {
     yosys log "Warning: hier_opt requires yosys >= 0.58, disabling cross-boundary\
         optimization"
@@ -127,7 +127,7 @@ yosys synth {*}$synth_args -top $sc_topmodule -run coarse:fine
 sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
 
 # Perform hierarchy flattening
-if { !$flatten_design && [sc_cfg_tool_task_get var auto_flatten] } {
+if { $sc_flatten == "auto" } {
     set sc_hier_threshold [sc_cfg_tool_task_get var hier_threshold]
 
     sc_annotate_gate_cost_equivalent
@@ -272,17 +272,10 @@ sc_post_techmap
 
 source "$sc_refdir/common/syn_strategies.tcl"
 
-set script ""
+set abc_script [sc_cfg_tool_task_get var abc_script]
 set sc_strategy [sc_cfg_tool_task_get var strategy]
-if { [string length $sc_strategy] == 0 } {
-    # Do nothing
-} elseif { [dict exists $syn_strategies $sc_strategy] } {
-    set script [dict get $syn_strategies $sc_strategy]
-} elseif { [string match "+*" $sc_strategy] } {
-    # ABC script passthrough
-    set script $sc_strategy
-} else {
-    yosys log "Warning: no such synthesis strategy $sc_strategy"
+if { $abc_script == "" && $sc_strategy != "" } {
+    set abc_script [dict get $syn_strategies $sc_strategy]
 }
 
 # TODO: other abc flags passed in by OpenLANE we can adopt:
@@ -302,8 +295,8 @@ if { [sc_cfg_tool_task_exists var abc_clock_period] } {
 if { [file exists $sc_abc_constraints] } {
     lappend abc_args "-constr" $sc_abc_constraints
 }
-if { $script != "" } {
-    lappend abc_args "-script" $script
+if { $abc_script != "" } {
+    lappend abc_args "-script" $abc_script
 }
 # Synthesize to main library only
 set abc_libraries []
