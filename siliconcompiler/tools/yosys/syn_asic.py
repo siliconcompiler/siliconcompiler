@@ -982,17 +982,19 @@ class ASICSynthesis(ASICSynthesisBase):
         """
         self.set("var", "strategy", strategy, step=step, index=index)
 
-    def set_yosys_abcscript(self, file: str,
+    def set_yosys_abcscript(self, file: str, dataroot: Optional[str] = None,
                             step: Optional[str] = None, index: Optional[str] = None):
         """
         Sets a custom ABC script to use for technology mapping, strategy is ignored when set.
 
         Args:
             file (str): The path to the ABC script.
+            dataroot (str, optional): The dataroot used to resolve a relative path.
             step (str, optional): The specific step to apply this configuration to.
             index (str, optional): The specific index to apply this configuration to.
         """
-        self.set("var", "abc_script", file, step=step, index=index)
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
+            self.set("var", "abc_script", file, step=step, index=index)
 
     def set_yosys_mapclockgates(self, enable: bool,
                                 step: Optional[str] = None, index: Optional[str] = None):
