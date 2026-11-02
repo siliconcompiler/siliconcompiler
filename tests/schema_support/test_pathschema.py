@@ -608,7 +608,7 @@ def test_hash_files_dir():
     assert schema.set("dir", "testpath")
 
     assert schema.hash_files("dir") == \
-        "9fca19f3378585fc7800eaf99ae48169848baf0eedbb1b63c0bde3a0d6c2bf10"
+        "9c0dd6ba93aaedb852656d38e5cef7e69944c2d3e2db6961f3707f3d226c423e"
 
 
 def test_hash_files_list_dir():
@@ -630,8 +630,8 @@ def test_hash_files_list_dir():
 
     assert schema.hash_files("dir") == \
         [
-            "0ebe9064753ebf28a96a7ef4bf6a2b707091acf7f0063566d1c339aeeb64c759",
-            "c7e3c20a832a68749bd28d790d5fa1cbf5168a80fd38989f2cceefd8b1a69a46"
+            "5867d9738e328dc1b0227f2bc1a6d9e6af99e2043a6d3e8693455f3047f6a9a1",
+            "1677e24cac2b9659562f52e8d8c7ea9aca911adda1005631e708c2e5557b664a"
         ]
 
 

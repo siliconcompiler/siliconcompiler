@@ -734,12 +734,12 @@ def test_file_hash_none_algoritm():
 
 
 @pytest.mark.parametrize('algorithm,expected', [
-    ('md5', 'b9e044ee9606b2b5ac73e2213c2eedc7'),
-    ('sha1', 'cbe04d19f873b43f08697f26bd3f9bab9f41f272'),
-    ('sha224', '61211b3bcfc7c926a022725085ac4a4c831c430a5ba1b1771500131f'),
-    ('sha256', '6d9a946394ed8d2815169e42e225efc52cf6f92aa9f50e88fd05c0750d6c336c'),
-    ('sha384', '852b0d05b70e7a7cdef6d81d695140bc1a4cb0303b65968e640577437bf74c43b39fbfcf2ae81e98889b870b11f0dde3'),  # noqa E501
-    ('sha512', '137d887ec115f7d9737543858671cc8c4a4d38feb9501416cccbef35b3616111ee1c83d08a80e9036ecdd92373e96afe7027c155516280df1781c3d59d068567')])  # noqa E501
+    ('md5', 'a90d7917261f77704021eb56c8d3a149'),
+    ('sha1', '3c9ec8c40b3b49f073dbd920f2e728bf90b3dafe'),
+    ('sha224', 'f67f9307ad9d9f95faff671562af3983a4f2885c3c852c6848447ba9'),
+    ('sha256', '0fa84470ba36fc8a218e7134090d981bb59400447a4b32231d2903a99dce43b8'),
+    ('sha384', '0edaf16b5d34292d624d8e9e168f80f4130b8472d59d92ef0c13987a319d3fe771a9ffa2456fec0a39a3d3aeaa1fa74c'),  # noqa E501
+    ('sha512', 'ff9c2d75d0f403e43aa43c20a2d0478345213fdb4402903b79c15c1f587da19aaf255490bee032a44f61d8959d9f557e4e3efb47acbab3e677edfbc93576e514')])  # noqa E501
 def test_directory_hash(algorithm, expected):
     os.makedirs('test1', exist_ok=True)
     # Create foo.txt and compute its hash
@@ -763,16 +763,24 @@ def test_directory_hash_rename():
 
     param = DirectoryNodeValue()
     param.set("test1")
-    assert param.hash('md5') == 'b9e044ee9606b2b5ac73e2213c2eedc7'
+    assert param.hash('md5') == 'a90d7917261f77704021eb56c8d3a149'
 
     os.rename('test1/foo1.txt', 'test1/foo2.txt')
 
-    assert param.hash('md5') == 'c9a6f64ac4dc51b43387b6cc67ead697'
+    assert param.hash('md5') == 'd9750eacef502f7ae0ba3ddb4a2a4259'
 
 
 def test_directory_hash_none():
     param = DirectoryNodeValue()
     assert param.hash('md5') is None
+
+
+def test_directory_hash_empty():
+    '''A directory with no files, even one holding an empty subdirectory, has no hash.'''
+    os.makedirs('top/sub')
+
+    assert DirectoryNodeValue('top').hash('md5') is None
+    assert DirectoryNodeValue('top/sub').hash('md5') is None
 
 
 def test_directory_hash_invalid_algoritm():
@@ -856,8 +864,8 @@ def test_file_hash_continues_given_hash(monkeypatch, stdlib):
 
 @pytest.mark.parametrize('stdlib', [True, False])
 def test_directory_hash_composition(monkeypatch, stdlib):
-    '''Each file's path relative to the directory, then its bytes, in sorted
-    path order, all into one hash, through subdirectories and across chunks.'''
+    '''A JSON map, keys sorted, of each file's path relative to the directory to
+    that file's hash, through subdirectories and across chunks.'''
     os.makedirs('top/sub', exist_ok=True)
     big = bytes(range(256)) * 9000           # more than one chunk
     if not stdlib:
@@ -870,7 +878,7 @@ def test_directory_hash_composition(monkeypatch, stdlib):
         f.write(b'a')
 
     assert PathNodeValue.hash_directory('top', hashfunction='sha256') == \
-        hashlib.sha256(b'a.txt' + b'a' + b'b.txt' + b'b' + b'sub/a.bin' + big).hexdigest()
+        '9d84da65c51cf0368e296752575ee993efeafa3f8a27a052f6bcbf2542170686'
 
 
 def test_directory_hash_continues_given_hash():
@@ -882,7 +890,23 @@ def test_directory_hash_continues_given_hash():
 
     hashobj = hashlib.sha256(b'prefix')
     assert PathNodeValue.hash_directory('top', hashobj=hashobj) == \
-        hashlib.sha256(b'prefix' + b'a.txt' + b'a').hexdigest()
+        '9e676560b9ce70dfc131b94fb4095c52021c0dea5ceaf01ea2b68dc8c3ecb521'
+
+
+@pytest.mark.parametrize('left,right', [
+    ({'ab': b'c'}, {'a': b'bc'}),
+    ({'a': b'', 'b': b''}, {'ab': b''}),
+    ({'a': b'xb\0y'}, {'a': b'x', 'b': b'y'})])
+def test_directory_hash_bytes_cannot_shift(left, right):
+    '''Moving bytes between file names and contents changes the hash.'''
+    for name, files in (('left', left), ('right', right)):
+        os.makedirs(name)
+        for fname, data in files.items():
+            with open(os.path.join(name, fname), 'wb') as f:
+                f.write(data)
+
+    assert DirectoryNodeValue('left').hash('sha256') != \
+        DirectoryNodeValue('right').hash('sha256')
 
 
 def test_file_add_to_parent_field():

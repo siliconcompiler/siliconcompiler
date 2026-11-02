@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import pathlib
 import posixpath
@@ -942,14 +943,19 @@ class PathNodeValue(NodeValue):
         all_files = []
         for root, _, files in os.walk(dirname):
             all_files.extend([os.path.join(root, f) for f in files])
-        dirhash = None
-        for file in sorted(all_files):
+        if not all_files:
+            return None
+        hashes = {}
+        for file in all_files:
             # Cast everything to a windows path and convert to posix.
             # https://stackoverflow.com/questions/73682260
             posix_path = pathlib.PureWindowsPath(os.path.relpath(file, dirname)).as_posix()
-            hashobj.update(posix_path.encode("utf-8"))
-            dirhash = PathNodeValue.hash_file(file, hashobj=hashobj)
-        return dirhash
+            hashes[posix_path] = PathNodeValue.hash_file(file, hashfunction=hashobj.name)
+
+        # A map rather than concatenated names and contents, which let bytes
+        # shift between the two without changing the hash.
+        hashobj.update(json.dumps(hashes, sort_keys=True).encode("utf-8"))
+        return hashobj.hexdigest()
 
     @staticmethod
     def hash_file(filename: Optional[Union[str, pathlib.Path]],
