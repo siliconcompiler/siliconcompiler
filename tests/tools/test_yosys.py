@@ -367,7 +367,7 @@ endmodule
 @pytest.mark.timeout(300)
 def test_hier_opt_not_used_when_flattening():
     '''opt_hier has nothing to cross once the design is flattened, so it is not run.'''
-    lines = _run_asic_synthesis(_deep_hierarchy_design(), True, flatten=True)
+    lines = _run_asic_synthesis(_deep_hierarchy_design(), True, flatten="flatten")
 
     assert not any("-hieropt" in line for line in lines), \
         "did not expect -hieropt to be passed to synth when the design is flattened"
@@ -381,7 +381,7 @@ def test_hier_opt_not_used_when_flattening():
 def test_hier_opt_converges():
     '''opt_hier runs to convergence, carrying the top's constants down four levels to the leaf.'''
     lines = _run_asic_synthesis(_deep_hierarchy_design(), True,
-                                flatten=False, auto_flatten=False,
+                                flatten="none",
                                 hier_opt=True, hier_opt_max_rounds=10)
 
     assert any("-hieropt" in line for line in lines), \
@@ -472,6 +472,20 @@ def test_opt_dff_sat_reaches_opt_dff(heartbeat_design):
         "expected -sat to be forwarded to opt_dff"
 
 
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_abc_script_reaches_abc(heartbeat_design):
+    '''abc_script is passed to the mapping abc call with -script, in place of strategy.'''
+    with open("custom.abc", "w") as f:
+        f.write("strash\ndch\nmap\ntopo\nstime -p\n")
+    lines = _run_asic_synthesis(heartbeat_design, True, strategy="AREA0",
+                                abc_script=os.path.abspath("custom.abc"))
+
+    assert any("abc -showtmp" in line and "-script" in line and "custom.abc" in line
+               for line in lines), "expected abc to be called with the custom script"
+
+
 def _shared_module_design():
     '''A design that instantiates one module twice with different constant controls.
 
@@ -511,7 +525,7 @@ endmodule
 def test_hier_opt_uniquify_copies_shared_modules():
     '''uniquify gives each instance of a shared module its own copy.'''
     lines = _run_asic_synthesis(_shared_module_design(), False,
-                                flatten=False, auto_flatten=False,
+                                flatten="none",
                                 hier_opt=True, hier_opt_uniquify=True)
 
     assert any("Creating module datapath.u_add from alu" in line for line in lines), \
@@ -528,7 +542,7 @@ def test_hier_opt_uniquify_copies_shared_modules():
 def test_hier_opt_uniquify_disabled_keeps_shared_module():
     '''The shared module is left alone when hier_opt_uniquify is off.'''
     lines = _run_asic_synthesis(_shared_module_design(), False,
-                                flatten=False, auto_flatten=False,
+                                flatten="none",
                                 hier_opt=True, hier_opt_uniquify=False)
 
     assert not any("Creating module" in line for line in lines), \
@@ -541,7 +555,7 @@ def test_hier_opt_uniquify_disabled_keeps_shared_module():
 def test_hier_opt_uniquify_respects_preserve_modules():
     '''A module kept for reuse is not specialized away by uniquify.'''
     lines = _run_asic_synthesis(_shared_module_design(), False,
-                                flatten=False, auto_flatten=False,
+                                flatten="none",
                                 hier_opt=True, hier_opt_uniquify=True,
                                 preserve_modules=["alu"])
 
@@ -584,33 +598,64 @@ def test_hier_opt_setters(heartbeat_design):
 
 def test_hier_opt_keys_required_only_when_read(heartbeat_design):
     """sc_synth_asic.tcl reads these only when the design keeps its hierarchy."""
-    node = _asic_synthesis_node(heartbeat_design, flatten=True)
+    node = _asic_synthesis_node(heartbeat_design, flatten="flatten")
     with node.runtime():
         assert node.setup() is True
         require = node.task.get("require")
         prefix = "tool,yosys,task,syn_asic,"
         assert prefix + "var,opt_dff_sat" in require
+        assert prefix + "var,hier_threshold" not in require
         assert prefix + "var,hier_opt" not in require
         assert prefix + "var,hier_opt_uniquify" not in require
         assert prefix + "var,hier_opt_max_rounds" not in require
 
-    node = _asic_synthesis_node(heartbeat_design, flatten=False, hier_opt=True)
+    node = _asic_synthesis_node(heartbeat_design, flatten="auto", hier_opt=True)
     with node.runtime():
         assert node.setup() is True
         require = node.task.get("require")
         prefix = "tool,yosys,task,syn_asic,"
+        assert prefix + "var,hier_threshold" in require
         assert prefix + "var,hier_opt" in require
         assert prefix + "var,hier_opt_uniquify" in require
         assert prefix + "var,hier_opt_max_rounds" in require
 
-    node = _asic_synthesis_node(heartbeat_design, flatten=False, hier_opt=False)
+    node = _asic_synthesis_node(heartbeat_design, flatten="none", hier_opt=False)
     with node.runtime():
         assert node.setup() is True
         require = node.task.get("require")
         prefix = "tool,yosys,task,syn_asic,"
+        assert prefix + "var,hier_threshold" not in require
         assert prefix + "var,hier_opt" in require
         assert prefix + "var,hier_opt_uniquify" not in require
         assert prefix + "var,hier_opt_max_rounds" not in require
+
+
+@pytest.mark.parametrize("calls,mode", [
+    ([("set_yosys_flatten", True)], "flatten"),
+    ([("set_yosys_flatten", False)], "auto"),
+    ([("set_yosys_flatten", False), ("set_yosys_autoflatten", False)], "none"),
+    ([("set_yosys_autoflatten", False)], "flatten")])
+def test_deprecated_flatten_setters(calls, mode):
+    """The bool flatten setters map onto the flatten mode the old flags selected."""
+    task = ASICSynthesis()
+    for setter, enable in calls:
+        with pytest.warns(DeprecationWarning):
+            getattr(task, setter)(enable)
+    assert task.get("var", "flatten") == mode
+
+
+def test_abc_script_replaces_strategy(heartbeat_design):
+    """strategy is not read once abc_script is set."""
+    with open("custom.abc", "w") as f:
+        f.write("strash\n")
+    node = _asic_synthesis_node(heartbeat_design, strategy="AREA0",
+                                abc_script=os.path.abspath("custom.abc"))
+    with node.runtime():
+        assert node.setup() is True
+        require = node.task.get("require")
+        prefix = "tool,yosys,task,syn_asic,"
+        assert prefix + "var,abc_script" in require
+        assert prefix + "var,strategy" not in require
 
 
 @pytest.mark.parametrize("task,groups", [
