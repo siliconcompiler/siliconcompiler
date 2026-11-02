@@ -701,6 +701,13 @@ class ASICSynthesis(ASICSynthesisBase):
             "dfflibmap, which uses a SAT solver to find flip-flops that can be replaced "
             "by a constant driver or merged with an equivalent flip-flop",
             False)
+        self.add_parameter(
+            "synth_abc",
+            "bool",
+            "true/false, run the technology-independent abc pass that synth runs before "
+            "flip-flop mapping. The abc pass that maps to the standard cell library always "
+            "runs.",
+            True)
 
         self.__init_hierarchy_parameter()
         self.__init_moosic_parameter()
@@ -872,6 +879,19 @@ class ASICSynthesis(ASICSynthesisBase):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "opt_dff_sat", enable, step=step, index=index)
+
+    def set_yosys_synthabc(self, enable: bool,
+                           step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables the technology-independent abc pass that runs before
+        flip-flop mapping.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "synth_abc", enable, step=step, index=index)
 
     def set_yosys_flatten(self, mode: str,
                           step: Optional[str] = None, index: Optional[str] = None):
@@ -1077,6 +1097,7 @@ class ASICSynthesis(ASICSynthesisBase):
                     self.add_required_key(self.mainlib, "tool", "yosys", key)
         self.add_required_key("var", "opt_undriven")
         self.add_required_key("var", "opt_dff_sat")
+        self.add_required_key("var", "synth_abc")
         self.add_required_key("var", "flatten")
         self.add_required_key("var", "hierarchy_separator")
 
