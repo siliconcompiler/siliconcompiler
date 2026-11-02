@@ -475,6 +475,18 @@ def test_opt_dff_sat_reaches_opt_dff(heartbeat_design):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
+def test_synth_abc_disabled_skips_generic_abc(heartbeat_design):
+    '''With synth_abc off, the only abc call left is the one mapping to the library.'''
+    lines = _run_asic_synthesis(heartbeat_design, True, synth_abc=False)
+
+    abc_calls = [line for line in lines if line.startswith("yosys> abc")]
+    assert len(abc_calls) == 1
+    assert "-showtmp" in abc_calls[0]
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_abc_script_reaches_abc(heartbeat_design):
     '''abc_script is passed to the mapping abc call with -script, in place of strategy.'''
     with open("custom.abc", "w") as f:
@@ -594,6 +606,8 @@ def test_hier_opt_setters(heartbeat_design):
         assert task.get("var", "hier_opt_max_rounds") == 4
         task.set_yosys_optdffsat(True)
         assert task.get("var", "opt_dff_sat") is True
+        task.set_yosys_synthabc(False)
+        assert task.get("var", "synth_abc") is False
 
 
 def test_hier_opt_keys_required_only_when_read(heartbeat_design):
@@ -604,6 +618,7 @@ def test_hier_opt_keys_required_only_when_read(heartbeat_design):
         require = node.task.get("require")
         prefix = "tool,yosys,task,syn_asic,"
         assert prefix + "var,opt_dff_sat" in require
+        assert prefix + "var,synth_abc" in require
         assert prefix + "var,hier_threshold" not in require
         assert prefix + "var,hier_opt" not in require
         assert prefix + "var,hier_opt_uniquify" not in require
