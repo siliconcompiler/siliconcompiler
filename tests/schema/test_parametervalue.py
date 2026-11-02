@@ -775,6 +775,14 @@ def test_directory_hash_none():
     assert param.hash('md5') is None
 
 
+def test_directory_hash_empty():
+    '''A directory with no files, even one holding an empty subdirectory, has no hash.'''
+    os.makedirs('top/sub')
+
+    assert DirectoryNodeValue('top').hash('md5') is None
+    assert DirectoryNodeValue('top/sub').hash('md5') is None
+
+
 def test_directory_hash_invalid_algoritm():
     # Create foo.txt and compute its hash
     with open('foo.txt', 'w', newline='\n') as f:
