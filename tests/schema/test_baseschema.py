@@ -3876,7 +3876,7 @@ def test_hash_files_scalar_dir():
     assert schema.set("directory", "test")
 
     assert schema._hash_files("directory") == \
-        "3b9c358f36f0a31b6ad3e14f309c7cf198ac9246e8316f9ce543d5b19ac02b80"
+        "252667c7fbb22f14574ffb9dc82db2f01b849784870ade63f267d283f9618aec"
 
 
 def test_hash_files_scalar_file_not_found():
@@ -3959,8 +3959,8 @@ def test_hash_files_list_dir():
     assert schema.set("directory", ["test0", "test1"])
 
     assert schema._hash_files("directory") == [
-        "590c9f8430c7435807df8ba9a476e3f1295d46ef210f6efae2043a4c085a569e",
-        "1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014"
+        "afd78cbac7ac2ef933f9c6c229ba0b65e3bac490487b112bf1f6dec6e05e814a",
+        "a78ead97b7476a094559fc8de2f53260bc36485c2e3be28975cfd3665eb23e2e"
     ]
 
 
@@ -4022,7 +4022,7 @@ def test_hash_files_list_dir_not_found_missing_ok():
     assert schema.set("directory", ["test0", "test1"])
 
     assert schema._hash_files("directory", missing_ok=True) == [
-        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "4390c5681b9b2b910e887ba5b23d73a4cf28599944ab21f1f4d5870228af3207",
         None
     ]
 
@@ -4041,7 +4041,7 @@ def test_hash_files_with_cwd():
     assert schema.set("directory", ["test0", "test1"])
 
     assert schema._hash_files("directory", cwd="./cwd") == [
-        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "4390c5681b9b2b910e887ba5b23d73a4cf28599944ab21f1f4d5870228af3207",
         None
     ]
 
