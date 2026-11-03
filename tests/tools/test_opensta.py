@@ -4,8 +4,10 @@ import pytest
 import os.path
 
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler import ASIC, Design, Flowgraph, StdCellLibrary
+from siliconcompiler import ASIC, FPGA, Design, Flowgraph, StdCellLibrary
+from siliconcompiler.demos.fpga_demo import Z1000
 from siliconcompiler.tools.opensta import timing
+from siliconcompiler.tools.opensta.timing import FPGATimingTask
 from siliconcompiler.tools.opensta.open import OpenTask as OpenSTAOpen
 
 from siliconcompiler.tools.opensta.check_library import CheckLibraryTask
@@ -318,6 +320,66 @@ def test_timing_liberty_files_required():
 
     assert any("asic,libcornerfileset,typical," in r for r in requires), requires
     assert any(r.endswith("file,liberty") for r in requires), requires
+
+
+def _required(task):
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test")
+
+    proj = ASIC(design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("test_flow")
+    flow.node("node", task)
+    proj.set_flow(flow)
+    proj._init_run()
+
+    node = SchedulerNode(proj, step="node", index="0")
+    with node.runtime():
+        assert node.setup() is True
+        return node.task.get("require")
+
+
+@pytest.mark.parametrize("task,keys", [
+    (timing.TimingTask, ["asic,asiclib", "asic,delaymodel"]),
+    (OpenSTAOpen, ["asic,asiclib", "asic,delaymodel"]),
+    (CheckLibraryTask, ["asic,asiclib", "asic,delaymodel", "asic,mainlib",
+                        "library,nangate45,asic,cells,dontuse"])])
+def test_asic_library_keys_required(task, keys):
+    # The libraries and delay model choose the liberty files the scripts load, and
+    # check_library also reads every cell list, so changing them must change the node.
+    requires = _required(task())
+
+    for key in keys:
+        assert key in requires, requires
+
+
+def test_check_library_only_nonempty_cell_lists_required():
+    # Only a cell list that has cells is read, so an empty one stays out of the node.
+    requires = _required(CheckLibraryTask())
+
+    assert "library,nangate45,asic,cells,filler" in requires
+    assert "library,nangate45,asic,cells,antenna" not in requires
+
+
+def test_fpga_timing_device_required(heartbeat_design):
+    # sc_read_design.tcl takes the liberty files from fpga,device in fpga mode.
+    proj = FPGA(heartbeat_design)
+    proj.add_fileset("rtl")
+    proj.set_fpga(Z1000())
+
+    flow = Flowgraph("test_flow")
+    flow.node("timing", FPGATimingTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, step="timing", index="0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert "fpga,device" in requires, requires
 
 
 def test_timing_mode_unknown_is_reported():

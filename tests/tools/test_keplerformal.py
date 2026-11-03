@@ -208,3 +208,25 @@ def test_lecflow_sequential(datadir, netlist, drvs):
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drvs', step='sec', index='0') == drvs
+
+
+@pytest.mark.parametrize("task", [LECTask, SECTask])
+def test_library_keys_required(gcd_design, task):
+    # The libraries and delay model choose the liberty files the task declares, so
+    # changing either must change the node.
+    proj = ASIC(gcd_design)
+    proj.add_fileset("rtl")
+    freepdk45_demo(proj)
+
+    flow = Flowgraph("formal")
+    flow.node("formal", task())
+    proj.set_flow(flow)
+    proj._init_run()
+
+    node = SchedulerNode(proj, step="formal", index="0")
+    with node.runtime():
+        assert node.setup() is True
+        requires = node.task.get("require")
+
+    assert "asic,asiclib" in requires, requires
+    assert "asic,delaymodel" in requires, requires

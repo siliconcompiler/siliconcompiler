@@ -26,6 +26,8 @@ class LECTask(KeplerFormalTask):
                              "library corners.")
         scenario = list(scenarios.values())[0]
         libcorners = scenario.get_libcorner(self.step, self.index)
+        self.add_required_key("asic", "asiclib")
+        self.add_required_key("asic", "delaymodel")
         delay_model = self.project.get("asic", "delaymodel")
         for asiclib in self.project.get("asic", "asiclib"):
             lib = self.project.get_library(asiclib)
