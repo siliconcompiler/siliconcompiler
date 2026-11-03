@@ -14,6 +14,13 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.58.0 — 2026-11-03
+===================
+- Path resolution now validates the resolved path against the parameter type: ``file``
+  rejects a directory and ``dir`` rejects a file, both raising ``PathTypeError`` (a
+  ``ValueError`` subclass). Manifests that pointed a ``file`` parameter at a directory
+  (or the reverse) previously resolved silently and now fail.
+
 0.57.2 — 2026-09-28
 ===================
 - Changed ``tool,<tool>,task,<task>,require`` from ``[str]`` to ``{str}`` so
