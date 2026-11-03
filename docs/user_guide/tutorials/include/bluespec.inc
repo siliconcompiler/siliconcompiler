@@ -8,7 +8,7 @@ To get started using Bluespec with SC, ensure that SC is installed following the
 See the :ref:`External Tools <external_tools>` section for helpful build scripts.
 
 To build a Bluespec design, the only thing you need to do differently from a configuration perspective is:
-Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`Design,fileset,<fileset>,idir`.
+Add the Bluespec top-level package as an 'input', add all directories containing imported packages as entries in :keypath:`Design,fileset,<fileset>,libdir`, and add the directories of any ```include`` files to :keypath:`Design,fileset,<fileset>,idir`.
 
 Otherwise, you can configure the build as normal.
 

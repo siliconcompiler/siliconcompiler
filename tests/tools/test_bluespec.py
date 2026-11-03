@@ -33,7 +33,7 @@ def test_bluespec(datadir):
     with design.active_dataroot("root"), design.active_fileset("rtl"):
         design.set_topmodule("mkDotProduct_nt_Int32")
         design.add_file("DotProduct_nt_Int32.bsv")
-        design.add_idir(".")
+        design.add_libdir(".")
 
     proj = Project(design)
     proj.add_fileset("rtl")
@@ -49,13 +49,15 @@ def test_bluespec(datadir):
         os.path.abspath("build/dotproduct/job0/convert/0/outputs/mkDotProduct_nt_Int32.v")
 
 
-def test_runtime_args(datadir):
+@pytest.mark.parametrize("dirtype", ["idir", "libdir"])
+def test_runtime_args(datadir, dirtype):
+    """Both idir and libdir reach bsc's -p search path; only idir is passed to -I."""
     design = Design("dotproduct")
     design.set_dataroot("root", os.path.join(datadir, "dotproduct"))
     with design.active_dataroot("root"), design.active_fileset("rtl"):
         design.set_topmodule("mkDotProduct_nt_Int32")
         design.add_file("DotProduct_nt_Int32.bsv")
-        design.add_idir(".")
+        getattr(design, f"add_{dirtype}")(".")
 
     proj = Project(design)
     proj.add_fileset("rtl")
@@ -79,6 +81,6 @@ def test_runtime_args(datadir):
             '-sched-dot',
             '-g', 'mkDotProduct_nt_Int32',
             '-p', f'{os.path.join(datadir, "dotproduct")}:%/Libraries',
-            '-I', os.path.join(datadir, "dotproduct"),
+            *(['-I', os.path.join(datadir, "dotproduct")] if dirtype == "idir" else []),
             os.path.abspath(os.path.join(datadir, 'dotproduct', 'DotProduct_nt_Int32.bsv'))
         ]

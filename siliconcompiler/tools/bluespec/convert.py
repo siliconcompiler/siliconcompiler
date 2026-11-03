@@ -47,6 +47,8 @@ class ConvertTask(Task):
         for lib, fileset in self.project.get_filesets():
             if lib.has_idir(fileset):
                 self.add_required_key(lib, "fileset", fileset, "idir")
+            if lib.has_libdir(fileset):
+                self.add_required_key(lib, "fileset", fileset, "libdir")
             if lib.get("fileset", fileset, "define"):
                 self.add_required_key(lib, "fileset", fileset, "define")
             if lib.has_file(fileset=fileset, filetype="bsv"):
@@ -77,14 +79,17 @@ class ConvertTask(Task):
 
         filesets = self.project.get_filesets()
         idirs = []
+        libdirs = []
         defines = []
         for lib, fileset in filesets:
             idirs.extend(lib.get_idir(fileset))
+            libdirs.extend(lib.get_libdir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
         idirs = distinct(idirs)
         defines = distinct(defines)
 
-        bsc_path = ':'.join(idirs + ['%/Libraries'])
+        # bsc resolves both `include files and imported packages through -p.
+        bsc_path = ':'.join(distinct(idirs + libdirs) + ['%/Libraries'])
         options.extend(['-p', bsc_path])
 
         for value in idirs:
