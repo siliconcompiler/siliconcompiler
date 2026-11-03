@@ -86,6 +86,8 @@ class SECTask(KeplerFormalTask):
         self.add_input_file(self.__rtl_file())
         self.add_input_file(ext="vg")
 
+        self.add_required_key("asic", "asiclib")
+        self.add_required_key("asic", "delaymodel")
         for lib, corner, delay_model in self.__libcorners():
             self.add_required_key(lib, "asic", "libcornerfileset", corner, delay_model)
             for fileset in lib.get("asic", "libcornerfileset", corner, delay_model):

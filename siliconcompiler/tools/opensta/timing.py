@@ -503,8 +503,11 @@ class TimingTask(TimingTaskBase):
                         if fs_lib.has_file(fileset=fs, filetype="sdc"):
                             self.add_required_key(fs_lib, "fileset", fs, "file", "sdc")
 
-        # per-corner liberty files are read by sc_timing.tcl; declare them required
-        # so they are hashed (cache) and copied (remote runs).
+        # the libraries and delay model pick the per-corner liberty files that
+        # sc_timing.tcl reads; declare them required so they are hashed (cache) and
+        # copied (remote runs).
+        self.add_required_key("asic", "asiclib")
+        self.add_required_key("asic", "delaymodel")
         delay_model = self._get_delaymodel()
         for asiclib in self.project.get("asic", "asiclib"):
             lib = self.project.get_library(asiclib)
@@ -580,6 +583,7 @@ class FPGATimingTask(TimingTaskBase):
         # them required so they are hashed (cache) and copied (remote runs).
         device = self.project.get("fpga", "device")
         if device:
+            self.add_required_key("fpga", "device")
             lib = self.project.get_library(device)
             # not every FPGA device defines the opensta liberty_filesets parameter
             if lib.valid("tool", "opensta", "liberty_filesets") and \

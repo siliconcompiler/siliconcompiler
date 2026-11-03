@@ -39,13 +39,21 @@ class CheckLibraryTask(OpenSTATask):
 
         self.set_script("sc_check_library.tcl")
 
-        # sc_check_library.tcl reads the per-corner liberty files and the yosys /
-        # openroad standard-cell setup for every logic library; declare the keys
-        # it accesses as required so they are hashed (cache) and copied
-        # (remote runs).
+        # sc_check_library.tcl reads the libraries, the per-corner liberty files, the
+        # cell lists and the yosys / openroad standard-cell setup for every logic
+        # library; declare the keys it accesses as required so they are hashed
+        # (cache) and copied (remote runs).
+        self.add_required_key("asic", "mainlib")
+        self.add_required_key("asic", "asiclib")
+        self.add_required_key("asic", "delaymodel")
         delay_model = self._get_delaymodel()
         for asiclib in self.project.get("asic", "asiclib"):
             lib = self.project.get_library(asiclib)
+
+            # every cell list is checked against the liberty files
+            for celltype in lib.getkeys("asic", "cells"):
+                if lib.get("asic", "cells", celltype):
+                    self.add_required_key(lib, "asic", "cells", celltype)
 
             # per-corner liberty files
             for scenario in self.project.constraint.timing.get_scenario().values():
