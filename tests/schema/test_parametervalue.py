@@ -1256,7 +1256,9 @@ def test_directory_resolve_path_cwd(monkeypatch):
 
     value.set("test")
 
-    value.resolve_path(search=[search_cwd]) == os.path.abspath("test")
+    # The expectation is built from search_cwd, not from the cwd this now runs in:
+    # abspath("test") after the chdir would name test/test, which is not there.
+    assert value.resolve_path(search=[search_cwd]) == os.path.join(search_cwd, "test")
 
 
 def test_windows_path_relative():
