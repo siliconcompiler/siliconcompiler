@@ -43,6 +43,22 @@ def _has_signing() -> bool:
     return getattr(sys.modules[__name__], "_has_sign")
 
 
+# Whether resolving a path checks that it is the kind its type declares: a file for
+# ``file`` and a directory for ``dir``. Off for now, because task inputs and outputs
+# are ``[file]`` and some tasks write a directory there.
+_ASSERT_PATH_KIND = False
+
+
+class PathTypeError(ValueError):
+    """
+    Raised when a path resolves to something other than what its parameter
+    type declares, such as a ``file`` parameter pointing at a directory.
+
+    Subclasses :class:`ValueError` so that callers that do not care about the
+    distinction can keep catching that.
+    """
+
+
 class NodeListValue:
     '''
     Holds the data for a list schema type.
@@ -822,6 +838,15 @@ class PathNodeValue(NodeValue):
 
         return None
 
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        """
+        Assert the path is of the correct type.
+
+        Args:
+            path (path or None): path to check.
+        """
+        raise NotImplementedError
+
     def resolve_path(self, search: Optional[List[str]] = None,
                      collection_dir: Optional[str] = None,
                      dataroot_id: Optional[str] = None) -> Optional[str]:
@@ -836,18 +861,29 @@ class PathNodeValue(NodeValue):
             dataroot_id (str): what this value's dataroot is collected as, its
                 resolver's ``collection_id``. Defaults to the dataroot's name.
         """
+        def return_value(path: Optional[Union[str, pathlib.Path]]) -> Optional[str]:
+            # Normalize before asserting, not after: a stored value is held in posix
+            # form and a searched one comes back in the platform's own, so on Windows
+            # the two reach _assert_path spelled differently unless they are made to
+            # agree here. The assert and the caller then see the same path.
+            if path is not None:
+                path = str(pathlib.Path(path))
+            if _ASSERT_PATH_KIND:
+                self._assert_path(path)
+            return path
+
         value: Optional[Union[str, pathlib.Path]] = self.get()
         if value is None:
-            return None
+            return return_value(None)
 
         # Check collections path
         if collection_dir:
             collect_path = self.__resolve_collection_path(value, collection_dir, dataroot_id)
             if collect_path:
-                return str(pathlib.Path(collect_path))
+                return return_value(collect_path)
 
         if os.path.isabs(value) and os.path.exists(value):
-            return str(pathlib.Path(value))
+            return return_value(value)
 
         # Search for file
         if search is None:
@@ -856,7 +892,7 @@ class PathNodeValue(NodeValue):
         for searchdir in search:
             abspath = os.path.abspath(os.path.join(searchdir, value))
             if os.path.exists(abspath):
-                return str(pathlib.Path(abspath))
+                return return_value(abspath)
 
         # File not found
         raise FileNotFoundError(value)
@@ -1022,6 +1058,13 @@ class DirectoryNodeValue(PathNodeValue):
         return PathNodeValue.hash_directory(
             self.resolve_path(**kwargs), hashfunction=function)
 
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        if path is None:
+            return
+
+        if not os.path.isdir(path):
+            raise PathTypeError(f"{path} is not a directory")
+
     @property
     def type(self) -> str:
         return "dir"
@@ -1109,6 +1152,13 @@ class FileNodeValue(PathNodeValue):
         """
         return PathNodeValue.hash_file(
             self.resolve_path(**kwargs), hashfunction=function)
+
+    def _assert_path(self, path: Optional[Union[str, pathlib.Path]]) -> None:
+        if path is None:
+            return
+
+        if not os.path.isfile(path):
+            raise PathTypeError(f"{path} is not a file")
 
     @property
     def fields(self) -> Tuple[Optional[str], ...]:

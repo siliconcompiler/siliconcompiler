@@ -2,6 +2,7 @@ import hashlib
 import os
 import pathlib
 import pytest
+import re
 
 import os.path
 
@@ -471,6 +472,236 @@ def test_file_resolve_path_abspath():
     assert value.resolve_path() == os.path.abspath("test.txt")
 
 
+def test_resolve_path_kind_not_checked_by_default():
+    """Until the kind check is turned on, a file value still resolves to a directory."""
+    os.makedirs("testdir")
+
+    value = FileNodeValue()
+    value.set("testdir")
+
+    assert value.resolve_path() == os.path.abspath("testdir")
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+def test_resolve_path_always_asserts_path():
+    """_assert_path is consulted on every return from resolve_path, including None."""
+    class TestClass(PathNodeValue):
+        def __init__(self):
+            super().__init__("file")
+            self.checked = []
+
+        def _assert_path(self, path):
+            self.checked.append(path)
+
+        @property
+        def type(self):
+            return "file"
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("testdir", exist_ok=True)
+
+    # no value
+    value = TestClass()
+    assert value.resolve_path() is None
+    assert value.checked == [None]
+
+    # found via search
+    value = TestClass()
+    value.set("test.txt")
+    assert value.resolve_path() == os.path.abspath("test.txt")
+    assert value.checked == [os.path.abspath("test.txt")]
+
+    # found via absolute path
+    value = TestClass()
+    value.set(os.path.abspath("testdir"))
+    assert value.resolve_path() == os.path.abspath("testdir")
+    assert value.checked == [os.path.abspath("testdir")]
+
+    # not found, _assert_path is not reached
+    value = TestClass()
+    value.set("notthere.txt")
+    with pytest.raises(FileNotFoundError, match=r"^notthere.txt$"):
+        value.resolve_path()
+    assert value.checked == []
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+def test_resolve_path_asserts_collected_path():
+    class TestClass(PathNodeValue):
+        def __init__(self):
+            super().__init__("file")
+            self.checked = []
+
+        def _assert_path(self, path):
+            self.checked.append(path)
+
+        @property
+        def type(self):
+            return "file"
+
+    coll_dir = os.path.abspath("collections")
+    import_dir = PathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+    abspath = os.path.normpath(os.path.join(coll_dir, import_dir, "testdir"))
+    os.makedirs(abspath, exist_ok=True)
+
+    value = TestClass()
+    value.set("one/two/three/four/testdir")
+
+    assert value.resolve_path(collection_dir=coll_dir) == abspath
+    assert value.checked == [abspath]
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+@pytest.mark.parametrize("target", ("search", "abspath", "collected"))
+def test_file_resolve_path_rejects_directory(target):
+    value = FileNodeValue()
+
+    coll_dir = os.path.abspath("collections")
+
+    if target == "collected":
+        import_dir = PathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+        os.makedirs(os.path.join(coll_dir, import_dir, "testdir"), exist_ok=True)
+        value.set("one/two/three/four/testdir")
+    else:
+        os.makedirs("testdir", exist_ok=True)
+        if target == "abspath":
+            value.set(os.path.abspath("testdir"))
+        else:
+            value.set("testdir")
+
+    with pytest.raises(ValueError, match=r"testdir is not a file$"):
+        value.resolve_path(collection_dir=coll_dir if target == "collected" else None)
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+@pytest.mark.parametrize("target", ("search", "abspath", "collected"))
+def test_directory_resolve_path_rejects_file(target):
+    value = DirectoryNodeValue()
+
+    coll_dir = os.path.abspath("collections")
+
+    if target == "collected":
+        import_dir = PathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+        os.makedirs(os.path.join(coll_dir, import_dir), exist_ok=True)
+        with open(os.path.join(coll_dir, import_dir, "test.txt"), "w") as f:
+            f.write("test")
+        value.set("one/two/three/four/test.txt")
+    else:
+        with open("test.txt", "w") as f:
+            f.write("test")
+        if target == "abspath":
+            value.set(os.path.abspath("test.txt"))
+        else:
+            value.set("test.txt")
+
+    with pytest.raises(ValueError, match=r"test.txt is not a directory$"):
+        value.resolve_path(collection_dir=coll_dir if target == "collected" else None)
+
+
+def test_assert_path_not_implemented():
+    class TestClass(PathNodeValue):
+        @property
+        def type(self):
+            return "file"
+
+    with pytest.raises(NotImplementedError):
+        TestClass("file")._assert_path("anything")
+
+
+def test_file_assert_path():
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("testdir", exist_ok=True)
+
+    value = FileNodeValue()
+
+    # None and files are accepted
+    assert value._assert_path(None) is None
+    assert value._assert_path("test.txt") is None
+    assert value._assert_path(pathlib.Path("test.txt")) is None
+
+    # directories are not
+    with pytest.raises(ValueError, match=r"^testdir is not a file$"):
+        value._assert_path("testdir")
+
+    # neither is something that does not exist
+    with pytest.raises(ValueError, match=r"^notthere.txt is not a file$"):
+        value._assert_path("notthere.txt")
+
+
+def test_directory_assert_path():
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("testdir", exist_ok=True)
+
+    value = DirectoryNodeValue()
+
+    # None and directories are accepted
+    assert value._assert_path(None) is None
+    assert value._assert_path("testdir") is None
+    assert value._assert_path(pathlib.Path("testdir")) is None
+
+    # files are not
+    with pytest.raises(ValueError, match=r"^test.txt is not a directory$"):
+        value._assert_path("test.txt")
+
+    # neither is something that does not exist
+    with pytest.raises(ValueError, match=r"^notthere is not a directory$"):
+        value._assert_path("notthere")
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+def test_file_resolve_path_directory_error_message():
+    value = FileNodeValue()
+
+    os.makedirs("testdir", exist_ok=True)
+    value.set("testdir")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('testdir'))} is not a file$"):
+        value.resolve_path()
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+def test_directory_resolve_path_file_error_message():
+    value = DirectoryNodeValue()
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    value.set("test.txt")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test.txt'))} is not a directory$"):
+        value.resolve_path()
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+def test_file_hash_directory_raises():
+    """hash() resolves through resolve_path, so the type assertion applies there too."""
+    value = FileNodeValue()
+
+    os.makedirs("testdir", exist_ok=True)
+    value.set("testdir")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('testdir'))} is not a file$"):
+        value.hash("md5")
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+def test_directory_hash_file_raises():
+    value = DirectoryNodeValue()
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    value.set("test.txt")
+
+    with pytest.raises(ValueError,
+                       match=rf"^{re.escape(os.path.abspath('test.txt'))} is not a directory$"):
+        value.hash("md5")
+
+
 def test_set_list():
     param = NodeListValue(NodeValue("str"))
 
@@ -789,7 +1020,7 @@ def test_directory_hash_invalid_algoritm():
         f.write('foobar\n')
 
     param = DirectoryNodeValue()
-    param.set('foo.txt')
+    param.set('.')
 
     with pytest.raises(RuntimeError,
                        match=r"^Unable to hash directory due to missing hash function: md56$"):

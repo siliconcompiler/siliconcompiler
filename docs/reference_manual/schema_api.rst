@@ -365,6 +365,10 @@ Core Schema Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.schema.PathTypeError
+    :members:
+    :show-inheritance:
+
 .. autoclass:: siliconcompiler.schema.parametertype.NodeType
     :members:
 
