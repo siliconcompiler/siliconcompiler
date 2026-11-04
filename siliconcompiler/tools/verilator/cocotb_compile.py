@@ -8,8 +8,8 @@ from siliconcompiler.tools._common.cocotb.cocotb_task import (
 
 class CocotbCompileTask(CompileTask):
 
-    @classmethod
-    def framework_distributions(cls):
+    @staticmethod
+    def _framework_distributions():
         """cocotb: the simulation links its VPI library from the copy the
         node's image holds, at SiliconCompiler's range."""
         return ("cocotb",)

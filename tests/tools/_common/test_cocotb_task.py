@@ -117,9 +117,9 @@ def test_setup_names_the_test_modules_without_resolving_them(project, monkeypatc
 def test_cocotb_is_declared_on_the_class():
     '''So a remote run names it without running setup, Verilator's compile
     step included, which runs none of the user's Python.'''
-    assert Task.framework_distributions() == ()
-    assert CocotbExecTask.framework_distributions() == ("cocotb",)
-    assert CocotbCompileTask.framework_distributions() == ("cocotb",)
+    assert Task._framework_distributions() == ()
+    assert CocotbExecTask._framework_distributions() == ("cocotb",)
+    assert CocotbCompileTask._framework_distributions() == ("cocotb",)
 
 
 def test_the_python_environment_is_the_test_modules_and_cocotb(project, monkeypatch):
@@ -130,5 +130,5 @@ def test_the_python_environment_is_the_test_modules_and_cocotb(project, monkeypa
     node = SchedulerNode(project, "sim", "0")
     with node.runtime():
         node.setup()
-        assert node.task.get_python_environment() == PythonEnvironment(
+        assert node.task._get_python_environment() == PythonEnvironment(
             sources=(os.path.abspath("test_gcd.py"),), framework=("cocotb",))

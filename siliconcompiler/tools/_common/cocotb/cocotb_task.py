@@ -92,8 +92,8 @@ def get_gpi_users():
 
 class CocotbTask(Task):
 
-    @classmethod
-    def framework_distributions(cls) -> Tuple[str, ...]:
+    @staticmethod
+    def _framework_distributions() -> Tuple[str, ...]:
         """cocotb: this process sets up the GPI from its own copy, so the
         node's image holds it at SiliconCompiler's range and the testbench's
         environment leaves it out."""
@@ -144,7 +144,7 @@ class CocotbTask(Task):
                 module_names.append(Path(pyfile).stem)
         return ",".join(module_names)
 
-    def get_python_environment(self) -> PythonEnvironment:
+    def _get_python_environment(self) -> PythonEnvironment:
         """
         The testbench's own Python, for a remote run to carry.
 
@@ -157,7 +157,7 @@ class CocotbTask(Task):
             PythonEnvironment: the test modules, and cocotb as the framework's.
         """
         return PythonEnvironment(sources=tuple(self._get_test_files()),
-                                 framework=self.framework_distributions())
+                                 framework=self._framework_distributions())
 
     def _get_test_files(self) -> List[str]:
         """

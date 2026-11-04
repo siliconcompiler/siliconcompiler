@@ -462,7 +462,7 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
 
 class PythonEnvironment(NamedTuple):
     """
-    What a node's own Python needs, as :meth:`Task.get_python_environment`
+    What a node's own Python needs, as :meth:`Task._get_python_environment`
     reports it.
 
     Attributes:
@@ -1046,8 +1046,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         return envvars
 
-    @classmethod
-    def framework_distributions(cls) -> Tuple[str, ...]:
+    @staticmethod
+    def _framework_distributions() -> Tuple[str, ...]:
         """
         Python distributions SiliconCompiler's own process on the node needs
         for this task -- cocotb, for a cocotb task, whose simulator and whose
@@ -1063,7 +1063,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """
         return ()
 
-    def get_python_environment(self) -> Optional["PythonEnvironment"]:
+    def _get_python_environment(self) -> Optional["PythonEnvironment"]:
         """
         What this node's tool runs of the user's Python, for a remote run to
         carry.
