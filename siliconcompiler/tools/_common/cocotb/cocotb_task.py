@@ -1,11 +1,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
-from siliconcompiler.tool import TaskExecutableNotFound
+from siliconcompiler.tool import PythonEnvironment, TaskExecutableNotFound
 
 try:
     import cocotb_tools.config
@@ -92,6 +92,13 @@ def get_gpi_users():
 
 class CocotbTask(Task):
 
+    @classmethod
+    def framework_distributions(cls) -> Tuple[str, ...]:
+        """cocotb: this process sets up the GPI from its own copy, so the
+        node's image holds it at SiliconCompiler's range and the testbench's
+        environment leaves it out."""
+        return ("cocotb",)
+
     def __init__(self):
         super().__init__()
 
@@ -136,6 +143,21 @@ class CocotbTask(Task):
             for pyfile in lib.get("fileset", fileset, "file", "python"):
                 module_names.append(Path(pyfile).stem)
         return ",".join(module_names)
+
+    def get_python_environment(self) -> PythonEnvironment:
+        """
+        The testbench's own Python, for a remote run to carry.
+
+        The test modules are the sources whose imports the environment is
+        read from. cocotb itself is SiliconCompiler's: this process configures
+        the GPI from its own copy, so the image has to hold the same version,
+        and the testbench's environment leaves it out.
+
+        Returns:
+            PythonEnvironment: the test modules, and cocotb as the framework's.
+        """
+        return PythonEnvironment(sources=tuple(self._get_test_files()),
+                                 framework=self.framework_distributions())
 
     def _get_test_files(self) -> List[str]:
         """
