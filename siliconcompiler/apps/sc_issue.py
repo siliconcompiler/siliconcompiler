@@ -46,7 +46,10 @@ To run a testcase, use:
         def __init__(self):
             super().__init__()
 
-            self._add_commandline_argument("cfg", "file",
+            self._add_commandline_argument("input", "[path]",
+                                           "configuration manifest, node directory or "
+                                           "testcase to run", ...)
+            self._add_commandline_argument("cfg", "path",
                                            "configuration manifest or node directory")
             self._add_commandline_argument("run", "bool", "run a provided testcase")
             self._add_commandline_argument("hash_files", "bool",

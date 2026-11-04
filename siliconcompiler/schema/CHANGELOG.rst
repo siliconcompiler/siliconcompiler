@@ -22,6 +22,11 @@ development, so a few dates are non-monotonic relative to the semver ordering.
   directory depending on what the value resolves to. Available as a scalar and in the
   list and set containers (``[path]``, ``{path}``); like ``file`` and ``dir`` it cannot
   be a member of a tuple, which is rejected when the parameter is built.
+- Changed ``tool,<tool>,task,<task>,input`` and ``tool,<tool>,task,<task>,output`` from
+  ``[file]`` to ``[path]`` so tasks can declare directories as inputs and outputs.
+  ``tool,<tool>,task,<task>,report,<metric>`` remains ``[file]``.
+- Changed ``package,doc,<type>`` from ``[file]`` to ``[path]``, so a document can be a
+  directory such as a rendered HTML tree.
 
 0.57.2 — 2026-09-28
 ===================
