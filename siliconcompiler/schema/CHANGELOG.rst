@@ -14,6 +14,15 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.58.0 — 2026-11-04
+===================
+- Added a new ``path`` parameter type that accepts either a file or a directory, for
+  parameters where the distinction is not known up front. It carries the same fields as
+  ``file`` (``filehash``, ``dataroot``, ``date``, ``author``) and hashes as a file or a
+  directory depending on what the value resolves to. Available as a scalar and in the
+  list and set containers (``[path]``, ``{path}``); like ``file`` and ``dir`` it cannot
+  be a member of a tuple, which is rejected when the parameter is built.
+
 0.57.2 — 2026-09-28
 ===================
 - Changed ``tool,<tool>,task,<task>,require`` from ``[str]`` to ``{str}`` so

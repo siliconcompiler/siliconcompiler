@@ -1197,7 +1197,7 @@ class BaseSchema:
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
             select (callable): optional filter, called with each
-                :class:`PathNodeValue` of the parameter. A value it rejects is left
+                :class:`BasePathNodeValue` of the parameter. A value it rejects is left
                 out of the result, and its dataroot is not resolved.
 
         Returns:
@@ -1249,7 +1249,7 @@ class BaseSchema:
                 to os.getcwd() if not provided.
             hash (bool): hash the files insteasd of getting the paths
             select (callable): optional filter, called with each
-                :class:`PathNodeValue` of the parameter. A value it rejects is left
+                :class:`BasePathNodeValue` of the parameter. A value it rejects is left
                 out of the result, and its dataroot is not resolved.
 
         Returns:

@@ -3,12 +3,13 @@ import os
 import pathlib
 import pytest
 import re
+import sys
 
 import os.path
 
 from siliconcompiler.schema.parametervalue import \
-    NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
-    PathNodeValue, NodeSetValue
+    NodeValue, DirectoryNodeValue, FileNodeValue, PathNodeValue, NodeListValue, \
+    BasePathNodeValue, NodeSetValue
 from siliconcompiler.schema.parametertype import NodeEnumType
 
 enum1 = NodeEnumType("one", "two", "three")
@@ -188,8 +189,10 @@ def test_value_from_dict():
         "[str]",
         "[file]",
         "[dir]",
+        "[path]",
         "file",
         "dir",
+        "path",
         "[[str]]",
         "[(str,str)]",
         "(str,str)",
@@ -231,8 +234,10 @@ def test_value_has_value_init_none(type):
         ("[str]", [""]),
         ("[file]", ["test.v"]),
         ("[dir]", ["."]),
+        ("[path]", ["test.v"]),
         ("file", "test.v"),
         ("dir", "."),
+        ("path", "test.v"),
         ("[[str]]", [[""]]),
         ("[(str,str)]", [("", "")]),
         ("(str,str)", ("", "")),
@@ -276,8 +281,10 @@ def test_value_has_value_with_value(type, value):
         ("[str]", [""]),
         ("[file]", ["test.v"]),
         ("[dir]", ["."]),
+        ("[path]", ["test.v"]),
         ("file", "test.v"),
         ("dir", "."),
+        ("path", "test.v"),
         ("[[str]]", [[""]]),
         ("[(str,str)]", [("", "")]),
         ("(str,str)", ("", "")),
@@ -485,7 +492,7 @@ def test_resolve_path_kind_not_checked_by_default():
 @pytest.mark.usefixtures("assert_path_kind")
 def test_resolve_path_always_asserts_path():
     """_assert_path is consulted on every return from resolve_path, including None."""
-    class TestClass(PathNodeValue):
+    class TestClass(BasePathNodeValue):
         def __init__(self):
             super().__init__("file")
             self.checked = []
@@ -528,7 +535,7 @@ def test_resolve_path_always_asserts_path():
 
 @pytest.mark.usefixtures("assert_path_kind")
 def test_resolve_path_asserts_collected_path():
-    class TestClass(PathNodeValue):
+    class TestClass(BasePathNodeValue):
         def __init__(self):
             super().__init__("file")
             self.checked = []
@@ -600,7 +607,7 @@ def test_directory_resolve_path_rejects_file(target):
 
 
 def test_assert_path_not_implemented():
-    class TestClass(PathNodeValue):
+    class TestClass(BasePathNodeValue):
         @property
         def type(self):
             return "file"
@@ -649,6 +656,34 @@ def test_directory_assert_path():
     # neither is something that does not exist
     with pytest.raises(ValueError, match=r"^notthere is not a directory$"):
         value._assert_path("notthere")
+
+
+def test_path_assert_path():
+    with open("test.txt", "w") as f:
+        f.write("test")
+    os.makedirs("testdir", exist_ok=True)
+
+    value = PathNodeValue()
+
+    # None, files and directories are all accepted, since a path may be either
+    assert value._assert_path(None) is None
+    assert value._assert_path("test.txt") is None
+    assert value._assert_path("testdir") is None
+    assert value._assert_path(pathlib.Path("test.txt")) is None
+    assert value._assert_path(pathlib.Path("testdir")) is None
+
+    # something that is neither is not
+    with pytest.raises(ValueError, match=r"^notthere is not a file or directory$"):
+        value._assert_path("notthere")
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows has no mkfifo")
+def test_path_assert_path_rejects_a_fifo():
+    """Existing is not enough: a fifo would hang the read that hashing it does."""
+    os.mkfifo("fifo")
+
+    with pytest.raises(ValueError, match=r"^fifo is not a file or directory$"):
+        PathNodeValue()._assert_path("fifo")
 
 
 @pytest.mark.usefixtures("assert_path_kind")
@@ -700,6 +735,181 @@ def test_directory_hash_file_raises():
     with pytest.raises(ValueError,
                        match=rf"^{re.escape(os.path.abspath('test.txt'))} is not a directory$"):
         value.hash("md5")
+
+
+def test_path_init():
+    assert PathNodeValue().get() is None
+    assert PathNodeValue(value="test").get() == "test"
+
+
+def test_path_get_dict():
+    value = PathNodeValue()
+    value.set("test")
+
+    assert value.getdict() == {
+        "value": "test",
+        "signature": None,
+        "filehash": None,
+        "dataroot": None,
+        "date": None,
+        "author": []
+    }
+
+
+def test_path_get_set_invalid():
+    value = PathNodeValue()
+
+    with pytest.raises(ValueError, match=r"^invalid is not a valid field$"):
+        value.get(field="invalid")
+
+    with pytest.raises(ValueError, match=r"^invalid is not a valid field$"):
+        value.set("test", field="invalid")
+
+
+def test_path_from_dict():
+    value = PathNodeValue.from_dict({
+        "value": "test",
+        "signature": "testsig",
+        "filehash": "121324",
+        "dataroot": "datasource",
+        "date": "today",
+        "author": ["test"]
+    }, [], None, "str")
+
+    assert value.get() == "test"
+    assert value.get(field='signature') == "testsig"
+    assert value.get(field='filehash') == "121324"
+    assert value.get(field="dataroot") == "datasource"
+    assert value.get(field='date') == "today"
+    assert value.get(field='author') == ["test"]
+
+
+def test_path_fields():
+    assert PathNodeValue().fields == (
+        None,
+        "value",
+        "signature",
+        "filehash",
+        "dataroot",
+        "date",
+        "author")
+
+
+def test_path_type():
+    assert PathNodeValue().type == "path"
+
+
+def test_path_resolve_path_file():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    value.set("test.txt")
+
+    with pytest.raises(FileNotFoundError, match=r"^test.txt$"):
+        value.resolve_path()
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+    assert value.resolve_path() == os.path.abspath("test.txt")
+
+    with pytest.raises(FileNotFoundError, match=r"^test.txt$"):
+        value.resolve_path(search=[])
+
+    assert value.resolve_path(search=["nothere", "notthere", "."]) == \
+        os.path.abspath("test.txt")
+
+
+def test_path_resolve_path_directory():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    value.set("testdir")
+
+    with pytest.raises(FileNotFoundError, match=r"^testdir$"):
+        value.resolve_path()
+
+    os.makedirs("testdir", exist_ok=True)
+    assert value.resolve_path() == os.path.abspath("testdir")
+
+    with pytest.raises(FileNotFoundError, match=r"^testdir$"):
+        value.resolve_path(search=[])
+
+    assert value.resolve_path(search=["nothere", "notthere", "."]) == \
+        os.path.abspath("testdir")
+
+
+def test_path_resolve_path_abspath_file():
+    value = PathNodeValue()
+
+    value.set(os.path.abspath("test.txt"))
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert value.resolve_path() == os.path.abspath("test.txt")
+
+
+def test_path_resolve_path_abspath_directory():
+    value = PathNodeValue()
+
+    value.set(os.path.abspath("testdir"))
+    os.makedirs("testdir", exist_ok=True)
+
+    assert value.resolve_path() == os.path.abspath("testdir")
+
+
+def test_path_resolve_path_cwd(monkeypatch):
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    search_cwd = os.getcwd()
+
+    os.mkdir('test')
+
+    monkeypatch.chdir('test')
+
+    value.set("test")
+
+    # The expectation is built from search_cwd, not from the cwd this now runs in:
+    # abspath("test") after the chdir would name test/test, which is not there.
+    assert value.resolve_path(search=[search_cwd]) == os.path.join(search_cwd, "test")
+
+
+@pytest.mark.usefixtures("assert_path_kind")
+@pytest.mark.parametrize("target", ("search", "abspath", "collected"))
+@pytest.mark.parametrize("kind", ("file", "dir"))
+def test_path_resolve_path_accepts_file_and_directory(target, kind):
+    """The path type resolves both files and directories on every search branch."""
+    value = PathNodeValue()
+
+    coll_dir = os.path.abspath("collections")
+    name = "test.txt" if kind == "file" else "testdir"
+
+    def make(base):
+        if kind == "file":
+            with open(os.path.join(base, name), "w") as f:
+                f.write("test")
+        else:
+            os.makedirs(os.path.join(base, name), exist_ok=True)
+
+    if target == "collected":
+        import_dir = BasePathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+        os.makedirs(os.path.join(coll_dir, import_dir), exist_ok=True)
+        make(os.path.join(coll_dir, import_dir))
+        value.set(f"one/two/three/four/{name}")
+        expect = os.path.normpath(os.path.join(coll_dir, import_dir, name))
+        assert value.resolve_path(collection_dir=coll_dir) == expect
+        return
+
+    make(os.getcwd())
+    if target == "abspath":
+        value.set(os.path.abspath(name))
+    else:
+        value.set(name)
+
+    assert value.resolve_path() == os.path.abspath(name)
 
 
 def test_set_list():
@@ -768,10 +978,33 @@ def test_nodelist_dir_getdict_empty():
     assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], "dataroot": []}
 
 
+def test_nodelist_path_getdict_empty():
+    param = NodeListValue(PathNodeValue())
+
+    assert param.getdict() == {
+        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], "dataroot": []}
+
+
+def test_nodelist_path_getdict_author():
+    param = NodeListValue(PathNodeValue())
+
+    param.set(["path0"])
+    param.set(["hash"], field='filehash')
+
+    assert param.getdict() == {
+        'signature': [None],
+        'value': ["path0"],
+        'author': [],
+        'date': [None],
+        'filehash': ["hash"],
+        "dataroot": [None]}
+
+
 def test_nodelist_type():
     assert NodeListValue(NodeValue("str")).type == ["str"]
     assert NodeListValue(FileNodeValue()).type == ["file"]
     assert NodeListValue(DirectoryNodeValue()).type == ["dir"]
+    assert NodeListValue(PathNodeValue()).type == ["path"]
 
 
 def test_nodelist_fields():
@@ -780,6 +1013,8 @@ def test_nodelist_fields():
         (None, 'value', 'signature', 'filehash', "dataroot", 'date', 'author')
     assert NodeListValue(DirectoryNodeValue()).fields == \
         (None, 'value', 'signature', 'filehash', "dataroot")
+    assert NodeListValue(PathNodeValue()).fields == \
+        (None, 'value', 'signature', 'filehash', "dataroot", 'date', 'author')
 
 
 def test_nodelist_set_str_value():
@@ -971,7 +1206,8 @@ def test_file_hash_none_algoritm():
     ('sha256', '0fa84470ba36fc8a218e7134090d981bb59400447a4b32231d2903a99dce43b8'),
     ('sha384', '0edaf16b5d34292d624d8e9e168f80f4130b8472d59d92ef0c13987a319d3fe771a9ffa2456fec0a39a3d3aeaa1fa74c'),  # noqa E501
     ('sha512', 'ff9c2d75d0f403e43aa43c20a2d0478345213fdb4402903b79c15c1f587da19aaf255490bee032a44f61d8959d9f557e4e3efb47acbab3e677edfbc93576e514')])  # noqa E501
-def test_directory_hash(algorithm, expected):
+@pytest.mark.parametrize('cls', [DirectoryNodeValue, PathNodeValue])
+def test_directory_hash(cls, algorithm, expected):
     os.makedirs('test1', exist_ok=True)
     # Create foo.txt and compute its hash
     with open('test1/foo.txt', 'w', newline='\n') as f:
@@ -979,12 +1215,13 @@ def test_directory_hash(algorithm, expected):
     with open('test1/foo1.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
 
-    param = DirectoryNodeValue()
+    param = cls()
     param.set("test1")
     assert param.hash(algorithm) == expected
 
 
-def test_directory_hash_rename():
+@pytest.mark.parametrize('cls', [DirectoryNodeValue, PathNodeValue])
+def test_directory_hash_rename(cls):
     os.makedirs('test1', exist_ok=True)
     # Create foo.txt and compute its hash
     with open('test1/foo.txt', 'w', newline='\n') as f:
@@ -992,7 +1229,7 @@ def test_directory_hash_rename():
     with open('test1/foo1.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
 
-    param = DirectoryNodeValue()
+    param = cls()
     param.set("test1")
     assert param.hash('md5') == 'a90d7917261f77704021eb56c8d3a149'
 
@@ -1120,7 +1357,7 @@ def test_directory_hash_continues_given_hash():
         f.write(b'a')
 
     hashobj = hashlib.sha256(b'prefix')
-    assert PathNodeValue.hash_directory('top', hashobj=hashobj) == \
+    assert BasePathNodeValue.hash_directory('top', hashobj=hashobj) == \
         '9e676560b9ce70dfc131b94fb4095c52021c0dea5ceaf01ea2b68dc8c3ecb521'
 
 
@@ -1140,6 +1377,84 @@ def test_directory_hash_bytes_cannot_shift(left, right):
         DirectoryNodeValue('right').hash('sha256')
 
 
+def test_path_hash_none():
+    param = PathNodeValue()
+    assert param.hash('md5') is None
+
+
+@pytest.mark.parametrize('algorithm,expected', [
+    ('md5', '14758f1afd44c09b7992073ccf00b43d'),
+    ('sha1', '988881adc9fc3655077dc2d4d757d480b5ea0e11'),
+    ('sha224', '90a81bdaa85b5d9dfc4c0cd89d9edaf93255d5f4160cd67bead46a91'),
+    ('sha256', 'aec070645fe53ee3b3763059376134f058cc337247c978add178b6ccdfb0019f'),
+    ('sha384', '190d8045dc5875c1004e4dd31f13194eea25043cf9ffc40550cca30fdcae20f8d7eed05f3c94058b206329dbe8d2312e'),  # noqa E501
+    ('sha512', 'e79b8ad22b34a54be999f4eadde2ee895c208d4b3d83f1954b61255d2556a8b73773c0dc0210aa044ffcca6834839460959cbc9f73d3079262fc8bc935d46262')])  # noqa E501
+def test_path_hash_file(algorithm, expected):
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    param = PathNodeValue()
+    param.set('foo.txt')
+
+    assert param.hash(algorithm) == expected
+
+
+def test_path_hash_file_invalid_algoritm():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    param = PathNodeValue()
+    param.set('foo.txt')
+
+    with pytest.raises(RuntimeError,
+                       match=r"^Unable to hash file due to missing hash function: md56$"):
+        param.hash('md56')
+
+
+def test_path_hash_directory_invalid_algoritm():
+    os.makedirs("foo", exist_ok=True)
+
+    param = PathNodeValue()
+    param.set('foo')
+
+    with pytest.raises(RuntimeError,
+                       match=r"^Unable to hash directory due to missing hash function: md56$"):
+        param.hash('md56')
+
+
+def test_path_hash_file_none_algoritm():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    param = PathNodeValue()
+    param.set('foo.txt')
+
+    with pytest.raises(ValueError,
+                       match=r"^hashfunction must be a string$"):
+        param.hash(None)
+
+
+def test_path_hash_directory_none_algoritm():
+    os.makedirs("foo", exist_ok=True)
+
+    param = PathNodeValue()
+    param.set('foo')
+
+    with pytest.raises(ValueError,
+                       match=r"^hashfunction must be a string$"):
+        param.hash(None)
+
+
+def test_path_add_to_parent_field():
+    param = PathNodeValue()
+
+    with pytest.raises(ValueError, match=r"^cannot add to signature field$"):
+        param.add("notthis", field="signature")
+
+
 def test_file_add_to_parent_field():
     param = FileNodeValue()
 
@@ -1148,7 +1463,7 @@ def test_file_add_to_parent_field():
 
 
 def test_incomplete_path_implementation():
-    class TestClass(PathNodeValue):
+    class TestClass(BasePathNodeValue):
         pass
 
     with pytest.raises(NotImplementedError):
@@ -1492,6 +1807,116 @@ def test_directory_resolve_path_cwd(monkeypatch):
     assert value.resolve_path(search=[search_cwd]) == os.path.join(search_cwd, "test")
 
 
+def test_path_resolve_path_collected_empty():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    value.set("one/two/three/four/testdir")
+
+    with pytest.raises(FileNotFoundError, match=r"^one/two/three/four/testdir$"):
+        value.resolve_path(collection_dir=coll_dir)
+
+
+def test_path_resolve_path_collected_found_directory():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    import_dir = BasePathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set("one/two/three/four/testdir")
+
+    assert pathlib.PureWindowsPath(value.resolve_path(collection_dir=coll_dir)) == \
+        pathlib.PureWindowsPath(abspath)
+
+
+def test_path_resolve_path_collected_found_file():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    import_dir = BasePathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+    os.makedirs(os.path.join(coll_dir, import_dir), exist_ok=True)
+    abspath = os.path.join(coll_dir, import_dir, "test.txt")
+    with open(abspath, "w") as f:
+        f.write("test")
+
+    value.set("one/two/three/four/test.txt")
+
+    assert pathlib.PureWindowsPath(value.resolve_path(collection_dir=coll_dir)) == \
+        pathlib.PureWindowsPath(abspath)
+
+
+def test_path_resolve_path_collected_found_from_abs():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    test_abs = os.path.abspath('./four/testdir')
+    source_dir = os.path.dirname(test_abs)
+    import_dir = BasePathNodeValue.generate_hashed_collection_path(source_dir, None)
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(test_abs, exist_ok=True)
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set(test_abs)
+
+    assert pathlib.Path(value.resolve_path(collection_dir=coll_dir)) == \
+        pathlib.Path(abspath)
+
+
+def test_path_resolve_path_collected_dir_not_found():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    coll_dir = os.path.abspath(coll_dir)
+
+    value.set("one/two/three/four/testdir")
+
+    with pytest.raises(FileNotFoundError, match=r"^one/two/three/four/testdir$"):
+        value.resolve_path(collection_dir=coll_dir)
+
+
+def test_path_resolve_path_collected_not_found():
+    value = PathNodeValue()
+
+    assert value.resolve_path() is None
+
+    coll_dir = "collections"
+    os.makedirs(coll_dir, exist_ok=True)
+    coll_dir = os.path.abspath(coll_dir)
+
+    import_dir = BasePathNodeValue.generate_hashed_collection_path("one/two/three/four", None)
+    abspath = os.path.join(coll_dir, import_dir, "testdir")
+    os.makedirs(abspath, exist_ok=True)
+
+    value.set("one/two/three/four/testdir0")
+
+    with pytest.raises(FileNotFoundError, match=r"^one/two/three/four/testdir0$"):
+        value.resolve_path(collection_dir=coll_dir)
+
+
 def test_windows_path_relative():
     '''
     Test that SC can resolve a windows path on any OS
@@ -1546,6 +1971,105 @@ def test_windows_path_imported_directory():
     import_path = os.path.join(
         "collections",
         PathNodeValue.generate_hashed_collection_path(source_dir, value.get('dataroot')),
+        'testfile.v')
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    assert value.get() == "C:/sc-test/testpath/testfile.v"
+
+    # Verify that SC can find the file
+    check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
+    assert check_file == os.path.abspath(import_path)
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_relative_path_type():
+    '''
+    Test that SC can resolve a windows path on any OS for the path type
+    '''
+
+    # Create a test file using Windows file paths.
+    path = os.path.join('testpath', 'testfile.v')
+    path_as_windows = str(pathlib.PureWindowsPath(path))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w') as wf:
+        wf.write('// Test file')
+
+    # Create a path value
+    value = PathNodeValue()
+    value.set(path_as_windows)
+
+    assert value.get() == "testpath/testfile.v"
+
+    check_file = value.resolve_path()
+    assert check_file
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_relative_path_type_directory():
+    '''
+    Test that SC can resolve a windows directory path on any OS for the path type
+    '''
+
+    # Create a test directory using Windows file paths.
+    path = os.path.join('testpath', 'testdir')
+    path_as_windows = str(pathlib.PureWindowsPath(path))
+    os.makedirs(path, exist_ok=True)
+
+    # Create a path value
+    value = PathNodeValue()
+    value.set(path_as_windows)
+
+    assert value.get() == "testpath/testdir"
+
+    check_dir = value.resolve_path()
+    assert check_dir
+    assert os.path.isdir(check_dir)
+
+
+def test_windows_path_imported_file_path_type():
+    '''
+    Test that SC can resolve a windows path on any OS for the path type
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    # Create a path value
+    value = PathNodeValue()
+    value.set(path)
+
+    import_path = os.path.join(
+        "collections",
+        BasePathNodeValue.generate_hashed_collection_path(value.get(), value.get('dataroot')))
+    os.makedirs(os.path.dirname(import_path), exist_ok=True)
+    with open(import_path, 'w') as wf:
+        wf.write('// Test file')
+
+    assert value.get() == "C:/sc-test/testpath/testfile.v"
+
+    # Verify that SC can find the file
+    check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
+    assert check_file == os.path.abspath(import_path)
+    assert os.path.isfile(check_file)
+
+
+def test_windows_path_imported_directory_path_type():
+    '''
+    Test that SC can resolve a windows path on any OS for the path type
+    '''
+
+    # Create a test file using Windows file paths.
+    path = r'C:\sc-test\testpath\testfile.v'
+
+    # Create a path value
+    value = PathNodeValue()
+    value.set(path)
+    source_dir = str(pathlib.PurePosixPath(value.get()).parent)
+    import_path = os.path.join(
+        "collections",
+        BasePathNodeValue.generate_hashed_collection_path(source_dir, value.get('dataroot')),
         'testfile.v')
     os.makedirs(os.path.dirname(import_path), exist_ok=True)
     with open(import_path, 'w') as wf:
@@ -1679,6 +2203,74 @@ def test_defvalue_dir_list_package_getdict():
     }
 
 
+def test_defvalue_path():
+    value = PathNodeValue(value="thispath")
+    assert value.get() == "thispath"
+
+
+def test_defvalue_path_getdict():
+    value = PathNodeValue(value="thispath")
+    assert value.getdict() == {
+        'author': [],
+        'date': None,
+        'filehash': None,
+        "dataroot": None,
+        'signature': None,
+        'value': 'thispath'
+    }
+
+
+def test_defvalue_path_list():
+    value = NodeListValue(PathNodeValue(value="thispath"))
+    assert value.get() == ["thispath"]
+
+
+def test_defvalue_path_package():
+    value = PathNodeValue(value="thispath", dataroot="thispackage")
+    assert value.get() == "thispath"
+    assert value.get(field="dataroot") == "thispackage"
+
+
+def test_defvalue_path_package_getdict():
+    value = PathNodeValue(value="thispath", dataroot="thispackage")
+    assert value.getdict() == {
+        'author': [],
+        'date': None,
+        'filehash': None,
+        "dataroot": "thispackage",
+        'signature': None,
+        'value': 'thispath',
+    }
+
+
+def test_defvalue_path_list_package():
+    value = NodeListValue(PathNodeValue(value="thispath", dataroot="thispackage"))
+    assert value.get() == ["thispath"]
+    assert value.get(field="dataroot") == ["thispackage"]
+
+
+def test_defvalue_path_list_package_getdict():
+    value = NodeListValue(PathNodeValue(value="thispath", dataroot="thispackage"))
+    assert value.getdict() == {
+        'author': [],
+        'date': [
+            None,
+        ],
+        'filehash': [
+            None,
+        ],
+        "dataroot": [
+            'thispackage',
+        ],
+        'signature': [
+            None,
+        ],
+        'value': [
+            'thispath',
+        ],
+    }
+
+
 def test_set_set():
     param = NodeSetValue(NodeValue("str"))
 
@@ -1734,10 +2326,33 @@ def test_nodeset_dir_getdict_empty():
     assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], "dataroot": []}
 
 
+def test_nodeset_path_getdict_empty():
+    param = NodeSetValue(PathNodeValue())
+
+    assert param.getdict() == {
+        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], "dataroot": []}
+
+
+def test_nodeset_path_getdict_author():
+    param = NodeSetValue(PathNodeValue())
+
+    param.set(["path0"])
+    param.set(["hash"], field='filehash')
+
+    assert param.getdict() == {
+        'signature': [None],
+        'value': ["path0"],
+        'author': [],
+        'date': [None],
+        'filehash': ["hash"],
+        "dataroot": [None]}
+
+
 def test_nodeset_type():
     assert NodeSetValue(NodeValue("str")).type == set(["str"])
     assert NodeSetValue(FileNodeValue()).type == set(["file"])
     assert NodeSetValue(DirectoryNodeValue()).type == set(["dir"])
+    assert NodeSetValue(PathNodeValue()).type == set(["path"])
 
 
 def test_nodeset_fields():
@@ -1746,6 +2361,8 @@ def test_nodeset_fields():
         (None, 'value', 'signature', 'filehash', "dataroot", 'date', 'author')
     assert NodeSetValue(DirectoryNodeValue()).fields == \
         (None, 'value', 'signature', 'filehash', "dataroot")
+    assert NodeSetValue(PathNodeValue()).fields == \
+        (None, 'value', 'signature', 'filehash', "dataroot", 'date', 'author')
 
 
 def test_nodeset_set_str_value():
@@ -1936,8 +2553,10 @@ def test_nodeset_gettcl_empty():
         "[str]",
         "[file]",
         "[dir]",
+        "[path]",
         "file",
         "dir",
+        "path",
         "[[str]]",
         "[(str,str)]",
         "(str,str)",
@@ -1979,8 +2598,10 @@ def test_list_has_value_init_none(type):
         ("[str]", [""]),
         ("[file]", ["test.v"]),
         ("[dir]", ["."]),
+        ("[path]", ["test.v"]),
         ("file", "test.v"),
         ("dir", "."),
+        ("path", "test.v"),
         ("[[str]]", [[""]]),
         ("[(str,str)]", [("", "")]),
         ("(str,str)", ("", "")),
@@ -2024,8 +2645,10 @@ def test_list_has_value_with_value(type, value):
         ("[str]", [""]),
         ("[file]", ["test.v"]),
         ("[dir]", ["."]),
+        ("[path]", ["test.v"]),
         ("file", "test.v"),
         ("dir", "."),
+        ("path", "test.v"),
         ("[[str]]", [[""]]),
         ("[(str,str)]", [("", "")]),
         ("(str,str)", ("", "")),
@@ -2054,8 +2677,10 @@ def test_list_has_value_with_default(type, value):
         "[str]",
         "[file]",
         "[dir]",
+        "[path]",
         "file",
         "dir",
+        "path",
         "[[str]]",
         "[(str,str)]",
         "(str,str)",
@@ -2097,8 +2722,10 @@ def test_set_has_value_init_none(type):
         ("[str]", [""]),
         ("[file]", ["test.v"]),
         ("[dir]", ["."]),
+        ("[path]", ["test.v"]),
         ("file", "test.v"),
         ("dir", "."),
+        ("path", "test.v"),
         ("[[str]]", [[""]]),
         ("[(str,str)]", [("", "")]),
         ("(str,str)", ("", "")),
@@ -2142,8 +2769,10 @@ def test_set_has_value_with_value(type, value):
         ("[str]", [""]),
         ("[file]", ["test.v"]),
         ("[dir]", ["."]),
+        ("[path]", ["test.v"]),
         ("file", "test.v"),
         ("dir", "."),
+        ("path", "test.v"),
         ("[[str]]", [[""]]),
         ("[(str,str)]", [("", "")]),
         ("(str,str)", ("", "")),

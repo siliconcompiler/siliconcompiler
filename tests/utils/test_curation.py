@@ -13,7 +13,7 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.utils.curation import (
     collect, archive, filter_collection_keys, never_collected)
 from siliconcompiler.utils.paths import collectiondir
-from siliconcompiler.schema.parametervalue import PathNodeValue
+from siliconcompiler.schema.parametervalue import BasePathNodeValue, PathNodeValue
 
 
 needs_symlinks = pytest.mark.skipif(
@@ -557,7 +557,7 @@ def test_collect_select_values(path_keys):
     key = ('library', 'testdesign', 'fileset', 'rtl', 'file', 'verilog')
     assert [(step, index, value.get()) for called, step, index, value in calls
             if called == key] == [(None, None, "a.v"), (None, None, "b.v")]
-    assert all(isinstance(value, PathNodeValue) for *_, value in calls)
+    assert all(isinstance(value, BasePathNodeValue) for *_, value in calls)
 
     def collected(name):
         return os.path.join(collectiondir(proj),
