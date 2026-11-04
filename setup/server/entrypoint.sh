@@ -155,30 +155,15 @@ ctld)
         echo "NOTE: slurmrestd was not built into this image" >&2
     fi
 
-    # Point a client run *inside this container* at this server rather than at
-    # the public default, so `python3 -m siliconcompiler.demos.asic_demo
-    # -remote` works out of the box here. Harmless to the runners, which share
-    # this volume but are not clients.
-    #
-    # The path is asked of siliconcompiler rather than assumed: it is
-    # "~/.sc/credentials", with no extension, which is easy to get wrong -- and
-    # getting it wrong is silent, the client just uses the public default
-    # server instead.
-    creds=$(python3 -c 'from siliconcompiler import utils; print(utils.default_credentials_file())')
-    mkdir -p "$(dirname "$creds")"
-    if [ ! -f "$creds" ]; then
-        printf '{"address": "localhost", "port": 8080}\n' > "$creds"
-        echo "wrote client credentials to $creds"
-    fi
-
-    # sc-server creates builds/ and cache/ under the mount itself.
+    # The data directory is the volume the compute nodes mount at the same
+    # path: the run's batch job reads and writes its job directory and the
+    # shared package cache (/sc_server/cache) there.
     mkdir -p /sc_server
     cd /sc_server
     python3 -m siliconcompiler.remote.server \
         -cluster slurm \
         -port 8080 \
-        -nfsmount /sc_server \
-        -checkinterval 5 &
+        -datadir /sc_server &
     server_pid=$!
 
     # Supervise rather than exec, so this shell stays PID 1 and all three
