@@ -27,6 +27,11 @@ development, so a few dates are non-monotonic relative to the semver ordering.
   ``tool,<tool>,task,<task>,report,<metric>`` remains ``[file]``.
 - Changed ``package,doc,<type>`` from ``[file]`` to ``[path]``, so a document can be a
   directory such as a rendered HTML tree.
+- Path resolution now validates the resolved path against the parameter type: ``file``
+  rejects a directory and ``dir`` rejects a file, both raising ``PathTypeError`` (a
+  ``ValueError`` subclass), while ``path`` accepts either. Manifests that pointed a
+  ``file`` parameter at a directory (or the reverse) previously resolved silently and
+  now fail.
 
 0.57.2 — 2026-09-28
 ===================

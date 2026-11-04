@@ -1867,7 +1867,6 @@ def test_hash_files_scalar_path():
         "65f20a70345e6cb6e7d7135f9b96bfbe23f861c034c8ceb4d18be68056016133"
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_find_files_scalar_file_is_directory():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1882,7 +1881,6 @@ def test_find_files_scalar_file_is_directory():
         schema._find_files("file")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_find_files_scalar_dir_is_file():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1898,7 +1896,6 @@ def test_find_files_scalar_dir_is_file():
         schema._find_files("directory")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_find_files_list_file_is_directory():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1915,7 +1912,6 @@ def test_find_files_list_file_is_directory():
         schema._find_files("file")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_find_files_list_dir_is_file():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1932,7 +1928,6 @@ def test_find_files_list_dir_is_file():
         schema._find_files("directory")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_find_files_missing_ok_still_asserts_type():
     """missing_ok suppresses not-found, not a wrong-type path."""
     schema = BaseSchema()
@@ -1948,7 +1943,6 @@ def test_find_files_missing_ok_still_asserts_type():
         schema._find_files("file", missing_ok=True)
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_hash_files_scalar_file_is_directory():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1963,7 +1957,6 @@ def test_hash_files_scalar_file_is_directory():
         schema._hash_files("file")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_hash_files_scalar_dir_is_file():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -2683,7 +2676,6 @@ def test_check_filepaths_not_found_ignored_list():
     assert schema._check_filepaths(ignore_keys=[["directory"]]) is True
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_check_filepaths_wrong_type_file(caplog):
     """A file parameter pointing at a directory is reported, not raised."""
     schema = BaseSchema()
@@ -2701,7 +2693,6 @@ def test_check_filepaths_wrong_type_file(caplog):
     assert f"Parameter [file] path {os.path.abspath('test0')} is not a file" in caplog.text
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_check_filepaths_wrong_type_reports_every_entry(caplog):
     """An entry of the wrong kind does not hide the invalid entries after it in a list."""
     schema = BaseSchema()
@@ -2725,7 +2716,6 @@ def test_check_filepaths_wrong_type_reports_every_entry(caplog):
     assert "test2.txt" not in caplog.text
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_check_filepaths_wrong_type_directory(caplog):
     """A dir parameter pointing at a file is reported, not raised."""
     schema = BaseSchema()
@@ -2745,7 +2735,6 @@ def test_check_filepaths_wrong_type_directory(caplog):
         f"{os.path.abspath('test0.txt')} is not a directory" in caplog.text
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_check_filepaths_wrong_type_no_logger():
     schema = BaseSchema()
     edit = EditableSchema(schema)

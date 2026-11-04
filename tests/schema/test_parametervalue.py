@@ -479,17 +479,6 @@ def test_file_resolve_path_abspath():
     assert value.resolve_path() == os.path.abspath("test.txt")
 
 
-def test_resolve_path_kind_not_checked_by_default():
-    """Until the kind check is turned on, a file value still resolves to a directory."""
-    os.makedirs("testdir")
-
-    value = FileNodeValue()
-    value.set("testdir")
-
-    assert value.resolve_path() == os.path.abspath("testdir")
-
-
-@pytest.mark.usefixtures("assert_path_kind")
 def test_resolve_path_always_asserts_path():
     """_assert_path is consulted on every return from resolve_path, including None."""
     class TestClass(BasePathNodeValue):
@@ -533,7 +522,6 @@ def test_resolve_path_always_asserts_path():
     assert value.checked == []
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_resolve_path_asserts_collected_path():
     class TestClass(BasePathNodeValue):
         def __init__(self):
@@ -559,7 +547,6 @@ def test_resolve_path_asserts_collected_path():
     assert value.checked == [abspath]
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 @pytest.mark.parametrize("target", ("search", "abspath", "collected"))
 def test_file_resolve_path_rejects_directory(target):
     value = FileNodeValue()
@@ -581,7 +568,6 @@ def test_file_resolve_path_rejects_directory(target):
         value.resolve_path(collection_dir=coll_dir if target == "collected" else None)
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 @pytest.mark.parametrize("target", ("search", "abspath", "collected"))
 def test_directory_resolve_path_rejects_file(target):
     value = DirectoryNodeValue()
@@ -686,7 +672,6 @@ def test_path_assert_path_rejects_a_fifo():
         PathNodeValue()._assert_path("fifo")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_file_resolve_path_directory_error_message():
     value = FileNodeValue()
 
@@ -698,7 +683,6 @@ def test_file_resolve_path_directory_error_message():
         value.resolve_path()
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_directory_resolve_path_file_error_message():
     value = DirectoryNodeValue()
 
@@ -711,7 +695,6 @@ def test_directory_resolve_path_file_error_message():
         value.resolve_path()
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_file_hash_directory_raises():
     """hash() resolves through resolve_path, so the type assertion applies there too."""
     value = FileNodeValue()
@@ -724,7 +707,6 @@ def test_file_hash_directory_raises():
         value.hash("md5")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 def test_directory_hash_file_raises():
     value = DirectoryNodeValue()
 
@@ -877,7 +859,6 @@ def test_path_resolve_path_cwd(monkeypatch):
     assert value.resolve_path(search=[search_cwd]) == os.path.join(search_cwd, "test")
 
 
-@pytest.mark.usefixtures("assert_path_kind")
 @pytest.mark.parametrize("target", ("search", "abspath", "collected"))
 @pytest.mark.parametrize("kind", ("file", "dir"))
 def test_path_resolve_path_accepts_file_and_directory(target, kind):

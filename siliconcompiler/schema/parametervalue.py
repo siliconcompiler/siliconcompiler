@@ -43,12 +43,6 @@ def _has_signing() -> bool:
     return getattr(sys.modules[__name__], "_has_sign")
 
 
-# Whether resolving a path checks that it is the kind its type declares: a file for
-# ``file`` and a directory for ``dir``. Off for now, because task inputs and outputs
-# are ``[file]`` and some tasks write a directory there.
-_ASSERT_PATH_KIND = False
-
-
 class PathTypeError(ValueError):
     """
     Raised when a path resolves to something other than what its parameter
@@ -868,8 +862,7 @@ class BasePathNodeValue(NodeValue):
             # agree here. The assert and the caller then see the same path.
             if path is not None:
                 path = str(pathlib.Path(path))
-            if _ASSERT_PATH_KIND:
-                self._assert_path(path)
+            self._assert_path(path)
             return path
 
         value: Optional[Union[str, pathlib.Path]] = self.get()

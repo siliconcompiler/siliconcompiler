@@ -472,12 +472,6 @@ def other_process_lock():
 
 
 @pytest.fixture
-def assert_path_kind(monkeypatch):
-    """Turn on the check that a resolved path is the kind its type declares."""
-    monkeypatch.setattr("siliconcompiler.schema.parametervalue._ASSERT_PATH_KIND", True)
-
-
-@pytest.fixture
 def project_logger(monkeypatch):
     def setup(proj):
         test_logger = logging.getLogger("sc_test_" + str(uuid4()))
