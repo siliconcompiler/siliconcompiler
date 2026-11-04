@@ -7,7 +7,7 @@ from collections import deque
 from typing import Callable, List, Optional, TYPE_CHECKING, Tuple
 
 from siliconcompiler.schema import BaseSchema, Parameter
-from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue, PathNodeValue
+from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue, BasePathNodeValue
 from siliconcompiler.utils import FilterDirectories
 from siliconcompiler.utils.paths import collectiondir, cwdir
 from siliconcompiler.scheduler import SchedulerNode
@@ -54,7 +54,7 @@ def collect(project: "Project",
             verbose: bool = True,
             whitelist: Optional[List[str]] = None,
             select: Optional[Callable[
-                [Tuple[str, ...], Optional[str], Optional[str], PathNodeValue], bool]] = None) \
+                [Tuple[str, ...], Optional[str], Optional[str], BasePathNodeValue], bool]] = None) \
         -> None:
     '''
     Collects the specified files and directories into a collection directory.
@@ -80,7 +80,7 @@ def collect(project: "Project",
             a `RuntimeError` is raised. Defaults to None.
         select (Callable, optional): Called as ``select(key, step, index, value)``
             for each value of the parameters in ``keys``, with ``value`` the
-            :class:`PathNodeValue` the project holds. Only the values it returns True
+            :class:`BasePathNodeValue` the project holds. Only the values it returns True
             for are collected, and the others are not resolved, so a dataroot only
             they use is not fetched. Resolving a value still resolves what its search
             depends on, such as a task's ``refdir`` for a ``script``, and a directory
@@ -114,7 +114,7 @@ def collect(project: "Project",
     cwd = cwdir(project)
 
     def find_files(*key, step: Optional[str] = None, index: Optional[str] = None,
-                   select: Optional[Callable[[PathNodeValue], bool]] = None):
+                   select: Optional[Callable[[BasePathNodeValue], bool]] = None):
         """
         Find the files in the filesystem, otherwise look in previous collection
         """
@@ -332,7 +332,7 @@ def collect(project: "Project",
 
     try:
         # Directories first, so that a file inside one is found there
-        for is_dir, params in ((True, dirs), (False, files)):
+        for params in (dirs, files):
             for real_path, abs_path, value, dataroot_id in resolve(params):
                 if _is_within(abs_path, directory) or \
                         found_in_collection(value, dataroot_id):
@@ -346,7 +346,8 @@ def collect(project: "Project",
                     link(copy, import_path, real_path)
                     continue
 
-                if is_dir:
+                # A 'path' value holds either kind, so go by what it resolved to
+                if os.path.isdir(abs_path):
                     if whitelist is not None and abs_path not in whitelist:
                         raise RuntimeError(
                             f'{abs_path} is not on the approved collection list.')

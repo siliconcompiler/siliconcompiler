@@ -16,6 +16,7 @@ from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import DockerSchedulerNode
+from siliconcompiler.scheduler.docker import get_volumes_directories
 from siliconcompiler import __version__, NodeStatus
 from siliconcompiler.utils.paths import jobdir, workdir
 
@@ -256,6 +257,43 @@ def test_collect_keys_non_win32(project):
 
     node = DockerSchedulerNode(project, "steptwo", "0")
     assert node.collect_keys() == set()
+
+
+def test_get_volumes_directories_mounts_parent_of_file(project):
+    """A 'path' parameter holding a file mounts the file's directory, not the file."""
+    os.makedirs("srcdir", exist_ok=True)
+    with open(os.path.join("srcdir", "top.v"), "w") as f:
+        f.write("test")
+
+    project.set("tool", "builtin", "task", "nop", "input",
+                os.path.join("srcdir", "top.v"), step="steptwo", index="0")
+
+    node_workdir = workdir(project, step="steptwo", index="0")
+    os.makedirs(node_workdir, exist_ok=True)
+
+    rw_volumes, ro_volumes = get_volumes_directories(
+        project, os.path.abspath("cache"), node_workdir, "steptwo", "0")
+
+    volumes = rw_volumes.union(ro_volumes)
+    assert Path(os.path.abspath("srcdir")) in volumes
+    assert Path(os.path.abspath(os.path.join("srcdir", "top.v"))) not in volumes
+
+
+def test_get_volumes_directories_mounts_directory(project):
+    """A 'path' parameter holding a directory mounts the directory itself."""
+    os.makedirs(os.path.join("srcdir", "rtl"), exist_ok=True)
+
+    project.set("tool", "builtin", "task", "nop", "input",
+                os.path.join("srcdir", "rtl"), step="steptwo", index="0")
+
+    node_workdir = workdir(project, step="steptwo", index="0")
+    os.makedirs(node_workdir, exist_ok=True)
+
+    rw_volumes, ro_volumes = get_volumes_directories(
+        project, os.path.abspath("cache"), node_workdir, "steptwo", "0")
+
+    volumes = rw_volumes.union(ro_volumes)
+    assert Path(os.path.abspath(os.path.join("srcdir", "rtl"))) in volumes
 
 
 def test_check_required_paths(project):

@@ -3292,3 +3292,95 @@ def test_listeners_of_a_local_run(basic_project, nodashboard):
         assert listeners.pop(0) is basic_project._dashboard
     assert listeners[0] is listener
     assert [type(other) for other in listeners[1:]] == [EmailListener, _CallbackListener]
+
+
+class DirOutputTask(Task):
+    """Writes a directory, rather than a file, into outputs/."""
+
+    def tool(self) -> str:
+        return "dirtool"
+
+    def task(self) -> str:
+        return "makedir"
+
+    def setup(self):
+        self.add_output_file("reports")
+
+    def run(self):
+        os.makedirs("outputs/reports", exist_ok=True)
+        with open("outputs/reports/summary.txt", "w") as f:
+            f.write("summary\n")
+        return 0
+
+
+class DirInputTask(Task):
+    """Receives that directory as an input and records what actually arrived.
+
+    The check runs in the node's own process, so its verdict is written to an
+    output file rather than asserted here, where a failure would only show up
+    as a node that died for no stated reason.
+    """
+
+    def tool(self) -> str:
+        return "dirtool"
+
+    def task(self) -> str:
+        return "readdir"
+
+    def setup(self):
+        self.add_input_file("reports")
+        self.add_output_file("verdict.txt")
+
+    def run(self):
+        if os.path.isdir("inputs/reports"):
+            verdict = "directory"
+        elif os.path.exists("inputs/reports"):
+            verdict = "not a directory"
+        else:
+            verdict = "missing"
+
+        with open("outputs/verdict.txt", "w") as f:
+            f.write(verdict)
+        return 0
+
+
+@pytest.mark.timeout(120)
+def test_directory_flows_between_nodes(gcd_design):
+    """A directory a task outputs reaches the next task as a directory input, and is
+    hashed as a directory, which a [file] input/output would reject."""
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("dirflow")
+    flow.node("produce", DirOutputTask())
+    flow.node("consume", DirInputTask())
+    flow.edge("produce", "consume")
+    project.set_flow(flow)
+
+    project.option.set_hash(True)
+
+    assert project.run()
+
+    history = project.history("job0")
+    for step in ("produce", "consume"):
+        assert history.get("record", "status", step=step, index="0") == NodeStatus.SUCCESS
+
+    # The output side: a directory satisfies a declared output.
+    produced = os.path.join(workdir(project, step="produce", index="0"), "outputs", "reports")
+    assert os.path.isdir(produced)
+
+    # The input side: it arrived as a directory, with its contents.
+    consumed = os.path.join(workdir(project, step="consume", index="0"), "inputs", "reports")
+    assert os.path.isdir(consumed)
+    assert os.path.isfile(os.path.join(consumed, "summary.txt"))
+
+    verdict = os.path.join(workdir(project, step="consume", index="0"), "outputs", "verdict.txt")
+    with open(verdict) as f:
+        assert f.read() == "directory"
+
+    # The declared type: the directory output hashed as a directory rather than
+    # being rejected as something a file parameter cannot hold.
+    hashes = history.get("tool", "dirtool", "task", "makedir", "output",
+                         step="produce", index="0", field="filehash")
+    assert len(hashes) == 1 and hashes[0]

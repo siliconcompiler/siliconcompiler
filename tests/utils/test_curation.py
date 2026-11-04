@@ -13,7 +13,8 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.utils.curation import (
     collect, archive, filter_collection_keys, never_collected)
 from siliconcompiler.utils.paths import collectiondir
-from siliconcompiler.schema.parametervalue import PathNodeValue
+from siliconcompiler.schema import EditableSchema, Parameter
+from siliconcompiler.schema.parametervalue import BasePathNodeValue, PathNodeValue
 
 
 needs_symlinks = pytest.mark.skipif(
@@ -303,6 +304,39 @@ def test_collect_script_inside_refdir_not_duplicated(path_keys):
         "Script was copied separately even though it lives inside the collected refdir"
 
 
+def test_collect_script_in_refdir_after_refdir_removed(path_keys):
+    """Recollecting finds a refdir script through the restored refdir, and keeps the
+    previous collection's sources, after the original refdir is removed."""
+    os.makedirs('scripts/apr', exist_ok=True)
+    with open('scripts/apr/sc_test.tcl', 'w') as f:
+        f.write('# entry script')
+
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="rtl")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("step", FauxTask0())
+    proj.set_flow(flow)
+
+    task = FauxTask0.find_task(proj)
+    task.set_refdir("scripts")
+    task.set_script("apr/sc_test.tcl")
+    proj.set("tool", "tool0", "task", "task0", "refdir", True, field="copy")
+    proj.set("tool", "tool0", "task", "task0", "script", True, field="copy")
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree('scripts')
+    collect(proj, keys=path_keys(proj))
+
+    script = os.path.join(collectiondir(proj),
+                          PathNodeValue.generate_hashed_collection_path("scripts", None),
+                          "apr", "sc_test.tcl")
+    with open(script) as f:
+        assert f.read() == '# entry script'
+
+
 def test_collect_overlapping_refdirs_dedup_across_keys(path_keys):
     """If two refdir entries point to a parent and child directory, only the parent
     should be copied. Verifies the dedup set is shared across keys."""
@@ -557,7 +591,7 @@ def test_collect_select_values(path_keys):
     key = ('library', 'testdesign', 'fileset', 'rtl', 'file', 'verilog')
     assert [(step, index, value.get()) for called, step, index, value in calls
             if called == key] == [(None, None, "a.v"), (None, None, "b.v")]
-    assert all(isinstance(value, PathNodeValue) for *_, value in calls)
+    assert all(isinstance(value, BasePathNodeValue) for *_, value in calls)
 
     def collected(name):
         return os.path.join(collectiondir(proj),
@@ -1025,6 +1059,35 @@ def test_collect_link_to_directory_whitelist(project_logger, caplog, path_keys,
         assert f"Leaving out {os.path.abspath('test/ext')}: " \
             f"{os.path.realpath('outside/sub')} is not on the approved collection list" \
             in caplog.text
+
+
+def test_collect_path_parameter_by_resolved_kind(path_keys):
+    """A 'path' parameter holds either kind, so each value is collected by what it
+    resolves to rather than by the parameter type."""
+    design = Design("testdesign")
+    EditableSchema(design).insert("mixed", Parameter("[path]", copy=True))
+
+    os.makedirs("mixeddir", exist_ok=True)
+    with open("mixeddir/inside.txt", "w") as f:
+        f.write("test")
+    with open("mixedfile.txt", "w") as f:
+        f.write("test")
+
+    assert design.set("mixed", ["mixeddir", "mixedfile.txt"])
+
+    proj = Project(design)
+    collect(proj, keys=path_keys(proj))
+
+    collected_dir = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("mixeddir", None))
+    assert os.listdir(collected_dir) == ["inside.txt"]
+
+    collected_file = os.path.join(
+        collectiondir(proj), PathNodeValue.generate_hashed_collection_path("mixedfile.txt", None))
+    assert os.path.isfile(collected_file)
+
+    for path in design.find_files("mixed"):
+        assert path.startswith(collectiondir(proj))
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
