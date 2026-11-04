@@ -11,7 +11,7 @@ import weakref
 
 import os.path
 
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 from siliconcompiler import sc_open
 from siliconcompiler.schema.parametertype import NodeType
@@ -118,7 +118,7 @@ def _sync_directory(directory: str) -> None:
         os.close(fd)
 
 
-def replace_file(path: str, content: str, mode: Optional[int] = None) -> None:
+def replace_file(path: str, content: Union[str, bytes], mode: Optional[int] = None) -> None:
     """
     Replace a file's content as one step: it is written to a temporary file
     beside it, flushed to disk and renamed over it, so a crash or an error at
@@ -128,7 +128,7 @@ def replace_file(path: str, content: str, mode: Optional[int] = None) -> None:
 
     Args:
         path (str): The file.
-        content (str): What it is to hold.
+        content (str or bytes): What it is to hold; bytes are written as they are.
         mode (int): POSIX permission bits, such as ``0o600``, the new file is
             created with, so it is never readable more widely, even for a
             moment; a missing directory gets them too, plus search permission.
@@ -147,7 +147,8 @@ def replace_file(path: str, content: str, mode: Optional[int] = None) -> None:
 
     fd, temp = _create_temp(target, mode)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
+        with os.fdopen(fd, "wb") if isinstance(content, bytes) \
+                else os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
             f.flush()
             os.fsync(f.fileno())

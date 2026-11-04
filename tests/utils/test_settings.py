@@ -711,6 +711,12 @@ def test_mode_none_keeps_existing_permissions(settings_file, umask):
     assert _mode(settings_file) == 0o600
 
 
+def test_replace_file_writes_bytes_as_they_are(settings_file):
+    """Bytes skip the text layer: no encoding, and no newline translation on Windows."""
+    settings_module.replace_file(settings_file, b"\x00\xff\r\n")
+    assert _contents(settings_file) == b"\x00\xff\r\n"
+
+
 def test_save_unserializable_leaves_file(settings_file):
     """Today's truncate-then-write left an empty file behind for this."""
     manager = SettingsManager(settings_file, logging.getLogger())
