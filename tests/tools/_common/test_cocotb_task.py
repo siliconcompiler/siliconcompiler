@@ -8,9 +8,10 @@ import pytest
 
 from siliconcompiler import Design, Flowgraph, Project
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.tool import TaskExecutableNotFound
+from siliconcompiler.tool import PythonEnvironment, Task, TaskExecutableNotFound
 from siliconcompiler.tools._common.cocotb import cocotb_task
 from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
+from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask
 
 
 # The cocotb driver, on a machine that need not have cocotb: setup runs
@@ -111,3 +112,23 @@ def test_setup_names_the_test_modules_without_resolving_them(project, monkeypatc
     with node.runtime():
         node.setup()
         assert node.task.get("env", "COCOTB_TEST_MODULES") == "test_gcd"
+
+
+def test_cocotb_is_declared_on_the_class():
+    '''So a remote run names it without running setup, Verilator's compile
+    step included, which runs none of the user's Python.'''
+    assert Task._framework_distributions() == ()
+    assert CocotbExecTask._framework_distributions() == ("cocotb",)
+    assert CocotbCompileTask._framework_distributions() == ("cocotb",)
+
+
+def test_the_python_environment_is_the_test_modules_and_cocotb(project, monkeypatch):
+    '''The test modules are what a remote run reads imports from; cocotb is
+    SiliconCompiler's own.'''
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", False)
+
+    node = SchedulerNode(project, "sim", "0")
+    with node.runtime():
+        node.setup()
+        assert node.task._get_python_environment() == PythonEnvironment(
+            sources=(os.path.abspath("test_gcd.py"),), framework=("cocotb",))

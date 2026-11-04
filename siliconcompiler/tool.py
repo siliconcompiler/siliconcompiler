@@ -25,8 +25,8 @@ except ModuleNotFoundError:
 
 import os.path
 
-from typing import Any, List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, \
-    TYPE_CHECKING
+from typing import Any, List, Dict, NamedTuple, Tuple, Union, Optional, Set, TextIO, \
+    Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
@@ -458,6 +458,27 @@ def _run_breakpoint(exe: str, cmdlist: List[str], log_path: str) -> int:
     if status is None:
         return 1
     return os.waitstatus_to_exitcode(status)
+
+
+class PythonEnvironment(NamedTuple):
+    """
+    What a node's own Python needs, as :meth:`Task._get_python_environment`
+    reports it.
+
+    Attributes:
+        sources: Python files the tool's Python loads -- a testbench -- whose
+            imports are read to find what it needs.
+        requirements: distributions, or PEP 508 requirements, it loads by name
+            rather than by import: a plugin.
+        framework: distributions SiliconCompiler's own process needs for this
+            task -- cocotb, for a cocotb task. A remote run pins them in the
+            job's ``requested_versions`` so the image holds them, and leaves them out of
+            the job's Python packages, so the tool and SiliconCompiler load one
+            copy.
+    """
+    sources: Tuple[str, ...] = ()
+    requirements: Tuple[str, ...] = ()
+    framework: Tuple[str, ...] = ()
 
 
 class Task(NamedSchema, PathSchema, DocsSchema):
@@ -1028,6 +1049,42 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 envvars[env] = value
 
         return envvars
+
+    @staticmethod
+    def _framework_distributions() -> Tuple[str, ...]:
+        """
+        Python distributions SiliconCompiler's own process on the node needs
+        for this task -- cocotb, for a cocotb task, whose simulator and whose
+        SiliconCompiler must load one installation.
+
+        Declared on the class, so a remote run names each in its
+        ``requested_versions.python``, at the range SiliconCompiler declares for it,
+        without running setup on the submitting machine: the node's image then
+        holds it, and the job's Python packages leave it out.
+
+        Returns:
+            tuple of str: distribution names; none by default.
+        """
+        return ()
+
+    def _get_python_environment(self) -> Optional["PythonEnvironment"]:
+        """
+        What this node's tool runs of the user's Python, for a remote run to
+        carry.
+
+        A remote run lists, once per job, the distributions the sources of
+        every such node import and those it loads by name, at the versions
+        installed on the submitting machine; builds a wheel of each installed
+        editable, from a local path or from git; and sends the user's own
+        modules beside the tests. Called on the submitting machine, after
+        :meth:`setup`. The server reads only whether a task class overrides
+        this, to know which nodes run the user's Python.
+
+        Returns:
+            :class:`PythonEnvironment`, or None where the tool runs none of the
+            user's Python -- the default.
+        """
+        return None
 
     def get_runtime_arguments(self) -> List[str]:
         """
