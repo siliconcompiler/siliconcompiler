@@ -1,0 +1,471 @@
+'''
+What this machine holds, and how tightly: ``~/.sc/auth/`` (``SC_AUTH_DIR`` moves it).
+
+``remote.json``    the store: the default server, and per server its user id,
+                   refresh token or CI credential, access token and its expiry,
+                   operator headers, authority and the grants it offers.
+``dpop-key.pem``   this machine's private key, **the machine pin itself**, in a
+                   file of its own so no rewrite of the store can take it.
+
+The modes are normative: directory ``0700``, files ``0600``,
+each created with its mode set. A wider store stops the client rather than
+being repaired: the key may already be copied.
+
+Every change is a transaction that re-reads the file under its lock: writing
+back a stale refresh token reads as reuse and ends the session.
+'''
+
+import contextlib
+import hashlib
+import logging
+import os
+import stat
+import sys
+import time
+
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from siliconcompiler.remote import dpop
+from siliconcompiler.remote.client.errors import RemoteError
+from siliconcompiler.remote.client.transport import GIVE_UP_SECONDS, normalize_server
+from siliconcompiler.utils.multiprocessing import get_file_lock
+from siliconcompiler.utils.settings import (
+    Setting, SettingsCategory, _make_directory, replace_file)
+
+__all__ = ["Credentials", "StoreError", "STORE_FILENAME", "KEY_FILENAME",
+           "CI_SECRET_VARIABLE", "parse_ci_secret"]
+
+
+AUTH_DIR_VARIABLE = "SC_AUTH_DIR"
+
+STORE_FILENAME = "remote.json"
+KEY_FILENAME = "dpop-key.pem"
+# Each authority's trust bundle, rebuilt from the store when missing.
+CERTS_DIRNAME = "certs"
+
+CI_SECRET_VARIABLE = "SC_CI_CREDENTIAL"
+
+# A newer store is refused by name rather than misread.
+STORE_VERSION = 1
+
+_STORE = "store"        # version, server
+_SERVERS = "servers"    # each server's entry, by its URL
+
+# A refresh holds the store across its token request: waiting for the store
+# outlasts that request giving up, so the waiter sees the holder's outcome.
+LOCK_SECONDS = GIVE_UP_SECONDS
+
+# The remote client's category in the user's settings.json.
+SETTINGS_CATEGORY = "remote"
+
+# The mode of a private file; its directory gets 0700 from it.
+_PRIVATE_FILE = 0o600
+
+
+def _absolute(paths) -> List[str]:
+    '''Upload directories as the absolute paths a collection compares.'''
+    if not isinstance(paths, list) or not all(isinstance(path, str) for path in paths):
+        raise ValueError(f"{SETTINGS_CATEGORY} uploads is a list of directories")
+    return [os.path.abspath(path) for path in paths]
+
+
+UPLOADS = Setting(SETTINGS_CATEGORY, "uploads", "[str]", [],
+                  "directories a remote run may upload a directory from",
+                  normalize=_absolute)
+BROWSER = Setting(SETTINGS_CATEGORY, "browser", "bool", True,
+                  "open the login page, a job's page and the portal in a browser; "
+                  "false prints their address instead")
+REMOTE_SETTINGS = SettingsCategory(SETTINGS_CATEGORY, UPLOADS, BROWSER)
+
+logger = logging.getLogger(__name__)
+
+
+class StoreError(RemoteError):
+    '''The session store is not safe to use as it stands.'''
+
+
+class Credentials:
+    '''One machine's remote configuration, and its sessions.'''
+
+    @classmethod
+    def for_project(cls, project) -> "Credentials":
+        '''Where one project's run looks for its key and session. Not through
+        `find_files`, which needs the file to exist: `-configure` creates it.'''
+        from siliconcompiler import utils
+
+        configured = project.option.get_credentials()
+        if configured:
+            return cls(Path(configured).expanduser().absolute())
+        return cls(Path(utils.default_credentials_file()))
+
+    def __init__(self, path: Path):
+        '''``path`` is the store file, `option,credentials`.'''
+        if os.environ.get(AUTH_DIR_VARIABLE):
+            path = Path(os.environ[AUTH_DIR_VARIABLE]) / STORE_FILENAME
+        self._selected: Optional[str] = None
+        self._open(path)
+
+    def _open(self, path: Path) -> None:
+        from siliconcompiler.utils.settings import SettingsManager
+
+        self.path = Path(path)
+        self.auth_dir = self.path.parent
+        self._key = None
+        self.check_store()
+        self._ensure_dir()
+        self._store = SettingsManager(str(self.path), logger, timeout=LOCK_SECONDS,
+                                      mode=_PRIVATE_FILE)
+        self._check_version()
+
+    def relocate(self, auth_dir: Path) -> None:
+        '''Use the store in ``auth_dir`` instead; nothing is copied, so its key is new.'''
+        self._open(Path(auth_dir) / STORE_FILENAME)
+
+    @property
+    def server(self) -> Optional[str]:
+        '''The base URL of the server acted for, which keys its entry: the one
+        selected in this process, else the default.'''
+        return self._selected or self._store.get(_STORE, "server")
+
+    def select(self, server: Optional[str]) -> None:
+        '''Act for ``server`` in this process without making it the default; None
+        goes back to the default.'''
+        self._selected = normalize_server(server) if server else None
+
+    def _entry(self, server: Optional[str] = None) -> Dict[str, Any]:
+        server = server or self.server
+        if not server:
+            return {}
+        return dict(self._store.get(_SERVERS, server) or {})
+
+    @property
+    def user_id(self) -> Optional[str]:
+        '''The `id` GET /v1/me last reported for this server. Not a credential:
+        kept so a changed principal can be told apart from deleted jobs.'''
+        return self._entry().get("user_id")
+
+    @property
+    def refresh_token(self) -> Optional[str]:
+        return self._entry().get("refresh_token")
+
+    def headers(self) -> Dict[str, str]:
+        '''The operator-configured headers for this server. Secret values.'''
+        return dict(self._entry().get("headers") or {})
+
+    def ci_secret(self) -> Optional[str]:
+        '''The one-line CI secret: the environment first, then this server's entry.'''
+        value = os.environ.get(CI_SECRET_VARIABLE)
+        if value:
+            return value.strip()
+        return self._entry().get("ci_credential") or None
+
+    @contextlib.contextmanager
+    def transaction(self):
+        '''Hold the store for one change: re-read under its lock, saved on a
+        clean exit. Nests. Raises `StoreError` if locked too long, unreadable or newer.'''
+        self._ensure_dir()
+        entered = False
+        try:
+            with self._store.transaction(timeout=LOCK_SECONDS):
+                entered = True
+                self._check_version()
+                if self._store.get(_STORE, "version") is None:
+                    self._store.set(_STORE, "version", STORE_VERSION)
+                yield
+        except (TimeoutError, ValueError) as e:
+            if entered:
+                raise
+            raise StoreError(f"the session store {self.path} cannot be used: {e}") from None
+
+    def set_server(self, server: str) -> None:
+        '''Point this machine at a server; switching back finds its entry intact.'''
+        with self.transaction():
+            self._store.set(_STORE, "server", normalize_server(server))
+
+    def knows(self, server: str) -> bool:
+        '''Whether ``server`` already has an entry here.'''
+        return bool(self._store.get(_SERVERS, server))
+
+    def servers(self) -> List[str]:
+        '''Every server configured here.'''
+        return sorted(server for server, entry in
+                      (self._store.get_category(_SERVERS) or {}).items() if entry)
+
+    def forget(self) -> None:
+        '''Remove this server's entry -- its session, headers, CI credential and
+        authority -- and its being the default.'''
+        server = self.server
+        if not server:
+            return
+        with self.transaction():
+            self._store.delete(_SERVERS, server)
+            if self._store.get(_STORE, "server") == server:
+                self._store.delete(_STORE, "server")
+        self._selected = None
+
+    @property
+    def certs_dir(self) -> Path:
+        return self.auth_dir / CERTS_DIRNAME
+
+    @property
+    def authority(self) -> Optional[str]:
+        '''The PEM certificate of the authority this server is verified with, if any.'''
+        return self._entry().get("authority")
+
+    def set_authority(self, authority: str) -> None:
+        self._update_entry(authority=authority)
+
+    def trust_bundle(self, authority: str) -> Path:
+        '''What requests trusts by default, plus ``authority``: added to, never in
+        place of, so storage on a public host still verifies. Named by its
+        content, so a replaced authority is never trusted from a stale bundle.'''
+        from requests.utils import DEFAULT_CA_BUNDLE_PATH
+
+        default = Path(DEFAULT_CA_BUNDLE_PATH)
+        digest = hashlib.sha256(authority.encode()).hexdigest()[:16]
+        bundle = self.certs_dir / f"{digest}.pem"
+        if not bundle.exists() or bundle.stat().st_mtime < default.stat().st_mtime:
+            # Private, its directory too: a certificate added here is one the client trusts.
+            replace_file(str(bundle), default.read_bytes().rstrip(b"\n") + b"\n" +
+                         authority.encode(), _PRIVATE_FILE)
+        return bundle
+
+    def _update_entry(self, **values) -> None:
+        '''This server's entry, changed: a value of None removes its field.'''
+        server = self.server
+        if not server:
+            return
+        with self.transaction():
+            entry = self._entry(server)
+            for name, value in values.items():
+                if value is None:
+                    entry.pop(name, None)
+                else:
+                    entry[name] = value
+            self._store.set(_SERVERS, server, entry)
+
+    def set_user_id(self, user_id: Optional[str]) -> None:
+        if user_id != self.user_id:
+            self._update_entry(user_id=user_id)
+
+    def save_tokens(self, body: Dict[str, Any]) -> None:
+        '''Persist the refresh token, and the access token until it expires, so a
+        later command reads with it rather than refreshing and rotating the pair.'''
+        token, lifetime = body.get("access_token"), body.get("expires_in")
+        expires = time.time() + int(lifetime) if token and lifetime else None
+        self._update_entry(refresh_token=body.get("refresh_token"),
+                           access_token=token if expires else None,
+                           access_expires_at=expires)
+
+    def access_token(self) -> Tuple[Optional[str], float]:
+        '''The stored access token and the seconds it has left; None once it lapsed.'''
+        entry = self._entry()
+        token, expires = entry.get("access_token"), entry.get("access_expires_at")
+        if not token or isinstance(expires, bool) or not isinstance(expires, (int, float)):
+            return None, 0.0
+        left = expires - time.time()
+        return (token, left) if left > 0 else (None, 0.0)
+
+    def forget_access(self, refused: str) -> None:
+        '''Drop the stored access token if it is ``refused``: another process may
+        already have stored a new one, which stays.'''
+        with self.transaction():
+            if self._entry().get("access_token") == refused:
+                self._update_entry(access_token=None, access_expires_at=None)
+
+    def forget_tokens(self) -> None:
+        self._update_entry(refresh_token=None, access_token=None, access_expires_at=None)
+
+    def grants(self) -> Optional[List[str]]:
+        '''The `grant_types_supported` this server last published, or None.'''
+        value = self._entry().get("grant_types_supported")
+        if isinstance(value, list) and all(isinstance(grant, str) for grant in value):
+            return value
+        return None
+
+    def save_grants(self, grants: Optional[List[str]]) -> None:
+        '''Keep the grants this server offers, or with None drop what was kept.'''
+        if self.server and grants != self.grants():
+            self._update_entry(grant_types_supported=None if grants is None else list(grants))
+
+    def set_header(self, name: str, value: Optional[str]) -> None:
+        '''Set an operator header for this server, or remove it with None. No
+        line breaks: the value is sent verbatim on every request.'''
+        import re
+
+        if not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name or ""):
+            raise StoreError(f"{name!r} is not a header name")
+        if name.lower() in ("authorization", "dpop", "host", "content-length",
+                            "content-type", "cookie"):
+            raise StoreError(f"{name} is set by this client and cannot be configured")
+        if value is not None and any(c in value for c in "\r\n\0"):
+            raise StoreError(f"the value for {name} contains a line break")
+        if not self.server:
+            raise StoreError("no server is configured: run sc-config remote configure first")
+        headers = self.headers()
+        if value is None:
+            headers.pop(name, None)
+        else:
+            headers[name] = value
+        self._update_entry(headers=headers or None)
+
+    def save_ci_secret(self, secret: str) -> None:
+        '''Store this server's CI credential in place of a refresh token.'''
+        parse_ci_secret(secret)
+        self._update_entry(ci_credential=secret.strip(), refresh_token=None)
+
+    @property
+    def key_path(self) -> Path:
+        return self.auth_dir / KEY_FILENAME
+
+    def key(self):
+        '''This machine's private key, generated locally on first use.
+
+        No error ever replaces it: it is the device pin; only `rotate_key` does.
+        '''
+        if self._key is not None:
+            return self._key
+
+        if not self.key_path.exists():
+            # Under the store's lock, so two processes on first use keep one key.
+            with self.transaction():
+                if not self.key_path.exists():
+                    self._write(self.key_path, dpop.serialize_key(dpop.generate_key()))
+        self._key = dpop.load_key(self.key_path.read_bytes())
+        return self._key
+
+    @property
+    def thumbprint(self) -> str:
+        '''The `jkt` the server knows this machine by.'''
+        return dpop.jwk_thumbprint(dpop.public_jwk(self.key()))
+
+    def rotate_key(self) -> None:
+        '''Replace the key, dropping every refresh and access token bound to it; ids, headers
+        and CI credentials stay.'''
+        with self.transaction():
+            self._key = dpop.generate_key()
+            self._write(self.key_path, dpop.serialize_key(self._key))
+            for server, entry in (self._store.get_category(_SERVERS) or {}).items():
+                if isinstance(entry, dict) and ("refresh_token" in entry
+                                                or "access_token" in entry):
+                    entry = dict(entry)
+                    for name in ("refresh_token", "access_token", "access_expires_at"):
+                        entry.pop(name, None)
+                    self._store.set(_SERVERS, server, entry)
+
+    def check_store(self) -> None:
+        '''Refuse a store others can read, rather than repair it: the directory
+        and the store's own files in it.'''
+        if sys.platform == "win32" or not self.auth_dir.exists():
+            return
+        wrong = []
+        if stat.S_IMODE(os.stat(self.auth_dir).st_mode) & 0o077:
+            wrong.append(str(self.auth_dir))
+        for entry in self.auth_dir.iterdir():
+            if not self._owns(entry.name):
+                continue
+            if stat.S_IMODE(os.lstat(entry).st_mode) & 0o077 or entry.is_symlink():
+                wrong.append(str(entry))
+        if self.certs_dir.is_dir():
+            # One others could change is an authority they chose.
+            for entry in (self.certs_dir, *self.certs_dir.iterdir()):
+                if stat.S_IMODE(os.lstat(entry).st_mode) & 0o077 or entry.is_symlink():
+                    wrong.append(str(entry))
+        if wrong:
+            raise StoreError(
+                f"the session store is readable by others: {', '.join(wrong)}. "
+                f"Fix it -- chmod 700 {self.auth_dir}; chmod 600 on every file in "
+                "it -- and then rotate this machine's key with sc-config remote rotate-key, "
+                "because a key others could read may already be copied")
+
+    def _owns(self, name: str) -> bool:
+        '''Whether a file is the store's: the store, its lock, the key, or their temporaries.'''
+        store = self.path.name
+        locks = (os.path.basename(path) for path in get_file_lock(self.path).paths)
+        if name in (store, *locks, KEY_FILENAME):
+            return True
+        return name.endswith(".tmp") and name.startswith((f".{store}.", f".{KEY_FILENAME}."))
+
+    def _check_version(self) -> None:
+        version = self._store.get(_STORE, "version")
+        if version is None:
+            return
+        if not isinstance(version, int) or isinstance(version, bool):
+            raise StoreError(f"{self.path} names no store version this client reads")
+        if version > STORE_VERSION:
+            raise StoreError(
+                f"{self.path} was written by a newer SiliconCompiler (store version "
+                f"{version}; this one reads {STORE_VERSION}). Upgrade SiliconCompiler, "
+                "or point -credentials at another store")
+
+    def _ensure_dir(self) -> None:
+        if self.auth_dir.exists():
+            return
+        _make_directory(str(self.auth_dir), _PRIVATE_FILE)
+        if sys.platform == "win32":                             # pragma: no cover
+            _restrict_windows(self.auth_dir)
+
+    def _write(self, path: Path, payload: bytes) -> None:
+        self._ensure_dir()
+        replace_file(str(path), payload, _PRIVATE_FILE)
+
+
+def parse_ci_secret(secret: str):
+    '''``<prefix>_<credential id>_<key>`` into ``(credential id, private key)``.
+    The base64url key may contain `_`, so only the first two separate.'''
+    from cryptography.hazmat.primitives.serialization import load_der_private_key
+    from jwt.utils import base64url_decode
+
+    parts = (secret or "").strip().split("_", 2)
+    if len(parts) != 3 or not all(parts):
+        raise RemoteError(f"{CI_SECRET_VARIABLE} is not a CI credential: it is one line, "
+                          "<prefix>_<credential id>_<key>")
+    _, credential_id, encoded = parts
+    try:
+        key = load_der_private_key(base64url_decode(encoded), password=None)
+    except Exception:                                           # noqa: BLE001
+        raise RemoteError(f"the key in {CI_SECRET_VARIABLE} does not decode") from None
+    return credential_id, key
+
+
+def read_authority(path) -> Tuple[str, List[Tuple[str, str]]]:
+    '''A PEM certificate, or a bundle of them, to trust as an authority: its text,
+    and each certificate's subject and SHA-256 fingerprint.'''
+    source = Path(path)
+    try:
+        payload = source.read_bytes()
+    except OSError as e:
+        raise StoreError(f"{source} cannot be read: {e.strerror or e}") from None
+    try:
+        found = describe_certificates(payload)
+    except StoreError as e:
+        raise StoreError(f"{source}: {e}") from None
+    return payload.decode(), found
+
+
+def describe_certificates(payload: bytes) -> List[Tuple[str, str]]:
+    '''Each PEM certificate in ``payload``, as its subject and SHA-256 fingerprint;
+    a StoreError where there is none.'''
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes
+
+    try:
+        found = x509.load_pem_x509_certificates(payload)
+    except ValueError:
+        found = []
+    if not found:
+        raise StoreError("it holds no PEM certificate")
+    return [(certificate.subject.rfc4514_string(),
+             certificate.fingerprint(hashes.SHA256()).hex(":").upper())
+            for certificate in found]
+
+
+def _restrict_windows(path: Path) -> None:                      # pragma: no cover
+    '''The Windows equivalent of 0700: an inherited ACL granting the user alone.'''
+    import getpass
+    import subprocess
+
+    subprocess.run(["icacls", str(path), "/inheritance:r", "/grant:r",
+                    f"{getpass.getuser()}:(OI)(CI)F"],
+                   check=True, capture_output=True)

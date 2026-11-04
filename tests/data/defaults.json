@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.0",
+              "value": "0.58.1",
               "signature": null
             }
           }
@@ -2059,10 +2059,10 @@
           ],
           "shorthelp": "Option: user credentials file",
           "example": [
-            "cli: -credentials /home/user/.sc/credentials",
-            "api: option.set('credentials', '/home/user/.sc/credentials')"
+            "cli: -credentials /home/user/.sc/auth/remote.json",
+            "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to the store remote processing keeps its configuration\n                and sessions in: the server and each server's session. If the\n                credentials parameter is empty, the remote processing client\n                uses \".sc/auth/remote.json\" in the user's home directory, beside\n                the machine's key, \"dpop-key.pem\". It is written by \"sc-config\n                remote configure\". The directories a remote run may upload from\n                are not kept here but in the \"remote uploads\" setting.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.0",
+              "value": "0.58.1",
               "signature": null
             }
           }
@@ -5719,10 +5719,10 @@
           ],
           "shorthelp": "Option: user credentials file",
           "example": [
-            "cli: -credentials /home/user/.sc/credentials",
-            "api: option.set('credentials', '/home/user/.sc/credentials')"
+            "cli: -credentials /home/user/.sc/auth/remote.json",
+            "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to the store remote processing keeps its configuration\n                and sessions in: the server and each server's session. If the\n                credentials parameter is empty, the remote processing client\n                uses \".sc/auth/remote.json\" in the user's home directory, beside\n                the machine's key, \"dpop-key.pem\". It is written by \"sc-config\n                remote configure\". The directories a remote run may upload from\n                are not kept here but in the \"remote uploads\" setting.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.0",
+              "value": "0.58.1",
               "signature": null
             }
           }
@@ -9721,10 +9721,10 @@
           ],
           "shorthelp": "Option: user credentials file",
           "example": [
-            "cli: -credentials /home/user/.sc/credentials",
-            "api: option.set('credentials', '/home/user/.sc/credentials')"
+            "cli: -credentials /home/user/.sc/auth/remote.json",
+            "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to the store remote processing keeps its configuration\n                and sessions in: the server and each server's session. If the\n                credentials parameter is empty, the remote processing client\n                uses \".sc/auth/remote.json\" in the user's home directory, beside\n                the machine's key, \"dpop-key.pem\". It is written by \"sc-config\n                remote configure\". The directories a remote run may upload from\n                are not kept here but in the \"remote uploads\" setting.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.0",
+              "value": "0.58.1",
               "signature": null
             }
           }
@@ -13457,10 +13457,10 @@
           ],
           "shorthelp": "Option: user credentials file",
           "example": [
-            "cli: -credentials /home/user/.sc/credentials",
-            "api: option.set('credentials', '/home/user/.sc/credentials')"
+            "cli: -credentials /home/user/.sc/auth/remote.json",
+            "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to the store remote processing keeps its configuration\n                and sessions in: the server and each server's session. If the\n                credentials parameter is empty, the remote processing client\n                uses \".sc/auth/remote.json\" in the user's home directory, beside\n                the machine's key, \"dpop-key.pem\". It is written by \"sc-config\n                remote configure\". The directories a remote run may upload from\n                are not kept here but in the \"remote uploads\" setting.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.0",
+              "value": "0.58.1",
               "signature": null
             }
           }
@@ -16429,10 +16429,10 @@
           ],
           "shorthelp": "Option: user credentials file",
           "example": [
-            "cli: -credentials /home/user/.sc/credentials",
-            "api: option.set('credentials', '/home/user/.sc/credentials')"
+            "cli: -credentials /home/user/.sc/auth/remote.json",
+            "api: option.set('credentials', '/home/user/.sc/auth/remote.json')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to the store remote processing keeps its configuration\n                and sessions in: the server and each server's session. If the\n                credentials parameter is empty, the remote processing client\n                uses \".sc/auth/remote.json\" in the user's home directory, beside\n                the machine's key, \"dpop-key.pem\". It is written by \"sc-config\n                remote configure\". The directories a remote run may upload from\n                are not kept here but in the \"remote uploads\" setting.",
           "notes": null,
           "pernode": "never",
           "node": {

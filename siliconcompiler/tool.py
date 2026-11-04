@@ -1048,7 +1048,32 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if value is not None:
                 envvars[env] = value
 
+        # A remote run's Python packages, ahead of everything else on the
+        # tool's path, where this node's task runs the user's Python: what the
+        # server installed for the job -- on the host, or in the layer of the
+        # image the node runs in. The user's own modules are collected files,
+        # found where the task finds its tests.
+        # Never on this process's: SiliconCompiler does not import from them.
+        carried = self.__remote_python()
+        if carried:
+            existing = envvars.get("PYTHONPATH", os.getenv("PYTHONPATH", ""))
+            envvars["PYTHONPATH"] = os.pathsep.join(
+                carried + [part for part in existing.split(os.pathsep) if part])
+
         return envvars
+
+    def __remote_python(self) -> List[str]:
+        from siliconcompiler.remote.environment import IMAGE_SITE, site_path
+        from siliconcompiler.utils.paths import jobdir
+
+        # Read off the class, as a remote run decides which nodes get the
+        # job's packages, so nothing is resolved here.
+        if type(self)._get_python_environment is Task._get_python_environment:
+            return []
+        # Only where the server installed the job's packages is either
+        # there: a job without any, and every other node's image, has none.
+        paths = [os.path.join(jobdir(self.project), site_path()), IMAGE_SITE]
+        return [path for path in paths if os.path.isdir(path)]
 
     @staticmethod
     def _framework_distributions() -> Tuple[str, ...]:
