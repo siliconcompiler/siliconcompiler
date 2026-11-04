@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Dict, List, Optional, Union
 import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
@@ -117,32 +117,35 @@ class CocotbTask(Task):
     def task(self):
         return "exec_cocotb"
 
-    def _get_test_modules(self):
+    def _get_test_module_names(self):
         """
         Get cocotb test module names from Python files in filesets.
 
+        The names are the declared files' stems, and nothing is resolved:
+        this runs in ``setup()``, which must not resolve a path, and
+        ``COCOTB_TEST_MODULES`` needs only the module names. A collected file
+        keeps its basename -- only its bucket directory carries a hash -- so
+        the declared stem is the module cocotb imports and every test is
+        reported under.
+
         Returns:
-            tuple: (module_names, module_dirs) where module_names is a
-                   comma-separated string and module_dirs is a list of
-                   directories containing the modules.
+            str: comma-separated module names.
         """
         module_names = []
-        module_dirs = []
-        seen_dirs = set()
-
         for lib, fileset in self.project.get_filesets():
-            for pyfile in lib.get_file(fileset=fileset, filetype="python"):
-                path = Path(pyfile)
-                # Module name is the filename without .py extension
-                module_name = path.stem
-                module_names.append(module_name)
-                # Track the directory for PYTHONPATH
-                dir_path = str(path.parent.resolve())
-                if dir_path not in seen_dirs:
-                    seen_dirs.add(dir_path)
-                    module_dirs.append(dir_path)
+            for pyfile in lib.get("fileset", fileset, "file", "python"):
+                module_names.append(Path(pyfile).stem)
+        return ",".join(module_names)
 
-        return ",".join(module_names), module_dirs
+    def _get_test_files(self) -> List[str]:
+        """
+        Get the cocotb test modules' files from Python files in filesets.
+
+        Returns:
+            list: the resolved path of each test module.
+        """
+        return [str(pyfile) for lib, fileset in self.project.get_filesets()
+                for pyfile in lib.get_file(fileset=fileset, filetype="python")]
 
     def _get_libdirs(self):
         """
@@ -179,7 +182,7 @@ class CocotbTask(Task):
         Set up all required environment variables for cocotb execution.
         """
 
-        test_modules, _ = self._get_test_modules()
+        test_modules = self._get_test_module_names()
 
         # GPI_USERS is the node's, in get_runtime_environmental_variables():
         # absolute paths into whichever Python and cocotb run the node.
@@ -266,8 +269,9 @@ class CocotbTask(Task):
 
         python_path = [p for p in envs.get("PYTHONPATH", "").split(os.pathsep) if p]
 
-        # Get test module directories
-        _, module_dirs = self._get_test_modules()
+        # Get test module directories, each once
+        module_dirs = list(dict.fromkeys(
+            str(Path(pyfile).parent.resolve()) for pyfile in self._get_test_files()))
         # Get lib directories
         user_lib_dirs = self._get_libdirs()
 

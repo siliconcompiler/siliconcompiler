@@ -94,3 +94,20 @@ def test_the_node_computes_gpi_users_for_its_own_python(project, monkeypatch):
     assert env["GPI_USERS"] == "/usr/lib/libpython3.so;/opt/cocotb/libs/libpygpi.so"
     assert env["PYGPI_PYTHON_BIN"] == sys.executable
     assert env["PATH"].split(os.pathsep)[0] == str(Path("/opt/cocotb/libs"))
+    assert str(Path.cwd().resolve()) in env["PYTHONPATH"].split(os.pathsep)
+
+
+def test_setup_names_the_test_modules_without_resolving_them(project, monkeypatch):
+    '''setup() must not resolve a path, and COCOTB_TEST_MODULES needs only
+    the declared files' stems.'''
+    design = project.get("library", "gcd", field="schema")
+
+    def resolved(self, *args, **kwargs):
+        raise AssertionError("setup() resolved a file")
+    monkeypatch.setattr(type(design), "get_file", resolved)
+    monkeypatch.setattr(cocotb_task, "_has_cocotb", False)
+
+    node = SchedulerNode(project, "sim", "0")
+    with node.runtime():
+        node.setup()
+        assert node.task.get("env", "COCOTB_TEST_MODULES") == "test_gcd"
