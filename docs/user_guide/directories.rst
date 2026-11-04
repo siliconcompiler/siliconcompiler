@@ -157,10 +157,9 @@ by one:
 .. code-block:: text
 
    ~/.sc/
-   ├── auth/            <- tokens for private data sources, only yours to open
+   ├── auth/            <- remote sessions and key, and data-source tokens; only yours
    ├── cache/           <- everything kept between runs (see below)
    ├── settings.json    <- your persistent defaults
-   ├── credentials      <- remote server address and login
    ├── managers/        <- how runs in one terminal find each other's dashboard; only yours
    └── tool_build/      <- scratch space for sc-install
 
@@ -306,10 +305,12 @@ machine-wide defaults from outside your home directory, at
 :ref:`User Settings <user_settings>` covers the file format and the precedence
 rules between the two.
 
-``credentials`` holds the address and login for a remote server, written by
-``sc-remote -configure``. Note that it has no file extension, although its
-contents are JSON. Point :keypath:`option,credentials` at a different file to
-use more than one server. See :ref:`Remote Processing <remote_processing>`.
+``auth/`` holds the remote client's store, ``remote.json`` -- the default
+server and each server's session, written by ``sc-config remote configure`` --
+beside the machine's key, ``dpop-key.pem``. Only you can read it. One store
+holds every server configured here; point :keypath:`option,credentials` at a
+different file to keep another. See
+:ref:`Remote Processing <remote_processing>`.
 
 ``auth/tokens.json`` holds the tokens private data sources are fetched with,
 written by :ref:`sc-config tokens <app-sc-config>`. Only you can open ``auth/``

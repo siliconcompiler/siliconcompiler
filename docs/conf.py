@@ -71,6 +71,7 @@ extensions = [
     'graphgen',
     'examplegen',
     'resolvergen',
+    'servererrors',
     'llmstxt',
     'schemadump'
 ]
