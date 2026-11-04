@@ -8,7 +8,7 @@ from conftest import asked_for_pages, problem, refused
 
 from siliconcompiler.remote import ServerProblem
 from siliconcompiler.remote.client import OAuthRefusal, cli
-from siliconcompiler.remote.client.errors import clean, describe
+from siliconcompiler.remote.client.errors import REGISTERED, clean, describe
 
 
 # The client half of the v1 API's behaviour tests that the rest of the suite
@@ -114,6 +114,22 @@ def test_a_single_use_sign_in_url_is_printed_where_no_browser_opened_and_never_l
     assert opened == []
     assert "single-use-secret" not in caplog.text
     assert capsys.readouterr().out.count(url) == 1
+
+
+def test_the_clients_registry_is_the_error_pages_the_deployment_serves():
+    '''A `type` outside what the client knows is acted on as an untyped failure, so a
+    slug missing here would be waited out wrongly and one extra would be trusted.'''
+    from pathlib import Path
+
+    import siliconcompiler.remote as remote
+
+    pages = Path(remote.__file__).parent / "server" / "errorpages"
+    served = {page.stem for page in pages.glob("*.html")
+              if not page.name.startswith("_") and page.stem != "index"}
+
+    assert REGISTERED == served
+    assert ServerProblem(problem("rate-limited", 429), 429).slug == "rate-limited"
+    assert ServerProblem(problem("brand-new-limit", 429), 429).slug is None
 
 
 def terms_refusal(fake_v1):

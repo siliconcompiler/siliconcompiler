@@ -1,0 +1,61 @@
+{% extends "_layout.html" %}
+{% set title = "Session ended" %}
+{% set status = "401 Unauthorized" %}
+{% set description = "The session is over. reason says why. Re-authenticate; never refresh." %}
+{% block main %}
+<p>The session behind your token is over, and no refresh will revive it.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Sign in again (<code>sc-config remote configure</code>).</li>
+  <li>Do not refresh: the refresh token belongs to the same ended session.</li>
+  <li>On <code>reason: "reused"</code>, reuse detection ended the session: somebody else spent a
+      refresh token of yours. Your credentials were used elsewhere. Rotate this machine&rsquo;s key
+      with <code>sc-config remote rotate-key</code> &mdash; the machine enrols again as a new device &mdash;
+      and then sign in.</li>
+</ol>
+</div>
+
+<p><strong>Formerly</strong> <code>session-revoked</code> and <code>session-expired</code>. They are one type now, with <code>reason</code> saying which.</p>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/session-ended",
+  "title":    "Session ended",
+  "status":   401,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "reason":   "expired",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>revoked</code> &mdash; the session was revoked, or its refresh token was reused; <code>deactivated</code> &mdash; the account was switched off; <code>expired</code> &mdash; it aged out, and nothing went wrong.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">any authenticated endpoint</td>
+    <td></td></tr>
+<tr><td class="wrap"><code>POST /v1/auth/token</code></td>
+    <td>A refresh against an ended session.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="invalid-token.html"><code>invalid-token</code></a> is refreshed. This one never is.</p>
+{% endblock %}

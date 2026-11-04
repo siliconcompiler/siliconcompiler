@@ -1,0 +1,55 @@
+{% extends "_layout.html" %}
+{% set title = "Too many nodes in this flow" %}
+{% set status = "403 Forbidden" %}
+{% set description = "More nodes in one flow than allowed. Send a smaller flow." %}
+{% block main %}
+<p>The flow you submitted has more nodes than this deployment runs in one job. The ceiling is static &mdash; it is about the size of the flow, not about what else you have running.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Compare your flow&rsquo;s node count with <code>limits.max_job_nodes</code> in <code>GET /v1</code>.</li>
+  <li>Send a smaller flow: split it, or narrow it with <code>from</code>, <code>to</code> or <code>prune</code>.</li>
+  <li>Retrying the same flow returns the same answer.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/node-limit-exceeded",
+  "title":    "Too many nodes in this flow",
+  "status":   403,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "limit":    "max_job_nodes",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Always <code>max_job_nodes</code>.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
+    <td>Counted on the flow the manifest&rsquo;s read reports, while the job stages.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="limit-exceeded.html"><code>limit-exceeded</code></a> is a ceiling that refills as your other jobs finish.</p>
+{% endblock %}

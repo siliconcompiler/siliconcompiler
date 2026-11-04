@@ -1,0 +1,45 @@
+{% extends "_layout.html" %}
+{% set title = "Invalid access token" %}
+{% set status = "401 Unauthorized" %}
+{% set description = "Expired or unverifiable access token. Refresh once, then retry." %}
+{% block main %}
+<p>The access token you presented has expired or could not be verified. It carries <code>WWW-Authenticate: DPoP error="invalid_token"</code>.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Refresh the token once, and retry the request with the new one.</li>
+  <li>If the refresh itself fails, sign in again.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/invalid-token",
+  "title":    "Invalid access token",
+  "status":   401,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">any authenticated endpoint</td>
+    <td></td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="session-ended.html"><code>session-ended</code></a> carries the same <code>WWW-Authenticate</code> and must <strong>not</strong> be refreshed. The header cannot tell them apart: branch on it and the body&rsquo;s <code>type</code> together.</p>
+
+<p><a href="invalid-dpop-proof.html"><code>invalid-dpop-proof</code></a> is the proof, not the token.</p>
+{% endblock %}

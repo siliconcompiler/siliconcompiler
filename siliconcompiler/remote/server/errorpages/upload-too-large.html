@@ -1,0 +1,64 @@
+{% extends "_layout.html" %}
+{% set title = "Upload too large" %}
+{% set status = "413 Content Too Large" %}
+{% set description = "Any request body over its endpoint’s cap, not only an upload." %}
+{% block main %}
+<p>Too much was sent &mdash; most often a job&rsquo;s archives, which together may not exceed <code>limits.max_upload_bytes</code>, refused at the upload grant before any bytes move. The name reads narrower than the rule: it also covers any request body over its endpoint&rsquo;s cap.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Compare the job&rsquo;s archives together &mdash; this one&rsquo;s <code>size_bytes</code> and any sent before it &mdash; with <code>limits.max_upload_bytes</code> in <code>GET /v1</code>. <code>limit</code> is present only for that case; a body over its endpoint&rsquo;s cap carries none.</li>
+  <li>Send less: a remote run uploads your design and anything local it needs, so a large local PDK or library is the usual cause.</li>
+  <li>Retrying the same body returns the same answer.</li>
+</ol>
+</div>
+
+<div class="warn">
+<p><strong>An untyped answer is expected here.</strong> This refusal is often produced below the
+request handler &mdash; by routing, the framework or a proxy &mdash; and then it arrives as the web
+server&rsquo;s own page, not as <code>application/problem+json</code>, and has no <code>type</code>
+at all. Treat a non-<code>problem+json</code> <code>413</code> exactly as you would this type.</p>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/upload-too-large",
+  "title":    "Upload too large",
+  "status":   413,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "limit":    "max_upload_bytes",  <span class="c">// only over max_upload_bytes</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>limit</code></td><td>optional</td>
+    <td><code>max_upload_bytes</code>, where the job&rsquo;s archives together went over it, and absent where a request body went over its endpoint&rsquo;s cap.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs/{id}/upload-grant</code></td>
+    <td><code>size_bytes</code> takes the job&rsquo;s archives together over <code>limits.max_upload_bytes</code>, with <code>limit</code>. The grant fixes the size, so an oversized archive is refused before it is sent.</td></tr>
+<tr><td class="wrap">any endpoint</td>
+    <td>A request body over that endpoint&rsquo;s cap, with no <code>limit</code>.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> is an archive within the size limit that broke another rule once opened.</p>
+{% endblock %}
