@@ -1,0 +1,68 @@
+{% extends "_layout.html" %}
+{% set title = "Archive rejected" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "The archive broke a normative limit or cannot be run as sent. reason names which." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>While the job stages, the uploaded archive broke one of the rules an archive must follow, or cannot be run as sent. The job is <code>rejected</code>, with this on its <code>error</code>.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>reason</code>, and fix what it names, in a new job.</li>
+  <li><code>member_count</code> and <code>expanded_bytes</code> are published limits (<code>max_archive_members</code>, <code>max_archive_expanded_bytes</code>): send less.</li>
+  <li><code>ratio</code> is an early abort on the compression ratio, where the deployment applies one. <code>link_member</code>, <code>device_member</code> and <code>traversal</code> are safety rules: the archive carries a link that resolves outside it, a device file, or a member named with <code>..</code>, written twice, or written through a link. A link that resolves inside the archive is kept as a link. A client builds none of these; a hand-built archive can.</li>
+  <li><code>missing_manifest</code> and <code>invalid_manifest</code>: the archive holds no manifest at its root, or one that cannot be read.</li>
+  <li><code>credential</code>: a dataroot&rsquo;s path in a manifest the archive carries &mdash; the root one, or an upstream node&rsquo;s under <code>&lt;step&gt;/&lt;index&gt;/outputs/</code> &mdash; carries userinfo: <code>user@</code> or <code>user:secret@</code> ahead of its host. <code>keypath</code> names the first such dataroot and <code>detail</code> names each, never by value. A client sends every dataroot&rsquo;s path without it, so this is a client bug. The server cannot remove the credential from an archive it would keep as uploaded, so it keeps none of it: the upload is deleted, and only the record of why is kept. Register the dataroot without it, and give the credential through the environment on your own machine.</li>
+  <li><code>unrequested_member</code> is a member the server did not ask for: in the first archive, anything but the manifest, <code>sc_collected_files/</code> and <code>&lt;step&gt;/&lt;index&gt;/outputs/</code> for a node the run reads and does not run, a value under a private dataroot included &mdash; which carries that dataroot&rsquo;s <code>keypath</code>, and whose upload is not kept; in a follow-up &mdash; one sent after the server asked in <code>upload_sources</code> &mdash; a dataroot or a wheel it did not ask for.</li>
+  <li><code>missing_member</code> is the opposite: the flow reads a value the client should have sent, or the results of a node the run reads and does not run, and nothing supplies it. <code>detail</code> names the keypath or the node. A client sends what the flow&rsquo;s tasks require, so this is a client bug, or a task whose requirements leave out a file it reads.</li>
+  <li><code>python_package</code> is an uploaded wheel, under <code>sc_collected_files/python/</code>, that is not pure &mdash; tagged <code>none-any</code>, with no <code>.so</code>, <code>.pyd</code> or <code>.dylib</code> &mdash; is malformed, overlaps a distribution <code>python_packages</code> lists or another wheel, or arrives on a deployment without <code>python.env</code>. <code>detail</code> names the wheel. The client builds every wheel, so this is a client bug.</li>
+  <li><code>breakpoint</code> is a node with <code>option,breakpoint</code> set: the run would stop for a person to look, and nobody is at a remote run. <code>detail</code> names the node. Clear the breakpoint for it.</li>
+  <li><code>interactive_task</code> is a node whose task opens a window for a person &mdash; every <code>ShowTask</code>, OpenROAD&rsquo;s <code>WebTask</code> &mdash; which nobody is at a remote run to use. <code>detail</code> names the node and its task. A <code>ScreenshotTask</code> renders the same view headless and is allowed.</li>
+  <li><code>extension</code> is a member whose file extension the deployment&rsquo;s allowlist does not admit. <code>detail</code> names the member. That is deployment policy, not a safety rule: only a deployment with a member-extension allowlist raises it. The reference <code>sc-server</code> has none &mdash; it admits every extension &mdash; and never raises it.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "id":    "01J9...",
+  "state": "rejected",
+  "error": {
+    "type":   "https://siliconcompiler.com/server-errors/archive-rejected",
+    "title":  "Archive rejected",
+    "status": 422,
+    "detail": "...",
+    "reason": "expanded_bytes"   <span class="c">// REQUIRED on this type</span>
+  }
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>member_count</code>, <code>expanded_bytes</code>, <code>ratio</code>, <code>link_member</code>, <code>device_member</code>, <code>traversal</code>, <code>missing_manifest</code>, <code>invalid_manifest</code>, <code>credential</code>, <code>unrequested_member</code>, <code>missing_member</code>, <code>python_package</code>, <code>breakpoint</code>, <code>interactive_task</code> or <code>extension</code>. An unrecognised value means act on the type alone.</td></tr>
+<tr><td><code>keypath</code></td><td>optional</td>
+    <td>On <code>credential</code>, and on <code>unrequested_member</code> for a private dataroot&rsquo;s value: the dataroot, as SiliconCompiler keeps it &mdash; a library&rsquo;s <code>["library", name, "dataroot", root]</code> or a task&rsquo;s <code>["tool", tool, "task", task, "dataroot", root]</code>. Absent on every other reason.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, then on <code>reason</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: found while the job stages, after submit answered <code>202</code> &mdash; the first archive or a follow-up.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="upload-too-large.html"><code>upload-too-large</code></a> is the archive being too large to accept at all.</p>
+
+<p><a href="upload-forbidden.html"><code>upload-forbidden</code></a> is a policy about the restricted material an archive carries &mdash; whose it is, not what shape the archive takes &mdash; and not a safety failure.</p>
+{% endblock %}

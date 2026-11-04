@@ -1,0 +1,62 @@
+{% extends "_layout.html" %}
+{% set title = "Download too large" %}
+{% set status = "403 Forbidden" %}
+{% set description = "An object over the API’s download ceiling. Does not refill — use the portal." %}
+{% block main %}
+<p>The artifact you asked for is larger than this deployment serves over the API, <code>limits.max_download_bytes</code>. It is there and you may have it; it is refused for its size alone. The ceiling is static, so waiting and retrying return the same answer.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Compare the artifact&rsquo;s <code>size</code> in the listing with <code>limits.max_download_bytes</code> in <code>GET /v1</code>.</li>
+  <li>Download it from the web portal, which is the way past this ceiling. The API has none.</li>
+  <li>For a node&rsquo;s output, the smaller <code>logs</code> and <code>reports</code> artifacts may be under the ceiling where the whole <code>node</code> archive is not.</li>
+</ol>
+</div>
+
+<p><strong>Formerly</strong> <code>429 limit-exceeded</code> with <code>limit: "max_download_bytes"</code> and a <code>Retry-After</code>. That was a retry loop: a client obeying <code>Retry-After</code> on a ceiling that never refills retries for ever.</p>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/download-too-large",
+  "title":    "Download too large",
+  "status":   403,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "limit":    "max_download_bytes",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>limit</code></td><td><span class="req">REQUIRED</span></td>
+    <td>Always <code>max_download_bytes</code>.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>The object is larger than the ceiling.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>A finished node&rsquo;s log archive, where the redirect to it would hand you an object over the ceiling.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="limit-exceeded.html"><code>limit-exceeded</code></a> is a ceiling that refills, and carries <code>Retry-After</code>.</p>
+
+<p><a href="upload-too-large.html"><code>upload-too-large</code></a> is the same kind of ceiling on what you send. It is a <code>413</code> because it is the request&rsquo;s own size; here the request is small and the answer is not.</p>
+
+<p><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a> is an object you may not download at all, whatever its size.</p>
+{% endblock %}

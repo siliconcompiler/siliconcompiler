@@ -1,0 +1,44 @@
+{% extends "_layout.html" %}
+{% set title = "The manifest contradicts the descriptor" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "The manifest contradicts the descriptor." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>What the uploaded manifest says disagrees with the job it was sent for &mdash; its design or job name is not the job&rsquo;s <code>design</code> or <code>jobname</code>, or its SiliconCompiler version does not satisfy <code>requested_versions.python.siliconcompiler</code>. The server trusts neither over the other and rejects the job. The version case covers what <code>version-skew</code> meant while staging, which is retired.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>This is usually a client bug: the client builds both from the same project. Report it with the job&rsquo;s <code>id</code>. Resubmitting unchanged fails the same way.</li>
+  <li>If you built the upload by hand, make the archive&rsquo;s manifest match the job you created.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/declared-mismatch",
+  "title":    "The manifest contradicts the descriptor",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}</code></td>
+    <td>As a <code>rejected</code> job&rsquo;s <code>error</code>: found by the manifest&rsquo;s read, while the job stages, after the archive is opened.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> is the archive itself being unsafe, not its contents disagreeing.</p>
+{% endblock %}

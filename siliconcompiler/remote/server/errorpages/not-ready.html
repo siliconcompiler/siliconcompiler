@@ -1,0 +1,58 @@
+{% extends "_layout.html" %}
+{% set title = "Not ready yet" %}
+{% set status = "409 Conflict" %}
+{% set description = "The output exists in the contract but not yet in storage. Retry." %}
+{% block main %}
+<p>An output the contract promises is not available yet, and is still expected &mdash; the log of a node that has not started, or of a whole job none of whose nodes has; an artifact whose provenance is still <code>pending</code>; or a <code>node</code> archive with a member that is. It is transient. It is never a staging failure: a job the server could not get ready ends <code>failed</code>, <a href="staging-failed.html"><code>staging-failed</code></a>.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Wait for <code>Retry-After</code> and ask again.</li>
+</ol>
+</div>
+
+<p><strong>Formerly</strong> <code>logs-not-ready</code>. It is one type now, with <code>artifact_kind</code> naming what is not ready.</p>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/not-ready",
+  "title":    "Not ready yet",
+  "status":   409,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "artifact_kind": "logs",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>artifact_kind</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The kind of output that is not ready yet: <code>logs</code> on <code>&hellip;/logs</code>, the artifact&rsquo;s own kind on <code>&hellip;/artifacts/{artifact_id}</code>.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
+    <td>For a node, or a whole job, that has not started.</td></tr>
+<tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
+    <td>An artifact whose provenance is still <code>pending</code> &mdash; it will be fetchable once it is described &mdash; or a <code>node</code> archive with a pending member. A pending member is reported only when nothing permanent stands in the way: a member withheld, or one you lack a resource for, is refused for that instead.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="feature-unsupported.html"><code>feature-unsupported</code></a> is permanent: the deployment does not have it at all. Retrying this one is right; retrying that one is not.</p>
+
+<p><a href="not-found.html"><code>not-found</code></a> is a thing that is not there for you, not one that is on its way.</p>
+{% endblock %}
