@@ -1,0 +1,1068 @@
+'''The ``v1`` remote client: ``Client`` is the library, and ``sc-config remote``
+(`cli`) a thin wrapper over it.'''
+
+import contextlib
+import logging
+import os
+import sys
+import time
+
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlsplit
+
+from siliconcompiler.remote.client.credentials import (
+    AUTH_DIR_VARIABLE, BROWSER, CI_SECRET_VARIABLE, Credentials, parse_ci_secret,
+    read_authority)
+from siliconcompiler.remote.client.errors import (
+    RemoteError, ServerProblem, SessionEnded, clean, describe, listed)
+from siliconcompiler.remote.client.identity import (
+    device_fingerprint, display_name, local_subject)
+from siliconcompiler.remote.client.transport import (
+    MAX_WAITS, EdgeRefused, OAuthRefusal, Transport, _retry_after,
+    authenticates, link, normalize_server, origin_of, retrying)
+
+__all__ = [
+    "Client", "Credentials", "RemoteError", "ServerProblem", "SessionEnded",
+    "EdgeRefused", "describe", "SCOPES",
+]
+
+
+logger = logging.getLogger(__name__)
+
+
+# Every registered scope, sent explicitly: an unsent parameter is an untested
+# one, and a server drops what it does not recognise.
+SCOPES = ("jobs:read", "jobs:write", "jobs:delete", "artifacts:read",
+          "devices:read", "devices:write", "profile:read")
+
+GRANT_CLIENT_CREDENTIALS = "client_credentials"
+GRANT_DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
+GRANT_TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
+
+CI_EXPIRY_WARNING_SECONDS = 7 * 86400
+
+ROTATE_COMMAND = "sc-config remote rotate-key"
+
+# Named on every create by a CI credential bound to a project.
+PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
+
+
+class Client:
+    '''One machine talking to one server.'''
+
+    def __init__(self, credentials: Credentials,
+                 logger: Optional[logging.Logger] = None):
+        self.credentials = credentials
+        self.logger = logger or logging.getLogger(__name__)
+
+        # Each notice and upcoming terms version is shown once per client.
+        self._notices_shown = set()
+        self.terms_reminded = set()
+        self._titles: Optional[Dict[str, str]] = None
+
+        if not credentials.server:
+            # Raised on use, not here, so `sc-config remote configure` can build a client to fix it.
+            self._transport = None
+            return
+
+        self._transport = self._make_transport(credentials.server)
+
+    def _make_transport(self, base_url: str, authority: Optional[str] = None) -> Transport:
+        '''A transport for the selected server, verified with ``authority`` or the
+        one recorded for it.'''
+        authority = authority or self.credentials.authority
+        return Transport(base_url, self.credentials.key(), self.credentials, self._relogin,
+                         logger=self.logger, trades=bool(self.credentials.ci_secret()),
+                         verify=str(self.credentials.trust_bundle(authority))
+                         if authority else None)
+
+    @property
+    def transport(self) -> Transport:
+        if self._transport is None:
+            raise RemoteError(
+                "No remote server address is configured. "
+                "Run: sc-config remote configure https://<host>")
+        return self._transport
+
+    @property
+    def base_url(self) -> Optional[str]:
+        return self._transport.base_url if self._transport else None
+
+    def capabilities(self, notices: bool = True) -> Dict[str, Any]:
+        '''``GET /v1``, sent with no credential, read once per server.
+
+        Branch on ``grant_types_supported``, never ``identity_assurance``, which
+        is advisory. ``notices=False`` leaves showing the notices to the caller.
+        '''
+        published = self.transport.published()
+        if notices:
+            self.show_notices(published)
+        return published
+
+    def show_notices(self, published, always: bool = False) -> None:
+        '''Each notice once per session, or with ``always`` every time. Never
+        branched on: `level` only picks how loudly.'''
+        import json
+
+        for notice in published.get("notices") or []:
+            key = json.dumps(notice, sort_keys=True, default=str)
+            if key in self._notices_shown and not always:
+                continue
+            self._notices_shown.add(key)
+            level = notice.get("level") if notice.get("level") in ("info", "warning") \
+                else "warning"
+            line = clean(notice.get("message") or "")
+            starts, ends = notice.get("starts_at"), notice.get("ends_at")
+            if starts and ends:
+                line += f" ({clean(starts)} to {clean(ends)})"
+            elif starts:
+                line += f" (from {clean(starts)})"
+            elif ends:
+                line += f" (until {clean(ends)})"
+            (self.logger.info if level == "info" else self.logger.warning)(
+                f"Notice: {line}")
+
+    def login(self) -> Dict[str, Any]:
+        '''Obtain a session, the way this deployment offers one.
+
+        Only `unsupported_grant_type` switches grant: that one is dropped and
+        `GET /v1` reread. A `401`, timeout or `503` means later, never switch.
+        A CI key goes straight to token exchange and never prints a
+        `user_code`. Over plaintext only a deployment that authenticates
+        nobody is logged in to, so there a refused grant stops the login.
+        '''
+        if self.credentials.ci_secret():
+            return self._ci_login()
+
+        tried = set()
+        while True:
+            offered = self._grant_types()
+            self.transport.check_plaintext()
+            mode = self._choose(offered, tried)
+            if mode is None and not tried and self.credentials.grants() is not None:
+                # What was kept may be old, and no refusal will say so: ask again, once.
+                self._grants_were_stale()
+                offered = self._grant_types()
+                mode = self._choose(offered, tried)
+            if mode is None:
+                raise RemoteError(
+                    f"{self.base_url} offers no login this client can use "
+                    f"(it offers {', '.join(offered) or 'none'})")
+            try:
+                body = self._login_with(mode)
+            except OAuthRefusal as e:
+                if e.error != "unsupported_grant_type":
+                    raise self._refused(e) from None
+                tried.add(mode)
+                self._grants_were_stale()
+            else:
+                return self._granted(body)
+
+    def _grant_types(self) -> List[str]:
+        '''What this server offers, as kept beside its credential, else what `GET /v1` says.'''
+        kept = self.credentials.grants()
+        if kept is not None:
+            return kept
+        offered = list(self.capabilities().get("grant_types_supported") or [])
+        self.credentials.save_grants(offered)
+        return offered
+
+    def _grants_were_stale(self) -> None:
+        '''`unsupported_grant_type` says the kept answer is old: drop it, and `GET /v1`.'''
+        self.credentials.save_grants(None)
+        self.transport.forget_published()
+
+    def _ci_login(self) -> Dict[str, Any]:
+        '''Token exchange for a CI key, retried once if `GET /v1` offers it after
+        `unsupported_grant_type`. Never falls back to another grant.'''
+        for reread in (False, True):
+            if reread:
+                self._grants_were_stale()
+                if GRANT_TOKEN_EXCHANGE not in self._grant_types():
+                    break
+            try:
+                return self._granted(self._login_with(GRANT_TOKEN_EXCHANGE))
+            except OAuthRefusal as e:
+                if e.error != "unsupported_grant_type":
+                    raise self._refused(e) from None
+        raise RemoteError(
+            f"{self.base_url} has no non-interactive login for a CI credential: it "
+            "offers no token exchange. Run this job against a deployment that does, "
+            "or without the CI credential")
+
+    @staticmethod
+    def _choose(offered, tried) -> Optional[str]:
+        '''`client_credentials` first, needing no person, then the device grant;
+        None where neither is left.'''
+        candidates = [grant for grant in offered if grant not in tried]
+        if GRANT_CLIENT_CREDENTIALS in candidates:
+            return GRANT_CLIENT_CREDENTIALS
+        if GRANT_DEVICE_CODE in candidates:
+            return GRANT_DEVICE_CODE
+        return None
+
+    def _login_with(self, mode: str) -> Dict[str, Any]:
+        if mode == GRANT_CLIENT_CREDENTIALS:
+            return self._login_client_credentials()
+        if mode == GRANT_TOKEN_EXCHANGE:
+            return self._trade()
+        return self._login_device()
+
+    def _login_client_credentials(self) -> Dict[str, Any]:
+        '''``client_credentials``: no browser, no prompt; the server binds the key on first contact.
+
+        No machine id, no access: every such machine would be one principal.
+        '''
+        subject, machine_hash, source = local_subject()
+        if source == "none":
+            raise RemoteError(
+                "this machine has no id to sign in with (no /etc/machine-id on "
+                "Linux, no IOPlatformUUID on macOS, no MachineGuid on Windows), and "
+                "the server identifies you by this machine and your user. Create one "
+                "-- `systemd-machine-id-setup` on Linux -- and try again")
+
+        form = {
+            "grant_type": GRANT_CLIENT_CREDENTIALS,
+            "client_id": f"local:{subject}",
+            "machine_id_source": source,
+            "display_name": display_name(),
+            "scope": " ".join(SCOPES),
+        }
+        if machine_hash:
+            form["machine_id_hash"] = machine_hash
+
+        body = self.transport.login(form)
+        self.credentials.save_tokens(body)
+        return body
+
+    def _login_device(self) -> Dict[str, Any]:
+        '''The device grant: a code for a person, a browser, and a poll. The URL
+        and code are always printed, for a headless machine or a silent launch failure.'''
+        import platform
+
+        host = platform.node() or "unknown"
+        form = {"scope": " ".join(SCOPES), "requesting_host": host,
+                "device_label": f"{display_name()}@{host}", **device_fingerprint()}
+
+        while True:
+            started = self.transport.request(
+                "POST", "auth/device", authenticated=False, data=form, oauth=True,
+                headers={"Content-Type": "application/x-www-form-urlencoded"}).json()
+
+            uri = started.get("verification_uri") or ""
+            code = started.get("user_code") or ""
+            self.logger.info(f"To log in, open {clean(uri)} and enter the code {clean(code)}")
+            # What the approval page shows beside the code. The server computes the key
+            # from this machine's proof, so a code somebody else started shows another.
+            self.logger.info(f"Machine key: {clean(self.credentials.thumbprint)} "
+                             "(the approval page shows the same)")
+            self.logger.info(f"This machine: {clean(host)}")
+            self.open_url(uri, "the login page")
+
+            interval = max(1, int(started.get("interval") or 5))
+            deadline = time.monotonic() + int(started.get("expires_in") or 600)
+            while time.monotonic() < deadline:
+                time.sleep(interval)
+                try:
+                    body = self.transport.login(
+                        {"grant_type": GRANT_DEVICE_CODE,
+                         "device_code": started.get("device_code", "")})
+                except OAuthRefusal as e:
+                    if e.error == "authorization_pending":
+                        continue
+                    if e.error == "slow_down":
+                        interval += 5
+                        continue
+                    if e.error == "expired_token":
+                        break
+                    if e.error == "access_denied" and e.reason == "devices":
+                        raise RemoteError(
+                            "the login was refused because your account is at its "
+                            "limit of devices: revoke a device you no longer use "
+                            "in the portal, and log in again") from None
+                    if e.error == "access_denied":
+                        raise RemoteError("the login was denied") from None
+                    raise
+                self.credentials.save_tokens(body)
+                return body
+            self.logger.info("The code expired before it was approved; starting again.")
+
+    def _trade(self) -> Dict[str, Any]:
+        '''Trade the CI credential for one access token; no refresh token comes back.
+
+        Never over plaintext: the request carries the credential itself.
+        '''
+        import uuid
+
+        import jwt
+
+        from siliconcompiler.remote import dpop
+
+        if not self.transport.base_url.startswith("https://"):
+            raise RemoteError("a CI credential is exchanged only over https, and "
+                              f"{self.transport.base_url} is not")
+
+        credential_id, credential_key = parse_ci_secret(self.credentials.ci_secret())
+
+        def form():
+            # Minted per attempt, on the clock the proof uses: a retry with
+            # that clock corrected carries an assertion corrected with it.
+            issued = int(self.transport.now())
+            assertion = jwt.encode(
+                {"iss": credential_id, "sub": credential_id,
+                 "aud": origin_of(self.transport.base_url),
+                 "jti": str(uuid.uuid4()), "iat": issued, "exp": issued + 300,
+                 # Bound to this request's proof key, so it cannot be re-paired.
+                 "cnf": {"jkt": self.credentials.thumbprint}},
+                credential_key, algorithm=dpop.ALGORITHM)
+            return {"grant_type": GRANT_TOKEN_EXCHANGE,
+                    "subject_token": assertion,
+                    "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "scope": " ".join(SCOPES)}
+
+        try:
+            body = self.transport.login(form)
+        except OAuthRefusal as e:
+            if e.error == "invalid_grant":
+                raise RemoteError({
+                    "expired": "the CI credential has expired: mint a new one in the "
+                               "portal and replace the secret",
+                    "revoked": "the CI credential was revoked: ask for a new one",
+                    "deactivated": "the account this CI credential belongs to is "
+                                   "deactivated",
+                }.get(e.reason, "the CI credential was refused")) from None
+            raise
+
+        left = body.get("session_expires_in")
+        if isinstance(left, int) and left <= CI_EXPIRY_WARNING_SECONDS:
+            days = max(0, left // 86400)
+            message = (f"This CI credential expires in {days} day{'s' if days != 1 else ''}: "
+                       "mint a new one in the portal and replace the secret")
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                print(f"::warning::{message}", flush=True)
+            self.logger.warning(message)
+        return body
+
+    def _granted(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        '''Name each scope asked for and not granted: a server narrows a request
+        silently, and only the answer's `scope` says so.'''
+        granted = body.get("scope")
+        if not isinstance(granted, str):
+            return body
+        missing = [scope for scope in SCOPES if scope not in granted.split()]
+        if missing:
+            # A CI credential holds what its minter chose, never a device scope,
+            # so less than asked for is expected there.
+            (self.logger.info if self.ci_session else self.logger.warning)(
+                f"This session was not granted {', '.join(missing)}: a command that "
+                "needs one is refused.")
+        return body
+
+    def _refused(self, refusal: OAuthRefusal) -> RemoteError:
+        '''What a failed login tells the person.'''
+        if refusal.error == "invalid_client":
+            return RemoteError(
+                "this server knows you by a different key: "
+                f"{clean(refusal.description or 'the subject is bound to another key')}. "
+                "Retrying will not help; the server's operator can release the binding.")
+        return RemoteError(str(refusal))
+
+    def _relogin(self, reason: Optional[str]) -> None:
+        '''The session is over: re-authenticate, and never refresh.'''
+        if reason == "reused":
+            self.logger.warning(
+                "This session was ended because its refresh token was used twice: your "
+                "credentials were used elsewhere. Replace this machine's key with "
+                f"`{ROTATE_COMMAND}`, which also revokes the device the old key is bound "
+                "to, ending every session it holds.")
+        elif reason:
+            self.logger.info(f"This session has ended ({reason}); starting a new one.")
+        self.login()
+
+    def rotate_key(self) -> None:
+        '''Replace this machine's DPoP key, which every server configured here
+        knows it by, and log in to the default server again as a new device; no
+        error ever changes the key.
+
+        On each server holding a session, the old key revokes its own device
+        first, ending its sessions and freeing the subject: else that server
+        refuses the new key `invalid_client`. If that fails, the key is replaced
+        anyway.
+        '''
+        old = self.credentials.thumbprint
+        for server in self.credentials.servers():
+            self.credentials.select(server)
+            if self.credentials.refresh_token:
+                self._transport = self._make_transport(server)
+                self._retire_this_device()
+        self.credentials.select(None)
+        self.credentials.rotate_key()
+        default = self.credentials.server
+        self._transport = self._make_transport(default) if default else None
+        self.logger.info(f"Replaced this machine's key ({old[:12]}... -> "
+                         f"{self.credentials.thumbprint[:12]}...)")
+        if self._transport is not None:
+            self.login()
+            self.logger.info(f"Logged in to {default} again as a new device.")
+
+    def _retire_this_device(self) -> None:
+        '''Revoke the current key's device with that key, and forget its session.
+        Never a login: a session that cannot be refreshed is warned of.'''
+        try:
+            if self.transport.access_token is None and not self.transport.refresh():
+                raise RemoteError("its session has ended")
+            current = next((device for device in self.devices() if device.get("current")),
+                           None)
+            if current is not None:
+                self.revoke_device(current["id"])
+                name = clean(str(current.get('name') or current['id']))
+                self.logger.info(f"Revoked this machine's device on {self.base_url} under "
+                                 f"the old key ({name}).")
+        except RemoteError as e:
+            self.logger.warning(
+                f"Could not revoke this machine's device on {self.base_url} under the old "
+                f"key ({e}); that server may refuse the new key until its operator "
+                "releases the binding.")
+        finally:
+            self.credentials.forget_tokens()
+            self.transport.set_tokens(None)
+
+    def logout(self) -> None:
+        '''End this session on the server, then forget the server here. Revoking
+        needs an access token, so the refresh token is spent for one; never a
+        login, and a session the revoke finds ended or its token refused is gone already.'''
+        server = self.transport.base_url
+        try:
+            if self.transport.access_token is None:
+                self.transport.refresh()
+            if self.transport.access_token is not None:
+                self.transport.request("POST", "auth/revoke", renew=False)
+        except RemoteError as e:
+            # Over or unreachable: forgetting it locally must still happen.
+            logger.debug(f"could not revoke on the server: {e}")
+        finally:
+            self.credentials.forget()
+            self._transport = None
+        self.logger.info(f"Logged out of {server}, and removed it from this machine")
+        others = self.credentials.servers()
+        if others and not self.credentials.server:
+            self.logger.info(f"No server is the default now: choose one of {', '.join(others)} "
+                             "with sc-config remote use <server>")
+
+    def _unauthenticated(self) -> bool:
+        '''Whether this deployment authenticates nobody: only then is an http page opened.'''
+        try:
+            offered = self.transport.published().get("grant_types_supported") or []
+        except RemoteError:
+            return False
+        return not authenticates(offered)
+
+    def open_url(self, url: str, what: str, require_tty: bool = True) -> bool:
+        '''Open a URL a person must act on: `https`, or `http` where nobody is authenticated.'''
+        scheme = urlsplit(url or "").scheme
+        if scheme != "https" and not (scheme == "http" and self._unauthenticated()):
+            # Without the URL: a sign-in link is a bearer secret, and is printed only by `_show`.
+            self.logger.warning(f"Not opening {what}: its URL is not an https URL")
+            return False
+        if not BROWSER.get() or (require_tty and not sys.stdout.isatty()):
+            return False
+        import webbrowser
+
+        try:
+            return bool(webbrowser.open(url))
+        except Exception:                                        # noqa: BLE001
+            return False
+
+    def me(self, remind: bool = True) -> Dict[str, Any]:
+        '''``GET /v1/me``, remembering which principal this server saw.
+        ``remind=False`` leaves naming unaccepted terms to the caller.'''
+        body = self.transport.request("GET", "me").json()
+
+        seen = self.credentials.user_id
+        if seen and seen != body.get("id"):
+            # Not an error (a reimage, a changed uid), but it must not read as lost jobs.
+            self.logger.warning(
+                "This server now knows this machine as a different user "
+                f"({seen} -> {body.get('id')}). Jobs submitted as the previous "
+                "identity are not visible to this one.")
+
+        self.credentials.set_user_id(body.get("id"))
+        if remind:
+            self.remind_terms(body)
+        return body
+
+    def remind_terms(self, me: Dict[str, Any]) -> None:
+        '''Warn of each unaccepted upcoming terms version before it refuses a submit.
+
+        Once per session. Never accepted here: that is the person's, in a
+        browser, which a terminal outside CI offers.
+        '''
+        for entry in me.get("terms") or []:
+            if not isinstance(entry, dict):
+                continue
+            upcoming = entry.get("upcoming")
+            if not isinstance(upcoming, dict) or upcoming.get("accepted_at") is not None:
+                continue
+            key = (entry.get("id"), upcoming.get("version"))
+            if key in self.terms_reminded:
+                continue
+            self.terms_reminded.add(key)
+
+            title = terms_title(entry)
+            when = upcoming.get("effective_at")
+            self.logger.warning(
+                f"{title}: version {clean(upcoming.get('version') or '?')} takes effect"
+                + (f" {clean(when)}" if when else "")
+                + ", and you have not accepted it. Once it does, a submit it covers is "
+                  "refused until you have.")
+
+            # `can_decide`: whether its page can take the decision.
+            if entry.get("can_decide") is not True or not entry.get("id"):
+                continue
+            self.logger.warning("  It may be accepted early, on its page in this "
+                                "server's portal.")
+            self.offer_terms_page(entry["id"], title)
+
+    def offer_terms_page(self, terms_id: str, title: str) -> None:
+        '''Open a document's page if a person here says so. Never accepted here.'''
+        if sys.stdin.isatty() and self.may_open():
+            if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
+                self.open_page(f"{title}'s page", terms_id=terms_id)
+
+    def devices(self) -> list:
+        '''The machines that can act as me, following ``Link`` to the end.'''
+        return self._pages("devices")
+
+    def revoke_device(self, device_id: str) -> None:
+        '''Revoke a machine, ending every session it holds.'''
+        self.transport.request("DELETE", f"devices/{device_id}")
+
+    def create_job(self, design: str, jobname: str, *,
+                   flow: Optional[str] = None,
+                   node_count: Optional[int] = None,
+                   needs: Optional[List[str]] = None,
+                   requested_versions: Optional[Dict[str, Any]] = None,
+                   sources: Optional[List[Dict[str, Any]]] = None,
+                   continues_from: Optional[List[Dict[str, str]]] = None,
+                   python_packages: Optional[Dict[str, List[str]]] = None) -> Dict[str, Any]:
+        '''``POST /v1/jobs``: returns the job object, in `created`.
+
+        ``design``, ``jobname`` and ``python_packages`` are authoritative: no
+        manifest records them. The rest is the advisory ``descriptor``,
+        re-derived at submit, there only so the server can refuse before upload.
+        ``requested_versions`` is what the image must HOLD, each a list of PEP
+        440 specifier sets; a ``python`` name left out may be missing from the image.
+        '''
+        descriptor: Dict[str, Any] = {}
+        for name, value in (("flow", flow), ("needs", needs),
+                            ("requested_versions", requested_versions),
+                            ("sources", sources)):
+            if value:
+                descriptor[name] = value
+        if node_count is not None:
+            descriptor["node_count"] = node_count
+
+        body: Dict[str, Any] = {"design": design, "jobname": jobname}
+        if descriptor:
+            body["descriptor"] = descriptor
+        project = os.environ.get(PROJECT_VARIABLE)
+        if project:
+            body["project"] = project
+        if continues_from:
+            body["continues_from"] = continues_from
+        if python_packages:
+            body["python_packages"] = python_packages
+
+        headers = {"Idempotency-Key": _fresh_key()}
+
+        try:
+            return self._waiting_for_a_slot(lambda: self.transport.request(
+                "POST", "jobs", json_body=body, headers=headers).json())
+        except ServerProblem as e:
+            # At create these two are about the project named, never a job.
+            why = {"not-found": "is not one you are a member of: check its name",
+                   "not-permitted": "is archived: name another"}.get(e.slug)
+            if e.slug == "not-found" and self.ci_session:
+                e.next_step = (
+                    f"This CI credential may be bound to a project other than {project}, "
+                    f"which {PROJECT_VARIABLE} names, or its person may have left it: the "
+                    "refusal's detail names the project the credential is bound to."
+                    if project else
+                    f"This CI credential is bound to a project: set {PROJECT_VARIABLE} to "
+                    "the project the refusal's detail names.")
+            elif project and why:
+                e.next_step = f"The project {project}, which {PROJECT_VARIABLE} names, {why}."
+            raise
+
+    def upload_grant(self, job_id: str, size: int, digest: str) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/upload-grant``: where to put the bytes.
+
+        ``size`` and ``digest`` are the exact bytes about to go up; the first
+        grant fixes both, and the server runs only bytes matching the digest.
+        '''
+        with self._resumed_job_refusal():
+            return self.transport.request("POST", f"jobs/{job_id}/upload-grant",
+                                          json_body={"size_bytes": size,
+                                                     "digest": digest}).json()
+
+    @contextlib.contextmanager
+    def _resumed_job_refusal(self):
+        '''On a CI session, a `not-permitted` here is a resumed job another session made.'''
+        try:
+            yield
+        except ServerProblem as e:
+            if e.slug == "not-permitted" and self.ci_session:
+                # `sc-config remote fetch` reaches this too, and takes no -clean.
+                e.next_step = ("A CI credential bound to a project sends only jobs a "
+                               "credential bound to that project created, and this job was "
+                               "created elsewhere: run the flow again with -clean to start "
+                               "a new one.")
+            raise
+
+    def upload(self, grant: Dict[str, Any], path) -> None:
+        '''Send the archive to wherever the grant points.
+
+        ``content-length`` is recomputed from the file: one announcing more
+        than is sent leaves the server waiting for ever.
+        '''
+        headers = {name: value for name, value in (grant.get("headers") or {}).items()
+                   if name.lower() != "content-length"}
+        self.transport.put_object(grant["url"], headers, path)
+
+    def submit_job(self, job_id: str) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/submit``, with no body: the grant bound the digest.'''
+        # Fresh per submit, a resubmit included; a retry of this one reuses it.
+        headers = {"Idempotency-Key": _fresh_key()}
+
+        with self._resumed_job_refusal():
+            return self._waiting_for_a_slot(lambda: self.transport.request(
+                "POST", f"jobs/{job_id}/submit", json_body={}, headers=headers).json())
+
+    def _waiting_for_a_slot(self, send):
+        '''A create or submit, waiting out a `limit-exceeded` per its
+        `Retry-After`, whichever limit it names, and retrying with the same key.'''
+        told = []
+
+        def say(e):
+            limit = e.member("limit")
+            if limit in told:
+                return
+            told.append(limit)
+            if limit == "pending_uploads":
+                held = ", ".join(clean(str(job)) for job in e.member("job_ids") or [])
+                self.logger.warning(
+                    "Waiting: this server's limit of jobs waiting for an upload is "
+                    f"reached, held by {held or 'your other jobs'}. Cancel any of "
+                    "them you abandoned.")
+            elif limit == "concurrent_jobs":
+                self.logger.warning(
+                    "Waiting: this server's limit of running jobs is reached; "
+                    "this one goes as soon as one of yours finishes.")
+            else:
+                named = f"{clean(str(limit))} " if limit else ""
+                self.logger.warning(f"Waiting: this server's {named}limit is "
+                                    "reached, and it refills.")
+
+        try:
+            return retrying(send, lambda e: e.slug == "limit-exceeded", notice=say)
+        except ServerProblem as e:
+            if e.slug == "terms-not-accepted":
+                self._to_sign(e)
+            raise
+
+    def _to_sign(self, refusal: ServerProblem) -> None:
+        '''Name each document a `terms-not-accepted` refusal blocks by its title,
+        and open its page where a person can see it. Never accepted here.'''
+        blocked = refusal.member("blocked_by")
+        if not isinstance(blocked, list) or not blocked:
+            return
+
+        titles = self.terms_titles()
+        self.open_terms(blocked, titles)
+        refusal.titles = titles or None
+
+    def terms_titles(self) -> Dict[str, str]:
+        '''Each terms document's title by its id, from `GET /v1/me`, read once;
+        empty where that cannot be read.'''
+        if self._titles is None:
+            try:
+                terms = self.me(remind=False).get("terms") or []
+            except RemoteError:
+                return {}
+            self._titles = {entry.get("id"): entry.get("title") for entry in terms
+                            if isinstance(entry, dict) and entry.get("title")}
+        return self._titles
+
+    def open_terms(self, blocked, titles: Dict[str, str]) -> None:
+        '''Open each `terms` id's page, named by its title, where a person is
+        plausibly here to see it. Never accepted here.'''
+        if not self.may_open():
+            return
+        for terms_id in blocked:
+            if isinstance(terms_id, str) and terms_id:
+                title = clean(titles.get(terms_id) or terms_id)
+                self.open_page(f"{title}'s page", terms_id=terms_id)
+
+    def job(self, job_id: str) -> tuple:
+        '''``GET /v1/jobs/{id}``, and the `Retry-After` interval, read per response.'''
+        try:
+            response = self.transport.request("GET", f"jobs/{job_id}")
+        except ServerProblem as e:
+            if e.slug == "not-found" and self.ci_session:
+                e.job_id = job_id
+                e.next_step = ("The job may be gone, or this CI credential may be bound "
+                               "to another project than the job's.")
+            raise
+
+        return response.json(), _retry_after(response)
+
+    def cancel_job(self, job_id: str, reason: str) -> Dict[str, Any]:
+        '''``POST /v1/jobs/{id}/cancel``. Idempotent. ``reason`` is what the job
+        page says stopped it: one line, of at most 300 characters.'''
+        return self.transport.request(
+            "POST", f"jobs/{job_id}/cancel", json_body={"reason": reason}).json()
+
+    def artifacts(self, job_id: str, **filters) -> list:
+        '''``GET /v1/jobs/{id}/artifacts``, following ``Link`` to the end.
+
+        `items` may be `[]` and no kind is guaranteed, the manifest included;
+        judging an entry is the caller's.
+        '''
+        return self._pages(f"jobs/{job_id}/artifacts", _filters(filters))
+
+    def _pages(self, path: str, params: Optional[Dict[str, Any]] = None) -> list:
+        '''A listing's `items`, following `Link` to the end.
+
+        Each next page is the `rel="next"` target as given, never a rebuilt
+        cursor, and only on the API's origin: it carries the session. A cursor
+        the server no longer takes restarts the listing from its first page, once.
+        '''
+        for restarted in (False, True):
+            items = []
+            try:
+                response = self.transport.request("GET", path, params=params or None)
+                while True:
+                    items.extend(response.json().get("items") or [])
+                    target = link(response, "next")
+                    if not target:
+                        return items
+                    if origin_of(target) != self.transport.api_origin:
+                        raise RemoteError("the server's next page is on another origin, "
+                                          "and this client sends its session only to its own")
+                    response = self.transport.request("GET", target, absolute=True)
+            except ServerProblem as e:
+                if e.slug != "invalid-cursor" or restarted:
+                    raise
+
+    def fetch_artifact(self, job_id: str, artifact_id: str, dest) -> str:
+        '''``GET /v1/jobs/{id}/artifacts/{artifact_id}``, followed to the bytes.
+        The API redirects: the bytes may be on another origin. One still being
+        described is waited for as its `Retry-After` says, a bounded number of times.'''
+        response = retrying(
+            lambda: self.transport.request(
+                "GET", f"jobs/{job_id}/artifacts/{artifact_id}", stream=True,
+                expect_redirect=True),
+            lambda e: e.slug == "not-ready", limit=MAX_WAITS)
+        return self.transport.save(self.transport.follow(response), dest)
+
+    def archived_log(self, job_id: str, step: str, index: str) -> str:
+        '''A finished node's `logs` artifact -- a gzip tar of its log files -- as
+        the text of its SiliconCompiler log, checked against its listing first.'''
+        import tarfile
+        import tempfile
+
+        from siliconcompiler.remote.client.results import _download
+
+        items = [item for item in self.artifacts(job_id, kind="logs", step=step, index=index)
+                 if item.get("fetchable")]
+        if not items:
+            raise RemoteError(f"no log of {step}/{index} can be fetched")
+
+        with tempfile.TemporaryDirectory(prefix="sc-log-") as tmpdir:
+            path = _download(self, job_id, items[0], os.path.join(tmpdir, "logs.tar.gz"))
+            with tarfile.open(path, "r:*") as tar:
+                members = [member for member in tar.getmembers() if member.isfile()]
+                own = f"sc_{step}_{index}.log"
+                member = next((m for m in members if m.name == own),
+                              members[0] if members else None)
+                if member is None:
+                    return ""
+                return clean(tar.extractfile(member).read().decode(errors="replace"))
+
+    def follow_log(self, job_id: str, step: Optional[str] = None,
+                   index: Optional[str] = None, last_event_id=None):
+        '''``GET /v1/jobs/{id}/logs`` for one node, or with neither step nor index
+        the whole job (`logs.stream.job`), followed to whatever it points at.
+
+        Re-requested on every reconnect, never reused (see `logs`).
+        '''
+        # Both or neither: one alone is a 400.
+        params = {"step": step, "index": index} if step is not None else {}
+        # On both requests: a server may stream the log itself rather than redirect.
+        headers = {"Last-Event-ID": str(last_event_id)} if last_event_id else {}
+        try:
+            response = self.transport.request(
+                "GET", f"jobs/{job_id}/logs", params=params, headers=headers,
+                stream=True, expect_redirect=True)
+        except ServerProblem as e:
+            if e.slug == "terms-not-accepted":
+                # A live log is gated like its archive.
+                self._to_sign(e)
+            elif e.slug == "feature-unsupported":
+                self.transport.forget_published()
+            raise
+
+        return self.transport.follow(response, headers=headers, kind="stream")
+
+    def tail_log(self, job_id: str, step: str, index: str, write=None):
+        '''Read one node's log as it is written, to the end; returns the text.'''
+        from siliconcompiler.remote.client.logs import LogTail
+
+        return LogTail(self, job_id, step, index).follow(write=write)
+
+    def configure_server(self, server: Optional[str] = None,
+                         headers: Optional[Dict[str, Optional[str]]] = None,
+                         authority: Optional[str] = None) -> None:
+        '''Make a server this machine's default, once it is reached and logged in
+        to. Each server keeps its own entry, so switching overwrites nothing; a
+        new one that cannot be used is not kept.
+
+        ``headers`` are the operator headers its access layer requires, by name,
+        None removing one: set before the server is reached, which they let
+        through. ``authority`` is the PEM file of the authority that signs the
+        server's certificate, kept only once it verifies the server. With
+        `SC_CI_CREDENTIAL` set, the session is that CI credential's.
+        '''
+        if not server:
+            server = _ask("Remote server address: ",
+                          hint="name it: sc-config remote configure <server>")
+
+        if not server or not server.strip():
+            raise RemoteError(
+                "a remote server address is required: there is no default "
+                "server to fall back on")
+
+        if "@" in urlsplit(server if "://" in server else f"//{server}").netloc:
+            # The key is the credential; say so rather than drop them silently.
+            self.logger.warning(
+                "Ignoring the username and password in that address: this "
+                "server authenticates with a key held on this machine, which "
+                "is generated for you.")
+
+        pem = None
+        if authority:
+            pem, found = read_authority(authority)
+            for subject, fingerprint in found:
+                self.logger.info(f"Authority: {subject}")
+                self.logger.info(f"  SHA-256 {fingerprint}")
+            self.logger.info("Check the fingerprint with whoever runs the server.")
+
+        secret = os.environ.get(CI_SECRET_VARIABLE)
+        if secret:
+            self._ci_store(secret)
+
+        candidate = normalize_server(server)
+        added = not self.credentials.knows(candidate)
+        # Selected for the login, which saves the session in this server's entry.
+        self.credentials.select(candidate)
+        try:
+            for name, value in (headers or {}).items():
+                self.credentials.set_header(name, value)
+            if secret:
+                self.credentials.save_ci_secret(secret)
+            self._transport = self._make_transport(candidate, authority=pem)
+            capabilities = self.capabilities()
+            identity = self.me()
+        except BaseException:
+            if added:
+                self.credentials.forget()
+            self.credentials.select(None)
+            previous = self.credentials.server
+            self._transport = self._make_transport(previous) if previous else None
+            raise
+        if pem:
+            self.credentials.set_authority(pem)
+        self.credentials.set_server(candidate)
+
+        self.logger.info(f"Configured {self.base_url}")
+        self.logger.info(f"This machine's key: {self.credentials.thumbprint}")
+        self.logger.info(f"You are {identity['id']} on this server")
+        self._report_software(capabilities)
+        if capabilities.get("identity_assurance") != "verified":
+            # Only "verified" asserts anything; any other value, known or not, does not.
+            self.logger.warning(
+                "This server does not verify who you are. Your jobs are "
+                "separated from other users', but that separation is not a "
+                "security boundary.")
+        self.logger.info(f"Saved to {self.credentials.path}")
+
+    def _ci_store(self, secret: str) -> None:
+        '''Check the CI credential; on GitHub Actions, keep the store in
+        `RUNNER_TEMP`, emptied between jobs, and export SC_AUTH_DIR to later steps.'''
+        parse_ci_secret(secret)
+        runner_temp = os.environ.get("RUNNER_TEMP")
+        if runner_temp and not os.environ.get(AUTH_DIR_VARIABLE):
+            self.credentials.relocate(Path(runner_temp) / "sc-auth")
+            exported = os.environ.get("GITHUB_ENV")
+            if exported:
+                with open(exported, "a") as f:
+                    f.write(f"{AUTH_DIR_VARIABLE}={self.credentials.auth_dir}\n")
+
+    def select(self, server: Optional[str]) -> None:
+        '''Act for a server configured here, in this process only; None for the default.'''
+        chosen = normalize_server(server) if server else None
+        if chosen and not self.credentials.knows(chosen):
+            configured = ", ".join(self.credentials.servers()) or "none"
+            raise RemoteError(
+                f"{chosen} is not configured here (configured: {configured}): "
+                f"add it with sc-config remote configure {server.strip()}")
+        self.credentials.select(chosen)
+        current = self.credentials.server
+        self._transport = self._make_transport(current) if current else None
+
+    def use_server(self, server: str) -> None:
+        '''Make a server configured here the default. Nothing is sent: it was
+        reached when configured, and its session and authority are its own.'''
+        self.select(server)
+        self.credentials.set_server(self.base_url)
+        self.logger.info(f"Using {self.base_url}")
+
+    def _report_software(self, capabilities) -> None:
+        '''What siliconcompiler this server runs, and whether this machine's is one.
+
+        Advisory: the server decides. This only shows a mismatch while somebody
+        is watching, rather than at the first submit.
+        '''
+        from siliconcompiler import __version__ as sc_version
+
+        published = (capabilities.get("software") or {}).get("python") or {}
+        runs = published.get("siliconcompiler")
+        if not runs:
+            # Required on the wire: an older or broken server, not worth refusing over.
+            return
+
+        self.logger.info(f"This server runs siliconcompiler {listed(runs)}")
+
+        if sc_version not in runs:
+            self.logger.warning(
+                f"This machine has {sc_version}, which is not one of them. "
+                "Jobs from here will be refused when they are created -- "
+                "before anything is uploaded -- until you install a version "
+                "this server accepts or an operator adds yours.")
+
+    @property
+    def ci_session(self) -> bool:
+        '''Whether this session is a CI credential's, which nobody is at.'''
+        return bool(self.credentials.ci_secret())
+
+    def browser_page(self, **named) -> Dict[str, Any]:
+        '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
+        ``artifact_id``, or the portal's home.
+
+        Asked for, never built: the portal's routes are outside the API.
+        '''
+        if self.ci_session:
+            raise RemoteError("a CI session asks for no page: nobody is at a browser")
+        return self.transport.request("POST", "auth/browser", json_body=named).json()
+
+    def open_page(self, what: str, require_tty: bool = True, **named) -> bool:
+        '''Ask for a page and open it; whether one opened. A refusal is only warned of.'''
+        try:
+            answer = self.browser_page(**named)
+        except RemoteError as e:
+            why = (str(e).strip().splitlines() or [type(e).__name__])[0]
+            self.logger.warning(f"No page for {what}: {why}")
+            return False
+        return self._show(answer, what, require_tty=require_tty)
+
+    def _show(self, answer: Dict[str, Any], what: str, require_tty: bool = True) -> bool:
+        '''Open the page `POST /v1/auth/browser` answered, and print it where it may be.
+
+        A non-null `expires_at` marks a single-use sign-in, a bearer secret:
+        printed only where no browser opened, to the terminal, never a log.
+        '''
+        url = answer.get("url") if isinstance(answer, dict) else None
+        if not isinstance(url, str) or not url:
+            self.logger.warning(f"No page for {what}: the server answered no url")
+            return False
+        expires = answer.get("expires_at")
+
+        if expires is None:
+            self.logger.info(f"{what[:1].upper()}{what[1:]}: {clean(url)}")
+        opened = self.open_url(url, what, require_tty=require_tty)
+        if expires is not None and not opened:
+            print(f"No browser was opened for {what}. Open this in one on this machine; "
+                  f"it signs you in once, until {clean(expires)}:\n  {clean(url)}",
+                  flush=True)
+        return opened
+
+    def may_open(self) -> bool:
+        '''Whether a person is plausibly here to see a page opened unasked.'''
+        return BROWSER.get() and sys.stdout.isatty() and \
+            not (self.ci_session or os.environ.get("CI"))
+
+    def portal(self) -> bool:
+        '''`sc-config remote portal`: the portal's home, signed in as this machine.
+
+        A cold browser cannot present this machine's key-bound identity, so
+        `POST /v1/auth/browser` answers a sign-in. Asked for on purpose: a refusal fails.
+        '''
+        return self._show(self.browser_page(), "the portal", require_tty=False)
+
+
+def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
+    '''Listing filters as query parameters: booleans as `true`/`false`,
+    not Python's `True`; lists repeated; None left out.'''
+    def one(value):
+        return ("true" if value else "false") if isinstance(value, bool) else value
+
+    return {name: [one(v) for v in value] if isinstance(value, (list, tuple)) else one(value)
+            for name, value in filters.items() if value is not None}
+
+
+def terms_title(entry: Dict[str, Any]) -> str:
+    '''A terms document's title as a person reads it, else its id.'''
+    return clean(entry.get("title") or entry.get("id") or "A terms document")
+
+
+def _fresh_key() -> str:
+    '''An `Idempotency-Key`: fresh per create and per submit.'''
+    import uuid
+
+    return str(uuid.uuid4())
+
+
+def _ask(question: str, hint: Optional[str] = None) -> str:
+    '''A prompt a scripted run answers by failing, not hanging; ``hint`` says
+    how to answer without one.'''
+    try:
+        return input(question)
+    except EOFError:
+        raise RemoteError(
+            f"no answer was given to \"{question.strip()}\", and it has no default"
+            + (f": {hint}" if hint else "")) from None
+
+
+def read_secret(name: str) -> Optional[str]:
+    '''A header value: hidden on a terminal, else one stdin line; never an
+    argument, which shell history would keep. None for an empty one.'''
+    if sys.stdin.isatty():
+        import getpass
+        value = getpass.getpass(f"Value for {name} (empty to remove it): ")
+    else:
+        value = sys.stdin.readline().rstrip("\r\n")
+    return value or None
+
+
+def __getattr__(name):
+    if name in ("ClientScheduler", "remote_step_name"):
+        import warnings
+        from siliconcompiler import remote
+
+        warnings.warn(f"siliconcompiler.remote.client.{name} is deprecated. Please use "
+                      f"siliconcompiler.remote.{name} instead.", DeprecationWarning,
+                      stacklevel=2)
+        return getattr(remote, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
