@@ -332,7 +332,7 @@ def collect(project: "Project",
 
     try:
         # Directories first, so that a file inside one is found there
-        for is_dir, params in ((True, dirs), (False, files)):
+        for params in (dirs, files):
             for real_path, abs_path, value, dataroot_id in resolve(params):
                 if _is_within(abs_path, directory) or \
                         found_in_collection(value, dataroot_id):
@@ -346,7 +346,8 @@ def collect(project: "Project",
                     link(copy, import_path, real_path)
                     continue
 
-                if is_dir:
+                # A 'path' value holds either kind, so go by what it resolved to
+                if os.path.isdir(abs_path):
                     if whitelist is not None and abs_path not in whitelist:
                         raise RuntimeError(
                             f'{abs_path} is not on the approved collection list.')
