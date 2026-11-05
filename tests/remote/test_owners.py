@@ -127,6 +127,78 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
          else set())
 
 
+NODE = ["library", "mypdk", "dataroot", "node"]
+PRIVATE_NODE = "file+private://$FOUNDRY_ROOT/node"
+
+
+def aliased(roots):
+    '''A PDK with a datasheet under each of the dataroots ``lef`` and ``gds``,
+    as ``roots`` registers them.'''
+    pdk = PDK("mypdk")
+    for name, root in roots.items():
+        pdk.set_dataroot(name, root, tag="v1" if root.startswith("https") else None)
+    for name in ("lef", "gds"):
+        with pdk.active_dataroot(name):
+            pdk.add(*DATASHEET, f"{name}.pdf")
+    return pdk
+
+
+@pytest.mark.parametrize("roots,sent,supplied", [
+    ({"node": PRIVATE_NODE, "lef": "dataroot://node/lef", "gds": "dataroot://node/gds"},
+     [{"keypath": NODE, "private": True}], set()),
+    ({"node": PRIVATE_NODE, "lef": "dataroot://node/lef", "gds": "dataroot://lef/gds"},
+     [{"keypath": NODE, "private": True}], set()),
+    ({"node": "https://example.test/pdk.tar.gz", "lef": "dataroot://node/lef",
+      "gds": "dataroot://node/gds"},
+     [{"keypath": NODE, "private": False, "source": "https://example.test/pdk.tar.gz",
+       "ref": "v1"}], set()),
+    ({"node": "python://some_pdk_package", "lef": "dataroot://node/lef",
+      "gds": "dataroot://node/gds"},
+     [{"keypath": NODE, "private": False, "source": "python://some_pdk_package"}],
+     {"packaging"}),
+    # Lands nowhere: local.
+    ({"lef": "dataroot://gds/lef", "gds": "dataroot://lef/gds"}, [], set()),
+], ids=["private", "alias-of-an-alias", "remote", "installed", "cycle"])
+def test_an_alias_is_named_by_the_dataroot_it_lands_on(
+        project, monkeypatch, roots, sent, supplied):
+    '''A `sources` entry names the dataroot an alias's chain lands on, its source
+    and ref, never the alias's, and one entry covers every alias of it.'''
+    from importlib import metadata
+    from siliconcompiler.package import PythonPathResolver
+
+    monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
+                        staticmethod(lambda module: False))
+    # Any installed distribution, so a server can list it at its version.
+    monkeypatch.setattr(owners, "module_distributions",
+                        lambda: {"some_pdk_package": ["packaging"]})
+    project.set_pdk(aliased(roots))
+
+    values = owners.walk(project, {"packaging": [metadata.version("packaging")]})
+
+    assert owners.sources(values) == sent
+    assert {one.upload for one in values if one.key[:2] == ("library", "mypdk")} == {not sent}
+    assert owners.supplied_distributions(values) == supplied
+
+
+def test_an_alias_of_a_local_path_goes_up_under_its_own_dataroot(project):
+    '''Uploaded, so in no `sources` entry, and reported under each alias.'''
+    from siliconcompiler.utils.paths import collectiondir
+
+    for name in ("lef", "gds"):
+        os.makedirs(f"node/{name}")
+        with open(f"node/{name}/{name}.pdf", "w") as f:
+            f.write(name)
+    project.set_pdk(aliased({"node": os.path.abspath("node"), "lef": "dataroot://node/lef",
+                             "gds": "dataroot://node/gds"}))
+    values = owners.walk(project)
+    assert owners.sources(values) == []
+
+    collect_by_owner(project)
+
+    assert {row[2] for row in owners.upload_report(values, collectiondir(project))
+            if row[1] == "mypdk"} == {"library,mypdk,dataroot,lef", "library,mypdk,dataroot,gds"}
+
+
 def test_finding_a_tests_collected_path_fetches_nothing(project, tmp_path, monkeypatch):
     '''Only a value that goes up is resolved: a remote PDK is not fetched to
     find where the design's own file lands.'''

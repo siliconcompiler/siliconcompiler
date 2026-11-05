@@ -25,7 +25,11 @@ them. An installed package uploads unless the server lists it at the installed
 version (:func:`walk`).
 
 A dataroot is named by its keypath (:func:`dataroot_keypath`):
-its own name is unique only within its owner.
+its own name is unique only within its owner. An alias, a dataroot registered
+as ``dataroot://<name>/<path>``, is judged and named by the dataroot its chain
+lands on in the same section: a `sources` entry names that dataroot's keypath,
+source and ref, never the alias's, and one entry covers every alias of it.
+A value that goes up goes up under its own dataroot.
 
 The design always uploads; a PDK's, library's, device's or tool's files only
 when local or editable. Private wins over both.
@@ -149,20 +153,32 @@ def owner(project, key) -> Tuple[str, Optional[str]]:
     return PROJECT, None
 
 
-def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
-    '''Where files under ``dataroot`` come from, judged by how it was REGISTERED.
+def _lands_on(resolvers, dataroot: Optional[str]) -> Optional[str]:
+    '''The dataroot ``dataroot``'s chain of ``dataroot://`` aliases lands on in
+    its section, the one that is not an alias; None where the chain names a
+    dataroot the section does not define, or loops.'''
+    from siliconcompiler.package import DatarootResolver
+
+    seen = set()
+    while dataroot in resolvers and dataroot not in seen:
+        if not isinstance(resolvers[dataroot], DatarootResolver):
+            return dataroot
+        seen.add(dataroot)
+        dataroot = resolvers[dataroot].urlpath
+    return None
+
+
+def source(resolvers, dataroot: Optional[str]) -> str:
+    '''Where files under ``dataroot`` come from, judged by how the dataroot its
+    aliases land on (`_lands_on`) was REGISTERED.
 
     A ``$``-rooted path is LOCAL: the client expands and uploads it; the
     server never expands a variable. Anything untraceable is LOCAL too: sending
     the file cannot leave a job short.
     '''
-    from siliconcompiler.package import (
-        DatarootResolver, PythonPathResolver, RemoteResolver)
+    from siliconcompiler.package import PythonPathResolver, RemoteResolver
 
-    if not dataroot:
-        return LOCAL
-
-    resolver = resolvers.get(dataroot)
+    resolver = resolvers.get(_lands_on(resolvers, dataroot))
     if resolver is None:
         return LOCAL
 
@@ -174,12 +190,6 @@ def source(resolvers, dataroot: Optional[str], _seen=None) -> str:
         module = resolver.urlpath
         return EDITABLE if PythonPathResolver.is_python_module_editable(module) \
             else INSTALLED
-    if isinstance(resolver, DatarootResolver):
-        seen = set(_seen or ())
-        if dataroot in seen:
-            return LOCAL
-        seen.add(dataroot)
-        return source(resolvers, resolver.urlpath, seen)
     return LOCAL
 
 
@@ -207,11 +217,14 @@ class _Value(NamedTuple):
     resolvers: Dict[str, Any]
     kind: str                   # the owner's kind, as a source kind
     name: Optional[str]
-    dataroot: Optional[str]
+    dataroot: Optional[str]     # the value's own, which it is collected under
+    # The dataroot ``dataroot``'s aliases land on, which names it: ``dataroot``
+    # itself where it is no alias, or its chain lands nowhere.
+    landing: Optional[str]
     origin: str                 # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
     step: Optional[str] = None
     index: Optional[str] = None
-    keypath: Optional[Tuple[str, ...]] = None   # the dataroot's: `dataroot_keypath`
+    keypath: Optional[Tuple[str, ...]] = None   # ``landing``'s: `dataroot_keypath`
     # The package providing an INSTALLED dataroot, or holding a PRIVATE one.
     distribution: Optional[str] = None
     # Whether the server lists that package at the installed version (`walk`).
@@ -282,18 +295,19 @@ def walk(project, software: Optional[Dict[str, List[str]]] = None) -> List[_Valu
                     continue
                 dataroot = one.get(field="dataroot")
                 if dataroot not in places:
-                    origin = source(resolvers, dataroot)
-                    resolver = resolvers.get(dataroot)
+                    landing = _lands_on(resolvers, dataroot)
+                    origin = source(resolvers, landing)
                     distribution = None
                     if origin == INSTALLED:
-                        distribution = _distribution_of(resolver.urlpath)
+                        distribution = _distribution_of(resolvers[landing].urlpath)
                     elif origin == PRIVATE:
                         distribution = _distribution_of(type(schema).__module__)
-                    places[dataroot] = (dataroot_keypath(project, key, dataroot), origin,
-                                        distribution, origin == INSTALLED
+                    landing = landing or dataroot
+                    places[dataroot] = (landing, dataroot_keypath(project, key, landing),
+                                        origin, distribution, origin == INSTALLED
                                         and _lists(software, distribution))
-                keypath, origin, distribution, listed = places[dataroot]
-                found.append(_Value(tuple(key), one, resolvers, kind, name, dataroot,
+                landing, keypath, origin, distribution, listed = places[dataroot]
+                found.append(_Value(tuple(key), one, resolvers, kind, name, dataroot, landing,
                                     origin, step, index, keypath, distribution, listed))
     return found
 
@@ -366,6 +380,9 @@ def sources(values: List[_Value], required=None) -> List[Dict[str, Any]]:
     '''The descriptor's `sources`: each dataroot the flow reads that the server
     should supply, by ``keypath``, so none whose values go up. Raises :class:`Unnamed`.
 
+    An alias is named by the dataroot it lands on: its keypath, source and
+    ref, one entry for every alias of it.
+
     Every URL is `safe_source`: enough to say what it is, not to fetch it. A
     private one carries its remote source and ref; a local
     private path is never sent.
@@ -380,7 +397,7 @@ def sources(values: List[_Value], required=None) -> List[Dict[str, Any]]:
             raise Unnamed(one.key, one.keypath or (*one.key[:-1], "dataroot", one.dataroot))
         if one.keypath in found:
             continue
-        resolver = one.resolvers.get(one.dataroot)
+        resolver = one.resolvers.get(one.landing)
         item = {"keypath": list(one.keypath), "private": one.origin == PRIVATE}
         if one.origin != PRIVATE or _remote(resolver):
             item["source"] = safe_source(resolver)
@@ -467,7 +484,10 @@ def upload_report(values: List[_Value], collection_dir) \
         -> List[Tuple[str, Optional[str], Optional[str], int, int]]:
     '''Bytes and files in an archive's collection as (kind, name, dataroot),
     shown before anything moves; the dataroot by its keypath, since two owners
-    may each have a `root`. Each stored file counts once.'''
+    may each have a `root`. Each stored file counts once.
+
+    An alias's values are shown under the alias, which they go up under;
+    ``keypath`` names where it lands, in the same section.'''
     totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
     counted: Set[Tuple[int, int]] = set()
     for one in values:
@@ -477,7 +497,8 @@ def upload_report(values: List[_Value], collection_dir) \
         size, files = _weigh(path, counted)
         if not files:
             continue
-        group = (one.kind, one.name, shown(one.keypath) if one.keypath else one.dataroot)
+        group = (one.kind, one.name,
+                 shown((*one.keypath[:-1], one.dataroot)) if one.keypath else one.dataroot)
         have = totals.get(group, (0, 0))
         totals[group] = (have[0] + size, have[1] + files)
     return [(kind, name, dataroot, size, files)

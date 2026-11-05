@@ -1352,7 +1352,11 @@ job, and nothing is created. A replayed create is ``201``.
   ``["tool", <tool>, "task", <task>, "dataroot", <root>]``; any other shape is
   ``400``. A source carrying userinfo is ``400``, naming the keypath and never
   the value. ``private`` is ``true`` for a dataroot whose resolver scheme ends
-  in ``+private``.
+  in ``+private``. An alias, a dataroot registered as
+  ``dataroot://<name>/<path>``, is judged and named by the dataroot its chain
+  lands on in the same section: a ``sources`` entry names that dataroot's
+  keypath, source and ref, never the alias's, and one entry covers every alias
+  of it.
 * **needs** names a feature the job relies on; one the server does not
   advertise, or does not know, is ``501`` at create.
 
@@ -1527,6 +1531,14 @@ own dataroot:
   * - a dataroot whose scheme ends in ``+private``, whatever else it is
     - supplied by the server from its own copy or its source, and never
       uploaded
+  * - an alias, ``dataroot://<name>/<path>``
+    - as the dataroot its chain lands on, which names it; uploaded where the
+      chain loops or names no dataroot of its section
+
+An alias, a dataroot registered as ``dataroot://<name>/<path>``, is judged and
+named by the dataroot its chain lands on in the same section: a ``sources``
+entry names that dataroot's keypath, source and ref, never the alias's, and one
+entry covers every alias of it.
 
 Of those, a client uploads only values under keys some task in the flow
 requires. Each node in the manifest carries the ``require`` set the client

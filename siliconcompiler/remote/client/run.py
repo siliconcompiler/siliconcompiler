@@ -851,7 +851,7 @@ class RemoteRun:
         one = next((one for one in values if one.keypath == wanted), None)
         if one is None:
             return "this project names no such dataroot"
-        resolver = one.resolvers.get(one.dataroot)
+        resolver = one.resolvers.get(one.landing)
         if resolver is None:
             return None
         try:
