@@ -23,7 +23,7 @@ import threading
 
 import os.path
 
-from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING
+from typing import Optional, List, Dict, Tuple, Type, Union, TYPE_CHECKING
 
 from pathlib import Path, PureWindowsPath
 
@@ -152,6 +152,11 @@ class Resolver:
             for resolver in (*builtins, *get_plugins("path_resolver")):
                 for scheme, res in resolver().items():
                     settings.set("resolvers", scheme, res)
+
+            # After every other scheme: it takes each remote one, a plugin's included
+            for scheme, res in PythonPathResolver.get_resolver(
+                    settings.get_category("resolvers")).items():
+                settings.set("resolvers", scheme, res)
 
             # Written last, once the registry above is complete.
             settings.set("resolvers", _RESOLVERS_POPULATED, True)
@@ -1179,19 +1184,73 @@ class PythonPathResolver(Resolver):
         the package is installed. ``<path>`` names a directory inside it; it is
         not imported, and need not be a package.
 
-        A package whose data does not ship in its wheel can call
-        ``PythonPathResolver.set_dataroot`` instead, which picks ``python://``
-        for an editable install and a fallback source, typically a git
-        repository keyed to the package version, for any other.
+        A package whose data does not ship in its wheel puts ``python+`` ahead
+        of a remote source instead, and names the module in its query:
+        ``python+<source>?python=<module>/<path>``. Where the module is
+        installed editable, that is read as ``python://<module>/<path>``, so a
+        checkout uses its own files; anywhere else, ``<source>`` is fetched at
+        the tag. ``PythonPathResolver.set_dataroot`` writes this form.
 
     Example:
         .. code-block:: python
 
             design.set_dataroot("mylib", "python://mylib/data")
+            design.set_dataroot("mylib", "python+git+https://github.com/me/mylib.git?python=mylib",
+                                tag="v1.0")
     """
 
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
-        super().__init__(name, schema, source, None)
+        self.__module: Optional["url_parse.ParseResult"] = None
+        self.__remote: Optional[Resolver] = None
+        if source.startswith("python+"):
+            remote, self.__module = PythonPathResolver._split(source)
+            if not PythonPathResolver.is_python_module_editable(self.__module.netloc):
+                self.__remote = Resolver.find_resolver(remote)(name, schema, remote, reference)
+        else:
+            # Only a python+ source's remote source takes a tag
+            reference = None
+        super().__init__(name, schema, source, reference)
+
+    @staticmethod
+    def get_resolver(registry: Dict[str, Type[Resolver]]) -> Dict[str, Type["PythonPathResolver"]]:
+        """
+        ``python+<scheme>`` for every remote scheme in ``registry``, as in
+        ``python+git+https+private``.
+
+        Args:
+            registry (dict): every other scheme registered, to its resolver.
+        """
+        return {f"python+{scheme}": PythonPathResolver for scheme, cls in registry.items()
+                if isinstance(cls, type) and issubclass(cls, RemoteResolver)}
+
+    @staticmethod
+    def _split(source: str) -> Tuple[str, "url_parse.ParseResult"]:
+        """
+        ``python+<source>?python=<module>/<path>`` as ``<source>``, without the
+        ``python`` field, and ``python://<module>/<path>`` parsed.
+
+        Raises:
+            ValueError: If the query names no module.
+        """
+        from urllib import parse as url_parse
+
+        url = url_parse.urlsplit(source.removeprefix("python+"))
+        module = url_parse.parse_qs(url.query).get("python")
+        if not module:
+            raise ValueError(f"Source URI '{source}' names no Python module: a python+ "
+                             "source takes one as ?python=<module>")
+        # The other fields as written: decoded and encoded again, a signature could change
+        query = "&".join(field for field in url.query.split("&")
+                         if not field.startswith("python="))
+        return url._replace(query=query).geturl(), url_parse.urlparse(f"python://{module[-1]}")
+
+    @property
+    def is_indirect(self) -> bool:
+        """
+        True where a ``python+`` source is fetched: the resolver for its remote
+        source caches it and says where it is.
+        """
+        return self.__remote is not None
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
@@ -1233,9 +1292,13 @@ class PythonPathResolver(Resolver):
         return mapping
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
     def is_python_module_editable(module_name: str) -> bool:
         """
         Checks if a Python module is installed in "editable" mode.
+
+        Cached, as the module mapping it reads is: every lookup of a
+        ``python+`` source asks.
 
         Args:
             module_name (str): The name of the Python module to check.
@@ -1278,35 +1341,61 @@ class PythonPathResolver(Resolver):
                      alternative_ref: Optional[str] = None,
                      python_module_path_append: Optional[str] = None):
         """
-        Helper to conditionally set a dataroot to a Python module or a fallback path.
-        """
-        # check if installed in an editable state
-        if PythonPathResolver.is_python_module_editable(python_module):
-            path = f"python://{python_module}"
-            if python_module_path_append:
-                py_path = PythonPathResolver(python_module, root, path).resolve()
-                path = os.path.abspath(os.path.join(py_path, python_module_path_append))
-            ref = None
-        else:
-            path = alternative_path
-            ref = alternative_ref
+        Registers a dataroot as a ``python+`` source: the module's directory
+        where it is installed editable, and ``alternative_path`` anywhere else.
 
-        root.set_dataroot(package_name, path=path, tag=ref)
+        The choice is made where the dataroot is resolved, not here, so a
+        manifest written from an editable install still fetches the alternative
+        elsewhere.
+
+        Args:
+            root (PathSchema): the schema to register the dataroot on.
+            package_name (str): the dataroot's name.
+            python_module (str): the module whose directory is the dataroot
+                where it is installed editable.
+            alternative_path (str): the remote source fetched anywhere else,
+                such as ``git+https://github.com/me/mylib.git``. A ``+private``
+                scheme stays private.
+            alternative_ref (str): the tag ``alternative_path`` is fetched at.
+            python_module_path_append (str): a path inside the module's
+                directory to use instead, such as ``..`` for the checkout.
+        """
+        from urllib import parse as url_parse
+
+        python = python_module
+        if python_module_path_append:
+            python = f"{python_module}/{python_module_path_append}"
+        url = url_parse.urlsplit(alternative_path)
+        field = url_parse.urlencode({"python": python}, safe="/")
+        query = f"{url.query}&{field}" if url.query else field
+
+        root.set_dataroot(package_name, path=f"python+{url._replace(query=query).geturl()}",
+                          tag=alternative_ref)
+
+    @property
+    def urlpath(self) -> str:
+        """The module imported, also for a ``python+`` source."""
+        return (self.__module or self.urlparse).netloc
 
     def resolve(self) -> str:
         """
         Resolves the path to the specified Python module, or to a directory
         inside it when the source names one, as in
-        ``python://siliconcompiler/tools/openroad``.
+        ``python://siliconcompiler/tools/openroad``. A ``python+`` source whose
+        module is not installed editable resolves its remote source instead.
 
         Returns:
             str: The absolute path to the module's directory, or to the
             directory named inside it.
         """
+        if self.__remote is not None:
+            return self.__remote.get_path()
+
         module = importlib.import_module(self.urlpath)
         python_path = os.path.dirname(module.__file__)
         # A path, not a submodule: it is not imported, and need not be a package
-        return os.path.abspath(os.path.join(python_path, self.urlparse.path.lstrip("/")))
+        subpath = (self.__module or self.urlparse).path.lstrip("/")
+        return os.path.abspath(os.path.join(python_path, subpath))
 
 
 class KeyPathResolver(Resolver):
