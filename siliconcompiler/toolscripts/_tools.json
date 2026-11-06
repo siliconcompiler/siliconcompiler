@@ -175,7 +175,7 @@
     ]
   },
   "klayout": {
-    "version": "0.30.12",
+    "version": "0.30.13",
     "git-url": "https://github.com/KLayout/klayout.git",
     "auto-update": true,
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
