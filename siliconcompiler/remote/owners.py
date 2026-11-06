@@ -37,6 +37,11 @@ when local or editable. Private wins over both.
 "Local" is the dataroot's registered SOURCE, never where the file is now: a
 fetched PDK is on local disk too, and would upload with every job.
 
+A resource's or task's ``python+`` dataroot is sent as its remote source
+(:func:`as_remote`): at its tag, or at the commit an editable checkout has out,
+where a server can fetch it. A checkout no server can fetch goes up, as any
+editable package does.
+
 The table says whether a value MAY go up; the flow says whether it is NEEDED
 (:func:`required`). Each value goes up on its own (:func:`collection`).
 '''
@@ -54,9 +59,9 @@ __all__ = ["DESIGN", "PROJECT", "LOCAL", "EDITABLE", "INSTALLED",
            "Unnamed",
            "safe_source", "masked",
            "upload_report", "required",
-           "needed", "work_out", "with_required", "WorkedOut", "distributions_of",
-           "module_distributions", "supplied_distributions", "not_sent_roots",
-           "private_holders", "collection", "Collection", "collected_path"]
+           "needed", "work_out", "with_required", "as_remote", "WorkedOut",
+           "distributions_of", "module_distributions", "supplied_distributions",
+           "not_sent_roots", "collection", "Collection", "collected_path"]
 
 
 # Who a file belongs to, when it is neither a resource nor a tool.
@@ -225,7 +230,7 @@ class _Value(NamedTuple):
     step: Optional[str] = None
     index: Optional[str] = None
     keypath: Optional[Tuple[str, ...]] = None   # ``landing``'s: `dataroot_keypath`
-    # The package providing an INSTALLED dataroot, or holding a PRIVATE one.
+    # The package providing an INSTALLED dataroot.
     distribution: Optional[str] = None
     # Whether the server lists that package at the installed version (`walk`).
     listed: bool = False
@@ -300,8 +305,6 @@ def walk(project, software: Optional[Dict[str, List[str]]] = None) -> List[_Valu
                     distribution = None
                     if origin == INSTALLED:
                         distribution = _distribution_of(resolvers[landing].urlpath)
-                    elif origin == PRIVATE:
-                        distribution = _distribution_of(type(schema).__module__)
                     landing = landing or dataroot
                     places[dataroot] = (landing, dataroot_keypath(project, key, landing),
                                         origin, distribution, origin == INSTALLED
@@ -452,13 +455,6 @@ def not_sent_roots(values: List[_Value], required=None) -> List[str]:
             if path:
                 roots.add(str(path))
     return sorted(roots)
-
-
-def private_holders(values: List[_Value], required=None) -> Set[str]:
-    '''Distributions whose objects carry a private dataroot the flow reads: the
-    server maps its copy by that object, so the job must land where it is.'''
-    return {one.distribution for one in values
-            if one.origin == PRIVATE and one.distribution and needed(one.key, required)}
 
 
 def _remote(resolver) -> bool:
@@ -645,3 +641,60 @@ def with_required(project, declared: Dict[Tuple[str, str], List[str]]):
         carried.set("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"),
                     "require", values, step=step, index=index)
     return carried
+
+
+def as_remote(project) -> Dict[Tuple[str, ...], str]:
+    '''Register each resource's and task's ``python+`` dataroot as its remote
+    source, at its tag, or at the commit an editable checkout has out
+    (`_pushed_head`). ``project`` is the copy that is sent, walked and collected:
+    a server supplies a dataroot, and names an uploaded file, by the source and
+    tag the manifest records.
+
+    The design's are left as they are: they go up, read from where they are.
+
+    Returns:
+        dict: The keypath and module of each dataroot left in a checkout no server
+        can fetch, whose files go up.
+    '''
+    from siliconcompiler.package import PythonPathResolver, Resolver
+
+    left = {}
+    for key in project.allkeys(include_default=False):
+        keypath = tuple(key[:-1])
+        if key[-1] != "path" or not is_dataroot_keypath(keypath) \
+                or owner(project, keypath)[0] == DESIGN:
+            continue
+        source = project.get(*key)
+        if source[:7].lower() != "python+":
+            continue
+        resolver = Resolver.find_resolver(source)(
+            keypath[-1], project.get(*keypath[:-2], field="schema"), source,
+            project.get(*keypath, "tag"))
+        # A plugin may register a python+ scheme of its own
+        if not isinstance(resolver, PythonPathResolver):
+            continue
+        tag = resolver.reference
+        if not resolver.is_indirect:
+            tag = _pushed_head(resolver.get_path())
+            if tag is None:
+                left[keypath] = resolver.urlpath
+                continue
+        project.set(*keypath, "path", PythonPathResolver._split(source)[0])
+        project.set(*keypath, "tag", tag)
+    return left
+
+
+def _pushed_head(path: str) -> Optional[str]:
+    '''The commit checked out at ``path``, where nothing under ``path`` differs
+    from it, untracked files included, and a remote branch holds it: a server can
+    fetch those files at it. None anywhere else.'''
+    import git
+
+    try:
+        repo = git.Repo(path, search_parent_directories=True)
+        if repo.is_dirty(untracked_files=True, path=path):
+            return None
+        head = repo.head.commit.hexsha
+        return head if repo.git.branch("--remotes", "--contains", head) else None
+    except (git.GitError, ValueError, OSError):
+        return None

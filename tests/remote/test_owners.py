@@ -127,6 +127,69 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
          else set())
 
 
+@pytest.mark.parametrize("scheme,editable,head,origin,ref", [
+    ("git+https", False, None, owners.REMOTE, "v1"),
+    ("git+https+private", False, None, owners.PRIVATE, "v1"),
+    ("git+https", True, "c0ffee", owners.REMOTE, "c0ffee"),
+    ("git+https", True, None, owners.EDITABLE, None),
+], ids=["installed", "private", "pushed-checkout", "changed-checkout"])
+def test_a_python_plus_dataroot_is_sent_as_its_remote_source(
+        project, monkeypatch, scheme, editable, head, origin, ref):
+    '''At its tag, or at the commit a fetchable checkout has out; a changed
+    checkout goes up, and the design's is left as it is (#5624).'''
+    from siliconcompiler.package import PythonPathResolver
+
+    monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
+                        staticmethod(lambda module: editable))
+    monkeypatch.setattr(owners, "_pushed_head", lambda path: head)
+    source = f"python+{scheme}://example.test/pdk.git?python=siliconcompiler"
+    pdk = PDK("mypdk")
+    pdk.set_dataroot("mypdk", source, tag="v1")
+    with pdk.active_dataroot("mypdk"):
+        pdk.set(*DATASHEET, "datasheet.pdf")
+    project.set_pdk(pdk)
+    project.get("library", "gcd", field="schema").set_dataroot("ip", source, tag="v1")
+    keypath = ("library", "mypdk", "dataroot", "mypdk")
+
+    assert owners.as_remote(project) == ({} if ref else {keypath: "siliconcompiler"})
+
+    assert project.get("library", "gcd", "dataroot", "ip", "path") == source
+    assert decide(project, ("library", "mypdk", *DATASHEET)) == (origin, origin == owners.EDITABLE)
+    assert owners.sources(owners.walk(project)) == ([
+        {"keypath": list(keypath), "private": origin == owners.PRIVATE,
+         "source": "git+https://example.test/pdk.git", "ref": ref}] if ref else [])
+
+
+def test_a_checkout_is_fetchable_only_as_a_remote_branch_holds_it():
+    '''`_pushed_head`: nothing under the dataroot differs from HEAD, untracked
+    files included, and a remote branch holds HEAD.'''
+    import git
+
+    repo = git.Repo.init("checkout")
+    os.makedirs("checkout/data")
+    for name in ("data/a.tcl", "notes.txt"):
+        with open(f"checkout/{name}", "w") as f:
+            f.write("x\n")
+    repo.index.add(["data/a.tcl", "notes.txt"])
+    who = git.Actor("test", "test@example.test")
+    head = repo.index.commit("first", author=who, committer=who).hexsha
+    data = os.path.abspath("checkout/data")
+
+    assert owners._pushed_head(data) is None
+    repo.git.update_ref("refs/remotes/origin/main", head)
+    assert owners._pushed_head(data) == head
+    with open("checkout/notes.txt", "a") as f:
+        f.write("outside the dataroot\n")
+    assert owners._pushed_head(data) == head
+    with open("checkout/data/b.tcl", "w") as f:
+        f.write("untracked\n")
+    assert owners._pushed_head(data) is None
+    os.makedirs("elsewhere")
+    with open("elsewhere/c.tcl", "w") as f:
+        f.write("in no checkout\n")
+    assert owners._pushed_head(os.path.abspath("elsewhere")) is None
+
+
 NODE = ["library", "mypdk", "dataroot", "node"]
 PRIVATE_NODE = "file+private://$FOUNDRY_ROOT/node"
 

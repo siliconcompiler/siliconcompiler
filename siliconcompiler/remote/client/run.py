@@ -500,8 +500,14 @@ class RemoteRun:
             software = self.client.capabilities().get("software") or {}
         except RemoteError:
             software = {}
-        return _Reads(manifest, required, owners.walk(self.project, software.get("python")),
-                      worked)
+        left = owners.as_remote(manifest)
+        values = owners.walk(manifest, software.get("python"))
+        for module in sorted({left[one.keypath] for one in values if one.keypath in left
+                              and one.upload and owners.needed(one.key, required)}):
+            self.logger.info(
+                f"Uploading {module} from its editable checkout, which has changes no "
+                "remote branch holds: a server that holds its files may refuse them")
+        return _Reads(manifest, required, values, worked)
 
     def _plan(self, reads: _Reads) -> _Plan:
         '''What create describes and the archive carries, from ``reads``.'''
@@ -540,8 +546,8 @@ class RemoteRun:
     def _python_pins(self, reads: _Reads) -> Dict[str, List[str]]:
         '''`requested_versions.python`: siliconcompiler,
         each executed task's distribution, each declared framework at its range,
-        each distribution whose dataroot the server supplies, and each holder of
-        a private dataroot. Exact pins, frameworks excepted.'''
+        and each distribution whose dataroot the server supplies. Exact pins,
+        frameworks excepted.'''
         def alternatives(name, spec) -> List[str]:
             # Sent, one that does not normalise would match nothing.
             if spec is None:
@@ -572,8 +578,7 @@ class RemoteRun:
         for name in sorted(framework):
             pins[canonical(name)] = alternatives(name, _framework_range(name))
 
-        for distribution in sorted(owners.supplied_distributions(reads.values, reads.required)
-                                   | owners.private_holders(reads.values, reads.required)):
+        for distribution in sorted(owners.supplied_distributions(reads.values, reads.required)):
             exact(distribution)
 
         return pins
@@ -695,7 +700,8 @@ class RemoteRun:
 
         chosen = owners.collection(reads.values, pick)
         try:
-            collect(self.project, keys=chosen.keys, directory=directory,
+            # From the copy sent, so each file is named as its manifest's dataroot names it
+            collect(reads.manifest, keys=chosen.keys, directory=directory,
                     verbose=not only_asked, select=chosen.select,
                     whitelist=UPLOADS.get())
         except (OSError, RuntimeError, ValueError) as e:

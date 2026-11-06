@@ -162,6 +162,39 @@ def test_an_installed_data_package_is_named_only_where_the_server_lists_it(
         assert run._plan(reads).versions["python"]["scfakedata"] == ["==1.0.0"]
 
 
+@pytest.mark.parametrize("head,path,tag", [
+    ("c0ffee", "git+https://example.test/lib.git", "c0ffee"),
+    (None, "python+git+https://example.test/lib.git?python=siliconcompiler", "v1")],
+    ids=["pushed", "changed"])
+def test_a_checkout_is_sent_at_its_commit_or_named_as_it_goes_up(
+        fake_v1, logged_in, nop_project, monkeypatch, caplog, head, path, tag):
+    '''The copy sent carries the remote at the commit checked out, or the client
+    says whose files go up (#5624); the user's project is left as it is.'''
+    from siliconcompiler import StdCellLibrary
+    from siliconcompiler.package import PythonPathResolver
+    from siliconcompiler.remote import owners
+
+    source = "python+git+https://example.test/lib.git?python=siliconcompiler"
+    lib = StdCellLibrary("scfakelib")
+    lib.set_dataroot("scfakedata", source, tag="v1")
+    with lib.active_dataroot("scfakedata"):
+        lib.set("package", "doc", "datasheet", "datasheet.pdf")
+    nop_project.add_dep(lib)
+    monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
+                        staticmethod(lambda module: True))
+    monkeypatch.setattr(owners, "_pushed_head", lambda where: head)
+    keypath = ("library", "scfakelib", "dataroot", "scfakedata")
+
+    with caplog.at_level("INFO"):
+        reads = RemoteRun(nop_project, logged_in)._read()
+
+    assert (reads.manifest.get(*keypath, "path"), reads.manifest.get(*keypath, "tag")) == \
+        (path, tag)
+    assert nop_project.get(*keypath, "path") == source
+    assert ("Uploading siliconcompiler from its editable checkout" in caplog.text) is \
+        (head is None)
+
+
 def _declared(name):
     from importlib import metadata
 

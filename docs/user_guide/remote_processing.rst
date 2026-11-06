@@ -217,6 +217,11 @@ nothing to control it:
   the variable and the files go up;
 * **a tool's scripts -- only when they come from a local path or a package
   installed editable**, such as a SiliconCompiler checkout you are working in;
+* **except a package that names where its data is fetched from** (a
+  ``python+`` dataroot, as ``PythonPathResolver.set_dataroot`` writes): the
+  server fetches it, at the commit your checkout has out where you installed it
+  editable. Only a checkout with changes no remote branch holds goes up, and
+  the client says so;
 * **plus the manifest**, and, for a run that starts part-way through the flow,
   the results of the nodes it starts from.
 

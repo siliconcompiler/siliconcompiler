@@ -1335,8 +1335,8 @@ job, and nothing is created. A replayed create is ``201``.
   ``software``, normalised the same way. ``python`` names exactly:
   ``siliconcompiler``; the distribution providing each executed node's task
   class; each framework a task declares, such as cocotb; and each distribution
-  whose installed-package dataroot the server supplies, or that holds a private
-  dataroot. Each is pinned at the client's version, except a framework, which
+  whose installed-package dataroot the server supplies. Each is pinned at the
+  client's version, except a framework, which
   carries the range SiliconCompiler declares for it. A development version is
   sent as a prefix, ``==0.38.10.*``, which admits its pre-releases. A client
   normalises each tool's specifier to :pep:`440` and drops one it cannot. A
@@ -1528,6 +1528,11 @@ own dataroot:
     - uploaded
   * - a remote source -- ``git``, ``https`` -- cached locally or not
     - supplied by source and ref, from the server's allowlist, or asked for
+  * - a PDK's, library's, device's or task's ``python+<source>``, read from the
+      package where it is installed editable and from ``<source>`` elsewhere
+    - sent as ``<source>``: at its tag, or at the commit checked out where
+      nothing under the dataroot differs from it and a remote branch holds it;
+      else uploaded, as a package installed editable
   * - a dataroot whose scheme ends in ``+private``, whatever else it is
     - supplied by the server from its own copy or its source, and never
       uploaded
