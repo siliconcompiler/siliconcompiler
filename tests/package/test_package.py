@@ -678,7 +678,9 @@ def test_find_resolver_python():
     ("git+https+private://host/repo", "GitResolver"),
     ("git+ssh+private://host/repo", "GitResolver"),
     ("ssh+private://host/repo", "GitResolver"),
-    ("scp+private://host/file", "SCPResolver")
+    ("scp+private://host/file", "SCPResolver"),
+    ("python+git+https+private://host/repo?python=m", "PythonPathResolver"),
+    ("python+s3://bucket/key?python=m", "PythonPathResolver")
 ])
 def test_find_resolver_builtin_without_plugins(source, resolver, fake_plugins):
     """The remote resolvers are registered in code, so they work with no plugins at all."""
@@ -691,7 +693,7 @@ def test_find_resolver_plugin(fake_plugins):
         pass
 
     def get_resolver():
-        return {"myscheme": PluginResolver, "https": PluginResolver}
+        return {"myscheme": PluginResolver, "https": PluginResolver, "python+git": PluginResolver}
 
     fake_plugins("path_resolver", "myscheme", get_resolver)
 
@@ -699,6 +701,11 @@ def test_find_resolver_plugin(fake_plugins):
     assert Resolver.find_resolver("https://host/file") is PluginResolver
     # Schemes the plugin does not claim keep their built-in resolver
     assert Resolver.find_resolver("scp://host/file").__name__ == "SCPResolver"
+    # python+ takes the schemes still remote once plugins are in, but not one a plugin claims
+    assert Resolver.find_resolver("python+scp://host/file?python=m") is PythonPathResolver
+    assert Resolver.find_resolver("python+git://host/repo?python=m") is PluginResolver
+    with pytest.raises(ValueError, match="is not supported"):
+        Resolver.find_resolver("python+https://host/file?python=m")
 
 
 def test_populate_resolvers_marker_written_last(fake_plugins):
@@ -2152,95 +2159,80 @@ def test_python_path_resolver_is_module_editable_siliconcompiler():
     result = PythonPathResolver.is_python_module_editable("siliconcompiler")
     assert isinstance(result, bool)
     # siliconcompiler could be editable during development, or not
+    assert PythonPathResolver.is_python_module_editable("siliconcompiler.package") is result
 
 
-def test_python_path_resolver_set_dataroot_editable_module():
-    """Test set_dataroot with an editable module."""
-    from siliconcompiler.schema_support.pathschema import PathSchema
-
+@pytest.mark.parametrize("alternative,append,expect", [
+    ("git+https://github.com/me/mylib.git", None,
+     "python+git+https://github.com/me/mylib.git?python=mylib"),
+    ("git+https+private://github.com/me/mylib.git", "..",
+     "python+git+https+private://github.com/me/mylib.git?python=mylib/.."),
+    ("https://example.com/mylib.tar.gz?v=1#top", "data",
+     "python+https://example.com/mylib.tar.gz?v=1&python=mylib/data#top"),
+])
+def test_python_path_resolver_set_dataroot(alternative, append, expect):
+    """set_dataroot writes one python+ source whether or not the module is editable."""
     schema = PathSchema()
-
-    # Mock is_python_module_editable to return True
-    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True):
-        PythonPathResolver.set_dataroot(
-            schema,
-            "test_data",
-            "siliconcompiler",
-            "fallback/path",
-            "v1.0"
-        )
-
-        # Check that dataroot was set with python:// source
-        assert schema.get("dataroot", "test_data", "path") == "python://siliconcompiler"
-        assert schema.get("dataroot", "test_data", "tag") is None
+    PythonPathResolver.set_dataroot(schema, "mylib", "mylib", alternative, "v1.0", append)
+    assert schema.get("dataroot", "mylib", "path") == expect
+    assert schema.get("dataroot", "mylib", "tag") == "v1.0"
 
 
-def test_python_path_resolver_set_dataroot_non_editable_module():
-    """Test set_dataroot with a non-editable module."""
-    from siliconcompiler.schema_support.pathschema import PathSchema
+@pytest.mark.parametrize("editable,path", [
+    (True, os.path.join(os.path.dirname(siliconcompiler.__file__), "tools")),
+    (False, "git+https://github.com/me/mylib.git@v1.0 private=True missing_ok=True"),
+])
+def test_python_path_resolver_python_plus(editable, path):
+    """A python+ source reads the module where it is installed editable and fetches its
+    remote source anywhere else, collecting its files under one name either way."""
+    source = "python+git+https+private://github.com/me/mylib.git?python=siliconcompiler/tools"
+    with patch.object(PythonPathResolver, "is_python_module_editable",
+                      return_value=editable) as check:
+        resolver = Resolver.find_resolver(source)("mylib", None, source, "v1.0")
+    check.assert_called_once_with("siliconcompiler")
+    assert type(resolver) is PythonPathResolver
+    assert resolver.is_private is True
+    assert resolver.reference == "v1.0"
+    assert resolver.urlpath == "siliconcompiler"
+    assert resolver._collection_source == "python+git+https://github.com/me/mylib.git?python=***"
 
-    schema = PathSchema()
-
-    # Mock is_python_module_editable to return False
-    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=False):
-        PythonPathResolver.set_dataroot(
-            schema,
-            "test_data",
-            "some_module",
-            "fallback/path",
-            "v1.0"
-        )
-
-        # Check that dataroot was set with fallback path
-        assert schema.get("dataroot", "test_data", "path") == "fallback/path"
-        assert schema.get("dataroot", "test_data", "tag") == "v1.0"
-
-
-def test_python_path_resolver_set_dataroot_with_path_append():
-    """Test set_dataroot with path appending for editable module."""
-    from siliconcompiler.schema_support.pathschema import PathSchema
-
-    schema = PathSchema()
-
-    # Mock is_python_module_editable to return True
-    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True):
-        with patch.object(PythonPathResolver, "__init__", return_value=None):
-            # We need to mock the constructor and resolve separately
-            with patch("siliconcompiler.package.PythonPathResolver.resolve") as mock_resolve:
-                # Mock the resolve method to return a test path
-                mock_resolve.return_value = "/path/to/module"
-
-                PythonPathResolver.set_dataroot(
-                    schema,
-                    "test_data",
-                    "siliconcompiler",
-                    "fallback/path",
-                    python_module_path_append="subdir"
-                )
-
-                # Check that path was appended correctly
-                expected_path = os.path.abspath(os.path.join("/path/to/module", "subdir"))
-                assert schema.get("dataroot", "test_data", "path") == expected_path
+    with patch.object(GitResolver, "get_path", autospec=True,
+                      side_effect=lambda git, missing_ok=False: f"{git.source}@{git.reference} "
+                      f"private={git.is_private} missing_ok={missing_ok}"):
+        assert resolver.get_path(missing_ok=True) == path
 
 
-def test_python_path_resolver_set_dataroot_no_path_append():
-    """Test set_dataroot with editable module but no path appending."""
-    from siliconcompiler.schema_support.pathschema import PathSchema
+@pytest.mark.parametrize("source,remote", [
+    ("python+https://example.com/ip/?python=mylib", "https://example.com/ip/v1.0.tar.gz"),
+    ("python+https://example.com/ip.tar.gz?v=1&python=mylib#top",
+     "https://example.com/ip.tar.gz?v=1#top"),
+    # A manifest masked to be sent elsewhere still fetches
+    ("python+https://example.com/ip/?python=***", "https://example.com/ip/v1.0.tar.gz"),
+    ("python+https://example.com/ip/?pyth%6Fn=mylib", "https://example.com/ip/v1.0.tar.gz"),
+    ("PYTHON+https://example.com/ip/?python=mylib", "https://example.com/ip/v1.0.tar.gz"),
+])
+def test_python_path_resolver_python_plus_remote_source(source, remote):
+    """The python field leaves the remote source, and the rest of its query stays."""
+    resolver = PythonPathResolver("mylib", None, source, "v1.0")
+    with patch.object(HTTPResolver, "get_path", autospec=True,
+                      side_effect=lambda http, missing_ok=False: http.download_url):
+        assert resolver.get_path(missing_ok=True) == remote
 
-    schema = PathSchema()
 
-    # Mock is_python_module_editable to return True
-    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True):
-        PythonPathResolver.set_dataroot(
-            schema,
-            "test_data",
-            "siliconcompiler",
-            "fallback/path",
-            python_module_path_append=None
-        )
-
-        # Check that dataroot was set with python:// source
-        assert schema.get("dataroot", "test_data", "path") == "python://siliconcompiler"
+@pytest.mark.parametrize("source,tag,error", [
+    ("python+git+https://me:secret@github.com/me/mylib.git", "v1.0", "names no Python module"),
+    ("python+git+https://github.com/me/mylib.git?python=mylib", None, "reference .* is required"),
+    # Only a remote scheme is registered behind python+
+    ("python+file:///data?python=mylib", "v1.0", "is not supported"),
+    ("python+python://mylib?python=mylib", "v1.0", "is not supported"),
+])
+def test_python_path_resolver_python_plus_refused(source, tag, error):
+    """A python+ source that cannot be fetched is refused even where its module is
+    editable, without its credential in the error."""
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True), \
+            pytest.raises(ValueError, match=error) as refused:
+        Resolver.find_resolver(source)("mylib", None, source, tag)
+    assert "secret" not in str(refused.value)
 
 
 def test_python_path_resolver_get_path_integration():

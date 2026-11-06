@@ -24,6 +24,13 @@ Some rules hold for every source:
   data may go rather than how it is fetched; ``github+private://`` and
   ``gitlab+private://`` also skip their anonymous attempt, and
   ``s3+private://`` never sends an unsigned request.
+* Any remote scheme takes a ``python+`` prefix with a ``python`` query field
+  naming a Python module, as in
+  ``python+git+https://github.com/me/mylib.git?python=mylib/..``. Where that
+  module is installed editable, the dataroot is the directory
+  :ref:`python:// <resolver-python>` gives for ``mylib/..``, so a checkout reads
+  its own files; anywhere else, the remote source is fetched at the tag. It
+  combines with ``+private``, as in ``python+git+https+private://``.
 * A remote source requires a ``tag`` and is fetched once into the
   :ref:`dataroot cache <dataroot_cache>`, then reused by every project.
 

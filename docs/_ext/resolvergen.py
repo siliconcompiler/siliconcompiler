@@ -52,6 +52,9 @@ def get_resolvers() -> Dict[Type[Resolver], List[str]]:
 
     resolvers = {}
     for scheme, cls in registry.items():
+        # One per remote scheme: the rules every source follows describe them once
+        if scheme.startswith("python+"):
+            continue
         if isinstance(cls, type) and issubclass(cls, Resolver) \
                 and cls.__module__.startswith("siliconcompiler."):
             resolvers.setdefault(cls, []).append(scheme)
