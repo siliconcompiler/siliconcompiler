@@ -1202,10 +1202,14 @@ class PythonPathResolver(Resolver):
     def __init__(self, name: str, schema: "Project", source: str, reference: Optional[str] = None):
         self.__module: Optional["url_parse.ParseResult"] = None
         self.__remote: Optional[Resolver] = None
-        if source.startswith("python+"):
+        self.__editable = False
+        self.__missing_ok = False
+        if source[:7].lower() == "python+":
             remote, self.__module = PythonPathResolver._split(source)
-            if not PythonPathResolver.is_python_module_editable(self.__module.netloc):
-                self.__remote = Resolver.find_resolver(remote)(name, schema, remote, reference)
+            # Built even where the checkout is read, so a bad remote source or a
+            # missing tag fails there too, not only on another machine
+            self.__remote = Resolver.find_resolver(remote)(name, schema, remote, reference)
+            self.__editable = PythonPathResolver.is_python_module_editable(self.__module.netloc)
         else:
             # Only a python+ source's remote source takes a tag
             reference = None
@@ -1215,13 +1219,14 @@ class PythonPathResolver(Resolver):
     def get_resolver(registry: Dict[str, Type[Resolver]]) -> Dict[str, Type["PythonPathResolver"]]:
         """
         ``python+<scheme>`` for every remote scheme in ``registry``, as in
-        ``python+git+https+private``.
+        ``python+git+https+private``, less any a plugin registered itself.
 
         Args:
             registry (dict): every other scheme registered, to its resolver.
         """
         return {f"python+{scheme}": PythonPathResolver for scheme, cls in registry.items()
-                if isinstance(cls, type) and issubclass(cls, RemoteResolver)}
+                if isinstance(cls, type) and issubclass(cls, RemoteResolver)
+                and f"python+{scheme}" not in registry}
 
     @staticmethod
     def _split(source: str) -> Tuple[str, "url_parse.ParseResult"]:
@@ -1234,14 +1239,14 @@ class PythonPathResolver(Resolver):
         """
         from urllib import parse as url_parse
 
-        url = url_parse.urlsplit(source.removeprefix("python+"))
+        url = url_parse.urlsplit(source[len("python+"):])
         module = url_parse.parse_qs(url.query).get("python")
         if not module:
-            raise ValueError(f"Source URI '{source}' names no Python module: a python+ "
-                             "source takes one as ?python=<module>")
+            raise ValueError(f"Source URI '{Resolver._masked_uri(source)}' names no Python "
+                             "module: a python+ source takes one as ?python=<module>")
         # The other fields as written: decoded and encoded again, a signature could change
         query = "&".join(field for field in url.query.split("&")
-                         if not field.startswith("python="))
+                         if url_parse.unquote_plus(field.partition("=")[0]) != "python")
         return url._replace(query=query).geturl(), url_parse.urlparse(f"python://{module[-1]}")
 
     @property
@@ -1250,7 +1255,7 @@ class PythonPathResolver(Resolver):
         True where a ``python+`` source is fetched: the resolver for its remote
         source caches it and says where it is.
         """
-        return self.__remote is not None
+        return self.__remote is not None and not self.__editable
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
@@ -1301,12 +1306,14 @@ class PythonPathResolver(Resolver):
         ``python+`` source asks.
 
         Args:
-            module_name (str): The name of the Python module to check.
+            module_name (str): The name of the Python module to check; a
+                submodule is installed as its top-level package is.
 
         Returns:
             bool: True if the module is installed in editable mode, False otherwise.
         """
         dist_map = PythonPathResolver.get_python_module_mapping()
+        module_name = module_name.partition(".")[0]
         if module_name not in dist_map:
             return False
         dist_name = dist_map[module_name][0]
@@ -1377,6 +1384,11 @@ class PythonPathResolver(Resolver):
         """The module imported, also for a ``python+`` source."""
         return (self.__module or self.urlparse).netloc
 
+    def get_path(self, missing_ok: bool = False) -> str:
+        # resolve() takes no arguments, so the flag reaches the remote source through self
+        self.__missing_ok = missing_ok
+        return super().get_path(missing_ok=missing_ok)
+
     def resolve(self) -> str:
         """
         Resolves the path to the specified Python module, or to a directory
@@ -1388,8 +1400,8 @@ class PythonPathResolver(Resolver):
             str: The absolute path to the module's directory, or to the
             directory named inside it.
         """
-        if self.__remote is not None:
-            return self.__remote.get_path()
+        if self.is_indirect:
+            return self.__remote.get_path(missing_ok=self.__missing_ok)
 
         module = importlib.import_module(self.urlpath)
         python_path = os.path.dirname(module.__file__)

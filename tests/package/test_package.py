@@ -693,7 +693,7 @@ def test_find_resolver_plugin(fake_plugins):
         pass
 
     def get_resolver():
-        return {"myscheme": PluginResolver, "https": PluginResolver}
+        return {"myscheme": PluginResolver, "https": PluginResolver, "python+git": PluginResolver}
 
     fake_plugins("path_resolver", "myscheme", get_resolver)
 
@@ -701,8 +701,9 @@ def test_find_resolver_plugin(fake_plugins):
     assert Resolver.find_resolver("https://host/file") is PluginResolver
     # Schemes the plugin does not claim keep their built-in resolver
     assert Resolver.find_resolver("scp://host/file").__name__ == "SCPResolver"
-    # python+ takes the schemes still remote once plugins are in: not https here
+    # python+ takes the schemes still remote once plugins are in, but not one a plugin claims
     assert Resolver.find_resolver("python+scp://host/file?python=m") is PythonPathResolver
+    assert Resolver.find_resolver("python+git://host/repo?python=m") is PluginResolver
     with pytest.raises(ValueError, match="is not supported"):
         Resolver.find_resolver("python+https://host/file?python=m")
 
@@ -2158,6 +2159,7 @@ def test_python_path_resolver_is_module_editable_siliconcompiler():
     result = PythonPathResolver.is_python_module_editable("siliconcompiler")
     assert isinstance(result, bool)
     # siliconcompiler could be editable during development, or not
+    assert PythonPathResolver.is_python_module_editable("siliconcompiler.package") is result
 
 
 @pytest.mark.parametrize("alternative,append,expect", [
@@ -2178,7 +2180,7 @@ def test_python_path_resolver_set_dataroot(alternative, append, expect):
 
 @pytest.mark.parametrize("editable,path", [
     (True, os.path.join(os.path.dirname(siliconcompiler.__file__), "tools")),
-    (False, "git+https://github.com/me/mylib.git@v1.0:True"),
+    (False, "git+https://github.com/me/mylib.git@v1.0 private=True missing_ok=True"),
 ])
 def test_python_path_resolver_python_plus(editable, path):
     """A python+ source reads the module where it is installed editable and fetches its
@@ -2195,7 +2197,8 @@ def test_python_path_resolver_python_plus(editable, path):
     assert resolver._collection_source == "python+git+https://github.com/me/mylib.git?python=***"
 
     with patch.object(GitResolver, "get_path", autospec=True,
-                      side_effect=lambda git: f"{git.source}@{git.reference}:{git.is_private}"):
+                      side_effect=lambda git, missing_ok=False: f"{git.source}@{git.reference} "
+                      f"private={git.is_private} missing_ok={missing_ok}"):
         assert resolver.get_path(missing_ok=True) == path
 
 
@@ -2205,24 +2208,31 @@ def test_python_path_resolver_python_plus(editable, path):
      "https://example.com/ip.tar.gz?v=1#top"),
     # A manifest masked to be sent elsewhere still fetches
     ("python+https://example.com/ip/?python=***", "https://example.com/ip/v1.0.tar.gz"),
+    ("python+https://example.com/ip/?pyth%6Fn=mylib", "https://example.com/ip/v1.0.tar.gz"),
+    ("PYTHON+https://example.com/ip/?python=mylib", "https://example.com/ip/v1.0.tar.gz"),
 ])
 def test_python_path_resolver_python_plus_remote_source(source, remote):
     """The python field leaves the remote source, and the rest of its query stays."""
     resolver = PythonPathResolver("mylib", None, source, "v1.0")
     with patch.object(HTTPResolver, "get_path", autospec=True,
-                      side_effect=lambda http: http.download_url):
+                      side_effect=lambda http, missing_ok=False: http.download_url):
         assert resolver.get_path(missing_ok=True) == remote
 
 
-@pytest.mark.parametrize("source,error", [
-    ("python+git+https://github.com/me/mylib.git", "names no Python module"),
+@pytest.mark.parametrize("source,tag,error", [
+    ("python+git+https://me:secret@github.com/me/mylib.git", "v1.0", "names no Python module"),
+    ("python+git+https://github.com/me/mylib.git?python=mylib", None, "reference .* is required"),
     # Only a remote scheme is registered behind python+
-    ("python+file:///data?python=mylib", "is not supported"),
-    ("python+python://mylib?python=mylib", "is not supported"),
+    ("python+file:///data?python=mylib", "v1.0", "is not supported"),
+    ("python+python://mylib?python=mylib", "v1.0", "is not supported"),
 ])
-def test_python_path_resolver_python_plus_refused(source, error):
-    with pytest.raises(ValueError, match=error):
-        Resolver.find_resolver(source)("mylib", None, source, "v1.0")
+def test_python_path_resolver_python_plus_refused(source, tag, error):
+    """A python+ source that cannot be fetched is refused even where its module is
+    editable, without its credential in the error."""
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True), \
+            pytest.raises(ValueError, match=error) as refused:
+        Resolver.find_resolver(source)("mylib", None, source, tag)
+    assert "secret" not in str(refused.value)
 
 
 def test_python_path_resolver_get_path_integration():
