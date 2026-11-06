@@ -33,7 +33,13 @@ information.</p>
       its own once its person has left it;</li>
   <li>an artifact whose bytes have been deleted &mdash; the row may still be listed, and the bytes
       are gone;</li>
-  <li><code>&hellip;/logs</code> for a node that has finished and kept no log.</li>
+  <li><code>&hellip;/logs</code> for a node that has finished and kept no log, or whose
+      <code>logs</code> artifact&rsquo;s bytes were deleted, and for a node the job does not have
+      once the job&rsquo;s nodes are known;</li>
+  <li>a device that is revoked, as it is absent from the list;</li>
+  <li>a cancel on a job that has been deleted, which answers only a read of itself and
+      <code>DELETE</code> again;</li>
+  <li>a well-formed id sent to <code>POST /v1/auth/browser</code> that names nothing the caller can see;</li>
   <li>a path under <code>/v1</code> that no route serves, which is the same <code>404</code> in
       <code>application/problem+json</code>, with this <code>type</code>.</li>
 </ul>

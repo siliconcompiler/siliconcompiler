@@ -241,6 +241,14 @@ server owns is refused in a request like any other member the endpoint does
 not define. A job's ``design`` and ``jobname``, a ``flow``, a step and an index
 are ``[A-Za-z0-9][A-Za-z0-9._-]{0,99}``; a value outside it is ``400``.
 
+**Order.** At an endpoint that takes a token, a request is authenticated first
+(``401``, ``session-ended`` included), then its scope is checked (``403``), then
+its own query and body (``400``), then a feature the deployment lacks (``501``),
+and only then are the object and its state looked at. A malformed request
+without a credential is therefore ``401``, never ``400``. The two OAuth
+endpoints and the endpoints that take no token have no credential to check
+first.
+
 **Responses are must-ignore.** A client discards a response member it does not
 know. It also accepts an unrecognised value in an enumerated field, and takes
 the cautious default:
@@ -318,8 +326,8 @@ Names and values
     - every member, query parameter and enumeration value
   * - ``kebab-case``
     - an error ``type`` slug, ``limit-exceeded``
-  * - lowercase, dot-separated
-    - a feature string, ``logs.stream``
+  * - ``[a-z0-9][a-z0-9._-]{0,63}``, dot-separated by convention
+    - a feature string, ``logs.stream``; every registered string fits it
   * - ``<resource>:<action>``
     - a scope, ``jobs:read``
   * - ``..._at``
@@ -401,7 +409,9 @@ Pagination
 
 A collection that paginates, the job list and the artifact list, takes
 ``?limit=`` and ``?cursor=``, and the next page is a ``Link`` header with
-``rel="next"``, absent on the last page. ``GET /v1/devices`` takes no query.
+``rel="next"``, absent on the last page. ``limit`` and ``cursor`` each appear at
+most once; a repeat is ``400 invalid-request``. ``GET /v1/devices`` takes no
+query.
 
 * A client follows ``rel="next"`` on any list response, documented as paginated
   or not, as given. It never rebuilds the request around ``cursor``, which is
@@ -622,7 +632,10 @@ proof, but it MUST:
   from, and the scope as it would be granted, and require a positive act;
 * accept at most three wrong codes per approver, across codes, before a
   cooldown that does not reveal whether a code exists, and answer an unknown,
-  expired, decided or used code identically;
+  expired, decided or used code identically. The one exception is the person
+  who decided a code, from any of their browser sessions, repeating the same
+  decision while the code is unexpired; once it has expired, its decider gets the
+  identical answer too;
 * not approve a login that would take the account past its ``devices`` limit;
 * not be cacheable, frameable or leak its URL through ``Referer``: it carries
   ``Content-Security-Policy: default-src 'self'; frame-ancestors 'none';
@@ -677,7 +690,10 @@ the machine's identity, and ``machine_id_source``, one of ``linux_machine_id``,
 on every refresh. It is a label, not a credential: a refresh whose pair differs
 from the device's is ``invalid_grant``, and the person logs in again. A device
 enrolled with ``none`` has no change detection, and a token exchange carries no
-pair.
+pair. ``machine_id_hash`` is 1 to 128 printable ASCII characters. A hash needs a
+source other than ``none``, and a source other than ``none`` needs a hash;
+anything else, at enrolment or at refresh, is ``invalid_request``, and the proof
+is not spent.
 
 .. _remote_api_scopes:
 
@@ -833,7 +849,11 @@ and carries ``iss`` and ``sub`` equal to the credential id; ``aud``, one of the
 deployment's public origins, compared as ``htu`` is; ``jti``; ``iat``; ``exp``,
 no more than 300 seconds out; and ``cnf.jkt``, which MUST equal the thumbprint
 of the request's proof (:rfc:`7800`), or the trade is ``invalid_grant``. Its
-times are checked with 60 seconds of leeway. ``subject_token_type`` other than
+times are checked with 60 seconds of leeway, so an ``exp`` up to 360 seconds
+ahead of the server's clock is accepted. A ``subject_token`` that is not a
+compact JWT, three base64url segments, or is over 4096 characters is
+``invalid_request``; a well-formed assertion that does not verify is a bare
+``invalid_grant``. ``subject_token_type`` other than
 the JWT type is ``invalid_request``, ``requested_token_type`` other than the
 access-token type is ``invalid_target``, and ``actor_token``, ``audience`` or
 ``resource`` is ``invalid_request``.
@@ -873,7 +893,8 @@ tokens are never accepted by another. Refusals are in the OAuth shape, with
       the account past its ``devices`` limit
     - stops. After ``devices``, a device must be revoked first
   * - ``expired_token``
-    - the device code expired undecided
+    - the device code expired before it was redeemed, decided or not; an approval
+      does not extend it
     - starts the login again
   * - ``invalid_grant``
     - an unknown or spent refresh token, a changed fingerprint, a refused
@@ -903,8 +924,11 @@ tokens are never accepted by another. Refusals are in the OAuth shape, with
 
 A server MUST hold device-code polls to ``interval`` (``slow_down``), and MUST
 bound the other grants per account and per source, counting against an account
-only a request that verified as that account's. A caller is never refused
-because of another account's traffic from the same address.
+only a request that verified as that account's. A ceiling keyed by account never
+counts another account's requests. A ceiling that can count only by source,
+creating authorizations or failed attempts, counts everyone at that address, so
+it MUST be sized for a shared login node, and SHOULD count failures by the
+proof's key before the address alone.
 
 .. _remote_api_revoke:
 
@@ -954,13 +978,14 @@ header.
     - When
   * - ``400``
     - ``invalid-request``
-    - more than one member, or one not defined here
+    - more than one member, or one not defined here; or an id that is not 1 to
+      200 printable characters
   * - ``403``
     - ``not-permitted``
     - a CI session; or an artifact whose ``can_request_access`` is ``false``
   * - ``404``
     - ``not-found``
-    - a job, artifact or document the caller cannot see
+    - a well-formed id naming a job, artifact or document the caller cannot see
 
 The server and the account
 --------------------------
@@ -1186,7 +1211,8 @@ finished. The list takes no ``?limit=`` or ``?cursor=`` and is ordered newest
 ``GET /v1/devices/{id}`` answers the same object. ``DELETE /v1/devices/{id}``
 revokes every session of that device and answers ``204``; it is idempotent and
 disturbs no other device. Either answers ``404`` for a device that is not the
-caller's. A revoked device can enrol again, with the same key, as a new device
+caller's, and the read answers ``404`` for one that is revoked, as it is absent
+from the list; ``DELETE`` on it again stays ``204``. A revoked device can enrol again, with the same key, as a new device
 with a new ``id``; the revoked ``id`` never authenticates again and is no longer
 listed.
 
@@ -1221,18 +1247,19 @@ Job states
 
   created, awaiting_input  -> cancelled      a cancel; nothing was running
   created, awaiting_input  -> abandoned      not submitted in time
-  staging, queued          -> cancelling     a cancel
+  staging, queued, running -> cancelling     a cancel
   staging                  -> rejected       refused on what the archive holds
   staging                  -> failed         staging-failed or staging-timed-out
-  queued                   -> failed         run-interrupted: the scheduler lost it
+  queued                   -> failed         run-interrupted: the scheduler lost it;
+                                             run-failed: a deployment limit ended it
   staging                  -> awaiting_input the one edge back: sources asked for
 
 * ``completed`` is the only state that means success.
 * **A client reads** ``terminal``, never the state's name, to know whether a job
   is over, and polls while it is ``false``.
 * ``staging`` is where the server reads the archive, checks it, fetches what it
-  supplies, builds Python environments and dispatches. ``state_reason`` names
-  the phase. A staging job counts against ``concurrent_jobs``.
+  supplies, builds Python environments and dispatches. ``state_reason`` MAY
+  name the phase. A staging job counts against ``concurrent_jobs``.
 * ``rejected`` means refused before it ran, for something the user can change.
   ``failed`` from ``staging`` is the server's own failure (``staging-failed``)
   or the caller's ``max_staging_seconds`` (``staging-timed-out``).
@@ -1357,8 +1384,9 @@ job, and nothing is created. A replayed create is ``201``.
   lands on in the same section: a ``sources`` entry names that dataroot's
   keypath, source and ref, never the alias's, and one entry covers every alias
   of it.
-* **needs** names a feature the job relies on; one the server does not
-  advertise, or does not know, is ``501`` at create.
+* **needs** names a feature the job relies on, a string of the feature grammar,
+  ``[a-z0-9][a-z0-9._-]{0,63}``. A string outside it is ``400``; one inside it
+  that the server does not advertise, or does not know, is ``501`` at create.
 
 .. list-table::
   :header-rows: 1
@@ -1370,7 +1398,7 @@ job, and nothing is created. A replayed create is ``201``.
   * - ``400``
     - ``invalid-request``
     - a missing ``design`` or ``jobname``, or a member outside its grammar or
-      bounds
+      bounds, a ``needs`` string outside the feature grammar included
   * - ``403``
     - ``terms-not-accepted``
     - an unaccepted service document, or agreement on a resource the job names
@@ -1397,8 +1425,7 @@ job, and nothing is created. A replayed create is ``201``.
     - no image satisfies ``requested_versions``
   * - ``422``
     - ``resource-unavailable``
-    - a private dataroot nothing can supply, or a controlled source the server
-      does not hold
+    - a private dataroot nothing can supply
   * - ``422``
     - ``prior-results-unavailable``
     - a ``continues_from`` entry whose results cannot be used
@@ -1410,7 +1437,7 @@ job, and nothing is created. A replayed create is ``201``.
   * - ``501``
     - ``feature-unsupported``
     - ``project`` without ``projects``, or the first unadvertised string in
-      ``needs``
+      ``needs``, one the server does not know included
 
 A create never fetches anything. It looks up what the server already holds.
 
@@ -1503,7 +1530,8 @@ holds only:
   supply (:ref:`remote_api_python`);
 * ``<step>/<index>/outputs/`` for each node the run reads and does not run.
 
-Anything else is ``unrequested_member``. A follow-up archive holds only what the
+Anything else is ``unrequested_member``. A directory entry is a member like any
+other, so an ancestor entry such as ``syn/`` or ``syn/0/`` is too. A follow-up archive holds only what the
 server asked for.
 
 **A file is uploaded or supplied by name, never found by path.** The server
@@ -1614,9 +1642,15 @@ does running past the caller's ``max_staging_seconds``, with
 
 ``upload-forbidden`` is policy: the archive carries something controlled that
 the caller may not upload, found by what the manifest calls it or by its bytes.
-A rejected upload is otherwise kept as an ``input`` artifact, except one refused
-``upload-forbidden``, ``credential``, or for carrying a private dataroot's
-values.
+It names a ``member`` only after the archive passed the extraction checks:
+member count, expanded bytes, ratio, traversal, and an archive read to its end.
+The link, device and unrequested-member checks come later, while staging. A
+controlled resource is recognised by being marked private, by a missing grant
+(``entitlement-denied`` at create) or, where neither says so, by its contents at
+upload. A rejected upload is otherwise kept as an ``input`` artifact, except
+one refused ``upload-forbidden``, ``credential``, or for carrying a private
+dataroot's values. An upload the extraction checks refuse is deleted and not
+listed either, since nothing has checked it for credentials.
 
 Sources the server asks for
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1726,9 +1760,12 @@ is optional:
   * - ``terminal``
     - ``true``, only terminal jobs; ``false``, only the rest
   * - ``flow``, ``design``, ``jobname``
-    - jobs with exactly that value
+    - jobs with exactly that value; ``flow`` matches the flow the job reports, so
+      a job whose flow is not yet read matches none
   * - ``project``
-    - jobs in that project
+    - jobs in that project. On a server without projects, ``501
+      feature-unsupported``, ``feature: "projects"``, after the query's checks
+      and before any read
   * - ``mine``
     - ``true``, only the caller's own; ``false``, only their projects' jobs that
       are not their own
@@ -1736,7 +1773,7 @@ is optional:
     - ``true``, only archived jobs. Absent or ``false``, only unarchived ones:
       the one filter whose default is not everything
   * - ``limit``, ``cursor``
-    - pagination
+    - pagination, each at most once
 
 A deleted job is in neither view.
 
@@ -1761,8 +1798,9 @@ A deleted job is in neither view.
     // "state_reason": "...",          // OPTIONAL. Display only; the phase while staging
     "design":   "picorv32",            // REQUIRED
     "jobname":  "run42",               // REQUIRED
-    "flow":     "asicflow",            // OPTIONAL. null until the manifest is read
-    "owner":    {"id": "01J9...", "name": "Alice"},   // REQUIRED. Compare id, never name
+    "flow":     "asicflow",            // REQUIRED, nullable. null until the manifest is read
+    "owner":    {"id": "01J9...", "name": "Alice"},   // REQUIRED. Compare id, never name; name is
+                                                      //   display only, bounded and scrubbed like detail
     "project":  null,                  // REQUIRED, nullable. null on a personal job
     "created_at":   "2026-10-27T09:00:00Z",   // REQUIRED
     "submitted_at": "2026-10-27T09:00:20Z",   // REQUIRED, nullable
@@ -1821,8 +1859,9 @@ Stops a job. The body is optional:
 
 **Response** ``202``: the job, now ``cancelling`` from ``staging``, ``queued``
 or ``running``, or ``cancelled`` from ``created`` or ``awaiting_input``.
-Idempotent: cancelling a ``cancelling`` or terminal job is ``202`` with the job
-as it is. The reason is recorded on the transition and on each node it stopped,
+Idempotent: cancelling a ``cancelling`` job, or a terminal one that is not
+deleted, is ``202`` with the job as it is. A deleted job answers only a read of
+itself and ``DELETE`` again, so cancelling one is ``404 not-found``. The reason is recorded on the transition and on each node it stopped,
 whole. A reason too long is ``400``, never cut short. A caller that can read the
 job and may not cancel it is ``403 not-permitted``.
 
@@ -1834,9 +1873,11 @@ job and may not cancel it is ``403 not-permitted``.
 Deletes a job's data. ``{}``.
 
 **Response** ``204``. Idempotent. The job MUST be terminal, or it is
-``409 job-state-conflict``. Afterwards the job object stays readable, with
-``deleted_at`` and a ``deleted_reason`` the server writes naming who acted, and
-everything under it is ``404``. A replayed create or submit still answers as it
+``409 job-state-conflict``: the caller cancels a job and deletes it once it has
+ended, and ``DELETE`` never cancels it. Afterwards the job object stays
+readable, with its ``transitions``, ``deleted_at`` and a ``deleted_reason`` the
+server writes naming who acted, and everything under it is ``404``. No API call
+erases the server's own records of who did what and of every disclosure. A replayed create or submit still answers as it
 first did. A caller that can read the job and may not delete it is
 ``403 not-permitted``.
 
@@ -1862,17 +1903,22 @@ row that matches:
   * - Case
     - Answer
   * - the deployment does not have ``logs.stream``
-    - ``501 feature-unsupported``, ``feature: "logs.stream"``
+    - ``501 feature-unsupported``, ``feature: "logs.stream"``, before the job is
+      read
   * - the caller lacks a grant on a resource in the job's set
     - ``403 entitlement-denied``
   * - the caller has accepted no version of an agreement on one
     - ``403 terms-not-accepted``, with ``blocked_by``
-  * - terminal, with a ``logs`` artifact
-    - ``303`` to a stream that sends ``end`` at once, naming the artifact
+  * - the job has no node with that ``step`` and ``index``
+    - ``409 not-ready``, ``artifact_kind: "logs"``, with ``Retry-After``, until
+      the job's nodes are known; then ``404 not-found``
   * - terminal, with a ``logs`` artifact that is withheld
     - ``403 artifact-not-approved``
+  * - terminal, with a ``logs`` artifact
+    - ``303`` to a stream that sends ``end`` at once, naming the artifact
   * - terminal, with no log
-    - ``404 not-found``
+    - ``404 not-found``: the node kept no log, or its ``logs`` artifact's bytes
+      were deleted
   * - running, on a deployment that approves ``logs``, where the job's set holds
       a resource whose results need an approval, or content tied to no resource
     - ``403 artifact-not-approved``, with nothing to ask for: a live log has no
@@ -1962,7 +2008,8 @@ A job's results, filterable by ``kind``, ``step`` and ``index``, and paginated.
      "fetchable":      true,               // REQUIRED. For this caller; never cached across callers
      "access_requested_at": null,          // REQUIRED, nullable. The caller's pending request
      "blocked_by":     ["acme-nda"],       // OPTIONAL. Unaccepted agreements, by terms id
-     "can_request_access": false}          // REQUIRED. Only an approval is missing, and it can be asked for
+     "can_request_access": false}          // REQUIRED. Only an approval is missing, and the caller's
+                                           //   person can ask for it: true for a CI session too
   ]}
 
 Every artifact is stored and served gzip-compressed. The listing carries at most
@@ -2011,7 +2058,11 @@ where it is fetchable, and the other kinds otherwise.
 ``fetchable: false`` says whether there is a way to yes: ``blocked_by`` means
 accept those documents, ``can_request_access: true`` means ask, at the page
 ``POST /v1/auth/browser`` answers for the artifact, and neither means there is
-none. ``deleted_cause`` says whether retention reclaimed the bytes or a person
+none. A CI session cannot ask itself, since ``POST /v1/auth/browser`` refuses
+it, but its person asks from an interactive session or the portal, and the
+approval covers the CI session. Until the server records what each artifact
+derives from, an artifact is gated on the job's whole set of resources, so a log
+is gated as the GDS is. ``deleted_cause`` says whether retention reclaimed the bytes or a person
 removed them, and a client reports the two differently.
 
 .. _remote_api_fetch:

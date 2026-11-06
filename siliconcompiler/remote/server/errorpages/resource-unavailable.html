@@ -4,7 +4,7 @@
 {% set description = "The job needs a resource this deployment does not hold and cannot supply, and you could not send it either." %}
 {% set also_on_a_job = true %}
 {% block main %}
-<p>The job needs a PDK, a library, an FPGA device or a tool that this deployment does not hold and has no way to supply &mdash; and it is not one you can send. A resource you <em>can</em> send is never refused this way: the server asks for it instead, in the job&rsquo;s <code>upload_sources</code>. What is left is a resource marked private, whose copy only the server may supply, and one the deployment controls.</p>
+<p>The job needs a PDK, a library, an FPGA device or a tool that this deployment does not hold and has no way to supply &mdash; and it is not one you can send. A resource you <em>can</em> send is never refused this way: the server asks for it instead, in the job&rsquo;s <code>upload_sources</code>. What is left is a resource marked private, whose copy only the server may supply. A controlled resource you hold no grant for is <a href="entitlement-denied.html"><code>entitlement-denied</code></a>, and one found by its contents in your upload is <a href="upload-forbidden.html"><code>upload-forbidden</code></a>.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -52,7 +52,7 @@
 <table>
 <tbody>
 <tr><td class="wrap"><code>POST /v1/jobs</code></td>
-    <td>A private or controlled source in the descriptor&rsquo;s <code>sources</code> that the server does not hold &mdash; before the archive uploads, by its name.</td></tr>
+    <td>A private source in the descriptor&rsquo;s <code>sources</code> that the server does not hold &mdash; before the archive uploads, by its name.</td></tr>
 <tr><td class="wrap"><code>POST /v1/jobs/{id}/submit</code></td>
     <td>While the job stages, after the archive is opened, against what the manifest&rsquo;s read reports: a private source the descriptor did not list, with its kind where it is a resource&rsquo;s.</td></tr>
 </tbody>

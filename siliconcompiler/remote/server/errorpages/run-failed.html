@@ -3,7 +3,7 @@
 {% set status = "Not an HTTP response" %}
 {% set description = "Never an HTTP response. A type on a job’s or node’s error object." %}
 {% block main %}
-<p>The run itself failed, in a way resubmitting unchanged repeats. The job was accepted and ran, and a node &mdash; or the run around the nodes &mdash; ended in failure: a tool or flow failure, or a deployment time or memory limit, with <code>detail</code> naming the limit.</p>
+<p>The run itself failed, in a way resubmitting unchanged repeats. The job was accepted and ran, and a node &mdash; or the run around the nodes &mdash; ended in failure: a tool or flow failure, or a deployment time or memory limit, a queued job&rsquo;s included, with <code>detail</code> naming the limit.</p>
 <h2>What to do</h2>
 
 <div class="do">

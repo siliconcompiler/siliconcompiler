@@ -8,7 +8,13 @@ or a request member or query parameter this contract does not define &mdash; whi
 ignored, so a misspelled filter cannot read as an answer.</p>
 <p>That includes a member the server owns, such as <code>archived_at</code> or <code>id</code>,
 which a request never carries, and a <code>design</code>, <code>jobname</code>, <code>flow</code>,
-step or index outside <code>[A-Za-z0-9][A-Za-z0-9._-]{0,99}</code>.</p>
+step or index outside <code>[A-Za-z0-9][A-Za-z0-9._-]{0,99}</code>; a <code>limit</code> or
+<code>cursor</code> that appears more than once; a <code>descriptor.needs</code> string outside
+<code>[a-z0-9][a-z0-9._-]{0,63}</code>; a <code>subject_token</code> that is not a compact JWT or is
+over 4096 characters; a <code>machine_id_hash</code> and <code>machine_id_source</code> that
+disagree, or are malformed; and an id sent to <code>POST /v1/auth/browser</code> that is not 1 to
+200 printable characters. An endpoint that takes a token answers <code>401</code> before it checks
+the request, so a malformed request with no credential is never this type.</p>
 <p>At <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> a malformed request is
 <code>invalid_request</code>, in the OAuth shape, and an unknown parameter is ignored &mdash; except
 <code>actor_token</code>, <code>audience</code> and <code>resource</code> sent with a value, which are

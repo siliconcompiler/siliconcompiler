@@ -8,6 +8,9 @@ job&rsquo;s work or a node&rsquo;s, a queued job included; a node was preempted;
 failed; or its image could not be pulled. One interrupted node fails the whole job with this
 type.</p>
 
+<p>A queued job that ends <code>failed</code> carries this type when the scheduler lost it, and
+<a href="run-failed.html"><code>run-failed</code></a> when a deployment limit ended it.</p>
+
 <p>It covers what <code>scheduler-lost</code> meant, which is retired and never raised again.</p>
 
 <h2>What to do</h2>
