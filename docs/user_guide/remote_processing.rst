@@ -290,9 +290,11 @@ Python it has.
 here was built for your machine, so a package with a compiled extension cannot
 go up as one. Publish a wheel of it built for the server's platform to one of
 the server's indexes, and the client lists it like any other package. The server
-installs binary wheels: a package its indexes offer only as a source
-distribution is asked of the client where it is pure Python, and refused where
-it is compiled, unless the deployment's operator lets it build from source.
+installs binary wheels. A package its indexes offer only as a source
+distribution is built from source on the server where your account holds
+``python-sdist``. Otherwise, where you may upload wheels, it is asked of the
+client, which uploads it where it is pure Python and cancels the job where it is
+compiled; where you may not, the job is refused as uninstallable.
 
 A deployment may also grant these per account, as capabilities in
 ``GET /v1/me``: ``python-packages`` to have packages installed, and
