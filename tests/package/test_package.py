@@ -2202,6 +2202,23 @@ def test_python_path_resolver_python_plus(editable, path):
         assert resolver.get_path(missing_ok=True) == path
 
 
+@pytest.mark.parametrize("editable,path", [
+    (True, os.path.dirname(os.path.dirname(siliconcompiler.__file__))),
+    (False, "git+https://github.com/me/mylib.git@v1.0"),
+])
+def test_python_path_resolver_set_dataroot_checkout(editable, path):
+    """A package whose data stays in its repository roots it at the checkout above the
+    module: the checkout where editable, the repository fetched at the tag elsewhere."""
+    design = Design("testdesign")
+    PythonPathResolver.set_dataroot(design, "mylib", "siliconcompiler",
+                                    "git+https://github.com/me/mylib.git",
+                                    alternative_ref="v1.0", python_module_path_append="..")
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=editable), \
+            patch.object(GitResolver, "get_path", autospec=True,
+                         side_effect=lambda git, missing_ok=False: f"{git.source}@{git.reference}"):
+        assert design.get_dataroot("mylib", missing_ok=True) == path
+
+
 @pytest.mark.parametrize("source,remote", [
     ("python+https://example.com/ip/?python=mylib", "https://example.com/ip/v1.0.tar.gz"),
     ("python+https://example.com/ip.tar.gz?v=1&python=mylib#top",
