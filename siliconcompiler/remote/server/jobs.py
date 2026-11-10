@@ -302,8 +302,10 @@ class Jobs:
                 raise ProblemError("archive-rejected", reason=e.reason,
                                    detail=e.detail) from None
         except ProblemError as e:
-            if self.move(job_id, ("staging",), "rejected", error=json.dumps(e.body())):
-                shutil.rmtree(self.root(job["user_id"], job_id), ignore_errors=True)
+            # Before the job reads as rejected, so no reader sees it ended with its
+            # tree still there. Nothing was dispatched, so a cancel meanwhile needs none.
+            shutil.rmtree(self.root(job["user_id"], job_id), ignore_errors=True)
+            self.move(job_id, ("staging",), "rejected", error=json.dumps(e.body()))
         except Exception as e:                                   # noqa: BLE001
             logger.exception(f"staging {job_id} failed")
             detail = str(e) if isinstance(e, DispatchError) else type(e).__name__
