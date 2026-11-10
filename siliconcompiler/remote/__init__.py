@@ -4,6 +4,7 @@ Remote execution over the `v1` API: the client here, the server in
 when `option,remote` is set.
 '''
 
+from siliconcompiler._common import NodeStatus as _SCNodeStatus
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.scheduler.error import SCRuntimeError
 from siliconcompiler.scheduler.send_messages import SummaryEmailListener
@@ -84,12 +85,17 @@ __all__ = [
 ]
 
 
+class _NodeStatus(_SCNodeStatus):
+    '''The deprecated `siliconcompiler.remote.NodeStatus`, which also named the old
+    server's state for a node it had finished.'''
+    UPLOADED = 'uploaded'
+
+
 def __getattr__(name):
     if name == "NodeStatus":
         import warnings
-        from siliconcompiler import NodeStatus
 
         warnings.warn("siliconcompiler.remote.NodeStatus is deprecated. Please use "
                       "siliconcompiler.NodeStatus instead.", DeprecationWarning, stacklevel=2)
-        return NodeStatus
+        return _NodeStatus
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

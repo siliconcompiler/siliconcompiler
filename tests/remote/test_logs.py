@@ -166,11 +166,20 @@ def test_a_running_node_sends_whole_lines_and_leaves_the_rest_for_later(log):
     tree, path = log
     path.write_bytes("na\u00efve\nhalf a li".encode())
 
-    found = run_stream(tree, path, ["running"])
+    found = run_stream(tree, path, ["running"], deadline=time.time() + 0.6)
 
     assert [(event, ident) for event, ident, _ in found] == [("log", "7"), ("end", None)]
     assert found[0][2]["text"] == "na\u00efve\n"
     assert found[1][2] == {"reason": "expired"}
+
+
+def test_an_expired_stream_sends_no_more_log_even_with_some_waiting(log):
+    '''The deadline is checked before every batch, so a log that never goes idle cannot
+    outlast the capability.'''
+    tree, path = log
+    path.write_bytes(b"line\n" * 10)
+
+    assert run_stream(tree, path, ["running"]) == [("end", None, {"reason": "expired"})]
 
 
 def test_a_node_that_ends_is_drained_to_its_last_unterminated_line(log):
@@ -189,7 +198,7 @@ def test_a_line_longer_than_a_chunk_is_never_split_inside_a_character(log, monke
     monkeypatch.setattr(logstream, "MAX_CHUNK", 8)
     path.write_bytes("\u00e9".encode() * 9)
 
-    found = run_stream(tree, path, ["completed"])
+    found = run_stream(tree, path, ["completed"], deadline=time.time() + 60)
 
     assert [d["text"] for e, _, d in found if e == "log"] == ["\u00e9" * 4, "\u00e9" * 4,
                                                               "\u00e9"]

@@ -19,7 +19,9 @@ __all__ = ["create_app"]
 
 logger = logging.getLogger("sc-server")
 
-_HTTP_SLUGS = {404: "not-found", 405: "method-not-allowed"}
+# A framework refusal whose status has a type of its own; any other 4xx is invalid-request.
+_HTTP_SLUGS = {404: "not-found", 405: "method-not-allowed", 406: "not-acceptable",
+               413: "upload-too-large", 415: "unsupported-media-type"}
 
 _OAUTH_PATHS = ("/v1/auth/token", "/v1/auth/device")
 

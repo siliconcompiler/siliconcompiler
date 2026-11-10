@@ -59,6 +59,11 @@ def events(tree: Path, path: Path, step: str, index: str, node_state, artifact_i
     yield f"retry: {RETRY_MS}\n\n".encode()
 
     while True:
+        # Before every batch: a log that never goes idle still ends with its capability.
+        if time.time() >= deadline:
+            yield _event("end", {"reason": "expired"})
+            return
+
         # Before reading, so a node that ends meanwhile is drained by the next pass.
         if asked is None or time.monotonic() - asked >= STATE_SECONDS:
             state, asked = node_state(), time.monotonic()
@@ -83,10 +88,6 @@ def events(tree: Path, path: Path, step: str, index: str, node_state, artifact_i
             yield _event("node_state", {"step": step, "index": index, "state": state,
                                         "terminal": True, **named})
             yield _event("end", {"reason": "terminal", **named})
-            return
-
-        if time.time() >= deadline:
-            yield _event("end", {"reason": "expired"})
             return
 
         if time.monotonic() - last >= KEEPALIVE_SECONDS:

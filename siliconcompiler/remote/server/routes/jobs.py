@@ -22,13 +22,16 @@ def _jobs():
 
 
 def _body(defines=()) -> dict:
-    '''The request's JSON, or nothing: every body here is optional or checked field by
-    field, and holds only the members it ``defines``.'''
-    body = flask.request.get_json(silent=True)
-    if body is not None and not isinstance(body, dict):
+    '''The request's JSON, or nothing for an empty body: every body here is optional or
+    checked field by field, and holds only the members it ``defines``.'''
+    if not flask.request.get_data(cache=True):
+        return {}
+    # Not silent: a body that is not JSON is refused, not taken for no body.
+    body = flask.request.get_json()
+    if not isinstance(body, dict):
         raise ProblemError("invalid-request", detail="the body must be a JSON object")
-    refuse_undefined(body or {}, defines, "this request")
-    return body or {}
+    refuse_undefined(body, defines, "this request")
+    return body
 
 
 @blueprint.route("/v1/jobs", methods=["POST"])

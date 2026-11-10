@@ -244,9 +244,18 @@ class Jobs:
 
         self._receiving.add(job_id)
         try:
-            # Kept for submit, which a client waiting for a slot repeats every few seconds.
-            self.store.execute("UPDATE jobs SET received_digest = ? WHERE id = ?",
-                               (self.storage.receive(job_id, stream, int(size)), job_id))
+            with self.storage.receive(job_id, stream, int(size)) as (digest, publish):
+                # Submit's lock: the bytes and their digest change together, and
+                # never once the job is submitted.
+                with self._claim:
+                    if self.row(job_id)["state"] != "created":
+                        raise ProblemError("job-state-conflict",
+                                           detail="this job takes no upload")
+                    publish()
+                    # Kept for submit, which a client waiting for a slot repeats
+                    # every few seconds.
+                    self.store.execute("UPDATE jobs SET received_digest = ? WHERE id = ?",
+                                       (digest, job_id))
         except OverflowError as e:
             raise ProblemError("upload-too-large", detail=str(e)) from None
         except ValueError as e:
@@ -260,20 +269,24 @@ class Jobs:
         self.store.execute("UPDATE jobs SET active_at = ? WHERE id = ?", (time.time(), job_id))
 
     def submit(self, session, job_id: str) -> Dict[str, Any]:
-        job = self.owned(session, job_id)
-        if job["state"] != "created" or not self.storage.upload_path(job_id).is_file():
-            raise ProblemError("job-state-conflict", detail="this job holds no upload to submit")
+        # The lock an upload is published under, so what is staged is what was checked.
+        with self._claim:
+            job = self.owned(session, job_id)
+            if job["state"] != "created" or not self.storage.upload_path(job_id).is_file():
+                raise ProblemError("job-state-conflict",
+                                   detail="this job holds no upload to submit")
 
-        # Of the archive, the digest alone, and before anything is extracted.
-        if job["received_digest"] != job["upload_digest"]:
-            raise ProblemError("upload-digest-mismatch",
-                               detail="the upload is not the one its grant bound")
+            # Of the archive, the digest alone, and before anything is extracted.
+            if job["received_digest"] != job["upload_digest"]:
+                raise ProblemError("upload-digest-mismatch",
+                                   detail="the upload is not the one its grant bound")
 
-        # Before the cap: a submit waiting for a slot keeps its job.
-        self._touch(job_id)
-        if not self.move(job_id, ("created",), "staging", submitted_at=time.time(),
-                         cap=config.LIMITS["concurrent_jobs"]):
-            raise ProblemError("job-state-conflict", detail="this job was already submitted")
+            # Before the cap: a submit waiting for a slot keeps its job.
+            self._touch(job_id)
+            if not self.move(job_id, ("created",), "staging", submitted_at=time.time(),
+                             cap=config.LIMITS["concurrent_jobs"]):
+                raise ProblemError("job-state-conflict",
+                                   detail="this job was already submitted")
 
         self._staging.add(job_id)
         threading.Thread(target=self._stage, args=(job_id,), daemon=True).start()

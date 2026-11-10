@@ -7,9 +7,11 @@ credential: it names one object and an expiry.
 '''
 
 import base64
+import contextlib
 import hashlib
 import hmac
 import os
+import tempfile
 
 from pathlib import Path
 
@@ -46,18 +48,19 @@ class Storage:
     def verify(self, signature: str, *parts) -> bool:
         return hmac.compare_digest(self.sign(*parts), signature or "")
 
-    def receive(self, job_id: str, stream, size: int) -> str:
-        '''Write one upload of exactly ``size`` bytes, counting what arrives:
+    @contextlib.contextmanager
+    def receive(self, job_id: str, stream, size: int):
+        '''Receive one upload of exactly ``size`` bytes, counting what arrives:
         ``Content-Length`` is only the sender's claim. More raises OverflowError,
-        fewer ValueError. Returns its digest, taken on the way in so the upload
-        is never read again for it.'''
-        path = self.upload_path(job_id)
-        # Renamed into place, so a half-received upload never looks complete.
-        partial = path.with_name(path.name + ".part")
+        fewer ValueError. Yields its digest, taken on the way in so the upload is
+        never read again for it, and a call that makes it the job's upload; one
+        not made so is deleted.'''
+        # A file per transfer: a retried PUT can overlap the one it retries.
+        fd, partial = tempfile.mkstemp(prefix=f"{job_id}.", suffix=".part", dir=self.uploads)
         digest = hashlib.sha256()
         written = 0
         try:
-            with open(partial, "wb") as f:
+            with os.fdopen(fd, "wb") as f:
                 while True:
                     chunk = stream.read(_CHUNK)
                     if not chunk:
@@ -69,10 +72,11 @@ class Storage:
                     f.write(chunk)
             if written != size:
                 raise ValueError(f"the upload is {written} bytes and was granted {size}")
-            os.replace(partial, path)
+            # Renamed into place, so a half-received upload never looks complete.
+            yield (f"sha256:{digest.hexdigest()}",
+                   lambda: os.replace(partial, self.upload_path(job_id)))
         finally:
-            partial.unlink(missing_ok=True)
-        return f"sha256:{digest.hexdigest()}"
+            Path(partial).unlink(missing_ok=True)
 
     def discard(self, job_id: str) -> None:
         self.upload_path(job_id).unlink(missing_ok=True)

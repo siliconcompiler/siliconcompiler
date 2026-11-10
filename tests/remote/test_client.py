@@ -53,7 +53,6 @@ def test_a_username_and_password_in_an_address_are_dropped():
 
 
 @pytest.mark.parametrize("module,name,moved", [
-    ("siliconcompiler.remote", "NodeStatus", "siliconcompiler"),
     ("siliconcompiler.remote.client", "ClientScheduler", "siliconcompiler.remote"),
     ("siliconcompiler.remote.client", "remote_step_name", "siliconcompiler.remote"),
 ])
@@ -64,6 +63,15 @@ def test_a_moved_name_still_imports_and_warns(module, name, moved):
     with pytest.warns(DeprecationWarning, match=f"{moved}.{name}"):
         found = getattr(importlib.import_module(module), name)
     assert found is getattr(importlib.import_module(moved), name)
+
+
+def test_the_old_node_status_warns_and_keeps_its_uploaded_member():
+    '''The old class added UPLOADED to the core NodeStatus, which has no such member.'''
+    from siliconcompiler import NodeStatus
+
+    with pytest.warns(DeprecationWarning, match="siliconcompiler.NodeStatus"):
+        from siliconcompiler.remote import NodeStatus as OldNodeStatus
+    assert issubclass(OldNodeStatus, NodeStatus) and OldNodeStatus.UPLOADED == "uploaded"
 
 
 def test_a_client_without_a_server_builds_and_says_so(caplog):

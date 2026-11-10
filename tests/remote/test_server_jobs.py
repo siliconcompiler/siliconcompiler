@@ -1,7 +1,11 @@
+import hashlib
+import io
 import json
 import os
 import tarfile
 import threading
+
+from urllib.parse import parse_qsl, urlsplit
 
 import pytest
 
@@ -301,6 +305,76 @@ def test_a_job_with_no_upload_cannot_be_submitted(api):
     job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
 
     assert slug(api("POST", f"/v1/jobs/{job['id']}/submit", json={})) == "job-state-conflict"
+
+
+def _receive_args(api, job_id, digest, size):
+    '''The query of a grant's signed PUT, for `Jobs.receive`.'''
+    url = api("POST", f"/v1/jobs/{job_id}/upload-grant",
+              json={"size_bytes": size, "digest": digest}).get_json()["url"]
+    return dict(parse_qsl(urlsplit(url).query))
+
+
+def test_overlapping_uploads_leave_bytes_that_match_the_recorded_digest(server, api):
+    '''A retried PUT can overlap the one it retries: each writes a file of its own, and
+    the bytes and their digest are published together.'''
+    jobs = server.config["SC_JOBS"]
+    job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    args = _receive_args(api, job["id"], "sha256:" + "0" * 64, 10)
+
+    class Overtaken(io.BytesIO):
+        def read(self, size=-1):
+            if self.tell() == 5:
+                jobs.receive(job["id"], args, io.BytesIO(b"b" * 10))
+            return super().read(5)
+
+    jobs.receive(job["id"], args, Overtaken(b"a" * 10))
+
+    published = jobs.storage.upload_path(job["id"]).read_bytes()
+    assert jobs.row(job["id"])["received_digest"] == \
+        f"sha256:{hashlib.sha256(published).hexdigest()}"
+    assert [p.name for p in jobs.storage.uploads.iterdir()] == [job["id"]]
+
+
+def test_an_upload_still_arriving_when_its_job_is_submitted_is_refused(
+        server, server_client, api, dispatcher, job_archive):
+    '''What is staged is the upload submit checked: a later one is not published.'''
+    from siliconcompiler.remote.server.errors import ProblemError
+
+    jobs = server.config["SC_JOBS"]
+    job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    archive = job_archive()
+    assert upload(server_client, api, job["id"], archive).status_code == 204
+    args = _receive_args(api, job["id"], *archive[1:])
+
+    class Overtaken(io.BytesIO):
+        def read(self, size=-1):
+            if not self.tell():
+                assert api("POST", f"/v1/jobs/{job['id']}/submit", json={}).status_code == 202
+            return super().read(size)
+
+    with pytest.raises(ProblemError) as refused:
+        jobs.receive(job["id"], args, Overtaken(b"x" * archive[2]))
+
+    assert refused.value.error.slug == "job-state-conflict"
+    assert settle(api, job["id"])["state"] == "queued"
+
+
+@pytest.mark.parametrize("body, status, expected", [
+    (dict(data="{", content_type="application/json"), 400, "invalid-request"),
+    (dict(json=["stop"]), 400, "invalid-request"),
+    (dict(data="{}", content_type="text/plain"), 415, "unsupported-media-type"),
+], ids=["malformed", "not-an-object", "not-json"])
+@pytest.mark.parametrize("action", ["submit", "cancel"])
+def test_a_body_that_is_not_a_json_object_is_refused_not_taken_as_none(
+        server_client, api, job_archive, action, body, status, expected):
+    '''Only an empty body is no body, so a malformed one neither submits nor cancels.'''
+    job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    assert upload(server_client, api, job["id"], job_archive()).status_code == 204
+
+    response = api("POST", f"/v1/jobs/{job['id']}/{action}", **body)
+
+    assert (response.status_code, slug(response)) == (status, expected)
+    assert get(api, job)["state"] == "created"
 
 
 @pytest.mark.parametrize("kind, jobname, expected, reason", [

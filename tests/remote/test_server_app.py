@@ -44,6 +44,14 @@ def test_a_refusal_is_problem_json_with_a_help_link(server_client, method, path,
     assert response.headers["Cache-Control"] == "private, no-store"
 
 
+def test_a_framework_refusal_takes_the_type_registered_for_its_status(server_client):
+    '''Werkzeug's own 413, for a form over its limit, is upload-too-large, not
+    invalid-request.'''
+    response = server_client.post("/v1/auth/token", data={"grant_type": "x" * 600_000})
+
+    assert (response.status_code, slug(response)) == (413, "upload-too-large")
+
+
 def test_a_crash_is_an_untyped_500_that_is_logged(server, server_client, caplog):
     '''A client retries an untyped 5xx, and would not retry what reads as its own invalid
     request.'''
