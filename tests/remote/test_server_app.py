@@ -2,6 +2,8 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
+import flask  # noqa: E402
+
 from siliconcompiler import __version__  # noqa: E402
 from siliconcompiler.remote.server.errors import ERRORS, problem  # noqa: E402
 
@@ -47,12 +49,20 @@ def test_a_refusal_is_problem_json_with_a_help_link(server_client, method, path,
     assert response.headers["Cache-Control"] == "private, no-store"
 
 
-def test_a_framework_refusal_takes_the_type_registered_for_its_status(server_client):
-    '''Werkzeug's own 413, for a form over its limit, is upload-too-large, not
-    invalid-request.'''
-    response = server_client.post("/v1/auth/token", data={"grant_type": "x" * 600_000})
+@pytest.mark.parametrize("status, expected", [
+    (406, "not-acceptable"), (413, "upload-too-large"), (415, "unsupported-media-type"),
+])
+def test_a_framework_refusal_takes_the_type_registered_for_its_status(server, server_client,
+                                                                      status, expected):
+    '''A refusal Flask or Werkzeug raises is not invalid-request where its status has a
+    type of its own.'''
+    @server.route("/v1/refuse")
+    def refuse():
+        flask.abort(status)
 
-    assert (response.status_code, slug(response)) == (413, "upload-too-large")
+    response = server_client.get("/v1/refuse")
+
+    assert (response.status_code, slug(response)) == (status, expected)
 
 
 def test_a_crash_is_an_untyped_500_that_is_logged(server, server_client, caplog):
