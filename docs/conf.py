@@ -15,11 +15,14 @@ import importlib
 import json
 import re
 import sys
+import time
 
 import os
 import os.path
 
 from datetime import date
+
+import sphinx.util.requests
 
 sc_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, sc_root)
@@ -288,6 +291,26 @@ linkcheck_timeout = 15
 # External links flake, so linkcheck runs on a schedule rather than per-PR --
 # see .github/workflows/docs.yml.
 linkcheck_retries = 2
+
+
+# A gateway error (502, 504) is a server failing to answer, not a broken link.
+# Sphinx already declines to call a 503 broken for that reason, but reports these,
+# and makes its linkcheck_retries attempts back to back -- all inside the same
+# burst. Issue #5635 was two GitHub repository pages that answered 504 to every
+# attempt while the pages checked around them loaded. Retry once after a pause;
+# a link still failing is reported as before. This is the session Sphinx makes
+# every request with, so the intersphinx fetch gets the retry too.
+class _GatewayRetrySession(sphinx.util.requests._Session):
+    def request(self, *args, **kwargs):
+        response = super().request(*args, **kwargs)
+        if response.status_code not in (502, 504):
+            return response
+        response.close()
+        time.sleep(30)
+        return super().request(*args, **kwargs)
+
+
+sphinx.util.requests._Session = _GatewayRetrySession
 
 # GitHub rewrites Markdown heading anchors to "user-content-*" in the HTML it
 # serves and restores the original ids client-side. linkcheck fetches the raw
