@@ -6,6 +6,7 @@ import sys
 import tarfile
 
 from importlib import metadata
+from pathlib import Path
 
 import pytest
 import responses
@@ -43,10 +44,10 @@ def _distribution(site, name, version, requires=(), editable_source=None, archiv
                         + "".join(f"Requires-Dist: {one}\n" for one in requires),
             "top_level.txt": f"{name}\n", "INSTALLER": "pip\n"}
     if editable_source:
-        meta["direct_url.json"] = json.dumps({"url": f"file://{editable_source}",
+        meta["direct_url.json"] = json.dumps({"url": Path(editable_source).as_uri(),
                                               "dir_info": {"editable": True}})
     elif archive:
-        meta["direct_url.json"] = json.dumps({"url": f"file://{archive}", "archive_info": {}})
+        meta["direct_url.json"] = json.dumps({"url": Path(archive).as_uri(), "archive_info": {}})
     record = [f"{name}-{version}.dist-info/{entry},," for entry in
               ("METADATA", "top_level.txt", "INSTALLER", "RECORD")]
     if not editable_source:
@@ -323,7 +324,7 @@ def cocotb_project(test_body, helpers=None):
     open("bench/test_gcd.py", "w").write(test_body)
     for name, body in (helpers or {}).items():
         os.makedirs(os.path.dirname(os.path.join("bench", name)) or "bench", exist_ok=True)
-        open(os.path.join("bench", name), "w").write(body)
+        open(os.path.join("bench", name), "w", newline="\n").write(body)
 
     design = Design("gcd")
     design.set_dataroot("bench", os.path.abspath("bench"))

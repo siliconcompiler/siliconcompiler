@@ -10,7 +10,10 @@ from siliconcompiler.remote import Client, Credentials
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
 
-from conftest import write_progress
+from conftest import posix_server, write_progress
+
+
+pytestmark = posix_server
 
 
 pytest.importorskip("flask", reason="the server extra is not installed")

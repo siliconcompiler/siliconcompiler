@@ -49,6 +49,7 @@ The table says whether a value MAY go up; the flow says whether it is NEEDED
 import functools
 import os
 
+from pathlib import Path
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from siliconcompiler.remote.environment import canonical
@@ -488,7 +489,8 @@ def upload_report(values: List[_Value], collection_dir) \
     counted: Set[Tuple[int, int]] = set()
     for one in values:
         path = _in_collection(one, collection_dir)
-        if not path or not path.startswith(str(collection_dir)):
+        # Not a string prefix: on Windows one side can hold the builddir's forward slashes.
+        if not path or not Path(path).is_relative_to(collection_dir):
             continue
         size, files = _weigh(path, counted)
         if not files:

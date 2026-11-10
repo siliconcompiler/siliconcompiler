@@ -15,7 +15,11 @@ from siliconcompiler.remote.server import config  # noqa: E402
 from siliconcompiler.remote.server.running import runspec  # noqa: E402
 from siliconcompiler.remote.server.staging.archive import ArchiveRejected, extract  # noqa: E402
 
-from conftest import finish, raw_archive, settle, slug, upload, write_progress  # noqa: E402
+from conftest import (  # noqa: E402
+    finish, posix_server, raw_archive, settle, slug, upload, write_progress)
+
+
+pytestmark = posix_server
 
 
 LIMITS = {"max_archive_members": 100, "max_archive_expanded_bytes": 1 << 20}

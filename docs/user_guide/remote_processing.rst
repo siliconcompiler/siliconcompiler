@@ -568,7 +568,8 @@ For Developers: Custom Servers
 ------------------------------
 
 SiliconCompiler ships a small server of its own, enough to test the client
-against and to run jobs on one machine or a small Slurm cluster.
+against and to run jobs on one machine or a small Slurm cluster. It runs on
+Linux and macOS, not Windows; the client runs on all three.
 
 .. code-block:: bash
 

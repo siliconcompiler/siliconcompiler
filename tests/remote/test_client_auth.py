@@ -1038,6 +1038,7 @@ def tls_server(capabilities, client_credentials, monkeypatch):
     '''A v1 server over real TLS on this machine, its certificate signed by an
     authority of its own; yields its address and that authority's file.'''
     import http.server
+    import socketserver
     import ssl
     import threading
     from pathlib import Path
@@ -1068,7 +1069,8 @@ def tls_server(capabilities, client_credentials, monkeypatch):
         def log_message(self, *args):
             pass
 
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    # Not ThreadingHTTPServer, whose bind looks the address up and stalls on macOS runners.
+    server = socketserver.ThreadingTCPServer(("127.0.0.1", 0), Handler)
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(str(certificate), str(key))
     server.socket = context.wrap_socket(server.socket, server_side=True)

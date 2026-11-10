@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 
 import pytest
 import requests
@@ -1136,7 +1137,7 @@ def _upstream_node(project, step, *, output=None, fetched_from=None, remoteid=No
     if fetched_from:
         record_job(os.path.dirname(outputs), fetched_from)
     if output:
-        with open(os.path.join(outputs, output), "w") as f:
+        with open(os.path.join(outputs, output), "w", newline="\n") as f:
             f.write("module gcd; endmodule\n")
     return outputs
 
@@ -1809,7 +1810,7 @@ def test_a_link_out_of_the_build_directory_is_stored_once_where_it_first_appears
     name holds the bytes and a later one points at it.'''
     outside = tmp_path / "elsewhere"
     outside.mkdir()
-    (outside / "cells.lib").write_text("the foundry's own\n")
+    (outside / "cells.lib").write_bytes(b"the foundry's own\n")
     outputs = _upstream_node(nop_project, "stepone", output="gcd.vg")
     os.symlink(str(outside / "cells.lib"), os.path.join(outputs, "lib"))
     os.symlink(str(outside), os.path.join(outputs, "libs"))
@@ -1858,7 +1859,8 @@ def test_a_dangling_upstream_link_stops_the_run_before_create(run, nop_project, 
     _upstream_node(nop_project, "steptwo", output="own.vg")
     os.symlink(target, os.path.join(two, "outputs", "gcd.vg"))
 
-    with pytest.raises(RemoteError, match="steptwo/0/outputs/gcd.vg is a link to"):
+    named = re.escape(os.path.join("steptwo", "0", "outputs", "gcd.vg"))
+    with pytest.raises(RemoteError, match=f"{named} is a link to"):
         run._check_dangling()
 
 

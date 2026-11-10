@@ -6,7 +6,10 @@ import pytest
 
 pytest.importorskip("flask", reason="the server extra is not installed")
 
-from conftest import finish, proof, slug  # noqa: E402
+from conftest import finish, posix_server, proof, slug  # noqa: E402
+
+
+pytestmark = posix_server
 
 
 def handover(server, send, **body):

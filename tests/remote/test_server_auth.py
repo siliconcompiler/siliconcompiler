@@ -6,7 +6,10 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 
 from siliconcompiler.remote import dpop  # noqa: E402
 
-from conftest import call, login, proof, slug  # noqa: E402
+from conftest import call, login, posix_server, proof, slug  # noqa: E402
+
+
+pytestmark = posix_server
 
 
 def _refresh(client, key, refresh_token, signed_with=None):

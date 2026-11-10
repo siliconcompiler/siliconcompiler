@@ -5,7 +5,10 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 from siliconcompiler import __version__  # noqa: E402
 from siliconcompiler.remote.server.errors import ERRORS, problem  # noqa: E402
 
-from conftest import slug  # noqa: E402
+from conftest import posix_server, slug  # noqa: E402
+
+
+pytestmark = posix_server
 
 
 def test_the_capabilities_have_the_shape_the_client_reads(server_client, capabilities):

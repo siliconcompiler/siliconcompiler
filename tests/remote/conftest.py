@@ -1,6 +1,7 @@
 import json
 import os
 import stat
+import sys
 
 import pytest
 import responses
@@ -427,6 +428,9 @@ def job_archive(nop_project):
 
 
 BASE = "http://localhost"
+
+# The v1 server confines what it reads with POSIX-only calls (O_NOFOLLOW, dir_fd).
+posix_server = pytest.mark.skipif(sys.platform == "win32", reason="the v1 server is POSIX-only")
 
 
 @pytest.fixture

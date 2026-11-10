@@ -12,7 +12,10 @@ pytest.importorskip("flask", reason="the server extra is not installed")
 
 from siliconcompiler.remote.server.outputs import confine  # noqa: E402
 
-from conftest import finish, slug, write_progress  # noqa: E402
+from conftest import finish, posix_server, slug, write_progress  # noqa: E402
+
+
+pytestmark = posix_server
 
 
 @pytest.fixture
