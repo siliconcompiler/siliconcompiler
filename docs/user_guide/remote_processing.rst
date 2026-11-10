@@ -305,7 +305,8 @@ nothing, and ``python.env`` alone decides.
 The client stops before creating the job if a package it would send as a wheel,
 or a helper module, holds a compiled extension (``.so``, ``.pyd``, ``.dylib``),
 if a wheel holds a file that runs by itself (a ``.pth``, a
-``sitecustomize.py``) or depends on a package by URL, if a wheel will not build,
+``sitecustomize.py``) or a top-level module named as one of the standard
+library's (``encodings/``, ``os.py``), or depends on a package by URL, if a wheel will not build,
 if two sources would supply the same file, if a node that runs your Python
 cannot be set up on your machine, if the job has packages to install and the
 server does not offer ``python.env``, or if your account lacks a capability the

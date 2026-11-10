@@ -1726,7 +1726,12 @@ neither: those travel as ordinary collected files.
   distribution installed editable, from a local path or file, or from version
   control. It is pure (``none-any``, no ``.so``, ``.pyd`` or ``.dylib``), holds
   no ``.pth``, ``sitecustomize.py``, ``usercustomize.py`` or ``<name>.data/``,
-  depends on no URL, and overlaps nothing listed or in the image. Otherwise it
+  and no top-level module named as one of the standard library's
+  (``sys.stdlib_module_names``: ``encodings/``, ``os.py``, ``json/__init__.py``,
+  a ``.pyc`` or an extension module of that name; matched at the wheel's root,
+  case-sensitively, so ``jsonschema/`` and ``mypkg/json.py`` pass), since the
+  environment is on the tool's ``PYTHONPATH`` ahead of the standard library and
+  such a module would run in its place. It depends on no URL, and overlaps nothing listed or in the image. Otherwise it
   is ``archive-rejected``, ``reason: "python_package"``.
 * **A version no index has** sends the job back with
   ``{"kind": "python", "name": ...}``, and the client answers with a wheel at

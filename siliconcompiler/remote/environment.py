@@ -8,7 +8,9 @@ A wheel is pure or refused (:func:`check_wheel`).
 
 import email.parser
 import os
+import re
 import stat
+import sys
 import zipfile
 
 from typing import NamedTuple, Optional
@@ -79,7 +81,9 @@ def check_wheel(path) -> Wheel:
     ``.dist-info``. Reads only; runs nothing.
 
     Nothing that runs by itself and no dependency by URL: a
-    ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory
+    ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory,
+    a top-level module named as one of the standard library's (``encodings/``,
+    ``os.py``), which the environment on ``PYTHONPATH`` would run in its place,
     or a ``name @ url`` requirement would let installing run or fetch code.
     '''
     filename = os.path.basename(str(path))
@@ -124,6 +128,11 @@ def check_wheel(path) -> Wheel:
             if parts[0].endswith(".data"):
                 raise WheelError(f"{filename} holds {parts[0]}/, which installs outside "
                                  "the package")
+            shadowed = _shadowed(parts)
+            if shadowed:
+                raise WheelError(f"{filename} holds {member}, a top-level {shadowed} "
+                                 "module, which would run in place of the standard "
+                                 "library's at every start of Python")
             if member.lower().endswith(COMPILED):
                 raise WheelError(f"{filename} holds a compiled file, {member}, which "
                                  "will not import on another machine", compiled=member)
@@ -186,6 +195,20 @@ def check_wheel(path) -> Wheel:
 
 # What runs in any Python that merely starts with a wheel on its path.
 _RUNS_AT_START = ("sitecustomize.py", "usercustomize.py")
+
+# What follows a module's name in a file that imports as it: source, bytecode or extension.
+_MODULE_SUFFIX = re.compile(r"(?:py|pyc|(?:[^.]+\.)*(?:so|pyd))$")
+
+
+def _shadowed(parts: list[str]) -> Optional[str]:
+    '''The standard library module that a wheel member at ``parts`` is at the top level
+    as, if any. Case-sensitive, as imports are; the client's list is the target's, since
+    a job names the client's own Python version.'''
+    if len(parts) == 1:
+        name, _, rest = parts[0].partition(".")
+        return name if name in sys.stdlib_module_names and _MODULE_SUFFIX.fullmatch(rest) \
+            else None
+    return parts[0] if parts[0] in sys.stdlib_module_names else None
 
 
 def _direct_reference(requirement: str) -> bool:

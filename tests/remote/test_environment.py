@@ -43,6 +43,18 @@ def test_a_pure_wheel_is_taken(tmp_path):
         tmp_path, "scfake", "1.0", files={"scfake/sitecustomize.py": ""})).name == "scfake"
 
 
+@pytest.mark.parametrize("files", [
+    {"jsonschema/__init__.py": ""},
+    {"mypkg/json.py": ""},
+    {"mypkg/os/__init__.py": ""},
+    {"JSON/__init__.py": ""},
+    {"json.txt": ""},
+])
+def test_a_wheel_not_shadowing_the_standard_library_is_taken(tmp_path, files):
+    """Only a top-level, case-exact stdlib module name is refused."""
+    assert environment.check_wheel(make_wheel(tmp_path, "scfake", "1.0", files=files))
+
+
 @pytest.mark.parametrize("change,why", [
     (dict(tag="cp312-cp312-linux_x86_64"), "only a pure wheel"),
     (dict(files={"scfake/_c.so": "\x7fELF"}), "compiled file"),
@@ -56,6 +68,11 @@ def test_a_pure_wheel_is_taken(tmp_path):
     (dict(files={"scfake/nested.pth": "import os\n"}), "a .pth file"),
     (dict(files={"sitecustomize.py": "print('hello')\n"}), "runs in any Python"),
     (dict(files={"usercustomize.py": "print('hello')\n"}), "runs in any Python"),
+    (dict(files={"encodings/__init__.py": ""}), "top-level encodings module"),
+    (dict(files={"os.py": ""}), "top-level os module"),
+    (dict(files={"json/__init__.py": ""}), "top-level json module"),
+    (dict(files={"json.pyc": "x"}), "top-level json module"),
+    (dict(files={"json.cpython-312-x86_64-linux-gnu.so": "x"}), "top-level json module"),
     (dict(files={"scfake-1.0.data/scripts/run": "#!/bin/sh\n"}), "installs outside"),
     (dict(requires=["scfake-bits @ https://example.test/bits.whl"]), "dependency by URL"),
     (dict(requires=["scfake-bits @ file:///home/someone/bits"]), "dependency by URL"),
