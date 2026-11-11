@@ -585,7 +585,7 @@
   },
   "sby": {
     "git-url": "https://github.com/YosysHQ/sby.git",
-    "git-commit": "v0.68",
+    "git-commit": "v0.71",
     "docker-depends": "yosys",
     "build-depends": [
       "bitwuzla",
