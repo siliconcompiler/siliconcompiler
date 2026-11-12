@@ -552,6 +552,8 @@ class Jobs:
 
     def artifacts(self, session, job_id: str, args) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         '''A job's artifacts, filtered by kind, step and index, over a cursor on the row order.'''
+        refuse_undefined(args, ("kind", "step", "index", "limit", "cursor"),
+                         "GET /v1/jobs/{id}/artifacts")
         job = self.current(session, job_id)
         if job["deleted_at"]:
             raise ProblemError("not-found", detail="no such job")
@@ -580,6 +582,9 @@ class Jobs:
 
     def listing(self, session, args) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         '''The caller's jobs, newest first, over a keyset cursor on ``(created_at, id)``.'''
+        # The contract's flow, project, mine and archived too: refused, never ignored.
+        refuse_undefined(args, ("state", "design", "jobname", "terminal", "limit", "cursor"),
+                         "GET /v1/jobs")
         where, params = ["user_id = ?", "deleted_at IS NULL"], [session.user_id]
         for name in ("state", "design", "jobname"):
             if args.getlist(name):

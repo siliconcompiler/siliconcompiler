@@ -15,7 +15,7 @@ LIMITS = {
     "max_job_nodes": 1000,
     "max_upload_bytes": 1 << 30,
     "artifact_retention_seconds": 30 * 86400,
-    "pending_uploads": 8,
+    "pending_uploads": None,
     "concurrent_jobs": 4,
     "concurrent_log_streams": 8,
     "max_archive_members": 100000,

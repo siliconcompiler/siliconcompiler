@@ -46,7 +46,9 @@ class Storage:
         return base64.urlsafe_b64encode(mac.digest()).decode().rstrip("=")
 
     def verify(self, signature: str, *parts) -> bool:
-        return hmac.compare_digest(self.sign(*parts), signature or "")
+        # compare_digest raises, rather than answers False, on a non-ASCII str.
+        return bool(signature) and signature.isascii() \
+            and hmac.compare_digest(self.sign(*parts), signature)
 
     @contextlib.contextmanager
     def receive(self, job_id: str, stream, size: int):

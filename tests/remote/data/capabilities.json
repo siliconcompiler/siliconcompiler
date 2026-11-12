@@ -10,7 +10,7 @@
     "max_job_nodes": 1000,
     "max_upload_bytes": 1073741824,
     "artifact_retention_seconds": 2592000,
-    "pending_uploads": 8,
+    "pending_uploads": null,
     "concurrent_jobs": 4,
     "concurrent_log_streams": 8,
     "max_archive_members": 100000,

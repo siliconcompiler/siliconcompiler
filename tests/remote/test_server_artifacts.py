@@ -108,6 +108,7 @@ def test_the_listing_is_paged_as_the_client_follows(server, api, dispatcher, tre
 @pytest.mark.parametrize("query, expected", [
     ("?cursor=zz", "invalid-cursor"),
     ("?step=..", "invalid-request"),
+    ("?kinds=node", "invalid-request"),
 ])
 def test_a_bad_query_is_named(api, tree, query, expected):
     refused = api("GET", f"/v1/jobs/{tree[0]['id']}/artifacts{query}")
@@ -200,7 +201,7 @@ def test_a_deleted_job_keeps_no_artifacts(server, api, dispatcher, tree):
     assert not server.config["SC_JOBS"].storage.artifact_dir(job["id"]).exists()
 
 
-@pytest.mark.parametrize("damage", ["signature", "expiry", "job"])
+@pytest.mark.parametrize("damage", ["signature", "non-ascii", "expiry", "job"])
 def test_a_signed_download_url_binds_its_object_and_expires(
         server_client, server, api, dispatcher, tree, damage):
     job, _ = tree
@@ -211,6 +212,8 @@ def test_a_signed_download_url_binds_its_object_and_expires(
     path, query = target.path, target.query
     if damage == "signature":
         query = query[:-3] + "AAA"
+    elif damage == "non-ascii":
+        query = query[:-3] + "%C3%A9"
     elif damage == "expiry":
         query = query.replace("expires=", "expires=1")
     else:

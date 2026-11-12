@@ -229,7 +229,8 @@ def test_the_listing_filters_by_name_state_and_terminal(api):
     assert listed("state=cancelled") == listed("terminal=true") == [cancelled["id"]]
     assert listed("terminal=false&design=gcd") == [created["id"]]
     assert listed("design=other") == []
-    assert slug(api("GET", "/v1/jobs?limit=many")) == "invalid-request"
+    for query in ("limit=many", "statee=cancelled", "project=p"):
+        assert slug(api("GET", f"/v1/jobs?{query}")) == "invalid-request"
 
 
 @pytest.mark.parametrize("change, status, expected", [
