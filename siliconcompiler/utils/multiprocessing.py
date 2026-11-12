@@ -896,10 +896,11 @@ class _ManagerSingleton(type):
         return _ManagerSingleton._instances[cls]
 
 
-#: Where the process that starts a manager server leaves its address, so the
-#: SiliconCompiler processes it launches join that server and share its
+#: Where the process that starts a manager server leaves its address and key, so
+#: the SiliconCompiler processes it launches join that server and share its
 #: dashboard. The value also names the host and versions, so one that travels
-#: where it cannot work, such as a cluster node, is ignored.
+#: where it cannot work, such as a cluster node, is ignored. It holds the key,
+#: so a record of the environment, such as a testcase's, leaves it out.
 MANAGER_ENVIRONMENT = "SC_MANAGER"
 
 
@@ -909,7 +910,8 @@ def _terminal_rendezvous() -> Optional[str]:
     find one manager, or None if standard output is not a terminal.
 
     It is in the user's own directory, since a client trusts the server it
-    names, and named for the host, since that directory may be shared.
+    names, and named for the host, since that directory may be shared. It holds
+    the server's key, so it is written readable by the user alone.
     """
     try:
         terminal = os.ttyname(1)
@@ -934,7 +936,12 @@ class MPManager(metaclass=_ManagerSingleton):
     #: only while one process looks for a server or starts one.
     __RENDEZVOUS_TIMEOUT: float = 10.0
     __address: Union[None, str] = None
-    __authkey: bytes = b'siliconcompiler-manager-authkey'  # arbitrary authkey value
+    #: The key of the server at ``__address``. Each server has its own, since a
+    #: server unpickles whatever a client sends once the key is proven, and a
+    #: key every server shared would let any process that reaches its socket
+    #: run code in it.
+    __authkey: Optional[bytes] = None
+    __AUTHKEY_BYTES: int = 32
 
     def __init__(self):
         """
@@ -976,11 +983,11 @@ class MPManager(metaclass=_ManagerSingleton):
         manager = None
         address = MPManager._get_manager_address()
         if address is not None:
-            manager = self.__join(SCSyncManager, address, hint=False)
+            manager = self.__join(SCSyncManager, address, MPManager.__authkey, hint=False)
         if manager is None:
-            address = MPManager._address_from_environment()
-            if address is not None:
-                manager = self.__join(SCSyncManager, address, hint=True)
+            server = MPManager._address_from_environment()
+            if server is not None:
+                manager = self.__join(SCSyncManager, *server, hint=True)
         if manager is None:
             manager = self.__join_terminal(SCSyncManager)
 
@@ -1108,6 +1115,7 @@ class MPManager(metaclass=_ManagerSingleton):
 
                 if manager.__manager_server:
                     MPManager.__address = None
+                    MPManager.__authkey = None
                     if os.environ.get(MANAGER_ENVIRONMENT) == manager.__environment:
                         del os.environ[MANAGER_ENVIRONMENT]
 
@@ -1266,12 +1274,13 @@ class MPManager(metaclass=_ManagerSingleton):
         return MPManager().__logger
 
     @staticmethod
-    def _set_manager_address(address: str) -> None:
+    def _set_manager_address(address: str, authkey: bytes) -> None:
         """
-        Set the address of the manager
+        Set the address of the manager, and the key it was started with
         """
         if MPManager.__address is None:
             MPManager.__address = address
+            MPManager.__authkey = authkey
 
     @staticmethod
     def _get_manager_address() -> Union[None, str]:
@@ -1279,6 +1288,14 @@ class MPManager(metaclass=_ManagerSingleton):
         Get the address of the manager
         """
         return MPManager.__address
+
+    @staticmethod
+    def _get_manager_authkey() -> Optional[bytes]:
+        """
+        Get the key of the manager, which a process needs with its address to
+        join it. Never record it.
+        """
+        return MPManager.__authkey
 
     @staticmethod
     def _reset_groups_after_fork() -> None:
@@ -1303,20 +1320,24 @@ class MPManager(metaclass=_ManagerSingleton):
                 f"{sys.version_info.major}.{sys.version_info.minor}"]
 
     @staticmethod
-    def __environment_value(address) -> str:
-        """The value of ``MANAGER_ENVIRONMENT`` naming the server at ``address``."""
-        return json.dumps({"address": address, "compatibility": MPManager.__compatibility()})
+    def __environment_value(address, authkey: bytes) -> str:
+        """
+        The value of ``MANAGER_ENVIRONMENT`` naming the server at ``address``,
+        started with ``authkey``.
+        """
+        return json.dumps({"address": address, "authkey": authkey.hex(),
+                           "compatibility": MPManager.__compatibility()})
 
     @staticmethod
     def _address_from_environment():
         """
-        The address in ``MANAGER_ENVIRONMENT``, if there is one this process
-        can use.
+        The address and key in ``MANAGER_ENVIRONMENT``, if there is a server
+        there this process can use.
 
         Returns:
-            The address, or None if the variable is unset, unreadable, or names
-            a server on another host or of another SiliconCompiler or Python
-            version.
+            ``(address, authkey)``, or None if the variable is unset,
+            unreadable, has no well-formed key, or names a server on another
+            host or of another SiliconCompiler or Python version.
         """
         return MPManager.__address_from_value(os.environ.get(MANAGER_ENVIRONMENT))
 
@@ -1331,20 +1352,28 @@ class MPManager(metaclass=_ManagerSingleton):
             if entry["compatibility"] != MPManager.__compatibility():
                 return None
             address = entry["address"]
+            authkey = bytes.fromhex(entry["authkey"])
         except (ValueError, KeyError, TypeError):
             return None
 
-        # JSON has no tuples, and a TCP address is one.
-        return tuple(address) if isinstance(address, list) else address
+        # Every server's key is this long; an empty one would guard nothing.
+        if len(authkey) != MPManager.__AUTHKEY_BYTES:
+            return None
 
-    def __join(self, manager_class: "Type[SyncManager]", address, hint: bool) \
-            -> Optional["SyncManager"]:
+        # JSON has no tuples, and a TCP address is one.
+        if isinstance(address, list):
+            address = tuple(address)
+        return address, authkey
+
+    def __join(self, manager_class: "Type[SyncManager]", address, authkey: bytes,
+               hint: bool) -> Optional["SyncManager"]:
         """
         Connect to the server at ``address`` and attach to it.
 
         Args:
             manager_class: The manager class to connect with.
             address: Where the server listens.
+            authkey (bytes): The key the server was started with.
             hint (bool): Whether the address was found rather than handed over.
                 Naming a server that has since stopped is the ordinary way for
                 a found one to miss, so that is not worth a warning; a handed
@@ -1355,11 +1384,12 @@ class MPManager(metaclass=_ManagerSingleton):
         """
         from multiprocessing import AuthenticationError
 
-        manager = manager_class(address=address, authkey=MPManager.__authkey)
+        manager = manager_class(address=address, authkey=authkey)
         try:
             manager.connect()
             if self.__attach(manager):
                 MPManager.__address = address
+                MPManager.__authkey = authkey
                 return manager
             reason = "it is shutting down"
         except (OSError, EOFError, ValueError, AuthenticationError) as e:
@@ -1375,16 +1405,18 @@ class MPManager(metaclass=_ManagerSingleton):
         # start() launches a process, and under the Python 3.14 default
         # (forkserver) that re-imports __main__ and breaks unguarded
         # module-level proj.run() scripts. See get_process_context().
-        manager = manager_class(authkey=MPManager.__authkey, ctx=get_process_context())
+        authkey = os.urandom(MPManager.__AUTHKEY_BYTES)
+        manager = manager_class(authkey=authkey, ctx=get_process_context())
         with forking():
             manager.start(initializer=_init_manager_server)
         # Replaces an address that could not be reached, so that what
         # Project pickles for its workers is this server, not that one.
         MPManager.__address = manager.address
+        MPManager.__authkey = authkey
         self.__manager_server = True
         self.__attach(manager)
 
-        self.__environment = MPManager.__environment_value(manager.address)
+        self.__environment = MPManager.__environment_value(manager.address, authkey)
         os.environ[MANAGER_ENVIRONMENT] = self.__environment
         return manager
 
@@ -1414,19 +1446,20 @@ class MPManager(metaclass=_ManagerSingleton):
         try:
             try:
                 with open(path, encoding="utf-8") as f:
-                    address = MPManager.__address_from_value(f.read())
+                    server = MPManager.__address_from_value(f.read())
             except OSError:
-                address = None
+                server = None
 
-            if address is not None:
-                manager = self.__join(manager_class, address, hint=True)
+            if server is not None:
+                manager = self.__join(manager_class, *server, hint=True)
                 if manager is not None:
                     return manager
 
             manager = self.__serve(manager_class)
             try:
                 # Written whole, then renamed into place, so a reader that does
-                # not take the lock never sees half of it.
+                # not take the lock never sees half of it. Readable by the user
+                # alone, since it holds the key.
                 staging = f"{path}.{self.__token}"
                 fd = os.open(staging, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
                 with os.fdopen(fd, "w", encoding="utf-8") as f:

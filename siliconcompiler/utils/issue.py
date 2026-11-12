@@ -29,6 +29,7 @@ from siliconcompiler.schema import __version__ as schema_version
 from siliconcompiler._metadata import detailed_version as sc_version
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 from siliconcompiler.utils.logging import console_quiet
+from siliconcompiler.utils.multiprocessing import MANAGER_ENVIRONMENT
 
 if TYPE_CHECKING:
     from siliconcompiler import Task
@@ -213,10 +214,12 @@ def generate_testcase(project: "Project",
 
     issue_time = datetime.now(timezone.utc).timestamp()
     issue_information = {}
-    # A testcase is handed to someone else, so leave out what may be a credential
+    # A testcase is handed to someone else, so leave out what may be a credential,
+    # and the key of this run's manager server
     issue_information['environment'] = {
         key: value for key, value in os.environ.items()
-        if not any(word in key.upper() for word in ("TOKEN", "KEY", "PASS", "SECRET"))}
+        if key != MANAGER_ENVIRONMENT and
+        not any(word in key.upper() for word in ("TOKEN", "KEY", "PASS", "SECRET"))}
     issue_information['python'] = {"path": sys.path,
                                    "version": sys.version}
     issue_information['date'] = datetime.fromtimestamp(issue_time).strftime('%Y-%m-%d %H:%M:%S')

@@ -15,6 +15,7 @@ from siliconcompiler.tools.yosys import YosysStdCellLibrary
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.issue import generate_testcase
+from siliconcompiler.utils.multiprocessing import MANAGER_ENVIRONMENT
 
 
 NODE_MANIFEST = 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'
@@ -291,8 +292,10 @@ def test_testcase_without_git(project, monkeypatch):
 
 
 def test_environment_leaves_out_credentials(project, monkeypatch):
-    '''issue.json leaves out the environment variables named like a credential.'''
-    for name in ("GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "db_password", "CLIENT_SECRET"):
+    '''issue.json leaves out the environment variables named like a credential,
+    and the one holding the manager server's key.'''
+    for name in ("GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY", "db_password", "CLIENT_SECRET",
+                 MANAGER_ENVIRONMENT):
         monkeypatch.setenv(name, "hidden")
     monkeypatch.setenv("SC_TESTCASE_SHOWN", "shown")
 

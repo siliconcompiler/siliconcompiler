@@ -1080,8 +1080,8 @@ def test_manager_registers_the_shared_group():
     assert "shared_group" not in SyncManager._registry
 
 
-def _publisher(address, tag, count):
-    MPManager._set_manager_address(address)
+def _publisher(address, authkey, tag, count):
+    MPManager._set_manager_address(address, authkey)
     group = MPManager.get_shared_group("spawned")
     for i in range(count):
         group.publish(os.getpid(), {f"design{tag}/job0": f"snap-{tag}-{i}"}, [f"[{tag}] {i}"])
@@ -1102,7 +1102,9 @@ def test_group_spans_spawned_processes():
 
     ctx = multiprocessing.get_context("spawn")
     address = MPManager._get_manager_address()
-    procs = [ctx.Process(target=_publisher, args=(address, tag, 5)) for tag in ("A", "B")]
+    authkey = MPManager._get_manager_authkey()
+    procs = [ctx.Process(target=_publisher, args=(address, authkey, tag, 5))
+             for tag in ("A", "B")]
     for proc in procs:
         proc.start()
 
@@ -1202,16 +1204,13 @@ def test_process_alive_rejects_reused_pid():
     assert not _process_alive(_dead_pid(), None)
 
 
-def test_environment_round_trip(monkeypatch):
-    value = MPManager._MPManager__environment_value("/tmp/socket")
+@pytest.mark.parametrize("address", ["/tmp/socket", ("localhost", 1234)], ids=["unix", "tcp"])
+def test_environment_round_trip(monkeypatch, address):
+    """The value names the server and its key; a TCP address comes back a tuple."""
+    authkey = os.urandom(32)
+    value = MPManager._MPManager__environment_value(address, authkey)
     monkeypatch.setenv(MANAGER_ENVIRONMENT, value)
-    assert MPManager._address_from_environment() == "/tmp/socket"
-
-
-def test_environment_tcp_address_is_a_tuple(monkeypatch):
-    value = MPManager._MPManager__environment_value(("localhost", 1234))
-    monkeypatch.setenv(MANAGER_ENVIRONMENT, value)
-    assert MPManager._address_from_environment() == ("localhost", 1234)
+    assert MPManager._address_from_environment() == (address, authkey)
 
 
 @pytest.mark.parametrize("value", [
@@ -1226,10 +1225,23 @@ def test_environment_unreadable_is_ignored(monkeypatch, value):
     assert MPManager._address_from_environment() is None
 
 
+@pytest.mark.parametrize("authkey", [None, "", "not hex", "00" * 16, 1234],
+                         ids=["missing", "empty", "malformed", "short", "number"])
+def test_environment_without_a_key_is_ignored(monkeypatch, authkey):
+    """A server named without a whole key is not tried, so never with some other key."""
+    entry = json.loads(MPManager._MPManager__environment_value("/tmp/socket", os.urandom(32)))
+    if authkey is None:
+        del entry["authkey"]
+    else:
+        entry["authkey"] = authkey
+    monkeypatch.setenv(MANAGER_ENVIRONMENT, json.dumps(entry))
+    assert MPManager._address_from_environment() is None
+
+
 @pytest.mark.parametrize("field", [0, 1, 2], ids=["host", "siliconcompiler", "python"])
 def test_environment_incompatible_is_ignored(monkeypatch, field):
     """An address that travelled to another host or install is not tried."""
-    entry = json.loads(MPManager._MPManager__environment_value("/tmp/socket"))
+    entry = json.loads(MPManager._MPManager__environment_value("/tmp/socket", os.urandom(32)))
     entry["compatibility"][field] = "something else"
     monkeypatch.setenv(MANAGER_ENVIRONMENT, json.dumps(entry))
     assert MPManager._address_from_environment() is None
@@ -1256,16 +1268,67 @@ def test_stale_terminal_rendezvous_is_replaced(monkeypatch):
     path = os.path.abspath("rendezvous.json")
     monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: path)
     with open(path, "w") as f:
-        f.write(MPManager._MPManager__environment_value(os.path.abspath("gone.sock")))
+        f.write(MPManager._MPManager__environment_value(os.path.abspath("gone.sock"),
+                                                        os.urandom(32)))
 
     manager = MPManager()
     assert manager._MPManager__manager_server
     with open(path) as f:
         assert MPManager._MPManager__address_from_value(f.read()) == \
-            MPManager._get_manager_address()
+            (MPManager._get_manager_address(), MPManager._get_manager_authkey())
 
     MPManager.stop()
     assert not os.path.exists(path)
+
+
+@pytest.mark.isolated_manager
+@pytest.mark.parametrize("where", ["environment", "terminal"])
+@pytest.mark.parametrize("authkey", ["wrong", "missing", "malformed"])
+def test_server_named_without_its_key_is_not_joined(monkeypatch, shared_manager_server,
+                                                    where, authkey):
+    """A live server named with any key but its own is left alone, and this
+    process starts a server of its own."""
+    entry = json.loads(MPManager._MPManager__environment_value(shared_manager_server.address,
+                                                               os.urandom(32)))
+    if authkey == "missing":
+        del entry["authkey"]
+    elif authkey == "malformed":
+        entry["authkey"] = "not hex"
+
+    if where == "environment":
+        monkeypatch.setenv(MANAGER_ENVIRONMENT, json.dumps(entry))
+    else:
+        path = os.path.abspath("rendezvous.json")
+        monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: path)
+        with open(path, "w") as f:
+            json.dump(entry, f)
+
+    manager = MPManager()
+    assert manager._MPManager__manager_server
+    assert MPManager._get_manager_address() != shared_manager_server.address
+    MPManager.stop()
+
+
+@pytest.mark.isolated_manager
+def test_each_server_has_a_key_of_its_own():
+    """Every server is started with a fresh random key, never one shared by all."""
+    authkeys = []
+    for _ in range(2):
+        MPManager()
+        authkey = MPManager._get_manager_authkey()
+        assert bytes(MPManager.get_manager()._authkey) == authkey
+        assert len(authkey) == 32
+        authkeys.append(authkey)
+        MPManager.stop()
+    assert authkeys[0] != authkeys[1]
+
+
+def test_server_refuses_a_wrong_key():
+    """A process that reaches the server's socket but lacks its key is turned away."""
+    manager = _sync_manager_class()(address=MPManager._get_manager_address(),
+                                    authkey=os.urandom(32))
+    with pytest.raises(multiprocessing.AuthenticationError):
+        manager.connect()
 
 
 # Joins through the terminal alone: no environment, no address handed over.
@@ -1286,7 +1349,7 @@ def test_siblings_meet_through_terminal():
     """The workers of a pool whose parent never started a manager -- each
     building its own Project -- share one server, so they share one dashboard.
     Started together, so the rendezvous lock is what keeps them to one."""
-    path = os.path.abspath("rendezvous.json")
+    path = os.path.abspath(os.path.join("managers", "rendezvous.json"))
     env = {key: value for key, value in os.environ.items() if key != MANAGER_ENVIRONMENT}
 
     siblings = [subprocess.Popen([sys.executable, "-c", _SIBLING, path], env=env,
@@ -1298,6 +1361,11 @@ def test_siblings_meet_through_terminal():
         roles = sorted(role for role, _ in reports)
         assert roles == ["client", "client", "server"]
         assert len(set(address for _, address in reports)) == 1
+
+        # Readable by the user alone, since it holds the server's key
+        if os.name != "nt":
+            for written in (path, os.path.dirname(path)):
+                assert stat.S_IMODE(os.stat(written).st_mode) & 0o077 == 0
 
         for sibling in siblings:
             sibling.stdin.write("\n")
@@ -1346,7 +1414,8 @@ def test_server_advertises_itself_until_stopped():
     MPManager()
     process = MPManager.get_manager()._process
 
-    assert MPManager._address_from_environment() == MPManager._get_manager_address()
+    assert MPManager._address_from_environment() == \
+        (MPManager._get_manager_address(), MPManager._get_manager_authkey())
 
     MPManager.stop()
     assert MANAGER_ENVIRONMENT not in os.environ

@@ -20,6 +20,7 @@ from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema_support.option import OptionSchema
 
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir
 
 from siliconcompiler.scheduler import SCRuntimeError
@@ -334,6 +335,21 @@ def test_pickling(monkeypatch):
     assert isinstance(new_prj._logger_console, logging.StreamHandler)
     assert isinstance(new_prj._logger_console.formatter, SCColorLoggerFormatter)
     assert new_prj._logger_console in new_prj.logger.handlers
+
+
+def test_pickling_carries_manager_key(monkeypatch, shared_manager_server):
+    '''A worker's copy of the project joins the parent's manager server, with its key.'''
+    state = pickle.dumps(Project())
+    MPManager.stop()
+    monkeypatch.setattr(MPManager, "_MPManager__address", None)
+    monkeypatch.setattr(MPManager, "_MPManager__authkey", None)
+
+    pickle.loads(state)
+    assert MPManager._get_manager_authkey() == shared_manager_server.authkey
+
+    manager = MPManager()
+    assert not manager._MPManager__manager_server
+    assert MPManager.get_manager().address == shared_manager_server.address
 
 
 def test_record_history():
