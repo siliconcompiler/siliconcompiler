@@ -9,6 +9,7 @@ is ``sc_<step>_<index>.log``, the file the node's `logs` artifact archives.
 
 import json
 import logging
+import sys
 import time
 
 from pathlib import Path
@@ -36,12 +37,13 @@ MAX_CHUNK = 64 * 1024
 
 
 def resume_from(header: Optional[str]) -> int:
-    '''Where to start, from `Last-Event-ID`; anything unreadable starts over, since
-    replaying a log beats skipping some of it.'''
+    '''Where to start, from `Last-Event-ID`; anything unreadable, or past what a file
+    offset holds, starts over, since replaying a log beats skipping some of it.'''
     try:
-        return max(0, int(header or "", 16))
+        offset = int(header or "", 16)
     except ValueError:
         return 0
+    return offset if 0 <= offset <= sys.maxsize else 0
 
 
 def events(tree: Path, path: Path, step: str, index: str, node_state, artifact_id,

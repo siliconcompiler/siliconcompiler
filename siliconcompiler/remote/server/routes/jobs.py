@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 
 import flask
 
+from siliconcompiler.remote.server import config
 from siliconcompiler.remote.server.errors import ProblemError
 from siliconcompiler.remote.server.jobs import RETRY_AFTER, refuse_undefined
 from siliconcompiler.remote.server.routes.auth import require_session
@@ -60,6 +61,7 @@ def upload_grant(session, job_id):
 @blueprint.route("/storage/upload/<job_id>", methods=["PUT"])
 def upload(job_id):
     '''No session: the signature names one job and the byte count, and expires.'''
+    flask.request.max_content_length = config.LIMITS["max_upload_bytes"]
     _jobs().receive(job_id, flask.request.args, flask.request.stream)
     return "", 204
 

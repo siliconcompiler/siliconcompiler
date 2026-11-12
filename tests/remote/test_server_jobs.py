@@ -176,6 +176,7 @@ def test_another_users_job_is_not_found(api, stranger, method, path, body):
      501, "feature-unsupported"),
     ({"design": "gcd", "jobname": "j", "descriptor": {"needs": ["jobs.reuse"]}},
      501, "feature-unsupported"),
+    ({"design": "gcd", "jobname": "j", "project": "rocket-v2"}, 501, "feature-unsupported"),
     ({"jobname": "j"}, 400, "invalid-request"),
     ({"design": "../x", "jobname": "j"}, 400, "invalid-request"),
     ({"design": "gcd", "jobname": "j" * 101}, 400, "invalid-request"),
@@ -272,6 +273,21 @@ def test_the_signed_put_takes_what_the_grant_names(server_client, api, sent, tam
     response = server_client.put(path.replace("&sig=", "&sig=A") if tamper else path, data=sent)
 
     assert (response.status_code, slug(response)) == (status, expected)
+
+
+def test_a_request_body_is_bounded_but_an_upload_only_by_its_grant(server, server_client, api,
+                                                                   monkeypatch):
+    '''A body over the app's limit is refused before it is read; the signed PUT is not.'''
+    job = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "job0"}).get_json()
+    url = api("POST", f"/v1/jobs/{job['id']}/upload-grant",
+              json={"size_bytes": 200, "digest": "sha256:" + "0" * 64}).get_json()["url"]
+    monkeypatch.setitem(server.config, "MAX_CONTENT_LENGTH", 100)
+
+    refused = api("POST", "/v1/jobs", json={"design": "gcd", "jobname": "j" * 100})
+    sent = server_client.put(url[len("http://localhost"):], data=b"x" * 200)
+
+    assert (refused.status_code, slug(refused)) == (413, "upload-too-large")
+    assert sent.status_code == 204
 
 
 def test_the_digest_is_checked_before_anything_is_extracted(server, server_client, api,

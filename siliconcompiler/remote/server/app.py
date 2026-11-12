@@ -25,6 +25,9 @@ _HTTP_SLUGS = {404: "not-found", 405: "method-not-allowed", 406: "not-acceptable
 
 _OAUTH_PATHS = ("/v1/auth/token", "/v1/auth/device")
 
+# Any request body but an upload, which its route raises to `max_upload_bytes`.
+_MAX_BODY_BYTES = 1 << 20
+
 
 def create_app(datadir, cluster: str = "local",
                public_origins: Optional[List[str]] = None) -> flask.Flask:
@@ -41,7 +44,8 @@ def create_app(datadir, cluster: str = "local",
     app = flask.Flask(__name__)
     app.config.update(SC_DATADIR=datadir, SC_CLUSTER=cluster, SC_STORE=store,
                       SC_IDENTITY=Identity(store), SC_PUBLIC_ORIGINS=public_origins or [],
-                      SC_JOBS=Jobs(store, datadir, cluster), SC_PORTAL=portal.Portal())
+                      SC_JOBS=Jobs(store, datadir, cluster), SC_PORTAL=portal.Portal(),
+                      MAX_CONTENT_LENGTH=_MAX_BODY_BYTES)
 
     for blueprint in (meta.blueprint, auth.blueprint, jobs.blueprint, results.blueprint,
                       portal.blueprint, portal.api, errorpages.blueprint):

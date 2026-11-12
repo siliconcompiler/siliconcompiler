@@ -172,6 +172,9 @@ class Jobs:
                 detail="this server runs every node of a flow in one job",
                 **{name: entry.get(name) for name in ("step", "index", "job_id")
                    if isinstance(entry, dict) and isinstance(entry.get(name), str)})
+        if body.get("project"):
+            raise ProblemError("feature-unsupported", feature="projects",
+                               detail="this deployment has no projects")
         needs = descriptor.get("needs") or []
         if body.get("python_packages"):
             needs = ["python.env", *needs]

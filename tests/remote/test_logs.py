@@ -109,7 +109,7 @@ def test_a_resumed_stream_sends_only_what_follows_the_id(server, server_client, 
     assert resumed[0][2]["text"] == "three\n" and resumed[0][1] == "e"
 
 
-@pytest.mark.parametrize("header", [None, "", "not hex", "-5"])
+@pytest.mark.parametrize("header", [None, "", "not hex", "-5", "10000000000000000"])
 def test_an_id_that_cannot_be_read_starts_over(header):
     assert logstream.resume_from(header) == 0
 
