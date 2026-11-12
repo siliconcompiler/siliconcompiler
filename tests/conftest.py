@@ -196,10 +196,12 @@ class _SharedManagerServer:
         with pytest.MonkeyPatch.context() as monkeypatch:
             monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
             monkeypatch.setattr(MPManager, "_MPManager__address", None)
+            monkeypatch.setattr(MPManager, "_MPManager__authkey", None)
             monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
             monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)
             MPManager()
-        # Tests reach it through the patched address; in the environment, every
+            self.authkey = MPManager._get_manager_authkey()
+        # Tests reach it through the patched address and key; in the environment, every
         # subprocess a test launches would join it too.
         os.environ.pop(MANAGER_ENVIRONMENT, None)
 
@@ -295,6 +297,8 @@ def isolate_statics_in_testing(monkeypatch, request, shared_manager_server):
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address",
                         None if isolated else shared_manager_server.address)
+    monkeypatch.setattr(MPManager, "_MPManager__authkey",
+                        None if isolated else shared_manager_server.authkey)
     # Or an isolated test joins a server the environment or the terminal names.
     monkeypatch.delenv(MANAGER_ENVIRONMENT, raising=False)
     monkeypatch.setattr(multiprocessing_utils, "_terminal_rendezvous", lambda: None)

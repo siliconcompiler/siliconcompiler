@@ -735,7 +735,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Prepares the project's state for serialization (pickling).
 
         Removes non-serializable objects like the logger and dashboard, and
-        stores the multiprocessing manager's address for reconstruction.
+        stores the multiprocessing manager's address and key for reconstruction.
 
         Returns:
             dict: The serializable state of the object.
@@ -756,8 +756,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # to a node process or a copy taken for the history.
         del state["_Project__scheduler"]
 
-        # Pass along manager address
-        state["__manager__"] = MPManager._get_manager_address()
+        # Pass along the manager's address and the key a worker joins it with
+        state["__manager__"] = (MPManager._get_manager_address(),
+                                MPManager._get_manager_authkey())
 
         # Pass along logger level
         state["__loglevel__"] = self.logger.level
@@ -778,8 +779,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         loglevel = state["__loglevel__"]
         del state["__loglevel__"]
 
-        # Retrieve manager address
-        MPManager._set_manager_address(state["__manager__"])
+        # Retrieve manager address and key
+        MPManager._set_manager_address(*state["__manager__"])
         del state["__manager__"]
 
         self.__dict__ = state
