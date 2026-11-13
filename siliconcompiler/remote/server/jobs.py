@@ -315,7 +315,6 @@ class Jobs:
             self.move(job_id, ("staging",), "failed",
                       error=json.dumps(problem("staging-failed", detail=detail)))
         finally:
-            self.storage.discard(job_id)
             self._staging.discard(job_id)
             self.store.release()
 
@@ -327,7 +326,12 @@ class Jobs:
         root = self.root(job["user_id"], job_id)
         tree = root / design / jobname
 
-        extract(self.storage.upload_path(job_id), tree, config.LIMITS)
+        try:
+            extract(self.storage.upload_path(job_id), tree, config.LIMITS)
+        finally:
+            # Before the job can leave staging, so no reader sees it moved on with
+            # its upload still held.
+            self.storage.discard(job_id)
         manifest = tree / f"{design}.pkg.json"
         if self._staging_over(job_id):
             return
