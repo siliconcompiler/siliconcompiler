@@ -37,7 +37,9 @@ def test_py_gcd():
 
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    # 5x ABC: Relaxing user-specified delay target from 2000.00 to 2000.00 --
+    #    spurious: &nf repeats it every round once the -D target is met exactly
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 10
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -109,7 +111,8 @@ def test_py_gcd_skywater():
 
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 9 multi-output cells (for example, "sky130_fd_sc_hd__fa_1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    # 5x ABC: Relaxing user-specified delay target from 2000.00 to 2000.00
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 10
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -220,7 +223,8 @@ def test_py_gcd_gf180():
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 4 multi-output cells
     #    (for example, "gf180mcu_fd_sc_mcu9t5v0__addf_2")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 5
+    # 5x ABC: Relaxing user-specified delay target from 2000.00 to 2000.00
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 10
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -306,7 +310,8 @@ def test_py_gcd_ihp130():
     # 4x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # Unlike the other PDKs there is no multi-output cell warning here, because
     # ABC does not map any full adders for this library.
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
+    # 5x ABC: Relaxing user-specified delay target from 2000.00 to 2000.00
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 9
 
     # 1x [STA-0441] gcd.sdc:3 set_input_delay relative to a clock defined on the
     #    same port/pin not allowed
@@ -384,7 +389,8 @@ def test_py_gcd_hls():
     # 1x non-edge sensitivity on a signal will be synthesized as @* sensitivity
     # 7x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 9
+    # 5x ABC: Relaxing user-specified delay target from 2000.00 to 2000.00
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 14
 
     # 1x [STA-0441] gcd_hls.sdc:3 set_input_delay relative to a clock defined on
     #    the same port/pin not allowed
@@ -458,7 +464,8 @@ def test_py_gcd_chisel(sbt_download_guard):
 
     # 3x ABC: The network is combinational (run "fraig" or "fraig_sweep")
     # 1x ABC: Detected 2 multi-output cells (for example, "FA_X1")
-    assert project.get('metric', 'warnings', step='synthesis', index='0') == 4
+    # 5x ABC: Relaxing user-specified delay target from 2000.00 to 2000.00
+    assert project.get('metric', 'warnings', step='synthesis', index='0') == 9
 
     # 1x [STA-0441] gcd_chisel.sdc:3 set_input_delay relative to a clock defined
     #    on the same port/pin not allowed
