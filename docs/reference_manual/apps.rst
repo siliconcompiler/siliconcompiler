@@ -12,13 +12,6 @@ CLI apps
   :app: sc-issue
 
 .. scapp::
-  :app: sc-remote
-
-.. scapp::
-  :app: python3 -m siliconcompiler.remote.server
-  :title: sc-server
-
-.. scapp::
   :app: sc-show
 
 .. scapp::
@@ -30,6 +23,10 @@ Support apps
 .. scapp::
   :app: python3 -m siliconcompiler.apps.utils.dashboard
   :title: dashboard
+
+.. scapp::
+  :app: python3 -m siliconcompiler.remote.server
+  :title: sc-server
 
 .. scapp::
   :app: python3 -m siliconcompiler.apps.utils.summarize

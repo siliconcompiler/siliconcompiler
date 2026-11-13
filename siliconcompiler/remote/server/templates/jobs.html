@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block body %}
+<h2>Jobs</h2>
+{% if jobs %}
+<table>
+  <tr><th>Job</th><th>Design</th><th>State</th><th>Created</th></tr>
+  {% for job in jobs %}
+  <tr>
+    <td><a href="{{ url_for('portal.job', job_id=job.id) }}"><code>{{ job.id }}</code></a></td>
+    <td>{{ job.design }} / {{ job.jobname }}</td>
+    <td><span class="tag {{ 'bad' if job.state in ('failed', 'rejected') }}
+                         {{ 'good' if job.state == 'completed' }}">{{ job.state }}</span></td>
+    <td>{{ job.created_at }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="lede">No jobs yet.</p>
+{% endif %}
+{% endblock %}

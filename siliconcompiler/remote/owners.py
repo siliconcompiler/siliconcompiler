@@ -1,0 +1,702 @@
+'''
+What owns each file a job names, where it came from, and how it reaches a run.
+
+The client asks this what to archive and what the server should supply.
+
+Every file is uploaded or supplied by identity: the server never reads
+a path a job names, or a manifest could root a library at `/etc` and have the
+server supply the host's files.
+
+==============================  ===============  =================================
+Dataroot source                 Outcome          How the server finds its copy
+==============================  ===============  =================================
+a local path, or no dataroot    uploaded         --
+a ``$``-rooted path             uploaded         -- the CLIENT expands it
+an editable Python package      uploaded         --
+an installed Python package     supplied         by package name
+git / https / any remote        supplied         by source and ref, allowlist only
+marked private                  supplied, never  the operator's copy, by its
+                                uploaded, never  keypath; else a copy held, or a
+                                asked for        fetch, of its remote source
+==============================  ===============  =================================
+
+`+private` governs the bytes leaving the submitter, not where the server gets
+them. An installed package uploads unless the server lists it at the installed
+version (:func:`walk`).
+
+A dataroot is named by its keypath (:func:`dataroot_keypath`):
+its own name is unique only within its owner. An alias, a dataroot registered
+as ``dataroot://<name>/<path>``, is judged and named by the dataroot its chain
+lands on in the same section: a `sources` entry names that dataroot's keypath,
+source and ref, never the alias's, and one entry covers every alias of it.
+A value that goes up goes up under its own dataroot.
+
+The design always uploads; a PDK's, library's, device's or tool's files only
+when local or editable. Private wins over both.
+
+"Local" is the dataroot's registered SOURCE, never where the file is now: a
+fetched PDK is on local disk too, and would upload with every job.
+
+A resource's or task's ``python+`` dataroot is sent as its remote source
+(:func:`as_remote`): at its tag, or at the commit an editable checkout has out,
+where a server can fetch it. A checkout no server can fetch goes up, as any
+editable package does.
+
+The table says whether a value MAY go up; the flow says whether it is NEEDED
+(:func:`required`). Each value goes up on its own (:func:`collection`).
+'''
+
+import functools
+import os
+
+from pathlib import Path
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
+
+from siliconcompiler.remote.environment import canonical
+
+__all__ = ["DESIGN", "PROJECT", "LOCAL", "EDITABLE", "INSTALLED",
+           "REMOTE", "PRIVATE", "is_private", "owner", "source", "walk", "sources",
+           "dataroot_keypath", "is_dataroot_keypath", "shown",
+           "Unnamed",
+           "safe_source", "masked",
+           "upload_report", "required",
+           "needed", "work_out", "with_required", "as_remote", "WorkedOut",
+           "distributions_of", "module_distributions", "supplied_distributions",
+           "not_sent_roots", "collection", "Collection", "collected_path"]
+
+
+# Who a file belongs to, when it is neither a resource nor a tool.
+DESIGN = "design"
+PROJECT = "project"
+
+# Where a dataroot's files come from.
+LOCAL = "local"            # a path on this machine, `$`-rooted included
+EDITABLE = "editable"      # a Python package installed editable
+INSTALLED = "installed"    # a Python package installed normally
+REMOTE = "remote"          # git, https, or anything fetched -- cached or not
+PRIVATE = "private"        # never leaves the machine
+
+
+def is_private(resolver) -> bool:
+    '''Whether a dataroot is marked ``+private`` (``file+private://`` and the rest).
+
+    The one place the marker is tested.
+    '''
+    return bool(getattr(resolver, "is_private", False))
+
+
+def is_dataroot_keypath(keypath) -> bool:
+    '''Whether ``keypath`` is ``library,<name>,dataroot,<root>`` or
+    ``tool,<tool>,task,<task>,dataroot,<root>``; the server refuses any other.'''
+    if not isinstance(keypath, (list, tuple)) or \
+            not all(isinstance(part, str) and part for part in keypath):
+        return False
+    return (len(keypath) == 4 and keypath[0] == "library" and keypath[2] == "dataroot") \
+        or (len(keypath) == 6 and keypath[0] == "tool" and keypath[2] == "task"
+            and keypath[4] == "dataroot")
+
+
+def shown(keypath) -> str:
+    '''A keypath as SiliconCompiler prints one, ``tool,x,task,y,dataroot,z``.'''
+    return ",".join(keypath)
+
+
+class Unnamed(ValueError):
+    '''A value whose dataroot neither keypath shape can name, so the server refuses it.'''
+
+    def __init__(self, key, keypath):
+        self.key, self.keypath = tuple(key), tuple(keypath)
+        super().__init__(
+            f"[{shown(key)}] reads the dataroot {shown(keypath)}, which is neither a "
+            "library's nor a task's: a server names every dataroot by one of those, "
+            "so this one cannot be supplied")
+
+
+def _dataroot_section(schema):
+    '''The nearest ancestor, itself included, defining a ``dataroot``, as
+    `_find_files_dataroot_resolvers` finds it; None if none does.'''
+    root = schema._parent(root=True)
+    while not schema.valid("dataroot"):
+        if schema is root:
+            return None
+        schema = schema._parent()
+    return schema
+
+
+def dataroot_keypath(project, key, dataroot: Optional[str]) -> Optional[Tuple[str, ...]]:
+    '''The keypath of the dataroot one value of ``key`` resolves in: the
+    defining schema's keypath plus ``dataroot,<dataroot>``, never a slice of
+    ``key``. None for a value in no dataroot its section defines: it is local.'''
+    if not dataroot:
+        return None
+    section = _dataroot_section(project.get(*key[:-1], field="schema"))
+    if section is None or dataroot not in section.getkeys("dataroot"):
+        return None
+    return (*section._keypath, "dataroot", dataroot)
+
+
+def owner(project, key) -> Tuple[str, Optional[str]]:
+    '''``(kind, name)`` of the object a parameter belongs to; ``kind`` is never on the wire.
+
+    Resource classes are tested BEFORE `Design`, which `PDK` and
+    `StdCellLibrary` subclass: else every PDK would always upload.
+    '''
+    if key[0] == "library" and len(key) > 1:
+        from siliconcompiler import FPGADevice, PDK, StdCellLibrary
+
+        obj = project.get("library", key[1], field="schema")
+        if isinstance(obj, PDK):
+            return "pdk", key[1]
+        if isinstance(obj, FPGADevice):
+            return "fpga", key[1]
+        if isinstance(obj, StdCellLibrary):
+            return "library", key[1]
+        return DESIGN, key[1]
+
+    if key[0] == "tool" and len(key) > 1:
+        return "tool", key[1]
+
+    return PROJECT, None
+
+
+def _lands_on(resolvers, dataroot: Optional[str]) -> Optional[str]:
+    '''The dataroot ``dataroot``'s chain of ``dataroot://`` aliases lands on in
+    its section, the one that is not an alias; None where the chain names a
+    dataroot the section does not define, or loops.'''
+    from siliconcompiler.package import DatarootResolver
+
+    seen = set()
+    while dataroot in resolvers and dataroot not in seen:
+        if not isinstance(resolvers[dataroot], DatarootResolver):
+            return dataroot
+        seen.add(dataroot)
+        dataroot = resolvers[dataroot].urlpath
+    return None
+
+
+def source(resolvers, dataroot: Optional[str]) -> str:
+    '''Where files under ``dataroot`` come from, judged by how the dataroot its
+    aliases land on (`_lands_on`) was REGISTERED.
+
+    A ``$``-rooted path is LOCAL: the client expands and uploads it; the
+    server never expands a variable. Anything untraceable is LOCAL too: sending
+    the file cannot leave a job short.
+    '''
+    from siliconcompiler.package import PythonPathResolver, RemoteResolver
+
+    resolver = resolvers.get(_lands_on(resolvers, dataroot))
+    if resolver is None:
+        return LOCAL
+
+    if is_private(resolver):
+        return PRIVATE
+    if isinstance(resolver, RemoteResolver):
+        return REMOTE
+    if isinstance(resolver, PythonPathResolver):
+        module = resolver.urlpath
+        return EDITABLE if PythonPathResolver.is_python_module_editable(module) \
+            else INSTALLED
+    return LOCAL
+
+
+def safe_source(resolver) -> Optional[str]:
+    '''A dataroot's source as it may leave this machine: `Resolver.safe_source`,
+    the one definition, so what is sent and logged agree. None if unreadable.'''
+    if resolver is None:
+        return None
+    try:
+        return resolver.safe_source
+    except (AttributeError, ValueError):
+        return None
+
+
+def masked(url: Optional[str]) -> str:
+    '''A URL masked as `safe_source` would send it, for one that arrived as text.'''
+    from siliconcompiler.package import Resolver
+
+    return Resolver._masked_uri(url or "", show_userinfo=False)
+
+
+class _Value(NamedTuple):
+    key: Tuple[str, ...]
+    value: Any                  # the BasePathNodeValue
+    resolvers: Dict[str, Any]
+    kind: str                   # the owner's kind, as a source kind
+    name: Optional[str]
+    dataroot: Optional[str]     # the value's own, which it is collected under
+    # The dataroot ``dataroot``'s aliases land on, which names it: ``dataroot``
+    # itself where it is no alias, or its chain lands nowhere.
+    landing: Optional[str]
+    origin: str                 # LOCAL, EDITABLE, INSTALLED, REMOTE or PRIVATE
+    step: Optional[str] = None
+    index: Optional[str] = None
+    keypath: Optional[Tuple[str, ...]] = None   # ``landing``'s: `dataroot_keypath`
+    # The package providing an INSTALLED dataroot.
+    distribution: Optional[str] = None
+    # Whether the server lists that package at the installed version (`walk`).
+    listed: bool = False
+
+    @property
+    def upload(self) -> bool:
+        '''Whether this value goes in the archive: the design always; a resource's
+        or tool's only where local or editable, or from an installed package the
+        server does not list at this version; never a private one.'''
+        if self.origin == PRIVATE:
+            return False
+        if self.kind == DESIGN:
+            return True
+        if self.origin == INSTALLED:
+            return not self.listed
+        return self.origin in (LOCAL, EDITABLE)
+
+
+def _lists(software: Dict[str, List[str]], distribution: Optional[str]) -> bool:
+    '''Whether ``software`` (`GET /v1`'s `software.python`) lists ``distribution``
+    at the version installed here. None, or a package not installed, never is.'''
+    from importlib import metadata
+    from packaging.version import InvalidVersion, Version
+
+    if not distribution:
+        return False
+    try:
+        mine = Version(metadata.version(distribution))
+        return any(Version(version) == mine
+                   for version in software.get(canonical(distribution)) or [])
+    except (InvalidVersion, metadata.PackageNotFoundError):
+        return False
+
+
+def walk(project, software: Optional[Dict[str, List[str]]] = None) -> List[_Value]:
+    '''Every value of every path parameter a run reads, with its owner, where it
+    comes from and whether it uploads: walked once, for every question below.
+
+    ``software`` is what the server lists under `software.python`; None lists none.
+    '''
+    from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
+    from siliconcompiler.utils.curation import never_collected
+
+    software = software or {}
+    found: List[_Value] = []
+    for key in sorted(project.allkeys(include_default=False)):
+        if never_collected(key):
+            continue
+        param = project.get(*key, field=None)
+        if not param.is_path:
+            continue
+
+        schema = None
+        places: Dict[Optional[str], Tuple] = {}
+        for held, step, index in param.getvalues(return_values=False):
+            if not held.has_value:
+                continue
+            if schema is None:
+                schema = project.get(*key[:-1], field="schema")
+                resolvers = schema._find_files_dataroot_resolvers(True)
+                who, name = owner(project, key)
+                kind, name = (DESIGN, project.name) if who == PROJECT else (who, name)
+            ones = held.values if isinstance(held, (NodeSetValue, NodeListValue)) \
+                else [held]
+            for one in ones:
+                if one.get() is None:
+                    continue
+                dataroot = one.get(field="dataroot")
+                if dataroot not in places:
+                    landing = _lands_on(resolvers, dataroot)
+                    origin = source(resolvers, landing)
+                    distribution = None
+                    if origin == INSTALLED:
+                        distribution = _distribution_of(resolvers[landing].urlpath)
+                    landing = landing or dataroot
+                    places[dataroot] = (landing, dataroot_keypath(project, key, landing),
+                                        origin, distribution, origin == INSTALLED
+                                        and _lists(software, distribution))
+                landing, keypath, origin, distribution, listed = places[dataroot]
+                found.append(_Value(tuple(key), one, resolvers, kind, name, dataroot, landing,
+                                    origin, step, index, keypath, distribution, listed))
+    return found
+
+
+class Collection(NamedTuple):
+    '''What `collect` is handed: each ``(key, step, index)`` holding a value
+    to send, and ``select``, which takes exactly those values.'''
+    keys: List[Tuple[Tuple[str, ...], Optional[str], Optional[str]]]
+    select: Callable[[Tuple[str, ...], Optional[str], Optional[str], Any], bool]
+
+
+def collection(values: List[_Value], pick: Callable[[_Value], bool]) -> Collection:
+    '''Every value ``pick`` takes and no other: per value, never per parameter;
+    the rest is never resolved.
+
+    A private value is never picked, whatever ``pick`` says. ``select``
+    knows values by object: call it on the project ``values`` were walked from.
+    '''
+    from siliconcompiler.utils.curation import filter_collection_keys
+
+    keys: Dict[Tuple[Tuple[str, ...], Optional[str], Optional[str]], None] = {}
+    picked = set()
+    for one in values:
+        if one.origin != PRIVATE and pick(one):
+            keys[(one.key, one.step, one.index)] = None
+            picked.add(id(one.value))
+
+    def select(key, step, index, value) -> bool:
+        return id(value) in picked
+
+    return Collection(filter_collection_keys(list(keys)), select)
+
+
+def _dataroot_id(one: _Value) -> Optional[str]:
+    '''``one``'s dataroot as `collect` files it: its `collection_id`.'''
+    return one.resolvers[one.dataroot].collection_id if one.dataroot else None
+
+
+def collected_path(one: _Value) -> Optional[str]:
+    '''Where `collect` puts ``one``, under the collection directory.'''
+    from siliconcompiler.schema.parametervalue import BasePathNodeValue
+
+    return BasePathNodeValue.generate_hashed_collection_path(one.value.get(), _dataroot_id(one))
+
+
+def collected_paths(values: List[_Value], paths) -> Dict[str, str]:
+    '''``{path: collected path}`` for each of ``paths`` a value that goes up
+    resolves to: where a test's helper modules go.'''
+    wanted = {os.path.realpath(str(path)): str(path) for path in paths}
+    found: Dict[str, str] = {}
+    for one in values:
+        # Nothing else is collected, and resolving a remote source fetches it.
+        if not one.upload:
+            continue
+        resolver = one.resolvers.get(one.dataroot) if one.dataroot else None
+        try:
+            base = resolver.get_path() if resolver is not None else None
+            here = one.value.resolve_path(search=[str(base)] if base else None)
+        except Exception:                                       # noqa: BLE001
+            continue
+        path = wanted.get(os.path.realpath(str(here))) if here else None
+        if path is not None and path not in found:
+            where = collected_path(one)
+            if where:
+                found[path] = where
+    return found
+
+
+def sources(values: List[_Value], required=None) -> List[Dict[str, Any]]:
+    '''The descriptor's `sources`: each dataroot the flow reads that the server
+    should supply, by ``keypath``, so none whose values go up. Raises :class:`Unnamed`.
+
+    An alias is named by the dataroot it lands on: its keypath, source and
+    ref, one entry for every alias of it.
+
+    Every URL is `safe_source`: enough to say what it is, not to fetch it. A
+    private one carries its remote source and ref; a local
+    private path is never sent.
+    '''
+    found: Dict[Tuple[str, ...], Dict[str, Any]] = {}
+    for one in values:
+        if one.origin not in (INSTALLED, REMOTE, PRIVATE) or not one.dataroot:
+            continue
+        if not needed(one.key, required) or one.upload:
+            continue
+        if one.keypath is None or not is_dataroot_keypath(one.keypath):
+            raise Unnamed(one.key, one.keypath or (*one.key[:-1], "dataroot", one.dataroot))
+        if one.keypath in found:
+            continue
+        resolver = one.resolvers.get(one.landing)
+        item = {"keypath": list(one.keypath), "private": one.origin == PRIVATE}
+        if one.origin != PRIVATE or _remote(resolver):
+            item["source"] = safe_source(resolver)
+            ref = getattr(resolver, "reference", None)
+            if ref:
+                item["ref"] = ref
+        found[one.keypath] = item
+    return list(found.values())
+
+
+@functools.lru_cache(maxsize=1)
+def module_distributions() -> Dict[str, List[str]]:
+    '''Every installed top-level module and the distributions providing it.
+    Read once: it walks every installed distribution's file list.'''
+    from importlib import metadata
+
+    return metadata.packages_distributions()
+
+
+def distributions_of(module: Optional[str]) -> List[str]:
+    '''The installed distributions providing a module's top-level package. A
+    task's ``module/Class`` name is read as its module; `__main__` has none.'''
+    top = (module or "").split("/", 1)[0].split(".", 1)[0]
+    return [] if top in ("", "__main__") else module_distributions().get(top, [])
+
+
+def _distribution_of(module: Optional[str]) -> Optional[str]:
+    found = distributions_of(module)
+    return found[0] if found else None
+
+
+def supplied_distributions(values: List[_Value], required=None) -> Set[str]:
+    '''The packages the flow reads a dataroot from that the server lists at the
+    installed version, so it supplies them by name.'''
+    return {one.distribution for one in values if one.listed and needed(one.key, required)}
+
+
+def not_sent_roots(values: List[_Value], required=None) -> List[str]:
+    '''Where each private dataroot, and each one the server supplies, is on this
+    machine: files there reach a node through their own dataroot, never as code
+    the user sent.'''
+    supplied = {one.keypath for one in values
+                if one.listed and one.keypath and needed(one.key, required)}
+    roots = set()
+    for one in values:
+        if one.origin == PRIVATE or one.keypath in supplied:
+            resolver = one.resolvers.get(one.dataroot)
+            try:
+                path = resolver.get_path() if resolver is not None else None
+            except Exception:                                    # noqa: BLE001
+                path = None
+            if path:
+                roots.add(str(path))
+    return sorted(roots)
+
+
+def _remote(resolver) -> bool:
+    '''Whether the resolver fetches remotely, private or not (`source` says PRIVATE first).'''
+    from siliconcompiler.package import RemoteResolver
+
+    return isinstance(resolver, RemoteResolver)
+
+
+def _in_collection(one: _Value, collection_dir) -> Optional[str]:
+    '''Where ``one`` resolves in ``collection_dir``, absolute; None if absent.'''
+    if not collection_dir or not os.path.isdir(collection_dir):
+        return None
+    try:
+        found = one.value.resolve_path(search=[], collection_dir=str(collection_dir),
+                                       dataroot_id=_dataroot_id(one))
+    except FileNotFoundError:
+        return None
+    return str(found) if found else None
+
+
+def upload_report(values: List[_Value], collection_dir) \
+        -> List[Tuple[str, Optional[str], Optional[str], int, int]]:
+    '''Bytes and files in an archive's collection as (kind, name, dataroot),
+    shown before anything moves; the dataroot by its keypath, since two owners
+    may each have a `root`. Each stored file counts once.
+
+    An alias's values are shown under the alias, which they go up under;
+    ``keypath`` names where it lands, in the same section.'''
+    totals: Dict[Tuple[str, Optional[str], Optional[str]], Tuple[int, int]] = {}
+    counted: Set[Tuple[int, int]] = set()
+    for one in values:
+        path = _in_collection(one, collection_dir)
+        # Not a string prefix: on Windows one side can hold the builddir's forward slashes.
+        if not path or not Path(path).is_relative_to(collection_dir):
+            continue
+        size, files = _weigh(path, counted)
+        if not files:
+            continue
+        group = (one.kind, one.name,
+                 shown((*one.keypath[:-1], one.dataroot)) if one.keypath else one.dataroot)
+        have = totals.get(group, (0, 0))
+        totals[group] = (have[0] + size, have[1] + files)
+    return [(kind, name, dataroot, size, files)
+            for (kind, name, dataroot), (size, files)
+            in sorted(totals.items(), key=lambda item: str(item[0]))]
+
+
+def _weigh(path: str, counted: Set[Tuple[int, int]]) -> Tuple[int, int]:
+    '''Bytes and files under ``path`` not yet in ``counted`` (by inode), adding
+    them: links name a file already counted.'''
+    if os.path.isdir(path):
+        found = (os.path.join(folder, name)
+                 for folder, _, names in os.walk(path) for name in names)
+    else:
+        found = iter([path])
+    size = files = 0
+    for full in found:
+        try:
+            info = os.stat(full)
+        except OSError:
+            continue
+        if (info.st_dev, info.st_ino) in counted:
+            continue
+        counted.add((info.st_dev, info.st_ino))
+        size += info.st_size
+        files += 1
+    return size, files
+
+
+# Read by the framework whatever the task declares (`SchedulerNode.get_required_keys`,
+# less `exe`, a name).
+_TASK_READS = ("prescript", "postscript", "refdir", "script")
+
+
+def required(project) -> Optional[Set[Tuple[str, ...]]]:
+    '''The keys the flow reads: every running node's `require` and its task's scripts.
+
+    The one definition, read by both ends from the same manifest.
+    None means not worked out, so nothing is filtered; never the empty set.
+    A node whose `require` is absent, not empty, was not worked out, so
+    neither is the set.
+    '''
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
+
+    flow = project.get_flow()
+    keys: Set[Tuple[str, ...]] = set()
+    declared = False
+    for step, index in RuntimeFlowgraph.from_project(project).get_nodes():
+        prefix = ("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"))
+        if not project.get(*prefix, "require", field=None).is_set(step, index):
+            return None
+        for item in project.get(*prefix, "require", step=step, index=index) or []:
+            keys.add(tuple(item.split(",")))
+            declared = True
+        for name in _TASK_READS:
+            if project.get(*prefix, name, step=step, index=index):
+                keys.add((*prefix, name))
+    return keys if declared else None
+
+
+def needed(key, required) -> bool:
+    '''Whether the flow reads ``key``: always, where the set is unknown.'''
+    return required is None or tuple(key) in required
+
+
+class WorkedOut(NamedTuple):
+    '''One setup pass, per node: `require`, Python environment, the set-up task
+    with its declared versions, why a setup failed, and whether its inputs arrive.'''
+    required: Dict[Tuple[str, str], List[str]]
+    environments: Dict[Tuple[str, str], Any]
+    tasks: Dict[Tuple[str, str], Any]
+    failed: Dict[Tuple[str, str], str]
+    unfed: Set[Tuple[str, str]]
+
+
+def work_out(project) -> WorkedOut:
+    '''Every node's `require` and Python environment, by running setup on a copy.
+
+    `require` is empty until setup runs, which remotely is in the image, so
+    it runs here first, in a run's order: ``_init_run()`` (it fills
+    `asic,asiclib`), then nodes in execution order. Each node on its own: a
+    failing setup goes in ``failed`` and drops nothing else.
+    '''
+    import copy
+    import logging
+
+    from siliconcompiler.flowgraph import RuntimeFlowgraph
+    from siliconcompiler.scheduler.schedulernode import SchedulerNode
+
+    work = copy.deepcopy(project)
+    logger = work.logger
+    level = logger.level
+    # Noise here: the caller reports a failure once.
+    logger.setLevel(logging.CRITICAL)
+    try:
+        work._init_run()
+        flow = work.get_flow()
+        executed = set(RuntimeFlowgraph.from_project(work).get_nodes())
+        declared: Dict[Tuple[str, str], List[str]] = {}
+        environments: Dict[Tuple[str, str], Any] = {}
+        tasks: Dict[Tuple[str, str], Any] = {}
+        failed: Dict[Tuple[str, str], str] = {}
+        unfed: Set[Tuple[str, str]] = set()
+        for layer in flow.get_execution_order():
+            for step, index in layer:
+                node = SchedulerNode(work, step, index)
+                try:
+                    with node.runtime():
+                        if not node.setup():
+                            # Skipped: it reads nothing, which is known.
+                            declared[(step, index)] = []
+                            continue
+                        environment = node.task._get_python_environment()
+                        versions = list(node.task.get("version") or [])
+                        fed = node.task._validate_io()
+                except Exception as e:                           # noqa: BLE001
+                    failed[(step, index)] = str(e) or type(e).__name__
+                    continue
+                if (step, index) in executed:
+                    tasks[(step, index)] = (node.task, versions)
+                    if not fed:
+                        unfed.add((step, index))
+                    if environment is not None:
+                        environments[(step, index)] = environment
+                values = work.get("tool", flow.get(step, index, "tool"),
+                                  "task", flow.get(step, index, "task"), "require",
+                                  step=step, index=index) or []
+                declared[(step, index)] = list(dict.fromkeys(values))
+        return WorkedOut(declared, environments, tasks, failed, unfed)
+    finally:
+        logger.setLevel(level)
+
+
+def with_required(project, declared: Dict[Tuple[str, str], List[str]]):
+    '''A copy carrying ``declared`` as each node's `require`: the manifest uploaded.
+
+    Only `require`: a second setup over setup's other effects doubles options.
+    '''
+    import copy
+
+    carried = copy.deepcopy(project)
+    flow = carried.get_flow()
+    for (step, index), values in declared.items():
+        carried.set("tool", flow.get(step, index, "tool"), "task", flow.get(step, index, "task"),
+                    "require", values, step=step, index=index)
+    return carried
+
+
+def as_remote(project) -> Dict[Tuple[str, ...], str]:
+    '''Register each resource's and task's ``python+`` dataroot as its remote
+    source, at its tag, or at the commit an editable checkout has out
+    (`_pushed_head`). ``project`` is the copy that is sent, walked and collected:
+    a server supplies a dataroot, and names an uploaded file, by the source and
+    tag the manifest records.
+
+    The design's are left as they are: they go up, read from where they are.
+
+    Returns:
+        dict: The keypath and module of each dataroot left in a checkout no server
+        can fetch, whose files go up.
+    '''
+    from siliconcompiler.package import PythonPathResolver, Resolver
+
+    left = {}
+    for key in project.allkeys(include_default=False):
+        keypath = tuple(key[:-1])
+        if key[-1] != "path" or not is_dataroot_keypath(keypath) \
+                or owner(project, keypath)[0] == DESIGN:
+            continue
+        source = project.get(*key)
+        if source[:7].lower() != "python+":
+            continue
+        resolver = Resolver.find_resolver(source)(
+            keypath[-1], project.get(*keypath[:-2], field="schema"), source,
+            project.get(*keypath, "tag"))
+        # A plugin may register a python+ scheme of its own
+        if not isinstance(resolver, PythonPathResolver):
+            continue
+        tag = resolver.reference
+        if not resolver.is_indirect:
+            tag = _pushed_head(resolver.get_path())
+            if tag is None:
+                left[keypath] = resolver.urlpath
+                continue
+        project.set(*keypath, "path", PythonPathResolver._split(source)[0])
+        project.set(*keypath, "tag", tag)
+    return left
+
+
+def _pushed_head(path: str) -> Optional[str]:
+    '''The commit checked out at ``path``, where nothing under ``path`` differs
+    from it, untracked files included, and a remote branch holds it: a server can
+    fetch those files at it. None anywhere else.'''
+    import git
+
+    try:
+        repo = git.Repo(path, search_parent_directories=True)
+        if repo.is_dirty(untracked_files=True, path=path):
+            return None
+        head = repo.head.commit.hexsha
+        return head if repo.git.branch("--remotes", "--contains", head) else None
+    except (git.GitError, ValueError, OSError):
+        return None
