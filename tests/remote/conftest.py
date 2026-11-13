@@ -30,15 +30,12 @@ def gcd_nop_project(gcd_design):
 
 @pytest.fixture(autouse=True)
 def machine_fingerprint(monkeypatch):
-    '''A machine id where the host has none (a container often lacks
-    /etc/machine-id), since the client refuses to sign in without one.'''
+    '''A fixed machine id, since the client refuses to sign in without one: a
+    container often has none, and on macOS reading it forks `ioreg` every time.'''
     from siliconcompiler.remote.client import identity
 
-    real = identity.machine_fingerprint
-    if real()[1] == "none":
-        monkeypatch.setattr(identity, "machine_fingerprint",
-                            lambda: ("a-test-host", "linux_machine_id"))
-    return real
+    monkeypatch.setattr(identity, "machine_fingerprint",
+                        lambda: ("a-test-host", "linux_machine_id"))
 
 
 V1_URL = "https://sc-server.test/v1"
