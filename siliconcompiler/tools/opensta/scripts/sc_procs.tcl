@@ -198,11 +198,11 @@ proc sc_report_corner_timing { args } {
         set base "${dir}/$keys(-name).${corner}"
 
         report_checks -sort_by_slack -fields $keys(-fields) {*}$path_sel \
-            -format full_clock_expanded {*}$full_extra -corner $corner \
+            -format full_clock_expanded {*}$full_extra -scenes $corner \
             > ${base}.rpt
 
         report_checks -sort_by_slack -fields $keys(-fields) {*}$path_sel \
-            -group_path_count $keys(-top_paths) -corner $corner \
+            -group_path_count $keys(-top_paths) -scenes $corner \
             > ${base}.topN.rpt
 
         if { $unconstrained } {
@@ -210,11 +210,11 @@ proc sc_report_corner_timing { args } {
         }
 
         report_checks -sort_by_slack {*}$path_sel -slack_max 0 -endpoint_path_count 1 \
-            -group_path_count $keys(-top_paths) -format short -corner $corner \
+            -group_path_count $keys(-top_paths) -format short -scenes $corner \
             > ${base}.failing.rpt
 
         report_checks -sort_by_slack {*}$path_sel -endpoint_path_count 1 \
-            -group_path_count $keys(-top_paths) -format end -corner $corner \
+            -group_path_count $keys(-top_paths) -format end -scenes $corner \
             > ${base}.endpoints.rpt
 
         if { ![sc_has_scene_slack] } {

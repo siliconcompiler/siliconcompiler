@@ -49,14 +49,16 @@ source "$sc_refdir/sc_procs.tcl"
 ###############################
 
 # Read Liberty
-puts "Defining timing corners: $sc_scenarios"
-define_corners {*}$sc_scenarios
-
-if { $opensta_timing_mode == "asic" } {
-    foreach corner $sc_scenarios {
-        foreach lib $sc_logiclibs {
+# Each file is read once. The liberty files of every scenario are collected here so
+# define_scene can hand them to the scene once the design is linked.
+set sc_scene_liberty [dict create]
+foreach scene $sc_scenarios {
+    set scene_files []
+    foreach lib $sc_logiclibs {
+        set lib_files []
+        if { $opensta_timing_mode == "asic" } {
             set lib_filesets []
-            foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
+            foreach libcorner [sc_cfg_get constraint timing scenario $scene libcorner] {
                 if {
                     [sc_cfg_exists library $lib asic \
                         libcornerfileset $libcorner $sc_delaymodel]
@@ -66,21 +68,30 @@ if { $opensta_timing_mode == "asic" } {
                             libcornerfileset $libcorner $sc_delaymodel]
                 }
             }
-            foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
-                puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
-                read_liberty -corner $corner $lib_file
+            set lib_files [sc_cfg_get_fileset $lib $lib_filesets liberty]
+        } elseif { $opensta_timing_mode == "fpga" } {
+            foreach lib_fileset [sc_cfg_get library $lib tool opensta liberty_filesets] {
+                lappend lib_files {*}[sc_cfg_get_fileset $lib $lib_fileset liberty]
+            }
+        }
+        foreach lib_file $lib_files {
+            # read_liberty records the native name, and define_scene matches on it
+            set lib_file [file nativename $lib_file]
+            if { [lsearch -exact $scene_files $lib_file] == -1 } {
+                lappend scene_files $lib_file
             }
         }
     }
-} elseif { $opensta_timing_mode == "fpga" } {
-    foreach corner $sc_scenarios {
-        foreach lib $sc_logiclibs {
-            foreach lib_fileset [sc_cfg_get library $lib tool opensta liberty_filesets] {
-                foreach lib_file [sc_cfg_get_fileset $lib $lib_fileset liberty] {
-                    puts "Reading liberty file for ${corner} (typical): ${lib_file}"
-                    read_liberty -corner ${corner} $lib_file
-                }
-            }
+    dict set sc_scene_liberty $scene $scene_files
+}
+
+set sc_liberty_files_read []
+dict for {scene scene_files} $sc_scene_liberty {
+    foreach lib_file $scene_files {
+        if { [lsearch -exact $sc_liberty_files_read $lib_file] == -1 } {
+            puts "Reading liberty file: ${lib_file}"
+            read_liberty $lib_file
+            lappend sc_liberty_files_read $lib_file
         }
     }
 }
@@ -116,6 +127,40 @@ if { $sc_netlist != "" } {
     }
 }
 link_design $sc_topmodule
+
+# Read SPEF
+# Each pex corner is read once, under its own name, so every scenario that shares the
+# corner can be handed the same parasitics.
+set sc_scene_spef [dict create]
+if { $opensta_timing_mode == "asic" } {
+    set spefs_read []
+    foreach scene $sc_scenarios {
+        set pex_corner [sc_cfg_get constraint timing scenario $scene pexcorner]
+
+        set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
+        if { ![file exists $spef_file] } {
+            continue
+        }
+        if { [lsearch -exact $spefs_read $pex_corner] == -1 } {
+            puts "Reading SPEF ($pex_corner): $spef_file"
+            read_spef -name $pex_corner $spef_file
+            lappend spefs_read $pex_corner
+        }
+        dict set sc_scene_spef $scene $pex_corner
+    }
+}
+
+# Define scenes
+# Every scene uses the current mode, and define_scene clears the port loads of its
+# mode, so the scenes have to exist before the SDC is read.
+foreach scene $sc_scenarios {
+    set scene_args [list -liberty [dict get $sc_scene_liberty $scene]]
+    if { [dict exists $sc_scene_spef $scene] } {
+        lappend scene_args -spef [dict get $sc_scene_spef $scene]
+    }
+    puts "Defining timing scene: $scene"
+    define_scene $scene {*}$scene_args
+}
 
 # Read SDC (in order of priority)
 # Record every SDC read so sc_report_scenarios can list them
@@ -190,31 +235,21 @@ puts "Timing path groups: [sta::path_group_names]"
 ###############################
 
 if { $opensta_timing_mode == "asic" } {
-    foreach corner $sc_scenarios {
-        set pex_corner [sc_cfg_get constraint timing scenario $corner pexcorner]
-
-        set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
-        if { [file exists $spef_file] } {
-            puts "Reading SPEF ($corner / $pex_corner): $spef_file"
-            read_spef -corner $corner $spef_file
-        }
-    }
-
-    foreach corner $sc_scenarios {
-        set pex_corner [sc_cfg_get constraint timing scenario $corner pexcorner]
+    foreach scene $sc_scenarios {
+        set pex_corner [sc_cfg_get constraint timing scenario $scene pexcorner]
 
         set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
         if { [file exists $input_sdf_file] } {
-            puts "Reading SDF ($corner / $pex_corner): $input_sdf_file"
-            read_sdf -corner $corner $input_sdf_file
+            puts "Reading SDF ($scene / $pex_corner): $input_sdf_file"
+            read_sdf -scene $scene $input_sdf_file
         }
     }
 } elseif { $opensta_timing_mode == "fpga" } {
-    foreach corner $sc_scenarios {
+    foreach scene $sc_scenarios {
         set input_sdf_file "inputs/${sc_topmodule}.typical.sdf"
         if { [file exists $input_sdf_file] } {
-            puts "Reading SDF ($corner / typical): $input_sdf_file"
-            read_sdf -corner $corner $input_sdf_file
+            puts "Reading SDF ($scene / typical): $input_sdf_file"
+            read_sdf -scene $scene $input_sdf_file
         }
     }
 }

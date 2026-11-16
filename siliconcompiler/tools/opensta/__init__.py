@@ -28,7 +28,7 @@ class OpenSTATask(Task):
         super().setup()
 
         self.set_exe("sta", vswitch="-version", format="tcl")
-        self.add_version(">=2.6.2")
+        self.add_version(">=3.0.1")
 
         self.set_dataroot("refdir-root", "python://siliconcompiler/tools/opensta")
         with self.active_dataroot("refdir-root"):
