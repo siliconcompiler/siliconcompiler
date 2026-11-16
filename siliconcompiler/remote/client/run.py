@@ -16,6 +16,7 @@ import posixpath
 import re
 import sys
 import shutil
+import sysconfig
 import tarfile
 import tempfile
 import threading
@@ -699,11 +700,14 @@ class RemoteRun:
                 one.keypath in wanted or (not only_asked and one.upload))
 
         chosen = owners.collection(reads.values, pick)
+        # An installed package's directories go up as its files do, unlisted: the
+        # list guards against sweeping up a directory of the user's own.
+        installed = [sysconfig.get_path(name) for name in ("purelib", "platlib")]
         try:
             # From the copy sent, so each file is named as its manifest's dataroot names it
             collect(reads.manifest, keys=chosen.keys, directory=directory,
                     verbose=not only_asked, select=chosen.select,
-                    whitelist=UPLOADS.get())
+                    whitelist=UPLOADS.get() + installed)
         except (OSError, RuntimeError, ValueError) as e:
             if not asked:
                 raise

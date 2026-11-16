@@ -1926,6 +1926,33 @@ def test_an_asked_dataroot_is_matched_on_its_owner_and_its_name(run, nop_project
     assert "alib.pdf" in found and "blib.pdf" not in found
 
 
+@pytest.mark.parametrize("installed", [True, False], ids=["installed", "own"])
+def test_only_an_installed_packages_directory_goes_up_unlisted(
+        run, nop_project, tmp_path, monkeypatch, installed):
+    '''With nothing in `remote uploads`, an installed package's directory goes up as
+    its files do, and one of the user's own is refused.'''
+    import sysconfig
+
+    site = tmp_path / "site-packages"
+    (site / "padlib" / "rtl").mkdir(parents=True)
+    (site / "padlib" / "rtl" / "pad.vh").write_text("`define PAD\n")
+    get_path = sysconfig.get_path
+    monkeypatch.setattr(sysconfig, "get_path", lambda name, *args, **kwargs:
+                        str(site) if installed and name in ("purelib", "platlib")
+                        else get_path(name, *args, **kwargs))
+    design = nop_project.get("library", "gcd", field="schema")
+    design.add_idir(str(site / "padlib" / "rtl"), fileset="rtl")
+    collection = tmp_path / "collected"
+
+    if not installed:
+        with pytest.raises(RuntimeError, match="is not on the approved collection list"):
+            run._collect(run._read(), directory=str(collection))
+        return
+    run._collect(run._read(), directory=str(collection))
+
+    assert "pad.vh" in {name for _, _, names in os.walk(collection) for name in names}
+
+
 def test_the_poll_line_reads_its_time_and_reason_from_transitions():
     '''From the last `transitions` entry; a live staging phase wins.'''
     import time

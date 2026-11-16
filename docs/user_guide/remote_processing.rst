@@ -107,12 +107,15 @@ Two settings are not secrets, and live in ``$HOME/.sc/settings.json`` instead,
 in its ``remote`` category, changed with :ref:`sc-config settings <app-sc-config>`:
 
 ``uploads``
-  The directories a run may upload a directory from. A directory not on the
-  list is not uploaded, and the client says so:
+  The directories a run may upload a directory from: one on the list, or
+  inside one. A directory elsewhere is not uploaded, and the client says so:
 
   .. code-block:: bash
 
     sc-config settings add remote uploads ~/projects/chip
+
+  The packages installed in the Python environment the run uses need no entry:
+  their directories go up as their files do.
 
 ``browser``
   ``false`` keeps the client from opening a browser -- for the login page, a

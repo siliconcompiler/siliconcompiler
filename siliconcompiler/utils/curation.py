@@ -75,9 +75,10 @@ def collect(project: "Project",
             Defaults to the path from :meth:`.collectiondir`.
         verbose (bool): If True, logs information about each collected file/directory.
             Defaults to True.
-        whitelist (List[str], optional): A list of absolute paths that are
-            allowed to be collected. If an item to be collected is not on this list,
-            a `RuntimeError` is raised. Defaults to None.
+        whitelist (List[str], optional): The absolute paths a directory may be
+            collected from: one to be collected must be on this list or inside a
+            directory on it, or a `RuntimeError` is raised. Files are not checked.
+            Defaults to None, which approves every directory.
         select (Callable, optional): Called as ``select(key, step, index, value)``
             for each value of the parameters in ``keys``, with ``value`` the
             :class:`BasePathNodeValue` the project holds. Only the values it returns True
@@ -87,7 +88,7 @@ def collect(project: "Project",
             collected brings everything in it. Defaults to every value.
 
     Raises:
-        RuntimeError: If a file or directory to be collected is not in the `whitelist`.
+        RuntimeError: If a directory to be collected is not approved by the `whitelist`.
         FileNotFoundError: If a specified file or directory cannot be found.
     '''
     from siliconcompiler import Project
@@ -348,7 +349,7 @@ def collect(project: "Project",
 
                 # A 'path' value holds either kind, so go by what it resolved to
                 if os.path.isdir(abs_path):
-                    if whitelist is not None and abs_path not in whitelist:
+                    if not approved(real_path):
                         raise RuntimeError(
                             f'{abs_path} is not on the approved collection list.')
 
