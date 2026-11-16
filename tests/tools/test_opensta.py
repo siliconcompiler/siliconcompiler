@@ -702,7 +702,7 @@ def test_opensta_open(datadir):
     assert os.path.isfile(os.path.join(workdir, "inputs", "foo.vg"))
     assert "Reading netlist verilog: inputs/foo.vg" in log
     # the rest of the timing context still comes from TimingTask's handling
-    assert "Defining timing corners: typical" in log
+    assert "Defining timing scene: typical" in log
     assert "NangateOpenCellLibrary_typical.lib" in log
     assert "foo.sdc" in log
 

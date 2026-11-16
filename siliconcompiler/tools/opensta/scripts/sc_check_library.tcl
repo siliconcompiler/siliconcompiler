@@ -26,22 +26,34 @@ foreach lib $sc_logiclibs {
 ###############################
 
 # Read Liberty
-puts "Defining timing corners: $sc_scenarios"
-define_corners {*}$sc_scenarios
-foreach corner $sc_scenarios {
+# Each file is read once. The files each scenario uses are kept so the pin checks
+# below can look at every scenario on its own.
+set sc_scene_liberty [dict create]
+set sc_liberty_files_read []
+foreach scene $sc_scenarios {
+    set scene_files []
     foreach lib $sc_targetlibs {
-        foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
+        foreach libcorner [sc_cfg_get constraint timing scenario $scene libcorner] {
             if { ![sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
                 continue
             }
             set lib_filesets \
                 [sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
             foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
-                puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
-                read_liberty -corner $corner $lib_file
+                # read_liberty records the native name, which is what the cells report
+                set lib_file [file nativename $lib_file]
+                if { [lsearch -exact $scene_files $lib_file] == -1 } {
+                    lappend scene_files $lib_file
+                }
+                if { [lsearch -exact $sc_liberty_files_read $lib_file] == -1 } {
+                    puts "Reading liberty file: ${lib_file}"
+                    read_liberty $lib_file
+                    lappend sc_liberty_files_read $lib_file
+                }
             }
         }
     }
+    dict set sc_scene_liberty $scene $scene_files
 }
 
 ###############################
@@ -135,17 +147,30 @@ proc check_cell { lib label cell } {
     }
 }
 
-# Verify that a cell's port exists (once per corner) with the expected direction.
-proc check_port { lib label cell port dir num_corners } {
+# Verify that a cell's port exists (once per scenario) with the expected direction.
+proc check_port { lib label cell port dir } {
+    global sc_scene_liberty
+
     assert_glob $port
     set pins [get_lib_pins -quiet $cell/$port]
     if { [llength $pins] == 0 } {
         puts "\[ERROR] $lib $label: pin '$cell/$port' not found in libraries"
         return
     }
-    if { [llength $pins] != $num_corners } {
-        puts "\[ERROR] $lib $label: pin '$cell/$port' defined in [llength $pins]\
-            corner(s), expected $num_corners"
+    dict for {scene scene_files} $sc_scene_liberty {
+        set count 0
+        foreach libcell [get_lib_cells -quiet $cell] {
+            if {
+                [lsearch -exact $scene_files [get_property $libcell filename]] != -1 &&
+                [$libcell find_liberty_port $port] != "NULL"
+            } {
+                incr count
+            }
+        }
+        if { $count != 1 } {
+            puts "\[ERROR] $lib $label: pin '$cell/$port' defined in $count\
+                libraries of scenario $scene, expected 1"
+        }
     }
     foreach pin $pins {
         if { [get_property $pin direction] != $dir } {
@@ -154,8 +179,6 @@ proc check_port { lib label cell port dir num_corners } {
         }
     }
 }
-
-set num_corners [llength $sc_scenarios]
 
 # Check yosys setup
 foreach lib $sc_targetlibs {
@@ -169,8 +192,8 @@ foreach lib $sc_targetlibs {
     if { [sc_cfg_exists library $lib tool yosys buffer_cell] } {
         lassign [sc_cfg_get library $lib tool yosys buffer_cell] cell in out
         check_cell $lib "yosys buffer_cell" $cell
-        check_port $lib "yosys buffer_cell input" $cell $in "input" $num_corners
-        check_port $lib "yosys buffer_cell output" $cell $out "output" $num_corners
+        check_port $lib "yosys buffer_cell input" $cell $in "input"
+        check_port $lib "yosys buffer_cell output" $cell $out "output"
     }
 
     # tiehigh_cell / tielow_cell: {cell port}
@@ -178,7 +201,7 @@ foreach lib $sc_targetlibs {
         if { [sc_cfg_exists library $lib tool yosys $tie] } {
             lassign [sc_cfg_get library $lib tool yosys $tie] cell port
             check_cell $lib "yosys $tie" $cell
-            check_port $lib "yosys $tie" $cell $port "output" $num_corners
+            check_port $lib "yosys $tie" $cell $port "output"
         }
     }
 
@@ -217,7 +240,7 @@ foreach lib $sc_targetlibs {
         if { [sc_cfg_exists library $lib tool openroad $tie] } {
             lassign [sc_cfg_get library $lib tool openroad $tie] cell port
             check_cell $lib "openroad $tie" $cell
-            check_port $lib "openroad $tie" $cell $port "output" $num_corners
+            check_port $lib "openroad $tie" $cell $port "output"
         }
     }
 }
