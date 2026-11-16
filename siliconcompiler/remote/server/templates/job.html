@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job.id }}{% endblock %}
+{# A meta refresh, not a script, while the job is still going. #}
+{% block head %}{% if not job.terminal %}<meta http-equiv="refresh" content="5">{% endif %}{% endblock %}
+{% block body %}
+<h2>{{ job.design }} / {{ job.jobname }}</h2>
+<p class="lede"><code>{{ job.id }}</code>, created {{ job.created_at }}</p>
+
+<div class="panel">
+  State: <span class="tag {{ 'bad' if job.state in ('failed', 'rejected') }}
+                          {{ 'good' if job.state == 'completed' }}">{{ job.state }}</span>
+  {% for reason in reasons %}<p class="muted">{{ reason }}</p>{% endfor %}
+  {% if job.error %}
+  <p class="bad"><strong>{{ job.error.title }}</strong>
+    {% if job.error.detail %}: {{ job.error.detail }}{% endif %}</p>
+  {% endif %}
+  {% if job.terminal %}
+  <form method="post" action="{{ url_for('portal.delete', job_id=job.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="danger">Delete</button>
+  </form>
+  {% else %}
+  <form method="post" action="{{ url_for('portal.cancel', job_id=job.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="danger">Cancel</button>
+  </form>
+  {% endif %}
+</div>
+
+<h3>Nodes</h3>
+{% if job.nodes %}
+<table>
+  <tr><th>Step</th><th>Index</th><th>State</th></tr>
+  {% for node in job.nodes %}
+  <tr>
+    <td>{{ node.step }}</td><td>{{ node.index }}</td>
+    <td><span class="tag {{ 'bad' if node.state == 'failed' }}
+                         {{ 'good' if node.state == 'completed' }}">{{ node.state }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">The job has no nodes yet.</p>
+{% endif %}
+
+{% for node in job.nodes if (node.step, node.index) in logs %}
+<h3>Log: {{ node.step }}/{{ node.index }}</h3>
+<pre>{{ logs[node.step, node.index] }}</pre>
+{% endfor %}
+{% endblock %}

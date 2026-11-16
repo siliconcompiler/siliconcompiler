@@ -1011,7 +1011,9 @@ def test_collect_file_whitelist_error(path_keys):
     assert len(os.listdir(collectiondir(proj))) == 0
 
 
-def test_collect_file_whitelist_pass(path_keys):
+@pytest.mark.parametrize("approved", ["test", "."], ids=["itself", "inside"])
+def test_collect_file_whitelist_pass(path_keys, approved):
+    '''A directory on the whitelist, or inside one, is collected.'''
     os.makedirs('test/testing', exist_ok=True)
 
     # Create instance of design
@@ -1024,7 +1026,7 @@ def test_collect_file_whitelist_pass(path_keys):
         f.write('test')
 
     proj = Project(design)
-    collect(proj, keys=path_keys(proj), whitelist=[os.path.abspath('test')])
+    collect(proj, keys=path_keys(proj), whitelist=[os.path.abspath(approved)])
 
     assert len(os.listdir(collectiondir(proj))) == 1
 

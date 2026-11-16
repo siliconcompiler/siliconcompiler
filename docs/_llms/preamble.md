@@ -73,12 +73,13 @@ This section is the reason the file is worth fetching.
   what most training data contains. The replacement is `Design` + a project
   class; every old name is mapped in the migration guide linked below.
 - **There is no `sc` command.** The console scripts are `sc-config`,
-  `sc-issue`, `sc-remote`, `sc-show`, `sc-install` and `smake` -- that is the
-  complete list. A `sc -target asic_demo` invocation is from the pre-0.35 CLI
-  and fails with `command not found`. To run something from a shell, use a Python
-  script, `smake`, or `python3 -m siliconcompiler.demos.asic_demo`. The web
-  dashboard is `python3 -m siliconcompiler.apps.utils.dashboard`, and the
-  remote job server is `python3 -m siliconcompiler.remote.server`.
+  `sc-issue`, `sc-show`, `sc-install` and `smake` -- that is the complete list.
+  A `sc -target asic_demo` invocation is from the pre-0.35 CLI and fails with
+  `command not found`. To run something from a shell, use a Python script,
+  `smake`, or `python3 -m siliconcompiler.demos.asic_demo`. The web dashboard is
+  `python3 -m siliconcompiler.apps.utils.dashboard`, the remote job server is
+  `python3 -m siliconcompiler.remote.server`, and its client is
+  `sc-config remote`.
 - **`FPGA` changed meaning.** It used to be the FPGA device class; it is now the
   FPGA *project* class. The device is `FPGADevice`.
 - **Manifests are `.pkg.json`**, not `.cfg`. The `.cfg` extension predates

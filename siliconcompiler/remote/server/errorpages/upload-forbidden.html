@@ -1,0 +1,70 @@
+{% extends "_layout.html" %}
+{% set title = "Upload of that resource is not allowed" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "The archive carries restricted material you may not upload. The job is rejected." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>Your upload carries files of a controlled resource &mdash; a PDK or library under an agreement &mdash; which your account may not upload. The deployment supplies its own copy of controlled resources; it does not accept one from you. The job is rejected and the upload deleted.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>detected</code>. <code>attribution</code>: your manifest attributes the file to a controlled resource. <code>content</code>: the file&rsquo;s bytes match one, whatever the manifest calls it.</li>
+  <li>Read <code>member</code>, the archive entry that was refused, and <code>resource_kind</code>.</li>
+  <li>Use the deployment&rsquo;s copy: reference the resource from its released source instead of a local or editable one, so its files are not uploaded.</li>
+  <li>If you need to run a modified copy, that is a permission for whoever administers your account.</li>
+</ol>
+</div>
+
+<p class="aside">Only a resource the deployment controls can be refused this way. A deployment with no controlled resources, such as the reference <code>sc-server</code>, never returns it.</p>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/upload-forbidden",
+  "title":    "Upload of that resource is not allowed",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "resource_kind": "pdk",  <span class="c">// REQUIRED on this type</span>
+  "detected": "content",  <span class="c">// REQUIRED on this type</span>
+  "member":   "sc_collected_files/3f9a1c.lef",  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>pdk</code>, <code>library</code> or <code>fpga</code>.</td></tr>
+<tr><td><code>detected</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>attribution</code> or <code>content</code>: how the member was found to be controlled. <code>content</code> is found first, by the server&rsquo;s own reading of the upload before staging starts; <code>attribution</code> once staging&rsquo;s read of the manifest reports what each member belongs to.</td></tr>
+<tr><td><code>member</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The archive entry, bounded. Named only once the archive has passed its safety checks.</td></tr>
+<tr><td><code>resource</code></td><td><span class="req">OPTIONAL</span></td>
+    <td>Its name &mdash; present only when you hold a grant on it. Otherwise naming it would confirm what the deployment&rsquo;s catalogue holds.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">The job, while it stages</td>
+    <td>The job ends <code>rejected</code> and carries this as its <code>error</code>; read it with <code>GET /v1/jobs/{id}</code>. Submit itself accepts the archive on its digest alone.</td></tr>
+</tbody>
+</table>
+
+<p>The order is fixed: content is checked first, then attribution, and both before <a href="terms-not-accepted.html"><code>terms-not-accepted</code></a> and <a href="entitlement-denied.html"><code>entitlement-denied</code></a> on the job&rsquo;s resources. A caller who holds no grant on the resource therefore gets <code>upload-forbidden</code> with no <code>resource</code>, and never an <code>entitlement-denied</code> that names it.</p>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="archive-rejected.html"><code>archive-rejected</code></a> is also raised while the upload is read, and is a safety failure of the archive itself, not a policy about its contents. The fix differs.</p>
+
+<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the opposite case: a resource the server needed and could not get.</p>
+{% endblock %}

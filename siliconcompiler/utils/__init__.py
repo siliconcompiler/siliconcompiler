@@ -144,6 +144,30 @@ def _symlink_safe_data_filter(member: tarfile.TarInfo,
     return checked.replace(linkname=linkname, deep=False)
 
 
+def _localized_data_filter(member: tarfile.TarInfo,
+                           dest_path: str) -> Optional[tarfile.TarInfo]:
+    """Applies the ``data`` extraction filter, then writes a symlink's target with
+    this platform's separators.
+
+    Used in place of the plain ``"data"`` filter on Windows. CPython's filter
+    normalizes a link's target itself since gh-135034, but the Windows builds of
+    3.11 and 3.12 predate that, and a Windows symlink cannot follow a forward
+    slash. The check reads either separator there, so the link that is checked is
+    the link that is written.
+
+    Args:
+        member (tarfile.TarInfo): The archive member about to be extracted.
+        dest_path (str): The directory being extracted into.
+
+    Returns:
+        tarfile.TarInfo: The member to extract, or None to skip it.
+    """
+    checked = tarfile.data_filter(member, dest_path)
+    if checked is None or not checked.issym():
+        return checked
+    return checked.replace(linkname=checked.linkname.replace("/", os.sep), deep=False)
+
+
 def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     """Returns keyword arguments selecting a PEP 706 extraction filter.
 
@@ -160,7 +184,9 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
     releases that misreads relative symlinks (see
     :func:`_data_filter_mishandles_symlinks`), a corrected equivalent is returned
     instead of the filter's name. The filter is not weakened to do it: the same
-    ``data`` checks run, on the target the link actually points at.
+    ``data`` checks run, on the target the link actually points at. On Windows,
+    ``"data"`` is likewise :func:`_localized_data_filter`, so a symlink is written
+    in a form Windows follows.
 
     Args:
         filter (str): The extraction filter to request (``"data"``, ``"tar"`` or
@@ -171,6 +197,8 @@ def tar_extract_kwargs(filter: str = "data") -> Dict[str, Union[str, Callable]]:
         return {}
     if filter == "data" and _data_filter_mishandles_symlinks():
         return {"filter": _symlink_safe_data_filter}
+    if filter == "data" and os.sep != "/":
+        return {"filter": _localized_data_filter}
     return {"filter": filter}
 
 
@@ -573,12 +601,13 @@ def default_sc_system_path() -> str:
 
 def default_credentials_file() -> str:
     """
-    Returns the default path for the SiliconCompiler credentials file.
+    Returns the default path for the remote client's store: ``auth/remote.json``
+    in the SiliconCompiler configuration directory, beside the machine's key.
 
     Returns:
-        str: The absolute path to the credentials file.
+        str: The absolute path to the store file.
     """
-    return default_sc_path('credentials')
+    return default_sc_path(os.path.join('auth', 'remote.json'))
 
 
 def default_cache_dir() -> str:

@@ -177,31 +177,27 @@ Running this python script directly produces the same results as the :ref:`ASIC 
 Remote Run Controls
 -------------------
 
-When your job starts on a remote server, it will log a job ID which you can use to query your job if you close the terminal window or otherwise interrupt the run before it completes:
+When your job starts on a remote server, it will log a job ID which you can use to find your job if you close the terminal window or otherwise interrupt the run before it completes:
 
 .. code-block::
 
     | INFO    | job0  | remote     | 0  | Your job's reference ID is: 0123456789abcdeffedcba9876543210
 
-The job ID is recorded in the job's manifest, which is how the
-:ref:`sc-remote <app-sc-remote>` CLI app identifies the job -- point it at that
-manifest to interact with a running job:
+Interrupting the run leaves the job running on the server. Follow it, cancel it
+or delete it in the server's portal, which
+:ref:`sc-config remote <app-sc-config>` opens in a browser, signed in as you:
 
 .. code-block:: bash
 
-    # Check on a job's progress.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json
+    sc-config remote portal
 
-    # Cancel a running job.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -cancel
+To bring its results into the build directory once you have disconnected,
+point ``sc-config remote fetch`` at the manifest the run wrote, which names the
+job:
 
-    # Ask the server to delete a job from its active records.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -delete
+.. code-block:: bash
 
-    # Reconnect to an active job.
-    sc-remote -cfg build/<design>/<jobname>/<design>.pkg.json -reconnect
-
-The :ref:`sc-remote <app-sc-remote>` app also accepts a `-credentials` input parameter which works the same way as the :keypath:`option,credentials` parameter.
+    sc-config remote fetch build/<design>/job0/<design>.pkg.json
 
 .. seealso::
    :ref:`Directory structures <directory_structures>` explains the build tree

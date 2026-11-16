@@ -30,6 +30,12 @@ x-sc-slurm: &sc-slurm
       # CI passes the image its docker_image job resolved, so the stack is
       # exercised against the same one as the rest of the suite.
       SC_TOOLS_IMAGE: ${SC_TOOLS_IMAGE:-ghcr.io/siliconcompiler/sc_tools:latest}
+      # The version to build. Needed from a git worktree (its .git points
+      # outside the build context) unless the package was installed editable
+      # there:
+      #
+      #   SC_VERSION=0.38.9 docker compose up --build
+      SC_VERSION: ${SC_VERSION:-}
   image: sc-server-slurm:local
   environment:
     SC_SLURM_DB_PASSWORD: ${SC_SLURM_DB_PASSWORD:-sc_test_only}
@@ -103,9 +109,9 @@ services:
     <<: *sc-slurm
     hostname: scserver
     command: ["ctld"]
-    # Loopback only. sc-server runs without -auth here, so this is an
-    # unauthenticated job-submission endpoint: published on 0.0.0.0 it would be
-    # reachable by anything that can route to this host. "Reachable from my own
+    # Loopback only. sc-server does not verify who a caller is, so this is an
+    # open job-submission endpoint: published on 0.0.0.0 it would be reachable
+    # by anything that can route to this host. "Reachable from my own
     # machine" is all the stack needs. Exposing it more widely means adding
     # authentication and firewalling first.
     ports:
@@ -121,18 +127,11 @@ services:
     <<: *scrunner
 
 volumes:
-  # The shared filesystem, mounted at /sc_server and handed to sc-server as
-  # -nfsmount. The server lays it out itself:
-  #
-  #   builds/<jobhash>/   one directory per job, written by the server and read
-  #                      back by the compute node at the same path
-  #   cache/              downloaded PDKs and data packages, shared by the
-  #                      whole cluster
-  #
-  # The cache is here rather than in each container's ~/.sc because a compute
-  # node need not share a home directory with the server, and because the
-  # scheduler hands the server's cachedir to the node -- so it has to be a path
-  # they both see.
+  # The shared filesystem, mounted at /sc_server on the server and every
+  # compute node, and handed to sc-server as -datadir. The server keeps its
+  # state there (store.sqlite3, one directory of builds per user) and the
+  # package cache (cache/), and the compute node reads and writes the same
+  # paths, so it must be a path they both see.
   sc-server-data:
   munge-key:
   slurmdb-data:

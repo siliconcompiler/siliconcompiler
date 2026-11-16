@@ -44,7 +44,6 @@ GENERATED = (
     "reference_manual/schema",          # covers schema and schema_api
     "reference_manual/predef_modules/",
     "reference_manual/apps",
-    "reference_manual/server_api",
     "reference_manual/uniquify_api",
     "reference_manual/leflib_api",
 )

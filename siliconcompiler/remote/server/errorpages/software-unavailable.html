@@ -1,0 +1,65 @@
+{% extends "_layout.html" %}
+{% set title = "No image provides that software" %}
+{% set status = "422 Unprocessable Content" %}
+{% set description = "No image satisfies the job’s software. Names every requirement that failed and what is available." %}
+{% set also_on_a_job = true %}
+{% block main %}
+<p>No live image on this deployment satisfies the job&rsquo;s software requirements &mdash; a SiliconCompiler version, a Python library, or a tool version. The body lists every requirement that failed, each with what the images do hold, so you can ask for something that exists. A SiliconCompiler version no image offers is this type too, naming <code>siliconcompiler</code>: it covers what <code>version-skew</code> meant at create, which is retired.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>reason</code>. <code>unavailable</code>: the requirements listed are held by no image at all, SiliconCompiler&rsquo;s own version included. <code>combination</code>: each is held by some image, and no single image holds them together. <code>uninstallable</code>: while staging, the job&rsquo;s Python packages cannot be installed for a target &mdash; nothing in a package&rsquo;s release line installs for it, or a requirement needs another version of a distribution the image holds; <code>available</code> is <code>[]</code> and <code>detail</code> names each package, its version and the target Python and platform, or the host. A package no configured index has is not this: the job is sent back for its wheel. <code>unknown_class</code>: while staging, a node runs a task class the job&rsquo;s resolved environment does not provide; <code>unresolved</code> names each as <code>&lt;module&gt;/&lt;Class&gt;</code> and <code>detail</code> names the node. A task&rsquo;s own setup runs on the node, so it is never run as its base class instead. An unrecognised value means act on the type alone.</li>
+  <li>Read <code>unresolved</code>: one entry per failed requirement, with <code>kind</code> &mdash; where it came from &mdash; <code>requirement</code> &mdash; your alternatives, exactly as sent &mdash; and <code>available</code>, the versions this deployment&rsquo;s images hold. An empty <code>available</code> means none holds it.</li>
+  <li>For <code>unavailable</code>, ask for a version in <code>available</code>. For <code>combination</code>, choose versions that exist in one image together.</li>
+  <li><code>GET /v1</code>&rsquo;s <code>software</code> lists what is on offer before you submit, name by name. It cannot show which names share an image, which is why <code>combination</code> exists.</li>
+</ol>
+</div>
+
+<div class="warn"><p><strong>Present but reports no version.</strong> A tool an image holds but that does not report its version is listed under the date the image was published, and such an entry satisfies no version requirement. If the name is in <code>available</code> and you still got this, ask for it without a version.</p></div>
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/software-unavailable",
+  "title":    "No image provides that software",
+  "status":   422,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "reason":   "unavailable",  <span class="c">// REQUIRED on this type</span>
+  "unresolved": [{"kind": "tools", "name": "openroad", "requirement": ["&gt;=24.3.2011", "==2.0"], "available": ["2.1.0"]}],  <span class="c">// REQUIRED on this type</span>
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<table>
+<thead><tr><th>Member</th><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><code>reason</code></td><td><span class="req">REQUIRED</span></td>
+    <td><code>unavailable</code>, <code>combination</code>, <code>uninstallable</code> or <code>unknown_class</code>.</td></tr>
+<tr><td><code>unresolved</code></td><td><span class="req">REQUIRED</span></td>
+    <td>A list of <code>{kind, name, requirement, available}</code>, one per requirement that failed. <code>kind</code> says where it came from: <code>python</code>, <code>tools</code> or <code>interpreter</code> for that <code>requested_versions</code> key as spelled, <code>class</code> for a task class and <code>package</code> for one of the job&rsquo;s Python packages, so a Python distribution and a tool of one name stay apart. <code>requirement</code> is the list of alternatives as sent &mdash; a requirement is met if any one resolves &mdash; and <code>available</code> what the live images hold; <code>[]</code> if none.</td></tr>
+<tr><td><code>trace_id</code></td><td>optional</td>
+    <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
+</tbody>
+</table>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and read the members above for the specifics &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap"><code>POST /v1/jobs</code></td>
+    <td>The descriptor&rsquo;s <code>requested_versions</code> cannot be met, a <code>requested_versions.python</code> name no live image holds included.</td></tr>
+<tr><td class="wrap">while <code>staging</code></td>
+    <td>The flow the manifest&rsquo;s read reports cannot be placed &mdash; a job missing two tools lists both &mdash; <code>unknown_class</code>, and <code>uninstallable</code> when the job&rsquo;s Python packages are installed. The job is rejected, and this is the <code>type</code> of its <code>error</code> on <code>GET /v1/jobs/{id}</code>.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>What this is not</h2>
+
+<p><a href="resource-unavailable.html"><code>resource-unavailable</code></a> is the same answer for data rather than images: a PDK, library or FPGA device this deployment does not hold and cannot supply.</p>
+
+<p><a href="declared-mismatch.html"><code>declared-mismatch</code></a> is a manifest whose SiliconCompiler version does not satisfy the job&rsquo;s own <code>requested_versions.python.siliconcompiler</code>: the job asked for one version and sent another.</p>
+{% endblock %}

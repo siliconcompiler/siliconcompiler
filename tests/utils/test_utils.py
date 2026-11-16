@@ -278,7 +278,7 @@ def test_default_sc_dir():
 def test_default_credentials_file():
     with patch("pathlib.Path.home") as home:
         home.return_value = "this"
-        assert default_credentials_file() == os.path.join("this", ".sc", "credentials")
+        assert default_credentials_file() == os.path.join("this", ".sc", "auth", "remote.json")
 
 
 def test_default_cache_dir():
@@ -929,7 +929,20 @@ needs_working_filters = pytest.mark.skipif(
 
 @needs_working_filters
 def test_tar_extract_kwargs():
-    assert tar_extract_kwargs() == {"filter": "data"}
+    expected = "data" if os.sep == "/" else utils._localized_data_filter
+    assert tar_extract_kwargs() == {"filter": expected}
+
+
+@needs_working_filters
+def test_localized_filter_writes_a_link_in_the_platforms_separators():
+    """A Windows link cannot follow '/', which the 3.11 and 3.12 Windows builds' filter keeps."""
+    member = tarfile.TarInfo("dir/link")
+    member.type = tarfile.SYMTYPE
+    member.linkname = "../dir/target"
+
+    checked = utils._localized_data_filter(member, os.path.abspath("dest"))
+
+    assert checked.linkname == os.path.join(os.pardir, "dir", "target")
 
 
 @needs_filters

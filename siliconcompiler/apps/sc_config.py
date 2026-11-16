@@ -6,13 +6,15 @@ from typing import Iterator
 
 from siliconcompiler.package import TOKENS_COMMAND
 from siliconcompiler.package.cleanup import CACHE_COMMAND
+from siliconcompiler.remote.client.cli import REMOTE_COMMAND
 from siliconcompiler.scheduler.send_messages import EMAIL_COMMAND
 from siliconcompiler.utils import PATHS_COMMAND
 from siliconcompiler.utils.settings import SETTINGS_COMMAND
 
 
 #: The app's commands, each declared by the module that owns what it configures.
-_COMMANDS = (SETTINGS_COMMAND, EMAIL_COMMAND, TOKENS_COMMAND, CACHE_COMMAND, PATHS_COMMAND)
+_COMMANDS = (SETTINGS_COMMAND, EMAIL_COMMAND, TOKENS_COMMAND, REMOTE_COMMAND, CACHE_COMMAND,
+             PATHS_COMMAND)
 
 
 def _parsers(parser: argparse.ArgumentParser) -> Iterator[argparse.ArgumentParser]:

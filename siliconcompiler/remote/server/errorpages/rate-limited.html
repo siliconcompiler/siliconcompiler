@@ -1,0 +1,50 @@
+{% extends "_layout.html" %}
+{% set title = "Too many requests" %}
+{% set status = "429 Too Many Requests" %}
+{% set description = "Calls per unit time. Honour Retry-After." %}
+{% block main %}
+<p>You are calling this deployment faster than it accepts. This is about how often you ask, not about what your account may hold or consume.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Wait for <code>Retry-After</code>, then send the request again.</li>
+  <li>If you poll, poll at the interval the server gives you: a job read answers with its own <code>Retry-After</code>.</li>
+</ol>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/rate-limited",
+  "title":    "Too many requests",
+  "status":   429,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">any endpoint</td>
+    <td>The deployment&rsquo;s own request-rate ceiling.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>At the two OAuth endpoints</h2>
+
+<p>Raised at <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> too, before any
+OAuth processing, and in <code>problem+json</code> there as everywhere &mdash; never as an OAuth
+<code>error</code>. A client handles it by its status and <code>type</code>, and waits
+<code>Retry-After</code>.</p>
+
+<h2>What this is not</h2>
+
+<p><a href="limit-exceeded.html"><code>limit-exceeded</code></a> is a published ceiling on what you hold, and names it in <code>limit</code>. This one has no key to name.</p>
+{% endblock %}

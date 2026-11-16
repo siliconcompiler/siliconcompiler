@@ -1,0 +1,55 @@
+{% extends "_layout.html" %}
+{% set title = "Method not allowed" %}
+{% set status = "405 Method Not Allowed" %}
+{% set description = "Wrong method for this path. Often answered below the handler, untyped." %}
+{% block main %}
+<p>The path exists, and not for the method you used. The response carries an <code>Allow</code> header listing the methods it does take.</p>
+<h2>What to do</h2>
+
+<div class="do">
+<ol>
+  <li>Read <code>Allow</code> and use one of those methods.</li>
+</ol>
+</div>
+
+<div class="warn">
+<p><strong>An untyped answer is expected here.</strong> This refusal is often produced below the
+request handler &mdash; by routing, the framework or a proxy &mdash; and then it arrives as the web
+server&rsquo;s own page, not as <code>application/problem+json</code>, and has no <code>type</code>
+at all. Treat a non-<code>problem+json</code> <code>405</code> exactly as you would this type.</p>
+</div>
+
+<h2>The body</h2>
+
+<pre><code>{
+  "type":     "https://siliconcompiler.com/server-errors/method-not-allowed",
+  "title":    "Method not allowed",
+  "status":   405,
+  "detail":   "...",
+  "instance": "/v1/jobs/01J9...",
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}</code></pre>
+
+<p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code> &mdash; never parse <code>detail</code>.</p>
+
+<h2>Where it comes from</h2>
+
+<table>
+<tbody>
+<tr><td class="wrap">any endpoint</td>
+    <td>Routing.</td></tr>
+</tbody>
+</table>
+
+{% include "_help.html" %}
+
+<h2>At the two OAuth endpoints</h2>
+
+<p>Raised at <code>POST /v1/auth/token</code> and <code>POST /v1/auth/device</code> too, before any
+OAuth processing, and in <code>problem+json</code> there as everywhere &mdash; never as an OAuth
+<code>error</code>. A client handles it by its status and <code>type</code>.</p>
+
+<h2>What this is not</h2>
+
+<p><a href="not-found.html"><code>not-found</code></a> is a path, or a thing, that is not there for you at all.</p>
+{% endblock %}

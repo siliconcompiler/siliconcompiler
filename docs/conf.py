@@ -66,12 +66,12 @@ extensions = [
     'sphinx.ext.graphviz',
     "sphinx.ext.linkcode",
     'siliconcompiler.schema.docs.schemagen',
-    'clientservergen',
     'requirements',
     'installgen',
     'graphgen',
     'examplegen',
     'resolvergen',
+    'servererrors',
     'llmstxt',
     'schemadump'
 ]
