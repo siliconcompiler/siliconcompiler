@@ -258,8 +258,9 @@ class Results:
 
     def _offer_requests(self, items: List[Dict[str, Any]]) -> None:
         '''*Sign* and *ask*, at a terminal: on a yes, open each blocking
-        document's page, and each approval request's.'''
-        from siliconcompiler.remote.client import _ask
+        document's page, and each approval request's. Under a running dashboard
+        nothing can be asked, so each page opens as a yes would.'''
+        from siliconcompiler.remote.client import _ask, running_dashboard
 
         sign = []
         for item in items:
@@ -272,14 +273,19 @@ class Results:
         if not (sign or ask) or not sys.stdin.isatty() or not self.client.may_open():
             return
 
-        if sign and _ask(f"Open the {len(sign)} agreement(s) to sign in a browser? "
-                         "[y/N] ").strip().lower() in ("y", "yes"):
+        # The dashboard owns the terminal and its keys: a prompt there is never seen.
+        unasked = running_dashboard(self.project) is not None
+
+        def yes(question: str) -> bool:
+            return unasked or _ask(question).strip().lower() in ("y", "yes")
+
+        if sign and yes(f"Open the {len(sign)} agreement(s) to sign in a browser? [y/N] "):
             for terms_id in sign:
                 title = clean(self.client.terms_titles().get(terms_id) or terms_id)
                 self.client.open_page(f"{title}'s page", terms_id=terms_id)
 
-        if ask and _ask(f"Open the approval request for {len(ask)} of them in a browser? "
-                        "[y/N] ").strip().lower() in ("y", "yes"):
+        if ask and yes(f"Open the approval request for {len(ask)} of them in a browser? "
+                       "[y/N] "):
             for item in ask:
                 self.client.open_page(f"the approval request for {self._name(item)}",
                                       artifact_id=item["id"])

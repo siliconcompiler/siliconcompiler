@@ -264,6 +264,30 @@ def test_an_upcoming_terms_version_is_named_and_a_page_offered_only_where_it_can
                 and "/auth/" not in c.request.url]
 
 
+@pytest.mark.parametrize("dashboard,asks", [(False, 1), (True, 0)])
+def test_a_terms_page_is_opened_without_a_question_under_a_running_dashboard(
+        fake_v1, monkeypatch, tmp_credentials, client_credentials, dashboard, asks):
+    '''A prompt under a dashboard is never seen and its input never arrives, so the page
+    opens unasked; without one the question stands.'''
+    from siliconcompiler.remote import Client
+
+    fake_v1.route(responses.POST, "auth/token", client_credentials)
+    client = Client(tmp_credentials)
+    client.login()
+    if dashboard:
+        client._dashboard = lambda: object()
+    asked, urls = [], []
+    _asked(monkeypatch, lambda question: asked.append(question) or "y", tty=True)
+    monkeypatch.setattr("webbrowser.open", lambda url: urls.append(url) or True)
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=t1", "expires_at": None})
+
+    client.offer_terms_page("tos", "Terms of Service")
+
+    assert len(asked) == asks
+    assert urls == ["https://portal.test/enter?token=t1"]
+
+
 EVIL = "\x1b]0;owned\x07"
 
 

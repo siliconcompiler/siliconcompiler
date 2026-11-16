@@ -8,7 +8,7 @@ import sys
 import time
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import urlsplit
 
 from siliconcompiler.remote.client.credentials import (
@@ -52,8 +52,11 @@ class Client:
     '''One machine talking to one server.'''
 
     def __init__(self, credentials: Credentials,
-                 logger: Optional[logging.Logger] = None):
+                 logger: Optional[logging.Logger] = None,
+                 dashboard: Optional[Callable[[], Any]] = None):
         self.credentials = credentials
+        # Says whether a dashboard is running, which owns the terminal's keys.
+        self._dashboard = dashboard
         self.logger = logger or logging.getLogger(__name__)
 
         # Each notice and upcoming terms version is shown once per client.
@@ -526,9 +529,11 @@ class Client:
             self.offer_terms_page(entry["id"], title)
 
     def offer_terms_page(self, terms_id: str, title: str) -> None:
-        '''Open a document's page if a person here says so. Never accepted here.'''
+        '''Open a document's page if a person here says so, or without asking under
+        a running dashboard, where a prompt is never seen. Never accepted here.'''
         if sys.stdin.isatty() and self.may_open():
-            if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
+            if (self._dashboard and self._dashboard() is not None
+                    or _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes")):
                 self.open_page(f"{title}'s page", terms_id=terms_id)
 
     def devices(self) -> list:
@@ -1032,6 +1037,15 @@ def _fresh_key() -> str:
     import uuid
 
     return str(uuid.uuid4())
+
+
+def running_dashboard(project):
+    '''The project's dashboard if it is running, else None.'''
+    board = project._dashboard
+    try:
+        return board if board is not None and board.is_running() else None
+    except Exception:                                            # noqa: BLE001
+        return None
 
 
 def _ask(question: str, hint: Optional[str] = None) -> str:
