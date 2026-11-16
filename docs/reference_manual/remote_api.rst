@@ -956,6 +956,10 @@ is a token to ask with. The JSON body names the page, with at most one member:
   {"artifact_id": "01J9..."}  // asking for an artifact's approval
   {}                          // the portal's home
 
+Where any of a job's artifacts the caller can see has ``can_request_access``
+``true``, the job's page offers a request for each of them, so a client with
+several to ask for may open the job's page once rather than each artifact's.
+
 **Response** ``200``, with ``Cache-Control: private, no-store``:
 
 .. code-block:: json
