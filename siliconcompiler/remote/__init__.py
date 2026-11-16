@@ -44,7 +44,7 @@ class ClientScheduler(Scheduler):
         try:
             client = Client(Credentials.for_project(project),
                             logger=project.logger.getChild("remote"),
-                            dashboard=lambda: running_dashboard(project))
+                            dashboard=lambda: running_dashboard(project) is not None)
             RemoteRun(project, client, self.listener).run()
         except RemoteError as e:
             # A message, not a traceback.

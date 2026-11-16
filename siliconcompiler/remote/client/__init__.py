@@ -53,7 +53,7 @@ class Client:
 
     def __init__(self, credentials: Credentials,
                  logger: Optional[logging.Logger] = None,
-                 dashboard: Optional[Callable[[], Any]] = None):
+                 dashboard: Optional[Callable[[], bool]] = None):
         self.credentials = credentials
         # Says whether a dashboard is running, which owns the terminal's keys.
         self._dashboard = dashboard
@@ -529,12 +529,31 @@ class Client:
             self.offer_terms_page(entry["id"], title)
 
     def offer_terms_page(self, terms_id: str, title: str) -> None:
-        '''Open a document's page if a person here says so, or without asking under
-        a running dashboard, where a prompt is never seen. Never accepted here.'''
-        if sys.stdin.isatty() and self.may_open():
-            if (self._dashboard and self._dashboard() is not None
-                    or _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes")):
-                self.open_page(f"{title}'s page", terms_id=terms_id)
+        '''Open a document's page if a person here says so. Never accepted here.
+
+        Under a running dashboard nothing can be asked and no tab is opened
+        unbidden: the page's link is logged instead, where it is not a sign-in.'''
+        if not (sys.stdin.isatty() and self.may_open()):
+            return
+        if self._dashboard is not None and self._dashboard():
+            self._log_terms_link(terms_id, title)
+        elif _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
+            self.open_page(f"{title}'s page", terms_id=terms_id)
+
+    def _log_terms_link(self, terms_id: str, title: str) -> None:
+        '''Log a document's page link; a sign-in link is a bearer secret, never logged.'''
+        try:
+            answer = self.browser_page(terms_id=terms_id)
+        except RemoteError as e:
+            why = (str(e).strip().splitlines() or [type(e).__name__])[0]
+            self.logger.warning(f"No page for {title}'s page: {why}")
+            return
+        url = answer.get("url") if isinstance(answer, dict) else None
+        if isinstance(url, str) and url and answer.get("expires_at") is None:
+            self.logger.warning(f"  {title}'s page: {clean(url)}")
+        else:
+            self.logger.warning("  Its page needs a sign-in, so no link is shown here. "
+                                "`sc-config remote portal` opens the portal, signed in.")
 
     def devices(self) -> list:
         '''The machines that can act as me, following ``Link`` to the end.'''

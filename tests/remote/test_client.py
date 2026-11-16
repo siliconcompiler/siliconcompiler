@@ -264,28 +264,53 @@ def test_an_upcoming_terms_version_is_named_and_a_page_offered_only_where_it_can
                 and "/auth/" not in c.request.url]
 
 
-@pytest.mark.parametrize("dashboard,asks", [(False, 1), (True, 0)])
-def test_a_terms_page_is_opened_without_a_question_under_a_running_dashboard(
-        fake_v1, monkeypatch, tmp_credentials, client_credentials, dashboard, asks):
-    '''A prompt under a dashboard is never seen and its input never arrives, so the page
-    opens unasked; without one the question stands.'''
+@pytest.mark.parametrize("dashboard,expires,asks,logged,opened", [
+    pytest.param(False, None, 1, True, 1, id="no-dashboard-asks"),
+    pytest.param(True, None, 0, True, 0, id="dashboard-logs-the-link"),
+    pytest.param(True, "2026-11-01T00:00:00Z", 0, False, 0, id="dashboard-never-logs-a-sign-in"),
+])
+def test_a_terms_page_under_a_running_dashboard_is_logged_not_asked_or_opened(
+        fake_v1, monkeypatch, tmp_credentials, client_credentials, caplog,
+        dashboard, expires, asks, logged, opened):
+    '''A prompt under a dashboard is never seen, so nothing is asked and no tab opens; a
+    plain link is logged, and a sign-in link, a bearer secret, never is.'''
     from siliconcompiler.remote import Client
 
     fake_v1.route(responses.POST, "auth/token", client_credentials)
-    client = Client(tmp_credentials)
+    client = Client(tmp_credentials, dashboard=(lambda: True) if dashboard else None)
     client.login()
-    if dashboard:
-        client._dashboard = lambda: object()
     asked, urls = [], []
     _asked(monkeypatch, lambda question: asked.append(question) or "y", tty=True)
     monkeypatch.setattr("webbrowser.open", lambda url: urls.append(url) or True)
     fake_v1.route(responses.POST, "auth/browser",
-                  {"url": "https://portal.test/enter?token=t1", "expires_at": None})
+                  {"url": "https://portal.test/enter?token=t1", "expires_at": expires})
+    caplog.set_level(logging.INFO)
 
     client.offer_terms_page("tos", "Terms of Service")
 
     assert len(asked) == asks
-    assert urls == ["https://portal.test/enter?token=t1"]
+    assert len(urls) == opened
+    assert ("https://portal.test/enter?token=t1" in caplog.text) is logged
+    if dashboard and expires:
+        assert "sc-config remote portal" in caplog.text
+
+
+def test_a_remote_run_hands_its_client_the_dashboard_rule(nop_project):
+    '''The client a remote run builds learns from the project whether a dashboard is running.'''
+    from unittest.mock import Mock, patch
+
+    from siliconcompiler.remote import ClientScheduler
+
+    seen = []
+    with patch("siliconcompiler.remote.client.run.RemoteRun") as run, \
+            patch("siliconcompiler.remote.Credentials.for_project"):
+        run.side_effect = lambda project, client, listener: seen.append(client) or Mock()
+        ClientScheduler(nop_project).run_core()
+        assert seen[0]._dashboard() is False
+
+        nop_project._Project__dashboard = Mock(is_running=lambda: True)
+        ClientScheduler(nop_project).run_core()
+        assert seen[1]._dashboard() is True
 
 
 EVIL = "\x1b]0;owned\x07"

@@ -677,3 +677,32 @@ def test_a_link_out_of_the_job_is_refused(fake_v1, results, nop_project, extract
     results.fetch("j1")
     two = workdir(nop_project, step="steptwo", index="0")
     assert not os.path.lexists(os.path.join(two, "outputs", "stolen"))
+
+
+@pytest.mark.parametrize("requests,pages", [
+    (1, [{"artifact_id": "art-final-stepone-0"}]),
+    (3, [{"job_id": "j1"}]),
+])
+def test_requests_under_a_dashboard_open_the_jobs_page_once_for_several(
+        fake_v1, results, nop_project, monkeypatch, requests, pages):
+    '''One request opens its own page; several open the job's page, which lists
+    each with its own link, rather than a tab apiece.'''
+    from unittest.mock import Mock
+
+    from siliconcompiler.remote import client as client_module
+
+    for stream in ("stdin", "stdout"):
+        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    nop_project._Project__dashboard = Mock(is_running=lambda: True)
+    monkeypatch.setattr("webbrowser.open", lambda url: True)
+    monkeypatch.setattr(client_module, "_ask", lambda question: pytest.fail("asked"))
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=a", "expires_at": None})
+    serve(fake_v1, [artifact(kind, "stepone", "0", fetchable=False, can_request_access=True)
+                    for kind in ("final", "outputs", "node")[:requests]])
+
+    results.fetch("j1")
+
+    assert [json.loads(c.request.body) for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")] == pages
