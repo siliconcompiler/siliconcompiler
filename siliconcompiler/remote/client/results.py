@@ -207,7 +207,7 @@ class Results:
         self._land(job_id, items, lambda item, e: self.logger.error(f"{self._name(item)}: {e}"))
 
         self._report_withheld([item for item in items if not item.get("fetchable")
-                               and (job_id, item.get("id")) not in self._fetched])
+                               and (job_id, item.get("id")) not in self._fetched], job_id)
         self._report_oversized(oversized)
         # An unlisted kind is not kept here: no error, no retry. Said only
         # for the manifest, the one a user looks for, and from the whole
@@ -236,7 +236,7 @@ class Results:
                 continue
             self._fetched.add(key)
 
-    def _report_withheld(self, items: List[Dict[str, Any]]) -> None:
+    def _report_withheld(self, items: List[Dict[str, Any]], job_id: str) -> None:
         '''One line per reason, not one per object, so the one that differs is read.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for item in items:
@@ -254,12 +254,14 @@ class Results:
             kinds = ", ".join(f"{kind} x{count}" for kind, count in counts.items())
             self.logger.warning(f"{len(same)} objects ({kinds}): {why}")
 
-        self._offer_requests(items)
+        self._offer_requests(items, job_id)
 
-    def _offer_requests(self, items: List[Dict[str, Any]]) -> None:
+    def _offer_requests(self, items: List[Dict[str, Any]], job_id: str) -> None:
         '''*Sign* and *ask*, at a terminal: on a yes, open each blocking
-        document's page, and each approval request's.'''
-        from siliconcompiler.remote.client import _ask
+        document's page, and each approval request's. Under a running dashboard
+        nothing can be asked, so each page opens as a yes would, except that several
+        requests open the job's page once, where each has its own link.'''
+        from siliconcompiler.remote.client import _ask, running_dashboard
 
         sign = []
         for item in items:
@@ -272,14 +274,22 @@ class Results:
         if not (sign or ask) or not sys.stdin.isatty() or not self.client.may_open():
             return
 
-        if sign and _ask(f"Open the {len(sign)} agreement(s) to sign in a browser? "
-                         "[y/N] ").strip().lower() in ("y", "yes"):
+        # The dashboard owns the terminal and its keys: a prompt there is never seen.
+        unasked = running_dashboard(self.project) is not None
+
+        def yes(question: str) -> bool:
+            return unasked or _ask(question).strip().lower() in ("y", "yes")
+
+        if sign and yes(f"Open the {len(sign)} agreement(s) to sign in a browser? [y/N] "):
             for terms_id in sign:
                 title = clean(self.client.terms_titles().get(terms_id) or terms_id)
                 self.client.open_page(f"{title}'s page", terms_id=terms_id)
 
-        if ask and _ask(f"Open the approval request for {len(ask)} of them in a browser? "
-                        "[y/N] ").strip().lower() in ("y", "yes"):
+        if ask and yes(f"Open the approval request for {len(ask)} of them in a browser? "
+                       "[y/N] "):
+            if unasked and len(ask) > 1:
+                self.client.open_page("the job's page", job_id=job_id)
+                return
             for item in ask:
                 self.client.open_page(f"the approval request for {self._name(item)}",
                                       artifact_id=item["id"])

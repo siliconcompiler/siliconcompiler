@@ -8,7 +8,7 @@ import sys
 import time
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import urlsplit
 
 from siliconcompiler.remote.client.credentials import (
@@ -52,8 +52,11 @@ class Client:
     '''One machine talking to one server.'''
 
     def __init__(self, credentials: Credentials,
-                 logger: Optional[logging.Logger] = None):
+                 logger: Optional[logging.Logger] = None,
+                 dashboard: Optional[Callable[[], bool]] = None):
         self.credentials = credentials
+        # Says whether a dashboard is running, which owns the terminal's keys.
+        self._dashboard = dashboard
         self.logger = logger or logging.getLogger(__name__)
 
         # Each notice and upcoming terms version is shown once per client.
@@ -526,10 +529,31 @@ class Client:
             self.offer_terms_page(entry["id"], title)
 
     def offer_terms_page(self, terms_id: str, title: str) -> None:
-        '''Open a document's page if a person here says so. Never accepted here.'''
-        if sys.stdin.isatty() and self.may_open():
-            if _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
-                self.open_page(f"{title}'s page", terms_id=terms_id)
+        '''Open a document's page if a person here says so. Never accepted here.
+
+        Under a running dashboard nothing can be asked and no tab is opened
+        unbidden: the page's link is logged instead, where it is not a sign-in.'''
+        if not (sys.stdin.isatty() and self.may_open()):
+            return
+        if self._dashboard is not None and self._dashboard():
+            self._log_terms_link(terms_id, title)
+        elif _ask("Open it in a browser? [y/N] ").strip().lower() in ("y", "yes"):
+            self.open_page(f"{title}'s page", terms_id=terms_id)
+
+    def _log_terms_link(self, terms_id: str, title: str) -> None:
+        '''Log a document's page link; a sign-in link is a bearer secret, never logged.'''
+        try:
+            answer = self.browser_page(terms_id=terms_id)
+        except RemoteError as e:
+            why = (str(e).strip().splitlines() or [type(e).__name__])[0]
+            self.logger.warning(f"No page for {title}'s page: {why}")
+            return
+        url = answer.get("url") if isinstance(answer, dict) else None
+        if isinstance(url, str) and url and answer.get("expires_at") is None:
+            self.logger.warning(f"  {title}'s page: {clean(url)}")
+        else:
+            self.logger.warning("  Its page needs a sign-in, so no link is shown here. "
+                                "`sc-config remote portal` opens the portal, signed in.")
 
     def devices(self) -> list:
         '''The machines that can act as me, following ``Link`` to the end.'''
@@ -1032,6 +1056,15 @@ def _fresh_key() -> str:
     import uuid
 
     return str(uuid.uuid4())
+
+
+def running_dashboard(project):
+    '''The project's dashboard if it is running, else None.'''
+    board = project._dashboard
+    try:
+        return board if board is not None and board.is_running() else None
+    except Exception:                                            # noqa: BLE001
+        return None
 
 
 def _ask(question: str, hint: Optional[str] = None) -> str:

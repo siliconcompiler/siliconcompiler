@@ -34,6 +34,7 @@ class ClientScheduler(Scheduler):
     '''
 
     def run_core(self) -> None:
+        from siliconcompiler.remote.client import running_dashboard
         from siliconcompiler.remote.client.run import RemoteRun
 
         project = self.project
@@ -42,7 +43,8 @@ class ClientScheduler(Scheduler):
         project._logger_console.setFormatter(formatter)
         try:
             client = Client(Credentials.for_project(project),
-                            logger=project.logger.getChild("remote"))
+                            logger=project.logger.getChild("remote"),
+                            dashboard=lambda: running_dashboard(project) is not None)
             RemoteRun(project, client, self.listener).run()
         except RemoteError as e:
             # A message, not a traceback.

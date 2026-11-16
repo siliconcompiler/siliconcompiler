@@ -215,12 +215,24 @@ def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
     assert "http" not in caplog.text
 
 
-@pytest.mark.parametrize("terminal", [False, True])
+@pytest.mark.parametrize("terminal,dashboard", [
+    pytest.param(False, False, id="no-terminal"),
+    pytest.param(False, True, id="no-terminal-dashboard"),
+    pytest.param(True, False, id="terminal"),
+    pytest.param(True, True, id="terminal-dashboard"),
+])
 def test_an_agreement_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
-        fake_v1, results, monkeypatch, caplog, terminal):
+        fake_v1, results, nop_project, monkeypatch, caplog, terminal, dashboard):
     '''*Sign* and *ask* name no URL. On a terminal: a question each, then endpoint
-    6's page for each document and each askable object -- none for one already requested.'''
+    6's page for each document and each askable object -- none for one already requested.
+    Under a running dashboard no question is asked, since it would never be seen, and
+    the pages open as a yes would.'''
+    from unittest.mock import Mock
+
     from siliconcompiler.remote import client as client_module
+
+    if dashboard:
+        nop_project._Project__dashboard = Mock(is_running=lambda: True)
 
     if terminal:
         for stream in ("stdin", "stdout"):
@@ -248,7 +260,7 @@ def test_an_agreement_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
     assert pages == ([{"terms_id": "gf22-nda"}, {"artifact_id": "art-final-stepone-0"}]
                      if terminal else [])
     assert len(opened) == 2 * int(terminal)
-    assert len(asked) == 2 * int(terminal)
+    assert len(asked) == 2 * int(terminal and not dashboard)
 
 
 def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):
@@ -665,3 +677,32 @@ def test_a_link_out_of_the_job_is_refused(fake_v1, results, nop_project, extract
     results.fetch("j1")
     two = workdir(nop_project, step="steptwo", index="0")
     assert not os.path.lexists(os.path.join(two, "outputs", "stolen"))
+
+
+@pytest.mark.parametrize("requests,pages", [
+    (1, [{"artifact_id": "art-final-stepone-0"}]),
+    (3, [{"job_id": "j1"}]),
+])
+def test_requests_under_a_dashboard_open_the_jobs_page_once_for_several(
+        fake_v1, results, nop_project, monkeypatch, requests, pages):
+    '''One request opens its own page; several open the job's page, which lists
+    each with its own link, rather than a tab apiece.'''
+    from unittest.mock import Mock
+
+    from siliconcompiler.remote import client as client_module
+
+    for stream in ("stdin", "stdout"):
+        monkeypatch.setattr(f"sys.{stream}.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    nop_project._Project__dashboard = Mock(is_running=lambda: True)
+    monkeypatch.setattr("webbrowser.open", lambda url: True)
+    monkeypatch.setattr(client_module, "_ask", lambda question: pytest.fail("asked"))
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/enter?token=a", "expires_at": None})
+    serve(fake_v1, [artifact(kind, "stepone", "0", fetchable=False, can_request_access=True)
+                    for kind in ("final", "outputs", "node")[:requests]])
+
+    results.fetch("j1")
+
+    assert [json.loads(c.request.body) for c in fake_v1.calls
+            if c.request.url.endswith("/v1/auth/browser")] == pages

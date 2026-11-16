@@ -36,7 +36,7 @@ from siliconcompiler.scheduler.listener import RunListener
 from siliconcompiler.schema_support.record import RecordTime
 
 from siliconcompiler.remote import environment, links, manifests, owners
-from siliconcompiler.remote.client import capture, preflight, wheels
+from siliconcompiler.remote.client import capture, preflight, running_dashboard, wheels
 from siliconcompiler.remote.client.errors import (
     NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP, _slug,
     blocked_lines, clean, describe)
@@ -1165,11 +1165,7 @@ class RemoteRun:
 
     def _dashboard(self):
         '''The dashboard this run is being watched through, if any.'''
-        board = self.project._dashboard
-        try:
-            return board if board is not None and board.is_running() else None
-        except Exception:                                        # noqa: BLE001
-            return None
+        return running_dashboard(self.project)
 
     def _finish(self, job: Dict[str, Any], results: Results) -> None:
         state = job.get("state")
