@@ -1362,6 +1362,7 @@ job, and nothing is created. A replayed create is ``201``.
 * **project** is a slug of 2 to 63 characters of ``a-z``, ``0-9`` and ``-``,
   starting and ending with a letter or digit. A server without ``projects`` MUST
   refuse it, ``501 feature-unsupported``, rather than ignore it.
+* **continues_from** holds at most 1,000 entries.
 * **requested_versions** carries requirements, in the buckets of ``GET /v1``'s
   ``software``, normalised the same way. ``python`` names exactly:
   ``siliconcompiler``; the distribution providing each executed node's task
@@ -1373,7 +1374,9 @@ job, and nothing is created. A replayed create is ``201``.
   normalises each tool's specifier to :pep:`440` and drops one it cannot. A
   server MUST NOT ignore a listed name, picks the job's image from ``python``
   alone, and among images that satisfy it, prefers the order ``software``
-  publishes. Across the buckets, at most 500 names and 1,000 specifier sets,
+  publishes. A server that runs every node in the job's image picks it from all
+  three buckets instead, and refuses ``software-unavailable`` where no one image
+  meets them all. Across the buckets, at most 500 names and 1,000 specifier sets,
   each at most 200 characters.
 * **interpreter** is sent only for a job with a node that runs the user's own
   Python, such as a cocotb testbench: the major and minor version the client
@@ -1387,10 +1390,11 @@ job, and nothing is created. A replayed create is ``201``.
   ``dataroot://<name>/<path>``, is judged and named by the dataroot its chain
   lands on in the same section: a ``sources`` entry names that dataroot's
   keypath, source and ref, never the alias's, and one entry covers every alias
-  of it.
+  of it. At most 1,000 entries.
 * **needs** names a feature the job relies on, a string of the feature grammar,
   ``[a-z0-9][a-z0-9._-]{0,63}``. A string outside it is ``400``; one inside it
   that the server does not advertise, or does not know, is ``501`` at create.
+  At most 100 strings.
 
 .. list-table::
   :header-rows: 1
