@@ -22,7 +22,7 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "v1.87",
+    "git-commit": "v1.88",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The JRE here runs ANTLR's parser generator at build time only --",
