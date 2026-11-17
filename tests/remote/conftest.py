@@ -431,12 +431,37 @@ posix_server = pytest.mark.skipif(sys.platform == "win32", reason="the v1 server
 
 
 @pytest.fixture
-def server():
+def server(monkeypatch):
+    '''The server, and at teardown the threads it staged and collected jobs on,
+    joined: they outlive the request that started them, so one still writing races
+    the removal of the test's directory, and one still running spills into the
+    next test.'''
     pytest.importorskip("flask", reason="the server extra is not installed")
 
+    import threading
+
+    from siliconcompiler.remote.server import jobs
     from siliconcompiler.remote.server.app import create_app
 
-    return create_app("sc-server", cluster="local")
+    started = []
+
+    class Threads:
+        '''The jobs module's threading, keeping each thread it makes.'''
+
+        def __getattr__(self, name):
+            return getattr(threading, name)
+
+        def Thread(self, *args, **kwargs):
+            thread = threading.Thread(*args, **kwargs)
+            started.append(thread)
+            return thread
+
+    monkeypatch.setattr(jobs, "threading", Threads())
+    yield create_app("sc-server", cluster="local")
+
+    for thread in started:
+        thread.join(timeout=10)
+    assert not any(thread.is_alive() for thread in started), "a job thread outlived its test"
 
 
 @pytest.fixture
@@ -609,8 +634,9 @@ def write_progress(server, job, state, nodes=None, **extra):
 
 
 @pytest.fixture
-def tree(server, submit):
-    '''A submitted job and what its run leaves in the tree.'''
+def tree(server, dispatcher, submit):
+    '''A submitted job and what its run leaves in the tree. The run is faked: a
+    real one would start a runner that outlives the test.'''
     job = submit()
     root = server.config["SC_JOBS"].root(job["owner"]["id"], job["id"]) / "gcd" / "job0"
     for step in ("stepone", "steptwo"):
