@@ -2101,8 +2101,9 @@ that holds:
     - Answer
   * - deleted
     - ``404``
-  * - withheld; an ``issue`` or ``diagnostics``; a rejected job's ``input``
-      where resources are controlled
+  * - withheld; an ``issue`` or ``diagnostics``; the ``input`` of a rejected
+      job, or of one with no recorded resource set, where resources are
+      controlled
     - ``403 artifact-not-approved``
   * - a ``node`` with a member not fetchable
     - its worst member's: withheld or deleted, then a missing grant, then an
