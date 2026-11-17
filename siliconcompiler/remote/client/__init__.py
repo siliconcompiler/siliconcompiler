@@ -1061,17 +1061,19 @@ def terms_title(entry: Dict[str, Any]) -> str:
 
 def _check_bounds(body: Dict[str, Any]) -> None:
     '''Refuse a create ``body`` past one of the API's bounds on its lists,
-    naming the member as the server would.'''
+    naming the member as the server would.
+
+    Only what has the API's shape is counted. Anything else, such as a flat map
+    or a string where a list belongs, is left for the server to refuse, naming
+    what is wrong.'''
     descriptor = body.get("descriptor", {})
     listed = {"continues_from": body.get("continues_from"),
               "descriptor.sources": descriptor.get("sources"),
               "descriptor.needs": descriptor.get("needs")}
     over = [f"{member} holds {len(listed[member])} entries, and a job may list at most "
             f"{bound}" for member, bound in MAX_LISTED.items()
-            if len(listed[member] or ()) > bound]
+            if isinstance(listed[member], list) and len(listed[member]) > bound]
 
-    # Only what has the API's shape is counted: a flat map or a bare string is
-    # left for the server to refuse, naming what is wrong with it.
     requested = descriptor.get("requested_versions")
     buckets = [bucket for bucket in requested.values() if isinstance(bucket, dict)] \
         if isinstance(requested, dict) else []

@@ -533,17 +533,20 @@ def test_a_create_at_each_bound_on_its_lists_is_sent(fake_v1, logged_in):
     assert len(descriptor["sources"]) == 1000 and len(descriptor["needs"]) == 100
 
 
-@pytest.mark.parametrize("requested", [
-    {"yosys": [">=0.1"]},
-    {"tools": {"yosys": ">=" + "1" * 1001}},
-], ids=["flat-map", "bare-string"])
-def test_a_create_whose_requested_versions_has_the_wrong_shape_is_left_to_the_server(
-        fake_v1, logged_in, requested):
+@pytest.mark.parametrize("asked", [
+    {"requested_versions": {"yosys": [">=0.1"]}},
+    {"requested_versions": {"tools": {"yosys": ">=" + "1" * 1001}}},
+    {"requested_versions": {"tools": {"yosys": [">=1", 5]}}},
+    {"continues_from": "p" * 1001},
+    {"sources": 7},
+], ids=["flat-map", "bare-string", "non-string-set", "string-continues_from", "number-sources"])
+def test_a_create_whose_lists_have_the_wrong_shape_is_left_to_the_server(
+        fake_v1, logged_in, asked):
     '''The server names what is wrong with the shape; the bounds check neither crashes
-    on it nor counts a bare string's characters as specifier sets.'''
+    on it nor counts a string's characters as entries.'''
     route_created(fake_v1)
 
-    logged_in.create_job("gcd", "job0", requested_versions=requested)
+    logged_in.create_job("gcd", "job0", **asked)
 
     assert len(creates(fake_v1)) == 1
 
