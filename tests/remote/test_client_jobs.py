@@ -482,6 +482,72 @@ def test_a_create_refused_over_its_project_names_the_project(fake_v1, logged_in,
     assert "this job" not in rendered
 
 
+def _continued(count):
+    return [{"step": "place", "index": str(n), "job_id": "01J9-earlier"} for n in range(count)]
+
+
+def _sources(count):
+    return [{"keypath": ["library", f"lib{n}", "dataroot", "root"]} for n in range(count)]
+
+
+def _bounded_versions(names=1, sets=0, length=4):
+    '''`requested_versions` with ``names`` tools, ``sets`` specifier sets spread
+    over them, each ``length`` characters.'''
+    tools = {f"tool{n}": [] for n in range(names)}
+    for n in range(sets):
+        tools[f"tool{n % names}"].append(">=" + "1" * (length - 2))
+    return {"tools": tools}
+
+
+@pytest.mark.parametrize("asked,said", [
+    ({"continues_from": _continued(1001)}, "continues_from holds 1001 entries"),
+    ({"sources": _sources(1001)}, "descriptor.sources holds 1001 entries"),
+    ({"needs": ["python.env"] * 101}, "descriptor.needs holds 101 entries"),
+    ({"requested_versions": _bounded_versions(names=501)}, "names 501 tools and packages"),
+    ({"requested_versions": _bounded_versions(sets=1001)}, "holds 1001 specifier sets"),
+    ({"requested_versions": _bounded_versions(sets=1, length=201)},
+     "holds a specifier set of 201 characters"),
+], ids=["continues_from", "sources", "needs", "version-names", "version-sets",
+        "version-set-length"])
+def test_a_create_past_a_bound_on_its_lists_is_refused_before_it_is_sent(
+        fake_v1, logged_in, asked, said):
+    '''A server refuses such a create as a client bug, so the client names the
+    member and posts nothing.'''
+    with pytest.raises(RemoteError) as raised:
+        logged_in.create_job("gcd", "job0", **asked)
+
+    assert said in str(raised.value)
+    assert not isinstance(raised.value, ServerProblem)
+    assert creates(fake_v1) == []
+
+
+def test_a_create_at_each_bound_on_its_lists_is_sent(fake_v1, logged_in):
+    '''Each bound is inclusive.'''
+    route_created(fake_v1)
+
+    logged_in.create_job("gcd", "job0", continues_from=_continued(1000),
+                         sources=_sources(1000), needs=["python.env"] * 100,
+                         requested_versions=_bounded_versions(names=500, sets=1000, length=200))
+
+    descriptor = json.loads(creates(fake_v1)[0].request.body)["descriptor"]
+    assert len(descriptor["sources"]) == 1000 and len(descriptor["needs"]) == 100
+
+
+@pytest.mark.parametrize("requested", [
+    {"yosys": [">=0.1"]},
+    {"tools": {"yosys": ">=" + "1" * 1001}},
+], ids=["flat-map", "bare-string"])
+def test_a_create_whose_requested_versions_has_the_wrong_shape_is_left_to_the_server(
+        fake_v1, logged_in, requested):
+    '''The server names what is wrong with the shape; the bounds check neither crashes
+    on it nor counts a bare string's characters as specifier sets.'''
+    route_created(fake_v1)
+
+    logged_in.create_job("gcd", "job0", requested_versions=requested)
+
+    assert len(creates(fake_v1)) == 1
+
+
 def test_the_grants_content_length_is_not_forwarded(fake_v1, logged_in, tmp_path):
     '''The file's own length: announcing a gigabyte over twenty bytes
     would leave the server waiting for ever.'''

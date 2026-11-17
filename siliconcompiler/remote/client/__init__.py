@@ -47,6 +47,13 @@ ROTATE_COMMAND = "sc-config remote rotate-key"
 # Named on every create by a CI credential bound to a project.
 PROJECT_VARIABLE = "SC_REMOTE_PROJECT"
 
+# The API's bounds on create's lists: past one, a server refuses create as a
+# client bug, so the client refuses first and says what was over.
+MAX_LISTED = {"continues_from": 1000, "descriptor.sources": 1000, "descriptor.needs": 100}
+MAX_VERSION_NAMES = 500
+MAX_VERSION_SETS = 1000
+MAX_VERSION_SET_LENGTH = 200
+
 
 class Client:
     '''One machine talking to one server.'''
@@ -598,6 +605,7 @@ class Client:
             body["continues_from"] = continues_from
         if python_packages:
             body["python_packages"] = python_packages
+        _check_bounds(body)
 
         headers = {"Idempotency-Key": _fresh_key()}
 
@@ -1049,6 +1057,42 @@ def _filters(filters: Dict[str, Any]) -> Dict[str, Any]:
 def terms_title(entry: Dict[str, Any]) -> str:
     '''A terms document's title as a person reads it, else its id.'''
     return clean(entry.get("title") or entry.get("id") or "A terms document")
+
+
+def _check_bounds(body: Dict[str, Any]) -> None:
+    '''Refuse a create ``body`` past one of the API's bounds on its lists,
+    naming the member as the server would.'''
+    descriptor = body.get("descriptor", {})
+    listed = {"continues_from": body.get("continues_from"),
+              "descriptor.sources": descriptor.get("sources"),
+              "descriptor.needs": descriptor.get("needs")}
+    over = [f"{member} holds {len(listed[member])} entries, and a job may list at most "
+            f"{bound}" for member, bound in MAX_LISTED.items()
+            if len(listed[member] or ()) > bound]
+
+    # Only what has the API's shape is counted: a flat map or a bare string is
+    # left for the server to refuse, naming what is wrong with it.
+    requested = descriptor.get("requested_versions")
+    buckets = [bucket for bucket in requested.values() if isinstance(bucket, dict)] \
+        if isinstance(requested, dict) else []
+    names = sum(len(bucket) for bucket in buckets)
+    sets = [one for bucket in buckets for alternatives in bucket.values()
+            if isinstance(alternatives, list) for one in alternatives if isinstance(one, str)]
+    longest = max((len(one) for one in sets), default=0)
+    member = "descriptor.requested_versions"
+    if names > MAX_VERSION_NAMES:
+        over.append(f"{member} names {names} tools and packages, and a job may name at "
+                    f"most {MAX_VERSION_NAMES}")
+    if len(sets) > MAX_VERSION_SETS:
+        over.append(f"{member} holds {len(sets)} specifier sets, and a job may hold at "
+                    f"most {MAX_VERSION_SETS}")
+    if longest > MAX_VERSION_SET_LENGTH:
+        over.append(f"{member} holds a specifier set of {longest} characters, and each "
+                    f"may be at most {MAX_VERSION_SET_LENGTH}")
+
+    if over:
+        raise RemoteError("this job cannot be created, since a server would refuse it: "
+                          + "; ".join(over))
 
 
 def _fresh_key() -> str:
