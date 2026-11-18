@@ -2205,10 +2205,9 @@ closed: a server returns no other. A type with no status is never an HTTP
 response, only the ``type`` of a job's or node's ``error``. The members listed
 are required on that type.
 
-A server MAY host its own pages documenting the types, and point a client to
-them, on a refusal and on a job carrying an ``error``, with a relative link:
-``Link: </server-errors/not-found>; rel="help"``. A client MAY show that link in
-place of the ``type``, and still branches on ``type``. ``sc-server`` serves its
+The ``type`` is also the deployment's own page documenting the failure, so a
+client MAY show it to a person as the place to read about it, and still branches
+on its slug. No ``Link: rel="help"`` is sent for it. ``sc-server`` serves its
 pages at ``/server-errors/``. Another server can render the same set with
 ``python -m siliconcompiler.remote.server.routes.errorpages <outdir>``, with the
 ``server`` extra installed.

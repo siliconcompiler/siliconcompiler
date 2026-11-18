@@ -1381,35 +1381,28 @@ def test_an_upstream_node_without_its_outputs_is_continued_from_its_recorded_job
     assert not {n for n in names if n.startswith("stepone")}
 
 
-@pytest.mark.parametrize("link,page", [
-    ('</server-errors/not-found>; rel="help"', "https://sc-server.test/server-errors/"),
-    (None, "https://siliconcompiler.com/server-errors/"),
-], ids=["servers-own", "public"])
-def test_a_refusal_prints_the_page_the_server_names(fake_v1, logged_in, link, page):
-    '''A server serving its own copy of the `type` pages says so; that copy
-    is printed, and remembered for a job's own error.'''
-    refused(fake_v1, responses.GET, "jobs/01J9-job", "not-found", 404,
-            headers={"Link": link} if link else None)
+def test_a_refusal_prints_its_own_type_url_as_the_page_to_read(fake_v1, logged_in):
+    '''The `type` is the deployment's page for the failure, so the refusal ends with it
+    and a `Link` header, which no server sends now, is not read.'''
+    page = "https://sc-server.test/server-errors/not-found"
+    refused(fake_v1, responses.GET, "jobs/01J9-job", "not-found", 404, type=page,
+            headers={"Link": '</server-errors/other>; rel="help"'})
 
     with pytest.raises(RemoteError) as raised:
         logged_in.job("01J9-job")
 
-    assert f"{page}not-found" in str(raised.value)
-    if link:
-        assert "siliconcompiler.com/server-errors" not in str(raised.value)
-        assert logged_in.transport.help_pages == page
+    assert str(raised.value).splitlines()[-1].endswith(page)
+    assert "other" not in str(raised.value)
 
 
-def test_a_failed_jobs_reason_points_at_the_servers_page():
+def test_a_failed_jobs_reason_ends_with_its_own_type_url():
     from siliconcompiler.remote.client.run import _why_it_failed
 
+    page = "https://sc-server.test/server-errors/run-failed"
     job = {"state": "failed", "progress": {"failed_count": 1},
-           "error": {"type": RUN_FAILED, "title": "The run failed",
-                     "detail": "place/0 exited 1"}}
+           "error": {"type": page, "title": "The run failed", "detail": "place/0 exited 1"}}
 
-    said = _why_it_failed(job, "https://sc-server.test/server-errors/")
-
-    assert "https://sc-server.test/server-errors/run-failed" in said
+    assert _why_it_failed(job).endswith(page)
 
 
 def _acme(project, tag):

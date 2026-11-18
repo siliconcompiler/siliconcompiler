@@ -34,13 +34,12 @@ class ServerProblem(RemoteError):
     '''
 
     def __init__(self, problem: Dict[str, Any], status: int,
-                 help_url: Optional[str] = None, next_step: Optional[str] = None,
+                 next_step: Optional[str] = None,
                  job_id: Optional[str] = None, titles: Optional[Dict[str, str]] = None,
                  retry_after: Optional[float] = None):
         super().__init__()
         self.problem = problem
         self.status = status
-        self.help_url = help_url
         self.next_step = next_step
         self.job_id = job_id
         self.titles = titles
@@ -48,7 +47,7 @@ class ServerProblem(RemoteError):
 
     def __str__(self) -> str:
         return describe(self.problem, self.status, next_step=self.next_step,
-                        help_url=self.help_url, job_id=self.job_id, titles=self.titles)
+                        job_id=self.job_id, titles=self.titles)
 
     @property
     def slug(self) -> Optional[str]:
@@ -194,14 +193,13 @@ def _keypath(value) -> str:
 
 def describe(problem: Dict[str, Any], status: Optional[int] = None,
              next_step: Optional[str] = None,
-             help_url: Optional[str] = None,
              job_id: Optional[str] = None,
              titles: Optional[Dict[str, str]] = None) -> str:
     '''Three lines: what failed, which one, and where to look.
 
     Tolerant: a proxy's 502 arrives as only a title and status. ``next_step``
-    overrides the slug's advice for this instance; ``help_url``, the server's
-    `rel="help"` page, replaces the `type` URI; ``job_id`` replaces the
+    overrides the slug's advice for this instance; the `type`, the server's own
+    page for it, ends the last line; ``job_id`` replaces the
     `trace_id`; ``titles`` names `blocked_by` documents.
     '''
     lines = []
@@ -242,9 +240,7 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
         trailer.append(f"job {clean(job_id)}")
     elif problem.get("trace_id"):
         trailer.append(f"trace {clean(problem['trace_id'])}")
-    if help_url:
-        trailer.append(clean(help_url))
-    elif isinstance(problem.get("type"), str):
+    if isinstance(problem.get("type"), str):
         trailer.append(clean(problem["type"]))
     if trailer:
         lines.append("  " + "  ".join(trailer))

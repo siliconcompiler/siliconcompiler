@@ -38,15 +38,25 @@ def test_the_health_check_passes_with_no_credential(server_client):
     ("GET", "/v1/nothing", 404, "not-found"),
     ("PUT", "/v1/healthz", 405, "method-not-allowed"),
 ])
-def test_a_refusal_is_problem_json_with_a_help_link(server_client, method, path, status,
-                                                    expected):
+def test_a_refusal_is_problem_json_typed_on_its_own_origin(server_client, method, path,
+                                                           status, expected):
     response = server_client.open(path, method=method)
 
     assert response.status_code == status
     assert response.mimetype == "application/problem+json"
     assert slug(response) == expected
-    assert response.headers["Link"] == f'</server-errors/{expected}>; rel="help"'
+    assert response.get_json()["type"] == f"http://localhost/server-errors/{expected}"
+    assert "Link" not in response.headers
     assert response.headers["Cache-Control"] == "private, no-store"
+
+
+def test_a_type_is_built_on_the_public_origin_it_is_served_from(server, server_client):
+    '''A configured public origin, not the request's host, is where a `type` points.'''
+    server.config["SC_PUBLIC_ORIGINS"] = ["https://sc.example.com:8443/"]
+
+    response = server_client.get("/v1/nothing")
+
+    assert response.get_json()["type"] == "https://sc.example.com:8443/server-errors/not-found"
 
 
 @pytest.mark.parametrize("status, expected", [

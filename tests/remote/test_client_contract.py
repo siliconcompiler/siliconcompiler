@@ -71,7 +71,7 @@ def test_the_deployment_notice_and_refusal_lines_lose_control_characters(
     logged_in.capabilities()
     cli.print_deployment(logged_in)
     logged_in._report_software({"software": {"python": {"siliconcompiler": [evil]}}})
-    rendered = [describe(problem("not-found", 404, trace_id=evil), help_url=evil),
+    rendered = [describe(problem("not-found", 404, trace_id=evil)),
                 describe(dict(problem("not-found", 404), type=evil), job_id=evil)]
 
     for text in (caplog.text, *rendered):

@@ -1177,7 +1177,7 @@ class RemoteRun:
             opened = _slug(error) == "entitlement-denied" and \
                 self.client.ask_for_grant(error.get("resource"))
             self.logger.error(f"Remote job {clean(state)}: " + _why_it_failed(
-                job, self.client.transport.help_pages, grant_opened=opened))
+                job, grant_opened=opened))
         else:
             reason = _reason(job)
             self.logger.error(f"Remote job {clean(state)}" + (f": {reason}" if reason else ""))
@@ -1431,8 +1431,7 @@ def _node_details(job: Dict[str, Any]) -> Dict[Tuple[str, str], str]:
     return found
 
 
-def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None,
-                   grant_opened: bool = False) -> str:
+def _why_it_failed(job: Dict[str, Any], grant_opened: bool = False) -> str:
     '''Three lines about the failure, without opening a URL.
 
     A `run-failed` with no failed node gets `NO_NODE_FAILED`: only that
@@ -1455,9 +1454,7 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None,
     else:
         step = None
 
-    return describe(error, next_step=step,
-                    help_url=f"{help_pages}{slug}" if help_pages and slug else None,
-                    job_id=job.get("id"))
+    return describe(error, next_step=step, job_id=job.get("id"))
 
 
 def _declared_versions(held) -> List[str]:

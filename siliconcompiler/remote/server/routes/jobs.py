@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 import flask
 
 from siliconcompiler.remote.server import config
-from siliconcompiler.remote.server.errors import ProblemError
+from siliconcompiler.remote.server.errors import ProblemError, own_origin
 from siliconcompiler.remote.server.jobs import RETRY_AFTER, refuse_undefined
 from siliconcompiler.remote.server.routes.auth import require_session
 
@@ -47,8 +47,7 @@ def create(session):
 
 def origin() -> str:
     '''Where a signed URL this server hands out points: the first public origin, else this host.'''
-    origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
-    return (origins[0] if origins else flask.request.host_url).rstrip("/")
+    return own_origin()
 
 
 @blueprint.route("/v1/jobs/<job_id>/upload-grant", methods=["POST"])

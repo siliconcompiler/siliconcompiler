@@ -203,9 +203,6 @@ class Transport:
         self._deprecation_warned = False
         self._published: Optional[Dict[str, Any]] = None
 
-        # Where this server serves its error `type` pages, from `Link: rel="help"`.
-        self.help_pages: Optional[str] = None
-
     @property
     def access_token(self) -> Optional[str]:
         if self._access_expires is not None and time.monotonic() >= self._access_expires:
@@ -308,10 +305,6 @@ class Transport:
             if offered:
                 self._nonces[origin_of(url)] = offered
 
-            helped = help_url(response)
-            if helped:
-                self.help_pages = helped.rsplit("/", 1)[0] + "/"
-
             self._notice_deprecation(response)
 
             status = response.status_code
@@ -404,9 +397,9 @@ class Transport:
                 continue
 
             if slug == "session-ended":
-                raise SessionEnded(problem, status, help_url=help_url(response))
+                raise SessionEnded(problem, status)
 
-            raise ServerProblem(problem, status, help_url=help_url(response),
+            raise ServerProblem(problem, status,
                                 next_step=self._clock_advice(response)
                                 if bad_proof else _unknown_challenge(response),
                                 retry_after=wait)
@@ -758,11 +751,6 @@ def link(response, rel: str) -> Optional[str]:
         if rel in value.lower().split():
             return urljoin(response.url or "", found["url"])
     return None
-
-
-def help_url(response) -> Optional[str]:
-    '''The absolute URL of the `Link: rel="help"` page for this response's error.'''
-    return link(response, "help")
 
 
 def _is_problem(response) -> bool:
