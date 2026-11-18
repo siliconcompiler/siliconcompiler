@@ -109,12 +109,19 @@ if { [sc_cfg_tool_task_get var write_spef] && [sc_cfg_tool_task_get var use_spef
         dict set lib_pex $scenario $pexcorner
     }
 
+    # OpenSTA replaced read_spef -corner with -scene
+    if { [sc_check_version 26 4 2280] } {
+        set scene_arg "-scene"
+    } else {
+        set scene_arg "-corner"
+    }
+
     # read in spef for timing corners
     foreach corner $sc_scenarios {
         set pexcorner [dict get $lib_pex $corner]
 
         puts "Reading SPEF for $pexcorner into $corner"
-        read_spef -corner $corner \
+        read_spef $scene_arg $corner \
             "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
 } else {
