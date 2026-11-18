@@ -97,7 +97,7 @@ if it carries <code>Retry-After</code>.</p>
     <td>An unaccepted terms document. <code>blocked_by</code> lists each one by its terms id.</td>
     <td>Opens each document&rsquo;s page from <code>POST /v1/auth/browser</code>, then retries.</td></tr>
 <tr><td><a href="artifact-not-approved.html"><code>artifact-not-approved</code></a></td><td><code>403</code></td>
-    <td>The per-object gate withholds the artifact.</td>
+    <td>The per-object gate withholds the artifact. Also a rejected job&rsquo;s <code>error</code>: it continues from a job whose results the gate withholds from everyone.</td>
     <td>Asks at the page <code>POST /v1/auth/browser</code> answers for the artifact, where <code>can_request_access</code> is <code>true</code>; otherwise stops.</td></tr>
 <tr><td><a href="not-found.html"><code>not-found</code></a></td><td><code>404</code></td>
     <td>It does not exist, or it is not yours &mdash; deliberately indistinguishable.</td>

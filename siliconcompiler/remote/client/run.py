@@ -38,8 +38,8 @@ from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.remote import environment, links, manifests, owners
 from siliconcompiler.remote.client import capture, preflight, running_dashboard, wheels
 from siliconcompiler.remote.client.errors import (
-    NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP, _slug,
-    blocked_lines, clean, describe)
+    EARLIER_JOB_UNTIED, NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP,
+    _slug, blocked_lines, clean, describe)
 from siliconcompiler.remote.client.credentials import UPLOADS
 from siliconcompiler.remote.client.results import Results, recorded_job
 from siliconcompiler.remote.environment import canonical
@@ -1432,7 +1432,8 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
     '''Three lines about the failure, without opening a URL.
 
     A `run-failed` with no failed node gets `NO_NODE_FAILED`: only that
-    slug's advice names a node.
+    slug's advice names a node. An `artifact-not-approved` gets
+    `EARLIER_JOB_UNTIED`: the slug's own advice is for a download.
     '''
     error = job.get("error") or {}
     if not error.get("type"):
@@ -1440,10 +1441,14 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
 
     failed = (job.get("progress") or {}).get("failed_count")
     slug = _slug(error)
+    if slug == "run-failed" and failed == 0:
+        step = NO_NODE_FAILED
+    elif slug == "artifact-not-approved":
+        step = EARLIER_JOB_UNTIED
+    else:
+        step = None
 
-    return describe(error,
-                    next_step=NO_NODE_FAILED if slug == "run-failed" and failed == 0
-                    else None,
+    return describe(error, next_step=step,
                     help_url=f"{help_pages}{slug}" if help_pages and slug else None,
                     job_id=job.get("id"))
 

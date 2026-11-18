@@ -1628,6 +1628,9 @@ A refusal found while staging ends the job ``rejected``, with the refusal as its
     - ``archive-rejected`` for a broken limit, a link out of the archive, no
       manifest, or a wheel breaking a wheel rule; ``upload-forbidden``,
       ``detected: "content"``
+  * - before fetching an earlier job's results
+    - ``artifact-not-approved``, where an earlier job holds content tied to no
+      resource; ``entitlement-denied``; ``terms-not-accepted``
   * - reading the manifest
     - ``archive-rejected``: ``invalid_manifest``, ``breakpoint``,
       ``interactive_task``; ``declared-mismatch``, where the manifest's design,
@@ -1710,7 +1713,12 @@ request sent.
 While the job stages it is the job's ``error``, which every reader of the job
 reads, so it names no job: ``step`` and ``index`` name the node whose results
 were found unusable, the entry's own or one upstream of it in the same earlier
-job. The job's ``nodes`` and artifacts cover only what it runs.
+job. Before staging fetches anything of an earlier job, it holds the owner to
+the grants and agreements that job's results derive from, as a download of them
+would, but asks no approval; and where that job holds content supplied from a
+copy tied to no resource, whose results nobody may have, it rejects the job
+``artifact-not-approved``, with nothing to ask for. The job's ``nodes`` and
+artifacts cover only what it runs.
 
 .. _remote_api_python:
 
