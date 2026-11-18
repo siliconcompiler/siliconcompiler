@@ -74,8 +74,9 @@ def test_a_wheel_not_shadowing_the_standard_library_is_taken(tmp_path, files):
     (dict(files={"scfake/nested.pth": "import os\n"}), "a .pth file"),
     (dict(files={"sitecustomize.py": "print('hello')\n"}), "runs in any Python"),
     (dict(files={"usercustomize.py": "print('hello')\n"}), "runs in any Python"),
-    # An entry point named as a path, in any group: pip writes the script where it leads.
-    *[(dict(files={"scfake-1.0.dist-info/entry_points.txt": scripts}), "named as a path")
+    # An entry point holding a path's separator or parent, in any group.
+    *[(dict(files={"scfake-1.0.dist-info/entry_points.txt": scripts}),
+       "which no entry point may")
       for scripts in ("[console_scripts]\n../lib/python/sitecustomize.py = scfake:main\n",
                       "[gui_scripts]\nbin/run = scfake:main\n",
                       "[console_scripts]\nrun\\x = scfake:main\n",
@@ -94,6 +95,20 @@ def test_a_wheel_that_is_not_pure_or_is_malformed_is_refused(tmp_path, change, w
 
     with pytest.raises(environment.WheelError, match=why):
         environment.check_wheel(path)
+
+
+def test_an_entry_point_refusal_names_its_line_and_no_more_of_it(tmp_path):
+    """The refusal gives the line's number and at most 60 of its characters, and checks all
+    of it: a separator past the excerpt still refuses."""
+    name = "x" * 200 + "/run"
+    path = make_wheel(tmp_path, "scfake", "1.0", files={
+        "scfake-1.0.dist-info/entry_points.txt": f"[console_scripts]\n{name} = scfake:main\n"})
+
+    with pytest.raises(environment.WheelError) as refused:
+        environment.check_wheel(path)
+    assert "entry_points.txt line 2, " in str(refused.value)
+    assert repr("x" * 57 + "...") in str(refused.value)
+    assert name not in str(refused.value)
 
 
 def test_a_wheel_misnamed_not_a_zip_or_holding_a_link_is_refused(tmp_path):
