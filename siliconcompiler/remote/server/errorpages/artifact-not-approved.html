@@ -1,9 +1,10 @@
 {% extends "_layout.html" %}
 {% set title = "Artifact not approved" %}
 {% set status = "403 Forbidden" %}
-{% set description = "The per-object gate said no: withheld, an issue, or a node archive holding something that is." %}
+{% set description = "The per-object gate said no: withheld, an issue, or a node archive holding something that is; or a continuation from a job whose results nobody may have." %}
 {% block main %}
 <p>You hold every resource the artifact derives from and have accepted every agreement behind it, but one thing is still missing: an approval to download it. Or the artifact is held back by a rule about the object itself: it is withheld, it is an <code>issue</code> testcase, or it is a <code>node</code> archive that holds something that is, or a member deleted on its own &mdash; or this deployment does not hand its kind over the API. Three cases have nothing to ask for: the <code>input</code> of a rejected job, or of one whose resource set the server has not recorded, on a deployment with controlled resources; an output built over content supplied from a held copy tied to no resource; and the live log of a running node or job on a deployment that approves <code>logs</code>, where the job&rsquo;s set holds a resource whose results need an approval or content tied to no resource: a live log has no artifact to approve, and the finished log is read as an artifact once the node ends.</p>
+<p>As a <code>rejected</code> job&rsquo;s <code>error</code>, it is a run continuing from an earlier job that holds content tied to no resource: nobody may have that job&rsquo;s results, its owner included, so the server fetches none of them for the run and there is nothing to ask for.</p>
 <h2>What to do</h2>
 
 <div class="do">
@@ -11,6 +12,7 @@
   <li>Look at the artifact in the listing: a <code>fetchable: false</code> object with <code>can_request_access: true</code> has a path to approval &mdash; open its page from <code>POST /v1/auth/browser</code> with <code>{"artifact_id": "&lt;id&gt;"}</code>, and ask there.</li>
   <li>With <code>can_request_access: false</code> there is no request to make. A deployment with a web portal may offer the object there.</li>
   <li>For a <code>node</code> archive, fetch what it holds that you can have &mdash; its manifest, log and reports are listed on their own.</li>
+  <li>On a <code>rejected</code> job, run the whole flow rather than continue from that job, or ask the operator about the content it was built from.</li>
 </ol>
 </div>
 
@@ -31,6 +33,8 @@
 
 <table>
 <tbody>
+<tr><td><code>GET /v1/jobs/{id}</code></td>
+    <td>A <code>rejected</code> job&rsquo;s <code>error</code>, before staging fetches anything of an earlier job named in <code>continues_from</code>: that job holds content tied to no resource, whose node archives the gate refuses everyone.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
     <td>The object&rsquo;s own gate.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>

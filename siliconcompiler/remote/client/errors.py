@@ -9,7 +9,7 @@ import re
 from typing import Any, Dict, Optional
 
 __all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
-           "describe", "NO_NODE_FAILED", "clean", "listed"]
+           "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "clean", "listed"]
 
 
 class RemoteError(Exception):
@@ -163,6 +163,13 @@ _NEXT_STEP_BY_REASON = {
 # node `cancelled`), where *the failing node's log* does not exist.
 NO_NODE_FAILED = ("No node failed -- the run itself did. Read remote-job.log "
                   "in the job directory this fetched.")
+
+# `artifact-not-approved` as a job's `error`: a continuation refused while staging,
+# with no artifact page to ask on.
+EARLIER_JOB_UNTIED = ("An earlier job this one continues from derives from content "
+                      "no resource on this server stands behind, so nobody may have its "
+                      "results and there is nothing to ask for: run the whole flow, or "
+                      "ask the server's operator.")
 
 
 # An `unresolved` entry's `kind`, as a person reads it.

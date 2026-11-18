@@ -745,8 +745,8 @@ def test_an_untyped_edge_or_retried_answer_is_acted_on_by_its_status(
             assert len({r.headers["Idempotency-Key"] for r in sent}) == 1
 
 
-def _failed_poll(fake_v1, run, caplog, level="INFO", **body):
-    fake_v1.route(responses.GET, "jobs/01J9-job", job_body("failed", **body))
+def _failed_poll(fake_v1, run, caplog, level="INFO", state="failed", **body):
+    fake_v1.route(responses.GET, "jobs/01J9-job", job_body(state, **body))
     fake_v1.route(responses.GET, "jobs/01J9-job/artifacts", {"items": []})
 
     with caplog.at_level(level):
@@ -771,9 +771,10 @@ def test_a_failed_run_explains_itself_briefly_and_still_fetches(fake_v1, run, ca
     assert rendered and len(rendered[0].splitlines()) <= 4
 
 
-@pytest.mark.parametrize("nodes,error,said,unsaid", [
+@pytest.mark.parametrize("state,nodes,error,said,unsaid", [
     # A node's `error` detail is printed beside the node.
-    ([node_body("stepone", "failed", error={"type": RUN_FAILED, "title": "The run failed",
+    ("failed",
+     [node_body("stepone", "failed", error={"type": RUN_FAILED, "title": "The run failed",
                                             "detail": "the node exceeded its time limit"}),
       node_body("steptwo", "cancelled")],
      {"type": RUN_FAILED, "title": "The run failed",
@@ -781,18 +782,23 @@ def test_a_failed_run_explains_itself_briefly_and_still_fetches(fake_v1, run, ca
      ["stepone/0 failed: the node exceeded its time limit"], ["steptwo/0 failed"]),
     # A flow that dies before its first node has no log to read: the
     # advice comes from the job, and the server's `detail` survives.
-    ([node_body("stepone", "cancelled"), node_body("steptwo", "cancelled")],
+    ("failed", [node_body("stepone", "cancelled"), node_body("steptwo", "cancelled")],
      {"type": RUN_FAILED, "title": "The run failed",
       "detail": "RuntimeError: git is required to import GitPython"},
      ["No node failed", "git is required"], ["Read the failing node's log"]),
     # Re-running may succeed; the support reference is the job id.
-    (None, {"type": "https://siliconcompiler.com/server-errors/run-interrupted",
-            "title": "The run was interrupted"},
+    ("failed", None, {"type": "https://siliconcompiler.com/server-errors/run-interrupted",
+                      "title": "The run was interrupted"},
      ["resubmitting unchanged may work", "job 01J9-job"], []),
-], ids=["node-detail", "no-failed-node", "interrupted"])
-def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, nodes, error, said,
+    # A continuation staging refused: no artifact page to ask on.
+    ("rejected", [], {"type": "https://siliconcompiler.com/server-errors/artifact-not-approved",
+                      "title": "Artifact not approved", "status": 403},
+     ["continues from", "no resource on this server stands behind", "job 01J9-job"],
+     ["ask for access", "on its page"]),
+], ids=["node-detail", "no-failed-node", "interrupted", "continuation-untied"])
+def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, state, nodes, error, said,
                                              unsaid):
-    text = _failed_poll(fake_v1, run, caplog, nodes=nodes, error=error)
+    text = _failed_poll(fake_v1, run, caplog, state=state, nodes=nodes, error=error)
 
     assert all(line in text for line in said)
     assert not any(line in text for line in unsaid)
