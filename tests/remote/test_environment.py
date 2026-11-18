@@ -109,8 +109,8 @@ def test_an_entry_point_refusal_names_its_line_and_no_more_of_it(tmp_path):
 
     with pytest.raises(environment.WheelError) as refused:
         environment.check_wheel(path)
-    assert "entry_points.txt line 2, " in str(refused.value)
-    assert repr("x" * 57 + "...") in str(refused.value)
+    excerpt = repr("x" * 57 + "...")
+    assert f"entry_points.txt line 2, {excerpt}, holds '/'" in str(refused.value)
     assert name not in str(refused.value)
 
 
