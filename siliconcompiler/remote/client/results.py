@@ -18,7 +18,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from siliconcompiler import utils
 from siliconcompiler.remote import manifests
-from siliconcompiler.remote.client.errors import RemoteError, blocked_lines, clean
+from siliconcompiler.remote.client.errors import RemoteError, ServerProblem, blocked_lines, \
+    clean
 from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -204,10 +205,20 @@ class Results:
         items = _worth_fetching([item for item in listed if not self._oversized(item)])
 
         # One object failing does not abort the others.
-        self._land(job_id, items, lambda item, e: self.logger.error(f"{self._name(item)}: {e}"))
+        ungranted: List[str] = []
+
+        def failed(item: Dict[str, Any], e: Exception) -> None:
+            self.logger.error(f"{self._name(item)}: {e}")
+            resource = e.member("resource") if isinstance(e, ServerProblem) and \
+                e.slug == "entitlement-denied" else None
+            if isinstance(resource, str) and resource and resource not in ungranted:
+                ungranted.append(resource)
+
+        self._land(job_id, items, failed)
 
         self._report_withheld([item for item in items if not item.get("fetchable")
-                               and (job_id, item.get("id")) not in self._fetched], job_id)
+                               and (job_id, item.get("id")) not in self._fetched], job_id,
+                              ungranted)
         self._report_oversized(oversized)
         # An unlisted kind is not kept here: no error, no retry. Said only
         # for the manifest, the one a user looks for, and from the whole
@@ -236,8 +247,10 @@ class Results:
                 continue
             self._fetched.add(key)
 
-    def _report_withheld(self, items: List[Dict[str, Any]], job_id: str) -> None:
-        '''One line per reason, not one per object, so the one that differs is read.'''
+    def _report_withheld(self, items: List[Dict[str, Any]], job_id: str,
+                         ungranted: List[str]) -> None:
+        '''One line per reason, not one per object, so the one that differs is read.
+        ``ungranted`` is each resource a fetch was refused a grant of.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for item in items:
             grouped.setdefault(self._why(item, many=True), []).append(item)
@@ -254,13 +267,15 @@ class Results:
             kinds = ", ".join(f"{kind} x{count}" for kind, count in counts.items())
             self.logger.warning(f"{len(same)} objects ({kinds}): {why}")
 
-        self._offer_requests(items, job_id)
+        self._offer_requests(items, job_id, ungranted)
 
-    def _offer_requests(self, items: List[Dict[str, Any]], job_id: str) -> None:
-        '''*Sign* and *ask*, at a terminal: on a yes, open each blocking
-        document's page, and each approval request's. Under a running dashboard
-        nothing can be asked, so each page opens as a yes would, except that several
-        requests open the job's page once, where each has its own link.'''
+    def _offer_requests(self, items: List[Dict[str, Any]], job_id: str,
+                        ungranted: List[str]) -> None:
+        '''*Sign*, *grant* and *ask*, at a terminal: on a yes, open each blocking
+        document's page, each refused grant's request page, and each approval
+        request's. Under a running dashboard nothing can be asked, so each page opens
+        as a yes would, except that several requests open the job's page once, where
+        each has its own link.'''
         from siliconcompiler.remote.client import _ask, running_dashboard
 
         sign = []
@@ -271,7 +286,8 @@ class Results:
                     sign.append(terms_id)
         ask = [item for item in items if item.get("can_request_access") is True
                and not item.get("access_requested_at") and item.get("id")]
-        if not (sign or ask) or not sys.stdin.isatty() or not self.client.may_open():
+        if not (sign or ungranted or ask) or not sys.stdin.isatty() or \
+                not self.client.may_open():
             return
 
         # The dashboard owns the terminal and its keys: a prompt there is never seen.
@@ -284,6 +300,11 @@ class Results:
             for terms_id in sign:
                 title = clean(self.client.terms_titles().get(terms_id) or terms_id)
                 self.client.open_page(f"{title}'s page", terms_id=terms_id)
+
+        if ungranted and yes(f"Open the request for {len(ungranted)} grant(s) in a browser? "
+                             "[y/N] "):
+            for resource in ungranted:
+                self.client.ask_for_grant(resource)
 
         if ask and yes(f"Open the approval request for {len(ask)} of them in a browser? "
                        "[y/N] "):

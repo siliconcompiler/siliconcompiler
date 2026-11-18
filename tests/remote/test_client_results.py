@@ -11,7 +11,7 @@ from siliconcompiler.remote.client.results import Results
 from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.utils.paths import jobdir, workdir
 
-from conftest import problem
+from conftest import problem, refused
 
 
 # What the integration rig cannot reach: `blocked_by`, a proxy's HTML 502, and
@@ -221,11 +221,11 @@ def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
     pytest.param(True, False, id="terminal"),
     pytest.param(True, True, id="terminal-dashboard"),
 ])
-def test_an_agreement_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
+def test_an_agreement_grant_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
         fake_v1, results, nop_project, monkeypatch, caplog, terminal, dashboard):
-    '''*Sign* and *ask* name no URL. On a terminal: a question each, then endpoint
-    6's page for each document and each askable object -- none for one already requested.
-    Under a running dashboard no question is asked, since it would never be seen, and
+    '''*Sign*, *grant* and *ask* name no URL. On a terminal: a question each, then endpoint
+    6's page for each document, each resource a fetch was refused, and each askable object
+    but one already requested; under a running dashboard, which would hide a question,
     the pages open as a yes would.'''
     from unittest.mock import Mock
 
@@ -248,19 +248,25 @@ def test_an_agreement_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
         artifact("final", "steptwo", "0", fetchable=False, can_request_access=True,
                  access_requested_at="2026-09-21T10:00:00.000Z"),
         artifact("outputs", "stepone", "0", fetchable=False, blocked_by=["gf22-nda"]),
-        artifact("outputs", "steptwo", "0", fetchable=False, blocked_by=["gf22-nda"])])
+        artifact("outputs", "steptwo", "0", fetchable=False, blocked_by=["gf22-nda"]),
+        artifact("reports", "stepone", "0"), artifact("reports", "steptwo", "0")])
+    # Listed fetchable, and refused at the fetch: a grant lapsed between the two.
+    for step in ("stepone", "steptwo"):
+        refused(fake_v1, responses.GET, f"jobs/j1/artifacts/art-reports-{step}-0",
+                "entitlement-denied", 403, resource_kind="pdk", resource="gf22")
 
     caplog.set_level("WARNING")
     results.fetch("j1")
 
     assert "needs an approval. Ask for access on its page" in caplog.text
     assert "requested on 2026-09-21" in caplog.text
+    assert "Ask for the grant in this server's portal" in caplog.text
     pages = [json.loads(c.request.body) for c in fake_v1.calls
              if c.request.url.endswith("/v1/auth/browser")]
-    assert pages == ([{"terms_id": "gf22-nda"}, {"artifact_id": "art-final-stepone-0"}]
-                     if terminal else [])
-    assert len(opened) == 2 * int(terminal)
-    assert len(asked) == 2 * int(terminal and not dashboard)
+    assert pages == ([{"terms_id": "gf22-nda"}, {"resource": "gf22"},
+                      {"artifact_id": "art-final-stepone-0"}] if terminal else [])
+    assert len(opened) == 3 * int(terminal)
+    assert len(asked) == 3 * int(terminal and not dashboard)
 
 
 def test_a_not_fetchable_artifact_is_never_fetched(fake_v1, results, caplog):

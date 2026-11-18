@@ -565,10 +565,10 @@ def test_wheels_an_account_may_not_upload_stop_the_run_before_create(
 
 
 @pytest.mark.parametrize("resource,advice", [
-    ("python-packages", "Ask the deployment for the python-packages grant. A job whose "
-                        "only Python is its own modules needs none."),
-    ("python-wheels", "Ask the deployment for the python-wheels grant, or publish the "
-                      "package to one of its indexes."),
+    ("python-packages", "in this server's portal, which sc-config remote portal opens. "
+                        "A job whose only Python is its own modules needs none."),
+    ("python-wheels", "in this server's portal, which sc-config remote portal opens, "
+                      "or publish the package to one of its indexes."),
 ])
 def test_a_capability_refused_at_create_says_which_and_what_to_do(
         site, fake_v1, logged_in, resource, advice):

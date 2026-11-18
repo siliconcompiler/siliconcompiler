@@ -804,6 +804,26 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, state, nodes,
     assert not any(line in text for line in unsaid)
 
 
+@pytest.mark.parametrize("ci", [False, True], ids=["terminal", "ci"])
+def test_a_job_rejected_for_a_grant_opens_its_request_page_where_somebody_watches(
+        fake_v1, run, opened, monkeypatch, caplog, ci):
+    '''Refused `entitlement-denied` while staging: at a terminal the page for its
+    `resource` is asked for and opened, and the advice says so; a CI session asks for none.'''
+    if ci:
+        monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/grants/gf22", "expires_at": None})
+
+    text = _failed_poll(fake_v1, run, caplog, state="rejected", nodes=[],
+                        error=problem("entitlement-denied", 403, resource_kind="pdk",
+                                      resource="gf22"))
+
+    assert [json.loads(page.body) for page in _pages(fake_v1)] == \
+        ([] if ci else [{"resource": "gf22"}])
+    assert opened == ([] if ci else ["https://portal.test/grants/gf22"])
+    assert ("sc-config remote portal opens" if ci else "on the page just opened") in text
+
+
 def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run):
     '''A node's log line already says which node it came from.'''
     import io

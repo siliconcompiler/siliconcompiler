@@ -16,7 +16,9 @@ not about how busy the server is, and the identical request returns the identica
   <li>Read <code>resource_kind</code> and <code>resource</code> to see exactly what was refused.</li>
   <li>Check <code>GET /v1/me</code>. The <code>authorized</code> block lists what your account does
       hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>).</li>
-  <li>If you should have it, this is an access request to whoever administers your account.
+  <li>If you should have it, ask for it on its page: <code>POST /v1/auth/browser</code> with
+      <code>{"resource": "&lt;resource&gt;"}</code> answers the page where you ask for that grant,
+      or says why there is nothing to ask. A CI session asks for none.
       <strong>There is no API call that grants it to you.</strong></li>
 </ol>
 <p>Do not retry on a timer. Nothing about this answer changes with time.</p>

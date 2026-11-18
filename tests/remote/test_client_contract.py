@@ -172,6 +172,41 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
     assert not [c for c in fake_v1.calls if "accept" in c.request.url]
 
 
+@pytest.mark.parametrize("session", ["terminal", "no-terminal", "ci"])
+@pytest.mark.parametrize("call", ["create", "live-log"])
+def test_a_grant_refusal_opens_its_request_page_only_where_somebody_watches(
+        logged_in, fake_v1, monkeypatch, call, session):
+    '''An `entitlement-denied` at create or on a live log: on a terminal, the page for
+    its `resource` is asked for by that name and opened, and the advice says so. Off
+    one, and in a CI session, none is asked for and the advice names the portal.'''
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: session != "no-terminal")
+    monkeypatch.delenv("CI", raising=False)
+    if session == "ci":
+        monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
+    method, path = (responses.POST, "jobs") if call == "create" else \
+        (responses.GET, "jobs/j1/logs")
+    refused(fake_v1, method, path, "entitlement-denied", 403, resource_kind="pdk",
+            resource="gf22")
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/grants/gf22", "expires_at": None})
+
+    with pytest.raises(ServerProblem) as raised:
+        if call == "create":
+            logged_in.create_job(design="gcd", jobname="job0")
+        else:
+            logged_in.follow_log("j1", "place", "0")
+
+    if session == "terminal":
+        assert asked_for_pages(fake_v1) == [{"resource": "gf22"}]
+        assert opened == ["https://portal.test/grants/gf22"]
+        assert "Ask for the grant on the page just opened" in str(raised.value)
+    else:
+        assert asked_for_pages(fake_v1) == [] and opened == []
+        assert "sc-config remote portal opens" in str(raised.value)
+
+
 def test_a_presigned_url_is_not_logged_by_the_http_library_at_debug(caplog):
     '''urllib3's request line carries the path and query, a signature included;
     its other lines are kept.'''
