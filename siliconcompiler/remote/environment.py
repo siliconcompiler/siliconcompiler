@@ -84,10 +84,11 @@ def check_wheel(path) -> Wheel:
     ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory,
     a top-level module named as one of the standard library's (``encodings/``,
     ``os.py``), which the environment on ``PYTHONPATH`` would run in its place,
-    an entry point named with ``/``, a backslash or ``..``, which pips before
-    26.1.2 write as a script wherever the name leads (``sitecustomize.py`` at the
-    environment's top), or a ``name @ url`` requirement would let installing run
-    or fetch code.
+    an entry point holding ``/``, a backslash or ``..`` in any group, since pips
+    before 26.1.2 write a ``console_scripts`` or ``gui_scripts`` entry point as a
+    script wherever its name leads (``sitecustomize.py`` at the environment's top)
+    and no other group's entries name a path, or a ``name @ url`` requirement
+    would let installing run or fetch code.
     '''
     filename = os.path.basename(str(path))
     try:
@@ -185,14 +186,16 @@ def check_wheel(path) -> Wheel:
         if f"{dist_info}/entry_points.txt" in archive.namelist():
             # Every line of every group: installers split a name from its value, and
             # read a group's header, each their own way, and no value names a path.
-            for line in read("entry_points.txt").splitlines():
+            for number, line in enumerate(read("entry_points.txt").splitlines(), 1):
                 line = line.strip()
                 if line.startswith("#") or (line.startswith("[") and line.endswith("]")):
                     continue
                 if "/" in line or "\\" in line or ".." in line:
-                    raise WheelError(f"{filename}'s entry_points.txt holds {line!r}, an "
-                                     "entry point named as a path, which pip would "
-                                     "write as a script wherever the path leads")
+                    excerpt = line if len(line) <= 60 else f"{line[:57]}..."
+                    raise WheelError(f"{filename}'s entry_points.txt line {number}, "
+                                     f"{excerpt!r}, holds '/', '\\' or '..', which no "
+                                     "entry point may: pips before 26.1.2 write a "
+                                     "console or GUI script wherever its name leads")
 
         wheel = email.parser.Parser().parsestr(read("WHEEL"), headersonly=True)
         if (wheel.get("Root-Is-Purelib") or "").strip().lower() != "true":
