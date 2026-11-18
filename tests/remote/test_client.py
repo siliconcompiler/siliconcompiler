@@ -681,11 +681,14 @@ def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
                  422, {}, ["reason: unsupported", "run the whole flow"], ["name a job"],
                  id="continues-from-unsupported"),
     pytest.param(problem("entitlement-denied", 403, resource_kind="pdk", resource="gf12"),
-                 403, {}, ["resource: gf12", "resource_kind: pdk", "Ask for a grant"], [],
+                 403, {}, ["resource: gf12", "resource_kind: pdk",
+                           "Ask for the grant in this server's portal, which sc-config "
+                           "remote portal opens; waiting will not help."], ["just opened"],
                  id="entitlement"),
     pytest.param(problem("entitlement-denied", 403, resource_kind="capability",
                          resource="a-capability-from-later"),
-                 403, {}, ["Ask the deployment for that grant"], [], id="unknown-capability"),
+                 403, {}, ["in this server's portal", "waiting will not help"], [],
+                 id="unknown-capability"),
     # By name, never as `resource_kind: None`.
     pytest.param(problem("resource-unavailable", 422, resource="secret"), 422, {},
                  ["resource: secret", "cannot be sent it"], ["resource_kind", "None"],

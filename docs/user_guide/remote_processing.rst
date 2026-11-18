@@ -497,7 +497,10 @@ Looking at it in a browser
 A server carries a portal: your jobs and their nodes, each node's log live or
 archived, the artifacts a run produced, the machines that may act as you, your
 account, and the images the deployment runs jobs in. A job is cancelled and
-deleted there.
+deleted there. Where a run is refused for a grant your account lacks -- a PDK, a
+tool, a capability -- at a terminal outside CI the client opens the portal's
+page for asking for it, and offers it for a result it was refused; elsewhere
+the refusal names the portal.
 
 **What went in is kept alongside what came out.** Every archive the job
 uploaded is its own artifact -- the first, and each follow-up the server asked

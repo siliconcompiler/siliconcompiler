@@ -9,7 +9,8 @@ import re
 from typing import Any, Dict, Optional
 
 __all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
-           "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "clean", "listed"]
+           "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "grant_step", "clean",
+           "listed"]
 
 
 class RemoteError(Exception):
@@ -250,13 +251,21 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     return "\n".join(lines)
 
 
-# A capability refused.
+# A capability refused: what does without the grant.
 _CAPABILITY_STEP = {
-    "python-packages": "Ask the deployment for the python-packages grant. A job whose "
-                       "only Python is its own modules needs none.",
-    "python-wheels": "Ask the deployment for the python-wheels grant, or publish the "
-                     "package to one of its indexes.",
+    "python-packages": ". A job whose only Python is its own modules needs none.",
+    "python-wheels": ", or publish the package to one of its indexes.",
 }
+
+
+def grant_step(problem: Dict[str, Any], opened: bool = False) -> str:
+    '''`entitlement-denied`'s next step: ask for the grant on the page this client
+    opened, else in the portal, `sc-config remote portal`.'''
+    ask = "Ask for the grant on the page just opened" if opened else \
+        "Ask for the grant in this server's portal, which sc-config remote portal opens"
+    other = _CAPABILITY_STEP.get(problem.get("resource")) \
+        if problem.get("resource_kind") == "capability" else None
+    return ask + (other or "; waiting will not help.")
 
 
 def _advice(slug: Optional[str], problem: Dict[str, Any],
@@ -274,9 +283,8 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
         return ("No image here runs the Python this machine does. The server's "
                 "operator would have to add one; until then, run the job from a "
                 "Python it has.")
-    if slug == "entitlement-denied" and problem.get("resource_kind") == "capability":
-        return _CAPABILITY_STEP.get(problem.get("resource")) or \
-            "Ask the deployment for that grant; waiting will not help."
+    if slug == "entitlement-denied":
+        return grant_step(problem)
     if slug == "prior-results-unavailable" and problem.get("reason") == "unsupported":
         # A node is named only when its outputs are not here to upload instead.
         return ("This server continues no earlier job, and the node's outputs are not "

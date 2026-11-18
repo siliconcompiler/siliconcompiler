@@ -68,7 +68,7 @@ if it carries <code>Retry-After</code>.</p>
     <td>Waits <code>Retry-After</code>, then retries. On <code>pending_uploads</code> it may cancel a job in <code>job_ids</code> it will not submit; an empty <code>job_ids</code> means jobs this session cannot read hold the slots.</td></tr>
 <tr><td><a href="entitlement-denied.html"><code>entitlement-denied</code></a></td><td><code>403</code></td>
     <td>No grant for a PDK, tool, library or FPGA device the job names or an artifact derives from.</td>
-    <td>Stops; the person asks for a grant.</td></tr>
+    <td>Stops; the person asks for a grant, on the page <code>POST /v1/auth/browser</code> answers for the <code>resource</code>, from an interactive session.</td></tr>
 <tr><td><a href="account-not-provisioned.html"><code>account-not-provisioned</code></a></td><td><code>403</code></td>
     <td>Your account is not yet provisioned to run jobs here.</td>
     <td>Stops until an administrator provisions it.</td></tr>

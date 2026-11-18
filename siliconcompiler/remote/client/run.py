@@ -39,7 +39,7 @@ from siliconcompiler.remote import environment, links, manifests, owners
 from siliconcompiler.remote.client import capture, preflight, running_dashboard, wheels
 from siliconcompiler.remote.client.errors import (
     EARLIER_JOB_UNTIED, NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP,
-    _slug, blocked_lines, clean, describe)
+    _slug, blocked_lines, clean, describe, grant_step)
 from siliconcompiler.remote.client.credentials import UPLOADS
 from siliconcompiler.remote.client.results import Results, recorded_job
 from siliconcompiler.remote.environment import canonical
@@ -1173,8 +1173,11 @@ class RemoteRun:
         if state == "completed":
             self.logger.info("Remote job completed")
         elif job.get("error"):
-            self.logger.error(f"Remote job {clean(state)}: "
-                              f"{_why_it_failed(job, self.client.transport.help_pages)}")
+            error = job["error"]
+            opened = _slug(error) == "entitlement-denied" and \
+                self.client.ask_for_grant(error.get("resource"))
+            self.logger.error(f"Remote job {clean(state)}: " + _why_it_failed(
+                job, self.client.transport.help_pages, grant_opened=opened))
         else:
             reason = _reason(job)
             self.logger.error(f"Remote job {clean(state)}" + (f": {reason}" if reason else ""))
@@ -1428,12 +1431,14 @@ def _node_details(job: Dict[str, Any]) -> Dict[Tuple[str, str], str]:
     return found
 
 
-def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str:
+def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None,
+                   grant_opened: bool = False) -> str:
     '''Three lines about the failure, without opening a URL.
 
     A `run-failed` with no failed node gets `NO_NODE_FAILED`: only that
     slug's advice names a node. An `artifact-not-approved` gets
-    `EARLIER_JOB_UNTIED`: the slug's own advice is for a download.
+    `EARLIER_JOB_UNTIED`: the slug's own advice is for a download. An
+    `entitlement-denied` names the page ``grant_opened`` says opened.
     '''
     error = job.get("error") or {}
     if not error.get("type"):
@@ -1445,6 +1450,8 @@ def _why_it_failed(job: Dict[str, Any], help_pages: Optional[str] = None) -> str
         step = NO_NODE_FAILED
     elif slug == "artifact-not-approved":
         step = EARLIER_JOB_UNTIED
+    elif slug == "entitlement-denied" and grant_opened:
+        step = grant_step(error, opened=True)
     else:
         step = None
 

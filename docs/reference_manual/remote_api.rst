@@ -954,7 +954,16 @@ is a token to ask with. The JSON body names the page, with at most one member:
   {"job_id": "01J9..."}       // the job's page
   {"terms_id": "acme-nda"}    // a terms document's page, to read and decide
   {"artifact_id": "01J9..."}  // asking for an artifact's approval
+  {"resource": "acme"}        // asking for a grant of what entitlement-denied named
   {}                          // the portal's home
+
+``resource`` is the ``resource`` an ``entitlement-denied`` carried, at create,
+on a job's ``error``, at a fetch or on a live log; a name is unique across kinds
+on a deployment, so no kind is sent. The page is answered for every name the
+deployment's catalogue holds, and says why where there is nothing to ask for: the
+grant held, a request already made, or a resource that cannot be granted. A
+client asks for it from an interactive session and opens it, printing it where
+no browser opens; a CI session asks for none.
 
 Where any of a job's artifacts the caller can see has ``can_request_access``
 ``true``, the job's page offers a request for each of them, so a client with
@@ -982,14 +991,15 @@ header.
     - When
   * - ``400``
     - ``invalid-request``
-    - more than one member, or one not defined here; or an id that is not 1 to
-      200 printable characters
+    - more than one member, or one not defined here; or an id or a ``resource``
+      that is not 1 to 200 printable characters
   * - ``403``
     - ``not-permitted``
     - a CI session; or an artifact whose ``can_request_access`` is ``false``
   * - ``404``
     - ``not-found``
-    - a well-formed id naming a job, artifact or document the caller cannot see
+    - a well-formed id naming a job, artifact or document the caller cannot see;
+      or a ``resource`` the deployment's catalogue does not hold
 
 The server and the account
 --------------------------

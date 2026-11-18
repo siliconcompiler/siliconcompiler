@@ -15,7 +15,7 @@ from siliconcompiler.remote.client.credentials import (
     AUTH_DIR_VARIABLE, BROWSER, CI_SECRET_VARIABLE, Credentials, parse_ci_secret,
     read_authority)
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, clean, describe, listed)
+    RemoteError, ServerProblem, SessionEnded, clean, describe, grant_step, listed)
 from siliconcompiler.remote.client.identity import (
     device_fingerprint, display_name, local_subject)
 from siliconcompiler.remote.client.transport import (
@@ -70,6 +70,8 @@ class Client:
         self._notices_shown = set()
         self.terms_reminded = set()
         self._titles: Optional[Dict[str, str]] = None
+        # Whether each grant's request page opened, so one is not opened again.
+        self._grant_pages: Dict[str, bool] = {}
 
         if not credentials.server:
             # Raised on use, not here, so `sc-config remote configure` can build a client to fix it.
@@ -702,6 +704,8 @@ class Client:
         except ServerProblem as e:
             if e.slug == "terms-not-accepted":
                 self._to_sign(e)
+            elif e.slug == "entitlement-denied":
+                self._to_ask(e)
             raise
 
     def _to_sign(self, refusal: ServerProblem) -> None:
@@ -714,6 +718,23 @@ class Client:
         titles = self.terms_titles()
         self.open_terms(blocked, titles)
         refusal.titles = titles or None
+
+    def _to_ask(self, refusal: ServerProblem) -> None:
+        '''Open the page where the person asks for the grant an `entitlement-denied`
+        refusal names, and say so in its next step.'''
+        if self.ask_for_grant(refusal.member("resource")):
+            refusal.next_step = grant_step(refusal.problem, opened=True)
+
+    def ask_for_grant(self, resource: Any) -> bool:
+        '''Open the page where the person asks for a grant of ``resource``, the
+        name an `entitlement-denied` carried, where a person is plausibly here to
+        see it, and once per resource; whether it opened.'''
+        if not isinstance(resource, str) or not resource or not self.may_open():
+            return False
+        if resource not in self._grant_pages:
+            self._grant_pages[resource] = self.open_page(
+                f"the request for {clean(resource)}", resource=resource)
+        return self._grant_pages[resource]
 
     def terms_titles(self) -> Dict[str, str]:
         '''Each terms document's title by its id, from `GET /v1/me`, read once;
@@ -839,9 +860,11 @@ class Client:
                 "GET", f"jobs/{job_id}/logs", params=params, headers=headers,
                 stream=True, expect_redirect=True)
         except ServerProblem as e:
+            # A live log is gated like its archive.
             if e.slug == "terms-not-accepted":
-                # A live log is gated like its archive.
                 self._to_sign(e)
+            elif e.slug == "entitlement-denied":
+                self._to_ask(e)
             elif e.slug == "feature-unsupported":
                 self.transport.forget_published()
             raise
@@ -991,7 +1014,7 @@ class Client:
 
     def browser_page(self, **named) -> Dict[str, Any]:
         '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
-        ``artifact_id``, or the portal's home.
+        ``artifact_id``, the request for a grant of a ``resource``, or the portal's home.
 
         Asked for, never built: the portal's routes are outside the API.
         '''
