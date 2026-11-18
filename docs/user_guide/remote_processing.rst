@@ -318,7 +318,8 @@ job needs. A testbench whose only Python is its own modules needs no
 ``python.env`` at all. It warns, and carries on, where a package it lists
 installs a ``.pth`` file, and where an editable package's wheel leaves out
 files its module directory holds -- a data file its packaging does not name,
-which the node will not have.
+which the node will not have. A wheel the server asks for once the job exists
+is held to the same checks, and one that fails them cancels the job.
 
 An import made dynamically, through ``importlib`` or a plugin entry point, is
 not followed and fails on the server at import. Add a plain import of the
