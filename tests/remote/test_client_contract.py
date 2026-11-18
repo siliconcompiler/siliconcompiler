@@ -1,5 +1,6 @@
 import json
 import logging
+from types import SimpleNamespace
 
 import pytest
 import responses
@@ -205,6 +206,19 @@ def test_a_grant_refusal_opens_its_request_page_only_where_somebody_watches(
     else:
         assert asked_for_pages(fake_v1) == [] and opened == []
         assert "sc-config remote portal opens" in str(raised.value)
+
+
+def test_a_grant_page_opens_once_for_each_server(logged_in, monkeypatch):
+    '''A resource's request page opens once for each server the client acts for, so one
+    opened for another deployment, where the same name is another grant, is not taken for it.'''
+    opened = []
+    monkeypatch.setattr(logged_in, "may_open", lambda: True)
+    monkeypatch.setattr(logged_in, "open_page", lambda what, **named: opened.append(
+        (logged_in.credentials.server, named["resource"])) or True)
+    for server in ("https://a.test", "https://b.test", "https://a.test"):
+        monkeypatch.setattr(logged_in, "credentials", SimpleNamespace(server=server))
+        assert logged_in.ask_for_grant("gf22") and logged_in.ask_for_grant("gf22")
+    assert opened == [("https://a.test", "gf22"), ("https://b.test", "gf22")]
 
 
 def test_a_presigned_url_is_not_logged_by_the_http_library_at_debug(caplog):

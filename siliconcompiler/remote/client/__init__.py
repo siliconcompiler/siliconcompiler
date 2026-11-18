@@ -8,7 +8,7 @@ import sys
 import time
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import urlsplit
 
 from siliconcompiler.remote.client.credentials import (
@@ -70,8 +70,9 @@ class Client:
         self._notices_shown = set()
         self.terms_reminded = set()
         self._titles: Optional[Dict[str, str]] = None
-        # Whether each grant's request page opened, so one is not opened again.
-        self._grant_pages: Dict[str, bool] = {}
+        # Whether each grant's request page opened, by server and resource, so one
+        # is not opened again for the server select() chose.
+        self._grant_pages: Dict[Tuple[Optional[str], str], bool] = {}
 
         if not credentials.server:
             # Raised on use, not here, so `sc-config remote configure` can build a client to fix it.
@@ -728,13 +729,14 @@ class Client:
     def ask_for_grant(self, resource: Any) -> bool:
         '''Open the page where the person asks for a grant of ``resource``, the
         name an `entitlement-denied` carried, where a person is plausibly here to
-        see it, and once per resource; whether it opened.'''
+        see it, and once per resource of each server; whether it opened.'''
         if not isinstance(resource, str) or not resource or not self.may_open():
             return False
-        if resource not in self._grant_pages:
-            self._grant_pages[resource] = self.open_page(
+        key = (self.credentials.server, resource)
+        if key not in self._grant_pages:
+            self._grant_pages[key] = self.open_page(
                 f"the request for {clean(resource)}", resource=resource)
-        return self._grant_pages[resource]
+        return self._grant_pages[key]
 
     def terms_titles(self) -> Dict[str, str]:
         '''Each terms document's title by its id, from `GET /v1/me`, read once;

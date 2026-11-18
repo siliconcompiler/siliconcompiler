@@ -260,9 +260,11 @@ _CAPABILITY_STEP = {
 
 def grant_step(problem: Dict[str, Any], opened: bool = False) -> str:
     '''`entitlement-denied`'s next step: ask for the grant on the page this client
-    opened, else in the portal, `sc-config remote portal`.'''
+    opened, else in the portal, which `sc-config remote portal` opens at a person's own
+    terminal, never in CI.'''
     ask = "Ask for the grant on the page just opened" if opened else \
-        "Ask for the grant in this server's portal, which sc-config remote portal opens"
+        ("Ask for the grant in this server's portal, which sc-config remote portal opens "
+         "from a terminal of your own")
     other = _CAPABILITY_STEP.get(problem.get("resource")) \
         if problem.get("resource_kind") == "capability" else None
     return ask + (other or "; waiting will not help.")
