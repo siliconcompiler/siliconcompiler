@@ -1,11 +1,10 @@
 '''
 The error `type` pages, served from this host.
 
-Every refusal's `type` is ``https://siliconcompiler.com/server-errors/<slug>``,
-and RFC 9457 section 3.1.1 says that URI SHOULD dereference to documentation for the
-type. The pages are static and identical on every deployment; this serves the
-same pages at the same path on this host, so a person holding a refusal from
-`sc-server` can read what it means without the public site.
+Every refusal's `type` ends in ``/server-errors/<slug>``, and RFC 9457 section
+3.1.1 says that URI SHOULD dereference to documentation for the type. The pages
+are static; this serves them at that path on this host, so a person holding a
+refusal from `sc-server` can read what it means.
 
 Each ``<slug>.html`` is a Jinja template holding only its own text, in the
 layout ``_layout.html``. :func:`render` puts the two together, for this route
@@ -15,9 +14,8 @@ and for the public site alike::
 
 writes the static folder that is deployed there.
 
-**The `type` in a body does not change.** It is byte-identical on every
-deployment because a client compares it against a constant; this is a copy of
-the pages, not a second namespace.
+**The `type` in a body does not change.** `sc-server` keeps one host in it,
+which a client does not compare, only the slug.
 
 Outside ``/v1`` on purpose: the v1 API claims only ``/v1/`` paths, and a
 deployment's own pages need no reservation.
@@ -69,7 +67,7 @@ def pages() -> list:
 
 @functools.cache
 def render(slug: str) -> str:
-    '''One page, in the layout: what this host serves and the public site
+    '''One page, in the layout: what this host serves and a static site
     publishes. Rendered once; the pages do not change while a server runs.'''
     return _TEMPLATES.get_template(f"{slug}.html").render(slug=slug)
 
@@ -162,8 +160,8 @@ def page(name: str = "index"):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m siliconcompiler.remote.server.routes.errorpages",
-        description="Render the error type pages to the static folder deployed at "
-                    "https://siliconcompiler.com/server-errors/.")
+        description="Render the error type pages to a static folder to deploy at "
+                    "/server-errors/ on a host.")
     parser.add_argument("outdir", help="an empty or new folder to write the pages into")
     args = parser.parse_args(argv)
 

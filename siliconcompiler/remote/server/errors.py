@@ -1,11 +1,12 @@
 '''
 Every way this API says no: the ``type`` registry, frozen at v1.
 
-The namespace is SiliconCompiler's, not a deployment's, so every implementation
-returns the same URI. A slug names a kind of failure; the discriminator is an
-extension member (``limit``, ``reason``), since a member's value can be added
-after the freeze and a slug cannot. Rows are registered even where nothing
-raises them: a missing row costs a major version.
+This server's ``type`` is the same URI on every deployment; a client matches
+it by its slug under ``/server-errors/``, on any host. A slug names a kind of
+failure; the discriminator is an extension member (``limit``, ``reason``),
+since a member's value can be added after the freeze and a slug cannot. Rows
+are registered even where nothing raises them: a missing row costs a major
+version.
 '''
 
 import re
@@ -15,7 +16,7 @@ from typing import Any, Dict, NamedTuple, Optional
 __all__ = ["ERRORS", "TYPE_BASE", "OAuthError", "ProblemError", "problem"]
 
 
-# Fixed by the v1 API and identical on every deployment.
+# This server's choice of host; a client compares only the slug.
 TYPE_BASE = "https://siliconcompiler.com/server-errors"
 
 
