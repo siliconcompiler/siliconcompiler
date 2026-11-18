@@ -80,7 +80,10 @@ def test_a_wheel_not_shadowing_the_standard_library_is_taken(tmp_path, files):
       for scripts in ("[console_scripts]\n../lib/python/sitecustomize.py = scfake:main\n",
                       "[gui_scripts]\nbin/run = scfake:main\n",
                       "[console_scripts]\nrun\\x = scfake:main\n",
-                      "[scfake.plugins]\n.. = scfake:main\n")],
+                      "[scfake.plugins]\n.. = scfake:main\n",
+                      # importlib.metadata, which pip reads entry points with, takes a line
+                      # starting ";" for an entry point, not a comment.
+                      "[console_scripts]\n; ../lib/python/sitecustomize.py = scfake:main\n")],
     (dict(files={"encodings/__init__.py": ""}), "top-level encodings module"),
     (dict(files={"os.py": ""}), "top-level os module"),
     (dict(files={"json/__init__.py": ""}), "top-level json module"),
