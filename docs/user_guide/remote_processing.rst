@@ -500,7 +500,9 @@ account, and the images the deployment runs jobs in. A job is cancelled and
 deleted there. Where a run is refused for a grant your account lacks -- a PDK, a
 tool, a capability -- at a terminal outside CI the client opens the portal's
 page for asking for it, and offers it for a result it was refused; elsewhere
-the refusal names the portal.
+the refusal names the portal. The client's own check before it creates a job,
+that an account uploading wheels holds ``python-wheels``, opens no page: it
+says to ask the deployment for the grant.
 
 **What went in is kept alongside what came out.** Every archive the job
 uploaded is its own artifact -- the first, and each follow-up the server asked

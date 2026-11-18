@@ -683,7 +683,8 @@ def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
     pytest.param(problem("entitlement-denied", 403, resource_kind="pdk", resource="gf12"),
                  403, {}, ["resource: gf12", "resource_kind: pdk",
                            "Ask for the grant in this server's portal, which sc-config "
-                           "remote portal opens; waiting will not help."], ["just opened"],
+                           "remote portal opens from a terminal of your own; waiting will not "
+                           "help."], ["just opened"],
                  id="entitlement"),
     pytest.param(problem("entitlement-denied", 403, resource_kind="capability",
                          resource="a-capability-from-later"),
