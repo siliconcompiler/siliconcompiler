@@ -28,7 +28,7 @@ import requests.auth
 from siliconcompiler import __version__
 from siliconcompiler.remote import dpop
 from siliconcompiler.remote.client.errors import (
-    TYPE_BASE, RemoteError, RemoteTimeout, ServerProblem, SessionEnded, Unreachable, _slug,
+    RemoteError, RemoteTimeout, ServerProblem, SessionEnded, Unreachable, _slug,
     clean)
 from siliconcompiler.remote.client.identity import device_fingerprint
 from siliconcompiler.utils.units import format_duration
@@ -637,7 +637,8 @@ class Transport:
             self._credentials.forget_tokens()
             if refused.reason:
                 raise SessionEnded(
-                    {"type": f"{TYPE_BASE}session-ended", "title": "Session ended",
+                    {"type": f"{self.api_origin}/server-errors/session-ended",
+                     "title": "Session ended",
                      "reason": refused.reason, "detail": refused.description},
                     refused.status) from None
             return False

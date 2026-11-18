@@ -1,10 +1,9 @@
 # The error `type` pages
 
 One page per problem `type` in the `v1` API, `<slug>.html`, plus `index.html`
-and one stylesheet. Every refusal's `type` is
-`https://siliconcompiler.com/server-errors/<slug>`, and RFC 9457 §3.1.1 says
-that URI SHOULD dereference to documentation for the type: **this folder,
-rendered, is the set that is deployed there** and `sc-server`
+and one stylesheet. Every refusal's `type` ends in `/server-errors/<slug>`, and
+RFC 9457 §3.1.1 says that URI SHOULD dereference to documentation for the type:
+**this folder, rendered, is the set to deploy there**, and `sc-server`
 serves the same pages at `/server-errors/` on its own host.
 
 **The registry is normative.** The registry in `errors.py` decides each slug's status, its extension
@@ -27,7 +26,7 @@ pattern refuses the underscore, and the render below skips it. `index.html` has
 its own header and footer, so it does not extend the layout.
 
 `sc-server` renders a page on its first request and keeps it
-(`routes/errorpages.py`). The public site is the rendered folder.
+(`routes/errorpages.py`). A static site is the rendered folder.
 
 ## Publishing
 

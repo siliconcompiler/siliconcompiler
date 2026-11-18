@@ -7,6 +7,7 @@ The ``type`` URIs are static, so only the client can render the specific failure
 import re
 
 from typing import Any, Dict, Optional
+from urllib.parse import urlsplit
 
 __all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
            "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "grant_step", "clean",
@@ -324,8 +325,9 @@ def listed(values) -> str:
     return ", ".join(clean(value) for value in values or []) or "none"
 
 
-# Every registered `type` is this and a slug, the same on every deployment.
-TYPE_BASE = "https://siliconcompiler.com/server-errors/"
+# A `type` is `<origin>/server-errors/<slug>` on the answering deployment's own
+# origin, so only the path is compared; the host is never part of it.
+_TYPE_PATH = "/server-errors/"
 
 # Registered slugs that name no client action of their own, so the status advises.
 _ADVICE_BY_STATUS = ("invalid-request", "invalid-token", "method-not-allowed",
@@ -339,7 +341,15 @@ def _slug(problem: Dict[str, Any]) -> Optional[str]:
     '''The condition a problem names, or None for a `type` outside the
     registry, or one this client does not know, which is acted on by its status.'''
     uri = problem.get("type")
-    if not isinstance(uri, str) or not uri.startswith(TYPE_BASE):
+    if not isinstance(uri, str):
         return None
-    slug = uri[len(TYPE_BASE):]
+    try:
+        parts = urlsplit(uri)
+        parts.port  # noqa: B018 -- raises on a malformed port
+    except ValueError:
+        return None
+    if parts.scheme not in ("http", "https") or not parts.hostname or \
+            parts.query or parts.fragment or not parts.path.startswith(_TYPE_PATH):
+        return None
+    slug = parts.path[len(_TYPE_PATH):]
     return slug if slug in REGISTERED else None

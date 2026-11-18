@@ -1156,7 +1156,7 @@ the server decides again at every gate.
       "session_expires_at": "2026-11-26T12:00:00Z"
     },
     "can_submit": false,               // REQUIRED
-    "blocked_type": "https://siliconcompiler.com/server-errors/terms-not-accepted",
+    "blocked_type": "https://sc.example.com/server-errors/terms-not-accepted",
                                        // OPTIONAL. Only while can_submit is false
     "terms": [                         // REQUIRED. [] for none
       {"id": "acme-nda",               // opaque; never branched on
@@ -2158,7 +2158,7 @@ A refusal is an :rfc:`9457` body, ``application/problem+json``:
 .. code-block:: json
 
   {
-    "type":   "https://siliconcompiler.com/server-errors/entitlement-denied",
+    "type":   "https://sc.example.com/server-errors/entitlement-denied",
                                        // REQUIRED. What a client branches on
     "title":  "Not entitled to this resource",   // REQUIRED. Fixed per type
     "status": 403,                     // REQUIRED. Absent on a type that is never a response
@@ -2196,9 +2196,11 @@ and ``405`` -- are problem bodies, as everywhere. A client at those two reads
 The registry
 ^^^^^^^^^^^^
 
-Every ``type`` is ``https://siliconcompiler.com/server-errors/<slug>``, the
-same on every server. It is an identifier, which a client compares as a string
-and never fetches, so a server MUST NOT put its own host in it. The registry is
+Every ``type`` is ``<origin>/server-errors/<slug>``, an absolute URI on the
+origin of the deployment that answers. A client recognises a type by its slug
+alone: a ``type`` whose scheme is ``http`` or ``https`` and whose path is exactly
+``/server-errors/<slug>``, with a registered slug, on any host and port. Any other
+``type`` is an untyped failure, acted on by its status. The registry is
 closed: a server returns no other. A type with no status is never an HTTP
 response, only the ``type`` of a job's or node's ``error``. The members listed
 are required on that type.
@@ -2209,8 +2211,7 @@ them, on a refusal and on a job carrying an ``error``, with a relative link:
 place of the ``type``, and still branches on ``type``. ``sc-server`` serves its
 pages at ``/server-errors/``. Another server can render the same set with
 ``python -m siliconcompiler.remote.server.routes.errorpages <outdir>``, with the
-``server`` extra installed. The same pages are also `published
-<https://siliconcompiler.com/server-errors/>`__ at the ``type`` URIs.
+``server`` extra installed.
 
 .. server-errors::
 

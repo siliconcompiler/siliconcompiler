@@ -12,7 +12,7 @@ from unittest import mock
 from siliconcompiler.remote import (
     Client, Credentials, RemoteError, ServerProblem)
 from siliconcompiler.remote.client import cli
-from siliconcompiler.remote.client.errors import REGISTERED, TYPE_BASE
+from siliconcompiler.remote.client.errors import _slug
 from siliconcompiler.remote.client.transport import join_url, normalize_server
 
 from conftest import V1_URL, asked_for_pages, claims, form, grants, problem
@@ -703,7 +703,7 @@ def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
                  ["retrying it unchanged will not help"], [], id="unknown-type"),
     pytest.param({"title": "Bad Gateway"}, 502, {}, ["Bad Gateway (502)", "try again later"],
                  [], id="untyped-5xx"),
-    pytest.param({"type": "https://elsewhere.test/server-errors/limit-exceeded",
+    pytest.param({"type": "https://elsewhere.test/other/limit-exceeded",
                   "title": "Refused"}, 429, {}, ["Wait and retry."], ["refills"],
                  id="type-outside-the-registry"),
 ])
@@ -712,9 +712,7 @@ def test_a_refusal_renders_without_opening_a_url(body, status, extra, said, unsa
     failure: the discriminator, the next step and the trace, each cleaned for a terminal.'''
     refusal = ServerProblem(body, status, **extra)
     rendered = str(refusal)
-    slug = body.get("type", "")[len(TYPE_BASE):] if body.get("type", "").startswith(
-        TYPE_BASE) else None
-    slug = slug if slug in REGISTERED else None
+    slug = _slug(body)
 
     assert refusal.slug == slug
     for name in set(body) - {"type", "title", "status"}:
@@ -725,6 +723,41 @@ def test_a_refusal_renders_without_opening_a_url(body, status, extra, said, unsa
         assert fragment in rendered, rendered
     assert not any(fragment in rendered for fragment in unsaid)
     assert "\x07" not in rendered and "\x1b]" not in rendered
+
+
+@pytest.mark.parametrize("uri", [
+    "https://siliconcompiler.com/server-errors/limit-exceeded",
+    "https://sc.example.com/server-errors/limit-exceeded",
+    "https://sc.example.com:8443/server-errors/limit-exceeded",
+    "http://localhost:5000/server-errors/limit-exceeded",
+])
+def test_a_type_is_recognised_by_its_slug_on_any_host(uri):
+    '''A registered slug under /server-errors/ is that type on any http(s) host and port.'''
+    assert _slug({"type": uri}) == "limit-exceeded"
+    assert ServerProblem({"type": uri, "title": "x"}, 429).slug == "limit-exceeded"
+
+
+@pytest.mark.parametrize("uri", [
+    "https://sc.example.com/server-errors/limit-exceeded/extra",
+    "https://sc.example.com/api/server-errors/limit-exceeded",
+    "https://sc.example.com/errors/limit-exceeded",
+    "https://sc.example.com/server-errors/a-type-from-later",
+    "https://sc.example.com/server-errors/",
+    "https://sc.example.com/server-errors/limit-exceeded?x=1",
+    "https://sc.example.com/server-errors/limit-exceeded#top",
+    "ftp://sc.example.com/server-errors/limit-exceeded",
+    "https:///server-errors/limit-exceeded",
+    "https://sc.example.com:bad/server-errors/limit-exceeded",
+    "/server-errors/limit-exceeded",
+    "limit-exceeded",
+    "",
+    None,
+    42,
+])
+def test_a_type_outside_the_registry_is_untyped(uri):
+    '''Any other path, scheme or slug names no type, so the client acts on the status.'''
+    assert _slug({"type": uri}) is None
+    assert ServerProblem({"type": uri, "title": "x"}, 429).slug is None
 
 
 def test_a_changed_identity_is_reported_rather_than_read_as_lost_jobs(
