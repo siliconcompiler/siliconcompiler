@@ -41,6 +41,12 @@ def test_a_pure_wheel_is_taken(tmp_path):
     # Only a TOP-LEVEL sitecustomize runs by itself; one in a package is its module.
     assert environment.check_wheel(make_wheel(
         tmp_path, "scfake", "1.0", files={"scfake/sitecustomize.py": ""})).name == "scfake"
+    # A comment or a group's header may hold a separator; an entry point may not.
+    assert environment.check_wheel(make_wheel(tmp_path, "scfake", "1.0", files={
+        "scfake-1.0.dist-info/entry_points.txt":
+            "# https://example.test/entry-points\n[console_scripts]\n"
+            "scfake-run = scfake.cli:main\n[scfake/plugins]\n"
+            "scfake.gui = scfake.gui:main [extra]\n"})).name == "scfake"
 
 
 @pytest.mark.parametrize("files", [
@@ -68,6 +74,12 @@ def test_a_wheel_not_shadowing_the_standard_library_is_taken(tmp_path, files):
     (dict(files={"scfake/nested.pth": "import os\n"}), "a .pth file"),
     (dict(files={"sitecustomize.py": "print('hello')\n"}), "runs in any Python"),
     (dict(files={"usercustomize.py": "print('hello')\n"}), "runs in any Python"),
+    # An entry point named as a path, in any group: pip writes the script where it leads.
+    *[(dict(files={"scfake-1.0.dist-info/entry_points.txt": scripts}), "named as a path")
+      for scripts in ("[console_scripts]\n../lib/python/sitecustomize.py = scfake:main\n",
+                      "[gui_scripts]\nbin/run = scfake:main\n",
+                      "[console_scripts]\nrun\\x = scfake:main\n",
+                      "[scfake.plugins]\n.. = scfake:main\n")],
     (dict(files={"encodings/__init__.py": ""}), "top-level encodings module"),
     (dict(files={"os.py": ""}), "top-level os module"),
     (dict(files={"json/__init__.py": ""}), "top-level json module"),

@@ -1739,7 +1739,11 @@ neither: those travel as ordinary collected files.
   a ``.pyc`` or an extension module of that name; matched at the wheel's root,
   case-sensitively, so ``jsonschema/`` and ``mypkg/json.py`` pass), since the
   environment is on the tool's ``PYTHONPATH`` ahead of the standard library and
-  such a module would run in its place. It depends on no URL, and overlaps nothing listed or in the image. Otherwise it
+  such a module would run in its place. No line of its ``entry_points.txt``,
+  but a group's ``[header]`` and a ``#`` comment, holds ``/``, ``\`` or ``..``:
+  pip writes each script by joining its name to the scripts directory, and
+  every pip before 26.1.2 joins it unchecked, so a script named
+  ``../lib/python/sitecustomize.py`` would run at every start of Python. It depends on no URL, and overlaps nothing listed or in the image. Otherwise it
   is ``archive-rejected``, ``reason: "python_package"``.
 * **A version no index has** sends the job back with
   ``{"kind": "python", "name": ...}``, and the client answers with a wheel at
