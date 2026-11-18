@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from siliconcompiler.remote import manifests
 from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.remote.server import config
-from siliconcompiler.remote.server.errors import ProblemError, problem
+from siliconcompiler.remote.server.errors import ProblemError, problem, reorigin
 from siliconcompiler.remote.server.outputs import artifacts
 from siliconcompiler.remote.server.running import runspec
 from siliconcompiler.remote.server.running.dispatch import DispatchError, dispatcher_for
@@ -688,7 +688,7 @@ class Jobs:
             "finished_at": when(job["finished_at"]), "archived_at": None,
             "deleted_at": when(job["deleted_at"]),
             "deleted_reason": "deleted by its owner" if job["deleted_at"] else None,
-            "error": json.loads(job["error"]) if job["error"] else None,
+            "error": reorigin(json.loads(job["error"])) if job["error"] else None,
             "progress": {"total_count": len(rows),
                          **dict(zip(("completed_count", "failed_count", "skipped_count",
                                      "cancelled_count"), count))},

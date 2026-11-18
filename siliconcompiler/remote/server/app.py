@@ -92,13 +92,8 @@ def create_app(datadir, cluster: str = "local",
 
 
 def _problem_response(body: dict, status: int, headers: dict):
-    from siliconcompiler.remote.server.routes.errorpages import help_link
-
     response = flask.jsonify(body)
     response.mimetype = "application/problem+json"
     response.status_code = status
     response.headers.update(headers)
-    helped = help_link(body["type"])
-    if helped:
-        response.headers["Link"] = helped
     return response

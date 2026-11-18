@@ -1,8 +1,8 @@
 '''
 Every way this API says no: the ``type`` registry, frozen at v1.
 
-This server's ``type`` is the same URI on every deployment; a client matches
-it by its slug under ``/server-errors/``, on any host. A slug names a kind of
+A ``type`` is ``<this server's origin>/server-errors/<slug>``, the page this
+server serves for it; a client matches it by its slug alone. A slug names a kind of
 failure; the discriminator is an extension member (``limit``, ``reason``),
 since a member's value can be added after the freeze and a slug cannot. Rows
 are registered even where nothing raises them: a missing row costs a major
@@ -13,11 +13,25 @@ import re
 
 from typing import Any, Dict, NamedTuple, Optional
 
-__all__ = ["ERRORS", "TYPE_BASE", "OAuthError", "ProblemError", "problem"]
+import flask
+
+__all__ = ["ERRORS", "OAuthError", "ProblemError", "own_origin", "problem", "reorigin"]
 
 
-# This server's choice of host; a client compares only the slug.
-TYPE_BASE = "https://siliconcompiler.com/server-errors"
+def own_origin() -> str:
+    '''The first public origin, else this request's host; empty outside a request.'''
+    if not flask.has_request_context():
+        return ""
+    origins = flask.current_app.config["SC_PUBLIC_ORIGINS"]
+    return (origins[0] if origins else flask.request.host_url).rstrip("/")
+
+
+def reorigin(error: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    '''A stored problem with its ``type`` on this request's origin, whatever
+    origin it was recorded under.'''
+    if not error or not isinstance(error.get("type"), str):
+        return error
+    return {**error, "type": f"{own_origin()}/server-errors/{error['type'].rsplit('/', 1)[-1]}"}
 
 
 class _Error(NamedTuple):
@@ -27,10 +41,6 @@ class _Error(NamedTuple):
     status: Optional[int]
     title: str
     members: tuple = ()
-
-    @property
-    def uri(self) -> str:
-        return f"{TYPE_BASE}/{self.slug}"
 
 
 # `title` is fixed here so every occurrence of a slug is identical.
@@ -202,7 +212,7 @@ def problem(slug: str, detail: Optional[str] = None,
     client branches on ``type``, never on the rewordable ``detail``.'''
     err = ERRORS[slug]
 
-    body: Dict[str, Any] = {"type": err.uri, "title": err.title}
+    body: Dict[str, Any] = {"type": f"{own_origin()}/server-errors/{slug}", "title": err.title}
 
     resolved = status or err.status
     if resolved is not None:
