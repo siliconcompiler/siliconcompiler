@@ -19,6 +19,8 @@ For every run, SiliconCompiler will automatically record the following without a
 * **SiliconCompiler Version:** The exact version of the framework used.
 * **Tool Details:** The version of each :term:`tool` executed (e.g., Yosys, OpenROAD) and the specific command-line options used.
 * **Timestamps:** The start and end times for each :term:`task`.
+* **Dataroots:** The :term:`dataroots <dataroot>` each node's outputs derive from, through the keys its task requires and the nodes feeding it (:keypath:`record,inputdataroot`).
+  The scheduler sets it before any node runs, and what a task writes there does not reach the job's record.
 
 Optional Full Tracking
 ^^^^^^^^^^^^^^^^^^^^^^

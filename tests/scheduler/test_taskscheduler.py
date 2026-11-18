@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 
 from siliconcompiler.utils.multiprocessing import MPManager, get_process_context
 from siliconcompiler import NodeStatus
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler import Project, Flowgraph, Design, PDK
 from siliconcompiler.scheduler import Scheduler, TaskScheduler
 from siliconcompiler.scheduler import taskscheduler as taskscheduler_module
 from siliconcompiler.scheduler.taskscheduler import _CallbackListener
@@ -95,6 +95,43 @@ def test_get_nodes_with_complete(large_flow, make_tasks):
         ('jointwo', '0'),
         ('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2'),
         ('jointhree', '0')]
+
+
+def test_inputdataroot_follows_the_flowgraph(make_tasks):
+    """A node's outputs derive from the dataroots of its own required keys and those of the
+    node feeding it, never those of a node it feeds.
+    """
+    pdk = PDK("mypdk")
+    pdk.set_dataroot("mypdk", os.path.abspath("pdk"))
+    pdk.set_dataroot("docs", os.path.abspath("docs"))
+    with pdk.active_dataroot("mypdk"):
+        pdk.set("package", "doc", "datasheet", "datasheet.pdf")
+    with pdk.active_dataroot("docs"):
+        pdk.set("package", "doc", "userguide", "guide.pdf")
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.add_dep(pdk)
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+    proj.set("tool", "builtin", "task", "nop", "require", "library,mypdk,package,doc,datasheet",
+             step="stepone", index="0")
+    proj.set("tool", "builtin", "task", "nop", "require", "library,mypdk,package,doc,userguide",
+             step="steptwo", index="0")
+
+    TaskScheduler(proj, make_tasks(proj))
+
+    assert proj.get("record", "inputdataroot", step="stepone", index="0") == \
+        ["library,mypdk,dataroot,mypdk"]
+    assert proj.get("record", "inputdataroot", step="steptwo", index="0") == \
+        ["library,mypdk,dataroot,docs", "library,mypdk,dataroot,mypdk"]
 
 
 def test_register_callback_invalid():

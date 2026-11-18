@@ -7,7 +7,7 @@ import weakref
 
 import os.path
 
-from typing import List, Dict, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
+from typing import List, Dict, Set, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
 
@@ -149,6 +149,9 @@ class TaskScheduler:
 
         self.__create_nodes(tasks)
 
+        self.__dataroots = self.__derive_dataroots(tasks)
+        self.__record_dataroots()
+
         with TaskScheduler.__instances_lock:
             TaskScheduler.__instances.add(self)
 
@@ -204,6 +207,30 @@ class TaskScheduler:
             for node in levelnodes:
                 if node in self.__nodes:
                     self.__ordered_nodes.append(node)
+
+    def __derive_dataroots(self, tasks: Dict[Tuple[str, str], "SchedulerNode"]) \
+            -> Dict[Tuple[str, str], List[str]]:
+        """
+        What each node's outputs derive from, worked out before any node runs: the
+        dataroots of its own required keys, and through the flowgraph those of
+        every node feeding it.
+        """
+        derived: Dict[Tuple[str, str], Set[str]] = {}
+        for levelnodes in self.__flow.get_execution_order():
+            for node in levelnodes:
+                derived[node] = tasks[node].get_required_dataroots().union(
+                    *(derived[upstream]
+                      for upstream in self.__flow.get_graph_node(*node).get_input()))
+        return {node: sorted(dataroots) for node, dataroots in derived.items()}
+
+    def __record_dataroots(self) -> None:
+        """
+        Records what each node's outputs derive from. Called again after each node's
+        results are merged, since those carry whatever its own code wrote there.
+        """
+        for (step, index), dataroots in self.__dataroots.items():
+            if self.__record.get("inputdataroot", step=step, index=index) != dataroots:
+                self.__record.set("inputdataroot", dataroots, step=step, index=index)
 
     def run(self, job_log_handler: logging.Handler) -> None:
         """
@@ -573,6 +600,7 @@ class TaskScheduler:
                 # its manifest; on Windows, terminate() always ends a node that way.
                 if info["proc"].exitcode >= 0 and os.path.exists(manifest):
                     Journal.replay_file(self.__schema, manifest)
+                    self.__record_dataroots()
 
                 # The child either sent the package cache before exiting or
                 # it never will. poll(0) avoids blocking the scheduler loop

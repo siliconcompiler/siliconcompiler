@@ -567,3 +567,27 @@ def schema_record(schema):
             List of selected inputs for the current step/index specified as
             (in_step, in_index) tuple.""")
         ))
+
+    schema.insert(
+        "inputdataroot",
+        Parameter(
+            "{str}",
+            pernode=PerNode.REQUIRED,
+            scope=Scope.JOB,
+            shorthelp="Record: node input dataroots",
+            switch="-record_inputdataroot 'step index <str>'",
+            example=[
+                "cli: -record_inputdataroot 'place 0 library,mypdk,dataroot,mypdk'",
+                "api: schema.set('record', 'inputdataroot', 'library,mypdk,dataroot,mypdk', "
+                "step='place', index='0')"],
+            help=trim("""
+            Dataroots the outputs of the current step/index derive from, each
+            named by its keypath joined with commas: every dataroot holding a
+            file of a key the node's task requires, and every dataroot the
+            nodes feeding it in the flowgraph derive from. A ``dataroot://``
+            alias is named by the dataroot it resolves to, and a ``key://``
+            dataroot together with the dataroots of the parameter it names.
+            The scheduler sets it from the run's setup, before any node runs,
+            and a value a node's own code writes here does not reach the job's
+            record.""")
+        ))

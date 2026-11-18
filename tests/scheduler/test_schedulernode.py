@@ -19,7 +19,7 @@ from multiprocessing import Queue
 from queue import Empty
 from unittest.mock import patch
 
-from siliconcompiler import Project, Flowgraph, Design, StdCellLibrary
+from siliconcompiler import Project, Flowgraph, Design, PDK, StdCellLibrary
 from siliconcompiler import NodeStatus
 from siliconcompiler import Task
 from siliconcompiler import TaskSkip
@@ -3080,6 +3080,39 @@ def test_get_required_path_keys(project):
     node = SchedulerNode(project, "steptwo", "0")
     assert node.get_required_path_keys() == {("tool", "builtin", "task", "nop", "prescript"),
                                              ("tool", "builtin", "task", "nop", "refdir")}
+
+
+@pytest.mark.parametrize("dataroot,expect", [
+    ("mypdk", {"library,mypdk,dataroot,mypdk"}),
+    ("alias", {"library,mypdk,dataroot,mypdk"}),
+    ("bykey", {"library,mypdk,dataroot,bykey", "library,mypdk,dataroot,mypdk"}),
+], ids=["dataroot", "alias", "key"])
+def test_get_required_dataroots(project, dataroot, expect):
+    '''A required file is in its dataroot: an alias is named by the dataroot it lands
+    on, and a key:// dataroot together with the dataroots of the key it names.'''
+    pdk = PDK("mypdk")
+    pdk.set_dataroot("mypdk", os.path.abspath("pdk"))
+    pdk.set_dataroot("alias", "dataroot://mypdk/lef")
+    pdk.set_dataroot("bykey", "key://library,mypdk,package,doc,userguide")
+    with pdk.active_dataroot("mypdk"):
+        pdk.set("package", "doc", "userguide", "guide.pdf")
+    with pdk.active_dataroot(dataroot):
+        pdk.set("package", "doc", "datasheet", "datasheet.pdf")
+    project.add_dep(pdk)
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["library,mypdk,package,doc,datasheet", "tool,builtin,task,nop,threads"],
+                step="steptwo", index="0")
+
+    assert SchedulerNode(project, "steptwo", "0").get_required_dataroots() == expect
+
+
+def test_get_required_dataroots_none(project):
+    '''A required file in no dataroot is in none.'''
+    project.set("tool", "builtin", "task", "nop", "refdir", "refdir", step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_path_keys() == {("tool", "builtin", "task", "nop", "refdir")}
+    assert node.get_required_dataroots() == set()
 
 
 def test_collect_keys(project):

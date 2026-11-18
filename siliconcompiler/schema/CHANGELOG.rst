@@ -14,6 +14,13 @@ from the code diffs, not the commit messages). Dates are the git commit dates of
 the version bump. Version numbering was not strictly linear during early
 development, so a few dates are non-monotonic relative to the semver ordering.
 
+0.58.2 — 2026-11-18
+===================
+- Added ``record,inputdataroot`` (per-node ``{str}``): the keypaths of the dataroots a
+  node's outputs derive from, through its required keys and the nodes feeding it. The
+  scheduler sets it before any node runs and keeps it in the job's record whatever a
+  node's own code writes there.
+
 0.58.1 — 2026-11-04
 ===================
 - Rewrote the help and examples of ``option,credentials`` for the ``v1`` remote

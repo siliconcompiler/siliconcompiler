@@ -49,6 +49,7 @@ def test_keys():
         'pythonpackage',
         'status',
         'inputnode',
+        'inputdataroot',
     ])
 
 

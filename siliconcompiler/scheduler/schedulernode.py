@@ -21,6 +21,7 @@ from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFo
     console_quiet
 
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.package import DatarootResolver, KeyPathResolver
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import BaseSchema, Journal, Parameter
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir, cwdir
@@ -1686,6 +1687,54 @@ class SchedulerNode:
                 pass
 
         return path_keys
+
+    def get_required_dataroots(self) -> Set[str]:
+        """
+        Returns the dataroots holding the files of this node's required path keys,
+        each as its keypath joined with commas.
+
+        A ``dataroot://`` alias is named by the dataroot its chain lands on, and a
+        ``key://`` dataroot together with the dataroots of the parameter it names.
+        A value with no dataroot is in none.
+        """
+        dataroots = set()
+        keys = sorted(self.get_required_path_keys())
+        seen = set(keys)
+        while keys:
+            key = keys.pop()
+            param: Parameter = self.__project.get(*key, field=None)
+            if param.get(field='pernode').is_never():
+                values = param.get(field=None)
+            else:
+                values = param.get(field=None, step=self.__step, index=self.__index)
+            if not isinstance(values, list):
+                values = [values]
+            try:
+                resolvers = self.__project.get(*key[:-1], field="schema") \
+                    ._find_files_dataroot_resolvers(resolvers=True)
+            except ValueError:
+                # A dataroot no resolver takes fails the node that reads it, not the run
+                continue
+            for value in values:
+                name = value.get(field="dataroot")
+                if value.get() is None or name not in resolvers:
+                    continue
+                chain = set()
+                while isinstance(resolvers.get(name), DatarootResolver) and name not in chain:
+                    chain.add(name)
+                    name = resolvers[name].urlpath
+                resolver = resolvers.get(name)
+                if resolver is None:
+                    continue
+                section = resolver.schema._dataroot_section()
+                dataroots.add(",".join((*section._keypath, "dataroot", name)))
+                if isinstance(resolver, KeyPathResolver):
+                    target = tuple(resolver.urlpath.split(","))
+                    if target not in seen and self.__project.valid(*target) and \
+                            self.__project.get(*target, field=None).is_path:
+                        seen.add(target)
+                        keys.append(target)
+        return dataroots
 
     def collect_keys(self) -> Set[Tuple[str, ...]]:
         """The required path keys whose files this node needs collected before

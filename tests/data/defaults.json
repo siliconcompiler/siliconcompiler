@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.1",
+              "value": "0.58.2",
               "signature": null
             }
           }
@@ -1257,6 +1257,31 @@
             "api: schema.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"
           ],
           "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
+          "notes": null,
+          "pernode": "required",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "inputdataroot": {
+          "type": "{str}",
+          "require": false,
+          "scope": "job",
+          "lock": false,
+          "switch": [
+            "-record_inputdataroot 'step index <str>'"
+          ],
+          "shorthelp": "Record: node input dataroots",
+          "example": [
+            "cli: -record_inputdataroot 'place 0 library,mypdk,dataroot,mypdk'",
+            "api: schema.set('record', 'inputdataroot', 'library,mypdk,dataroot,mypdk', step='place', index='0')"
+          ],
+          "help": "Dataroots the outputs of the current step/index derive from, each\nnamed by its keypath joined with commas: every dataroot holding a\nfile of a key the node's task requires, and every dataroot the\nnodes feeding it in the flowgraph derive from. A ``dataroot://``\nalias is named by the dataroot it resolves to, and a ``key://``\ndataroot together with the dataroots of the parameter it names.\nThe scheduler sets it from the run's setup, before any node runs,\nand a value a node's own code writes here does not reach the job's\nrecord.",
           "notes": null,
           "pernode": "required",
           "node": {
@@ -2989,7 +3014,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.1",
+              "value": "0.58.2",
               "signature": null
             }
           }
@@ -4928,6 +4953,31 @@
             }
           }
         },
+        "inputdataroot": {
+          "type": "{str}",
+          "require": false,
+          "scope": "job",
+          "lock": false,
+          "switch": [
+            "-record_inputdataroot 'step index <str>'"
+          ],
+          "shorthelp": "Record: node input dataroots",
+          "example": [
+            "cli: -record_inputdataroot 'place 0 library,mypdk,dataroot,mypdk'",
+            "api: schema.set('record', 'inputdataroot', 'library,mypdk,dataroot,mypdk', step='place', index='0')"
+          ],
+          "help": "Dataroots the outputs of the current step/index derive from, each\nnamed by its keypath joined with commas: every dataroot holding a\nfile of a key the node's task requires, and every dataroot the\nnodes feeding it in the flowgraph derive from. A ``dataroot://``\nalias is named by the dataroot it resolves to, and a ``key://``\ndataroot together with the dataroots of the parameter it names.\nThe scheduler sets it from the run's setup, before any node runs,\nand a value a node's own code writes here does not reach the job's\nrecord.",
+          "notes": null,
+          "pernode": "required",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
         "__meta__": {
           "class": "siliconcompiler.schema_support.record/RecordSchema",
           "sctype": "RecordSchema"
@@ -6759,7 +6809,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.1",
+              "value": "0.58.2",
               "signature": null
             }
           }
@@ -8919,6 +8969,31 @@
             "api: schema.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"
           ],
           "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
+          "notes": null,
+          "pernode": "required",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "inputdataroot": {
+          "type": "{str}",
+          "require": false,
+          "scope": "job",
+          "lock": false,
+          "switch": [
+            "-record_inputdataroot 'step index <str>'"
+          ],
+          "shorthelp": "Record: node input dataroots",
+          "example": [
+            "cli: -record_inputdataroot 'place 0 library,mypdk,dataroot,mypdk'",
+            "api: schema.set('record', 'inputdataroot', 'library,mypdk,dataroot,mypdk', step='place', index='0')"
+          ],
+          "help": "Dataroots the outputs of the current step/index derive from, each\nnamed by its keypath joined with commas: every dataroot holding a\nfile of a key the node's task requires, and every dataroot the\nnodes feeding it in the flowgraph derive from. A ``dataroot://``\nalias is named by the dataroot it resolves to, and a ``key://``\ndataroot together with the dataroots of the parameter it names.\nThe scheduler sets it from the run's setup, before any node runs,\nand a value a node's own code writes here does not reach the job's\nrecord.",
           "notes": null,
           "pernode": "required",
           "node": {
@@ -11415,7 +11490,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.1",
+              "value": "0.58.2",
               "signature": null
             }
           }
@@ -12655,6 +12730,31 @@
             "api: schema.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"
           ],
           "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
+          "notes": null,
+          "pernode": "required",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "inputdataroot": {
+          "type": "{str}",
+          "require": false,
+          "scope": "job",
+          "lock": false,
+          "switch": [
+            "-record_inputdataroot 'step index <str>'"
+          ],
+          "shorthelp": "Record: node input dataroots",
+          "example": [
+            "cli: -record_inputdataroot 'place 0 library,mypdk,dataroot,mypdk'",
+            "api: schema.set('record', 'inputdataroot', 'library,mypdk,dataroot,mypdk', step='place', index='0')"
+          ],
+          "help": "Dataroots the outputs of the current step/index derive from, each\nnamed by its keypath joined with commas: every dataroot holding a\nfile of a key the node's task requires, and every dataroot the\nnodes feeding it in the flowgraph derive from. A ``dataroot://``\nalias is named by the dataroot it resolves to, and a ``key://``\ndataroot together with the dataroots of the parameter it names.\nThe scheduler sets it from the run's setup, before any node runs,\nand a value a node's own code writes here does not reach the job's\nrecord.",
           "notes": null,
           "pernode": "required",
           "node": {
@@ -14387,7 +14487,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.58.1",
+              "value": "0.58.2",
               "signature": null
             }
           }
@@ -15627,6 +15727,31 @@
             "api: schema.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"
           ],
           "help": "List of selected inputs for the current step/index specified as\n(in_step, in_index) tuple.",
+          "notes": null,
+          "pernode": "required",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "inputdataroot": {
+          "type": "{str}",
+          "require": false,
+          "scope": "job",
+          "lock": false,
+          "switch": [
+            "-record_inputdataroot 'step index <str>'"
+          ],
+          "shorthelp": "Record: node input dataroots",
+          "example": [
+            "cli: -record_inputdataroot 'place 0 library,mypdk,dataroot,mypdk'",
+            "api: schema.set('record', 'inputdataroot', 'library,mypdk,dataroot,mypdk', step='place', index='0')"
+          ],
+          "help": "Dataroots the outputs of the current step/index derive from, each\nnamed by its keypath joined with commas: every dataroot holding a\nfile of a key the node's task requires, and every dataroot the\nnodes feeding it in the flowgraph derive from. A ``dataroot://``\nalias is named by the dataroot it resolves to, and a ``key://``\ndataroot together with the dataroots of the parameter it names.\nThe scheduler sets it from the run's setup, before any node runs,\nand a value a node's own code writes here does not reach the job's\nrecord.",
           "notes": null,
           "pernode": "required",
           "node": {

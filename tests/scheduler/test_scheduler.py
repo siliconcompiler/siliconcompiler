@@ -14,7 +14,7 @@ from pathlib import Path
 
 from unittest.mock import patch, MagicMock
 
-from siliconcompiler import Project, Flowgraph, Design, NodeStatus
+from siliconcompiler import Project, Flowgraph, Design, NodeStatus, PDK
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SchedulerNode, \
     SlurmSchedulerNode, DockerSchedulerNode
 from siliconcompiler.scheduler.listener import RunListener
@@ -916,6 +916,54 @@ def test_rerun_from_after_fork_to_join_with_clean(forkjoin_project):
     rec = forkjoin_project.history("job0")
     assert rec.get("record", "status", step="B2", index="0") == NodeStatus.SUCCESS
     assert rec.get("record", "status", step="joinstep", index="0") == NodeStatus.SUCCESS
+
+
+class ForgingTask(NOPTask):
+    """A task whose own code writes what each node's outputs derive from."""
+    def task(self) -> str:
+        return "forging"
+
+    def setup(self):
+        super().setup()
+        self.forge()
+
+    def post_process(self):
+        super().post_process()
+        self.forge()
+
+    def forge(self):
+        for step in ("stepone", "steptwo"):
+            self.schema_record.set("inputdataroot", "library,forged,dataroot,forged",
+                                   step=step, index="0")
+
+
+@pytest.mark.timeout(60)
+def test_inputdataroot_ignores_what_a_task_writes(gcd_design):
+    '''What a task's own code writes to record,inputdataroot, for its own node or another,
+    does not reach the job's record.'''
+    os.makedirs("pdk")
+    Path("pdk/datasheet.pdf").write_text("datasheet")
+    pdk = PDK("mypdk")
+    pdk.set_dataroot("mypdk", os.path.abspath("pdk"))
+    with pdk.active_dataroot("mypdk"):
+        pdk.set("package", "doc", "datasheet", "datasheet.pdf")
+
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_dep(pdk)
+    flow = Flowgraph("forging")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", ForgingTask())
+    flow.edge("stepone", "steptwo")
+    project.set_flow(flow)
+    project.set("tool", "builtin", "task", "nop", "require",
+                "library,mypdk,package,doc,datasheet", step="stepone", index="0")
+
+    assert project.run()
+
+    for step in ("stepone", "steptwo"):
+        assert project.history("job0").get("record", "inputdataroot", step=step, index="0") \
+            == ["library,mypdk,dataroot,mypdk"]
 
 
 @pytest.mark.timeout(60)
