@@ -84,7 +84,10 @@ def check_wheel(path) -> Wheel:
     ``.pth``, ``sitecustomize.py``, ``usercustomize.py``, a ``.data/`` directory,
     a top-level module named as one of the standard library's (``encodings/``,
     ``os.py``), which the environment on ``PYTHONPATH`` would run in its place,
-    or a ``name @ url`` requirement would let installing run or fetch code.
+    an entry point named with ``/``, a backslash or ``..``, which pips before
+    26.1.2 write as a script wherever the name leads (``sitecustomize.py`` at the
+    environment's top), or a ``name @ url`` requirement would let installing run
+    or fetch code.
     '''
     filename = os.path.basename(str(path))
     try:
@@ -179,6 +182,17 @@ def check_wheel(path) -> Wheel:
                 raise WheelError(f"{filename} depends on {requirement.strip()}, a "
                                  "dependency by URL, which the install would fetch from "
                                  "wherever it points")
+        if f"{dist_info}/entry_points.txt" in archive.namelist():
+            # Every line of every group: installers split a name from its value, and
+            # read a group's header, each their own way, and no value names a path.
+            for line in read("entry_points.txt").splitlines():
+                line = line.strip()
+                if line.startswith("#") or (line.startswith("[") and line.endswith("]")):
+                    continue
+                if "/" in line or "\\" in line or ".." in line:
+                    raise WheelError(f"{filename}'s entry_points.txt holds {line!r}, an "
+                                     "entry point named as a path, which pip would "
+                                     "write as a script wherever the path leads")
 
         wheel = email.parser.Parser().parsestr(read("WHEEL"), headersonly=True)
         if (wheel.get("Root-Is-Purelib") or "").strip().lower() != "true":
