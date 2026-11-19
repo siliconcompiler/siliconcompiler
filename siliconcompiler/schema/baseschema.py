@@ -30,7 +30,7 @@ except ModuleNotFoundError:
 import os.path
 
 from enum import Enum, auto
-from functools import cache, lru_cache
+from functools import cache, lru_cache, partial
 from typing import Dict, Type, Tuple, TypeVar, Union, Set, Callable, List, Optional, \
     TextIO, Iterable, Iterator, Any
 
@@ -1308,6 +1308,9 @@ class BaseSchema:
             dataroot: Optional[str] = path.get(field="dataroot")
             dataroot_id: Optional[str] = None
             dataroot_except: Optional[Exception] = None
+            # Resolving a dataroot can mean fetching it, so it is resolved only once
+            # the collection and every other place searched lack the value
+            fetch: Optional[Callable[[], str]] = None
             if dataroot:
                 if dataroot not in dataroots:
                     raise ValueError(f"Resolver for {dataroot} not provided: "
@@ -1321,14 +1324,11 @@ class BaseSchema:
                     try:
                         if collection_dir:
                             dataroot_id = dataroot_path.collection_id
-                        search_paths.append(dataroot_path.get_path())
+                        fetch = dataroot_path.get_path
                     except Exception as e:
                         dataroot_except = e
                 elif callable(dataroot_path):
-                    try:
-                        search_paths.append(dataroot_path())
-                    except Exception as e:
-                        dataroot_except = e
+                    fetch = dataroot_path
                 else:
                     raise TypeError(f"Resolver for {dataroot} is not a recognized type: "
                                     f"{self.__format_key(*keypath)}")
@@ -1336,16 +1336,23 @@ class BaseSchema:
                 if cwd:
                     search_paths.append(os.path.abspath(cwd))
 
+            find = partial(path.hash, hashalgo) if hash else path.resolve_path
             try:
-                if hash:
-                    resolved = path.hash(hashalgo,
-                                         search=search_paths,
-                                         collection_dir=collection_dir,
-                                         dataroot_id=dataroot_id)
-                else:
-                    resolved = path.resolve_path(search=search_paths,
-                                                 collection_dir=collection_dir,
-                                                 dataroot_id=dataroot_id)
+                try:
+                    resolved = find(search=search_paths,
+                                    collection_dir=collection_dir,
+                                    dataroot_id=dataroot_id)
+                except FileNotFoundError:
+                    if fetch is None:
+                        raise
+                    try:
+                        search_paths.append(fetch())
+                    except Exception as e:
+                        dataroot_except = e
+                        raise FileNotFoundError(path._getunsafe()) from e
+                    resolved = find(search=search_paths,
+                                    collection_dir=collection_dir,
+                                    dataroot_id=dataroot_id)
             except FileNotFoundError:
                 resolved = None
                 if not missing_ok:
