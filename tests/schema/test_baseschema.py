@@ -2049,6 +2049,54 @@ def test_find_files_scalar_dataroot_not_found_allow(monkeypatch):
     assert schema._find_files("file", missing_ok=True) is None
 
 
+class _OfflineResolver:
+    '''A resolver whose data cannot be fetched here, counting each attempt.'''
+    collection_id = "c" * 40
+
+    def __init__(self):
+        self.fetched = 0
+
+    def get_path(self):
+        self.fetched += 1
+        raise ConnectionError("no network")
+
+
+def _offline_file_schema():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("file", Parameter("file"))
+    assert schema.set("file", "test.txt")
+    assert schema.set("file", "test", field="dataroot")
+    os.makedirs("collected")
+    return schema, _OfflineResolver()
+
+
+@pytest.mark.parametrize("hash", [False, True])
+def test_find_files_collected_not_fetched(hash):
+    '''A value the collection holds is found there without fetching its dataroot,
+    which fails on a node without network and downloads it again elsewhere.'''
+    schema, resolver = _offline_file_schema()
+    collected_file = os.path.join("collected", PathNodeValue.generate_hashed_collection_path(
+        "test.txt", resolver.collection_id))
+    os.makedirs(os.path.dirname(collected_file))
+    with open(collected_file, "w") as f:
+        f.write("test")
+
+    find = schema._hash_files if hash else schema._find_files
+    assert find("file", dataroots={"test": resolver}, collection_dir="collected") == \
+        (PathNodeValue.hash_file(collected_file, hashfunction="sha256") if hash
+         else os.path.abspath(collected_file))
+    assert resolver.fetched == 0
+
+
+def test_find_files_not_collected_fetched():
+    '''A value the collection lacks still fetches its dataroot, and fails naming it.'''
+    schema, resolver = _offline_file_schema()
+
+    with pytest.raises(FileNotFoundError, match=r"^Dataroot test not found: no network$"):
+        schema._find_files("file", dataroots={"test": resolver}, collection_dir="collected")
+    assert resolver.fetched == 1
+
+
 def test_find_files_scalar_file_not_found_multiple_search():
     class CustomFiles(BaseSchema):
         def __init__(self):

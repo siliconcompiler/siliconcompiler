@@ -1,5 +1,6 @@
 import json
 import pytest
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -240,6 +241,23 @@ def test_library_fileset_file_still_copied(project, sources):
     _, flags = make_testcase(project)
 
     assert flags['library,mylib,fileset,rtl,file,verilog'] is True
+
+
+def test_files_taken_from_run_collection(project):
+    '''A file the run was given in its collection goes into the testcase though its
+    dataroot is gone and the build directory is absolute, as on a remote node.'''
+    keypaths = (("library", "mylib", "tool", "yosys", "techmap"),
+                ("library", "mypdk", "tool", "openroad", "tracks"))
+    collect(project, keys=[(key, step, index) for key in keypaths
+                           for _, step, index in project.get(*key, field=None).getvalues()],
+            verbose=False)
+    shutil.rmtree('src')
+    project.option.set_builddir(os.path.abspath('build'))
+
+    archive, _ = make_testcase(project)
+
+    assert collected(archive, 'techmap', '.v')
+    assert collected(archive, 'tracks', '.tcl')
 
 
 def test_task_files_limited_to_testcase_tool_task(project, sources):

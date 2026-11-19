@@ -54,7 +54,8 @@ def collect(project: "Project",
             verbose: bool = True,
             whitelist: Optional[List[str]] = None,
             select: Optional[Callable[
-                [Tuple[str, ...], Optional[str], Optional[str], BasePathNodeValue], bool]] = None) \
+                [Tuple[str, ...], Optional[str], Optional[str], BasePathNodeValue], bool]] = None,
+            source: Optional[str] = None) \
         -> None:
     '''
     Collects the specified files and directories into a collection directory.
@@ -86,6 +87,10 @@ def collect(project: "Project",
             they use is not fetched. Resolving a value still resolves what its search
             depends on, such as a task's ``refdir`` for a ``script``, and a directory
             collected brings everything in it. Defaults to every value.
+        source (str, optional): A collection to take a file or directory from where
+            the filesystem lacks it, such as the run's own when a testcase is
+            collected elsewhere, so what the run was given in a collection needs
+            none of its dataroots. Defaults to None.
 
     Raises:
         RuntimeError: If a directory to be collected is not approved by the `whitelist`.
@@ -114,27 +119,31 @@ def collect(project: "Project",
 
     cwd = cwdir(project)
 
+    # Where a file the filesystem lacks is looked for: the collection this one
+    # replaces, then source
+    fallbacks = [path for path in (prev_dir, source) if path]
+
     def find_files(*key, step: Optional[str] = None, index: Optional[str] = None,
                    select: Optional[Callable[[BasePathNodeValue], bool]] = None):
         """
-        Find the files in the filesystem, otherwise look in previous collection
+        Find the files in the filesystem, otherwise in a fallback collection
         """
-        e = None
         try:
             return BaseSchema._find_files(project, *key, step=step, index=index,
                                           cwd=cwd,
                                           collection_dir=directory,
                                           select=select)
         except FileNotFoundError as err:
-            e = err
-        if prev_dir:
-            # Try previous location next
-            return BaseSchema._find_files(project, *key, step=step, index=index,
-                                          cwd=cwd,
-                                          collection_dir=prev_dir,
-                                          select=select)
-        if e:
-            raise e
+            error = err
+        for fallback in fallbacks:
+            try:
+                return BaseSchema._find_files(project, *key, step=step, index=index,
+                                              cwd=cwd,
+                                              collection_dir=fallback,
+                                              select=select)
+            except FileNotFoundError:
+                pass
+        raise error
 
     dirs = {}
     files = {}

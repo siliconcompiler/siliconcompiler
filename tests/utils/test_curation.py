@@ -438,6 +438,25 @@ def test_collect_same_dataroot_name_in_two_libraries(path_keys):
             assert f.read() == f"module {design.name}_top; endmodule"
 
 
+def test_collect_from_source_collection(path_keys):
+    """A file whose dataroot is gone is taken from the source collection, as a
+    testcase takes what its run was given."""
+    os.makedirs("proj/rtl")
+    with open("proj/rtl/top.v", "w") as f:
+        f.write("module top; endmodule")
+    design = Design("testdesign")
+    design.set_dataroot("root", os.path.abspath("proj"))
+    design.add_file("rtl/top.v", dataroot="root", fileset="rtl")
+    proj = Project(design)
+
+    collect(proj, keys=path_keys(proj))
+    shutil.rmtree("proj")
+    collect(proj, keys=path_keys(proj), directory="testcase", source=collectiondir(proj))
+
+    with open(os.path.join("testcase", _collected_path(design, "rtl/top.v", "root"))) as f:
+        assert f.read() == "module top; endmodule"
+
+
 def test_collect_same_dataroot_name_in_two_tasks(path_keys):
     """Two tasks' dataroots of one name are two dataroots, so a refdir of one path
     under each is stored twice, and each task reads its own."""

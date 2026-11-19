@@ -125,6 +125,8 @@ def generate_testcase(project: "Project",
 
     # Collect files
     work_dir = workdir(project, step=step, index=index)
+    # Where the run was given its files, which a node may have no other way to reach
+    run_collection = collectiondir(project)
 
     builddir = project.option.get_builddir()
     if os.path.isabs(builddir):
@@ -154,7 +156,8 @@ def generate_testcase(project: "Project",
     collect(project,
             keys=filter_collection_keys(collect_keys),
             directory=collection_dir,
-            verbose=verbose_collect)
+            verbose=verbose_collect,
+            source=run_collection)
 
     # Set relative path to generate runnable files
     project._Project__cwd = issue_dir.name
