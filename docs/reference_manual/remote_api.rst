@@ -955,6 +955,7 @@ is a token to ask with. The JSON body names the page, with at most one member:
   {"terms_id": "acme-nda"}    // a terms document's page, to read and decide
   {"artifact_id": "01J9..."}  // asking for an artifact's approval
   {"resource": "acme"}        // a resource's page, named by entitlement-denied or upload-forbidden
+  {"resources": ["acme", "acme-sram"]}  // one page for every grant entitlement-denied lists
   {}                          // the portal's home
 
 ``resource`` is the ``resource`` an ``entitlement-denied`` carried, at create,
@@ -969,6 +970,13 @@ deployment's catalogue holds, and says why where there is nothing to ask for: th
 grant held, a request already made, or a resource that cannot be granted. A
 client asks for it from an interactive session and opens it, printing it where
 no browser opens; a CI session asks for none.
+
+``resources`` is the ``resources`` an ``entitlement-denied`` carried: every
+grant the caller lacked, ``resource`` first. It is 1 to 20 distinct names, each
+as ``resource`` is, and is answered with one page that says of each what the
+person may ask, has asked, holds or cannot be granted, and asks for all they
+may at once. A client sends it where a refusal carries it, and ``resource``
+otherwise, as on a job's ``error`` recorded before servers listed them.
 
 Where any of a job's artifacts the caller can see has ``can_request_access``
 ``true``, the job's page offers a request for each of them, so a client with
@@ -997,14 +1005,16 @@ header.
   * - ``400``
     - ``invalid-request``
     - more than one member, or one not defined here; or an id or a ``resource``
-      that is not 1 to 200 printable characters
+      that is not 1 to 200 printable characters; or a ``resources`` that is not
+      an array of 1 to 20 distinct such names
   * - ``403``
     - ``not-permitted``
     - a CI session; or an artifact whose ``can_request_access`` is ``false``
   * - ``404``
     - ``not-found``
     - a well-formed id naming a job, artifact or document the caller cannot see;
-      or a ``resource`` the deployment's catalogue does not hold
+      or a ``resource``, or any name in ``resources``, the deployment's
+      catalogue does not hold
 
 The server and the account
 --------------------------
@@ -1427,7 +1437,8 @@ job, and nothing is created. A replayed create is ``201``.
     - an unaccepted service document, or agreement on a resource the job names
   * - ``403``
     - ``entitlement-denied``
-    - no grant for a tool, resource or capability the job names
+    - no grant for a tool, resource or capability the job names; ``resource``
+      names the first, and ``resources`` lists every one
   * - ``403``
     - ``account-not-provisioned``
     - the account cannot run jobs here yet
@@ -2142,7 +2153,7 @@ that holds:
   * - only an approval is missing
     - ``403 artifact-not-approved``
   * - a resource it derives from is not granted to the caller
-    - ``403 entitlement-denied``, naming it
+    - ``403 entitlement-denied``, naming the first and listing each
   * - an agreement on one is unaccepted
     - ``403 terms-not-accepted``, with ``blocked_by``
   * - still being described, and none of the refusals above applies
@@ -2172,6 +2183,7 @@ A refusal is an :rfc:`9457` body, ``application/problem+json``:
     "instance": "/v1/jobs",            // OPTIONAL; a server SHOULD send it
     "resource_kind": "pdk",            // the type's own members
     "resource":      "acme",
+    "resources":     ["acme"],
     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"   // OPTIONAL; a server SHOULD send it
   }
 

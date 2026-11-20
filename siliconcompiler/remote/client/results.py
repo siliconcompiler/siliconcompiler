@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from siliconcompiler import utils
 from siliconcompiler.remote import manifests
 from siliconcompiler.remote.client.errors import RemoteError, ServerProblem, blocked_lines, \
-    clean
+    clean, grant_page
 from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -205,14 +205,14 @@ class Results:
         items = _worth_fetching([item for item in listed if not self._oversized(item)])
 
         # One object failing does not abort the others.
-        ungranted: List[str] = []
+        ungranted: List[Dict[str, Any]] = []
 
         def failed(item: Dict[str, Any], e: Exception) -> None:
             self.logger.error(f"{self._name(item)}: {e}")
-            resource = e.member("resource") if isinstance(e, ServerProblem) and \
-                e.slug == "entitlement-denied" else None
-            if isinstance(resource, str) and resource and resource not in ungranted:
-                ungranted.append(resource)
+            named = grant_page(e.problem) if isinstance(e, ServerProblem) and \
+                e.slug == "entitlement-denied" else {}
+            if named and named not in ungranted:
+                ungranted.append(named)
 
         self._land(job_id, items, failed)
 
@@ -248,9 +248,10 @@ class Results:
             self._fetched.add(key)
 
     def _report_withheld(self, items: List[Dict[str, Any]], job_id: str,
-                         ungranted: List[str]) -> None:
+                         ungranted: List[Dict[str, Any]]) -> None:
         '''One line per reason, not one per object, so the one that differs is read.
-        ``ungranted`` is each resource a fetch was refused a grant of.'''
+        ``ungranted`` is each grant page a fetch's refusal names, by what it is asked
+        with.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for item in items:
             grouped.setdefault(self._why(item, many=True), []).append(item)
@@ -270,10 +271,10 @@ class Results:
         self._offer_requests(items, job_id, ungranted)
 
     def _offer_requests(self, items: List[Dict[str, Any]], job_id: str,
-                        ungranted: List[str]) -> None:
+                        ungranted: List[Dict[str, Any]]) -> None:
         '''*Sign*, *grant* and *ask*, at a terminal: on a yes, open each blocking
-        document's page, each refused grant's request page, and each approval
-        request's. Under a running dashboard nothing can be asked, so each page opens
+        document's page, one request page for the grants each refusal lists, and each
+        approval request's. Under a running dashboard nothing can be asked, so each page opens
         as a yes would, except that several requests open the job's page once, where
         each has its own link.'''
         from siliconcompiler.remote.client import _ask, running_dashboard
@@ -301,10 +302,12 @@ class Results:
                 title = clean(self.client.terms_titles().get(terms_id) or terms_id)
                 self.client.open_page(f"{title}'s page", terms_id=terms_id)
 
-        if ungranted and yes(f"Open the request for {len(ungranted)} grant(s) in a browser? "
+        grants = {name for named in ungranted
+                  for name in named.get("resources") or [named.get("resource")]}
+        if ungranted and yes(f"Open the request for {len(grants)} grant(s) in a browser? "
                              "[y/N] "):
-            for resource in ungranted:
-                self.client.ask_for_grant(resource)
+            for named in ungranted:
+                self.client.ask_for_grant(named)
 
         if ask and yes(f"Open the approval request for {len(ask)} of them in a browser? "
                        "[y/N] "):

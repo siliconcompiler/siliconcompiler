@@ -686,6 +686,11 @@ def test_a_refusal_at_authentication_is_acted_on_by_what_it_says(
                            "remote portal opens from a terminal of your own; waiting will not "
                            "help."], ["just opened"],
                  id="entitlement"),
+    pytest.param(problem("entitlement-denied", 403, resource_kind="pdk", resource="GF 12",
+                         resources=["GF 12", "GF 12 SRAM"]),
+                 403, {}, ["resource: GF 12, resources: GF 12, GF 12 SRAM",
+                           "Ask for the grants in this server's portal"], [],
+                 id="entitlement-lists-each"),
     pytest.param(problem("entitlement-denied", 403, resource_kind="capability",
                          resource="a-capability-from-later"),
                  403, {}, ["in this server's portal", "waiting will not help"], [],

@@ -1175,7 +1175,7 @@ class RemoteRun:
         elif job.get("error"):
             error = job["error"]
             opened = _slug(error) in ("entitlement-denied", "upload-forbidden") and \
-                self.client.ask_for_grant(error.get("resource"))
+                self.client.ask_for_grant(error)
             self.logger.error(f"Remote job {clean(state)}: " + _why_it_failed(
                 job, grant_opened=opened))
         else:

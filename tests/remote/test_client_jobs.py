@@ -837,22 +837,26 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, state, nodes,
 
 @pytest.mark.parametrize("ci", [False, True], ids=["terminal", "ci"])
 @pytest.mark.parametrize("slug, status, members, opens_with, says_opened, says_portal", [
-    ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf22"}, "gf22",
-     "on the page just opened", "sc-config remote portal opens"),
+    ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf22"},
+     {"resource": "gf22"}, "on the page just opened", "sc-config remote portal opens"),
+    ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf22",
+                                 "resources": ["gf22", "gf22-sram"]},
+     {"resources": ["gf22", "gf22-sram"]}, "Ask for the grants on the page just opened",
+     "Ask for the grants in this server's portal"),
     ("upload-forbidden", 422, {"resource_kind": "library", "detected": "content",
-                               "member": "a.lef", "resource": "gf22"}, "gf22",
+                               "member": "a.lef", "resource": "gf22"}, {"resource": "gf22"},
      "to upload your own copy, where this server allows it",
      "To ask to upload your own copy"),
     ("upload-forbidden", 422, {"resource_kind": "library", "detected": "content",
                                "member": "a.lef"}, None,
      None, "use this server's copy."),
-], ids=["grant", "upload", "upload-no-resource"])
+], ids=["grant", "grants", "upload", "upload-no-resource"])
 def test_a_job_rejected_over_a_resource_opens_its_page_where_somebody_watches(
         fake_v1, run, opened, monkeypatch, caplog, ci, slug, status, members, opens_with,
         says_opened, says_portal):
     '''Refused `entitlement-denied` or `upload-forbidden` while staging: at a terminal the
-    page for its `resource` is asked for and opened, and the advice says so; a CI session, or
-    a refusal naming no resource, asks for none.'''
+    page for every grant it lists, else its `resource`, is asked for and opened, and the
+    advice says so; a CI session, or a refusal naming no resource, asks for none.'''
     if ci:
         monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
     fake_v1.route(responses.POST, "auth/browser",
@@ -863,7 +867,7 @@ def test_a_job_rejected_over_a_resource_opens_its_page_where_somebody_watches(
 
     shown = opens_with is not None and not ci
     assert [json.loads(page.body) for page in _pages(fake_v1)] == \
-        ([{"resource": opens_with}] if shown else [])
+        ([opens_with] if shown else [])
     assert opened == (["https://portal.test/grants/gf22"] if shown else [])
     assert (says_opened if shown else says_portal) in text
 

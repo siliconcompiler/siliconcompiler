@@ -224,9 +224,9 @@ def test_blocked_by_names_each_document_by_its_title(fake_v1, results, caplog):
 def test_an_agreement_grant_or_approval_is_offered_and_opened_only_on_a_terminal_yes(
         fake_v1, results, nop_project, monkeypatch, caplog, terminal, dashboard):
     '''*Sign*, *grant* and *ask* name no URL. On a terminal: a question each, then endpoint
-    6's page for each document, each resource a fetch was refused, and each askable object
-    but one already requested; under a running dashboard, which would hide a question,
-    the pages open as a yes would.'''
+    6's page for each document, one for the grants the fetches' refusals list, and each
+    askable object but one requested; under a running dashboard, which would hide a
+    question, the pages open as a yes would.'''
     from unittest.mock import Mock
 
     from siliconcompiler.remote import client as client_module
@@ -253,18 +253,21 @@ def test_an_agreement_grant_or_approval_is_offered_and_opened_only_on_a_terminal
     # Listed fetchable, and refused at the fetch: a grant lapsed between the two.
     for step in ("stepone", "steptwo"):
         refused(fake_v1, responses.GET, f"jobs/j1/artifacts/art-reports-{step}-0",
-                "entitlement-denied", 403, resource_kind="pdk", resource="gf22")
+                "entitlement-denied", 403, resource_kind="pdk", resource="gf22",
+                resources=["gf22", "gf22-sram"])
 
     caplog.set_level("WARNING")
     results.fetch("j1")
 
     assert "needs an approval. Ask for access on its page" in caplog.text
     assert "requested on 2026-09-21" in caplog.text
-    assert "Ask for the grant in this server's portal" in caplog.text
+    assert "Ask for the grants in this server's portal" in caplog.text
     pages = [json.loads(c.request.body) for c in fake_v1.calls
              if c.request.url.endswith("/v1/auth/browser")]
-    assert pages == ([{"terms_id": "gf22-nda"}, {"resource": "gf22"},
+    assert pages == ([{"terms_id": "gf22-nda"}, {"resources": ["gf22", "gf22-sram"]},
                       {"artifact_id": "art-final-stepone-0"}] if terminal else [])
+    assert ("Open the request for 2 grant(s) in a browser? [y/N] " in asked) == \
+        (terminal and not dashboard)
     assert len(opened) == 3 * int(terminal)
     assert len(asked) == 3 * int(terminal and not dashboard)
 

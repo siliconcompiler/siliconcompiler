@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 __all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
            "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "grant_step", "upload_step",
-           "clean", "listed"]
+           "clean", "listed", "grant_page"]
 
 
 class RemoteError(Exception):
@@ -68,7 +68,7 @@ class SessionEnded(ServerProblem):
 
 # The extension members that name the instance, in reading order.
 _DISCRIMINATORS = (
-    "resource", "keypath", "limit", "reason", "feature", "artifact_kind", "job_ids",
+    "resource", "resources", "keypath", "limit", "reason", "feature", "artifact_kind", "job_ids",
     "resource_kind", "detected", "member", "step", "index", "job_id",
 )
 
@@ -178,10 +178,10 @@ _UNRESOLVED_KIND = {"python": "python", "tools": "tool", "interpreter": "interpr
                     "class": "task class", "package": "package"}
 
 
-def _member(value) -> str:
+def _member(value, separator: str = " ") -> str:
     '''One extension member as a person reads it; an empty list is "none".'''
     if isinstance(value, (list, tuple)):
-        return " ".join(str(item) for item in value) if value else "none"
+        return separator.join(str(item) for item in value) if value else "none"
     return str(value)
 
 
@@ -211,8 +211,10 @@ def describe(problem: Dict[str, Any], status: Optional[int] = None,
     first = f"{title}" if status is None else f"{title} ({status})"
     lines.append(first if not detail else f"{first}: {detail}")
 
+    # A resource's name may hold spaces, so a list of them is set apart by commas.
     named = [f"{name}: "
-             + clean(_keypath(problem[name]) if name == "keypath" else _member(problem[name]))
+             + clean(_keypath(problem[name]) if name == "keypath" else
+                     _member(problem[name], ", " if name == "resources" else " "))
              for name in _DISCRIMINATORS if problem.get(name) is not None]
     if named:
         lines.append("  " + ", ".join(named))
@@ -255,12 +257,26 @@ _CAPABILITY_STEP = {
 }
 
 
+def grant_page(problem: Dict[str, Any]) -> Dict[str, Any]:
+    '''What ``POST /v1/auth/browser`` is asked with for the page where a person asks for
+    what a refusal names: every grant an `entitlement-denied` lists in `resources`, on
+    one page, else the one `resource` it, or an `upload-forbidden`, names; empty where
+    it names none.'''
+    listed = problem.get("resources")
+    if isinstance(listed, list) and listed and \
+            all(isinstance(name, str) and name for name in listed):
+        return {"resources": listed}
+    resource = problem.get("resource")
+    return {"resource": resource} if isinstance(resource, str) and resource else {}
+
+
 def grant_step(problem: Dict[str, Any], opened: bool = False) -> str:
-    '''`entitlement-denied`'s next step: ask for the grant on the page this client
-    opened, else in the portal, which `sc-config remote portal` opens at a person's own
-    terminal, never in CI.'''
-    ask = "Ask for the grant on the page just opened" if opened else \
-        ("Ask for the grant in this server's portal, which sc-config remote portal opens "
+    '''`entitlement-denied`'s next step: ask for each grant it lists on the page this
+    client opened, else in the portal, which `sc-config remote portal` opens at a
+    person's own terminal, never in CI.'''
+    grants = "grants" if len(grant_page(problem).get("resources") or []) > 1 else "grant"
+    ask = f"Ask for the {grants} on the page just opened" if opened else \
+        (f"Ask for the {grants} in this server's portal, which sc-config remote portal opens "
          "from a terminal of your own")
     other = _CAPABILITY_STEP.get(problem.get("resource")) \
         if problem.get("resource_kind") == "capability" else None
