@@ -4,7 +4,7 @@
 {% set description = "Your account is not permitted to use a PDK, tool or library this job asks for." %}
 {% set also_on_a_job = true %}
 {% block main %}
-<p>Your account holds no grant for something the job asks for, or an artifact derives from &mdash; a PDK, a tool, a library or an FPGA device. Only a missing grant is this: an unaccepted agreement is <a href="terms-not-accepted.html"><code>terms-not-accepted</code></a>. Where a grant through a project lapsed, <code>detail</code> says so.</p>
+<p>Your account holds no grant for something the job asks for, or an artifact derives from &mdash; a PDK, a tool, a library, an FPGA device or a capability. The refusal lists every one you lack, so a job needing several grants is refused once, not once for each. Only a missing grant is this: an unaccepted agreement is <a href="terms-not-accepted.html"><code>terms-not-accepted</code></a>. Where a grant through a project lapsed, <code>detail</code> says so.</p>
 
 <p><strong>Retrying will not change this.</strong> It is a statement about what your account holds,
 not about how busy the server is, and the identical request returns the identical answer.</p>
@@ -13,13 +13,14 @@ not about how busy the server is, and the identical request returns the identica
 
 <div class="do">
 <ol>
-  <li>Read <code>resource_kind</code> and <code>resource</code> to see exactly what was refused.</li>
+  <li>Read <code>resources</code> to see every grant you lack; <code>resource</code> and
+      <code>resource_kind</code> name the first.</li>
   <li>Check <code>GET /v1/me</code>. The <code>authorized</code> block lists what your account does
       hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>).</li>
-  <li>If you should have it, ask for it on its page: <code>POST /v1/auth/browser</code> with
-      <code>{"resource": "&lt;resource&gt;"}</code> answers the page where you ask for that grant,
-      or says why there is nothing to ask. A CI session asks for none.
-      <strong>There is no API call that grants it to you.</strong></li>
+  <li>If you should have them, ask for them on one page: <code>POST /v1/auth/browser</code> with
+      <code>{"resources": [...]}</code>, the list as the refusal carried it, answers the page where
+      you ask for every one of them at once, or says why there is nothing to ask. A CI session asks
+      for none. <strong>There is no API call that grants them to you.</strong></li>
 </ol>
 <p>Do not retry on a timer. Nothing about this answer changes with time.</p>
 </div>
@@ -35,6 +36,7 @@ not about how busy the server is, and the identical request returns the identica
 
   "resource_kind": "pdk",     <span class="c">// REQUIRED on this type</span>
   "resource":      "gf22",    <span class="c">// REQUIRED on this type</span>
+  "resources":     ["gf22", "gf22-sram"],   <span class="c">// REQUIRED on this type</span>
 
   "trace_id":      "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
@@ -48,14 +50,18 @@ not about how busy the server is, and the identical request returns the identica
         type.</td></tr>
 <tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
     <td>Its name, as the catalogue spells it.</td></tr>
+<tr><td><code>resources</code></td><td><span class="req">REQUIRED</span></td>
+    <td>The name of every resource you lack, <code>resource</code> first, each once, in the
+        order the server checks them: at most 20, and a later refusal lists any past them. A job
+        error recorded before servers sent it lacks it; ask with <code>resource</code> then.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
 <p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and
-read <code>resource_kind</code> and <code>resource</code> for the specifics &mdash; never parse
-<code>detail</code>.</p>
+read <code>resource_kind</code>, <code>resource</code> and <code>resources</code> for the
+specifics &mdash; never parse <code>detail</code>.</p>
 
 <h2>Where it comes from</h2>
 
@@ -68,11 +74,11 @@ read <code>resource_kind</code> and <code>resource</code> for the specifics &mda
         reports, not against what the descriptor claimed.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/artifacts/{artifact_id}</code></td>
     <td>You do not hold a resource the artifact derives from &mdash; and
-        <code>resource</code> names that resource. A refusal about the object itself is
+        <code>resources</code> lists each. A refusal about the object itself is
         <a href="artifact-not-approved.html"><code>artifact-not-approved</code></a>.</td></tr>
 <tr><td class="wrap"><code>GET /v1/jobs/{id}/logs</code></td>
     <td>A running node&rsquo;s live log, when you lack a resource in the job&rsquo;s set: a live
-        stream is gated like the archive, and <code>resource</code> names it.</td></tr>
+        stream is gated like the archive, and <code>resources</code> lists each.</td></tr>
 </tbody>
 </table>
 

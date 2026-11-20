@@ -57,7 +57,7 @@ ERRORS: Dict[str, _Error] = {err.slug: err for err in (
 
     # A grant's refusal. This profile has no grants and never raises it.
     _Error("entitlement-denied", 403, "Not entitled to this resource",
-           ("resource_kind", "resource")),
+           ("resource_kind", "resource", "resources")),
     _Error("resource-unresolved", 422, "Could not resolve what this flow needs",
            ("resource_kind",)),
     # No live image satisfies the job's software requirements;

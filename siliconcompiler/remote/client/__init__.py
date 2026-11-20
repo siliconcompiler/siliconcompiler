@@ -15,7 +15,7 @@ from siliconcompiler.remote.client.credentials import (
     AUTH_DIR_VARIABLE, BROWSER, CI_SECRET_VARIABLE, Credentials, parse_ci_secret,
     read_authority)
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, clean, describe, grant_step, listed)
+    RemoteError, ServerProblem, SessionEnded, clean, describe, grant_page, grant_step, listed)
 from siliconcompiler.remote.client.identity import (
     device_fingerprint, display_name, local_subject)
 from siliconcompiler.remote.client.transport import (
@@ -72,7 +72,7 @@ class Client:
         self._titles: Optional[Dict[str, str]] = None
         # Whether each grant's request page opened, by server and resource, so one
         # is not opened again for the server select() chose.
-        self._grant_pages: Dict[Tuple[Optional[str], str], bool] = {}
+        self._grant_pages: Dict[Tuple[Optional[str], Tuple[str, ...]], bool] = {}
 
         if not credentials.server:
             # Raised on use, not here, so `sc-config remote configure` can build a client to fix it.
@@ -721,22 +721,24 @@ class Client:
         refusal.titles = titles or None
 
     def _to_ask(self, refusal: ServerProblem) -> None:
-        '''Open the page where the person asks for the grant an `entitlement-denied`
-        refusal names, and say so in its next step.'''
-        if self.ask_for_grant(refusal.member("resource")):
+        '''Open the page where the person asks for every grant an `entitlement-denied`
+        refusal lists, and say so in its next step.'''
+        if self.ask_for_grant(refusal.problem):
             refusal.next_step = grant_step(refusal.problem, opened=True)
 
-    def ask_for_grant(self, resource: Any) -> bool:
-        '''Open the page where the person asks for a grant of ``resource``, the
-        name an `entitlement-denied` or an `upload-forbidden` carried, where a person
-        is plausibly here to see it, and once per resource of each server; whether it
-        opened. It is one page for one name, whichever refusal named it.'''
-        if not isinstance(resource, str) or not resource or not self.may_open():
+    def ask_for_grant(self, problem: Dict[str, Any]) -> bool:
+        '''Open the page where the person asks for what a refusal ``problem`` names:
+        every grant an `entitlement-denied` lists, on one page, else the one resource it
+        or an `upload-forbidden` names; where a person is plausibly here to see it, and
+        once per name or names of each server; whether it opened.'''
+        named = grant_page(problem)
+        if not named or not self.may_open():
             return False
-        key = (self.credentials.server, resource)
+        names = tuple(named.get("resources") or [named["resource"]])
+        key = (self.credentials.server, names)
         if key not in self._grant_pages:
             self._grant_pages[key] = self.open_page(
-                f"the page for {clean(resource)}", resource=resource)
+                f"the page for {clean(', '.join(names))}", **named)
         return self._grant_pages[key]
 
     def terms_titles(self) -> Dict[str, str]:
@@ -1017,7 +1019,8 @@ class Client:
 
     def browser_page(self, **named) -> Dict[str, Any]:
         '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
-        ``artifact_id``, the request for a grant of a ``resource``, or the portal's home.
+        ``artifact_id``, the request for a grant of a ``resource`` or of each of
+        ``resources``, or the portal's home.
 
         Asked for, never built: the portal's routes are outside the API.
         '''

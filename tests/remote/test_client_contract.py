@@ -214,11 +214,46 @@ def test_a_grant_page_opens_once_for_each_server(logged_in, monkeypatch):
     opened = []
     monkeypatch.setattr(logged_in, "may_open", lambda: True)
     monkeypatch.setattr(logged_in, "open_page", lambda what, **named: opened.append(
-        (logged_in.credentials.server, named["resource"])) or True)
+        (logged_in.credentials.server, named)) or True)
     for server in ("https://a.test", "https://b.test", "https://a.test"):
         monkeypatch.setattr(logged_in, "credentials", SimpleNamespace(server=server))
-        assert logged_in.ask_for_grant("gf22") and logged_in.ask_for_grant("gf22")
-    assert opened == [("https://a.test", "gf22"), ("https://b.test", "gf22")]
+        assert logged_in.ask_for_grant({"resource": "gf22"})
+        assert logged_in.ask_for_grant({"resource": "gf22"})
+    assert opened == [("https://a.test", {"resource": "gf22"}),
+                      ("https://b.test", {"resource": "gf22"})]
+
+
+@pytest.mark.parametrize("members, asked, says", [
+    ({"resource": "gf22", "resources": ["gf22", "gf22-sram"]},
+     {"resources": ["gf22", "gf22-sram"]}, "Ask for the grants on the page just opened"),
+    ({"resource": "gf22", "resources": ["gf22"]}, {"resources": ["gf22"]},
+     "Ask for the grant on the page just opened"),
+    ({"resource": "gf22"}, {"resource": "gf22"}, "Ask for the grant on the page just opened"),
+    ({"resource": "gf22", "resources": ["gf22", 5]}, {"resource": "gf22"},
+     "Ask for the grant on the page just opened"),
+    ({"resource": "gf22", "resources": []}, {"resource": "gf22"},
+     "Ask for the grant on the page just opened"),
+    ({}, None, "Ask for the grant in this server's portal"),
+], ids=["listed", "one-listed", "named-only", "not-names", "empty", "none"])
+def test_a_create_refused_for_grants_opens_one_page_for_every_one_it_lists(
+        logged_in, fake_v1, monkeypatch, members, asked, says):
+    '''At create, the page is asked for with the refusal's `resources`, one page for every
+    grant it lacks; without a list of names, with its `resource`; naming none, for nothing.'''
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    monkeypatch.setattr("sys.stdout.isatty", lambda: True)
+    monkeypatch.delenv("CI", raising=False)
+    refused(fake_v1, responses.POST, "jobs", "entitlement-denied", 403, resource_kind="pdk",
+            **members)
+    fake_v1.route(responses.POST, "auth/browser",
+                  {"url": "https://portal.test/grants", "expires_at": None})
+
+    with pytest.raises(ServerProblem) as raised:
+        logged_in.create_job(design="gcd", jobname="job0")
+
+    assert asked_for_pages(fake_v1) == ([asked] if asked else [])
+    assert opened == (["https://portal.test/grants"] if asked else [])
+    assert says in str(raised.value)
 
 
 def test_a_presigned_url_is_not_logged_by_the_http_library_at_debug(caplog):
