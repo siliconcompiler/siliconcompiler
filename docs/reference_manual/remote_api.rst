@@ -1579,7 +1579,7 @@ own dataroot:
     - uploaded
   * - a remote source -- ``git``, ``https`` -- cached locally or not
     - supplied by source and ref, from the server's allowlist, or asked for
-  * - a PDK's, library's, device's or task's ``python+<source>``, read from the
+  * - any owner's ``python+<source>``, a design's included, read from the
       package where it is installed editable and from ``<source>`` elsewhere
     - sent as ``<source>``: at its tag, or at the commit checked out where
       nothing under the dataroot differs from it and a remote branch holds it;

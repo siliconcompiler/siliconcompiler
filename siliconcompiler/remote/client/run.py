@@ -501,8 +501,8 @@ class RemoteRun:
             software = self.client.capabilities().get("software") or {}
         except RemoteError:
             software = {}
-        left = owners.as_remote(manifest)
-        values = owners.walk(manifest, software.get("python"))
+        sent, left = owners.as_remote(manifest)
+        values = owners.walk(manifest, software.get("python"), sent)
         for module in sorted({left[one.keypath] for one in values if one.keypath in left
                               and one.upload and owners.needed(one.key, required)}):
             self.logger.info(

@@ -211,7 +211,8 @@ what the client already knows about the run.
 What goes into the archive is decided by what owns each file, and you set
 nothing to control it:
 
-* **your design's files -- always;**
+* **your design's files -- always**, and those of each design it uses, such as
+  lambdalib's cells, but for one a package names where to fetch (below);
 * **a PDK's, standard-cell library's or FPGA device's files -- only when they
   come from a local path or a package installed editable.** One fetched from a
   release, like the PDKs in ``lambdapdk``, stays behind even though a copy is in
@@ -221,10 +222,10 @@ nothing to control it:
 * **a tool's scripts -- only when they come from a local path or a package
   installed editable**, such as a SiliconCompiler checkout you are working in;
 * **except a package that names where its data is fetched from** (a
-  ``python+`` dataroot, as ``PythonPathResolver.set_dataroot`` writes): the
-  server fetches it, at the commit your checkout has out where you installed it
-  editable. Only a checkout with changes no remote branch holds goes up, and
-  the client says so;
+  ``python+`` dataroot, as ``PythonPathResolver.set_dataroot`` writes), a
+  design's as a library's or a tool's: the server fetches it, at the commit
+  your checkout has out where you installed it editable. Only a checkout with
+  changes no remote branch holds goes up, and the client says so;
 * **plus the manifest**, and, for a run that starts part-way through the flow,
   the results of the nodes it starts from.
 
