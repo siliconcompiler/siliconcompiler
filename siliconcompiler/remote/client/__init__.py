@@ -728,14 +728,15 @@ class Client:
 
     def ask_for_grant(self, resource: Any) -> bool:
         '''Open the page where the person asks for a grant of ``resource``, the
-        name an `entitlement-denied` carried, where a person is plausibly here to
-        see it, and once per resource of each server; whether it opened.'''
+        name an `entitlement-denied` or an `upload-forbidden` carried, where a person
+        is plausibly here to see it, and once per resource of each server; whether it
+        opened. It is one page for one name, whichever refusal named it.'''
         if not isinstance(resource, str) or not resource or not self.may_open():
             return False
         key = (self.credentials.server, resource)
         if key not in self._grant_pages:
             self._grant_pages[key] = self.open_page(
-                f"the request for {clean(resource)}", resource=resource)
+                f"the page for {clean(resource)}", resource=resource)
         return self._grant_pages[key]
 
     def terms_titles(self) -> Dict[str, str]:
