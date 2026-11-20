@@ -139,7 +139,8 @@ def test_a_python_plus_dataroot_is_sent_as_its_remote_source(
     '''At its tag, or at the commit a fetchable checkout has out, and left out of
     the archive; a changed checkout goes up (#5624). A design's, a dependency
     such as a lambdalib tech library or the top one, is sent as a PDK's is,
-    and the top design's files under a local path still go up.'''
+    and the top design's files under a local path still go up. A checkout's
+    dataroot, should the server ask for it, is read from the checkout here.'''
     from siliconcompiler.package import PythonPathResolver
 
     monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
@@ -153,9 +154,16 @@ def test_a_python_plus_dataroot_is_sent_as_its_remote_source(
     project.add_dep(lib)
     project.get("library", "gcd", field="schema").set_dataroot("ip", source, tag="v1")
     keypath, ip = ("library", "mylib", "dataroot", "mylib"), ("library", "gcd", "dataroot", "ip")
+    checkout = PythonPathResolver("mylib", lib, source, "v1").get_path() if editable else None
 
     sent, left = owners.as_remote(project)
     values = owners.walk(project, sent=sent)
+
+    if head:
+        # As `_unreachable` and the collection resolve it: the checkout, not a
+        # fetch of example.test at the commit.
+        (one,) = [one for one in values if one.key == ("library", "mylib", *DATASHEET)]
+        assert one.resolvers[one.landing].get_path() == checkout
 
     assert sent == ({keypath, ip} if ref else set())
     assert left == ({} if ref else {keypath: "siliconcompiler", ip: "siliconcompiler"})

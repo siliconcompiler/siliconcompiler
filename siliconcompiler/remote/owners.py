@@ -666,7 +666,8 @@ def as_remote(project) -> Remote:
     out (`_pushed_head`). ``project`` is the copy that is sent, walked and
     collected: a server supplies a dataroot, and names an uploaded file, by the
     source and tag the manifest records. Pass ``sent`` to :func:`walk`, so a
-    design's files under one stay behind.
+    design's files under one stay behind. A checkout's dataroot is read from the
+    checkout in this process, should the server ask for it.
 
     Returns:
         Remote: each dataroot sent, and each left, whose files go up.
@@ -681,21 +682,29 @@ def as_remote(project) -> Remote:
         source = project.get(*key)
         if source[:7].lower() != "python+":
             continue
+        schema = project.get(*keypath[:-2], field="schema")
         resolver = Resolver.find_resolver(source)(
-            keypath[-1], project.get(*keypath[:-2], field="schema"), source,
-            project.get(*keypath, "tag"))
+            keypath[-1], schema, source, project.get(*keypath, "tag"))
         # A plugin may register a python+ scheme of its own
         if not isinstance(resolver, PythonPathResolver):
             continue
-        tag = resolver.reference
+        tag, checkout = resolver.reference, None
         if not resolver.is_indirect:
-            tag = _pushed_head(resolver.get_path())
+            checkout = resolver.get_path()
+            tag = _pushed_head(checkout)
             if tag is None:
                 left[keypath] = resolver.urlpath
                 continue
-        project.set(*keypath, "path", PythonPathResolver._split(source)[0])
+        remote = PythonPathResolver._split(source)[0]
+        project.set(*keypath, "path", remote)
         project.set(*keypath, "tag", tag)
         sent.add(keypath)
+        if checkout is not None:
+            # The checkout holds the commit's files, so where the server asks for
+            # them this process reads them there, named by the source and commit,
+            # rather than fetching the source with the user's own access to it.
+            named = Resolver.find_resolver(remote)(keypath[-1], schema, remote, tag)
+            named.cache.set(named.cache_id, checkout)
     return Remote(sent, left)
 
 
