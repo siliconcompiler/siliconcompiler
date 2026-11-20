@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from siliconcompiler import ASIC, PDK, StdCellLibrary
+from siliconcompiler import ASIC, PDK, Design, StdCellLibrary
 from siliconcompiler.remote import owners
 
 
@@ -127,6 +127,7 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
          else set())
 
 
+@pytest.mark.parametrize("cls", [PDK, Design], ids=["pdk", "design"])
 @pytest.mark.parametrize("scheme,editable,head,origin,ref", [
     ("git+https", False, None, owners.REMOTE, "v1"),
     ("git+https+private", False, None, owners.PRIVATE, "v1"),
@@ -134,30 +135,55 @@ def test_a_pdk_goes_up_by_where_its_dataroot_says_it_comes_from(
     ("git+https", True, None, owners.EDITABLE, None),
 ], ids=["installed", "private", "pushed-checkout", "changed-checkout"])
 def test_a_python_plus_dataroot_is_sent_as_its_remote_source(
-        project, monkeypatch, scheme, editable, head, origin, ref):
-    '''At its tag, or at the commit a fetchable checkout has out; a changed
-    checkout goes up, and the design's is left as it is (#5624).'''
+        project, monkeypatch, cls, scheme, editable, head, origin, ref):
+    '''At its tag, or at the commit a fetchable checkout has out, and left out of
+    the archive; a changed checkout goes up (#5624). A design's, a dependency
+    such as a lambdalib tech library or the top one, is sent as a PDK's is,
+    and the top design's files under a local path still go up.'''
     from siliconcompiler.package import PythonPathResolver
 
     monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
                         staticmethod(lambda module: editable))
     monkeypatch.setattr(owners, "_pushed_head", lambda path: head)
-    source = f"python+{scheme}://example.test/pdk.git?python=siliconcompiler"
-    pdk = PDK("mypdk")
-    pdk.set_dataroot("mypdk", source, tag="v1")
-    with pdk.active_dataroot("mypdk"):
-        pdk.set(*DATASHEET, "datasheet.pdf")
-    project.set_pdk(pdk)
+    source = f"python+{scheme}://example.test/lib.git?python=siliconcompiler"
+    lib = cls("mylib")
+    lib.set_dataroot("mylib", source, tag="v1")
+    with lib.active_dataroot("mylib"):
+        lib.set(*DATASHEET, "datasheet.pdf")
+    project.add_dep(lib)
     project.get("library", "gcd", field="schema").set_dataroot("ip", source, tag="v1")
-    keypath = ("library", "mypdk", "dataroot", "mypdk")
+    keypath, ip = ("library", "mylib", "dataroot", "mylib"), ("library", "gcd", "dataroot", "ip")
 
-    assert owners.as_remote(project) == ({} if ref else {keypath: "siliconcompiler"})
+    sent, left = owners.as_remote(project)
+    values = owners.walk(project, sent=sent)
 
-    assert project.get("library", "gcd", "dataroot", "ip", "path") == source
-    assert decide(project, ("library", "mypdk", *DATASHEET)) == (origin, origin == owners.EDITABLE)
-    assert owners.sources(owners.walk(project)) == ([
+    assert sent == ({keypath, ip} if ref else set())
+    assert left == ({} if ref else {keypath: "siliconcompiler", ip: "siliconcompiler"})
+    assert [(one.origin, one.upload) for one in values
+            if one.key == ("library", "mylib", *DATASHEET)] == [(origin, ref is None)]
+    assert [one.upload for one in values if one.key == RTL] == [True]
+    assert owners.sources(values) == ([
         {"keypath": list(keypath), "private": origin == owners.PRIVATE,
-         "source": "git+https://example.test/pdk.git", "ref": ref}] if ref else [])
+         "source": "git+https://example.test/lib.git", "ref": ref}] if ref else [])
+
+
+@pytest.mark.parametrize("root,tag", [(GITHUB, "v1"), ("python://siliconcompiler", None)],
+                         ids=["remote", "installed"])
+def test_a_designs_remote_or_installed_dataroot_still_goes_up(project, root, tag):
+    '''Of a design's files, only those under a `python+` dataroot `as_remote`
+    sent stay behind: one registered as a remote source or a package goes up.'''
+    design = project.get("library", "gcd", field="schema")
+    design.set_dataroot("ip", root, tag)
+    with design.active_dataroot("ip"):
+        design.add_file("ip.v", fileset="rtl")
+    key = ("library", "gcd", "fileset", "rtl", "file", "verilog")
+
+    sent, left = owners.as_remote(project)
+    values = owners.walk(project, sent=sent)
+
+    assert (sent, left) == (set(), {})
+    assert [one.upload for one in values if one.key == key] == [True, True]
+    assert owners.sources(values) == []
 
 
 def test_a_checkout_is_fetchable_only_as_a_remote_branch_holds_it():

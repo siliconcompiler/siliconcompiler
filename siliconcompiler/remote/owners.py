@@ -31,16 +31,18 @@ lands on in the same section: a `sources` entry names that dataroot's keypath,
 source and ref, never the alias's, and one entry covers every alias of it.
 A value that goes up goes up under its own dataroot.
 
-The design always uploads; a PDK's, library's, device's or tool's files only
-when local or editable. Private wins over both.
+The design always uploads, but for a ``python+`` dataroot sent as its remote
+source; a PDK's, library's, device's or tool's files only when local or
+editable. Private wins over both.
 
 "Local" is the dataroot's registered SOURCE, never where the file is now: a
 fetched PDK is on local disk too, and would upload with every job.
 
-A resource's or task's ``python+`` dataroot is sent as its remote source
-(:func:`as_remote`): at its tag, or at the commit an editable checkout has out,
-where a server can fetch it. A checkout no server can fetch goes up, as any
-editable package does.
+A ``python+`` dataroot, a design's as a resource's or task's, is sent as its
+remote source (:func:`as_remote`): at its tag, or at the commit an editable
+checkout has out, where a server can fetch it. A checkout no server can fetch
+goes up, as any editable package does. A design's dataroot registered as a
+remote source itself still goes up.
 
 The table says whether a value MAY go up; the flow says whether it is NEEDED
 (:func:`required`). Each value goes up on its own (:func:`collection`).
@@ -50,7 +52,7 @@ import functools
 import os
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import AbstractSet, Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from siliconcompiler.remote.environment import canonical
 
@@ -60,7 +62,7 @@ __all__ = ["DESIGN", "PROJECT", "LOCAL", "EDITABLE", "INSTALLED",
            "Unnamed",
            "safe_source", "masked",
            "upload_report", "required",
-           "needed", "work_out", "with_required", "as_remote", "WorkedOut",
+           "needed", "work_out", "with_required", "as_remote", "Remote", "WorkedOut",
            "distributions_of", "module_distributions", "supplied_distributions",
            "not_sent_roots", "collection", "Collection", "collected_path"]
 
@@ -235,15 +237,18 @@ class _Value(NamedTuple):
     distribution: Optional[str] = None
     # Whether the server lists that package at the installed version (`walk`).
     listed: bool = False
+    # Whether `as_remote` sent ``keypath``, a ``python+`` dataroot, as its remote source.
+    sent: bool = False
 
     @property
     def upload(self) -> bool:
-        '''Whether this value goes in the archive: the design always; a resource's
-        or tool's only where local or editable, or from an installed package the
-        server does not list at this version; never a private one.'''
+        '''Whether this value goes in the archive: the design's always, but for a
+        ``python+`` dataroot sent as its remote source; a resource's or tool's
+        only where local or editable, or from an installed package the server
+        does not list at this version; never a private one.'''
         if self.origin == PRIVATE:
             return False
-        if self.kind == DESIGN:
+        if self.kind == DESIGN and not self.sent:
             return True
         if self.origin == INSTALLED:
             return not self.listed
@@ -266,11 +271,13 @@ def _lists(software: Dict[str, List[str]], distribution: Optional[str]) -> bool:
         return False
 
 
-def walk(project, software: Optional[Dict[str, List[str]]] = None) -> List[_Value]:
+def walk(project, software: Optional[Dict[str, List[str]]] = None,
+         sent: AbstractSet[Tuple[str, ...]] = frozenset()) -> List[_Value]:
     '''Every value of every path parameter a run reads, with its owner, where it
     comes from and whether it uploads: walked once, for every question below.
 
     ``software`` is what the server lists under `software.python`; None lists none.
+    ``sent`` is the keypath of each dataroot `as_remote` sent as its remote source.
     '''
     from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
     from siliconcompiler.utils.curation import never_collected
@@ -307,12 +314,13 @@ def walk(project, software: Optional[Dict[str, List[str]]] = None) -> List[_Valu
                     if origin == INSTALLED:
                         distribution = _distribution_of(resolvers[landing].urlpath)
                     landing = landing or dataroot
-                    places[dataroot] = (landing, dataroot_keypath(project, key, landing),
-                                        origin, distribution, origin == INSTALLED
-                                        and _lists(software, distribution))
-                landing, keypath, origin, distribution, listed = places[dataroot]
+                    keypath = dataroot_keypath(project, key, landing)
+                    places[dataroot] = (landing, keypath, origin, distribution,
+                                        origin == INSTALLED and _lists(software, distribution),
+                                        keypath in sent)
+                landing, keypath, origin, distribution, listed, remote = places[dataroot]
                 found.append(_Value(tuple(key), one, resolvers, kind, name, dataroot, landing,
-                                    origin, step, index, keypath, distribution, listed))
+                                    origin, step, index, keypath, distribution, listed, remote))
     return found
 
 
@@ -645,26 +653,30 @@ def with_required(project, declared: Dict[Tuple[str, str], List[str]]):
     return carried
 
 
-def as_remote(project) -> Dict[Tuple[str, ...], str]:
-    '''Register each resource's and task's ``python+`` dataroot as its remote
-    source, at its tag, or at the commit an editable checkout has out
-    (`_pushed_head`). ``project`` is the copy that is sent, walked and collected:
-    a server supplies a dataroot, and names an uploaded file, by the source and
-    tag the manifest records.
+class Remote(NamedTuple):
+    '''What :func:`as_remote` did, each dataroot by its keypath: ``sent`` as its
+    remote source, or ``left`` in a checkout no server can fetch, by its module.'''
+    sent: Set[Tuple[str, ...]]
+    left: Dict[Tuple[str, ...], str]
 
-    The design's are left as they are: they go up, read from where they are.
+
+def as_remote(project) -> Remote:
+    '''Register each ``python+`` dataroot, a design's as a resource's or task's,
+    as its remote source, at its tag, or at the commit an editable checkout has
+    out (`_pushed_head`). ``project`` is the copy that is sent, walked and
+    collected: a server supplies a dataroot, and names an uploaded file, by the
+    source and tag the manifest records. Pass ``sent`` to :func:`walk`, so a
+    design's files under one stay behind.
 
     Returns:
-        dict: The keypath and module of each dataroot left in a checkout no server
-        can fetch, whose files go up.
+        Remote: each dataroot sent, and each left, whose files go up.
     '''
     from siliconcompiler.package import PythonPathResolver, Resolver
 
-    left = {}
+    sent, left = set(), {}
     for key in project.allkeys(include_default=False):
         keypath = tuple(key[:-1])
-        if key[-1] != "path" or not is_dataroot_keypath(keypath) \
-                or owner(project, keypath)[0] == DESIGN:
+        if key[-1] != "path" or not is_dataroot_keypath(keypath):
             continue
         source = project.get(*key)
         if source[:7].lower() != "python+":
@@ -683,7 +695,8 @@ def as_remote(project) -> Dict[Tuple[str, ...], str]:
                 continue
         project.set(*keypath, "path", PythonPathResolver._split(source)[0])
         project.set(*keypath, "tag", tag)
-    return left
+        sent.add(keypath)
+    return Remote(sent, left)
 
 
 def _pushed_head(path: str) -> Optional[str]:

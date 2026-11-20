@@ -163,20 +163,22 @@ def test_an_installed_data_package_is_named_only_where_the_server_lists_it(
         assert run._plan(reads).versions["python"]["scfakedata"] == ["==1.0.0"]
 
 
+@pytest.mark.parametrize("cls", ["StdCellLibrary", "Design"])
 @pytest.mark.parametrize("head,path,tag", [
     ("c0ffee", "git+https://example.test/lib.git", "c0ffee"),
     (None, "python+git+https://example.test/lib.git?python=siliconcompiler", "v1")],
     ids=["pushed", "changed"])
 def test_a_checkout_is_sent_at_its_commit_or_named_as_it_goes_up(
-        fake_v1, logged_in, nop_project, monkeypatch, caplog, head, path, tag):
+        fake_v1, logged_in, nop_project, monkeypatch, caplog, cls, head, path, tag):
     '''The copy sent carries the remote at the commit checked out, or the client
-    says whose files go up (#5624); the user's project is left as it is.'''
-    from siliconcompiler import StdCellLibrary
+    says whose files go up (#5624), a library's or a design's alike; the user's
+    project is left as it is.'''
+    import siliconcompiler
     from siliconcompiler.package import PythonPathResolver
     from siliconcompiler.remote import owners
 
     source = "python+git+https://example.test/lib.git?python=siliconcompiler"
-    lib = StdCellLibrary("scfakelib")
+    lib = getattr(siliconcompiler, cls)("scfakelib")
     lib.set_dataroot("scfakedata", source, tag="v1")
     with lib.active_dataroot("scfakedata"):
         lib.set("package", "doc", "datasheet", "datasheet.pdf")
@@ -192,8 +194,37 @@ def test_a_checkout_is_sent_at_its_commit_or_named_as_it_goes_up(
     assert (reads.manifest.get(*keypath, "path"), reads.manifest.get(*keypath, "tag")) == \
         (path, tag)
     assert nop_project.get(*keypath, "path") == source
+    assert [one.upload for one in reads.values if one.keypath == keypath] == [head is None]
     assert ("Uploading siliconcompiler from its editable checkout" in caplog.text) is \
         (head is None)
+
+
+def test_an_installed_designs_python_plus_dataroot_is_named_and_never_fetched(
+        run, nop_project, monkeypatch, tmp_path):
+    '''A design the user's depends on, from a package installed normally, as a
+    lambdalib tech library is, is named in `sources` at its tag and never
+    collected, so its source is not fetched; the top design still goes up.'''
+    from siliconcompiler import Design
+    from siliconcompiler.package import PythonPathResolver
+
+    lib = Design("techlib")
+    lib.set_dataroot("techlib", "python+git+https://example.test/lib.git?python=siliconcompiler",
+                     tag="v1")
+    with lib.active_fileset("rtl"), lib.active_dataroot("techlib"):
+        lib.add_file("la_spram.v")
+    nop_project.add_dep(lib)
+    monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
+                        staticmethod(lambda module: False))
+    collection = tmp_path / "collected"
+
+    reads = run._read()
+    run._collect(reads, directory=str(collection))
+
+    assert run._plan(reads).sources == [
+        {"keypath": ["library", "techlib", "dataroot", "techlib"], "private": False,
+         "source": "git+https://example.test/lib.git", "ref": "v1"}]
+    assert {name for _, _, names in os.walk(collection) for name in names} >= {"gcd.v"}
+    assert "la_spram.v" not in {name for _, _, names in os.walk(collection) for name in names}
 
 
 def _declared(name):
