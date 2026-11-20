@@ -39,7 +39,7 @@ from siliconcompiler.remote import environment, links, manifests, owners
 from siliconcompiler.remote.client import capture, preflight, running_dashboard, wheels
 from siliconcompiler.remote.client.errors import (
     EARLIER_JOB_UNTIED, NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP,
-    _slug, blocked_lines, clean, describe, grant_step, upload_step)
+    _slug, blocked_lines, clean, describe, grant_names, grant_step, upload_step)
 from siliconcompiler.remote.client.credentials import UPLOADS
 from siliconcompiler.remote.client.results import Results, recorded_job
 from siliconcompiler.remote.environment import canonical
@@ -1174,8 +1174,7 @@ class RemoteRun:
             self.logger.info("Remote job completed")
         elif job.get("error"):
             error = job["error"]
-            opened = _slug(error) in ("entitlement-denied", "upload-forbidden") and \
-                self.client.ask_for_grant(error)
+            opened = self.client.ask_for_grant(grant_names(error))
             self.logger.error(f"Remote job {clean(state)}: " + _why_it_failed(
                 job, grant_opened=opened))
         else:

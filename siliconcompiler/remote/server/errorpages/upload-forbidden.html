@@ -12,7 +12,7 @@
   <li>Read <code>detected</code>. <code>attribution</code>: your manifest attributes the file to a controlled resource. <code>content</code>: the file&rsquo;s bytes match one, whatever the manifest calls it.</li>
   <li>Read <code>member</code>, the archive entry that was refused, and <code>resource_kind</code>.</li>
   <li>Use the deployment&rsquo;s copy: reference the resource from its released source instead of a local or editable one, so its files are not uploaded.</li>
-  <li>If you need to run a modified copy, that is a permission. Where <code>resource</code> is present, the client opens the page <code>POST /v1/auth/browser</code> answers for <code>{"resource": "&hellip;"}</code>, where you may ask to upload your own copy where the deployment allows it, or read why you cannot. Otherwise it is a permission for whoever administers your account.</li>
+  <li>If you need to run a modified copy, that is a permission. Where <code>resource</code> is present, the client opens the page <code>POST /v1/auth/browser</code> answers for <code>{"resources": ["&hellip;"]}</code>, a list of that one name, where you may ask to upload your own copy where the deployment allows it, or read why you cannot. Otherwise it is a permission for whoever administers your account.</li>
 </ol>
 </div>
 

@@ -576,8 +576,8 @@ def test_a_capability_refused_at_create_says_which_and_what_to_do(
     the same refusal either way.'''
     from siliconcompiler.remote.client.errors import ServerProblem, describe
 
-    refusal = problem("entitlement-denied", 403, resource_kind="capability",
-                      resource=resource, detail=f"this account holds no {resource}")
+    refusal = problem("entitlement-denied", 403, resources=[resource],
+                      detail=f"this account holds no {resource}")
     _distribution(site, "scfakeumi", "0.3.1")
     project = cocotb_project("import scfakeumi\n")
     fake_v1.route(responses.GET, "me", {"id": "u-1"})
@@ -588,7 +588,7 @@ def test_a_capability_refused_at_create_says_which_and_what_to_do(
         RemoteRun(project, logged_in)._start()
 
     said = str(raised.value)
-    assert f"resource: {resource}" in said and "resource_kind: capability" in said
+    assert f"resources: {resource}" in said
     assert advice in said
     assert advice in describe(refusal)
     assert not [c for c in fake_v1.calls if "upload-grant" in c.request.url]

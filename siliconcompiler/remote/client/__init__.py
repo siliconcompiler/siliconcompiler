@@ -15,7 +15,7 @@ from siliconcompiler.remote.client.credentials import (
     AUTH_DIR_VARIABLE, BROWSER, CI_SECRET_VARIABLE, Credentials, parse_ci_secret,
     read_authority)
 from siliconcompiler.remote.client.errors import (
-    RemoteError, ServerProblem, SessionEnded, clean, describe, grant_page, grant_step, listed)
+    RemoteError, ServerProblem, SessionEnded, clean, describe, grant_names, grant_step, listed)
 from siliconcompiler.remote.client.identity import (
     device_fingerprint, display_name, local_subject)
 from siliconcompiler.remote.client.transport import (
@@ -723,22 +723,19 @@ class Client:
     def _to_ask(self, refusal: ServerProblem) -> None:
         '''Open the page where the person asks for every grant an `entitlement-denied`
         refusal lists, and say so in its next step.'''
-        if self.ask_for_grant(refusal.problem):
+        if self.ask_for_grant(grant_names(refusal.problem)):
             refusal.next_step = grant_step(refusal.problem, opened=True)
 
-    def ask_for_grant(self, problem: Dict[str, Any]) -> bool:
-        '''Open the page where the person asks for what a refusal ``problem`` names:
-        every grant an `entitlement-denied` lists, on one page, else the one resource it
-        or an `upload-forbidden` names; where a person is plausibly here to see it, and
-        once per name or names of each server; whether it opened.'''
-        named = grant_page(problem)
-        if not named or not self.may_open():
+    def ask_for_grant(self, names: List[str]) -> bool:
+        '''Open the one page where the person asks for each of ``names``, as
+        `grant_names()` takes them from a refusal, where a person is plausibly here to see
+        it, and once per names of each server; whether it opened. No names, no page.'''
+        if not names or not self.may_open():
             return False
-        names = tuple(named.get("resources") or [named["resource"]])
-        key = (self.credentials.server, names)
+        key = (self.credentials.server, tuple(names))
         if key not in self._grant_pages:
             self._grant_pages[key] = self.open_page(
-                f"the page for {clean(', '.join(names))}", **named)
+                f"the page for {clean(', '.join(names))}", resources=list(names))
         return self._grant_pages[key]
 
     def terms_titles(self) -> Dict[str, str]:
@@ -1019,8 +1016,8 @@ class Client:
 
     def browser_page(self, **named) -> Dict[str, Any]:
         '''``POST /v1/auth/browser``: the page for a ``job_id``, ``terms_id`` or
-        ``artifact_id``, the request for a grant of a ``resource`` or of each of
-        ``resources``, or the portal's home.
+        ``artifact_id``, the request for a grant of each of ``resources``, or the
+        portal's home.
 
         Asked for, never built: the portal's routes are outside the API.
         '''
