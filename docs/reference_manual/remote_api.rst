@@ -954,11 +954,16 @@ is a token to ask with. The JSON body names the page, with at most one member:
   {"job_id": "01J9..."}       // the job's page
   {"terms_id": "acme-nda"}    // a terms document's page, to read and decide
   {"artifact_id": "01J9..."}  // asking for an artifact's approval
-  {"resource": "acme"}        // asking for a grant of what entitlement-denied named
+  {"resource": "acme"}        // a resource's page, named by entitlement-denied or upload-forbidden
   {}                          // the portal's home
 
 ``resource`` is the ``resource`` an ``entitlement-denied`` carried, at create,
-on a job's ``error``, at a fetch or on a live log; a name is unique across kinds
+on a job's ``error``, at a fetch or on a live log, or the one an
+``upload-forbidden`` carried on a job's ``error``, which names it only where the
+caller holds a grant of it. On that page a person who holds the resource may ask
+to upload their own copy, where the deployment grants such a permission, or reads
+why not; whether a grant allows an upload is never on the wire, so the client only
+opens the page. A name is unique across kinds
 on a deployment, so no kind is sent. The page is answered for every name the
 deployment's catalogue holds, and says why where there is nothing to ask for: the
 grant held, a request already made, or a resource that cannot be granted. A

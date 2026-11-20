@@ -12,7 +12,7 @@
   <li>Read <code>detected</code>. <code>attribution</code>: your manifest attributes the file to a controlled resource. <code>content</code>: the file&rsquo;s bytes match one, whatever the manifest calls it.</li>
   <li>Read <code>member</code>, the archive entry that was refused, and <code>resource_kind</code>.</li>
   <li>Use the deployment&rsquo;s copy: reference the resource from its released source instead of a local or editable one, so its files are not uploaded.</li>
-  <li>If you need to run a modified copy, that is a permission for whoever administers your account.</li>
+  <li>If you need to run a modified copy, that is a permission. Where <code>resource</code> is present, the client opens the page <code>POST /v1/auth/browser</code> answers for <code>{"resource": "&hellip;"}</code>, where you may ask to upload your own copy where the deployment allows it, or read why you cannot. Otherwise it is a permission for whoever administers your account.</li>
 </ol>
 </div>
 
@@ -28,6 +28,7 @@
   "resource_kind": "pdk",  <span class="c">// REQUIRED on this type</span>
   "detected": "content",  <span class="c">// REQUIRED on this type</span>
   "member":   "sc_collected_files/3f9a1c.lef",  <span class="c">// REQUIRED on this type</span>
+  "resource": "acme-lib",  <span class="c">// OPTIONAL: only if you hold a grant of it</span>
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
 }</code></pre>
 

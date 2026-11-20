@@ -10,8 +10,8 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlsplit
 
 __all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
-           "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "grant_step", "clean",
-           "listed"]
+           "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "grant_step", "upload_step",
+           "clean", "listed"]
 
 
 class RemoteError(Exception):
@@ -267,6 +267,20 @@ def grant_step(problem: Dict[str, Any], opened: bool = False) -> str:
     return ask + (other or "; waiting will not help.")
 
 
+def upload_step(problem: Dict[str, Any], opened: bool = False) -> str:
+    '''`upload-forbidden`'s next step. Whether a grant allows an upload is not on the
+    wire, so where it names a `resource` this only points to the page where the
+    person may ask, or reads why not.'''
+    if opened:
+        return ("Ask on the page just opened to upload your own copy, where this server "
+                "allows it; otherwise use this server's copy.")
+    step = _NEXT_STEP["upload-forbidden"]
+    if isinstance(problem.get("resource"), str) and problem["resource"]:
+        step += (" To ask to upload your own copy, where this server allows it, use its "
+                 "portal, which sc-config remote portal opens from a terminal of your own.")
+    return step
+
+
 def _advice(slug: Optional[str], problem: Dict[str, Any],
             status: Optional[int] = None) -> Optional[str]:
     '''The registry's client action for this type, refined by `reason`; an
@@ -284,6 +298,8 @@ def _advice(slug: Optional[str], problem: Dict[str, Any],
                 "Python it has.")
     if slug == "entitlement-denied":
         return grant_step(problem)
+    if slug == "upload-forbidden":
+        return upload_step(problem)
     if slug == "prior-results-unavailable" and problem.get("reason") == "unsupported":
         # A node is named only when its outputs are not here to upload instead.
         return ("This server continues no earlier job, and the node's outputs are not "

@@ -39,7 +39,7 @@ from siliconcompiler.remote import environment, links, manifests, owners
 from siliconcompiler.remote.client import capture, preflight, running_dashboard, wheels
 from siliconcompiler.remote.client.errors import (
     EARLIER_JOB_UNTIED, NO_NODE_FAILED, RemoteError, ServerProblem, Unreachable, _NEXT_STEP,
-    _slug, blocked_lines, clean, describe, grant_step)
+    _slug, blocked_lines, clean, describe, grant_step, upload_step)
 from siliconcompiler.remote.client.credentials import UPLOADS
 from siliconcompiler.remote.client.results import Results, recorded_job
 from siliconcompiler.remote.environment import canonical
@@ -1174,7 +1174,7 @@ class RemoteRun:
             self.logger.info("Remote job completed")
         elif job.get("error"):
             error = job["error"]
-            opened = _slug(error) == "entitlement-denied" and \
+            opened = _slug(error) in ("entitlement-denied", "upload-forbidden") and \
                 self.client.ask_for_grant(error.get("resource"))
             self.logger.error(f"Remote job {clean(state)}: " + _why_it_failed(
                 job, grant_opened=opened))
@@ -1437,7 +1437,7 @@ def _why_it_failed(job: Dict[str, Any], grant_opened: bool = False) -> str:
     A `run-failed` with no failed node gets `NO_NODE_FAILED`: only that
     slug's advice names a node. An `artifact-not-approved` gets
     `EARLIER_JOB_UNTIED`: the slug's own advice is for a download. An
-    `entitlement-denied` names the page ``grant_opened`` says opened.
+    `entitlement-denied` and an `upload-forbidden` name the page ``grant_opened`` says opened.
     '''
     error = job.get("error") or {}
     if not error.get("type"):
@@ -1451,6 +1451,8 @@ def _why_it_failed(job: Dict[str, Any], grant_opened: bool = False) -> str:
         step = EARLIER_JOB_UNTIED
     elif slug == "entitlement-denied" and grant_opened:
         step = grant_step(error, opened=True)
+    elif slug == "upload-forbidden":
+        step = upload_step(error, opened=grant_opened)
     else:
         step = None
 

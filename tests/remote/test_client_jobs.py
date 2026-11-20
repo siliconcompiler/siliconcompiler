@@ -805,23 +805,36 @@ def test_a_failure_is_explained_from_the_job(fake_v1, run, caplog, state, nodes,
 
 
 @pytest.mark.parametrize("ci", [False, True], ids=["terminal", "ci"])
-def test_a_job_rejected_for_a_grant_opens_its_request_page_where_somebody_watches(
-        fake_v1, run, opened, monkeypatch, caplog, ci):
-    '''Refused `entitlement-denied` while staging: at a terminal the page for its
-    `resource` is asked for and opened, and the advice says so; a CI session asks for none.'''
+@pytest.mark.parametrize("slug, status, members, opens_with, says_opened, says_portal", [
+    ("entitlement-denied", 403, {"resource_kind": "pdk", "resource": "gf22"}, "gf22",
+     "on the page just opened", "sc-config remote portal opens"),
+    ("upload-forbidden", 422, {"resource_kind": "library", "detected": "content",
+                               "member": "a.lef", "resource": "gf22"}, "gf22",
+     "to upload your own copy, where this server allows it",
+     "To ask to upload your own copy"),
+    ("upload-forbidden", 422, {"resource_kind": "library", "detected": "content",
+                               "member": "a.lef"}, None,
+     None, "use this server's copy."),
+], ids=["grant", "upload", "upload-no-resource"])
+def test_a_job_rejected_over_a_resource_opens_its_page_where_somebody_watches(
+        fake_v1, run, opened, monkeypatch, caplog, ci, slug, status, members, opens_with,
+        says_opened, says_portal):
+    '''Refused `entitlement-denied` or `upload-forbidden` while staging: at a terminal the
+    page for its `resource` is asked for and opened, and the advice says so; a CI session, or
+    a refusal naming no resource, asks for none.'''
     if ci:
         monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
     fake_v1.route(responses.POST, "auth/browser",
                   {"url": "https://portal.test/grants/gf22", "expires_at": None})
 
     text = _failed_poll(fake_v1, run, caplog, state="rejected", nodes=[],
-                        error=problem("entitlement-denied", 403, resource_kind="pdk",
-                                      resource="gf22"))
+                        error=problem(slug, status, **members))
 
+    shown = opens_with is not None and not ci
     assert [json.loads(page.body) for page in _pages(fake_v1)] == \
-        ([] if ci else [{"resource": "gf22"}])
-    assert opened == ([] if ci else ["https://portal.test/grants/gf22"])
-    assert ("sc-config remote portal opens" if ci else "on the page just opened") in text
+        ([{"resource": opens_with}] if shown else [])
+    assert opened == (["https://portal.test/grants/gf22"] if shown else [])
+    assert (says_opened if shown else says_portal) in text
 
 
 def test_streamed_lines_are_not_prefixed_a_second_time(fake_v1, run):
