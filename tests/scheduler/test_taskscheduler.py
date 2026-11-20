@@ -793,6 +793,31 @@ def test_no_breakpoint_respects_max_parallel(large_flow, make_tasks):
     assert scheduler.get_running_nodes() == [("stepone", "0"), ("stepone", "1")]
 
 
+class _ElsewhereNode(SchedulerNode):
+    '''A node whose threads run on another machine, as a Slurm node's do.'''
+    @property
+    def is_local(self):
+        return False
+
+
+@pytest.mark.parametrize("elsewhere,running", [
+    ((), [("stepone", "0")]),
+    (("0", "1"), [("stepone", "0"), ("stepone", "1"), ("stepone", "2")])])
+def test_only_nodes_run_here_share_its_cores(large_flow, make_tasks, elsewhere, running):
+    '''Nodes run on this machine share its cores, while one run elsewhere neither waits for them
+    nor takes them from a node run here. Guards against Slurm nodes running one at a time.'''
+    tasks = make_tasks(large_flow)
+    for index in elsewhere:
+        tasks[("stepone", index)] = _ElsewhereNode(large_flow, "stepone", index)
+    scheduler = TaskScheduler(large_flow, tasks)
+    _mock_all_procs(scheduler, threads=8)
+    _set_resources(scheduler, max_parallel=3)
+    scheduler._TaskScheduler__max_cores = 8
+
+    _launch(scheduler)
+    assert scheduler.get_running_nodes() == running
+
+
 # A failed dependency normally disqualifies a node before it ever starts. The
 # option excuses that failure -- read from the node it happened on, never from
 # the node that consumes it -- so the consumer launches and runs on whatever
