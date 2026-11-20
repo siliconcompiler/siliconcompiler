@@ -139,8 +139,7 @@ def test_a_python_plus_dataroot_is_sent_as_its_remote_source(
     '''At its tag, or at the commit a fetchable checkout has out, and left out of
     the archive; a changed checkout goes up (#5624). A design's, a dependency
     such as a lambdalib tech library or the top one, is sent as a PDK's is,
-    and the top design's files under a local path still go up. A checkout's
-    dataroot, should the server ask for it, is read from the checkout here.'''
+    and the top design's files under a local path still go up.'''
     from siliconcompiler.package import PythonPathResolver
 
     monkeypatch.setattr(PythonPathResolver, "is_python_module_editable",
