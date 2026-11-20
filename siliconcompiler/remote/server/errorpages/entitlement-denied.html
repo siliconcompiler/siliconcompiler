@@ -13,8 +13,7 @@ not about how busy the server is, and the identical request returns the identica
 
 <div class="do">
 <ol>
-  <li>Read <code>resources</code> to see every grant you lack; <code>resource</code> and
-      <code>resource_kind</code> name the first.</li>
+  <li>Read <code>resources</code> to see every grant you lack.</li>
   <li>Check <code>GET /v1/me</code>. The <code>authorized</code> block lists what your account does
       hold, keyed by kind (<code>pdks</code>, <code>tools</code>, <code>libraries</code>).</li>
   <li>If you should have them, ask for them on one page: <code>POST /v1/auth/browser</code> with
@@ -34,8 +33,6 @@ not about how busy the server is, and the identical request returns the identica
   "detail":        "The manifest names a PDK this account does not hold.",
   "instance":      "/v1/jobs/01J9.../submit",
 
-  "resource_kind": "pdk",     <span class="c">// REQUIRED on this type</span>
-  "resource":      "gf22",    <span class="c">// REQUIRED on this type</span>
   "resources":     ["gf22", "gf22-sram"],   <span class="c">// REQUIRED on this type</span>
 
   "trace_id":      "4bf92f3577b34da6a3ce929d0e0e4736"
@@ -44,24 +41,17 @@ not about how busy the server is, and the identical request returns the identica
 <table>
 <thead><tr><th>Member</th><th></th><th></th></tr></thead>
 <tbody>
-<tr><td><code>resource_kind</code></td><td><span class="req">REQUIRED</span></td>
-    <td>Which kind of thing was refused: <code>pdk</code>, <code>tool</code>,
-        <code>library</code>, <code>fpga</code>. The kind is a value, never a prefix on the
-        type.</td></tr>
-<tr><td><code>resource</code></td><td><span class="req">REQUIRED</span></td>
-    <td>Its name, as the catalogue spells it.</td></tr>
 <tr><td><code>resources</code></td><td><span class="req">REQUIRED</span></td>
-    <td>The name of every resource you lack, <code>resource</code> first, each once, in the
-        order the server checks them: at most 20, and a later refusal lists any past them. A job
-        error recorded before servers sent it lacks it; ask with <code>resource</code> then.</td></tr>
+    <td>The name of every resource you lack, as the catalogue spells it, each once, in the
+        order the server checks them: at most 20, and a later refusal lists any past them. No
+        kind is given: one could not describe a list of several kinds.</td></tr>
 <tr><td><code>trace_id</code></td><td>optional</td>
     <td>The request&rsquo;s W3C trace id. Quote it in a support request.</td></tr>
 </tbody>
 </table>
 
 <p><code>detail</code> is prose and may be reworded at any time. Branch on <code>type</code>, and
-read <code>resource_kind</code>, <code>resource</code> and <code>resources</code> for the
-specifics &mdash; never parse <code>detail</code>.</p>
+read <code>resources</code> for the specifics &mdash; never parse <code>detail</code>.</p>
 
 <h2>Where it comes from</h2>
 

@@ -954,29 +954,24 @@ is a token to ask with. The JSON body names the page, with at most one member:
   {"job_id": "01J9..."}       // the job's page
   {"terms_id": "acme-nda"}    // a terms document's page, to read and decide
   {"artifact_id": "01J9..."}  // asking for an artifact's approval
-  {"resource": "acme"}        // a resource's page, named by entitlement-denied or upload-forbidden
-  {"resources": ["acme", "acme-sram"]}  // one page for every grant entitlement-denied lists
+  {"resources": ["acme", "acme-sram"]}  // one page for every resource a refusal names
   {}                          // the portal's home
 
-``resource`` is the ``resource`` an ``entitlement-denied`` carried, at create,
-on a job's ``error``, at a fetch or on a live log, or the one an
-``upload-forbidden`` carried on a job's ``error``, which names it only where the
-caller holds a grant of it. On that page a person who holds the resource may ask
-to upload their own copy, where the deployment grants such a permission, or reads
-why not; whether a grant allows an upload is never on the wire, so the client only
-opens the page. A name is unique across kinds
-on a deployment, so no kind is sent. The page is answered for every name the
-deployment's catalogue holds, and says why where there is nothing to ask for: the
-grant held, a request already made, or a resource that cannot be granted. A
-client asks for it from an interactive session and opens it, printing it where
-no browser opens; a CI session asks for none.
-
-``resources`` is the ``resources`` an ``entitlement-denied`` carried: every
-grant the caller lacked, ``resource`` first. It is 1 to 20 distinct names, each
-as ``resource`` is, and is answered with one page that says of each what the
-person may ask, has asked, holds or cannot be granted, and asks for all they
-may at once. A client sends it where a refusal carries it, and ``resource``
-otherwise, as on a job's ``error`` recorded before servers listed them.
+``resources`` is the ``resources`` an ``entitlement-denied`` carried, at create,
+on a job's ``error``, at a fetch or on a live log, every grant the caller lacked;
+or a list of the one ``resource`` an ``upload-forbidden`` carried on a job's
+``error``, which names it only where the caller holds a grant of it. It is 1 to 20
+distinct names, each 1 to 200 printable characters. On its one page a person asks
+for every grant at once, or, holding a resource, asks to upload their own copy,
+where the deployment grants such a permission, or reads why not; whether a grant
+allows an upload is never on the wire, so the client only opens the page. A name is
+unique across kinds on a deployment, so no kind is sent. The page is answered
+where every name is one the deployment's catalogue holds, and says why where there
+is nothing to ask for: the grant held, a request already made, or a resource that
+cannot be granted. A client asks for it from an interactive session and opens it,
+printing it where no browser opens; a CI session asks for none. A refusal that
+carries no list of names, as a job's ``error`` recorded before servers listed
+them, opens no page.
 
 Where any of a job's artifacts the caller can see has ``can_request_access``
 ``true``, the job's page offers a request for each of them, so a client with
@@ -1004,8 +999,8 @@ header.
     - When
   * - ``400``
     - ``invalid-request``
-    - more than one member, or one not defined here; or an id or a ``resource``
-      that is not 1 to 200 printable characters; or a ``resources`` that is not
+    - more than one member, or one not defined here, ``resource`` included; or an
+      id that is not 1 to 200 printable characters; or a ``resources`` that is not
       an array of 1 to 20 distinct such names
   * - ``403``
     - ``not-permitted``
@@ -1013,8 +1008,7 @@ header.
   * - ``404``
     - ``not-found``
     - a well-formed id naming a job, artifact or document the caller cannot see;
-      or a ``resource``, or any name in ``resources``, the deployment's
-      catalogue does not hold
+      or any name in ``resources`` the deployment's catalogue does not hold
 
 The server and the account
 --------------------------
@@ -1437,8 +1431,8 @@ job, and nothing is created. A replayed create is ``201``.
     - an unaccepted service document, or agreement on a resource the job names
   * - ``403``
     - ``entitlement-denied``
-    - no grant for a tool, resource or capability the job names; ``resource``
-      names the first, and ``resources`` lists every one
+    - no grant for a tool, resource or capability the job names; ``resources``
+      lists every one
   * - ``403``
     - ``account-not-provisioned``
     - the account cannot run jobs here yet
@@ -1785,7 +1779,7 @@ neither: those travel as ordinary collected files.
 * **What a caller may do** is a capability, where the deployment grants them:
   ``python-packages`` to list packages, ``python-wheels`` to upload wheels, and
   ``python-sdist`` to have one built from source on the server. Missing, each is
-  ``entitlement-denied`` with ``resource_kind: "capability"``.
+  ``entitlement-denied``, its ``resources`` naming the capability.
 * A package is installed at the version listed, or where that version does not
   install for the node's platform, the newest of its release line, recorded in
   ``resolved_versions``. The environment is on the tool's ``PYTHONPATH`` only,
@@ -2153,7 +2147,7 @@ that holds:
   * - only an approval is missing
     - ``403 artifact-not-approved``
   * - a resource it derives from is not granted to the caller
-    - ``403 entitlement-denied``, naming the first and listing each
+    - ``403 entitlement-denied``, listing each in ``resources``
   * - an agreement on one is unaccepted
     - ``403 terms-not-accepted``, with ``blocked_by``
   * - still being described, and none of the refusals above applies
@@ -2181,9 +2175,7 @@ A refusal is an :rfc:`9457` body, ``application/problem+json``:
     "detail": "The descriptor names a PDK this account holds no grant for.",
                                        // OPTIONAL. Names fields, never echoes values
     "instance": "/v1/jobs",            // OPTIONAL; a server SHOULD send it
-    "resource_kind": "pdk",            // the type's own members
-    "resource":      "acme",
-    "resources":     ["acme"],
+    "resources":     ["acme"],         // the type's own members
     "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"   // OPTIONAL; a server SHOULD send it
   }
 

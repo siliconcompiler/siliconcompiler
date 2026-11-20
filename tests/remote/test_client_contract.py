@@ -178,7 +178,7 @@ def test_a_terms_refusal_names_each_document_and_opens_its_page(logged_in, fake_
 def test_a_grant_refusal_opens_its_request_page_only_where_somebody_watches(
         logged_in, fake_v1, monkeypatch, call, session):
     '''An `entitlement-denied` at create or on a live log: on a terminal, the page for
-    its `resource` is asked for by that name and opened, and the advice says so. Off
+    its `resources` is asked for with that list and opened, and the advice says so. Off
     one, and in a CI session, none is asked for and the advice names the portal.'''
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
@@ -188,8 +188,7 @@ def test_a_grant_refusal_opens_its_request_page_only_where_somebody_watches(
         monkeypatch.setenv("SC_CI_CREDENTIAL", "scci_01J9credential_key")
     method, path = (responses.POST, "jobs") if call == "create" else \
         (responses.GET, "jobs/j1/logs")
-    refused(fake_v1, method, path, "entitlement-denied", 403, resource_kind="pdk",
-            resource="gf22")
+    refused(fake_v1, method, path, "entitlement-denied", 403, resources=["gf22"])
     fake_v1.route(responses.POST, "auth/browser",
                   {"url": "https://portal.test/grants/gf22", "expires_at": None})
 
@@ -200,7 +199,7 @@ def test_a_grant_refusal_opens_its_request_page_only_where_somebody_watches(
             logged_in.follow_log("j1", "place", "0")
 
     if session == "terminal":
-        assert asked_for_pages(fake_v1) == [{"resource": "gf22"}]
+        assert asked_for_pages(fake_v1) == [{"resources": ["gf22"]}]
         assert opened == ["https://portal.test/grants/gf22"]
         assert "Ask for the grant on the page just opened" in str(raised.value)
     else:
@@ -217,34 +216,36 @@ def test_a_grant_page_opens_once_for_each_server(logged_in, monkeypatch):
         (logged_in.credentials.server, named)) or True)
     for server in ("https://a.test", "https://b.test", "https://a.test"):
         monkeypatch.setattr(logged_in, "credentials", SimpleNamespace(server=server))
-        assert logged_in.ask_for_grant({"resource": "gf22"})
-        assert logged_in.ask_for_grant({"resource": "gf22"})
-    assert opened == [("https://a.test", {"resource": "gf22"}),
-                      ("https://b.test", {"resource": "gf22"})]
+        assert logged_in.ask_for_grant(["gf22"]) and logged_in.ask_for_grant(["gf22"])
+    assert not logged_in.ask_for_grant([])
+    assert opened == [("https://a.test", {"resources": ["gf22"]}),
+                      ("https://b.test", {"resources": ["gf22"]})]
 
 
 @pytest.mark.parametrize("members, asked, says", [
-    ({"resource": "gf22", "resources": ["gf22", "gf22-sram"]},
-     {"resources": ["gf22", "gf22-sram"]}, "Ask for the grants on the page just opened"),
-    ({"resource": "gf22", "resources": ["gf22"]}, {"resources": ["gf22"]},
+    ({"resources": ["gf22", "gf22-sram"]}, {"resources": ["gf22", "gf22-sram"]},
+     "Ask for the grants on the page just opened"),
+    ({"resources": ["gf22"]}, {"resources": ["gf22"]},
      "Ask for the grant on the page just opened"),
-    ({"resource": "gf22"}, {"resource": "gf22"}, "Ask for the grant on the page just opened"),
-    ({"resource": "gf22", "resources": ["gf22", 5]}, {"resource": "gf22"},
-     "Ask for the grant on the page just opened"),
-    ({"resource": "gf22", "resources": []}, {"resource": "gf22"},
-     "Ask for the grant on the page just opened"),
+    ({"resource_kind": "pdk", "resource": "gf22"}, None,
+     "Ask for the grant in this server's portal"),
+    ({"resources": ["gf22", 5]}, None, "Ask for the grant in this server's portal"),
+    ({"resources": [{"name": "gf22"}]}, None, "Ask for the grant in this server's portal"),
+    ({"resources": "gf22"}, None, "Ask for the grant in this server's portal"),
+    ({"resources": []}, None, "Ask for the grant in this server's portal"),
     ({}, None, "Ask for the grant in this server's portal"),
-], ids=["listed", "one-listed", "named-only", "not-names", "empty", "none"])
+], ids=["listed", "one-listed", "one-named", "not-names", "objects", "not-a-list", "empty",
+        "none"])
 def test_a_create_refused_for_grants_opens_one_page_for_every_one_it_lists(
         logged_in, fake_v1, monkeypatch, members, asked, says):
-    '''At create, the page is asked for with the refusal's `resources`, one page for every
-    grant it lacks; without a list of names, with its `resource`; naming none, for nothing.'''
+    '''At create, the page is asked for with the refusal's `resources` as sent, one page for
+    every grant it lacks; a refusal with no list of names, a single `resource` included, asks for
+    none, and its message still says to ask in the portal.'''
     opened = []
     monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
     monkeypatch.setattr("sys.stdout.isatty", lambda: True)
     monkeypatch.delenv("CI", raising=False)
-    refused(fake_v1, responses.POST, "jobs", "entitlement-denied", 403, resource_kind="pdk",
-            **members)
+    refused(fake_v1, responses.POST, "jobs", "entitlement-denied", 403, **members)
     fake_v1.route(responses.POST, "auth/browser",
                   {"url": "https://portal.test/grants", "expires_at": None})
 

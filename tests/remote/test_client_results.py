@@ -253,8 +253,7 @@ def test_an_agreement_grant_or_approval_is_offered_and_opened_only_on_a_terminal
     # Listed fetchable, and refused at the fetch: a grant lapsed between the two.
     for step in ("stepone", "steptwo"):
         refused(fake_v1, responses.GET, f"jobs/j1/artifacts/art-reports-{step}-0",
-                "entitlement-denied", 403, resource_kind="pdk", resource="gf22",
-                resources=["gf22", "gf22-sram"])
+                "entitlement-denied", 403, resources=["gf22", "gf22-sram"])
 
     caplog.set_level("WARNING")
     results.fetch("j1")

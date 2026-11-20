@@ -6,12 +6,12 @@ The ``type`` URIs are static, so only the client can render the specific failure
 
 import re
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit
 
 __all__ = ["RemoteError", "Unreachable", "RemoteTimeout", "ServerProblem", "SessionEnded",
            "describe", "NO_NODE_FAILED", "EARLIER_JOB_UNTIED", "grant_step", "upload_step",
-           "clean", "listed", "grant_page"]
+           "clean", "listed", "grant_names"]
 
 
 class RemoteError(Exception):
@@ -257,29 +257,32 @@ _CAPABILITY_STEP = {
 }
 
 
-def grant_page(problem: Dict[str, Any]) -> Dict[str, Any]:
-    '''What ``POST /v1/auth/browser`` is asked with for the page where a person asks for
-    what a refusal names: every grant an `entitlement-denied` lists in `resources`, on
-    one page, else the one `resource` it, or an `upload-forbidden`, names; empty where
-    it names none.'''
-    listed = problem.get("resources")
-    if isinstance(listed, list) and listed and \
-            all(isinstance(name, str) and name for name in listed):
-        return {"resources": listed}
-    resource = problem.get("resource")
-    return {"resource": resource} if isinstance(resource, str) and resource else {}
+def grant_names(problem: Dict[str, Any]) -> List[str]:
+    '''The names ``POST /v1/auth/browser`` is asked for one page with, as `resources`,
+    where a person asks for what a refusal names: every grant an `entitlement-denied`
+    lists, or the one `resource` an `upload-forbidden` names. None for any other
+    refusal, or where it holds no list of names, so no page is asked for. A list of
+    names goes as the server sent it, since that server checks it.'''
+    slug = _slug(problem)
+    names = problem.get("resources") if slug == "entitlement-denied" else \
+        [problem.get("resource")] if slug == "upload-forbidden" else None
+    if isinstance(names, list) and names and \
+            all(isinstance(name, str) and name for name in names):
+        return names
+    return []
 
 
 def grant_step(problem: Dict[str, Any], opened: bool = False) -> str:
     '''`entitlement-denied`'s next step: ask for each grant it lists on the page this
     client opened, else in the portal, which `sc-config remote portal` opens at a
     person's own terminal, never in CI.'''
-    grants = "grants" if len(grant_page(problem).get("resources") or []) > 1 else "grant"
+    names = grant_names(problem)
+    grants = "grants" if len(names) > 1 else "grant"
     ask = f"Ask for the {grants} on the page just opened" if opened else \
         (f"Ask for the {grants} in this server's portal, which sc-config remote portal opens "
          "from a terminal of your own")
-    other = _CAPABILITY_STEP.get(problem.get("resource")) \
-        if problem.get("resource_kind") == "capability" else None
+    # What does without a capability, where it is the one grant refused.
+    other = _CAPABILITY_STEP.get(names[0]) if len(names) == 1 else None
     return ask + (other or "; waiting will not help.")
 
 

@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from siliconcompiler import utils
 from siliconcompiler.remote import manifests
 from siliconcompiler.remote.client.errors import RemoteError, ServerProblem, blocked_lines, \
-    clean, grant_page
+    clean, grant_names
 from siliconcompiler.remote.runflow import runtime_nodes
 from siliconcompiler.utils.units import format_binary
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -205,14 +205,14 @@ class Results:
         items = _worth_fetching([item for item in listed if not self._oversized(item)])
 
         # One object failing does not abort the others.
-        ungranted: List[Dict[str, Any]] = []
+        ungranted: List[List[str]] = []
 
         def failed(item: Dict[str, Any], e: Exception) -> None:
             self.logger.error(f"{self._name(item)}: {e}")
-            named = grant_page(e.problem) if isinstance(e, ServerProblem) and \
-                e.slug == "entitlement-denied" else {}
-            if named and named not in ungranted:
-                ungranted.append(named)
+            names = grant_names(e.problem) if isinstance(e, ServerProblem) and \
+                e.slug == "entitlement-denied" else []
+            if names and names not in ungranted:
+                ungranted.append(names)
 
         self._land(job_id, items, failed)
 
@@ -248,10 +248,9 @@ class Results:
             self._fetched.add(key)
 
     def _report_withheld(self, items: List[Dict[str, Any]], job_id: str,
-                         ungranted: List[Dict[str, Any]]) -> None:
+                         ungranted: List[List[str]]) -> None:
         '''One line per reason, not one per object, so the one that differs is read.
-        ``ungranted`` is each grant page a fetch's refusal names, by what it is asked
-        with.'''
+        ``ungranted`` is the names each fetch's refusal lists, each list once.'''
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for item in items:
             grouped.setdefault(self._why(item, many=True), []).append(item)
@@ -271,7 +270,7 @@ class Results:
         self._offer_requests(items, job_id, ungranted)
 
     def _offer_requests(self, items: List[Dict[str, Any]], job_id: str,
-                        ungranted: List[Dict[str, Any]]) -> None:
+                        ungranted: List[List[str]]) -> None:
         '''*Sign*, *grant* and *ask*, at a terminal: on a yes, open each blocking
         document's page, one request page for the grants each refusal lists, and each
         approval request's. Under a running dashboard nothing can be asked, so each page opens
@@ -302,12 +301,11 @@ class Results:
                 title = clean(self.client.terms_titles().get(terms_id) or terms_id)
                 self.client.open_page(f"{title}'s page", terms_id=terms_id)
 
-        grants = {name for named in ungranted
-                  for name in named.get("resources") or [named.get("resource")]}
+        grants = {name for names in ungranted for name in names}
         if ungranted and yes(f"Open the request for {len(grants)} grant(s) in a browser? "
                              "[y/N] "):
-            for named in ungranted:
-                self.client.ask_for_grant(named)
+            for names in ungranted:
+                self.client.ask_for_grant(names)
 
         if ask and yes(f"Open the approval request for {len(ask)} of them in a browser? "
                        "[y/N] "):
