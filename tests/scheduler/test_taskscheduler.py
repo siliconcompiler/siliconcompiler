@@ -800,18 +800,21 @@ class _ElsewhereNode(SchedulerNode):
         return False
 
 
-@pytest.mark.parametrize("elsewhere,running", [
-    ((), [("stepone", "0")]),
-    (("0", "1"), [("stepone", "0"), ("stepone", "1"), ("stepone", "2")])])
-def test_only_nodes_run_here_share_its_cores(large_flow, make_tasks, elsewhere, running):
+@pytest.mark.parametrize("elsewhere,max_parallel,running", [
+    ((), 3, [("stepone", "0")]),
+    (("0", "1"), 3, [("stepone", "0"), ("stepone", "1"), ("stepone", "2")]),
+    (("0", "1", "2"), 2, [("stepone", "0"), ("stepone", "1")])])
+def test_only_nodes_run_here_share_its_cores(large_flow, make_tasks, elsewhere, max_parallel,
+                                             running):
     '''Nodes run on this machine share its cores, while one run elsewhere neither waits for them
-    nor takes them from a node run here. Guards against Slurm nodes running one at a time.'''
+    nor takes them from a node run here, though maxnodes still holds it (#5363). Guards against
+    Slurm nodes running one at a time.'''
     tasks = make_tasks(large_flow)
     for index in elsewhere:
         tasks[("stepone", index)] = _ElsewhereNode(large_flow, "stepone", index)
     scheduler = TaskScheduler(large_flow, tasks)
     _mock_all_procs(scheduler, threads=8)
-    _set_resources(scheduler, max_parallel=3)
+    _set_resources(scheduler, max_parallel=max_parallel)
     scheduler._TaskScheduler__max_cores = 8
 
     _launch(scheduler)
