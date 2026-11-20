@@ -633,7 +633,8 @@ class TaskScheduler:
         Private helper to check if a node is allowed to start based on resources.
 
         This method checks if launching a new node would exceed the configured
-        maximum number of parallel jobs or the total available CPU cores.
+        maximum number of parallel jobs or, for a node that runs on this
+        machine, the CPU cores the nodes running here have left.
 
         Args:
             node (tuple): The (step, index) of the node to check.
@@ -649,7 +650,12 @@ class TaskScheduler:
             # exceeding machine resources
             return False
 
-        current_threads = sum([self.__nodes[run_node]["threads"] for run_node in running_nodes])
+        if not info["node"].is_local:
+            # Its threads run on another machine, whose own scheduler finds them cores
+            return True
+
+        current_threads = sum([self.__nodes[run_node]["threads"] for run_node in running_nodes
+                               if self.__nodes[run_node]["node"].is_local])
 
         if info["threads"] + current_threads > self.__max_cores:
             # delay until there are enough core available
