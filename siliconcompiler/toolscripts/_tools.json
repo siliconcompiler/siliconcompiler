@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "b9f770e608e25100bf55ba41a99158fd5102db86",
+    "git-commit": "0d227669ce17982b68afbab0149f970453c36d7f",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The documentation toolchain and the -dev half of the GUI libraries. pandoc,",
