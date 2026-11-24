@@ -411,7 +411,7 @@
     ]
   },
   "chisel": {
-    "version": "2.1.0",
+    "version": "2.1.1",
     "git-url": "https://github.com/sbt/sbt.git",
     "auto-update": true,
     "docker-prune-dirs": [
