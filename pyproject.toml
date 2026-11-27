@@ -102,6 +102,8 @@ lint = [
     "codespell == 2.4.3"
 ]
 docs = [
+    # The remote error reference imports the server registry.
+    "siliconcompiler[server]",
     # Sphinx 8.2 and pydata-sphinx-theme 0.20 require Python 3.11.
     "Sphinx == 8.1.3; python_version < '3.11'",
     "Sphinx == 8.2.3; python_version >= '3.11'",
