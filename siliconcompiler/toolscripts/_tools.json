@@ -688,7 +688,7 @@
   },
   "vcd2fst": {
     "git-url": "https://github.com/Silimate/vcd2fst.git",
-    "git-commit": "4bc03f9f4244fa20f153accb8c0f841464075ea6",
+    "git-commit": "3e6481ad3e211556ee5480b938524c1ce1c029ac",
     "auto-update": true,
     "docker-prune-dirs": [
       "include",
