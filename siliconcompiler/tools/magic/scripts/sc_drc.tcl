@@ -47,6 +47,10 @@ select top cell
 drc euclidean on
 drc style drc(full)
 drc check
+# drc listall only reports errors inside the box; error areas can extend past
+# the cell boundary (e.g. width violations on the outermost shapes), so query a
+# region larger than the cell
+box grow c 100um
 set drcresult [drc listall why]
 set count 0
 puts $fout "$sc_topmodule"
