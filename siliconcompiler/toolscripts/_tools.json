@@ -94,7 +94,7 @@
       "zlib1g-dev",
       "libllvm18"
     ],
-    "git-commit": "v6.0.0",
+    "git-commit": "v6.1.0",
     "auto-update": true,
     "_comment-drop-pkgs": [
       "The distribution clang stack that arrives under ghdl's \"llvm-dev\", the",
